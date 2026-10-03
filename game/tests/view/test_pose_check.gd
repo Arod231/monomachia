@@ -1,0 +1,355 @@
+extends GutTest
+## PoseCheck, the checks every swing and stance must pass on the real posed
+## skeleton (the spec's swing rules): wrists within their limits, elbows bent
+## 150-160 degrees on contact and never locked, the knees over the toes, the
+## blade clear of its own body, and how much blade enters a defender. Made-up
+## poses built from a real guard fail where they should; the Katana guard
+## is measured on both fighters (test_guard_stance.gd checks that it
+## passes); MoveBench plays a move frame by frame on the
+## rules' clock, and a report over the stand-in Katana attacks prints.
+
+const SIDES: Array[String] = ["Right", "Left"]
+
+
+func _bench(fighter_id: StringName, weapon: WeaponDef = Moves.KATANA) -> MoveBench:
+	var bench: MoveBench = MoveBench.new(self, fighter_id, weapon)
+	return bench
+
+
+func after_each() -> void:
+	MoveBench.free_all()
+
+
+## A frame of `bench`'s fighter standing in its guard.
+func _guard_frame(bench: MoveBench) -> PoseCheck.Frame:
+	bench.stand()
+	return await bench.frame()
+
+
+func _bone(bench: MoveBench, frame: PoseCheck.Frame, bone: String) -> Transform3D:
+	return frame.bones[bench.view.model.skeleton.find_bone(bone)]
+
+
+func _set_bone(bench: MoveBench, frame: PoseCheck.Frame, bone: String, xf: Transform3D) -> void:
+	frame.bones[bench.view.model.skeleton.find_bone(bone)] = xf
+
+
+func _has(failures: PackedStringArray, words: String) -> bool:
+	for f: String in failures:
+		if f.contains(words):
+			return true
+	return false
+
+
+# ------------------------------------------------------------------ the body
+
+## Each fighter's capsules are measured from its own meshes: the head's
+## wraps the hair, the hood and the hat, and the others hug their limbs.
+func test_the_body_capsules_are_measured_from_each_fighter() -> void:
+	var bands: Dictionary[String, Vector2] = {
+		"head": Vector2(0.08, 0.25),
+		"torso": Vector2(0.10, 0.22),
+		"right upper arm": Vector2(0.035, 0.10),
+		"left upper arm": Vector2(0.035, 0.12),
+		"right forearm": Vector2(0.03, 0.08),
+		"left forearm": Vector2(0.03, 0.08),
+		"right thigh": Vector2(0.06, 0.18),
+		"left thigh": Vector2(0.06, 0.18),
+	}
+	for id: StringName in FighterLook.IDS:
+		var bench: MoveBench = _bench(id)
+		var capsules: Array[PoseCheck.Capsule] = bench.check.capsules
+		var names: Array[String] = []
+		for c: PoseCheck.Capsule in capsules:
+			names.append(c.name)
+			gut.p("%s %s: radius %.3f m, axis %.3f m" % [id, c.name, c.radius, c.length])
+			assert_between(c.radius, bands[c.name].x, bands[c.name].y, "%s %s" % [id, c.name])
+		assert_eq(names, bands.keys(), "%s: head, torso, arms and thighs" % id)
+	# the Hunter's tricorn sits inside his head capsule
+	var hunter: MoveBench = _bench(&"hunter")
+	var frame: PoseCheck.Frame = await _guard_frame(hunter)
+	var head: PoseCheck.Capsule = hunter.check.capsule("head")
+	var ends: PackedVector3Array = head.ends(frame.bones)
+	var hat: MeshInstance3D = hunter.view.model.skeleton.get_node(^"HeadAttachment/Hat")
+	# the hat rides the head bone, as the frame has it
+	var on_head: Transform3D = _bone(hunter, frame, "Head") * hat.transform
+	var worst: float = 0.0
+	for v: Vector3 in hat.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
+		var p: Vector3 = on_head * v
+		worst = maxf(worst, p.distance_to(Geometry3D.get_closest_point_to_segment(p, ends[0], ends[1])))
+	assert_lt(worst, head.radius + 0.002, "the hat is inside the head capsule")
+
+
+# ------------------------------------------------------------------ the guard
+
+## The match's Katana guard is measured on both fighters: both wrists,
+## both elbows, both knees and the blade. Since plan task 14.8 it passes
+## (test_guard_stance.gd); before, the wrists bent past their limits and the
+## Rogue's idle clip caved her left knee.
+func test_the_katana_guard_is_measured_on_both_fighters() -> void:
+	for id: StringName in FighterLook.IDS:
+		var bench: MoveBench = _bench(id)
+		var report: PoseCheck.Report = bench.check.measure(await _guard_frame(bench))
+		gut.p("%s katana guard: %s; fails: %s" % [id, report.summary(), report.failures()])
+		assert_gt(report.blade_gap, PoseCheck.BLADE_CLEARANCE, "%s: the blade clears the body" % id)
+		assert_eq(report.wrists.keys(), SIDES, "%s: both wrists measured" % id)
+		assert_eq(report.elbows.keys(), SIDES, "%s: both elbows measured" % id)
+		assert_eq(report.knees.keys(), SIDES, "%s: both knees measured" % id)
+		assert_lt(report.blade_gap, 1.0, "%s: the blade is measured" % id)
+
+
+## Measuring a frame twice gives the same numbers, and so does capturing the
+## same pose twice.
+func test_the_same_pose_measures_the_same() -> void:
+	var bench: MoveBench = _bench(&"rogue")
+	var a: PoseCheck.Report = bench.check.measure(await _guard_frame(bench))
+	var b: PoseCheck.Report = bench.check.measure(await _guard_frame(bench))
+	assert_eq(a.summary(), b.summary())
+
+
+# ------------------------------------------------------------------ made-up poses
+
+## A hand bent from the forearm's line (the guard's hand put in line with
+## its forearm, then bent): 55 degrees toward the palm passes, 70 either way
+## fails; 20 degrees toward the thumb passes, 30 either way fails. A hand
+## bone's +X points to the thumb on the right hand and away from it on the
+## left, so the same turn reads the other way round on each.
+func test_a_wrist_bent_past_its_limits_fails() -> void:
+	var bench: MoveBench = _bench(&"rogue")
+	var guard: PoseCheck.Frame = await _guard_frame(bench)
+	for side: String in SIDES:
+		# a turn about the palm's normal that moves the fingers toward the thumb
+		var thumbward: float = -1.0 if side == "Right" else 1.0
+		for case: Array in [[0.0, 0.0, true], [55.0, 0.0, true], [70.0, 0.0, false], [-70.0, 0.0, false], [0.0, 20.0, true], [0.0, 30.0, false], [0.0, -30.0, false]]:
+			var frame: PoseCheck.Frame = guard.copy()
+			var hand: Transform3D = bench.check.straight_hand(side, frame.bones)
+			# bend about the hand's own X (toward the palm), then deviate
+			# about its palm normal
+			var b: Basis = Basis(hand.basis.x.normalized(), deg_to_rad(case[0])) * hand.basis
+			b = Basis(b.z.normalized(), thumbward * deg_to_rad(case[1])) * b
+			_set_bone(bench, frame, side + "Hand", Transform3D(b, hand.origin))
+			var report: PoseCheck.Report = bench.check.measure(frame)
+			var wrist: Vector2 = report.wrists[side]
+			assert_almost_eq(wrist.x, case[0], 0.5, "%s bend %s" % [side, case])
+			assert_almost_eq(wrist.y, case[1], 0.5, "%s deviation %s" % [side, case])
+			assert_eq(_has(report.failures(), side.to_lower() + " wrist"), not case[2], "%s %s: %s" % [side, case, report.failures()])
+
+
+## A blade crossing over the crown 3 cm from the head capsule (the hat's,
+## on the Hunter) fails, naming the head; at 6 cm it passes.
+func test_a_blade_near_the_head_fails() -> void:
+	for id: StringName in FighterLook.IDS:
+		var bench: MoveBench = _bench(id)
+		var guard: PoseCheck.Frame = await _guard_frame(bench)
+		var head: PoseCheck.Capsule = bench.check.capsule("head")
+		var ends: PackedVector3Array = head.ends(guard.bones)
+		var up: Vector3 = (ends[1] - ends[0]).normalized()
+		var across: Vector3 = up.cross(Vector3.BACK).normalized()
+		for case: Array in [[0.03, false], [0.06, true]]:
+			var frame: PoseCheck.Frame = guard.copy()
+			var at: Vector3 = ends[1] + up * (head.radius + case[0])
+			frame.blades = [PackedVector3Array([at - across * 0.35, at + across * 0.35])]
+			var report: PoseCheck.Report = bench.check.measure(frame)
+			assert_almost_eq(report.blade_gap, case[0], 0.003, "%s: %.0f cm" % [id, case[0] * 100.0])
+			assert_eq(report.blade_near, "head", id)
+			assert_eq(_has(report.failures(), "from the head"), not case[1], "%s %s: %s" % [id, case, report.failures()])
+
+
+## A frame of `bench`'s fighter in its rest pose (arms out to the sides),
+## holding nothing.
+func _rest_frame(bench: MoveBench) -> PoseCheck.Frame:
+	var frame: PoseCheck.Frame = PoseCheck.Frame.new()
+	var sk: Skeleton3D = bench.view.model.skeleton
+	for i: int in sk.get_bone_count():
+		frame.bones.append(sk.get_bone_global_rest(i))
+	return frame
+
+
+## Each capsule's cap stops where its part does: on the rest pose (arms out
+## along X), a blade crossing the right arm's line through the hand, a
+## forearm's radius and 4.5 cm past the wrist, clears the forearm (the hand
+## isn't a capsule; a cap round the wrist joint would be 4.5 cm off), while
+## one crossing 4 cm over the forearm's middle doesn't.
+func test_the_capsules_stop_where_their_parts_do() -> void:
+	for id: StringName in FighterLook.IDS:
+		var bench: MoveBench = _bench(id)
+		var frame: PoseCheck.Frame = _rest_frame(bench)
+		var wrist: Vector3 = _bone(bench, frame, "RightHand").origin
+		var elbow: Vector3 = _bone(bench, frame, "RightLowerArm").origin
+		var forearm: PoseCheck.Capsule = bench.check.capsule("right forearm")
+		var palm: Vector3 = wrist + (wrist - elbow).normalized() * (forearm.radius + 0.045)
+		var over: Vector3 = (wrist + elbow) * 0.5 + Vector3(0.0, forearm.radius + 0.04, 0.0)
+		for case: Array in [[palm, true], [over, false]]:
+			frame.blades = [PackedVector3Array([case[0] + Vector3(0, 0, -0.3), case[0] + Vector3(0, 0, 0.3)])]
+			var report: PoseCheck.Report = bench.check.measure(frame)
+			assert_eq(report.passed(), case[1], "%s %s: %s" % [id, "through the hand" if case[1] else "over the forearm", report.summary()])
+
+
+## A held blade's base sits about a hand's width from its own wrist, and
+## clears the forearm's capsule, which stops where the forearm does.
+func test_a_held_blade_clears_its_own_wrist() -> void:
+	for id: StringName in FighterLook.IDS:
+		var bench: MoveBench = _bench(id)
+		var frame: PoseCheck.Frame = await _guard_frame(bench)
+		var base: Vector3 = frame.blades[0][0]
+		var wrist: Vector3 = _bone(bench, frame, "RightHand").origin
+		assert_lt(base.distance_to(wrist), 0.15, "%s: the blade's base is near the wrist" % id)
+		var forearm: PackedVector3Array = bench.check.capsule("right forearm").ends(frame.bones)
+		var near: Vector3 = Geometry3D.get_closest_point_to_segment(base, forearm[0], forearm[1])
+		assert_gt(base.distance_to(near) - bench.check.capsule("right forearm").radius, PoseCheck.BLADE_CLEARANCE, "%s: and clear of the forearm" % id)
+
+
+## Turns the forearm (and the hand with it) about the elbow, in the arm's
+## plane, until the elbow's inside angle is `angle` degrees.
+func _bend_elbow(bench: MoveBench, frame: PoseCheck.Frame, side: String, angle: float) -> void:
+	var s: Vector3 = _bone(bench, frame, side + "UpperArm").origin
+	var e: Vector3 = _bone(bench, frame, side + "LowerArm").origin
+	var hand: Transform3D = _bone(bench, frame, side + "Hand")
+	var now: float = rad_to_deg((s - e).angle_to(hand.origin - e))
+	var turn: Basis = Basis((s - e).cross(hand.origin - e).normalized(), deg_to_rad(angle - now))
+	_set_bone(bench, frame, side + "Hand", Transform3D(turn * hand.basis, e + turn * (hand.origin - e)))
+
+
+func test_a_locked_elbow_fails_and_contact_wants_150_to_160() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var guard: PoseCheck.Frame = await _guard_frame(bench)
+	var wrist: Vector2 = bench.check.measure(guard).wrists["Left"]
+	# [angle, contact, the elbow fails]
+	for case: Array in [[180.0, false, true], [172.0, false, true], [165.0, false, false], [165.0, true, true], [155.0, true, false], [140.0, true, true], [140.0, false, false]]:
+		var frame: PoseCheck.Frame = guard.copy()
+		_bend_elbow(bench, frame, "Left", case[0])
+		var report: PoseCheck.Report = bench.check.measure(frame, case[1])
+		assert_almost_eq(report.elbows["Left"], case[0], 0.1, "%s" % [case])
+		assert_eq(_has(report.failures(), "left elbow"), case[2], "%s: %s" % [case, report.failures()])
+		assert_almost_eq(report.wrists["Left"], wrist, Vector2(0.1, 0.1), "%s: the hand moved with the forearm" % [case])
+
+
+## A knee is measured from the plane through its hip that holds the line to
+## its ankle and the way its toes point, outside positive: a foot turned out
+## takes the plane with it, so a knee over turned-out toes is on it.
+func test_a_knee_is_measured_against_its_toes() -> void:
+	var hip: Vector3 = Vector3(0.1, 0.9, 0.0)
+	var other: Vector3 = Vector3(-0.1, 0.9, 0.0)
+	var ankle: Vector3 = Vector3(0.1, 0.08, 0.0)
+	for yaw_deg: float in [0.0, 40.0]:
+		# a left foot (+X is the fighter's left) turned out by yaw_deg
+		var toes: Vector3 = Vector3(sin(deg_to_rad(yaw_deg)), 0.0, cos(deg_to_rad(yaw_deg)))
+		var foot: Transform3D = Transform3D(Basis(toes.cross(Vector3.UP), toes, Vector3.UP), ankle)
+		var out_of_plane: Vector3 = (ankle - hip).cross(toes).normalized()
+		if out_of_plane.dot(hip - other) < 0.0:
+			out_of_plane = -out_of_plane
+		var over_toes: Vector3 = (hip + ankle) * 0.5 + toes * 0.08
+		for k: float in [0.0, -0.03, 0.04]:
+			assert_almost_eq(PoseCheck.knee_offset(hip, over_toes + out_of_plane * k, foot, other), k, 1e-5, "foot turned %.0f, knee %+.2f" % [yaw_deg, k])
+	# the right leg: outside is toward -X
+	var right: Transform3D = Transform3D(Basis(Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0)), Vector3(-0.1, 0.08, 0.0))
+	assert_almost_eq(PoseCheck.knee_offset(other, Vector3(-0.13, 0.5, 0.06), right, hip), 0.03, 1e-5, "the right knee out to its side")
+
+
+## A knee pushed in past the foot line of the real guard fails.
+func test_a_knee_inside_the_foot_line_fails() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var guard: PoseCheck.Frame = await _guard_frame(bench)
+	var before: float = bench.check.measure(guard).knees["Right"]
+	assert_false(_has(bench.check.measure(guard).failures(), "right knee"), "the guard's right knee passes")
+	var hips: Vector3 = _bone(bench, guard, "RightUpperLeg").origin - _bone(bench, guard, "LeftUpperLeg").origin
+	var inward: Vector3 = -Vector3(hips.x, 0.0, hips.z).normalized()
+	var frame: PoseCheck.Frame = guard.copy()
+	var knee: Transform3D = _bone(bench, frame, "RightLowerLeg")
+	knee.origin += inward * (before + 0.04)
+	_set_bone(bench, frame, "RightLowerLeg", knee)
+	var report: PoseCheck.Report = bench.check.measure(frame)
+	assert_lt(report.knees["Right"], -0.02, "pushed inside")
+	assert_true(_has(report.failures(), "right knee"), "%s" % report.failures())
+
+
+# ------------------------------------------------------------------ reach
+
+## Reach is the length of blade inside a defender's capsule (0.35 m round,
+## from the feet to 1.75 m).
+func test_reach_is_the_length_of_blade_inside_the_defender() -> void:
+	var feet: Vector3 = Vector3(0.0, 0.0, 2.5)
+	var front: float = 2.5 - PoseCheck.DEFENDER_RADIUS
+	assert_almost_eq(PoseCheck.blade_inside(Vector3(0, 1, 1.9), Vector3(0, 1, 2.6), feet), 2.6 - front, 1e-4, "into the front")
+	assert_almost_eq(PoseCheck.blade_inside(Vector3(0, 1, 1.9), Vector3(0, 1, front - 0.01), feet), 0.0, 1e-6, "short of it")
+	assert_almost_eq(PoseCheck.blade_inside(Vector3(-0.5, 1, 2.5), Vector3(0.5, 1, 2.5), feet), 0.7, 1e-4, "right through")
+	# over the top: the cap is round, so a blade 0.2 m off the axis at the
+	# top of the capsule's height only clips it
+	var top: float = PoseCheck.DEFENDER_HEIGHT - PoseCheck.DEFENDER_RADIUS
+	var y: float = top + sqrt(PoseCheck.DEFENDER_RADIUS ** 2 - 0.2 ** 2) - 0.01
+	var inside: float = PoseCheck.blade_inside(Vector3(-1, y, 2.7), Vector3(1, y, 2.7), feet)
+	assert_between(inside, 0.01, 0.4, "the cap: %.3f" % inside)
+
+
+# ------------------------------------------------------------------ the bench
+
+## MoveBench plays a move on the rules' clock: one report per attack frame,
+## hit-stop steps skipped, phases from the frame data and contact on the
+## first active frame; the defender stands at the duelling distance.
+func test_the_bench_plays_a_move_frame_by_frame() -> void:
+	var bench: MoveBench = _bench(&"rogue")
+	assert_almost_eq(bench.attacker.pos.x, 0.0, 1e-6)
+	assert_almost_eq(bench.defender.pos.z - bench.attacker.pos.z, PoseCheck.SPACING, 1e-6, "the duelling distance")
+	var def: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	var steps: Array[MoveBench.Step] = await bench.play(&"k_l1")
+	var frames: Array[int] = []
+	var contacts: int = 0
+	for s: MoveBench.Step in steps:
+		frames.append(s.frame)
+		var want: StringName = &"startup" if s.frame <= def.startup else (&"active" if s.frame <= def.startup + def.active else &"recovery")
+		assert_eq(s.phase, want, "frame %d" % s.frame)
+		assert_eq(s.contact, s.frame == def.startup + 1, "frame %d" % s.frame)
+		assert_eq(s.report.contact, s.contact)
+		assert_gt(s.report.reach, -0.5, "reach measured on frame %d" % s.frame)
+		if s.contact:
+			contacts += 1
+	assert_eq(contacts, 1, "one contact frame")
+	var expected: Array[int] = []
+	for i: int in frames.size():
+		expected.append(i + 1)
+	assert_eq(frames, expected, "every frame once, in order")
+	assert_eq(frames.size(), def.startup + def.active + def.recovery - 1, "the whole move, up to the frame it ends on")
+	assert_eq(bench.attacker.state, &"free", "and back to free")
+
+
+## Each play starts afresh from the guard at the duelling distance, so the
+## same move gives the same reports.
+func test_the_bench_gives_the_same_reports_twice() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var a: Array[MoveBench.Step] = await bench.play(&"k_l2")
+	await bench.play(&"k_h2")
+	var b: Array[MoveBench.Step] = await bench.play(&"k_l2")
+	assert_eq(a.size(), b.size())
+	for i: int in mini(a.size(), b.size()):
+		assert_eq(a[i].report.summary(), b[i].report.summary(), "frame %d" % a[i].frame)
+
+
+## Not yet required to pass: the stand-in stick poses were made for a stick
+## figure. Swings (plan task 14.10 on) must pass.
+func test_a_move_stepped_by_hand_gives_the_frames_it_plays() -> void:
+	var bench: MoveBench = _bench(&"rogue")
+	var played: Array[MoveBench.Step] = await bench.play(&"k_l1")
+	assert_true(bench.begin(&"k_l1"))
+	assert_eq(bench.move, Moves.KATANA.moves[&"k_l1"], "the move being played")
+	var stepped: Array[MoveBench.Step] = []
+	var s: MoveBench.Step = await bench.next_frame()
+	while s != null:
+		stepped.append(s)
+		s = await bench.next_frame()
+	assert_eq(stepped.size(), played.size())
+	for i: int in mini(stepped.size(), played.size()):
+		assert_eq(stepped[i].frame, played[i].frame)
+		assert_eq(stepped[i].phase, played[i].phase)
+		assert_eq(stepped[i].report.summary(), played[i].report.summary(), "frame %d measures the same" % played[i].frame)
+	assert_null(await bench.next_frame(), "nothing after the move ends")
+
+
+func test_a_report_over_the_stick_pose_katana_attacks_prints() -> void:
+	for id: StringName in FighterLook.IDS:
+		var bench: MoveBench = _bench(id)
+		var lines: Array[String] = []
+		for move_id: StringName in Moves.KATANA.moves:
+			var steps: Array[MoveBench.Step] = await bench.play(move_id)
+			assert_gt(steps.size(), 0, "%s %s plays" % [id, move_id])
+			lines.append(MoveBench.summary(move_id, steps))
+		gut.p("%s, StickPose Katana attacks:\n%s" % [id, "\n".join(lines)])

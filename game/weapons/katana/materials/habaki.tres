@@ -1,0 +1,7 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "habaki"
+albedo_color = Color(0.72, 0.53, 0.22, 1)
+metallic = 0.85
+roughness = 0.32

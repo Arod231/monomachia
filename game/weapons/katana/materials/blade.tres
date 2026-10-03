@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://weapons/katana/katana_blade.gdshader" id="1_blade"]
+
+[resource]
+resource_name = "blade"
+shader = ExtResource("1_blade")
+shader_parameter/steel = Color(0.17, 0.18, 0.2, 1)
+shader_parameter/hamon = Color(0.86, 0.88, 0.9, 1)
+shader_parameter/specular_strength = 1.6
+shader_parameter/specular_size = 0.06

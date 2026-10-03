@@ -1,0 +1,29 @@
+# Keep text files LF in the repo and in the working copy (Godot writes LF).
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.glb binary
+*.bin binary
+*.fbx binary
+*.obj binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.exr binary
+*.blend binary
+*.tpz binary
+*.ttf binary
+*.otf binary
+*.woff2 binary
+*.scn binary
+*.res binary
+*.pck binary
+*.exe binary
+*.zip binary

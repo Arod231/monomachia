@@ -1,0 +1,54 @@
+class_name LookPalette
+extends RefCounted
+## The look's muted colours (ink blacks, bone and paper whites, stone greys,
+## lacquer red), the side colours, and the render layers the look relies on.
+## Colours are sRGB, as picked; shader uniforms marked source_color convert
+## them. The fighters' palettes (FighterPalette) and the side colours are the
+## only saturated colours near the fighting area, so the fighters pop from the
+## arena.
+
+## Each side's colour, by its palette index (MatchSide.palette): side 0
+## takes 0 (red) and side 1 takes 1 (blue) by default, as the demo's two
+## fighters did. The floor ring under a fighter, the beam over its dropped
+## weapon and its name on the results screen.
+const SIDE_COLORS: Array[Color] = [
+	Color(0.7, 0.16, 0.13),
+	Color(0.18, 0.4, 0.72),
+	Color(0.18, 0.58, 0.45),
+	Color(0.78, 0.58, 0.16),
+]
+
+const INK: Color = Color("0e0e14")
+const INK_SOFT: Color = Color("1c1c26")
+const BONE: Color = Color("d6ccb8")
+const PAPER: Color = Color("e8e0cc")
+const LACQUER: Color = Color("6a1a15")
+const STONE_LIGHT: Color = Color("76736f")
+const STONE: Color = Color("5c5a61")
+const STONE_DARK: Color = Color("3c3b44")
+const WOOD_DARK: Color = Color("2a201c")
+const ROPE: Color = Color("b3a078")
+const PINE: Color = Color("1e2b28")
+const IRON: Color = Color("34343c")
+const STEEL: Color = Color("b8bec8")
+
+## Render layer bit for fighters and their weapons (layer 2). Lights whose
+## cull mask is only this layer (the arena's moon rim light) touch fighters
+## and nothing else.
+const FIGHTER_LAYER: int = 2
+## Render layer bit for large ground surfaces (layer 4): the courtyard floor
+## and the rock ledge. Small warm lights (lanterns) leave this layer out of
+## their cull mask: their pools on the ground were barely visible and cost
+## about 0.4 ms per frame on the target laptop.
+const GROUND_LAYER: int = 8
+## Cull mask for small lights: every layer but the ground.
+const SMALL_LIGHT_MASK: int = 0xFFFFF & ~GROUND_LAYER
+## Render layer bit for the rock under an arena's rim (layer 5). Cameras
+## above the courtyard can't see it, so the arena leaves this layer out of
+## their cull masks, camera by camera.
+const BELOW_DECK_LAYER: int = 16
+
+
+## The colour of a side with palette index `palette`.
+static func side_color(palette: int) -> Color:
+	return SIDE_COLORS[posmod(palette, SIDE_COLORS.size())]

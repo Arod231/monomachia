@@ -9,6 +9,8 @@ Read these before changing gameplay or planning new features:
 - `docs/design.md`: the full game design document, the vision for the finished game (all 9 weapons, arenas, progression, online play).
 - `docs/mvp-spec.md`: the MVP plan and spec, what the current demo builds and how. Its "Decisions", "Scope" and "Gaps in the design doc" tables record the choices made so far, and its combat numbers match the code.
 
+- `GLOSSARY.md`: the game's vocabulary (Fighter, Weapon, Loadout and so on). Use its terms.
+
 When building toward the full game, use `docs/design.md` for what to build and `docs/mvp-spec.md` for how the existing systems work. If a change contradicts either doc (for example, new tuning numbers or a different answer to a "Gaps" question), update the doc in the same branch.
 
 ## Building major features: spec, then plan, then implement
@@ -22,6 +24,16 @@ A major feature is anything bigger than a tuning tweak or a small fix: a new wea
 After the spec and after the plan, show me a short summary and wait for my OK before starting the next stage. The spec, the plan and the code all go on the feature's branch (see below), so they arrive in one pull request.
 
 Small changes (tuning, bug fixes, doc edits) skip the spec and plan and go straight to a branch and pull request.
+
+## Agent skills
+
+### Issue tracker
+
+Local Markdown in `docs/`: specs in `docs/specs/`, plans and wayfinder maps in `docs/plans/`. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single context: `GLOSSARY.md` at the root and ADRs in `docs/adr/`. See `docs/agents/domain.md`.
 
 ## Publishing every change to GitHub
 

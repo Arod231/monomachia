@@ -7,3 +7,14 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+# Godot
+game/.godot/
+game/reports/
+build/
+audio_src/
+Sonniss*.zip
+
+# Temporary git worktrees made by Claude Code workflows
+.claude/worktrees/
+.godot-path

@@ -1,0 +1,2395 @@
+# Plan: Monomachia rebuilt in Godot
+
+Spec: `docs/specs/godot-rebuild.md` · branch `feature/godot-rebuild` · pull request #2
+
+## Destination
+
+The Godot build plays everything the web demo plays, on the new direction in the spec: weapon-path hits and animation, the two first fighters, the new Katana, Greatsword and Daggers strings, the For Honor camera, the floating Moonlit Shrine, the toon and ink-wash look, sound and placeholder music, all four modes, and remappable controls. CI builds it for Windows, and the web version is deleted.
+
+## Notes
+
+- **One task at a time.** Tasks are built in the order of the [build order](#build-order) below. The next task starts only when the current one is finished: its checks pass, it is committed and pushed, it is ticked here, and the spec is updated.
+- Every task ends with `npm test` and `npm run typecheck` passing, a commit and a push. Visual tasks also end with screenshots reviewed by eye. Tasks that change rules data also end with a clean soak run.
+- After each task:
+  - tick it here, and tick its parent when its last task is done;
+  - update the Progress section;
+  - in the spec, update the status line, any numbers or decisions the task changed, and tick each user story the build now fully delivers.
+- **Owner reviews don't hold tasks open.** A task is done when its own checks pass. An "Owner:" line names a review the owner does when they can; it goes on the Waiting list in Progress. The one hard gate is the animation review: 15.1, and the other weapons' swings after it, wait for the owner's OK on the 14.17 sheets. The build order puts other work after that point so nothing stops while the owner looks. If the OK still hasn't come when that work runs out, pull in any later task whose blockers are done (26.1, say), and then stop and ask.
+- `docs/plans/godot-rebuild-notes/` holds the research behind the breakdown: per area, what the code looked like, which files each task touches, and the traps. Read the area's notes before starting a task; this plan wins where they differ.
+- The rules layer (`game/sim`) stays free of nodes, rendering, input devices and sound.
+- Use the glossary's terms (Fighter, Weapon, Loadout, String, Follow-up, Posture…) in code names.
+- When a task changes tuning or rules, update the spec's numbers and add or update a test in the same commit.
+
+## Decisions so far
+
+- [Destination](../specs/godot-rebuild.md): MVP parity in Godot on the new foundation; the rest of the design update comes later.
+- Engine and language: Godot 4.7.2 standard build, typed GDScript.
+- Any fighter can wield any weapon; the rebuild ships the Rogue and the Hunter.
+- Arenas are walled and floating; the sci-fi themes are dropped.
+- No directional guard, no combo breaker; light hitstun drops to 14 frames instead.
+- Hits come from weapon paths; the same paths drive the animation.
+- The web version is tagged `v0.1-web-mvp` and deleted at the end. The tag already exists on origin, on master at 76d4a09.
+- Tracker: local Markdown in `docs/` (see `docs/agents/issue-tracker.md`).
+- The port was exact up to commit 4222167, the last bit-exact point (8.2): the Godot rules reproduced all 35 golden recordings of the TypeScript rules, the Godot computer opponent produced the recorded inputs for six full matches, and the 40-match soak printed identical numbers. The rules compute `Math.hypot`, `sin`, `cos` and `atan2` exactly as V8 does (`game/sim/js_math.gd`, a port of V8's fdlibm), so whole runs matched the TypeScript bit for bit, and they still do not depend on the platform's C math library.
+- A throwaway animation spike ran early (in scratch, before tasks 7 and 14). Its report, critique and code are kept in `docs/research/animation-spike/`.
+  - Verdict: weapon-path animation on the Quaternius fighters works, with conditions, which are now requirements of tasks 7, 14, 14b and 15.
+  - Camera: the side offset is 1.3–1.4 m, because 0.9 m hides the opponent.
+  - Reach: lunges must be 0.7–0.8 m so the blade really reaches a defender 2.5 m away.
+- Phase C is reordered: the new strings come before weapon swings, so swing paths are authored once, for the final moves.
+- The 4.7.2 export templates are installed on the owner's PC, so `npm run build` can export locally; CI exports too.
+- The match host owns the input host (one set of devices for the whole game, pause on focus loss, profiles picked up on resume), so task 6 did that part of task 22.
+
+### Decisions from the task breakdown (Oct 1, 2026)
+
+Breaking the remaining work into single tasks raised these questions. Each takes the recommended answer unless the owner says otherwise.
+
+**How the work runs**
+- The uncommitted look-and-arena work (tasks 16 and 17) is salvaged piece by piece: each piece is reviewed, fixed and tested on its own. It is never merged as a branch, and its `game/_probe` scratch folder is dropped.
+- The real fighters replace the capsule stand-ins in the match early, right after the toon look (14.1, 14.2). The shrine's benchmark and every later screenshot then show the real bodies.
+- The rest of the fighter animation core (14.3–14.13) comes before swings are authored (7.16 on). Every swing is then judged on the real bodies with the contact sheets from the start, and authored once. Task 14 is split around task 7 for this.
+- Because swings are authored on the real fighters, task 15 animates what swings don't cover (guards, blocks, reactions, ultimates) instead of re-keying every move.
+- The swing editor (14b) is built after the Katana's swings and before the second weapon's, as the spike critique requires.
+- The export preset, the size guard and the CI export come early, to catch problems that only show in an exported build.
+
+**Fluid rules (8)**
+- The goldens, the brain-parity hashes and the whole-run hashes retired in one rules-neutral commit (8.2), after behaviour tests for the dummy and the counters replaced them (8.1). The last bit-exact commit, 4222167, and its soak and counterlab reports are recorded in Progress.
+- `test_moves` keeps comparing with the demo's `moves.json`, with a table of deliberate differences.
+- The Moonsplitter wave reaches 2 × arena radius + 3 m (33 m), so it still crosses the whole stage.
+- Lunges ease in and out (`SimMath.ease_in_out`), with the same distance and window.
+- Heavies dodge-cancel from S + A + ceil(R / 2). A charged heavy's cancel opens later by half its extra recovery. There is no cancel in the air, and abilities, specials and ultimates get none.
+- The colossal recovery slide is 0.35 m over the first 10 recovery frames, eased out. Until task 7 gives swing directions it runs along the facing. Every grounded Greatsword move except bashes slides, and the slide stops at the lunge's minimum gap.
+- Light hitstun 14 frees the Katana's and the Greatsword's second hits, but not the Daggers' second and third lights, which land 11 and 13 frames after the previous hit. To keep story 24, 11.1 lowers the Daggers' light hitstun until the defender has at least one frame to block or parry the next light: 10 frames, on the string's four lights (the movement lights and Counter Lunge keep 14). Bare hands keep their own 16; the spec records them as the exception.
+
+**Strings (9–11)**
+- Sides are left, right or centre. A move starting at centre (overheads, thrusts, stabs, spins, the crossing cut) may follow any end; a left or right start must match the previous move's end. The vertical Iai and Overhead Strike end on the right, so Rising Heaven and Low Sweep follow them.
+- The Iai's data startup is 23 frames: the 9-frame sheathe plus the 14-frame draw. The stance ends on release, on auto-release, or at frame 9 for a tap. The stick at that moment picks the variant, by Moonsplitter's rule: left or right past the dead zone with |x| > |y| means horizontal. A dodge cancels the stance only while it is sheathed and held.
+- The Daggers' four lights and the Passing Cut dodge-cancel from their first recovery frame. Twin Rip loses its heavy follow-up, and Twin Fang its light one in 11.1, as the continuity check needs (a stab ends at centre, and Quick Slice starts on the right). Kesa Cut dodge-cancels from frame 20.
+- Move ids: existing ids keep their roles, with `k_l3` becoming Kesa Cut and `k_l4` Crown Cut. The new ids are `k_iai`, `k_iai_h` and `k_rdraw`. Kesa Giri and Earthbreaker go.
+- Until task 7, new moves get interim cone numbers, marked as interim in the spec. Piercing Lunge is a blockable stab.
+
+**Weapon swings (7)**
+- Each weapon has its own duelling distance for the reach rule: Katana 2.5 m, Greatsword 3.0 m, Daggers 2.0 m, bare hands 1.6 m. "The last 15–20 cm of blade enters" means the deepest length of blade inside a standing defender's capsule over the active ticks is 15–20 cm. Other moves are tested from the distance listed for them in the spec's table of test distances (7.14).
+- Swing keys live in one JSON file per weapon under `game/sim/moves/swings/`, with stable key order and fixed decimals, so the swing editor can write them back byte for byte. The rules expand them to per-tick samples at load. A key holds the grip, the hand frame, the edge, the torso and pelvis coil, a pelvis shift, an elbow-pole tweak and an ease.
+- Swings are checked twice:
+  - on the swing data, headless, against reference bodies measured once from the Rogue and the Hunter and committed (task 7): wrist bend and deviation, no locked elbow, the blade at least 5 cm from the body, and the grips kept out of the face during the wind-up;
+  - on the real IK rig (task 14): the same, plus elbows at 150–160° on the first active frame and the knees over the toes through the swing.
+- Reach is the furthest horizontal blade reach in the active frames plus half the blade thickness, without the lunge (the demo's meaning of range). Arc is twice the largest bearing of the blade from facing. `WeaponDef.reach` is derived from the light starter.
+- Unblockables sweep a blade about 0.2 m thicker (0.1 m added on each side).
+- Daggers swing in a forward grip.
+- Bashes strike with a body track, and kicks with foot tracks.
+- Zero-damage stances (Flash, Shadow Step, the sheathed Iai) get pose-only swings.
+- Parry and block stay timing-only, judged at the first touch. The counters keep their generous cones, measured from the paths.
+- Tuning soaks run 300 matches with mirror matches left out of the win rates; the 40-match soak stays the clean check. Tuning changes damage, posture, parry numbers and AI parameters, and keeps lunges inside the duel-reach band. A change to frame data re-keys the swing and reruns the reach test, the pose checks and the sheets in the same commit.
+
+**Fighters and animation (14, 14b, 15)**
+- Tasks 14 and 15 may re-key swings. Each such commit reruns the swing-hit and reach tests, the soak and the move's contact sheets.
+- The guard shuffle step applies while blocking, in the tap step and below about 2.5 m/s. Above that, the clips with hip-turn take over.
+- The Katana gets a saya built in code for the Iai, before the Iai's swings are keyed.
+- Victory is a simple procedural hold; authored victory poses stay out of scope.
+- Spring bones for hair and hoods wait.
+
+**Look, arena and effects (16–18)**
+- `ArenaScenes` uses an arena's scene only when its walkable radius equals the rules' arena radius. The shrine can then land before task 8 without an invisible wall, and becomes every match's arena when 8.3 sets the radius.
+- Combat effects run on a pooled MultiMesh stepped on the match clock, so they freeze in hit-stop and pause and slow with slow motion. Ambient embers and ash use GPU particles. On Low, combat particle counts drop at most by half.
+- The unblockable reach effect is a red ink arc on the floor during the wind-up.
+- The parry push-in is a short dolly on top of the existing field-of-view kick; reduce-flashes turns both off.
+- The ultimate aura uses the side colours. The worktree's petals are dropped unless the owner wants them.
+- Outlines and ink lines are settled by the owner's look review: outlines 3, 2.4 and 2.25 px at 1080p for fighters, weapons and props (16.3), and the ink-wash lines 2 px at strength 0.85 (16.4).
+- Shot scenes live in `game/tools/shot_scenes`. Screenshot runs fail on shader compile errors, since headless runs never compile shaders.
+- The project's own anti-aliasing matches High (FXAA, no MSAA); `GameServices` applies the saved preset at start. Test and shot runs set `MONOMACHIA_DEFAULT_SETTINGS`, so they always use High, whatever a player saved on the machine. Low keeps the owner's outline widths.
+
+**Sound and music (19, 20)**
+- Both fighters' footsteps play in 3D.
+- The results screen plays the menu track.
+- The attract duel is silent apart from music.
+- A pause holds sound effects and delayed cues, while music and ambience carry on.
+- Volumes run 0–100 in steps of 5 (master 80, effects 90, music 100 to start) on top of the bus layout's levels. Effects drives the SFX, UI and Ambience buses.
+- Music and ambience duck under combat through sidechain compressors.
+- The arena's room is a reverb on the bus chain: Combat and Foley feed the Arena bus (reverb dry 1.0, wet 0.25), which feeds SFX, so every combat and foley sound gets the room, the calls included. There is no reverb `Area3D`: in Godot 4.7 a 3D sound inside one goes only to the reverb bus and leaves its own (measured in 19.3), so every hit would have lost its dry sound. Owner's choice, Oct 2, 2026.
+- The music's fades are the mixer's own. Godot ramps a sound's volume across one mix of 512 samples (10.7 ms at 48 kHz, 11.6 ms at 44.1 kHz) and fades a stopped sound out the same way, but it plays a new sound's first mix at full volume. So `FadedLoop` starts every loop silent and raises it after its first mix, and a switch stops the old track in the mix where the new one rises. A fade timed by the game couldn't be shorter than a frame (16.7 ms). On an output running at 96 kHz the fade would be 5.3 ms. Measured in 20.1.
+- One `GameSettings` (`user://settings.cfg`), owned by `GameServices`, holds the graphics preset, the volumes, reduce flashes and button hints.
+
+**Screens and modes (22–24)**
+- The fighter select follows task 22's layout (grid, 3D preview on the right, loadout on the left, arena slot, lock in) without the gate cinematic or intros; the spec's Out of Scope line is corrected in 22.5.
+- Sides pick one after the other.
+- There is no palette picker: the second side of a mirror match wears the second palette.
+- Random applies to the Duel opponent's weapon and to the arena slot.
+- Training upkeep (refill, getting up after a KO, re-arming the dummy) lives in the rules layer and runs inside the fixed step. A controller player changes the dummy's behaviour from a Training section of the pause menu.
+- Versus names the sides Player 1 and Player 2.
+- Renaming a profile needs a keyboard.
+- The move list shows the light and heavy strings, the release variants and each move's reach.
+- The owner approved the fonts on Oct 2, and 22.1 bundles them.
+
+**Ship (25, 26)**
+- The exported game takes a `--smoke` flag that plays a computer-vs-computer match to the results and exits, so builds can be checked without a person playing.
+- The Node audio tests move to Node's own test runner when Vitest goes.
+- The build embeds its pack in the exe.
+- Publishing the first release happens after the pull request merges, with the owner's OK.
+
+## Progress
+
+Oct 1, 2026. **Resumed by the owner, one task at a time.** The remaining work is broken into the single tasks below. As of Oct 2, stages 1–6 of the build order are done, and with them tasks 8–11, 16, 17, 19 and 20. Done since: 13.1, 25.1, 25.2, 25.3, 16.1, and, after the owner's go-ahead, 16.2–16.7, which finish task 16, then 14.1 and 14.2, which finish stage 2 of the build order, and 17.1–17.9, which finish stage 3 (the shrine; 17.10 waits for 8.3 in stage 4). Oct 2: the look-and-arena worktree was removed with the owner's OK, and 8.1 and 8.2 started stage 4 (fluid rules): the checks pinned to the TypeScript are retired at the last bit-exact commit. Right after 8.2, as the owner asked, 8.10 fixed the training dummy's lights and random. Then 8.3, the first rule change, set the arena radius to 15 m, which made the Moonlit Shrine every match's arena, and 17.10 checked the shrine in that role, which finishes task 17. 8.4 then raised the blocking walk to 60% of running speed, 8.5 let attacks keep half their speed as they start, 8.6 eased lunges in and out, 8.7 cut light hitstun to 14 frames, 8.8 let heavies dodge-cancel late in recovery, and 8.9 added the Greatsword's recovery slide, which finishes task 8. 12.1 then made the soak report the balance targets, which finishes stage 4. Stage 5, sound and music in the game, was built alongside it in its own lane (19.1–19.9 and 20.1–20.3), which finishes tasks 19 and 20. On the owner's word, stage 6 began with 9.1: the Katana's four-light string, the moves' sides and the string continuity check. 9.2 then made the Iai Slash the Katana's heavy, 9.3 let the fighter walk in its stance, 9.4 added the horizontal Iai, picked by the stick, 9.5 the Iai's follow-ups, and 9.6 the stand-in's sheathe pose, which finishes task 9. 10.1 then gave the Greatsword its momentum lights into Overhead Strike, the L-L-H, 10.2 the unblockable Low Sweep after it, and 10.3 its dodge thrusts, which finishes task 10. 11.1 then gave the Daggers their alternating four-light string, 11.2 Twin Fang's 1.4 m dash into Spinning Backhand, and 11.3 the Passing Cut along the dodge direction, which finishes task 11 and stage 6. The owner approves each task before the next starts. On the owner's word, this lane then took stage 10 early, the stage meant for the owner's review time, since nothing in stages 7–9 was free for it, and the owner set the goal of finishing stage 10: 22.1 gave the UI its ink-wash theme with the demo's fonts, bundled, 24.1 the HUD's top bar, and 24.2 its announcements with kanji. Stage 7, the swing foundations (7.1–7.15), goes on in its own lane, and the rest of stage 8 (14.10–14.13) waits for 7.15; 14.3–14.9, animation, built in another lane, merged on Oct 2 through PR #4.
+
+- **Done and merged on `feature/godot-rebuild`:**
+  - tasks 1–6, 8, 13, 16, 17, 19, 20 and 21, 12.1 of task 12, 9.1–9.6, which finish task 9, 10.1–10.3, which finish task 10, 11.1–11.3, which finish task 11, 22.1 of task 22, 24.1 and 24.2 of task 24, and 14.3–14.9 of task 14 (from the animation lane, PR #4).
+  - The rules port matched the TypeScript bit for bit up to 4222167 (see the baseline below), and a Duel plays from title to results (`npm run godot:run`) with the real Rogue and Hunter and the three weapon models in the toon look, posed from the stand-in stick poses until swings exist. `fighters/preview/preview.tscn` shows the fighters and weapons on their own (in the studio or on the night stage).
+  - The safety nets (25.1–25.3, 16.1):
+    - `npm run check:sizes` fails CI on any tracked file over 10 MB;
+    - `npm run build` exports `build/windows/Monomachia.exe` (179 MB, shaders baked), and `Monomachia.exe --smoke` plays a Watch match to the results and exits 0, or 1 on any error, stall or timeout;
+    - CI runs a 4-match soak and exports the Windows build as the `Monomachia-windows` artifact, which passes `--smoke`;
+    - `npm run shots` fails on shader and script errors, `tools/shot_scenes/shader_check.tscn` draws every shader, and `test_scene_smoke.gd` loads every scene.
+  - The look's first pieces:
+    - `MeshKit` and `MeshKitSet` (16.2) build props from boxes, discs, lathes, tubes, tori, spheres and roofs, one mesh per material, with outline normals in CUSTOM0;
+    - the toon material and the ink outlines (16.3), through `ToonMaterials`, with `tools/shot_scenes/look_bench.tscn` to judge them by eye and `outline_check.tscn` to prove the outlines draw;
+    - the ink-wash pass and the colour grade (16.4): `InkWashPass`, `InkGrade` and the night environment, with `ink_check.tscn` to prove the ink lines draw where depth breaks and nowhere else;
+    - the Low, Medium and High presets (16.5): `GraphicsPreset` and `GraphicsApplier`, with the chosen preset saved by `GameSettings` and applied at start by `GameServices`;
+    - the stand-in arena and the dropped weapons in the look (16.6): toon props, the night environment, the ink-wash pass and the chosen preset;
+    - the Rogue, the Hunter and the three weapons in the look (16.7): `ToonMaterials.fighter_from` and `weapon_from` convert their imported materials, with a two-sided toon shader for open shells, and the Katana's shaders are toon-lit.
+  - The fighter rig (14.1): `FighterRig` and `BodyLayer` on each fighter's skeleton, with arm and leg IK, hands locked onto a posed weapon's grips, and fists fitted to each handle by `HandGrip`. Weapons are posed in fighter space or carried in the fist, never in hand sockets.
+  - Real fighters in the match (14.2): `FighterView` replaces the capsule stand-ins, with flashes and glows as overlays, models kept across rematches, and the real weapon models on the floor when dropped.
+  - The arena data and the radius guard (17.1): `ArenaDef` and the shrine's `moonlit_shrine.tres`. `ArenaScenes` draws an arena's own scene only when it exists and its walkable radius is the rules' `ARENA_RADIUS`, so the shrine (15 m) waited behind the stand-in until 8.3 set the rules' radius to 15 m. It is now every match's arena. Tests that don't need the shrine ask for the stand-in by id, through `main.gd`'s `arena_id` where they go through the menus.
+  - The arena screenshot rig (17.2): `tools/shot_scenes/arena_shot.gd` shoots an arena on a stepped `MatchHost` with the real fighters on its spawns, from the gameplay, Watch and menu cameras, an establishing view and a top-down debug view, at any preset (`arena_gameplay.tscn` … `arena_top_down.tscn`, `--preset=`, `--arena=`). It shoots an arena's own scene past the radius guard.
+  - The shrine's courtyard (17.3): `arenas/moonlit_shrine/moonlit_shrine.tscn` builds the paved floor, the plinth, the parapet, the gate landings and rope barriers and the pebbles from its `ArenaDef` and `ShrineLayout`, with its own night environment, moon key light, red fighter-only rim light and ink-wash pass. Matches still use the stand-in until 8.3; the arena shots show the shrine.
+  - The shrine's props (17.4): a torii on each gate landing, and on the ledge the stone lanterns (with flickering lights that skip the ground, and halos), the roped and broken pillars, the pines, the dead trees and loose rocks. `ShrineLayout.prop_scenes` swaps any prop kind for bought art at the same spots.
+  - The shrine's underside (17.5): the rock ledge the props stand on, the crag hanging under it with roots and chains into the clouds, and floating rocks that bob. Cameras above the courtyard leave the rock under the rim out, each camera deciding for itself.
+  - The shrine's night sky (17.6): an ink sky with stars, ink clouds and a blood-red moon with a red haze, in the shrine's own environment with its depth and height fog. The moon hangs ahead of player one, where the layout puts it.
+  - The shrine's backdrop (17.7): a sea of clouds, rings of ink mountains with a valley under the moon, cliff spires with pagodas, temple halls and waterfalls, a far lake with drifting lanterns that shows from outside the walls, and mist, all inside the camera's far clip and trimmed per preset.
+  - The shrine's drifting embers and ash (17.8): embers rise from each lantern and up past the rim on the updraft, and ash falls across the courtyard, all on one wind with the sea of clouds and thinned per preset.
+  - The shrine's benchmark (17.9): `tools/shot_scenes/arena_bench.tscn` times a real computer duel on the shrine at 1080p, Low, Medium and High in interleaved rounds, and saves the three side by side. On the target laptop, High runs 69 fps from the gameplay camera and 66 fps from the Watch camera, Medium 79 and Low 102, so no preset needed tuning.
+  - The shrine as every match's arena (17.10): fighters and dropped weapons stay inside its parapet, and every match camera stays within 16.2 m of the centre (`camera_max_radius`, was 19.5), short of the props on the ledge. `test_shrine_as_arena.gd` sweeps the cameras round the wall against the props' real triangles, and `arena_wall.tscn` (or `--wall=<degrees>` on any arena view) shoots a fighter backed against the wall.
+  - The fluid combat rules (task 8): the arena radius is 15 m, with the values the demo hard-coded tied to it (8.3); fighters walk at 60% of running speed while blocking (8.4); an attack keeps half the speed it starts at, and jump and hop attacks all of it (8.5); lunges ease in and out (8.6); lights stun for 14 frames, bare hands keeping their 16 (8.7); heavies dodge-cancel in the second half of their recovery (8.8); and the Greatsword's grounded attacks slide 0.35 m into their recovery (8.9). `test_fluid_combat.gd` has a section for each rule. Before the first change, behaviour tests for the training dummy and the counters replaced the checks pinned to the TypeScript (8.1, 8.2), and the dummy's lights and random were fixed (8.10).
+  - The soak's balance report (12.1): each weapon's win rate against the other weapons, disarms per round and a targets block marking the spec's ranges in or out; `npm run soak:tune` runs 300 matches for tuning.
+  - Sound and music in the game (stage 5: 19.1–19.9 and 20.1–20.3):
+    - `MatchAudio`, the match host's `Audio` node, plays every rules event's cues through a pooled `SoundPlayer` in played matches and on the results screen, keeps the duel behind the menus silent, holds sound in pause and stops on quit (19.1, 19.2);
+    - impacts play in 3D at their contact point or the fighter they name, with a listener on the view's camera, and every combat and foley sound passes through the Arena bus's reverb (19.3); footsteps fall every stride (`FootstepCadence`, 19.4), or, for a fighter walking in its guard, where its guard shuffle puts its feet down (the view's `footfall`, on the owner's word after 14.9), and the arena's ambience fades in with a played match (19.5);
+    - `GameServices` owns the music (`MusicDirector`, and `MusicPlayer` on two `FadedLoop`s that fade in one mix of the mixer): the menu track on the title, menus and results, battle in a match, and match point from the round call with a fighter on two wins (20.1, 20.2); Music and Ambience duck under loud combat sounds (19.6);
+    - the master, effects and music volumes are saved in `GameSettings` and applied at start (20.3), and the menus play move, select, confirm and back sounds (19.7);
+    - `test_sound_playback.gd` plays a whole match per weapon pairing and fails on any event that didn't play its cues, a missing file or music that didn't play (19.8), and `tools/sound_check.tscn` steps through every sound for listening: `node scripts/godot.mjs run res://tools/sound_check.tscn` (19.9).
+  - The Katana's four-light string (9.1): Right Cut, Return Cut, Kesa Cut and Crown Cut, with Heaven Splitter after Right Cut or Kesa Cut and Rising Heaven after Return Cut. Each move in a string records the side it starts and ends on, and `test_string_continuity.gd` checks that every follow-up starts where the move before it ends.
+  - The Iai Slash as the Katana's heavy (9.2): a held heavy keeps the blade sheathed, as a charge, until it is let go or 2.5 s pass, then draws a long vertical cut, with Rising Heaven as its follow-up.
+  - Walking while sheathed (9.3): in the Iai stance the fighter walks and strafes at the blocking walk's speed, circling the opponent, and a dodge cancels the stance.
+  - The horizontal Iai (9.4): the stick held left or right as the Iai is drawn turns it into a right-to-left draw, on the same attack.
+  - The Iai's follow-ups (9.5): Rising Heaven then Heaven Splitter after the vertical; Returning Draw, or Return Cut into the light string, after the horizontal.
+  - The stand-in's sheathe (9.6): the Iai sheathes at the left hip, holds it there in the stance and draws from it; every move names a pose the stand-in has; the stance walk makes footsteps.
+  - The Greatsword's L-L-H (10.1): Heavy Swing, then Backswing, which rides its momentum and starts sooner, then Overhead Strike, the chargeable heavy, which also follows Heavy Swing and starts from neutral; only its heavy follow-up comes after it.
+  - Low Sweep (10.2): Overhead Strike's heavy follow-up, an unblockable sweep at the feet that warns as it starts, hits through a block, and gives a defender who jumps it the leap counter.
+  - The dodge thrusts (10.3): Piercing Lunge, a blockable stab, on light out of a dodge, and Skewer, an unblockable thrust that a dodge forward into it stomps, on heavy.
+  - The Daggers' alternating string (11.1): Quick Slice in the right hand, Off-hand Slice in the left, then Twin Rip and Flurry Finisher with both. Each light dodge-cancels from its first recovery frame, and the four stun for 10 frames, so a defender can block or parry the next one.
+  - Twin Fang into Spinning Backhand (11.2): Twin Fang dashes 1.4 m, and the heavy after it or after Flurry Finisher is Spinning Backhand, which ends the string.
+  - Passing Cut (11.3): the Daggers' light out of a dodge carries the fighter on 1.2 m along the dodge, holding back only the part that closes on the opponent.
+  - The fighter animation's first part (14.3–14.9, from the animation lane, PR #4), each task's strips or sheets reviewed by the owner:
+    - Pose checks (14.3): `PoseCheck` measures a posed fighter's wrists, elbows, knees, the blade's clearance of the body and its reach into a defender, and `MoveBench` plays a move frame by frame and measures each. The Katana guard passes it since 14.8; the stand-in attacks don't (Right Cut fails on 15 of its 29 frames).
+    - Contact sheets (14.4): `tools/shot_scenes/move_sheet.tscn` lays out a move's frames from the gameplay cameras, three-quarter, close and the hands, captioned with PoseCheck's numbers, and `--move=all` renders a weapon's whole set. Its `--drive=` strips play scripted movement from rest: running, braking, strafing and backpedalling, standing in the guard, the guard walks, tap steps and the Iai walk (14.5–14.9), with side, front, left three-quarter and feet views.
+    - Locomotion by speed (14.5): the legs walk, jog and sprint with the rules' speed in an AnimationTree per fighter, every clip on one step phase moved by the rules' clock, so the feet stay planted and the legs hold still in hit-stop and pause. `FootPhase` measures each fighter's strides from its own clips.
+    - Hip-turn strafing and backpedal (14.6): the legs turn toward the way the fighter travels, at most 80°, and run backwards past 100°, while the chest keeps facing the opponent; the running clips' own swing of the shoulders comes out while moving.
+    - Lean and brace (14.7): the body leans into starts, stops and turns, at most 11°, and the hips drop when braking; the stand-in weapon poses ride the lean.
+    - The grounded guard stance (14.8): a Katana fighter stands in `GuardStance` over the relaxed idle, with the feet on leg IK (the right foot in front pointing at the opponent, the rear turned out 38° from it, the knees over the toes), the pelvis lowered 9 cm and its weight shifting ±3.5 cm every 5 s, and the chest square to the opponent. Each gripping hand turns round its handle toward its forearm, and the Katana guard, moved to the navel with the blade up 50°, passes PoseCheck on both fighters.
+    - The guard shuffle step (14.9): unless it runs with its guard down, a Katana fighter's feet step in `GuardShuffle`, walking while blocking or in the Iai stance, tap-stepping and braking. Planted feet stand still on the ground (0.00 cm on the posed skeleton). The foot on the side of travel steps first and the other closes, the feet never cross the mid-line, and the cadence follows the speed (4 to 9 steps a second). The pelvis bobs with the stance and sinks when a leg would otherwise not reach its planted foot; the weapon follows on a spring. Running, the legs hand over to the clips over 8 frames, and back. Story 14 is ticked.
+- **In another lane** (in its own worktree, one task at a time with the owner's OK, merged into this branch when its stage is done): 7.1–7.15, the swing foundations (`godot/stage-7-swings`, draft PR #5), with 7.1–7.10 done. Its tasks are ticked on its branch and reach this plan when it merges. 14.3–14.9, the first part of the fighter animation, ran in a lane of its own (`godot/stage-8-animation`, PR #4) and merged on Oct 2; its legs count the Iai stance, which walks since 9.3, through `Fighter.in_stance()`. Stage 5, sound and music, ran in a lane of its own too (`godot/stage-5-sound`, PR #3) and is merged.
+- **Checks after 11.3** (the bench and the wall shots are from 17.10, the shrine's other shots from 17.9, and `outline_check`, `ink_check` and the sizes from 14.2):
+  - 635 Godot tests (49 s): rules 148, input 118, audio 31, core 22, view 261, content 52, and 3 project-wide smoke tests;
+  - 85 web tests;
+  - the typecheck loads 164 scripts cleanly;
+  - `soak:godot -- 40` has 0 failures after 11.3 (its numbers, and a 300-match run's, are in 11.3's Done); at 8.9 (12.1 printed the same, with its new lines) it had 0 failures on task 8's finished rules, and the counterlab still reaches every counter; both reports, and their drift from the baseline, are under "Task 8's drift" below. The first 300-match `soak:tune` (12.1) is under "The first tuning run";
+  - the arena shots of the shrine and the bench render with no leaks at exit, and `shader_check` (now with the stone floor, the two glow shaders, the rock, the sky, the backdrop's five and the ash's flake) passes in a window;
+  - High averages 66.8 fps at 1080p on the target laptop (`arena_bench.tscn`, 17.10, on mains power; 95th percentile 16.3 ms), Medium 76.9 and Low 99.9, against 69, 79 and 102 at 17.9 with the rules' wall at 11.5 m;
+  - CI passed on every push from 16.7 (bf71b5f) to 12.1 (ec3f4ca);
+  - every skeleton shot renders with no leaks at exit, and `--smoke` plays a whole Watch match with the real fighters in a window;
+  - `shader_check`, `outline_check` and `ink_check` pass in a real window (CI can't run them);
+  - the art comes to 55.8 MB of its 60 MB budget (the outfit's roughness map is gone), and the tracked repo to 99.5 MB.
+  - 3 Oct 2026: the art budget was raised to 110 MB in all and 25 MB per file to add Quaternius's UAL2 Standard root-motion library, the UAL2 Source tier's full clip libraries (about 20 MB each, allow-listed in `check-sizes.mjs`) and the female mannequin; the art now comes to 104.5 MB. The Kevin Iglesias animation packs stay outside the repo (their licence forbids redistribution; see `game/assets/CREDITS.md`).
+  - stage 5, checked at its merge with everything above (9.1 included): 757 Godot tests and 85 web tests pass, the typecheck loads 179 scripts, `--smoke` plays a Watch match to the results with its sound in a window, the sound check plays through in a window with no errors, and the committed audio is 30.4 MB of its 40 MB budget.
+  - 9.1's review fixes, rebased on stage 5's merge: 759 Godot tests (73 s) and 85 web tests pass, and the typecheck loads 179 scripts;
+  - after 9.2 and its review fixes: 767 Godot tests (70 s) and 85 web tests pass, and the typecheck loads 179 scripts;
+  - after 9.3 and its review fixes: 776 Godot tests (71 s) and 85 web tests pass, and the typecheck loads 179 scripts;
+  - after 9.4 and its review fixes: 784 Godot tests (69 s) and 85 web tests pass, and the typecheck loads 179 scripts;
+  - after 9.5 and its review fixes: 789 Godot tests (72 s) and 85 web tests pass, and the typecheck loads 179 scripts;
+  - after 9.6 and its review fixes: 794 Godot tests (86 s) and 85 web tests pass, and the typecheck loads 179 scripts;
+  - after 10.1 and its review fixes: 806 Godot tests (87 s) and 85 web tests pass, and the typecheck loads 182 scripts;
+  - after 10.2 and its review fixes: 814 Godot tests (81 s) and 85 web tests pass, and the typecheck loads 182 scripts;
+  - after 10.3 and its review fixes, with the animation lane merged: 926 Godot tests (137 s) and 85 web tests pass, and the typecheck loads 196 scripts;
+  - after 11.1 and its review fixes: 934 Godot tests (144 s) and 85 web tests pass, and the typecheck loads 197 scripts;
+  - after 11.2 and its review fixes: 937 Godot tests (148 s) and 85 web tests pass, and the typecheck loads 197 scripts;
+  - after 11.3 and its review fixes: 945 Godot tests (149 s) and 85 web tests pass, and the typecheck loads 197 scripts; rebased onto PR #6 (the guard's footfalls), 949 Godot tests (149 s) pass;
+  - after 22.1: 963 Godot tests (273 s) and 85 web tests pass, the typecheck loads 200 scripts, and `check:sizes` passes with the fonts;
+  - after 24.2: 987 Godot tests (174 s) and 85 web tests pass, and the typecheck loads 207 scripts;
+  - after 24.1: 977 Godot tests (206 s) and 85 web tests pass, and the typecheck loads 205 scripts.
+  - the animation lane after 14.7, with 9.3 merged in: 846 Godot tests (100 s; the animation tests take most of the extra time) and 85 web tests pass, the typecheck loads 189 scripts, and the skeleton exchange shot renders with no leaks at exit. Every check added in 14.3–14.7 was mutation-tested (each task's Done lists them);
+  - the animation lane after 14.9, with 10.2 merged in: 919 Godot tests (165 s) and 85 web tests pass, the typecheck loads 196 scripts, and the skeleton exchange and Iai stance shots render with no leaks at exit. 14.8's and 14.9's checks were mutation-tested too (each task's Done lists them).
+- **The look-and-arena worktree, fully salvaged:**
+  - Task 17 stopped mid-build there (`look-and-arena`, all uncommitted in `.claude/worktrees/wf_c7f99fe5-f9a-1`, based on the old commit 67265af).
+  - Tasks 16.1–17.9 salvaged it piece by piece, reviewed (16.1–16.5, 17.1, 17.3–17.9): MeshKit, the toon material and outlines, the ink-wash pass and grade, the night environment, the presets, the arena data, the shrine's courtyard, props, underside, sky, backdrop, embers and ash, and the bench. 16.6, 16.7 and 17.2 (the stand-in arena, the fighters and the weapons in the look, the arena shot rig) were new work.
+  - Left behind on purpose: `game/_probe`, the bench's hard-coded overrides, the floating rocks' temple hall (no rock in the data was big enough) and the petals, which wait on the owner.
+  - Removed on Oct 2, 2026 with the owner's OK, with its `look-and-arena` branch (no commits of its own). The petals' recipe is kept in `godot-rebuild-notes/16-18-look-arena-effects.md` (Open questions).
+- **Behaviour tests for the brains (8.1):** `test_training_brain.gd` checks every dummy behaviour and the counters by events and states. Since 8.10 the dummy's lights throws the whole light string and random drills every unblockable its weapon has.
+- **The last bit-exact point (8.2): commit 4222167.** There `npm run soak -- 40` and `npm run soak:godot -- 40` printed this same report, and `npx tsx scripts/counterlab.ts` and the Godot counterlab these same tallies. 8.2 then retired the goldens, the brain-parity hashes and the whole-run hashes, so from 8.3 on the soak and the counterlab are compared with these numbers by eye, and balance targets wait for task 12.
+  ```
+  40 matches, 0 failures
+  rounds: 149, avg round 44.5 s, longest 121.8 s
+  per round:
+    blocks                 12.30
+    counter:evade          0.03
+    counter:leap           0.79
+    counter:stomp          0.60
+    disarm:blocked         0.07
+    disarm:parried         0.37
+    disarm:redirect        0.01
+    evade                  0.39
+    framesAtFullPosture    281.12
+    hits                   21.98
+    parry:flash            0.16
+    parry:parry            3.91
+    parry:redirect         0.04
+    rearm                  0.40
+    recall                 0.05
+    ult:disarmedChoice     0.11
+    ult:impaler            0.28
+    ult:moonsplitter       0.37
+    ult:tempest            0.43
+  match wins/losses by weapon: { greatsword: [ 12, 12 ], katana: [ 15, 16 ], daggers: [ 13, 12 ] }
+
+  slam { attempts: 24, 'counter:evade': 17, hit: 4 }
+  thrust { attempts: 24, 'counter:stomp': 15, hit: 2 }
+  sweep { attempts: 25, 'counter:leap': 16 }
+  ```
+
+- **Task 8's drift (8.9).** On the finished fluid rules, `soak:godot -- 40` and the Godot counterlab printed:
+  ```
+  40 matches, 0 failures
+  rounds: 148, avg round 42.8 s, longest 116.3 s
+  per round:
+    blocks                 17.89
+    counter:evade          0.02
+    counter:leap           0.59
+    counter:stomp          0.43
+    disarm:blocked         0.08
+    disarm:parried         0.73
+    disarm:redirect        0.02
+    evade                  0.49
+    framesAtFullPosture    481.03
+    hits                   24.02
+    parry:flash            0.12
+    parry:parry            4.37
+    parry:redirect         0.11
+    rearm                  0.70
+    recall                 0.09
+    ult:disarmedChoice     0.24
+    ult:impaler            0.22
+    ult:moonsplitter       0.28
+    ult:tempest            0.39
+  match wins/losses by weapon: { greatsword: [ 9, 15 ], katana: [ 17, 14 ], daggers: [ 14, 11 ] }
+
+  slam { attempts: 23, 'counter:evade': 13, hit: 7 }
+  thrust { attempts: 23, 'counter:stomp': 13, hit: 4 }
+  sweep { attempts: 24, 'counter:leap': 15, hit: 2 }
+  ```
+  - Against the baseline, per round: rounds a little shorter (42.8 s, was 44.5); blocks up by nearly half (17.89, was 12.30) and plain parries up (4.37, was 3.91), so posture sits full far longer (481 frames, was 281) and disarms nearly double (0.83, was 0.45); counters down (1.04, was 1.42); ultimates about the same (1.13, was 1.19).
+  - The step that moved balance most was 8.7 (light hitstun 14): blocks 12.53 to 17.65 and disarms 0.50 to 0.84 in that one step. 8.9's slide moved little beyond it.
+  - Wins and losses by weapon: the Greatsword 9–15 (12–12 at the baseline), the Katana 17–14 (15–16), the Daggers 14–11 (13–12). The Greatsword lost ground at 8.7 and stayed there.
+  - Against the spec's targets: rounds of 35–60 s are met; disarms (0.83, target 0.3–0.6) and the Greatsword's wins (9 of 24, target 45–55%) are not. A 40-match soak is noisy (mirror matches included); task 12's 300-match soaks tune toward the targets.
+  - The counterlab reaches every counter less often than at the baseline: 13 evades from 23 slams (17 from 24), 13 stomps from 23 thrusts (15 from 24), 15 leaps from 24 sweeps (16 from 25), with more hits against the countering fighter.
+- **The first tuning run (12.1).** `npm run soak:tune` on task 8's finished rules, the starting point for 12.8 and 12.9: 300 matches, 0 failures, 1098 rounds, longest 116.3 s. It took about 4 minutes on the target laptop (with the test suite running for part of it), well inside `godot.mjs`'s one-hour limit.
+  ```
+  win rates, mirror matches left out:
+    katana: 48.5% (63 of 130)
+    greatsword: 37.4% (43 of 115)
+    daggers: 62.8% (81 of 129)
+  disarms per round: 0.74
+  targets (the spec's):
+    rounds of 35-60 s: 39.9 s, in
+    disarms 0.3-0.6 per round: 0.74, out
+    katana wins 45-55%: 48.5%, in
+    greatsword wins 45-55%: 37.4%, out
+    daggers wins 45-55%: 62.8%, out
+  ```
+  - Per round: blocks 17.06, parries 3.76, counters 0.89, ultimates 1.07 (the disarmed choice included).
+  - With the mirror matches left out the Daggers lead clearly, which the 40-match soak's raw wins and losses (14–11) hid.
+
+### Waiting on the owner
+
+- The project's own licence: there is no LICENSE file, and `game/assets/audio/SOURCES.md` refers to one. Needed by 25.4.
+- Whether the Daggers' second and third hits should stay guaranteed after all (11.1 freed them, with 10 frames of hitstun on the string's four lights, to keep story 24; 14 would guarantee them again).
+- Whether the Iai stance's walking speed should halve as the draw starts, as an attack start's does. Today it brakes as on every attack frame, which gives about 0.14 m of sideways drift in the draw after a full-speed strafe (9.3); halving it is one line.
+- Whether a held Twin Fang should wait for the charge check before it dashes, as Overhead Strike and the Iai do (`lunge_start` 9 or 10). Today it covers about 0.6 m of its 1.4 m dash, stands still while charging, then dashes the rest, as the demo's did with 0.8 m (11.2); bare hands' Roundhouse splits its 0.4 m the same way. Waiting would also hold a tapped Twin Fang still for 9 frames and make its dash about twice as fast.
+- Whether the counter lunges, the evade counter's reward, keep the demo's 18 frames of hitstun. 8.7 gave them 14 with every other light, as the plan's check asked; an exception is one line.
+- Whether the running footsteps should follow the legs too. The guard's already do: on the owner's word after 14.9, a fighter walking in its guard steps where its guard shuffle puts its feet down (`Locomotion.footfalls`, reported by `MatchView.footfall`), and 19.4's `FootstepCadence` keeps counting strides for running and the other weapons, and for a match stepped without being drawn. 14.5's step phase passes 0 at the left foot's mid-stance and about 0.5 at the right's, so it could time the running clips' footsteps the same way.
+- Reviews and sign-offs as their tasks land: the camera with a fighter backed against the shrine's wall (17.10: it now comes in to about 1.6 m behind them, short of the props, on about 5% of frames in a match that reaches the wall; story 11 waits on this; `arena_wall.tscn`, or `--wall=<degrees>` on the gameplay and Watch views; the alternative is a camera that pulls in only when a prop is in the way, which needs collision on the props), a Duel in the exported build (`npm run build`, then `build/windows/Monomachia.exe`; 25.2), a look at the outlines and ink lines under FXAA (picked under the project's old 4x MSAA; 16.5), the fighters in the toon look (16.7: the rim and normal-map strengths tuned on them, and whether the Rogue's charcoal palette needs lifting to read at night; `preview.tscn --stage=night`), the hands on the rig (14.1: `preview.tscn --pose=guard`, and the sheet's guard sheets), a Duel with the real fighters (14.2: `npm run godot:run`; and whether to widen the camera's swing, since a dagger guard's elbows or the Rogue's knees can touch the opponent's outline at 1.5 and 3.5 m), the red rim light on the fighters at the shrine (17.3: energy 1.1 against the stand-in's 0.35, so a blue-side fighter reads red from the moon's side; `arena_menu.tscn`), the lanterns' flicker (17.4: the light and its lit paper flicker separately, and the halo holds steady; `arena_gameplay.tscn` shows them still), the red moon (17.6: its seas are now soft painted shapes laid out like the real moon's face, in place of the worktree's blotchy noise; `arena_gameplay.tscn` and `arena_establishing.tscn`), the petals (17.8: left out, as the plan says; the worktree's 28 pale petals on the wind would be cheap to bring back from the recipe in the look notes), a listening pass (19.9: a Duel, a Watch match and the sound check, `node scripts/godot.mjs run res://tools/sound_check.tscn`; stories 50 and 51 wait on it, and its fixes come back as their own small tasks), the Iai's stand-in sheathe and draws (9.6: `skeleton_iai_stance.tscn`, `skeleton_iai_vertical.tscn` and `skeleton_iai_horizontal.tscn`, with `--frame=` for the draws), the animation sheets (14.17, the gate for 15.1), trying the swing editor by hand (14b.6), playtests of the Duel after 12.9 and of Versus with two controllers and a shared keyboard (22.16), the final animation (15.16), the credits wording (25.4), the CLAUDE.md rewrite (25.6), the README (25.7), and publishing the first release after the merge.
+
+## Not yet specified
+
+- The match intros, the gate cinematic and victory poses, with their animations.
+- How the other six fighters get bodies and outfits (budget, packs, or commissioned art), and how the Orc and Skeleton Knight differ in size and hurt capsule.
+- The other six weapons' movesets in frame data, and the open questions the design review raised about them: which hammer, scythe and staff moves are unblockable, the whip's normal heavy, and what "good blocking" means for Sword & Shield.
+- The sourcing and licensing of real music.
+- The additional arenas and a stage select.
+
+## Out of scope
+
+- Online play, progression and cosmetics (the design's later phases), and Mac and Linux builds.
+
+## Build order
+
+One task at a time, top to bottom. Each stage names its tasks in order.
+
+1. **Resume and safety nets:** 13.1, 25.1, 25.2, 25.3.
+2. **The look, and the real fighters in the match:** 16.1–16.7, 14.1, 14.2.
+3. **The shrine:** 17.1–17.9.
+4. **Fluid rules:** 8.1, 8.2, 8.10, 8.3, 17.10, 8.4–8.9, 12.1.
+5. **Sound and music in the game:** 19.1, 19.2, 19.3, 19.4, 20.1, 20.2, 19.5, 19.6, 20.3, 19.7, 19.8, 19.9.
+6. **The new strings:** 9.1–9.6, 10.1–10.3, 11.1–11.3.
+7. **Swing foundations:** 7.1–7.15.
+8. **Fighter animation core:** 14.3–14.13.
+9. **The Katana on swings, and the animation review:** 7.16, 7.17, 14.14, 14.15, 7.18, 7.19, 14.16, 7.20, 7.21, 7.22, 7.23, 18.1, 18.2, 18.3, 14.17 (the sheets go to the owner; their OK gates 15.1).
+10. **While the owner reviews: the swing editor, HUD, effects, menus and modes** (begun early on the owner's word, while stages 7–9 wait on the swings lane): 14b.1–14b.6, 22.1, 24.1–24.5, 18.4–18.11, 22.2–22.15, 23.1–23.7, 22.16, 22.17.
+11. **The other weapons' swings** (after the owner's OK): 15.1, 7.24–7.27, 15.2, 7.28–7.32, 15.3, 7.33–7.38.
+12. **Computer opponent and balance:** 12.2–12.9.
+13. **Full animation:** 15.4–15.16, then 18.12.
+14. **Ship:** 25.4, 25.5, 26.1, 26.2, 26.3, 25.6, 25.7, 26.4.
+
+## Tasks
+
+### Phase A: foundation and a faithful port
+
+- [x] **1. Godot project and tooling.**
+  - Delivers:
+    - a Godot 4.7 project in `game/` (Forward+, 60 physics ticks, 1600×900 window, the autoload and folder layout from the spec);
+    - GUT vendored in `game/addons`;
+    - `scripts/godot.mjs`, which finds Godot through `GODOT`, PATH or an untracked `.godot-path` file, and fails the run when a test script doesn't parse;
+    - npm scripts `test` and `typecheck`, which run the old Vitest tests and the Godot tests side by side until the web code is deleted, plus `soak:godot`, `shots`, `godot:dev` and `godot:run` for the Godot side (`soak`, `build` and `dev` still run the web version until then);
+    - `.gitignore` and `.gitattributes` updates (the `.godot/` cache, exports, LF line endings);
+    - a CI job that installs Godot 4.7.2 and runs the Godot tests.
+  - Blocked by: none.
+  - Check: a trivial GUT test passes from `npm test` locally and in CI, and `npm run typecheck` catches a deliberately broken script.
+- [x] **2. Port the rules foundations.** Constants, math, the Mulberry32 random generator (bit-exact), the input tracker, events, the move schema with its defaults, and the four weapons' move data, all faithful.
+  - Blocked by: 1.
+  - Check: the ported input tests (step, sprint latch, slow second push, buffering) pass; the random generator matches the TypeScript output for 1,000 draws; every move loads with the same values as `finalizeMoves` produces.
+- [x] **3. Port the fighter, the world and the match.** The full state machine, the hit evaluation and application, dropped weapons, the Moonsplitter wave, scripted ultimate hits, the round flow, and the test helpers.
+  - Blocked by: 2.
+  - Check: all 47 demo tests ported to GUT and passing.
+- [x] **4. Golden replays against the TypeScript rules.**
+  - Delivers:
+    - a Node script that runs the TypeScript rules on scripted scenarios (every test scenario plus six computer-vs-computer matches with fixed seeds) and writes per-frame event and state logs to `game/tests/golden/`;
+    - a GUT test that replays them on the Godot rules and compares them.
+  - Blocked by: 3 (and 5 for the computer-vs-computer goldens).
+  - Check: every golden matches, events exactly and positions within 1e-6.
+  - Retired by 8.2 (ae4fbb5) before the first rule change; 4222167 is the last commit they passed on.
+- [x] **5. Port the computer opponent, the training dummy and the tools.** The brain with its three difficulties, the training behaviours, and headless `soak` and `counterlab` runners.
+  - Blocked by: 3.
+  - Check: `npm run soak:godot -- 40` finishes with no errors, and its numbers are within noise of the TypeScript soak run on the same seeds; computer-vs-computer goldens match.
+
+### Phase B: a playable skeleton
+
+- [x] **6. Playable duel with stand-in fighters.**
+  - Delivers:
+    - the fixed-step host (accumulator, slow motion, hit-stop freeze, interpolation);
+    - capsule fighters with stick weapons posed from the move data;
+    - the For Honor camera;
+    - keyboard, mouse and controller input for player 1;
+    - a flat stand-in arena at the rules' radius;
+    - a minimal HUD;
+    - Duel against the computer from launch to results;
+    - a match config carrying each side's fighter id, palette, weapon, abilities and computer difficulty, plus the arena id, from day one;
+    - arena data with spawn points and gate anchors.
+  - Blocked by: 5 (input devices from task 21 are already merged).
+  - Check: a scripted run plays a full match headless; screenshots of the duel from the gameplay camera.
+  - Done (built on the `playable-skeleton` branch, merged in c400858):
+    - `game/core`: the `MatchConfig` and `MatchSide` resources, `MatchResults`, and the `GameServices` autoload, which owns one `ControlProfiles` and one `InputDevices` with its `InputFeed` for the whole game and pauses a match when the window loses focus. `MatchHost` calls `set_profile` and `rearm_pause` on resume and `unbind_seats` on quit to menu.
+    - `game/view/match`: `MatchHost` (the fixed-step host, with `step(n)` for tests and screenshots), `MatchView`, `CameraRig` (follow at 4.6 m back and 1.35 m right with 60° field of view, swinging further right by 0.8 m per metre when the fighters stand closer than 3.5 m; Watch side-on, menu orbit, shake and field-of-view kicks; the arena's camera radius and far clip from its `ArenaDef`; every number exported), `FighterStandin` posed by `StickPose`, and the stand-in arena.
+    - Arenas load by id through `ArenaScenes`: `moonlit_shrine`, the default arena of every match, points at `res://arenas/moonlit_shrine/moonlit_shrine.tscn` and falls back to the stand-in until that scene exists. The stand-in only carries Spawn and Gate markers; the arena data itself comes with task 17.
+    - `game/ui`: the minimal HUD, and the title, main menu, pause and results screens that task 22 replaces. `game/scenes/main.tscn` runs title, menu, Duel or Watch, results.
+    - Screenshot scenes in `game/tools/shot_scenes/` (`npm run shots -- res://tools/shot_scenes/skeleton_parry.tscn out.png`).
+    - Left for task 23: the training upkeep (refill, the dummy re-arming, getting up after a KO; until then a KO in Training leaves the fighter down). Training and Versus run in the host and its tests but aren't in the menu yet.
+
+### Phase C: the rule changes
+
+Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 7 (swing paths for the final moves), then 12.
+
+- [x] **8. Fluid combat rules.** Arena radius 15 m, with the hard-coded values tied to it; blocking walk 60%; momentum carry; eased lunges; the colossal recovery slide; heavy dodge-cancel; light hitstun 14. The golden replays retire here: they record the demo's rules.
+  - Check: the new tests from the spec pass; the soak run is clean.
+  - [x] **8.1 Behaviour tests for the training dummy and the computer's counters.**
+    - Delivers: `game/tests/sim/test_training_brain.gd`. Each dummy behaviour (idle, block, lights, heavies, thrust, sweep, slam, random, spar) is checked against an opponent at practice distance, by its events and states. A counterlab-style test shows a hard brain that always tries the counter lands stomp, leap and evade within 60 s. These replace the TypeScript input hashes that the first rule change breaks.
+    - Check: the new tests pass on today's rules.
+    - Blocked by: none · Stories: 41, 53, 60
+    - Done: nine tests.
+      - Idle presses nothing, makes no event and doesn't move. Block holds block alone every step, and blocks each of ten Right Cuts.
+      - Lights throws Right Cut then Return Cut, 110 frames apart or more (exactly 110 today). Heavies throws Kesa Giri, 120 frames apart or more, with Heaven Splitter every other time. The spacing checks allow a later start, so 8.3–8.9's lunges and momentum don't break them.
+      - Each unblockable drill (thrust and sweep for the Katana and the Daggers, sweep and slam for the Greatsword) puts its unblockable on the light slot and only ever throws that, at least 130 frames apart. A drill the weapon lacks keeps the default abilities.
+      - Random throws lights, heavies and only unblockables its weapon has. Spar (`fight` in the code) walks in from 6 m (6.4 m today; idle and blocking dummies advance none), attacks and defends against a normal brain.
+      - The counterlab setup: a slam is countered only by evade, a thrust only by stomp, a sweep only by leap, all by the brain.
+      - The tests found two demo bugs in the dummy, kept as they were while the TypeScript hashes still pinned it: random never drills its weapon's first unblockable, and lights never reaches Crown Cut. The owner asked for them fixed right after 8.2, in 8.10. Flipping the heavies' alternation or the drill's ability slot in the brain fails four of the tests.
+  - [x] **8.2 Record the demo baselines, then retire the checks pinned to the TypeScript.**
+    - Delivers:
+      - Before deleting anything, the TypeScript and Godot soaks (`-- 40`) and counterlabs are run and found identical. Their output and the commit hash are recorded in Progress as the last bit-exact point.
+      - Deleted: `game/tests/golden/`, `test_golden_replay.gd`, `test_ai_parity.gd`, `tests/golden.test.ts`, `scripts/golden/record.ts` and the `golden:record` script.
+      - In `test_port_regressions.gd`: the clamp fixture and the whole-run hashes go, and the six sentinel traces become behaviour asserts. `scripts/port-fixtures.ts` stops writing those sections.
+      - The headers of `soak.gd` and `counterlab.gd` and the spec's "Faithful port first" move to the past tense.
+    - Check:
+      - The reports match line for line before the deletions.
+      - Afterwards the tests pass, with the counts dropping as expected, and `soak:godot -- 40` still prints the baseline.
+      - Nothing outside git history refers to `game/tests/golden`.
+    - Blocked by: 8.1 · Stories: 60, 61, 62
+    - Done:
+      - At 4222167 the two soaks printed identical reports and the two counterlabs identical tallies; both are in Progress as the last bit-exact point.
+      - Deleted as listed. The Godot tests went from 626 to 585 (the 35 replays, the guard test, the 2 parity tests and the 3 port tests) and the web tests from 121 to 85 (the golden replay file's 36). The typecheck loads 159 scripts.
+      - `test_port_regressions.gd` lost the clamp fixture, the two whole-run hashes and the trace hash. The sentinel cases (seven, not six) now check what the patched Right Cut does: an interval of 0 never hits, -2 hits three times two frames apart, a negative guard crush adds no posture, a dodge-cancel frame of -1 lets the dodge in at once, a lunge end of -1 never moves the attacker, and negative hit-stop and stuns don't freeze the world or hold the defender. The review added an unpatched control (the cut reaches), the block's posture cost (-3.5, so the multiplier is kept), the kept -3 hit-stop, and a dodge on the attack's first frame. With the patches turned off, all seven fail.
+      - `port.json` regenerated: the math, deadzone and `Number()` sections came out identical. The `toFixed` and `String()` cases changed, because the clamp cases drew from the same random stream. One new `String()` case caught a bug in `JsFormat.num`: `var_to_str` gives a double that a float32 holds exactly float32's shortest digits (0.0071418374 for 0.0071418373845517635). It now takes its digits from `String.num_scientific`. Only the soak's match count and its posture error print through it, so no report changed. `port-fixtures.ts` now also writes a fixed float32 case, `Math.fround(0.1)`, so the bug stays covered whatever the random draws.
+      - Afterwards `soak:godot -- 40` and the counterlab still print the baseline exactly.
+      - Outside this plan, its research notes (a snapshot of the breakdown) and git history, nothing refers to `game/tests/golden`.
+  - [x] **8.10 The training dummy's lights and random, fixed.** Added on Oct 2 at the owner's request: numbered last in task 8, built right after 8.2. 8.1's tests found both bugs, which came over from the demo.
+    - Delivers:
+      - Random drills every unblockable its weapon has. Today one tally both picks the next drill and alternates the heavy follow-up, so of four choices the third never comes up (the Katana's and the Daggers' thrust, the Greatsword's sweep), and in random every heavy gets its follow-up.
+      - Lights throws the weapon's whole light string. Today the third tap leaves the 8-frame input buffer one frame before Return Cut can take a follow-up, so Crown Cut never comes. The dummy presses for each follow-up while the attack it is in can still take it, so the string stays whole when task 9 makes it four lights.
+      - `test_training_brain.gd` tightened to match.
+    - Check: random drills every unblockable its weapon has, and the heavy follow-up still comes every other time; lights throws Right Cut, Return Cut and Crown Cut every cycle for the Katana and the whole light string for the Greatsword and the Daggers; the soak and the counterlab still print the baseline (neither uses these behaviours).
+    - Blocked by: 8.2 · Stories: 53
+    - Done:
+      - Random picks its drill from a tally of its own (`_pick`), so it drills every unblockable its weapon has, and its heavies take the follow-up every other time, as the heavies drill does. Choosing a behaviour resets both tallies, so random starts over at lights.
+      - Lights presses for a light's follow-up when the attack takes one on the next step, asking the fighter (`Fighter.takes_follow_up_at`, which `_update_attack` now uses too, so the rule lives in one place), so the Katana throws Right Cut, Return Cut and Crown Cut, the Greatsword its two lights and the Daggers all four (the demo stopped at three). The fixed presses at 9 and 18 frames are gone.
+      - The two tests went red on the demo's behaviour first, then green.
+      - The soak and the counterlab still print the baseline exactly (the soak never uses the dummy; the shared follow-up rule left the rules unchanged).
+  - [x] **8.3 Arena radius 15 m, with every value tied to it.**
+    - Delivers:
+      - `ARENA_RADIUS` 15, with named margins for the Impaler's wall stop (0.7) and the dropped weapon's bounce (0.8).
+      - The Impaler limit uses them instead of the hard-coded 10.8.
+      - `WAVE_RANGE` becomes 2 × radius + 3.
+      - The soak's "left the arena" check follows the radius.
+      - The camera comment is fixed.
+      - `test_fluid_combat.gd`, arena section: the wall clamp at 14.58 m; a dropped weapon staying inside; the Impaler stopping at radius − 0.7; a vertical Moonsplitter hitting at 28 m.
+      - The radius guard opens, so the shrine becomes every match's arena; 17.10 then checks it.
+    - Check: the new tests pass; the camera and scene tests pass (they start on the stand-in by id since 17.1); the soak has 0 failures, and its round length is noted against the baseline; shots of the stand-in arena, asked for by id, show the wall at 15 m.
+    - Blocked by: 8.2, 17.1 · Stories: 15, 30, 34, 62
+    - Done:
+      - `SimConst.ARENA_RADIUS` is 15, with `IMPALER_WALL_MARGIN` (0.7) and `WEAPON_BOUNCE_MARGIN` (0.8). `WAVE_RANGE` is `2 × ARENA_RADIUS + 3` (33 m; the demo's 26 m is the same formula at 11.5 m). The soak fails a fighter more than 0.5 m past the wall (it was 12 m). The camera's comment gives 19 m.
+      - `test_fluid_combat.gd` (new), arena section, red on the 11.5 m rules first: backing away stops a fighter's centre at 14.58 m; a weapon dropped at 14 m flies out to its 14.2 m bounce ring and bounces back to rest at least 1 m inside it (1.9–3.5 m over five seeds); the Impaler's dash ends within one 0.4 m dash step past 14.3 m, short of the wall's 14.58 m and before its 40 frames run out (the target hangs 2 m up, beyond the stop, so the blade never touches it and the dash never passes it); a vertical Moonsplitter hits across the widest gap, 29.16 m (the plan asked for 28 m). The test measures with `JsMath.hypot`, since Godot's `Vector2` is 32-bit.
+      - The review's mutations: with the Impaler's margin at 0 or 0.3, or the weapon's reflection removed, or `WAVE_RANGE` left at 26 m, a test fails.
+      - The guard opened: `test_arena_scenes` now checks that the shrine draws as itself, its walkable radius equal to the rules'. Every match without an arena id, and every skeleton shot, is now on the shrine; the tests that need the stand-in ask for it by id, and the suite takes no longer (38 s).
+      - Soak: 0 failures. Rounds 140, average 45.5 s, longest 105.2 s, against the baseline's 149, 44.5 s and 121.8 s. Per round: blocks 12.76 (12.30), parries 3.90 (3.91), disarms 0.40 (0.45), ultimates 1.18 (1.19), the disarmed choice included; match wins and losses Greatsword 12–12, Katana 13–18, Daggers 15–10. The counterlab still prints the baseline: the dummy drills near the centre.
+      - Shots of the stand-in by id (`arena_top_down`, `arena_gameplay` and `arena_watch` with `--arena=standin`) show the rules' wall at 15.00 m, centres stopping at 14.58 m and the stand-in's wall on the rules' ring, with no errors or leaks at exit.
+      - Story 15 (a larger walled arena) is ticked by 17.10, once the shrine is checked as every match's arena.
+      - For task 12: the computer still uses the Moonsplitter only under 14 m and the Impaler under 12 m (its own choices, not tied to the radius), though fighters can now stand 29 m apart.
+  - [x] **8.4 Blocking walk at 60% of running speed.** `MOVE_BLOCK_SPEED_MULT` 0.6, with tests of forward and strafing block speed and that blocking still stops sprinting.
+    - Check: the new tests and the posture-drain test pass; the soak is clean.
+    - Blocked by: 8.2 · Stories: 14
+    - Done:
+      - `SimConst.MOVE_BLOCK_SPEED_MULT` is 0.6 (was 0.45).
+      - `test_fluid_combat.gd`, block walk section, red on the 45% first. In the second after reaching speed, a blocking fighter walks forward 2.34 m with the Katana, 2.106 m with the Greatsword and 2.6208 m with the Daggers, and the Katana strafes 2.1 m and backs away 1.8 m. The expected numbers are the spec's 60% of the demo's running speeds, which the spec keeps. Holding sprint walks 7.2 m, and holding block with it 2.34 m; with the rule that blocking stops a sprint removed, that test fails.
+      - The posture-drain test still passes (its moving threshold is 0.3 m/s).
+      - Soak: 0 failures. Rounds 139, average 45.9 s, longest 102.0 s, against 140, 45.5 s and 105.2 s at 8.3. Per round: blocks 13.32 (12.76 at 8.3), parries 3.89 (3.90), disarms 0.39 (0.40), ultimates 1.14 (1.18), the disarmed choice included; match wins and losses Greatsword 11–13, Katana 16–15, Daggers 13–12. The counterlab still prints the baseline.
+      - Nothing in the view reads the block speed yet. 14.5 sets its locomotion blend bands against the rules' speeds, and 14.9's guard shuffle takes its step rate from them.
+      - Story 14 (walking faster while blocking) is ticked by 14.9, once the guard shuffle shows the walk.
+  - [x] **8.5 Attacks keep half their momentum.** `ATTACK_MOMENTUM_KEEP` 0.5 replaces the 0.3 in `start_attack`; airborne and hop attacks keep it all.
+    - Check: the step a light starts on has exactly half the previous speed; a jump attack keeps its velocity; the soak is clean.
+    - Blocked by: 8.2 · Stories: 16, 19, 20
+    - Done:
+      - `SimConst.ATTACK_MOMENTUM_KEEP` is 0.5 (was 0.3), read in `Fighter.start_attack`. Jump attacks and leaping (hop) attacks still keep all their speed.
+      - `test_fluid_combat.gd`, momentum section, red on the 30% first. A Katana fighter running at 3.9 m/s throws Right Cut: the step it starts on moves exactly half as far as the step before. Over the whole cut it travels 16 cm further than the same cut thrown standing (the kept 1.95 m/s, braked by a fifth each step, is 1.95/12 m; at 30% it was 10 cm). Aerial Cut thrown from a running jump and Leaping Cleave (a hop attack) thrown from a sprint keep all their speed on the step they start; with either exception removed, its test fails. The test names the spec's 0.5 and the demo's jump speed and brake as constants.
+      - Soak: 0 failures. Rounds 151, average 46.1 s, longest 108.3 s, against 139, 45.9 s and 102.0 s at 8.4. Per round: blocks 13.52 (13.32 at 8.4), parries 3.66 (3.89), disarms 0.42 (0.39), ultimates 1.17 (1.14), the disarmed choice included; match wins and losses Greatsword 12–12, Katana 13–18, Daggers 15–10 (the same split as at 8.3; the rounds behind it differ).
+      - The counterlab moved off the baseline for the first time, and still reaches every counter: slam 24 attempts, 17 evades, 4 hits (baseline 24, 17, 4); thrust 25 attempts, 15 stomps, 1 hit (24, 15, 2); sweep 24 attempts, 18 leaps, 2 hits (25, 16, 0). Grounded attacks now carry more speed, so the runs no longer replay the baseline exactly.
+      - Stories 16, 19 and 20 need the strings, the swings and the colossal slide too; this task ticks none of them.
+  - [x] **8.6 Lunges ease in and out.** Each frame moves the eased share of the lunge, with the same total, window and minimum-gap clamp. The clamped forward step becomes a helper the slide reuses, and the spec's wording is fixed.
+    - Check: Kesa Giri's steps rise then fall and add up to 0.6 m; a lunge into a defender still stops 0.25 m clear; the string, range and counter tests pass; the soak is clean.
+    - Blocked by: 8.2 · Stories: 19
+    - Done:
+      - Each lunge frame moves the lunge's share between `SimMath.ease_in_out` at the frame before and at this frame (the demo moved an even share). The counter lunge, whose length depends on the distance, eases the same way. `Fighter._advance` moves along the facing and stops with the bodies 0.25 m apart; the lunge uses it, and 8.9's slide will.
+      - `ease_in_out` now squares directly instead of calling `pow`, so no rule depends on the C library's `pow`. It was unused until now, and `test_math` still matches the TypeScript's values.
+      - `test_fluid_combat.gd`, lunge section, red on the even steps first. Kesa Giri, thrown standing 10 m from the opponent, moves on its frames 9 to 24 and no others, 0.6 m in all. Its steps rise to the middle and fall after it, and the first and last are under a quarter of an even step. Thrown 1.3 m from a defender, it stops with their bodies 0.25 m apart before the cut lands; with the clamp removed, that test fails. The shared step recorder now also records the attack's frame and the gap between the fighters.
+      - The string, range and counter tests pass unchanged.
+      - Lunges whose window runs past their first active frame are further on when it comes, as the eased curve is ahead of the even one in its second half. Most lights are 3–6 cm further; the long dash and sprint lunges up to 31 cm (Serpent Sweep 0.31 m, the fists' sprint light 0.28 m, the Greatsword's 0.26 m); Right Cut, Return Cut and the Greatsword's two lights, whose windows end on that frame, are unchanged. Task 7's reach tests (7.14) measure the eased lunges.
+      - Soak: 0 failures. Rounds 144, average 44.0 s, longest 125.4 s, against 151, 46.1 s and 108.3 s at 8.5. Per round: blocks 12.53 (13.52 at 8.5), parries 3.76 (3.66), disarms 0.50 (0.42), ultimates 1.21 (1.17), the disarmed choice included; match wins and losses Greatsword 12–12, Katana 14–17, Daggers 14–11. The counterlab still reaches every counter: slam 24 attempts, 17 evades, 4 hits; thrust 25, 15 stomps, 1 hit; sweep 25, 18 leaps, 2 hits.
+      - Story 19 (attacks that feel heavy) also needs the swings and their hit-stop and follow-through; this task doesn't tick it.
+  - [x] **8.7 Light hitstun 14 frames.** The default for lights drops from 18 to 14 (bare hands keep their 16). `test_moves` gets its table of deliberate differences.
+    - Check: a defender pressing block as hitstun ends parries Return Cut after taking Right Cut; every light without its own hitstun has 14; the soak is clean.
+    - Blocked by: 8.2 · Stories: 24, 41
+    - Done:
+      - `AttackDef.finalize_moves` gives lights 14 frames of hitstun (was 18). That is every light without its own: the strings, and also the sprint, dodge, back and jump lights and the four counter lunges, as the plan's check asks. Bare hands' first two lights keep their own 16.
+      - `test_fluid_combat.gd`, hitstun section, red on 18 first. A probe run of Right Cut and Return Cut against an idle Katana finds the defender out of hitstun for exactly one step before Return Cut lands (at 18 there was none). Pressing block a step before it, the defender parries Return Cut: one hit, one plain parry, and the attacker recoils. At 18 the second cut landed during hitstun. Every light has 14 frames of hitstun except bare hands' first two, which have 16.
+      - `test_moves.gd` has its table of deliberate differences (`CHANGED`, which 8.8 renamed `changes`): a light whose hitstun was 18 in the demo's data now has 14. Every move and field no row covers still matches the demo. A row matches a field the demo set; 8.8 (a cancel frame the demo left unset, different for each heavy) and tasks 9–11 (single moves) will extend it.
+      - Soak: 0 failures. Rounds 151, average 43.8 s, longest 116.3 s, against 144, 44.0 s and 125.4 s at 8.6. Balance moved more than at any earlier step. Per round: blocks 17.65 (12.53 at 8.6), parries 4.74 (3.76), hits 23.48 (21.36), disarms 0.84 (0.50), ultimates 1.17 (1.21), the disarmed choice included; frames at full posture 506 (320). Match wins and losses Greatsword 9–15, Katana 16–15, Daggers 15–10. The likely reason: string hits that used to be guaranteed can now be blocked or parried, so blocks and parries rise and posture fills, and disarms follow. Disarms are above the spec's target of 0.3–0.6 per round; task 12 tunes toward it.
+      - The counterlab still reaches every counter, less often: slam 21 attempts, 16 evades, 6 hits (24, 17, 4 at 8.6); thrust 23, 13 stomps, 4 hits (25, 15, 1); sweep 24, 14 leaps, 3 hits (25, 18, 2).
+      - The Daggers' second and third lights still land within 14 frames, so they stay guaranteed until 11.1 lowers the Daggers' light hitstun.
+      - Story 24 (blocking or parrying a string's later hits) is ticked once 11.1 frees the Daggers' hits too. Story 41 stays ticked: the parry, block, posture, disarm, counter and ultimate rules themselves are unchanged, though the counter lunge now holds its target 14 frames instead of 18.
+  - [x] **8.8 Heavies dodge-cancel in the second half of recovery.** `finalize_moves` gives every heavy the default cancel frame; charged heavies shift it, and there is none in the air or for abilities.
+    - Check: a dodge in the first half of recovery doesn't cancel and one in the second half does, after a whiff and after a block; a charged heavy opens later; Mountain Slam can't be cancelled; the soak is clean.
+    - Blocked by: 8.2 · Stories: 23
+    - Done:
+      - `AttackDef.finalize_moves` gives every heavy without its own cancel frame `startup + active + ceil(recovery / 2)`, the movement attacks' heavies included. Block abilities, specials and ultimates get none.
+      - `Fighter._update_attack` opens the cancel later by half the attack's extra recovery, rounded up, so a charged heavy's extra recovery stays half punishable. It refuses the cancel in the air: the Daggers' and bare hands' jump heavies, thrown straight after a jump, are still in the air when theirs opens, and the press waits for the landing. Lights have no extra recovery and no cancel in the air, so they are unchanged.
+      - `test_fluid_combat.gd`, heavy dodge cancel section, red first where a cancel should happen. Kesa Giri (22/4/26) opens at frame 39 of 52: a dodge pressed 9 frames before never comes and the cut runs to its end, one pressed 8 before is carried by the buffer to frame 39, and a later one fires at once. The same holds when the cut is blocked. Fully charged (16 frames of extra recovery), it opens 8 frames later, at 47; held for 112 steps (11 frames), 6 later, at 45, where rounding down would give 44. Mountain Slam, a block ability, can't be cancelled late in its recovery. The Daggers' Dive Stab, thrown straight after a jump, is still in the air when its cancel opens, and the dodge waits for the landing. With the air check or the charge shift removed, or the half rounded down, a test fails.
+      - `test_moves.gd`'s table (now `changes`, a static var) takes a field the demo left unset and a value computed from the move: the heavies' `dodge_cancel_from` row.
+      - Soak and counterlab: 0 failures, and both print exactly what 8.7 printed. The computer never presses dodge in its own recovery yet; 12.7 teaches it.
+      - Every heavy's recovery is an even number of frames today, so rounding up its half matters only for later moves; a partial charge's odd extra recovery checks the rounding now.
+      - The shift applies to any extra recovery. Only the evade counter adds some besides a charge, and only to Mountain Slam, which has no cancel.
+      - Story 23 (dodging out of a heavy's late recovery) is ticked: the player can now. 12.7 also lists it, for the computer.
+  - [x] **8.9 Colossal recovery slide, and close out task 8.**
+    - Delivers:
+      - Greatsword moves (bashes excepted) slide 0.35 m over the first 10 recovery frames, eased out, along the facing, stopping at the minimum gap.
+      - Soak and counterlab on the finished rules are compared with the baseline, and the drift goes in Progress.
+      - The spec's rule list is updated as built, and task 8 is ticked.
+    - Check:
+      - A whiffed Heavy Swing slides about 0.35 m and a Katana Right Cut doesn't.
+      - The slide stops short of a defender, and a dodge cancel cuts it off.
+      - Jump attacks and bashes don't slide.
+      - The soak has 0 failures, and counterlab still reaches stomp, leap and evade.
+      - `test_main_flow` plays a Duel.
+    - Blocked by: 8.3–8.8 · Stories: 20, 59, 62
+    - Done:
+      - `SimConst.COLOSSAL_SLIDE_DIST` (0.35 m) and `COLOSSAL_SLIDE_FRAMES` (10). In `Fighter._update_attack`, a colossal weapon's grounded moves, bashes aside and block abilities included, move the eased-out share of the slide on each of their first 10 recovery frames through `_advance`, on a hit, a block or a whiff. The slide runs along the facing until 7.24 gives it the swing's follow-through. It belongs to the attack state, so a dodge cancel, a follow-up, a stun or a parry's recoil ends it.
+      - `test_fluid_combat.gd`, colossal slide section, red first where a slide should happen. A whiffed Heavy Swing moves exactly 0.35 m over its first 10 recovery frames, each step shorter than the last, and none after; a whiffed Katana Right Cut doesn't move in recovery. It slides the same 0.35 m after a hit and after a block (from 1.5 m, the knockback or the pushback carries the defender clear). Put 1.2 m in front of the attacker as the swing's active frames end, a defender stops the slide with the bodies 0.25 m apart (a block can't show it: its 0.36 m pushback outruns the slide). Heavy Swing's dodge cancel lands on frame 26, its 8th recovery frame, with most of the slide run, and ends the forward movement. Aerial Chop, Guard Crusher, Pommel Strike and Shoulder Charge (beyond the sprint's leftover momentum) don't slide; each check first makes sure the move ran past the slide's frames. With the clamp, the bash exception or the jump-attack exception removed, a test fails.
+      - The slide changed how the seeded computer matches play: `test_shrine_as_arena`'s three matches (seeds 11–13) no longer backed a fighter against the wall. The test now runs seeds from 11 until at least three matches have played and one has reached the wall (at most twelve), and checks every match it runs. Today that is four matches. The cost: losing the wall shows only once all twelve seeds miss it.
+      - `test_main_flow` plays a Duel from the menu to the results and back.
+      - Soak: 0 failures. Against 8.8: rounds 148 (151), average 42.8 s (43.8), blocks 17.89 (17.65), parries 4.37 (4.74), disarms 0.83 (0.84); wins and losses unchanged for the Greatsword (9–15). The counterlab still reaches stomp, leap and evade. The drift from the baseline is in Progress ("Task 8's drift").
+      - The spec's rule list now gives every rule as built, and its Testing Decisions list the slide test. Story 20 waits for 7.24, which slides along the swing's follow-through.
+      - Task 8 is ticked.
+- [x] **9. Katana strings.** The four-light string, the Iai stance (walk while sheathed, direction at release, auto-release, dodge cancels it) and the follow-ups.
+  - Check: the Katana tests from the spec pass.
+  - Done: every Katana test the spec's Testing Decisions list (the four-light string, the Iai vertical and horizontal by stick, the Iai follow-ups, strafing while sheathed, the sheathed auto-release, the dodge cancelling the stance) passes in `test_katana_strings.gd`, with continuity in `test_string_continuity.gd` and the stand-in's sheathe in `test_stick_pose.gd` (9.1–9.6). Stories 16–18 and 26–29 stay open for the later tasks that list them too.
+  - [x] **9.1 The Katana's four-light string, string sides and the continuity test.**
+    - Delivers:
+      - `side_start` and `side_end` on `AttackDef`, with `test_string_continuity.gd`.
+      - Kesa Cut becomes `k_l3` (dodge-cancelling from frame 20), and Crown Cut moves to `k_l4`.
+      - Right Cut gets Heaven Splitter as its heavy follow-up.
+      - New frames for Rising Heaven (16/4/24) and Heaven Splitter (22/4/28).
+      - The spec records the sides.
+    - Check: `test_katana_strings.gd` covers four lights in order, the L-L-H and L-H endings, Crown Cut ending the string, stopping after any hit, Kesa Cut's cancel (refused on frame 19, taken on 20), and the spec table's five rows; continuity passes and catches a broken synthetic chain.
+    - Blocked by: 8.9 · Stories: 16, 17, 18, 25
+    - Done:
+      - `AttackDef.side_start` and `side_end` (`AttackDef.SIDES`: left, right, centre; `&""` outside a string), last in `KEYS`. Right Cut, Kesa Cut and Rising Heaven run right to left, Return Cut left to right, Crown Cut and Heaven Splitter centre to centre, and Kesa Giri right to left until 9.2 removes it.
+      - `k_l3` is Kesa Cut: a slash (anim `diagDown`), 11/3/17, 7/8, → Crown Cut, → Heaven Splitter, dodge-cancelling from 20, with an interim cone of 2.2 m and 100° and a 0.35 m lunge. Crown Cut moved to `k_l4` and ends the string (its heavy follow-up went). Right Cut's heavy follow-up is Heaven Splitter. Rising Heaven starts in 16 frames and Heaven Splitter in 22, their lunges still ending two frames after their cuts start.
+      - `test_katana_strings.gd`, red first, drives the string by pressing each next button on the step after the move before it swings. Four lights hit in order. L-H ends on Heaven Splitter, L-L-H on Rising Heaven and L-L-L-H on Heaven Splitter. A light or a heavy pressed in Crown Cut starts nothing, and Crown Cut ends on frame 40. Stopping after each of six strings leaves the fighter free as the last move ends (startup + active + recovery). Kesa Cut's dodge, after a hit and after a whiff, is refused on frame 19 and comes on 20. Six rows of the spec's table (the four lights and both heavy endings, where the check said five) match: names, frames, damage and posture, follow-ups and sides. A heavy follow-up on Crown Cut, or a cancel from 19, fails a test.
+      - `test_string_continuity.gd`: every Katana follow-up starts on the side the move before it ends on, or at centre. On synthetic moves the check reports a right start after a left end (but not a centre start after any end, or a right start after a right end), a follow-up that isn't among the moves, a move in a string missing a side, and a side on a move in no string. Flipping Rising Heaven's start side fails it.
+      - `test_moves.gd` gained `MOVE_CHANGES`, rows for single moves (by their id now, applied before the rules' rows, so the heavies' dodge cancels follow their new startups, and each checked against the demo's value), lists of added moves (Kesa Cut) and moved ones (Crown Cut, the demo's `k_l3`), and skips the sides, which the demo didn't have. A dropped row, a stale "was", a row on an added move, a misspelt side and a lost move each fail it. `test_training_brain`'s lights drill now expects all four Katana lights; the dummy presses for each follow-up, so it needed no change.
+      - The spec's move data gives the sides and the continuity rule, and a note under its Katana table gives Kesa Cut's cancel and interim cone. Story 25 is ticked; 16, 17 and 18 wait for the swings and the other weapons.
+      - Soak (40 matches): 0 failures. Against 8.9: rounds 154 (148), average 44.0 s (42.8), blocks 17.96 (17.89), parries 4.49 (4.37), disarms 0.81 (0.83); match wins and losses Katana 13–18 (17–14), Greatsword 11–13 (9–15), Daggers 16–9 (14–11).
+      - The Katana's 13–18 was noise: a 300-match `soak:tune` (0 failures) gives win rates against the other weapons of 46.9% for the Katana (48.5% at 12.1), 39.1% for the Greatsword (37.4%) and 62.8% for the Daggers (62.8%), with rounds of 39.5 s (39.9) and 0.75 disarms per round (0.74).
+      - Review fixes: the continuity check also reports a side on a move in no string, as the spec says; the moves' rows in `test_moves` have their own table; a test holds Kesa Cut to the spec's interim cone (2.2 m, 100°, a 0.35 m lunge, 0.4 m knockback, now in the spec); L-L-L-H joins the stopping test.
+      - Known stand-in gap: StickPose's `diagUp`, Rising Heaven's pose, runs from low left to high right, the mirror of its new sides, so Return Cut into Rising Heaven jumps sides on screen until 7.20 gives it a swing. The four lights do alternate on the stand-in poses, so story 25 is ticked.
+  - [x] **9.2 Iai Slash (vertical) replaces Kesa Giri as the heavy.** `k_iai`: 23/4/24 (sheathe plus draw), 13/16, chargeable, interim cone of 3.6 m, ending on the right, follow-up Rising Heaven.
+    - Check: a tap draws at frame 23; a held Iai hits 14 frames after release; it auto-releases at 2.5 s as a power attack; it hits at 3.8 m where Right Cut whiffs; a sheathed fighter can't block; it dodge-cancels late in recovery.
+    - Blocked by: 9.1 · Stories: 26, 29
+    - Done:
+      - `k_iai`, the Iai Slash (vertical), replaces Kesa Giri (`k_h1`) as the Katana's `heavy_start`: an overhead (anim `overhead`), 23/4/24, 13/16, chargeable, → Rising Heaven, sides left to right (drawn from the left hip), with an interim cone of 3.6 m and 60° and a 0.4 m lunge over frames 10 to 25, so it moves only once drawn. The stance is the existing charge: the attack's frames stop on 9 while heavy is held, and it releases by itself after 150 frames as a full charge. No fighter code changed; the fighter still stands still while sheathed until 9.3.
+      - `test_katana_strings.gd`, red first on Kesa Giri, its recorder now stepping both fighters so tests can hold buttons and send an opponent in:
+        - a tapped heavy draws on frame 23 and hits with the Iai;
+        - held for 60 steps it is sheathed from step 10 to 59, its frames stopped on 9, and the cut lands 14 frames after the release;
+        - held for 220 it releases by itself 150 frames (2.5 s) after the sheathe and hits for 13 × 1.8;
+        - it hits at 3.8 m, where Right Cut whiffs;
+        - a fighter holding block while sheathed takes a Right Cut as a hit, not a block;
+        - a heavy after it gives Rising Heaven;
+        - its dodge cancel, after a hit and after a whiff, is refused on frame 38 and comes on 39;
+        - its row matches the spec's table, with 23 frames of startup (the 9-frame sheathe and the 14-frame draw).
+        - Each fails when the data or rule it names is broken: startup 24, range 2.4, not chargeable, no follow-up, a cancel from 38, or a sheathed fighter allowed to guard and to block (either alone isn't enough, so it can't block today for two reasons).
+      - `test_moves.gd` lists Kesa Giri as removed and the Iai as added, and a new `WEAPON_CHANGES` table holds the Katana's `heavy_start` (a wrong "was" fails it). `test_combat`'s auto-release test and `test_training_brain`'s heavies drill (the Iai, then Rising Heaven every other time) name the Iai. `test_fluid_combat.gd`'s lunge and heavy-cancel tests run on the tapped Iai in place of Kesa Giri: it lunges 0.4 m over frames 10 to 25 and opens its cancel at frame 39 of 51, with the same charge shifts.
+      - The spec's Katana notes give how the Iai's frames count, its lunge window and its interim cone, and its sides. Stories 26 and 29 stay open: 26 waits for the strafing (9.3), and 29 for the horizontal Iai's auto-release (9.4).
+      - Soak (40 matches): 0 failures. Against 9.1: rounds 158 (154), average 44.1 s (44.0), blocks 18.70 (17.96), parries 4.38 (4.49), disarms 0.81 (0.81); match wins and losses Katana 14–17 (13–18), Greatsword 10–14 (11–13), Daggers 16–9 (16–9).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 45.4% (46.9% after 9.1), Greatsword 39.1% (39.1%), Daggers 64.3% (62.8%); rounds 39.4 s (39.5) and 0.75 disarms per round (0.75). The computer plays the Iai as it played Kesa Giri, held while standing; task 12 teaches it the Iai.
+      - Review fixes: the spec's Iai note gives the lunge window the tests assert and says a held Iai *hits* 14 frames after release; story 29 is unticked (9.4 finishes it); the two dodge-cancel tests share one check; `WEAPON_CHANGES` rows are checked against the demo in a test of their own, as `MOVE_CHANGES` rows are; the glossary gains the Iai Slash and its stance; the plan's list indent is fixed.
+      - Known stand-in gap: the Iai is drawn with the stand-in's `overhead` pose, which starts above the head and ends in the middle, not at the left hip and on the right as its sides say; the sheathe pose comes in 9.6 and its swing in 7.20.
+  - [x] **9.3 Walking while sheathed, and a dodge cancelling the stance.** `charge_move`: the sheathed fighter walks and strafes at block speed (no sprint, no step) and orbits the opponent; a dodge while sheathed cancels the stance.
+    - Check: lateral speed within 2% of block strafe speed, keeping the distance within 1 cm; no walking during the sheathe; a dodge during the draw doesn't cancel; other charged heavies still stand still.
+    - Blocked by: 9.2 · Stories: 26
+    - Done:
+      - `AttackDef.charge_move` (the rebuild's, last in `KEYS`) is set on the Iai only: a charge the fighter walks in, at block speed, and that a dodge cancels. While the Iai's charge is held (the stance, from its frame 9), `Fighter._update_attack` walks the fighter with `_locomotion(true)`, at the blocking walk's speed and never sprinting, in place of the charge's brake. `_integrate` keeps a strafing fighter's distance in the stance as in the free state, so the strafe circles the opponent. A tap step belongs to the free state, so the stance has none. A buffered dodge in the stance starts at once and ends the attack.
+      - `test_katana_strings.gd`, red first (four failing), its recorder now also logging how far fighter 0 moves each step and how far apart the fighters stand:
+        - holding heavy and the stick right from rest, the fighter stands still through the sheathe's 9 frames and walks from step 10;
+        - a second's strafe in the stance, 2.2 m from the opponent, covers within 2% of the block strafe (2.1 m/s), and the distance stays within 1 cm;
+        - a second's walk forward and back matches the blocking walk (2.34 and 1.8 m/s) within 1e-6;
+        - the stick pushed from neutral with sprint held never moves it faster than the block strafe, and it stays sheathed;
+        - a dodge in the stance comes on its step, heavy still held, and the Iai is never drawn;
+        - a dodge pressed 1, 7 or 13 steps after heavy is let go is refused, and the Iai hits;
+        - the Greatsword's and the Daggers' charged heavies, held with the stick to the side, don't move.
+        - Each fails when its rule is broken: no orbit in the stance (1.9 cm of drift), running speed, no dodge cancel, a dodge cancel on any frame of the Iai, every charge walking, walking in the sheathe, or the Iai without `charge_move`. `test_moves` holds `charge_move` unset (false) on every demo move, so a demo move given it fails there.
+      - The spec's move data and Katana notes give the walk, the dodge cancel and what the draw keeps. Story 26 stays open for the sheathe pose (9.6): the rules are done, but the fighter still shows the stand-in's overhead wind-up.
+      - Soak (40 matches): 0 failures. Against 9.2: rounds 156 (158), average 43.4 s (44.1), blocks 17.87 (18.70), parries 4.31 (4.38), disarms 0.78 (0.81); match wins and losses Katana 14–17 (14–17), Greatsword 10–14 (10–14), Daggers 16–9 (16–9).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 44.6% (45.4% after 9.2), Greatsword 40.0% (39.1%), Daggers 64.3% (64.3%); rounds 39.4 s (39.4) and 0.74 disarms per round (0.75). The computer still stands in the stance, since it lets go of the stick before a charged heavy; task 12 teaches it the Iai.
+      - Review fixes: the stance's checks share one `charge_move` branch; the recorder's `sheathed` is now `charging` (other weapons charge too); `test_moves` says why it holds `charge_move` unset rather than skipping it; the spec's `charge_move` line names the dodge cancel. Two edges are now pinned by tests and the spec: a dodge pressed in the sheathe's last 8 frames waits in the input buffer and comes as the stance begins (a tapped heavy refuses it), and one pressed on the step heavy is let go still cancels, before the draw starts. Each test fails when its edge is flipped. The 40-match soak, rerun after the fixes, prints the same numbers.
+      - Known gaps outside the rules: the stance walk makes no footsteps (`FootstepCadence` counts only the free state), and the animation lane's legs walk only in the free and step states, so the sheathed fighter glides until one of them counts the stance. The walk's speed carries into the draw and brakes as on every attack frame, about 0.14 m of sideways drift after a full strafe; an attack start would halve it first.
+  - [x] **9.4 The horizontal Iai, picked by the stick (`release_variant`).** `k_iai_h`: a right-to-left draw. The variant swaps in on the same attack state when the stance ends with the stick left or right.
+    - Check: left or right gives the horizontal on release, on a tap and on auto-release; neutral, forward and back give the vertical; the swing event names the variant; a data test checks that each variant matches its move's frames.
+    - Blocked by: 9.3 · Stories: 27, 29
+    - Done:
+      - `AttackDef.release_variant` (the rebuild's, last in `KEYS`): the move a chargeable heavy turns into, on the same attack state, when it is drawn with the stick held sideways. The Iai's is `k_iai_h`, the Iai Slash (horizontal): a slash (the stand-in's `slashRL`), sides right to left, with the Iai's frames (23/4/24), damage and posture (13/16), lunge (0.4 m over frames 10 to 25) and knockback, and an interim cone of 3.6 m and 110° (the vertical's reach, Right Cut's width). It has no follow-ups until 9.5.
+      - `Fighter._pick_draw()` runs as the Iai is drawn: for a tap at the frame-9 charge check, as the sheathe ends; for a held heavy as its stance ends, on release or auto-release. `InputTracker.sideways()` (past the dead zone, and more sideways than forward or back) now picks both it and Moonsplitter's wave. The frames, lunge, charge and power carry on, and the swing and hit events name `k_iai_h`.
+      - `test_katana_strings.gd`, red first (six of its tests failing):
+        - left or right gives the horizontal on a tap, a release and an auto-release; neutral, forward and back give the vertical;
+        - the stick at (0.8, 0.6) or (−0.8, −0.6) gives the horizontal; at (0.6, 0.8), (0.6, −0.6) or (0.35, 0), inside the dead zone, the vertical;
+        - only the stick as the Iai is drawn counts: held right through the stance but let go on the release step gives the vertical, and pushed right only on the release step the horizontal; the same for a tap on step 10, as its sheathe ends;
+        - the horizontal draws on frame 23 when tapped, hits 14 frames after a release, and auto-releases as a full charge's power attack (13 × 1.8);
+        - its row matches the spec's table, and its interim cone the spec's note.
+      - `test_moves.gd` lists `k_iai_h` as added, holds `release_variant` unset on every demo move, and checks that every release variant keeps its move's frames and lunge. `test_string_continuity.gd` puts a release variant in its move's string and reports a missing one. A 9.3 test that holds the stick right as a tapped Iai is drawn now expects the horizontal.
+      - Each fails when its rule is broken: no swap on a tap or on release, a diagonal counting, no dead zone, the stick read as the stance begins, the variant a frame slower, or a variant left out of its move's string. Breaking the shared stick rule fails Moonsplitter's test too. Leaving the step's move unrefreshed after the swap changes nothing observable, since the next step reads the attack's move and the variant keeps the frames.
+      - The spec's move data, sides and Katana notes give the variant, the stick rule and the horizontal's cone. Story 27 waits for the stand-in sheathe pose (9.6), and story 29 for the Iai's swings (14.16, 7.20), which list them too.
+      - The computer now draws the horizontal about one Iai in three (83 vertical and 45 horizontal over 40 matches), because its footsies can leave the stick sideways as it draws. Task 12.5 teaches it the Iai.
+      - Soak (40 matches): 0 failures. Against 9.3: rounds 154 (156), average 43.2 s (43.4), blocks 17.73 (17.87), parries 4.37 (4.31), disarms 0.76 (0.78); match wins and losses Katana 15–16 (14–17), Greatsword 10–14 (10–14), Daggers 15–10 (16–9).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 43.1% (44.6% after 9.3), Greatsword 40.0% (40.0%), Daggers 65.9% (64.3%); rounds 39.4 s (39.4) and 0.75 disarms per round (0.74).
+      - Review fixes: "stance" is kept for a held Iai (a tap is drawn as its sheathe ends); the stick rule is one `InputTracker.sideways()`, shared with Moonsplitter; the swap keeps the attack's lunge, and the data test checks the lunge too; story 29 is unticked; the spec says how the horizontal's sides sit with the left-hip saya. The 40-match soak, rerun after the fixes, prints the same report.
+      - Known stand-in gaps: at the swap the stand-in pose jumps from the vertical's overhead wind-up to the slash's (on a release, from hands above the head to most of the way into the slash's wind-up in one tick), and `FighterView`'s strike sweep flips the edge on the same tick; 9.6's sheathe pose and 7.20's swings replace both. The horizontal's start side (right) follows its cut, though the blade leaves the saya at the left hip; 7.20 keys how the draw comes round.
+  - [x] **9.5 The Iai follow-ups.** Returning Draw (`k_rdraw`) after the horizontal, the horizontal's light follow-up into Return Cut, and vertical → Rising Heaven → Heaven Splitter.
+    - Check: each branch chains as the table says and stops when nothing is pressed; all nine Katana rows match the spec; continuity passes; a 10-match soak is clean.
+    - Blocked by: 9.4 · Stories: 16, 17, 28
+    - Done:
+      - The horizontal Iai (`k_iai_h`) now takes Return Cut (`k_l2`) as its light follow-up, which goes on through the light string as after Right Cut, and Returning Draw (`k_rdraw`) as its heavy. Returning Draw: a left-to-right slash (the stand-in's `slashLR`), 16/4/24, 12/15, sides left to right, no follow-ups, with an interim cone of Rising Heaven's reach (2.3 m), lunge (0.5 m, ending on frame 18, two after its cut starts) and knockback (0.9 m), and Return Cut's width (110°). The vertical's branch, Rising Heaven then Heaven Splitter, was already in place from 9.1 and 9.2.
+      - `test_katana_strings.gd`, red first (its horizontal-branch tests failing), with `_play` now taking the stick's sideways push, so a tapped Iai can draw the horizontal:
+        - the vertical goes on to Rising Heaven then Heaven Splitter, and a light after it starts nothing;
+        - the horizontal goes on to Returning Draw (heavy) or Return Cut (light), and Return Cut on through the light string or to Rising Heaven; a held horizontal goes on to Returning Draw too;
+        - Returning Draw ends the string: a light or a heavy pressed in it starts nothing, and it ends on frame 44 with the fighter free;
+        - stopping after any hit in the Iai's strings (seven strings, both draws) ends the string as its last move ends;
+        - all nine rows match the spec's table, and Returning Draw's interim cone the spec's note.
+        - Each fails when the data is broken: no light after the horizontal, a follow-up after Returning Draw, no Heaven Splitter after Rising Heaven, Returning Draw a frame slower, or Returning Draw starting on the right (which also breaks continuity).
+      - `test_moves.gd` lists Returning Draw as added. Continuity passes, and reaches the horizontal's follow-ups through the variant.
+      - The spec's sides and Katana notes give the follow-ups and Returning Draw's cone. Stories 16, 17 and 28 stay open: later tasks list them too (28 waits for the swings, 7.20, and the computer's Iai, 12.5).
+      - The computer now draws the horizontal 47 times and the vertical 87 over 40 matches, and follows with Returning Draw 7 times and Rising Heaven 18.
+      - Soak (40 matches): 0 failures. Its report is 9.3's but for one evade (0.46 per round, was 0.45), and the 300-match `soak:tune` is byte for byte 9.3's (Katana 44.6% against the other weapons, Greatsword 40.0%, Daggers 64.3%; rounds 39.4 s; 0.74 disarms per round). In the rules the horizontal and Returning Draw differ from the vertical and Rising Heaven only in their width, which the computer's matches all but never test, so with its follow-ups back the horizontal plays like the vertical there. 9.4's small shift came from the horizontal having no follow-up, so the computer's second heavy started nothing after it.
+      - Review fixes: the light string's and the Iai's tests share an "ends the string" check and a "stops after" check; `_play` takes the stick before its dodge arguments, and the strings table carries the stick; 9.2's Iai-then-Rising-Heaven test went, as the new vertical-branch test covers it; a held horizontal's follow-up and the horizontal → Return Cut → Rising Heaven stop are tested.
+  - [x] **9.6 Stand-in sheathe pose and coverage of the new moves; task 9 ticked.** StickPose (which still poses the fighters' attacks) holds a sheathe pose while sheathed, and a test checks that every move names a pose it has. Adds an `iai_stance` shot. Also gives the stance walk its footsteps: `FootstepCadence` counts only the free state, so 9.3's sheathed walk is silent.
+    - Check: the sheathed hand sits by the left hip; the coverage test passes; shots of the stance and both draws are reviewed.
+    - Blocked by: 9.5 · Stories: 26, 27
+    - Done:
+      - The two Iai Slashes have their own anims, `iaiVertical` and `iaiHorizontal`. StickPose's `SHEATHED_DRAWS` says each draws from the sheathe into the overhead or the right-to-left slash. Over the sheathe's 9 frames the hands go to `SHEATHE`, the hilt in front of the left hip with the blade lying back along it, and hold there while the stance lasts (phases `sheathe`, `sheathed`). The draw (phase `draw`) brings the blade out in front, pointing forward (`DRAWN`), for the first half, then up into the cut's wind-up by frame 16. From there it cuts as Crown Cut and Right Cut do. Both variants start from the same hold, so 9.4's pose jump at the swap is gone. The Greatsword's and Daggers' charged heavies still hold their wind-up.
+      - `Fighter.in_stance()` is public, among the queries. `FootstepCadence` counts a fighter walking in the stance as well as a free one, so the sheathed walk makes footsteps at the walking stride. The animation lane's legs can use the same query.
+      - Tests, red first:
+        - `test_stick_pose.gd`: every Katana, Greatsword and Daggers move names a pose the stand-in has, and every bare-hand move's type maps to one (bare hands have no hand-to-hand poses yet, which the test showed); a tapped Iai goes sheathe, draw, strike, follow, recover, and a held one adds the sheathed stance; in the stance the hand sits by the left hip (left of the centre line, at hip height, just in front) with the blade back along it, glowing as a charge; both draws start within 0.15 m of the hold, have the blade pointing forward and the hands out in front halfway (frame 12), and reach their wind-up by frame 16.
+        - `test_footstep_cadence.gd`: 130 steps of a sheathed strafe give a footfall every walking stride.
+        - Each fails when its rule is broken: the sheathe at the right hip, no sheathe, the draw starting from the guard, the horizontal drawing into the overhead or not sheathed, a draw straight from the hip to the wind-up (the blade through the body), or a silent stance.
+      - Shots, for review: `skeleton_iai_stance.tscn` (the stance, from the fighter's front left), `skeleton_iai_vertical.tscn` and `skeleton_iai_horizontal.tscn` (the draws, the horizontal from the front right), driven through a fake keyboard on the default profile against an idle training dummy; `--frame=` picks the draw's frame (16 by default, the wind-up's end; 12 is halfway). I checked them by eye (the stance, and each draw at frames 12 and 16), and they wait on the owner's review.
+      - The spec's Katana notes describe the stand-in's sheathe and draws and the stance's footsteps. Stories 26 and 27 stay open, as 7.20, 12.5 and 14.16 list them too (9.3's and 9.4's notes said they waited for 9.6 alone).
+      - The rules didn't change: a 40-match soak prints 9.5's report byte for byte.
+      - Review fixes: one `_draw_key` builds the sheathe's and the draw's keys; the draw goes out in front first (the review found the blade passing through the torso on a straight rise); the draw test finds its frames by number; the coverage test checks that each bare-hand type's pose exists; the shot reuses `_gameplay` and its scenes follow the `skeleton_` names; the horizontal shot looks from the front right.
+      - Known stand-in gaps, for the saya (14.16) and the swings (7.20): a dodge or a hit out of the stance jumps the hands from the hip to the dodge's or the reel's pose in one tick, as an interrupted wind-up always has; `FighterView`'s edge follows the current move's strike, so it rolls at the swap and faces down while sheathed; the left hand's sheathe key goes unused while the two-handed Katana is posed from its right hand.
+- [x] **10. Greatsword strings.** Momentum lights, Overhead Strike into the unblockable Low Sweep, and the dodge thrusts.
+  - Check: the Greatsword tests from the spec pass.
+  - Done: every Greatsword test the spec's Testing Decisions list (the L-L-H, Low Sweep unblockable and jumpable, the dodge thrusts) passes in `test_greatsword_strings.gd`, with continuity in `test_string_continuity.gd` (10.1–10.3). Stories 16–18, 22 and 31–33 stay open for the later tasks that list them too.
+  - [x] **10.1 Momentum lights into Overhead Strike (the L-L-H).** Backswing starts at 11 frames; `g_h1` becomes Overhead Strike (26/5/32, chargeable, ending on the right), with no light follow-up; sides; continuity covers the Greatsword.
+    - Check: `test_greatsword_strings.gd` covers L-L-H, Backswing's faster start, the charged Overhead Strike, no Backswing out of it, stopping after any hit, and the table rows.
+    - Blocked by: 8.9, 9.1 · Stories: 16, 17, 18, 31
+    - Done:
+      - Backswing (`g_l2`) starts in 11 frames, where the demo's took 13, and its lunge and dodge cancel keep pace: the lunge ends on frame 12, one after its cut starts, and the cancel opens on 23, eight frames after its cut ends, as Heavy Swing's do. Heavy Swing and Backswing now go on to Overhead Strike on heavy (the L-H and the L-L-H), where they went to Earthbreaker. `g_h1`, the demo's Crushing Blow, is Overhead Strike: an overhead (the stand-in's `overhead` pose), 26/5/32, 18/22, chargeable as before, with no light follow-up, so the light string is two swings. Until task 7 it keeps Crushing Blow's cone (3.1 m, 90°), lunge (0.7 m over frames 10 to 30), knockback (1.6 m) and hitstop (9). Sides: Heavy Swing right to left, Backswing left to right, Overhead Strike centre to right; Earthbreaker (`g_h2`), its heavy follow-up until Low Sweep replaces it (10.2), centre to centre.
+      - `test_greatsword_strings.gd`, red first (eight of its eleven tests failing; the three on the heavy from neutral and its charge passed, as Crushing Blow charged the same way):
+        - L-L, L-H and L-L-H hit with Heavy Swing, Backswing and Overhead Strike;
+        - Heavy Swing swings on its frame 14 and Backswing on its 11;
+        - a light pressed in Backswing or in Overhead Strike starts nothing, and the move ends on startup + active + recovery with the fighter free;
+        - a heavy from neutral is Overhead Strike; held for 60 steps with the stick to the side it charges from step 10 to 59, standing still, and hits 17 frames after the release; held for 220 it releases by itself 150 frames after its frame 9 and hits for 18 × 1.8; held as the L-L-H's finisher it charges from its frame 9 too, as every chargeable heavy does (a test added in review);
+        - stopping after any hit of L, L-L, H, L-H and L-L-H ends the string as its last move ends;
+        - the three rows match the spec's table, Overhead Strike is an overhead with Crushing Blow's cone, and Backswing's lunge and cancel keep pace.
+        - Each fails when its rule is broken (13 mutations): Backswing a frame slower or at the demo's 13, Backswing after Overhead Strike, either light going on to Earthbreaker, a light after Backswing, Overhead Strike not chargeable, a frame longer, ending at centre or still a slash, and Backswing's cancel left at 25; in continuity, Backswing starting on the right or Earthbreaker without sides.
+      - Continuity covers the Greatsword. `test_moves.gd` lists the nine field changes: Heavy Swing's heavy follow-up; Backswing's startup, lunge end, cancel and heavy follow-up; Overhead Strike's name, type, anim and light follow-up.
+      - The spec's sides and Greatsword notes give Backswing's lunge and cancel, Overhead Strike's charge (as the L-L-H's finisher too) and its interim cone. Stories 16, 17, 18 and 31 stay open, as later tasks list them too (31 waits for the swings, 7.24, and the animation).
+      - Soak (40 matches): 0 failures. Against 9.6: rounds 156 (156), average 42.0 s (43.4), blocks 17.30 (17.87), parries 4.09 (4.31), disarms 0.72 (0.78); match wins and losses Katana 13–18 (14–17), Greatsword 11–13 (10–14), Daggers 16–9 (16–9).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 47.7% (44.6% after 9.5, whose rules 9.6 kept), Greatsword 36.5% (40.0%), Daggers 64.3% (64.3%); rounds 38.8 s (39.4) and 0.74 disarms per round (0.74). The Greatsword's drop, 4 wins of 115, is inside a 300-match run's noise. Its strings changed in two ways the computer meets: L-H and L-L-H now end on Overhead Strike (26 frames, 18 damage) where they ended on Earthbreaker (30, 20), and Overhead Strike no longer goes on to Backswing. Task 12 tunes the weapons.
+      - Review fixes:
+        - each weapon's strings test extends `WeaponStringsTest` (`tests/sim/weapon_strings_test.gd`), naming its weapon and the spec's rows. It plays strings through `PlayedString` (`tests/sim/played_string.gd`, the Katana test's recorder, moved out and now taking the weapon) and holds the rows, "starts nothing" and "stops after" checks, whose messages name strings as the spec writes them (L-L-H). The Katana's 34 tests pass through the shared checks, and breaking Crown Cut's end, Returning Draw's length or a row's damage still fails them;
+        - Overhead Strike's charge as the L-L-H's finisher is tested and in the spec;
+        - the charge test reads Overhead Strike's startup from its row;
+        - the other lanes' progress went into a commit of its own.
+      - Known stand-in gap: Overhead Strike is posed with the stand-in's `overhead`, which ends in the middle, not on the right as its sides say; 7.24 gives it a swing.
+  - [x] **10.2 Overhead Strike into the unblockable Low Sweep.** `g_h2` becomes Low Sweep (26/5/34, 16/22, sweep counter, jumpable), narrower and faster than Reaping Sweep; Earthbreaker goes.
+    - Check: a telegraph of kind sweep; a blocking defender is hit; an airborne defender gets the leap counter; data comparisons with Reaping Sweep and the lights.
+    - Blocked by: 10.1 · Stories: 22, 32, 41
+    - Done:
+      - `g_h2` is Low Sweep, replacing the demo's Earthbreaker under its id: a sweep (the stand-in's `sweep` pose), 26/5/34, 16/22, unblockable (with the defaults every unblockable gets: undodgeable, the danger trail, the slower turn in startup), jumpable, with the sweep counter, sides right to left, no follow-ups. Its interim cone is 3.2 m and 110° (the plan's notes), and it keeps Earthbreaker's lunge (0.8 m from frame 10, now ending on 28, two frames after its cut starts), knockback (2.0 m) and hitstop (10). As a heavy it dodge-cancels from 48. Overhead Strike's heavy follow-up was already `g_h2`.
+      - `test_greatsword_strings.gd`, red first (seven of its eighteen tests failing; two more came in review), with `PlayedString` now recording the steps `play()` pressed on and `run()` taking the opponent's input, so a test replays a string against a defender who blocks or jumps:
+        - H-H and L-L-H-H end on Low Sweep;
+        - Low Sweep warns of a sweep (a telegraph naming it) on the step it starts;
+        - a defender holding block blocks Overhead Strike and is hit by Low Sweep;
+        - a defender who jumps 9 steps before Low Sweep's contact leaps on the attacker (a leap counter by fighter 1 on fighter 0, stunning it out of Low Sweep), and Low Sweep never hits;
+        - a light or a heavy pressed in Low Sweep starts nothing, and it ends on frame 65 with the fighter free; stopping after H-H, L-H-H and L-L-H-H ends there too;
+        - it starts sooner than Reaping Sweep, is narrower, and reaches past the lights; it is marked unblockable, undodgeable, with the danger trail, jumpable and with the sweep counter, and dodge-cancels from 48; its row matches the spec's table, and its interim numbers the spec's note.
+        - Each fails when its rule is broken: blockable, no sweep counter, Reaping Sweep's startup or width, the lights' reach, a frame longer, a light after it, Reaping Sweep's lunge, 20 damage; in continuity, starting on the left. Removing `jumpable` passes the behaviour tests, as it matters only close in and off to the side (under 1.3 m the hit's cone widens by 30° and the leap counter's by 20°), so the data test holds it. With Reaping Sweep's shorter lunge H-H still connects at 2.2 m, so Earthbreaker's lunge is a choice, not a need.
+      - `test_moves.gd` lists Earthbreaker as removed and Low Sweep as added under its id. The 10.1 chained-charge test reads its presses' steps from `PlayedString.pressed_on`.
+      - The spec's sides and Greatsword notes give Low Sweep: the telegraph, the block, the leap counter, its interim cone and the numbers it keeps from Earthbreaker. Stories 22 and 32 stay open (7.27 and 12.6 list them too); story 41 was already ticked.
+      - Soak (40 matches): 0 failures. Against 10.1: rounds 158 (156), average 41.4 s (42.0), blocks 17.05 (17.30), parries 3.96 (4.09), disarms 0.73 (0.72); match wins and losses Katana 13–18 (13–18), Greatsword 10–14 (11–13), Daggers 17–8 (16–9).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 44.6% (47.7% after 10.1), Greatsword 39.1% (36.5%), Daggers 65.1% (64.3%); rounds 38.5 s (38.8), 0.76 disarms per round (0.74) and 0.61 leap counters (0.59). Task 12.6 teaches the computer to use and answer Low Sweep.
+      - Review fixes:
+        - `_play_against(presses, p1)` in `WeaponStringsTest` replays a string against a defender's input (the Daggers' unblockables will need it too), through `PlayedString.pressed_on` (renamed) and its new `by_fighter_0(t)`;
+        - the comparison test holds Reaping Sweep's and the lights' numbers to the spec's (28 frames, 160°, 3.0 m) as well as comparing;
+        - a data test holds the unblockable markings and `jumpable`, which the spec now places (it matters close in and off to the side, where the review found the hit's cone widening more than the counter's);
+        - the jump's lead is a named constant, and the leap test stops if Low Sweep never hits a defender who stays put;
+        - the spec puts the numbers Low Sweep keeps from Earthbreaker under its interim note, and names what it has as an unblockable: the danger trail, no help from dodge invincibility, the slower turn;
+        - `test_moves.gd` says how a move that took a removed move's id sits in both lists;
+        - the other lanes' progress went into a commit of its own.
+      - Known stand-in gap: Low Sweep is posed with the stand-in's `sweep`, Reaping Sweep's pose; 7.27 gives it a swing low enough to jump.
+  - [x] **10.3 Dodge thrusts; task 10 ticked.** Piercing Lunge (a blockable stab, 12/3/20) and Skewer (an unblockable thrust, 22/4/28) replace the dodge attacks.
+    - Check: dodge then light is blocked by a blocking defender; dodge then heavy telegraphs a thrust and beats block; stomp counters Skewer; all six rows match; a 10-match soak is clean.
+    - Blocked by: 10.2 · Stories: 22, 33
+    - Done:
+      - `g_dl` is Piercing Lunge and `g_dh` Skewer, replacing the demo's Pommel Strike and Cyclone under their ids, so a light or a heavy out of a forward or sideways dodge gives them as before. Piercing Lunge: a stab (the stand-in's `thrust` pose), 12/3/20, 8/10, blockable, with the Greatsword's swing sound where Pommel Strike had the fist's. Skewer: an unblockable thrust (the `thrust` pose), 22/4/28, 14/18, with the thrust counter, turning at 0.5 once it strikes, as the Katana's Piercing Thrust does, and with every unblockable's defaults (undodgeable, the danger trail, the slower turn in startup). Interim cones (the plan's notes): Piercing Lunge 3.0 m and 50° after a 0.8 m lunge, Skewer 3.4 m and 36° after a 1.0 m lunge, each lunging over its startup and active frames; they keep Pommel Strike's and Cyclone's knockback (0.8 and 1.4 m). Neither is in a string, so neither has sides.
+      - `test_greatsword_strings.gd`, red first (six of its 25 tests failing; one more came in review):
+        - a dodge to the right, then a light on the step the dodge ends, is Piercing Lunge: it hits, a blocking defender blocks it, and it gives no warning;
+        - a dodge then a heavy is Skewer: it warns of a thrust on the step it starts and hits a blocking defender;
+        - a defender who dodges forward 6 steps before Skewer would hit stomps the attacker (a stomp counter by fighter 1 on fighter 0, stunning it out of Skewer), and Skewer never hits;
+        - Piercing Lunge is a blockable stab and Skewer an unblockable thrust reaching past the lights, each with its interim numbers;
+        - all six rows match the spec's table.
+        - Each fails when its rule is broken (10 mutations): Piercing Lunge unblockable, a bash, or with Pommel Strike's reach or recovery; Skewer blockable, without the thrust counter or with the sweep's, with the lights' reach, turning at the usual rate, or a frame slower.
+      - `test_moves.gd` lists Pommel Strike and Cyclone as removed and the thrusts as added under their ids. `test_fluid_combat.gd`'s check that bashes don't slide drops Pommel Strike, as Piercing Lunge, a stab, slides; Shoulder Charge and Guard Crusher remain, and the spec's slide rule names them.
+      - The spec's Greatsword notes give the thrusts: how they are reached, the block, the warning, the stomp, the interim cones and what they keep from the demo's moves. Stories 22 and 33 stay open (7.24, 7.27 and 12.6 list them too).
+      - Soak (40 matches): 0 failures. Against 10.2: rounds 153 (158), average 41.8 s (41.4), blocks 16.93 (17.05), parries 4.13 (3.96), disarms 0.79 (0.73); match wins and losses Katana 13–18 (13–18), Greatsword 12–12 (10–14), Daggers 15–10 (17–8).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 46.2% (44.6% after 10.2), Greatsword 38.3% (39.1%), Daggers 64.3% (65.1%); rounds 38.4 s (38.5), 0.78 disarms per round (0.76) and 0.29 stomp counters (0.26). Task 12.6 teaches the computer to use and answer Skewer.
+      - Review fixes:
+        - a test shows a forward dodge gives the thrusts too, and a backward one still the back attacks (Rising Edge, Lunge Cleave);
+        - `test_fluid_combat.gd` shows Piercing Lunge sliding 0.35 m in its recovery, and fails when it is a bash;
+        - Skewer's dodge cancel (from 40) and its unblockable defaults are in the spec and a test, and the spec table gives Piercing Lunge's shape as a stab, as the plan decided;
+        - the warning and counter checks are shared (`_assert_warns`, `_assert_countered` and `_hit_step` in the Greatsword's test), and the strings' distance and length are `WeaponStringsTest.GAP` and `STEPS`;
+        - the move data's comments name each thrust, and a test's name and a variable's read plainly;
+        - PR #4's merge and the swings lane's progress went into a commit of their own.
+      - Known stand-in gap: both thrusts are posed with the stand-in's `thrust`, and its `pommel` pose is now unused; 7.24 and 7.27 give them swings.
+- [x] **11. Daggers strings.** The alternating string, dodge-cancel from the first recovery frame, Twin Fang into Spinning Backhand, the removed loop, and the Passing Cut.
+  - Check: the Daggers tests from the spec pass.
+  - Done: every Daggers test the spec's Testing Decisions list (the alternating string, the dodge-cancel timing, no light loop from Twin Fang, Twin Fang's dash into Spinning Backhand, the Passing Cut's direction) passes in `test_daggers_strings.gd`, with continuity in `test_string_continuity.gd` (11.1–11.3). Stories 16–18, 24 and 35–38 stay open for the later tasks that list them too.
+  - [x] **11.1 The alternating four-light string, dodge-cancelling from the first recovery frame.** Sides; Twin Rip loses its heavy follow-up; each light cancels from its first recovery frame; the Daggers' light hitstun is lowered so the next light can be blocked or parried; continuity covers the Daggers.
+    - Check: `test_daggers_strings.gd` covers four lights with hands R, L, both, both; L-L-H; no heavy out of Twin Rip; a dodge in Quick Slice's active frames fires on its first recovery frame after a hit and after a whiff; a defender pressing block as hitstun ends parries Off-hand Slice; the table rows. The spec records the hitstun and the bare-hand exception.
+    - Blocked by: 8.9, 9.1 · Stories: 16, 18, 24, 35, 36
+    - Done:
+      - The Daggers' four lights alternate hands, as the demo's did (Quick Slice in the right hand, Off-hand Slice in the left, Twin Rip and Flurry Finisher with both), and now have sides: Quick Slice right to left, Off-hand Slice left to right, and Twin Rip, Flurry Finisher, Twin Fang and the spin after them (`d_h2`) centre to centre. Each light dodge-cancels from its first recovery frame: Quick Slice and Off-hand Slice from 10 (the demo's 13), Twin Rip from 13 (16), and Flurry Finisher, which had none, from 15. Twin Rip no longer goes on to Twin Fang.
+      - Twin Fang lost its light follow-up, the demo's loop back to Quick Slice, here rather than in 11.2: with the Daggers in the continuity check, a stab ending at centre can't be followed by Quick Slice, which starts on the right.
+      - `DaggersMoves.STRING_HITSTUN`: the four lights stun for 10 frames, not 14. Off-hand Slice lands 11 frames after Quick Slice, so this leaves the defender one free frame before it, as 14 does before the Katana's Return Cut, 15 frames after Right Cut. The Daggers' other lights (the movement attacks and Counter Lunge) keep 14.
+      - `test_daggers_strings.gd` (new, 8 tests), red first (5 failing):
+        - four lights hit with Quick Slice, Off-hand Slice, Twin Rip and Flurry Finisher, in the right hand, the left, both and both;
+        - L-H and L-L-H end on Twin Fang;
+        - a heavy in Twin Rip and a light in Twin Fang start nothing, and each move runs to its end;
+        - stopping after any hit ends the string when that move ends;
+        - each light dodge-cancels from its first recovery frame, after a hit and after a whiff: a dodge pressed on the frame before, or on its first active frame, waits in the input buffer (over a hit's hit-stop too) and comes then, and one pressed on that frame comes at once (not checked after a block: the cancel doesn't look at how the light ended);
+        - a defender hit by Quick Slice is out of hitstun for one step before Off-hand Slice lands; pressing block a step before that parries Off-hand Slice, and the attacker recoils;
+        - the five rows built so far match the spec's table (Spinning Backhand's comes with 11.2, Passing Cut's with 11.3).
+        - Each fails when its rule is broken (17 mutations): the string's hitstun at 11 or 9, Flurry Finisher left at 14, or Slide Slash or Counter Lunge given 10; Quick Slice cancelling a frame late or in its last active frame; Off-hand Slice keeping the demo's cancel; Twin Rip cancelling a frame early; Flurry Finisher without a cancel; Twin Rip keeping its heavy or Twin Fang its light (in the strings test and in continuity); Off-hand Slice in the right hand; Quick Slice's sides swapped; Twin Rip starting on the right; the spin without sides.
+      - `test_string_continuity.gd` covers the Daggers; `test_fluid_combat.gd` lists the lights with a hitstun of their own (`OWN_HITSTUN`: bare hands' first two, the Daggers' four); `test_moves.gd` records the changes against the demo. The dodge-cancel check moved from the Katana's test to `WeaponStringsTest`, which both use, and `PlayedString` records the defender's state.
+      - The spec gives the Daggers' sides, every light's dodge cancel, the removed follow-ups and the hitstun. No story is ticked: 16 and 18 wait for later tasks; 24 too, though 8.7's Done expected it here, as 7.10, 15.4 and 15.6 list it; 35 waits for 7.29 and 15.2, and 36 for 11.3, 7.29 and 12.7.
+      - Review fixes:
+        - the 10 frames of hitstun went to the string's four lights only, as the reason for them fits only the string; the movement lights and Counter Lunge keep 14, which leaves the owner's open question on the counter lunges' hitstun as it was;
+        - the dodge-cancel check also presses on each light's first active frame, so all four lights, not just Quick Slice, show a dodge in the active frames coming on the first recovery frame;
+        - the comments give the hitstun's reason, why Off-hand Slice keeps the `slashRL` pose (the stand-in mirrors a left-hand move) and which follow-up broke continuity; `free_step` and `PlayedString.defender_state` name what they hold;
+        - the spec table gives every light's dodge cancel, and the swings lane's progress went into a commit of its own.
+      - Soak (40 matches): 0 failures. Against 10.3: rounds 149 (153), average 41.0 s (41.8), blocks 24.31 (16.93), parries 4.86 (4.13), disarms 1.07 (0.79); match wins and losses Katana 15–16 (13–18), Greatsword 12–12 (12–12), Daggers 13–12 (15–10).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 53.1% (46.2% after 10.3), Greatsword 41.7% (38.3%), Daggers 54.3% (64.3%), the Daggers' first inside the spec's 45–55%; rounds 38.8 s (38.4). The string's later hits can now be blocked or parried, so blocks rise to 24.52 per round (16.37) and parries to 4.56 (3.71); posture fills more often (636 frames at full posture per round, 444 before), and disarms rise to 1.05 per round (0.78), further above the spec's 0.3–0.6. Task 12 tunes toward it.
+  - [x] **11.2 Twin Fang into Spinning Backhand.** A 1.4 m lunge, and `d_h2` renamed Spinning Backhand. 11.1 removed the loop (Twin Fang's light follow-up), which the continuity check needed.
+    - Check: Twin Fang → heavy and four lights → heavy both give Spinning Backhand; the lunge covers about 1.4 m; the rows match. (11.1 checks that a light during Twin Fang starts nothing.)
+    - Blocked by: 11.1 · Stories: 17, 37
+    - Done:
+      - Twin Fang (`d_h1`) dashes 1.4 m, where the demo's lunged 0.8, over its startup and active frames, easing in and out; like every lunge it stops 0.25 m short of the defender's body. `d_h2` is Spinning Backhand, the demo's Gutting Spiral renamed, with its numbers (a spin, 18/5/22, 12/10): the heavy after Twin Fang or Flurry Finisher, ending the string.
+      - `test_daggers_strings.gd`, red first (2 of its 11 tests failing):
+        - Twin Fang, pressed 4 m from an idle defender, moves the attacker 1.4 m;
+        - H-H and L-L-L-L-H end on Spinning Backhand, and a light or a heavy in it starts nothing;
+        - stopping after H-H, L-H-H, L-L-H-H or L-L-L-L-H ends the string when Spinning Backhand ends;
+        - the six rows built so far match the spec's table.
+        - Each fails when its rule is broken (9 mutations): Twin Fang dashing 1.3 m, 1.5 m or the demo's 0.8, or without Spinning Backhand after it; Flurry Finisher without it; Spinning Backhand keeping the demo's name, or taking a light (in the strings test and in continuity) or a heavy.
+      - `test_moves.gd` records the dash and the name against the demo.
+      - The spec's Daggers notes give the dash, the rename and how a held Twin Fang charges partway through its dash, as the demo's did (about 0.6 m before the charge begins, the rest after); whether it should wait for the charge check, as Overhead Strike and the Iai do, is with the owner. Story 37 stays open (7.29 lists it), and 17 too (14.11).
+      - Review fixes: the test constants each have their own comment, with the 4 m gap named for what it does (`FULL_LUNGE_GAP`); the expected strings are written out as in the sibling tests; Spinning Backhand has a comment in the move data.
+      - Soak (40 matches): 0 failures. Against 11.1: rounds 155 (149), average 41.6 s (41.0), blocks 24.19 (24.31), parries 4.90 (4.86), disarms 1.08 (1.07); match wins and losses Katana 15–16 (15–16), Greatsword 13–11 (12–12), Daggers 12–13 (13–12).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 55.4% (53.1% after 11.1), Greatsword 42.6% (41.7%), Daggers 51.2% (54.3%); rounds 38.8 s (38.8) and 1.08 disarms per round (1.05). The computer starts Twin Fang from further out, as its reach counts the lunge.
+  - [x] **11.3 Passing Cut along the dodge direction (`lunge_along_dodge`); task 11 ticked.** The fighter remembers its dodge direction. The cut lunges 1.2 m along it, clamping only the part that closes on the opponent, dodge-cancels from its first recovery frame, and replaces Ghost Cut.
+    - Check: dodge right then light moves about 1.2 m to the right, and left moves left; a forward dodge stops at the minimum gap; the direction survives into the follow window; the cut's dodge cancel opens on its first recovery frame; Wind Cut still lunges forward; the seven rows match; a 10-match soak is clean.
+    - Blocked by: 11.2 · Stories: 36, 38
+    - Done:
+      - `AttackDef.lunge_along_dodge` (the rebuild's, last in `KEYS`): a dodge attack that lunges along the dodge before it. `Fighter.last_dodge_dir` holds the direction of the last dodge or backstep, set as each starts; `start_attack` gives a move with the field that direction (`AttackState.lunge_dir`), and `_update_attack` lunges along it through `_advance_along`, which holds back only the part of each step that closes on the opponent (`_room_to_close`, shared with `_advance`). Other moves lunge along the facing as before.
+      - `d_dl` is Passing Cut, replacing the demo's Ghost Cut under its id: 6/2/12, 5/4, a 1.2 m lunge along the dodge over its startup and active frames, dodge-cancelling from frame 9. It keeps Ghost Cut's cone (1.8 m, 120°), knockback (0.2 m) and a light's hitstun (14) until task 7.
+      - `test_daggers_strings.gd`, red first (7 of its 17 tests failing: the six new Passing Cut tests and the rows; a seventh new one, on the latest dodge, came with the code and fails when only the first dodge is remembered):
+        - a light out of a dodge to the right is Passing Cut, and it carries the fighter on 1.2 m to the right; out of one to the left, 1.2 m to the left;
+        - a light on the 12th frame after the dodge ends, the follow window's last, still runs along it;
+        - after a backstep and, later, a dodge to the right, it runs along the latest, to the right;
+        - after a forward dodge from 5 m it stops with the bodies 0.25 m apart, short of its 1.2 m;
+        - with the defender placed 1.2 m away across its path (0.6 of the cut closing on them, 0.8 across), it still runs at least 0.96 m and never comes nearer than 0.25 m to their body;
+        - it dodge-cancels from frame 9, after a hit (out of a forward dodge) and after a whiff: a dodge pressed on its first active frame or on frame 8 waits in the input buffer (over a hit's hit-stop too) and comes then, and one pressed on 9 comes at once;
+        - all seven rows match the spec's table.
+        - Each fails when its rule is broken (11 mutations): Passing Cut lunging along its facing or 1.0 m, or cancelling on frame 8, 10 or Ghost Cut's 12; the whole step held back, nothing held back, or the part across dropped; every move lunging along the dodge; only the first dodge remembered, or none.
+      - `test_katana_strings.gd` shows Wind Cut out of a dodge still lunging 0.4 m straight at the defender. `test_moves.gd` lists Ghost Cut as removed and Passing Cut as added under its id, and holds `lunge_along_dodge` unset on every demo move. `_out_of_a_dodge` moved from the Greatsword's test to `WeaponStringsTest` (with `_dodge_then`, its input, a distance and a wait), and `PlayedString` records fighter 0's position and how far an attack moved it (`displacement`).
+      - The spec gives the field, Passing Cut and its interim numbers. Task 11 is ticked. Stories 36 and 38 stay open (7.29 lists both, and 12.7 story 36).
+      - Review fixes: the cancel is checked after a hit as well as a whiff (story 36's "connects or whiffs"), stepping the world and pressing by the cut's own frame; `Fighter.last_dodge_dir` says it is the last dodge's; the lunge's comment, the port notes and `test_moves.gd`'s note on the rebuild's fields say what changed; `PlayedString.closest` replaces two loops, the test's numbers are named, and Wind Cut's check measures the gap closing rather than assuming where the defender stands.
+      - Known gap: the computer's reach counts a lunge as forward (`ai_brain.gd:373`), so a sideways Passing Cut looks 1.2 m longer to it; task 12 teaches the computer the new moves.
+      - Soak: `soak:godot -- 10`, the plan's check, has 0 failures, and so does the usual 40-match run. Against 11.2: rounds 155 (155), average 41.1 s (41.6), blocks 25.08 (24.19), parries 5.02 (4.90), disarms 1.06 (1.08); match wins and losses Katana 14–17 (15–16), Greatsword 14–10 (13–11), Daggers 12–13 (12–13).
+      - `soak:tune` (300 matches, 0 failures): win rates against the other weapons Katana 53.1% (55.4% after 11.2), Greatsword 46.1% (42.6%), Daggers 50.4% (51.2%), all three inside the spec's 45–55% for the first time; rounds 39.6 s (38.8). Disarms stay above the spec's 0.3–0.6, at 1.06 per round (1.08); task 12 tunes toward it.
+- [ ] **7. Weapon swings drive hits.**
+  - Delivers:
+    - the swing data and arc interpolation, starting from the spike's swing code:
+      - the hand drives the blade, with limited wrist bend and deviation;
+      - torso and pelvis coil are keyed;
+      - each move has an entry from guard, an entry from the previous move, and an exit back to guard;
+    - a swing on every final move;
+    - a hurt capsule per fighter in the rules data;
+    - the hit test: a blade sweep (the quad between consecutive ticks) against the hurt capsule, landing on the first touch inside the active frames;
+    - hit, block and parry events carry the blade contact point;
+    - reach and arc derived from the swings, with lunges tuned so the last 15–20 cm of blade enters a defender at the weapon's duelling distance;
+    - a debug view drawing blade sweeps and capsules.
+  - Check:
+    - the new swing-hit tests from the spec pass;
+    - a test fails any swing frame past the wrist limits, or with the blade within 5 cm of the fighter's own body;
+    - the old tests pass or are updated, with a reason in the commit;
+    - the soak run is clean;
+    - debug screenshots show sweeps matching hits.
+  - [x] **7.1 64-bit vector and rotation helpers for the rules.** Vector operations on `V3`, a 64-bit `Quat64` with trig through `JsMath`, and `SimMath.local_to_world`. No behaviour changes.
+    - Check: `test_v3_math.gd` covers identities, cross-product handedness, slerp, round trips and local-to-world at two yaws; every existing test passes.
+    - Blocked by: none (built after 11.3 in the build order) · Stories: 59
+  - [x] **7.2 Swing data: keys, tracks and the JSON files.** A swing holds tracks (right hand, left hand, right foot, left foot, body), and each track holds keys. A key has a frame, a grip point in the fighter's space, the weapon's orientation, torso and pelvis coil, a pelvis shift, an optional elbow-pole tweak and an ease. Per-weapon JSON files load into `AttackDef.swing`. Glossary entries for Swing, Hurt capsule, Sweep and Contact point.
+    - Check: a swing file loads into the expected keys; bad files (unsorted keys, frames past the move, unknown fields) are refused with an error; `test_moves` still passes.
+    - Built: the coil and the pelvis shift are keys of the body track, and a hand or foot key holds the grip, the blade, the edge, the pole tweak and the ease. So the hips can be keyed to lead the hands, and a two-dagger swing has one coil. `SwingFile` refuses a file with any mistake whole. `WeaponDef.from_dict` reads `game/sim/moves/swings/<weapon>.json` when it exists; no weapon has one until 7.17, which should check that the Katana's file reaches the exported build (Godot exports `.json` files as JSON resources, as it does `tracks.json`).
+    - Blocked by: 7.1 · Stories: 16, 21, 59
+  - [x] **7.3 The arc sampler and per-tick tables.** The grip travels on an arc around a shoulder-line pivot, and the blade turns with the hand's arc frame instead of being splined on its own (the spike critique's first fix). Per-tick tables are built at load, and `sample(t)` gives fractional frames.
+    - Check: `test_swing_sampler.gd` covers samples equal to keys at key frames, zero velocity at ease-0 keys, arcs rather than chords, the edge staying perpendicular, the blade turning with the hand, and bit-identical tables on reload.
+    - Built: `SwingSampler` arcs the hands round (0, 1.44, -0.06) m and the feet round (0, 0.96, -0.045) m, (right, up, forward), measured from both rest skeletons. Each key's blade is carried along the arc by the shortest turn from that key's direction to the sample's, and the two carried keys are blended, so a blade held at one angle to the arm turns exactly with it. Distances, coils, poles and pelvis shifts have capped tangents, so they never overshoot their keys. A swing knows its move's last frame and builds its table as each track is added (`Swing.tick`).
+    - Blocked by: 7.2 · Stories: 16, 21, 59
+  - [x] **7.4 Entries from guard and from the previous move, and the exit to guard.** A guard key per weapon in the rules data; the attack state records the move it chained from; the sampler picks the entry. Active frames don't depend on the entry.
+    - Check: a chained start samples the previous hand-off pose and a fresh start the guard; the active frames are identical either way; `test_swing_continuity.gd` requires each chained entry to start within 2 cm and 10° of the previous hand-off.
+    - Built: the guard sits in the weapon's swing file (`{"guard": {part: pose}, "swings": {...}}`) and must have every part the swings move. The entry runs from the guard, or the previous move's last key, at frame 0 to the move's first key, and the exit from its last key to the guard on its last frame; both start or end at rest. The keys' own stretches take tangents from the keys only, and a striking track must key frames S to S + A, so the active frames can't depend on the entry. `AttackState.chained_from` holds the move a follow-up follows. Since the entry starts exactly at the previous hand-off, the continuity test checks the move's first key: the chained entry travels at most 2 cm and 10°.
+    - Blocked by: 7.3 · Stories: 16
+  - [x] **7.5 Hurt capsules and blade dimensions in the rules data.** `FighterBody` per fighter id (radius 0.35 m, feet to 1.75 m, raised with jumps), passed from `MatchSide.fighter_id`; blade base and tip points and a sweep thickness on each `WeaponDef`, copied from the WeaponLook markers; fist and foot strike segments.
+    - Check: the capsule follows a jump; the default body applies without an id; a content test keeps the rules' blade points within 1 cm of the WeaponLook markers; every existing test passes.
+    - Built: `FighterBody.of(id)` holds the hurt capsule's radius and height (0.35 and 1.75 m for the Rogue and the Hunter, and the same default for no id; an unknown id gets the default with an error). `FighterConfig.fighter_id` carries it from `MatchSide`, and `Fighter.hurt_capsule()` gives the world-space `SimCapsule`, risen by `pos.y`. Each `WeaponDef` has a `blade` and a `foot` `StrikeSegment` (base, tip and thickness in the part's frame; `foot` is null except on bare hands). The thickness is the blade's own out of its flat, measured from the models, so a blade passing about a centimetre off the capsule misses: 1.5 cm for the Katana, 2.2 cm for the Greatsword and 1.4 cm for a dagger, each at its thickest between the markers. The fist runs across the knuckles (7.6 cm thick) and the foot along the boot from heel to toe (10 cm), both measured once from the two rest skeletons and boots. A foot track's grip is the ankle, its blade runs along the foot and its edge out of the sole. `tests/content/test_strike_segments.gd` keeps the blades within 1 cm of the markers and their thickness within 1 mm of the models', the fist on both fighters' knuckles and the foot on both boots.
+    - Blocked by: 7.1, 13.1 · Stories: 21, 44, 59, 63
+  - [x] **7.6 Reference bodies for the Rogue and the Hunter.** `ReferenceBody` per fighter: shoulder points, upper-arm and forearm lengths, the spine axis, and proxy capsules for the torso, the head with its mask or hat, the thighs and the arms. They are measured once from the skeletons and committed as data.
+    - Check: a content test re-measures both skeletons and matches the committed numbers within 1 cm; torso and pelvis coil turn the proxies as expected.
+    - Built: `ReferenceBody.of(id)` in `game/sim/swings/reference_body.gd`. It holds the shoulders, the upper-arm and forearm lengths, the wrist in the fist's frame (which 7.7's elbow solve needs), the spine from the middle of the hips to the middle of the shoulders, and capsules for the torso, the head and each thigh, plus each arm's radii. Each proxy covers the vertices its bones mostly move, measured on the rest pose with the hat placed on the Head bone's rest. The torso and the head are upright capsules: the torso from hip height to shoulder height, and the head from the head joint up to the crown. The limbs run along their bones. So the Rogue's head is her hood (17 cm), the Hunter's is his tricorn's brim (18 cm), and his left upper arm is 12 cm for the pauldron, against 7 cm on the right. The thighs are 17–18 cm, for the coats' skirts. A capsule can't hug both a head's crown and a hood's peak or a hat's brim, so the head's capsule ends at the crown: the top of the Rogue's hood and the back of the Hunter's tricorn poke out by up to 4.4 cm, and the torso by 1.2 cm at the shoulders. A capsule tall enough to hold the hood would have stood 12.6 cm over the Rogue's crown, in every overhead's way. `posed(torso, pelvis, shift)` turns the torso and the shoulders, and the thighs at the hips, about the spine; the head keeps facing ahead (14.12 counter-turns it), and the shift carries all but the knees. The wrist is measured at the fist's default 1.5 cm handle; the weapons' handles move it by under 1.2 cm. `tests/content/test_reference_bodies.gd` holds the measuring rules and keeps every number within 1 cm and every poke under the checks' 5 cm margin, and `tests/sim/test_reference_body.gd` works the turns and the shift by hand on a square body.
+    - Blocked by: 7.5 · Stories: 21, 59
+  - [x] **7.7 Swing checks on the reference bodies.** `SwingCheck` runs on every tick of a swing, for both entries and the exit. It solves the elbow analytically and checks:
+    - wrist bend (±60°) and deviation (±25°);
+    - no locked elbow;
+    - the blade at least 5 cm from every proxy, the other arm included;
+    - the grips out of the face volume during the wind-up.
+    Sheathed keys, foot and body tracks and the gripping fist are exempt. `test_swings_valid.gd` runs it on every swing for both bodies.
+    - Check: a good synthetic swing passes; a 75° wrist, a blade through the head, a blade through the off-hand forearm and hands crossing the face each fail and name the frame.
+    - Built: `SwingCheck.check(move, weapon, body, chained_from)` looks at every quarter frame from 0 to the last, so the entry, the keys and the exit are covered. It reports each problem once, with its worst frame and the stretch it lasts. `SwingCheck.moment()` gives the posed body, the arms and the blades at any frame, for the swing editor (14b). Each hand sits on its grip as `FighterRig.seat()` puts it (the fist turned 25° about the handle), and each elbow bends toward the rig's pole (`ELBOW_POLE`, turned with the chest) plus the key's tweak; `tests/content/test_swing_check_rig.gd` holds both hands of both fighters to the rig's seat within 5 mm and 1°. A blade isn't checked against the fist and forearm that hold it, since the wrist limits keep it clear of them and their capsules would always catch it. Its own upper arm, the other arm, the torso, the head and the thighs all count. The face is a capsule 12 cm round, from the middle of the head 60 cm straight ahead. A weapon held in both hands puts the left hand on `WeaponDef.off_hand_grip`, copied from the OffHandGrip marker and checked with the blades in `test_strike_segments.gd`. Such a swing keys no left hand. `SimMath.segment_distance` is the 64-bit closest distance between segments. `test_swing_check.gd` builds its arms forward from the shoulder, so the solve is measured against a known arm; `test_swings_valid.gd` runs every swing from each entry on both bodies and is empty until 7.16. The rig holds the handle square across the fist (the spike's 28° tilt across the palm was dropped), so within ±25° a blade sits 65–115° from its forearm. If a shape needs the blade more in line with the arm, the tilt has to return to the rig and the check together. The rig also swings the collarbone near full reach, so it locks an elbow later than the check does. Sheathed keys don't exist yet (7.19).
+    - Changed when 14.8 was merged in, before 7.11, with the owner's OK. 14.8 turns the rig's hand round the handle to its forearm in place of the fixed 25°, so `SwingCheck` now seats hands the same way:
+      - It starts from the grip and refines the turn over the rig's 4 passes (`ROLL_PASSES`), solving the elbow as `FighterRig.elbow_at()` does.
+      - A wrist no longer bends, so the ±60° bend limit is gone. Four passes leave up to about 1.5° of bend, and `Arm.bend` still measures it. The ±25° sideways limit is the one that bites.
+      - `test_swing_check.gd` measures the solve against its built arms to 2 mm and 2°, which is what four passes leave. A key built with a bent hand is seated straight, and a 35° sideways turn stands in for the 75° wrist.
+      - `test_swing_check_rig.gd` passes each fighter's rest shoulder and chest to the new `seat()`, and holds within 5 mm and 1° as before.
+      - The rules' `Capsule` is now `SimCapsule`, since a global class named Capsule hid `PoseCheck`'s own `Capsule` class.
+    - Blocked by: 7.4, 7.6 · Stories: 21, 59, 60
+  - [x] **7.8 Blade sweep against a capsule.** Pure 64-bit geometry: the swept quad between two ticks, split into triangles, against a capsule plus half the blade thickness, with the contact point, the depth, and the length of blade inside.
+    - Check: `test_sweep.gd` covers crossing, passing above and behind, the graze limit to the centimetre, the no-motion case, no tunnelling at 0.6 m per tick, parallel cases, and contact points on the quad.
+    - Built: `BladeSweep.touch(base0, tip0, base1, tip1, half_thickness, capsule)` in `game/sim/blade_sweep.gd` returns null on a miss. Each end of the segment moves in a straight line through the tick, and the quad is the triangles base0, tip0, tip1 and base0, tip1, base1. The nearest point to the capsule's axis is where the axis crosses a triangle, or over a triangle from an end of the axis, or on one of the five edges (`SimMath.segment_closest`, the closest points that `segment_distance` now uses). A touch carries that point as `contact` (where the blade went deepest), the `depth` inside the capsule grown by half the thickness, and `length_inside`: the most of the segment inside at any moment of the tick. That length is searched for at 16 even steps and then by golden sections. A moment with none of the segment inside scores how far it is from reaching the capsule, so a graze too brief for the steps is still found. Unblockables (7.12) will pass a larger half-thickness. `test_sweep.gd` works the cases by hand on a standing defender with a Katana's blade, and checks four twisted quads against points sampled across them: no sampled point is nearer the axis than the contact, the contact is on the quad, and the length inside matches a count 5 mm at a time to 1 cm.
+    - Blocked by: 7.1 · Stories: 21, 59
+  - [x] **7.9 The blade's place in the world each tick.** The attack state keeps each striking track's world blade segment for this tick and the last, holding while charging and through extra recovery. `Fighter.blade_segments()` exposes it, with swing fixtures for the later tests.
+    - Check: the world tip at two yaws; the segment follows the lunge and tracking; it holds in a charge and in hit-stop; the first tick's previous segment equals the current one.
+    - Built: `World.step` calls `Fighter.place_blades()` for both fighters once they've been pushed apart, just before combat is resolved. So each blade is placed where hits are decided, against capsules from the same positions. Each hand and foot track of the attack's swing becomes a `BladeSegment` in `AttackState.blades`: its part, base, tip, last tick's base and tip, and half its thickness. The segment comes from the track's pose at the attack's frame, entered from the move it follows, and is placed at the fighter's position and facing. `Swing.strike_segment(part, weapon)` picks the weapon's blade or fist for a hand, its foot for a foot, and nothing for the body. `Swing.Sample.place()` puts a point of the part's frame in the fighter's space, and `SwingCheck` now uses it too. A fist move started while armed takes bare hands' fist, as `start_attack` takes its move. A charge holds the frame and so the pose, frames past the swing's end hold its last pose, and hit-stop skips the step. A follow-up's first tick has no last segment of its own, so it doesn't sweep from the move before. `blade_segments()` is empty outside an attack and for a move without a swing. `tests/sim/swing_fixtures.gd` gives the later tests hand-built keys, held poses, a level slash keyed on every active frame (cocked before, settling after) and fresh weapon copies that carry them. `test_blade_segments.gd` checks the tip by hand at two yaws, the pose at each active frame with the last one's beside it, the push apart, the lunge, tracking, a charge into extra recovery, hit-stop, a follow-up's first tick and which tracks strike.
+    - Blocked by: 7.4, 7.5 · Stories: 21, 59
+  - [x] **7.10 Sweeps decide hits for moves with swings.**
+    - Delivers: each active frame sweeps the striking tracks against the defender's capsule. The first touch decides the outcome in the demo's order (counters, jumped, flash, evade, parry, block, hit), and no touch means a whiff. Moves without a swing keep the cone, so the Duel plays unchanged while swings are authored.
+    - Check: `test_swing_hits.gd` covers, on synthetic moves:
+      - a blade passing behind or above misses;
+      - a low sweep misses a jumper;
+      - the hit lands on the first-touch frame, and a touch after the active frames is a whiff;
+      - a parry timed to the first touch parries, and block blocks.
+      Every existing test passes, and a 40-match soak is clean.
+    - Built: `World.evaluate` asks `World.reaches(a, b, def)` where it asked `in_volume`. For a move with a swing, that's whether `Fighter.blade_touch(capsule)` finds a touch: each striking track's sweep from the last tick's segment to this one, against the defender's hurt capsule, keeping the deepest (the first on a tie) for 7.11's contact point. A move without a swing keeps `in_volume`. The counters' generous cones still come first, and jumped, flash, evade, parry and block follow the touch as they followed the cone. A multi-hit move (no move is one yet) would sweep only on the frames it already checks (every third by default), so a swing on one must cross the defender on those frames. `test_swing_hits.gd` plays Right Cut with level slashes from `swing_fixtures.gd`, each case set beside the cone's answer:
+      - through the body it hits on its first touch, frame 13, where the cone hits on 12;
+      - 45 cm over the head, or with the blade passing beyond the defender's back, it whiffs;
+      - 20 cm up, it cuts a standing defender and passes under a jumping one, whom the cone hits;
+      - a blade that only reaches the defender after the active frames whiffs;
+      - a block press on frame 13 parries, where the cone's hit lands on 12, and a held block blocks.
+      The 7.9 hit-stop test moved its defender from 2.2 to 1.6 m apart, so the fixture's blade reaches them now that it decides. A 40-match soak gives exactly the same report with and without the change.
+    - Blocked by: 7.8, 7.9 · Stories: 21, 24, 41, 59
+  - [x] **7.11 Contact points on hit, block and parry events.** Swing moves put the sweep's contact point in the event; cone moves and scripted hits keep the midpoint.
+    - Check: hit, block and parry points lie on the blade quad near the defender's axis; a Moonsplitter wave hit keeps the midpoint.
+    - Built: `World._resolve_combat` finds a swing move's touch once (`Fighter.blade_touch()`, the deepest of its tracks'). It hands the touch to `evaluate()` for the reach (`reaches()` now takes it) and puts its contact in `HitCtx.contact`, which `apply()` uses for the hit, block and parry events' `pos`. A null contact (moves without a swing, and scripted hits, which carry no context) keeps the demo's point, halfway between the fighters at 1.25 m. The counters keep their own points. `test_contact_points.gd`:
+      - a level slash whose sweep holds the defender's axis puts the hit, the block and the parry exactly where the axis meets the blade's level;
+      - a slash that falls short of the axis puts the hit on its quad, inside the capsule and off the axis, at the sweep's contact;
+      - the cone's hit, and a Moonsplitter wave from a Katana whose Right Cut has a swing, keep the midpoint.
+    - Blocked by: 7.10 · Stories: 40, 48
+  - [x] **7.12 Unblockables sweep a thicker blade.** `UNBLOCKABLE_SWEEP_BONUS` (0.1 m) is added to an unblockable's half-thickness, and presentation can read it.
+    - Check: a synthetic unblockable hits where the same swing without the flag misses; normal moves are unchanged.
+    - Built: `SimConst.UNBLOCKABLE_SWEEP_BONUS` is 0.1 m. `Fighter.place_blades()` adds it to the half-thickness of each blade segment an unblockable places, so the sweep, its contact, depth and length inside, and `blade_segments()` all carry the thicker blade, and presentation can read either the constant or the segment. Unblockables without a swing keep their cones, and the counters keep theirs. `test_swing_hits.gd` holds Right Cut's point straight at the defender, 1.227 m out, with the move flagged unblockable or not and nothing else changed:
+      - the segment's half-thickness is 0.75 cm (half the Katana's 1.5 cm), and 10.75 cm when flagged;
+      - from 1.99 m apart the lunge leaves the point 0.413 m from the defender's axis: the normal move whiffs 5.5 cm short, and the unblockable hits on frame 12, 4.5 cm in;
+      - 10 cm further back, the unblockable whiffs as well.
+    - Blocked by: 7.10 · Stories: 22
+  - [x] **7.13 Reach and arc derived from each swing.** `SwingReach` computes reach and arc at load, and `first_contact()` gives the first-touch frame and depth at a distance. The AI's reach checks, `WeaponDef.reach` and the dummy's practice distance use them.
+    - Check: a synthetic slash's reach and arc match hand-computed values; a spin's arc is 360; `first_contact` agrees with a stepped world at three distances; a 40-match soak is clean.
+    - Built: `game/sim/swings/swing_reach.gd`. `WeaponDef.from_dict()` ends with `derive_reach()`, which puts `SwingReach.reach()` and `.arc()` on each swing (`Swing.reach`, `Swing.arc`) and takes `WeaponDef.reach` from the light starter's swing once it has one; the test fixtures' weapons call it again after their swings go on.
+      - Reach: the furthest point of the striking tracks' segments across the ground from the feet, at the ticks from the last of the startup to the last active one, plus the half-thickness the sweep tests (`BladeSegment.half_thickness_for()`, with the unblockable bonus). No lunge, as the demo's range had none.
+      - Arc: twice the widest bearing of those segments from the facing, or 360 when a tick's sweep passes behind the fighter (an edge crosses the line back from the feet, or a triangle holds them), as a spin's does. The sweeps are straight-line quads, so their furthest and widest points are corners.
+      - `first_contact(def, weapon, distance, bearing, body)` plays the attack from standing as `Fighter` does each frame (the lunge, stopping with the bodies 0.25 m apart, then the turn at the move's tracking rates, then the blades) and returns the first checking frame's touch on the defender's capsule (`Contact`: frame and depth), or null. Hops, air attacks and a lunge along the dodge are played on the ground along the facing. To keep it in step with the rules, `AttackDef.lunge_from()` (a counter lunge's distance rule), `AttackDef.lunge_share()` and `World.checks_frame()` (the active and multi-hit frames) came out of `Fighter` and `World._resolve_combat()`, which now call them.
+      - `AttackDef.reach()` and `.reach_arc()` give the swing's values, or the authored range and arc without one. `AIBrain.threatens()` (the computer's test for answering an attack) reads `reach()`, and the neutral game already reads `WeaponDef.reach`. `TrainingBrain.practice_distance()` keeps the demo's 2.2 / 2.6 / 1.8 m until the light starter has a swing, then takes the weapon's reach. The counters' cones and `in_volume()` keep the authored range and arc. No view reads a move's range or arc yet, so the move list has nothing to switch.
+      - `test_swing_reach.gd`, with a straight 0.8 m test blade 2 cm thick: a level slash 60° either side reaches 1.26 m with an arc of 120°, one from 30° right to 50° left with the grip 0.6 m out reaches 1.41 m with 100° (the settle past the active frames left out); an unblockable reaches 10 cm further; a spin at 120° a frame has an arc of 360 though no tick points behind, and an 85° slash keeps 170°. `first_contact` matches a stepped world's first touch and depth at 0.9 m (frame 12, too close to lunge), 1.6 m (frame 13), 2.2 m (none) and 1.6 m at 40° (the attacker turns in). Without swings the reach, arc, weapon reach, the computer's threat test and the practice distance stay as authored. Mutation-checked (11). A 40-match soak gives the same report with and without the change.
+    - Blocked by: 7.8, 7.9 · Stories: 5, 53, 58
+  - [x] **7.14 The reach tests: duelling distance and a table of test distances.** Duelling distances per weapon in the rules data. A table in the spec gives the distance each kind of move is tested from (lights at the duelling distance; sprint, dodge, backstep and jump attacks, counter lunges and abilities at their own). `test_duel_reach.gd` requires every light with a swing to put 15–20 cm of blade (deepest length inside the capsule over the active ticks) into a standing defender at that distance, with the lunge ending on the first touch, and to whiff from 6 m. `test_move_reach.gd` requires every other move with a swing to hit from its table distance.
+    - Check: both tests run (empty until moves have swings) and fail on a synthetic light that only grazes or that goes 30 cm deep.
+    - Built: `WeaponDef.duel_distance` (Katana 2.5 m, Greatsword 3.0, Daggers 2.0, bare hands 1.6) in each weapon's record. `SwingReach.touches()` gives every checking tick's deepest touch through the active frames, played as `first_contact()` plays it (which now shares its loop), and `Contact` carries the length inside. The spec's table of test distances (after the reach bullets) gives each kind of move its distance as D plus the median of how much further the demo's moves of that kind reached from standing than their weapon's first light, to the half-metre: heavies + 0.5 m, sprint light + 1.5, sprint heavy + 2.5, dodge attacks + 0, backstep light + 0.5, backstep heavy + 2, jump attacks − 0.5, counter lunge + 2, unblockable abilities + 1, other abilities + 0, Breaker Palm + 2.5, and the Iai Slashes the spec's 3.6 m. `game/tests/sim/reach_table.gd` holds it for the tests.
+      - `test_duel_reach.gd`: every light of the string with a swing, at its duelling distance, puts 15–20 cm of blade inside (the most over the active ticks), ends its lunge on its first touch and touches nothing from 6 m; the duelling distances are checked. Its check, on a straight Katana-length blade held level at the defender: 17.5 cm passes; 2 cm, 30 cm and falling short fail; a point pushed from 1.45 to 17.45 cm through the active frames passes (the deepest tick counts); a blade held across the front cutting a 17.5 cm chord only 1.1 cm deep passes (the length inside counts, not the depth); a level slash whose first touch is a frame after its lunge ends fails, and so does a 6 m blade from 6 m.
+      - `test_move_reach.gd`: every other striking move with a swing touches from its table distance. The table is checked on the Katana's moves of every kind, Guard Crusher, Skewer (by its dodge slot), Breaker Palm and Flash (not tested); its check passes Running Draw held 1.5 m out from 4.0 m and fails it held 0.45 m out.
+      - Both run empty until moves have swings. Mutation-checked (11).
+    - Blocked by: 7.13 · Stories: 21
+  - [x] **7.15 Debug view of blade sweeps and hurt capsules.** `SwingDebugView` draws capsules, blade segments, the active frames' swept quads and contact points by outcome. It is turned on by F3 in debug builds, `--swing-debug`, or a `swing_debug` shot scene.
+    - Check: one quad per active tick and one marker per touch, in a headless test; shots of a hit, a block and a whiff are reviewed (sweeps meet the capsule where the flash is).
+    - Built: `game/view/match/swing_debug_view.gd`. `SwingDebugView` follows a `MatchHost`'s steps and events and draws, on top of the bodies and where the rules have things (not blended between steps): each fighter's hurt capsule as a wire capsule, each striking blade of an attack, the swept quad of each striking track on every tick that checks for hits (`World.checks_frame()`), filled in the attacker's colour and fading over 60 world frames, and a cross where each hit, block or parry started (its event's `pos`, where the contact flash appears) or, for a whiff, at the tip of the attacker's blade, coloured by outcome. An attack parried, or whose fighter is hit, ends in that step, so the view keeps each side's `AttackState` from the step before: the rules update its frame and blades in place before ending it. `record(world)` and `on_event(e, world)` take the world, so the test drives the view without a host, and it draws into an `ArrayMesh` rebuilt each frame. `MatchView.swing_debug` (exported) adds it; F3 toggles it in a debug build (`_unhandled_input`), and `--swing-debug` anywhere on the command line turns it on (`npm run godot:run -- --swing-debug`; Godot keeps an unknown argument in `OS.get_cmdline_args()`). `MatchHost.brain(side)` reads a side's brain, so the shot can set the training dummy's behaviour.
+      - `test_swing_debug_view.gd`: on Right Cut's level slash, a hit keeps a quad for each active tick (12, 13 and 14, on through the hit), each from the blade at the last tick to this one, and one hit marker at the event's point; a parry on frame 13 keeps 12 and 13 though the attack ended in the parried step; a block and a whiff (the slash over the head) each leave their marker, the whiff's at the blade's tip; the cone draws no quads and marks its midpoint flash; markers and quads go a second after they came, the frame-14 quad after the hit-stop; a new round clears them; it draws two triangles a quad and, as lines, both capsules, the quads' edges, the blade and a cross per marker; `MatchView` turns it on and off with F3, it follows the host's world, and `--swing-debug` is read from the arguments. Mutation-checked (10).
+      - `game/tools/shot_scenes/swing_debug.tscn` (`swing_shot.gd`, `--moment=hit|block|whiff`): the player's Rogue cuts at a training dummy 1.6 m away with Right Cut on the tests' level slash (this process only gives Right Cut a swing), held two steps after the outcome, from above beside the fighters. Reviewed by eye: the hit and the block put the flash inside the Hunter's capsule at the end of the sweeps, at the cut's height, and the whiff's sweeps pass over both capsules with the whiff's cross at the blade's tip. The stand-in's katana doesn't follow the swing yet (stand-ins follow swings in a later task).
+    - Blocked by: 7.11 · Stories: 21, 65
+  - [ ] **7.16 Named swing shapes: the cuts.** `SwingShapes` builders for the right-to-left and left-to-right slashes, the falling and rising diagonals and the overhead. Each builder gives:
+    - both entries;
+    - a 40–60° coil with the pelvis shifted back over the rear foot;
+    - a 2–4 frame cocked hold;
+    - hips leading;
+    - 150–160° elbows at contact;
+    - overshoot, settle, a hand-off pose and the exit.
+    The hands travel from shoulder to opposite hip and never cross the face. Each shape is judged on the real fighters.
+    - Check: each shape passes `SwingCheck` on both reference bodies with the Katana and the Greatsword, and PoseCheck on the rig; it has the hold and the coil; a slash at contact is more than 45° off the facing; contact sheets from the gameplay camera tell slash from overhead in the first third of the wind-up.
+    - Blocked by: 7.7, 14.13 · Stories: 16, 19, 21
+  - [ ] **7.17 The Katana's four-light string on swings.** Right Cut, Return Cut, Kesa Cut and Crown Cut, keyed to the spike critique's fixes 2–5. Right Cut loads out to the right early. Return Cut winds up from the left hip. Strong hand-off poses: each move ends on the next one's start. Lunges are 0.7–0.8 m and end on contact.
+    - Check: `SwingCheck` and PoseCheck (wrists, 5 cm, elbows on the first active frame, knees over toes) on both fighters; continuity; `test_duel_reach.gd` for the four lights; the Katana combat tests pass or are updated with the reason; debug-view shots and contact sheets reviewed; a 40-match soak is clean.
+    - Blocked by: 7.14, 7.15, 7.16 · Stories: 16, 18, 21, 25
+  - [ ] **7.18 Named swing shapes: thrust, stab and slam.**
+    - Check: each passes both checks; a thrust's contact is within 15° of facing; a slam ends at the ground; sheets tell thrust from overhead in the first third of the wind-up.
+    - Blocked by: 7.17 · Stories: 19, 21
+  - [ ] **7.19 Named swing shapes: low sweep, spin, draw cut and the Iai sheathe-and-draw.** A `sheathed` key flag carries no blade.
+    - Check: each passes both checks; a low sweep stays under 0.5 m while active; a spin's arc is 360; sheets tell sweep from slash early.
+    - Note from 7.7: `SwingCheck` has no sheathed exemption yet. When the flag exists, a sheathed sample gets no blade in `SwingCheck.moment()`, so the blade checks skip it while the arms are still checked.
+    - Blocked by: 7.18 · Stories: 19, 21, 26
+  - [ ] **7.20 The Katana's heavies on swings.** Both Iai Slashes (the sheathed hold at the saya, then the draw), Rising Heaven, Returning Draw and Heaven Splitter.
+    - Check: both checks, with sheathed keys exempt; continuity for every Katana heavy chain; the Iai enters a defender at 3.6 m and misses at 4.2 m; task 9's tests pass; sheets reviewed; a 40-match soak is clean.
+    - Blocked by: 7.19, 14.16 · Stories: 16, 18, 26, 27, 28, 29
+  - [ ] **7.21 The Katana's sprint and dodge attacks.** Running Draw, Leaping Cleave, Wind Cut and Whirl Cut.
+    - Check: both checks and continuity; each hits from its table distance; sheets reviewed; a 40-match soak is clean.
+    - Blocked by: 7.20 · Stories: 21, 30
+  - [ ] **7.22 The Katana's backstep and jump attacks, Counter Lunge and Flash.** Rising Cut, Lunging Cut, Aerial Cut, Falling Crown and Counter Lunge, with Flash as a pose-only swing.
+    - Check: both checks and continuity; each hits from its table distance; the evade counter's lunge test passes; sheets reviewed; a 40-match soak is clean.
+    - Blocked by: 7.21 · Stories: 21, 30, 41
+  - [ ] **7.23 The Katana's unblockables: Piercing Thrust and Swallow Sweep.** With the thick-blade bonus. The four attack types (slash, overhead, thrust, sweep) now all exist on the Katana.
+    - Check: both checks; the unblockable combat tests pass; an unblockable hits where the Katana light misses; sheets of the four types side by side tell them apart in the first third of the wind-up; a 40-match soak is clean.
+    - Blocked by: 7.22 · Stories: 22, 30, 42
+  - [ ] **7.24 The Greatsword's string and Piercing Lunge on swings.** Two-handed swings for Heavy Swing, Backswing, Overhead Strike and Piercing Lunge, at the Greatsword's duelling distance. The colossal slide's direction now comes from the follow-through.
+    - Check: both checks; continuity for L-L-H; the duel reach test; task 10's tests; a test that a Heavy Swing slides along its follow-through rather than its facing; sheets; a 40-match soak is clean.
+    - Blocked by: 14b.6, 15.1 · Stories: 18, 20, 31, 33
+  - [ ] **7.25 The Greatsword's sprint attacks, Guard Crusher and Counter Lunge.** Shoulder Charge and Guard Crusher strike with a body track; Leaping Smash and Counter Lunge.
+    - Check: both checks (body tracks exempt from the wrist check); each hits from its table distance; the posture-crush tests pass; sheets; a 40-match soak is clean.
+    - Blocked by: 7.24 · Stories: 21, 34
+  - [ ] **7.26 The Greatsword's backstep and jump attacks.** Rising Edge, Lunge Cleave, Aerial Chop and Meteor Drop.
+    - Check: both checks; each hits from its table distance; sheets; a 40-match soak is clean.
+    - Blocked by: 7.25 · Stories: 21
+  - [ ] **7.27 The Greatsword's unblockables.** Reaping Sweep, Mountain Slam, Low Sweep (narrower and faster than Reaping Sweep, and low enough to jump) and Skewer.
+    - Check: both checks; continuity from Overhead Strike to Low Sweep; Low Sweep misses a jumper; the unblockable combat tests pass (full damage through block, disarm on a full meter, no help from dodge invincibility, each counter still triggers); sheets; a 40-match soak is clean.
+    - Blocked by: 7.26 · Stories: 22, 32, 33, 34, 41
+  - [ ] **7.28 Named swing shapes for two blades: double stab and crossing cut.**
+    - Check: both tracks pass both checks; the blades never cross each other's arms; sheets.
+    - Blocked by: 15.2 · Stories: 19, 21
+  - [ ] **7.29 The Daggers' string and heavies on swings.** Quick Slice, Off-hand Slice, Twin Rip, Flurry Finisher, Twin Fang, Spinning Backhand and Passing Cut, with two hand tracks.
+    - Check: both checks for both blades; continuity; the duel reach test; task 11's tests; sheets; a 40-match soak is clean.
+    - Blocked by: 7.28 · Stories: 16, 35, 36, 37, 38
+  - [ ] **7.30 The Daggers' sprint and dodge attacks, and Shadow Step.** Slide Slash, Pounce and Reverse Spin, with Shadow Step as a pose-only swing.
+    - Check: both checks; each hits from its table distance; the Shadow Step backstab tests pass; sheets; a 40-match soak is clean.
+    - Blocked by: 7.29 · Stories: 21, 39
+  - [ ] **7.31 The Daggers' backstep and jump attacks, and Counter Lunge.** Flick, Rebound Lunge, Air Slash, Dive Stab and Counter Lunge.
+    - Check: both checks and continuity; each hits from its table distance; sheets; a 40-match soak is clean.
+    - Blocked by: 7.30 · Stories: 21
+  - [ ] **7.32 The Daggers' unblockables: Serpent Sweep and Needle Thrust.**
+    - Check: both checks; the unblockable combat tests pass; sheets; a 40-match soak is clean.
+    - Blocked by: 7.31 · Stories: 22, 39
+  - [ ] **7.33 Bare-hand string on swings: Jab, Cross, Hook and Slip Jab.** A fist strike segment.
+    - Check: the elbow and other-arm checks; continuity for Jab, Cross, Hook; the duel reach test at 1.6 m; the disarmed tests pass; sheets; a 40-match soak is clean.
+    - Blocked by: 15.3 · Stories: 21, 41
+  - [ ] **7.34 Bare-hand specials: Spinning Backfist, Lunging Palm, Counter Lunge and Breaker Palm.**
+    - Check: the elbow and other-arm checks; each hits from its table distance; a disarmed fighter still can't block or redirect, and Breaker Palm works; sheets; a 40-match soak is clean.
+    - Blocked by: 7.33 · Stories: 21, 41
+  - [ ] **7.35 Bare-hand kicks I: Roundhouse, Spinning Heel and Snap Kick.** Foot tracks with a hip pivot.
+    - Check: each hits from its table distance and misses from 6 m; continuity for Hook, Roundhouse, Spinning Heel; sheets; a 40-match soak is clean.
+    - Blocked by: 7.34 · Stories: 21, 41
+  - [ ] **7.36 Bare-hand kicks II: Flying Knee, Dragon Kick, Air Kick and Axe Kick.** Flying Knee strikes with a shin segment.
+    - Check: each hits from its table distance and misses from 6 m; sheets; a 40-match soak is clean.
+    - Blocked by: 7.35 · Stories: 21, 41
+  - [ ] **7.37 The counters' generous cones, measured from the paths.** Stomp, leap and evade use the derived reach and arc, with their margins moved into `SimConst` and re-tuned to stay as generous as the demo.
+    - Check: the stomp, leap and evade combat tests pass; counterlab's three cases count at least as many counters as before, and the tallies go in the commit message; a 40-match soak is clean.
+    - Blocked by: 7.36 · Stories: 41
+  - [ ] **7.38 Every move hits by its swing; task 7 ticked.** A test that every damaging move has a swing and every zero-damage stance a pose-only one; the cone kept only for scripted ultimate hits; authored range and arc removed where a swing exists.
+    - Check: the spec's swing-hit tests pass on real moves; debug-view shots of each weapon's string reviewed; a 40-match soak is clean; the spec's Weapon swings section and numbers updated.
+    - Blocked by: 7.37 · Stories: 21, 58, 59, 62
+- [ ] **12. Computer opponent and balance pass.** The brain and dummy learn the Iai, the new unblockables and the dodge cancels; tuning follows soak data; the spec's numbers are updated.
+  - Check: soak targets from the spec (rounds 35–60 s, 0.3–0.6 disarms per round, each weapon 45–55%); the counterlab shows every counter reachable.
+  - [x] **12.1 The soak reports the balance targets.** Win rates in percent (mirror matches left out), disarms per round, average round length, a targets block, and a 300-match tuning mode. The exit code still reflects only failures.
+    - Check: a short soak test checks the report lines and the mirror exclusion; a 40-match soak is clean.
+    - Blocked by: 8.9 · Stories: 62
+    - Done:
+      - After its ported report, unchanged, the soak prints each weapon's win rate in percent against the other weapons (mirror matches left out, with wins and matches), disarms per round, and a targets block that marks each number in or out of the spec's ranges: rounds of 35–60 s, 0.3–0.6 disarms per round, each weapon winning 45–55%. The ranges are `TARGET_ROUND_S`, `TARGET_DISARMS` and `TARGET_WIN_RATE` in `soak.gd`. A weapon with no matches against another reads "no matches" and counts as out. Each number is judged as printed, so a line never reads "0.60, out". `report_balance` prints these lines from plain numbers, and the soak counts disarms as they happen.
+      - `npm run soak:tune` runs 300 matches; `soak:godot -- 40` stays the clean check, and CI's 4-match soak is unchanged. The exit code still reflects only failures: a target out of range is not one.
+      - `test_soak.gd` (new), red first:
+        - Soaks in which fighter 1 is knocked out as each round's fight starts, so fighter 0 wins every match. In the seed's 9 matches, 4 are mirrors, and the win rates count only the other 5 (the Greatsword 4 of 4, the Katana 1 of 4, the Daggers 0 of 2); the ported wins-and-losses line still counts the mirrors. In its 3 matches the Daggers meet only themselves and read "no matches"; the 0.7 s rounds and 0.00 disarms are out, and with every target out the soak still has 0 failures.
+        - `report_balance` on chosen numbers: 35 s, 0.60 disarms, 45.0% and 55.0% (and 55.05%, printed 55.0%) are in; 60.1 s, 44.5% and 55.6% are out, and 0.296 disarms, printed 0.30, is in.
+        - Counting the mirror matches in the rates, making the ranges' ends out, or judging a number other than as printed fails a test.
+      - The 40-match soak is clean and its ported report is 8.9's. The first 300-match run is in Progress ("The first tuning run"): rounds and the Katana in range; disarms (0.74), the Greatsword (37.4%) and the Daggers (62.8%) out.
+      - Stage 4 is done.
+  - [ ] **12.2 The computer times its defence from the swing's first touch.** `_respond_to` predicts impact with `SwingReach.first_contact` and ignores moves that can't reach.
+    - Check: Hard parries a late-touching swing about as often as an early one over seeded runs; it ignores a move that can't reach; a 40-match soak is clean.
+    - Blocked by: 7.38 · Stories: 5, 41, 54
+  - [ ] **12.3 The training dummy performs every unblockable.** A shared `UnblockableRoutes` table (ability slots, Low Sweep as heavy then heavy, Skewer as dodge then heavy) replaces `ability_for`. The Katana dummy's heavies alternate both Iai variants.
+    - Check: a Greatsword dummy telegraphs Reaping Sweep and Low Sweep on sweep, and Skewer on thrust; a Katana dummy releases both Iai variants.
+    - Blocked by: 12.2 · Stories: 53
+  - [ ] **12.4 Counterlab covers every unblockable.** Every route of every weapon, with attempts, counters by kind, hits and whiffs; exit 1 when a counter is never reached.
+    - Check: a short GUT counterlab counters each unblockable at least once; the full table goes in the commit.
+    - Blocked by: 12.3 · Stories: 41, 62
+  - [ ] **12.5 The computer uses and answers the Iai.** It taps for quick draws, walks in sheathed and releases both variants, takes the follow-ups, and dodges out when attacked. Against a sheathed opponent it keeps out of range or punishes, and parries the release.
+    - Check: seeded tests: it lands an Iai from 3.2 m, releases both variants, dodge-cancels when attacked, and Hard parries a held Iai at a set rate; a 40-match soak is clean.
+    - Blocked by: 12.2 · Stories: 5, 26, 27, 28, 54
+  - [ ] **12.6 The computer uses and answers Low Sweep and Skewer.** Through the shared routes, against turtling opponents; it jumps Low Sweep and stomps Skewer.
+    - Check: seeded tests: it uses both against a blocking dummy, and with counter 1.0 it jumps and stomps them; a 40-match soak is clean.
+    - Blocked by: 12.3 · Stories: 5, 32, 33, 41
+  - [ ] **12.7 The computer dodge-cancels.** Out of blocked or whiffed Daggers lights from their first recovery frame, and out of heavies late in recovery, more often on Hard.
+    - Check: seeded tests for both cancels, and Hard cancelling more than Easy; a 40-match soak is clean.
+    - Blocked by: 12.2 · Stories: 5, 23, 36
+  - [ ] **12.8 Tuning round 1: round length and disarms.** 300-match runs, adjusting damage, posture, parry numbers and AI parameters (lunges only inside the duel-reach band) until rounds last 35–60 s and disarms are 0.3–0.6 per round. One commit per change, each with its tests, spec numbers and soak report. If five changes in a row leave a target out of range, record the numbers and ask the owner.
+    - Check: the targets block shows both in range; the 40-match soak and counterlab are clean.
+    - Blocked by: 12.1, 12.4, 12.5, 12.6, 12.7 · Stories: 62
+  - [ ] **12.9 Tuning round 2: weapon win rates; task 12 ticked.** Per-weapon numbers (rather than AI parameters), under the same limits and stop rule, until each weapon wins 45–55% of its non-mirror matches without leaving round 1's targets. The final soak report and counterlab table go in the spec, with the string tables checked against the data.
+    - Check: the whole targets block is in range on a 300-match run; the 40-match soak is clean; counterlab reaches every counter.
+    - Owner: a Duel playtest of the finished rules.
+    - Blocked by: 12.8 · Stories: 62
+
+### Phase D: fighters and animation
+
+- [x] **13. Assets and fighter models.**
+  - Delivers:
+    - the chosen Quaternius files copied into `game/assets`, with textures scaled down;
+    - humanoid bone-map import settings;
+    - the head-only body cut at import;
+    - Rogue and Hunter scenes with outfits, hair and two palettes each;
+    - weapon models with grip and tip markers (Greatsword and Daggers from the pack; a Katana built in code);
+    - a credits file.
+  - Blocked by: 1.
+  - Check: screenshots of both fighters in rest pose, with each weapon; no missing textures; import is clean in headless.
+  - Done (built on the `fighters-and-weapons` branch, merged in 13.1):
+    - The tools in `game/tools` rebuild everything from the downloaded packs: `import_assets.gd` (copy, scale, fix references, import settings), `build_bone_map.gd`, `cut_heads.gd`, `build_animation_library.gd`, `bake_palettes.gd` and `build_katana.gd`.
+    - A fighter is a `FighterModel` scene assembled from its `FighterLook` when instantiated. Its skeleton is the outfit's, which the outfit and hair were modelled on; the base body gives only the head. This avoids the male rest-pose mismatch.
+    - Palettes recolour the darker `T_Ranger_3` outfit texture by region (cloth, trim, leather, metal).
+    - Weapon space and markers are documented in `WeaponLook`.
+    - A `HandGrip` modifier closes the hands that hold a weapon.
+    - `fighters/preview/preview.tscn` shows everything; its `--mode=sheet` renders the review screenshots.
+    - Content tests are in `game/tests/content`.
+    - Refined after an art review:
+      - Palettes recolour garment by garment (hood, vest, shirt, sleeves, trousers, leather, boots, metal), from the outfit meshes' UVs. The bake adds wear: occlusion, dust and grime placed on the body, and worn leather edges. A shared matt roughness map kills the vinyl sheen. `test_palettes.gd` renders both palettes in software and checks that they differ from the front, the back and the side.
+      - The Rogue lost the pauldrons and gained a cloth face mask and a band of dark paint across the eyes. The Hunter swapped the hood for a tricorn and a neck scarf, and has a scar. `build_headwear.gd` makes the mask and the scarf from each head mesh, and the tricorn from scratch; `bake_skins.gd` roughs up the faces.
+      - `WeaponHold` gives each fighter a stand-in idle per weapon until task 14: the clip, a reverse grip and blade tilt, and set wrists. The Rogue holds her daggers reversed along her forearms; the Hunter idles in a raised guard (`Idle_Shield`) with the greatsword trailing behind him. A test checks that no blade runs into its fighter's torso or thighs.
+      - `build_pack_weapons.gd` rebuilds the Greatsword (1.72 m, blade 15% broader and thicker) and the Dagger from the pack, with a widened bright edge band on a dark blade body. The Katana's curve is one arc about 1.8 cm deep, its blade tapers from 3.2 to 2.2 cm, and its point is a defined kissaki.
+  - [x] **13.1 Merge the fighters-and-weapons branch; task 13 ticked.**
+    - Delivers:
+      - The branch (1f574a2, fcfb8d8) merged with a merge commit. The plan and spec conflicts are resolved by keeping this plan, and adding the branch's done notes and its Fighters, Weapon models and presentation bullets.
+      - A code review of its runtime scripts (`fighter_model.gd`, `fighter_look.gd`, `fighter_palette.gd`, `hand_grip.gd`, `weapon_hold.gd`, `weapon_look.gd`), with fixes.
+      - The worktree and local branch removed afterwards.
+    - Check:
+      - A headless import is clean.
+      - `npm test` passes, with the branch's content tests (fighters, weapons, animation library, asset budget, palettes) beside the existing ones; `npm run typecheck` loads the branch's tools.
+      - The preview sheet renders and matches the art-reviewed sheets.
+      - The first CI run after the push passes; it is CI's first import of about 43 MB of assets.
+    - Blocked by: none · Stories: 43, 44, 45, 63
+    - Done (merge c2ecab7, review fixes after it): the import was clean, and the review sheets matched the art-reviewed set. The branch's asset budget now counts the art only (the audio has its own cap) and includes the baked textures in `game/fighters` and `game/weapons`; data maps are found whatever their case. The code review fixed `FighterModel`: a palette set through `apply_palette` is remembered across a rebuild, a rebuilt fighter idles again, `attach_weapon` builds the model first, and `detach_weapons` is safe before a build. It also fixed the glossary term in `FighterLook` and a parameter name and doc in `WeaponLook.attach`, and added the Hunter's `Idle_Shield` to the looping clips. The review's other findings went to the tasks that own them: 14.1 (posed weapons instead of hand sockets), 14.2 (one source for two-handed weapons) and 16.7 (palettes on toon materials). The worktree and branch are removed.
+- [ ] **14. Fighter animation core.** Production version of the spike (its code is the starting point), on one fighter with the Katana.
+  - Delivers:
+    - the modifier stack (body layer, arm and leg IK, hands and fingers);
+    - locomotion by speed with hip-turn strafing and backpedal for unguarded movement;
+    - a procedural shuffle step for guard walking (lead foot first, feet never cross, stance width kept, arms on a slight spring);
+    - a grounded stance (knees over toes, front foot to the opponent, rear foot turned out 30–45°, visible weight shift);
+    - a lean that braces when braking;
+    - the four-light string played from its swings:
+      - a 40–60° coil;
+      - a 2–4 frame cocked hold;
+      - firing hips → chest → arms → blade;
+      - elbows 150–160° at contact;
+      - follow-through overshoot and settle;
+      - strong hand-off poses between moves;
+    - blade lag on a spring;
+    - a parry-bounce prototype on the same path system.
+  - Check:
+    - from the gameplay camera, a contact sheet per move where slash, overhead, thrust and sweep are told apart in the first third of the wind-up;
+    - the wrist-limit and self-collision test passes;
+    - an art-direction review of the sheets passes before task 15.
+  - [x] **14.1 Fighter rig: the skeleton modifier stack.** Production `BodyLayer` and `FighterRig` from the spike: arm and leg IK, hand frames locked to the handle, forearm twist, clavicle, and `HandGrip` for the fingers. The weapon is placed in fighter space by a pose rather than a hand socket. Grip points come from WeaponLook (the off hand on `OffHandGrip`, two transforms for paired daggers), and arm lengths and poles are read from each skeleton. `HandGrip` keeps closing the fingers but leaves the wrists alone wherever IK drives a hand, and task 13's socket tests (`test_every_fighter_has_hand_sockets`, `test_attaching_weapons_fills_the_right_hands`) change to the posed weapon.
+    - Check: on both fighters, wrists land within 1 cm of their targets and grips within 1 cm of the WeaponLook points; same input, same pose; one-handed, two-handed and paired weapons each fill the right hands; guard grip shots reviewed (palms on the handle, fingertips tight).
+    - Blocked by: 16.7 · Stories: 43, 44
+    - Done:
+      - **The stack** (`game/view/fighter/`). `FighterModel` installs a `FighterRig` on its skeleton. Its modifiers run in this order:
+        - `BodyLayer`: lean, hips turn and offset, the spine's twist, bend and lean over Spine, Chest and UpperChest (28/36/36), and the head's turn (45/55 over the neck and head);
+        - `RigPre`: hand frames and wrist targets, elbow poles, the clavicle up to 18° near full reach, foot targets and knee poles;
+        - `RightArmIK` and `LeftArmIK`: one TwoBoneIK3D per arm, so each arm can be on or off;
+        - `LegIK`: both legs, off until `leg_weight` is raised;
+        - `RigPost`: each gripping hand turned onto its handle, with half the twist on the forearm about the elbow-to-wrist line so the wrist stays put; the feet laid flat at their yaw;
+        - `HandGrip`, then `RigCarry`.
+        - `RigCallback` runs RigPre, RigPost and RigCarry from the one script. Nothing carries over between updates.
+      - **Posed or carried.**
+        - `FighterModel.attach_weapon()` puts the models in a `Weapons` node in the skeleton's space.
+        - `pose_weapon(index, transform)` places one (`FighterRig.weapon_frame(grip, blade, edge)`), and the arms reach for it: the main hand on the origin, the off hand on `OffHandGrip` or on the second dagger. A one-handed weapon leaves the off hand on the clip.
+        - Until posed, and after `carry_weapons()`, each weapon is carried: RigCarry puts it in its hand's fist, set as the fighter's `WeaponHold` says. This is the art-reviewed idle look, kept as a stand-in until task 15.
+        - The hold's wrists are set only on hands that carry.
+        - The hand sockets, `WeaponLook.attach()` and `grip_offset` (identity on all three weapons) are gone.
+      - **Measured per skeleton:**
+        - arm length (Rogue 0.490 m, Hunter 0.492 m), which scales the elbow poles and the clavicle;
+        - leg length, which scales the knee poles;
+        - the rest feet;
+        - the hands.
+      - **The grip.** The spike's hand frame turned 25° about the handle, so the backs of the hands come up over it. Its 28° tilt across the palm left the fingers open, so it's dropped.
+        - `HandGrip` now fits the fist to the handle. `WeaponLook.grip_radius` gives each handle's radius: Katana 1.38 cm, Daggers 1.63 cm, Greatsword 2.7 cm, checked against the meshes.
+        - The handle sits under the base of the fingers, one radius out of the palm, so the Greatsword's thick handle no longer sinks into it.
+        - Each finger's three curls are solved from its own rest bones (`HandGrip.wrap_curls()`), so its joints and tip lie half a finger's thickness off the handle.
+        - The thumb's bend is scaled until its tip meets the handle.
+        - Before this, the fixed curl (78/88/50°) pinched the last joints into the Katana's handle and left the ring and little fingertips 1.5–2 cm off it. The Hunter's thumb stood 3.4 cm off.
+        - The carried holds look as before, compared against a render of 16.7, with tighter fists.
+      - **Tests:**
+        - `test_fighter_rig.gd` (new, 14 tests):
+          - stack order;
+          - limbs and fists per skeleton;
+          - wrists within 1 cm and hands turned within 1° (measured: 0.0 mm);
+          - the Katana's grips, the Greatsword's off hand and both Daggers within 1 cm;
+          - a one-handed weapon leaves the off arm on the clip;
+          - the same input gives the same pose;
+          - elbows hang down and out;
+          - fingers within 3 mm of their wrap, and thumbs on the handle, on every weapon and both fighters;
+          - carried weapons follow the fist;
+          - leg IK reaches its foot targets, flat and turned;
+          - the clavicle reaches;
+          - the body layer's turns;
+          - the curl solver on a made-up finger (it caught a wrap past half a turn).
+        - Tests step the skeleton by hand (manual modifier mode) and read the bones at the end of the stack, since outside an update the skeleton holds the clip's pose.
+        - In `test_fighters.gd`, the socket tests became `test_every_fighter_has_a_rig_on_its_skeleton` and a posed `test_attaching_weapons_fills_the_right_hands`. In `test_weapons.gd`, the grip-offset test became `test_the_grip_radius_is_the_handle_s`.
+      - **Review:**
+        - The fighter preview takes `--pose=guard`: every weapon is posed in a review guard (`GUARDS`) over the relaxed `Idle`, with the arms on IK.
+        - The sheet adds `<fighter>_guard.png` (each weapon from the front, three-quarters and side) and `<fighter>_guard_hands.png` (the Katana and Greatsword hands from both sides and below).
+        - Reviewed: palms on the handles, fists closed, elbows bent.
+      - **For 14.2:**
+        - **Reach.** The hold clips under the arms (`Sword_Idle`, `Idle_Shield`) pull the right shoulder 17–20 cm back. From there, the spike's Katana guard and StickPose's guard hands sit at or past full reach (a straight arm, and up to 2.5 cm short on the Hunter). The relaxed `Idle` keeps the shoulders square. So either bring the posed hands in or play `Idle` under a posed weapon.
+        - **Greatsword.** Its OffHandGrip is 27 cm down the handle, so the grip needs to sit lower than a one-hand pose would put it.
+        - **Edge.** StickPose gives no edge direction; FighterView picks one per weapon.
+  - [x] **14.2 Real fighters in the match.**
+    - Delivers:
+      - `FighterView` replaces `FighterStandin`: the side's fighter in its toon look and palette with its weapon models, placed from the host's display position and yaw, and posed from StickPose through the rig until swings exist.
+      - The body flash is a material overlay timed on rules frames.
+      - Side colours move to a shared constant, and the stand-in is deleted.
+      - `WeaponLook.two_handed` replaces the hard-coded two-handed checks in `fighter_standin.gd` and `stick_pose.gd`.
+      - Models are cached across rematches.
+      - The camera is re-checked with real bodies at 3.5, 2.5 and 1.5 m.
+    - Check:
+      - The scene and pose tests move to FighterView.
+      - The match flow tests pass, with the suite time reported.
+      - The skeleton shots are re-rendered and reviewed: a mirror match shows two palettes, the weapon is in the hands, and the player never hides the opponent.
+      - `godot:run` plays a Duel.
+    - Blocked by: 14.1 · Stories: 11, 43, 44, 45
+    - Done:
+      - **`FighterView`** (`game/view/fighter/fighter_view.gd`) holds the side's FighterModel in its palette with its weapon models, placed from the host's display position and yaw. It is posed from StickPose:
+        - **Weapons and arms.** Each hand's position and blade direction become a weapon pose, and the rig's IK puts the arms on it (the off hand on a two-handed weapon's OffHandGrip).
+        - **Reach.** StickPose's keys were made for a stick figure (a thrust's hands 0.8 m out), so a pose is pulled in toward the shoulders until every gripping arm reaches within 96% of its length. The shoulders are taken where the body layer will move them (crouch and lean).
+        - **Edge.** A blade's edge faces the way the move's strike sweeps its tip, or down and forward in a guard or thrust.
+        - **Body.** The lean bends the spine; the crouch drops the hips over feet that the leg IK keeps where the clip has them, the knees bending the clip's way (`FighterRig.feet_from_clip`, with `BodyLayer.clip_feet`); the spin turns the model.
+        - **Clips.** The hold clip plays under it all on the rules' clock (frame plus alpha), so it holds still through hit-stop and pause.
+        - **KO and disarm.** A KO lets go of the pose and plays `Death01`, timed from the KO in rules frames. A disarmed fighter's weapon is taken off, and put back when re-armed.
+      - **Overlays.** The body flash (hit, disarm, KO) and the KO's dimming are a material overlay on every mesh of the model, timed on rules frames. A glowing blade (an unblockable winding up red, a charging heavy, an ultimate) is an additive overlay on the weapon. The toon materials are left alone, and each overlay is on only while it shows.
+      - **Rematches.** MatchView keeps both FighterViews. A rematch or restart keeps a side's model while its fighter is the same; a new palette or weapon goes on the same model.
+      - **Clean-up:**
+        - The side colours are `LookPalette.SIDE_COLORS` and `side_color()`, used by the floor ring, the dropped weapon's beam, the results screen and the look bench.
+        - StickPose reads `WeaponLook.two_handed`.
+        - `FighterStandin`, its scene, and StickPose's shoulder constants are deleted.
+        - The dropped weapons are the real weapon models, centred along their length.
+        - `FighterModel.apply_palette()` wraps a palette index past the look's two.
+      - **A leak found on the way.** Recolouring a built fighter through lambdas made in FighterModel's palette setter, together with reading `model.look.palettes` from FighterView, left the scripts and the toon shaders alive at exit. Each screenshot ended with "3 RID allocations ... leaked". Found by bisecting against 14.1's commit. `_override` now branches on the surface kind instead of taking a lambda, and the palette wrap lives in FighterModel. No shot leaks now.
+      - **The camera with real bodies.**
+        - The `spacing` shots (`--spacing=3.5|2.5|1.5`) show the opponent clear of the player at every distance.
+        - Measured from the posed skeletons, the bodies are within the camera test's 0.35 m half-width, but the widest reaches are not: the Rogue's knees in her stance reach about 0.39 m and dagger elbows about 0.43 m.
+        - At those widths the clearance angle is negative by up to 1.3° at 1.5 and 3.5 m: an outer knee or elbow can touch the opponent's outline, while the torsos stay clear.
+        - The camera's numbers are unchanged; widening the swing is for the owner to decide.
+      - **Tests:**
+        - `test_fighter_view.gd` (new, 11 tests):
+          - placing from the rules;
+          - the model kept across setups and rebuilt for a new fighter;
+          - the guard putting each weapon in both hands, for each fighter and weapon;
+          - every frame of a light and a heavy on all three weapons keeping the grips within 1 cm (measured: 0.0 mm) and the elbows below 175° (they peak at 150–157°);
+          - the edge rule;
+          - the crouch over planted feet;
+          - the clip on the rules' clock;
+          - the KO fall;
+          - disarming and re-arming;
+          - the flash and glow overlays;
+          - the side ring.
+        - `test_match_scene.gd`:
+          - each side's model is its fighter, palette and weapon;
+          - the dropped daggers are the real, toon models;
+          - the body flash test reads FighterView;
+          - a new test keeps the models across rematches.
+        - `test_stick_pose.gd`: the stand-in tests became a stick-length check and two-handedness from WeaponLook.
+        - Suite time: the Godot tests take 43 s (32 s after 14.1). Of that, `test_match_scene` 6.9 s, `test_match_host` 4.7 s, `test_main_flow` 3.0 s and `test_fighter_view` 5.3 s.
+      - **Shots:**
+        - All the skeleton shots were re-rendered and reviewed, plus the new `skeleton_mirror` and `skeleton_spacing`. The mirror match shows the Rogue's two palettes; the weapons are in both hands; the hit flash, the parry flash, the disarmed Hunter's empty hands, the real Greatsword lying under its beam, and the attract duel behind the menus all read.
+        - `Monomachia --smoke`, run from the project in a window, plays a whole Watch match with the real fighters to the results and exits 0.
+        - `test_a_whole_match_renders_without_errors` renders a whole computer-against-computer Duel.
+        - A hands-on Duel is on the owner's review list.
+      - **For later tasks:**
+        - The hands are on the grips but the stick keys look stiff on real bodies: short reaches, and a body that only leans. Swings (7.16 on, 14.10) replace them.
+        - A disarmed fighter's arms stay on the clip; fists come with 15.x.
+        - The flash tints the whole body flat, as the stand-in's did; task 18's effects can refine it.
+  - [x] **14.3 Pose checks on the posed skeleton (`PoseCheck`).** It measures:
+    - wrist bend and deviation;
+    - the elbow angle, at 150–160° on the first active frame and never locked;
+    - the knees over the toes;
+    - the displayed blade's distance from bone capsules (head with a hat margin, torso, arms, thighs);
+    - reach depth into a defender's capsule.
+    A GUT helper plays a move frame by frame.
+    - Check: made-up poses fail as expected (a 70° wrist, a blade 3 cm from the head, a locked elbow or 140° elbow at contact, a knee inside the foot line); the Katana guard passes (moved to 14.8 with the owner's OK: today's guard fails, see below); a report over the StickPose Katana attacks prints.
+    - Blocked by: 14.2 · Stories: 21
+    - Done:
+      - **`PoseCheck`** (`game/view/fighter/pose_check.gd`) measures a `Frame`: every bone at the end of the modifier stack in skeleton space, the arms on IK and the held blades. `frame_of()` steps a fighter's skeleton by hand and reads the bones as the last modifier finishes. The caller resumes on the tree's next frame: resuming inside the skeleton's own update and stepping it again never finished. Tests make up poses by editing a real frame.
+        - **Wrists:** the forearm's line (elbow to wrist) as the hand bone sees it. The deviation is its angle out of the hand's bending plane (at most 90° either way) and the bend its angle within it, so a hand folded far back isn't counted twice. Limits ±60° and ±25°. At rest the hands are within 2° of the forearms' line.
+        - **Elbows** on IK: never past 170°, and 150–160° when the frame is a move's first active frame.
+        - **Knees:** the knee's distance outside the plane through the hip that holds the line to the ankle and the toes' direction, so a turned-out foot takes the plane with it; it fails 1 cm inside.
+        - **The blade** (BladeBase to BladeTip) at least 5 cm from the body's capsules, naming the nearest.
+        - **Reach:** how much blade is inside a defender's capsule (0.35 m round, from the feet to 1.75 m). A measure, not a pass or fail.
+      - **The body's capsules** are measured from each fighter's own meshes when a check is made, each skinned vertex going with its heaviest bone: head, torso, upper arms, forearms and thighs.
+        - Each axis moves off its joints by its part's mean offset (the torso's 9–10 cm forward, since the spine runs down the back), its radius takes in 90% of the part's vertices, and its ends are drawn in so the caps stop where the part does (the forearm's at the bracer, not over the hand).
+        - The head counts only what is above its joint (the Rogue's long hair hangs down her back), and then grows to take in the whole hat: the hat margin.
+        - Radii: the Rogue's head 13.9 cm, torso 18.5, upper arms 6.1, forearms 6.3, thighs 13.7–13.8; the Hunter's head 20.6 (his tricorn), torso 18.0, upper arms 6.9 and 10.2 (the pauldron on his left), forearms 5.7, thighs 13.5–14.0. Task 7's reference bodies can start from these.
+        - A capsule is coarse where a part is wide but shallow: the torso's radius is set by the shoulders, and the hood's collar takes its cap up to the chin.
+      - **`MoveBench`** (`game/tools/move_bench.gd`) is the helper: a rules World with the fighter facing a defender 2.5 m away, and the fighter's FighterView stepped by hand. `play(move)` starts the move from the guard in a fresh world, steps the rules with no input, and measures once per attack frame (hit-stop steps are skipped), with the phase and the contact frame from the frame data and reach against the defender where it stood. `summary()` prints a move on one line. The contact sheets (14.4) will play through it.
+      - **What it found:**
+        - The match's Katana guard (the StickPose guard pulled into reach) fails on both fighters. The right wrist turns 40–44° toward the little finger. The left bends back 91–98°: its elbow sits out at the side, so the forearm runs across the belly, while the rig's fixed 25° grip roll points that hand forward-left. The 14.1 review guard fails the same way, and a search of 162 grips, blade angles and edges found no guard that passes with today's grip. The Rogue's Katana hold clip also caves her left knee 1.2 cm inside its foot line. The owner moved the guard's pass to 14.8.
+        - Every StickPose Katana attack fails its wrists on most frames, and at 2.5 m only Leaping Cleave (38 cm) and Lunging Cut (11–19 cm) reach into the defender. The stand-in poses were made for a stick figure; swings replace them.
+      - **Tests:** `test_pose_check.gd` (14): the capsules per fighter, with the Hunter's hat inside his head's; the guard measured on both fighters; the same pose measuring the same; made-up wrists (55° passes, 70° fails, 20° sideways passes, 30° fails, on both hands), a blade over the crown at 3 cm (fails) and 6 cm (passes), elbows (180° and 172° fail, 165° fails only on contact, 155° passes on contact, 140° fails only on contact), knees on the toes' plane (exact, with the foot turned 40°) and a knee pushed inside the guard's; a held blade clearing its own wrist; caps stopping where their parts do; reach through the front, short of it, right through and over the round top; MoveBench's frames, phases and contact on Right Cut, and the same reports twice; and the StickPose report. Each check was mutation-tested (the lock, the contact band, the knee's side, the left hand's deviation, the hat margin, the drawn-in caps, hit-stop steps): each mutation fails a test.
+  - [x] **14.4 Contact-sheet tool.** Plays one move on a real fighter against a defender at the duelling distance and captures chosen frames: from the gameplay camera behind the defender and behind the attacker, three-quarter, close up and at the hands. Each frame is labelled with its phase and PoseCheck numbers, driven by `npm run shots` arguments. A batch mode renders every move of a weapon, so a re-key can rerun the whole set.
+    - Check: sheets render for the guard and a Katana light and are reviewed; the batch mode renders a weapon's set; two runs give the same images.
+    - Blocked by: 14.3 · Stories: 42, 65
+    - Done:
+      - **The sheet** (`game/tools/shot_scenes/move_sheet.tscn`): `npm run shots -- res://tools/shot_scenes/move_sheet.tscn <out.png> 1 --fighter=rogue --weapon=katana --move=k_l1`. It plays the move through MoveBench (14.3), the fighter in palette A against a defender in palette B holding the Katana 2.5 m away (the same fighter unless `--defender=`; `--spacing=` changes the distance), in the preview's studio. The defender takes no input, so a move that reaches it lands as the rules say. `--move=guard` (the default) is one row of the fighter in its guard.
+      - **Frames** (`--at=`): frame numbers, the landmarks (start, windup = mid startup, cocked = the last startup frame, contact, release = the last active frame, follow = mid recovery, end), `keys` (every landmark, the default) or `all`.
+      - **Views** (`--views=`, in order): the match's own camera (CameraRig's follow view) over the defender's shoulder and over the attacker's, the whole 16:9 screen; three-quarter from in front on the weapon side, close (head, chest and hands) and the hands on the grip, square.
+      - **Captions:** each row says the frame (of how many), its phase (", contact" on the first active frame) and PoseCheck's numbers, then what fails in red or "passes PoseCheck" in green. The header names the fighter, weapon and move with its frame data, the defender and distance, and the views, and gives MoveBench's summary of the whole move with its failure counts.
+      - **Batch** (`--move=all`): the guard and every move of the weapon, each saved beside the out file as `<out>_<move>.png`; the out file is an index of them all at their first active frame from the first view, with how many pass PoseCheck there. The Katana's 19 sheets for one fighter take about 65 s.
+      - **The same images:** both skeletons are stepped by hand once per rules frame, nothing moves between a frame's captures, and shots run at a fixed 60 fps. Two batch runs of the Katana gave byte-identical files (all 20).
+      - MoveBench gained `begin()` and `next_frame()`, a move one frame at a time (`play()` is built on them), and `dispose()`; its summary now writes its failure counts out. The preview's studio is shared (`build_studio_stage()`).
+      - **Reviewed:** the Rogue's Katana guard, Right Cut (k_l1) and the whole Katana batch. The StickPose stand-in fails PoseCheck on every Katana sheet, as 14.3 found (none of the 19 pass at contact); the sheets also show Swallow Sweep's blade 6.2 cm into the right thigh and Crown Cut, Heaven Splitter and Leaping Cleave bringing the blade within 1 cm of the right forearm.
+      - **Tests:** `test_move_sheet.gd` (15), headless: the landmarks; frames by number, landmark and `all`; the arguments; the defender's default; the gameplay views are CameraRig's follow view from each side, cropped to the whole screen and the others to a centred square; the three-quarter, close and hand views keep the crown (the top of PoseCheck's head capsule, hat included), the grip and the feet in their crops on both fighters; a move sheet's rows, cells, captions and size; the header's lines; the guard's sheet; the verdict and its colours; the batch's moves and file names; the batch saving every sheet and making the index; the layout. `test_pose_check.gd` adds a move stepped by hand matching `play()`. Mutation-tested: 18 mutations (the landmarks, the dropped frames, the cameras, the crops, the cells and gaps, the captions, the header, the batch's saving, the defender's palette, letting go of the world), each failing a test.
+  - [x] **14.5 Locomotion by speed.** An AnimationTree advanced by the rules' clock; idle, walk, jog and sprint blended by the rules' speed, from one shared step phase; strides measured with a foot-phase tool.
+    - Check: blend weights at rest, 0.98, 3.9 and 7.2 m/s; the phase never jumps; it freezes in hit-stop and pause; a side strip from rest to sprint is reviewed.
+    - Blocked by: 14.2 · Stories: 12, 13
+    - Done:
+      - **`Locomotion`** (`game/view/fighter/locomotion.gd`) is an AnimationTree on each fighter's model: idle (the held weapon's hold clip), `Walk`, `Jog_Fwd` and `Sprint`, each through a seek, blended by three Blend2 nodes. FighterView updates it every frame in place of seeking the hold clip on the player; the KO fall still plays on the player.
+      - **The blend** follows the rules' speed: idle at rest, the walk at 0.98 m/s (the walk clip's own pace), the jog at the fighter's running speed (3.9 m/s times the weapon's speed: 3.51 for the Greatsword, 4.37 for the Daggers, less when disarmed) and the sprint at its sprinting speed (7.2 times the same), linear in between. Only walking and running on the ground count (the states `free` and `step`): a dodge, an attack's lunge, a jump or a stagger keeps the hold clip until its own task.
+      - **One step phase.** At phase 0 the left foot is at mid-stance in every clip, and the right at about 0.5. The phase moves by the speed over the blended stride once per rules frame, and is shown between frames by the host's alpha, as the position is. The world's frame stands still in hit-stop and while paused, and so do the legs.
+      - **`FootPhase`** (`game/view/fighter/foot_phase.gd`; `tools/foot_phase.gd` prints it) measures a clip's ground speed from the feet sweeping back through the middle of their range: in a running stride the ankle lifts while the toes stay down, so a foot's height doesn't show when it is planted, and a foot is furthest ahead mid-air in a run but at heel strike in a walk. Each fighter's gaits are measured on its own skeleton when its model is built, once per fighter. The Rogue: walk 0.93 m/s (stride 1.23 m), jog 4.98 (4.65), sprint 8.36 (5.58); the Hunter: walk 0.97 (1.29), jog 5.30 (4.95), sprint 8.65 (5.77). The jog clip is made for about 5 m/s, so at the rules' 3.9 m/s run it plays at about three-quarters pace with its full stride, the feet still planted; the sprint at about 85%.
+      - **Strips:** the contact-sheet tool's new `--drive=` mode plays scripted input from rest and lays out a side view every `--every=` frames (default 4), each captioned with the speed, the blend and the phase: `npm run shots -- res://tools/shot_scenes/move_sheet.tscn shots/14.5/rogue_rest_to_sprint.png 1 --drive=rest_to_sprint`. The later locomotion tasks add their drives to `DRIVES`.
+      - **What the strips show** (both fighters, rest to sprint): from rest the rules jump straight to 4.13 m/s, a tap step's speed (0.55 m in 8 frames), so a run starts on the jog. The walk shows only while braking, or walking slowly while blocking: the stick's 0.4 dead zone puts the slowest walk at 1.56 m/s, 0.94 while blocking.
+      - The footsteps (19.4) still count distance; the phase could time them instead (left at 0, right at about 0.5), which is the owner's call.
+      - **Tests:** `test_locomotion.gd` (12): the weights at rest, 0.98, 3.9 and 7.2 m/s, half way between and with the Greatsword's speeds; each fighter's strides measured from its own clips; mid-stance on a made-up foot path; the phase moving speed over stride on every frame from rest to sprint, never more than a sprint's step; the shown phase between frames by alpha, across the wrap; holding still in hit-stop and in a paused match (MatchHost); the hold clip at rest on the rules' clock (the pose compared with the clip's, which replaces `test_fighter_view`'s clock test); the jog and the sprint shown at the shared phase; the Greatsword's run and sprint; the left foot at mid-stance at phase 0 in every clip; which states move the legs. `test_move_sheet.gd` adds 3 (the drive's input and frames, the side view, a strip's captions and size). Mutation-tested: 19 mutations (the anchors, the stride, the phase's speed and frame, the clips' alignment, the dodge and the air, alpha, the Blend2 amounts, the weapon's speed, the hold clip's clock, one gait for all, the mid-stance's sweep and speed, the strip's frames, side, spacing and phase), each failing a test.
+  - [x] **14.6 Hip-turn strafing and backpedal.** Legs turn toward travel (±80°, flipping to backwards past ±100° with hysteresis) on a spring, while the chest keeps facing the opponent.
+    - Check: the leg-yaw function for 8 directions with hysteresis; the chest within 5° of the opponent while strafing; strips of strafing, backpedalling and moving back-left reviewed.
+    - Blocked by: 14.5 · Stories: 12, 13
+    - Done:
+      - **The turn** (`Locomotion`): the legs turn toward the way the fighter travels relative to the way it faces (the rules keep it facing the opponent), at most 80° either way. Travelling more than 100° from straight ahead they turn toward the opposite way and the step phase runs back. The switch has 10° of hysteresis round 100°: backwards past 105°, forwards again under 95°. The spike's band was 90–110°, but the rules' strafe travels at 90.4–91.6° from the facing (they widen the orbit a little to keep the distance), so a strafe straight after a backpedal would have kept running backwards. Below 0.1 m/s the legs turn back to straight and run forwards again.
+      - **The spring:** an exact critically damped spring (ω 12, about a third of a second), stepped once per rules frame and shown between frames by the host's alpha, so it holds in hit-stop and pause like the phase.
+      - **On the body** (`Locomotion.turn()`): the pelvis takes 70% of the turn and the thighs 30%, and the spine turns the chest back by the pelvis's share. The running clips swing the shoulders round against the hips: the jog about ±40°, the sprint ±25°, the walk ±10°. That fails "the chest within 5° of the opponent" whichever way the legs run, and pulls on arms holding a sword. So while the legs move (by the blend's moving weight), `BodyLayer.untwist` turns the spine, neck and head back bone by bone to face the way the hips do. This also steadies the upper body running straight ahead, a change to 14.5's run. At rest the hold clip keeps its own turn of the chest.
+      - **The feet go with the legs:** `BodyLayer` now records the clip's feet after the hips and thighs turn. Before, it recorded them first, so the leg IK (`feet_from_clip`) would have pulled turned feet back onto the clip's forward path.
+      - **The reach check** (`FighterView._within_reach`) places the shoulders with `BodyLayer.moved()`, which works the layer's turns, untwist, hip shift, spine bend and lean on the clip's bones. Before, it handled only the crouch and the bend; untwisting the jog moves a shoulder up to 18 cm on the Rogue and 22 cm on the Hunter.
+      - **Measured:** while strafing at 3 m, the chest and head stay within 0.22° of the opponent on both fighters. At mid-stance the planted foot moves over the ground 0.4 m/s running forward-left at 3.7 m/s, 0.5–0.6 m/s backpedalling at 3.0 and moving back-left at 3.26, and 0.9 m/s strafing at 3.5, where the legs stop at 80° of the 91° travelled.
+      - **Strips:** the contact-sheet tool's drives are now one table (input, notes, views, spacing). New drives: `strafe_left`, `strafe_right`, `backpedal` and `back_left`, each still for 12 frames, moving for 72, then stopped for 24, with the opponent 8 m off so the rules keep the distance and the fighter circles it. There is a new `front` view (from in front, 20° to the fighter's right). Captions give the legs' turn ("legs +80°", "legs -45° back"), and with several views each gets its own block of rows. `npm run shots -- res://tools/shot_scenes/move_sheet.tscn shots/14.6/rogue_strafe_left.png 1 --drive=strafe_left`.
+      - **What the strips show** (both fighters):
+        - From rest, a strafe starts at the tap step's 4.13 m/s while the legs are still turning (15° by frame 16, 38° by frame 20, 80° by about frame 48).
+        - The backpedal is the walk and jog played backwards (0.31 and 0.69 at 3.0 m/s): long running strides backwards. In guard, 14.9's shuffle replaces it.
+        - Back-left runs backwards with the legs turned 49° to the right.
+        - After stopping, the legs turn back to straight over about a third of a second, on the hold clip.
+      - **Tests:**
+        - `test_locomotion.gd` (21, 9 new):
+          - the turn and the backwards flag for 8 directions from either state;
+          - the hysteresis at 94, 96, 100, 104 and 106° each way, and a strafe after a backpedal;
+          - the spring on the closed form, never overshooting, and two half steps equal to one;
+          - strafing left then right at 3 m: the legs at ±80°, the hips turned past 45°, the chest and head within 5° of the opponent on every posed frame, straight again once stopped;
+          - backpedalling: the phase moving back a stride per cycle on every frame, the legs straight, and forwards again at rest;
+          - back-left: backwards with the legs turned toward the opposite of the travel;
+          - the turn holding in hit-stop and shown by alpha, with the 70/30 split and the spine's turn back;
+          - the planted foot under 20% of the running speed at mid-stance on a diagonal;
+          - the hands within 1 cm of their grips while strafing;
+          - and the shown phase going the short way round running backwards.
+        - `test_fighter_rig.gd` (3 new): untwisting squares the spine, neck and head to the hips (halfway at 0.5); turned legs take the planted feet with them; `moved()` matches the posed upper body to 1 mm with every value set.
+        - `test_move_sheet.gd` (3 new): the four drives' input and spacing, the front view, and a strafe strip's captions and per-view blocks.
+        - Mutation-tested: 29 mutations, each failing a test:
+          - the turn's limit, the hysteresis's width and direction, the backwards turn;
+          - the spring's decay and stiffness;
+          - the pelvis's share, the spine's turn back, no untwist and untwisting at rest;
+          - the phase's direction backwards, the shown phase's way round, the shown turn's alpha;
+          - backwards kept at rest, the turn's minimum speed, the travel ignoring the facing;
+          - the feet recorded before the turn;
+          - the neck and head left twisted, absolute twists;
+          - `moved()` without the pelvis, untwist or lean;
+          - the reach from the clip's shoulders, no turn on the body;
+          - the front view's angle, the caption's back, a strafe drive's spacing, the drive's spacing and views ignored.
+  - [x] **14.7 Lean into runs, and brace when braking.** A lean toward smoothed acceleration (at most 11°), and a back-lean with a pelvis drop when braking.
+    - Check: the lean follows acceleration within its cap and holds in hit-stop; braking leans back and settles; a run-brake-stop strip is reviewed.
+    - Blocked by: 14.5 · Stories: 13
+    - Done:
+      - **`Lean`** (`game/view/fighter/lean.gd`), stepped by Locomotion once per rules frame and shown between frames by the host's alpha, so it holds in hit-stop and pause.
+        - **The acceleration** is the change of the rules' velocity over the ground, turns included, in the fighter's frame. It counts only while the fighter walks or runs on the ground on both frames, so an attack's own change of speed (it keeps half), a dodge or a jump adds nothing. It is eased at 20/s.
+        - **The lean:** the whole body tilts toward it about the ground under it (the Root bone), 0.014 rad per m/s², at most 11°, the leg IK keeping the feet planted.
+        - **The brace:** braking, the acceleration against the way the fighter last travelled, drops the hips 0.35 cm per m/s², at most 5 cm.
+        - **A spring** (critically damped, ω 30) takes the lean and the drop to their targets. The rules' tap step from rest is a one-frame jump to 4.13 m/s, which without it snaps the body 11° in a frame.
+        - **Rates:** the prototype eased at 10/s with no spring. The rules brake from a run in 7 frames, and at 10/s with a spring of 20 the back-lean peaked 5 frames after the stop and took 0.5 s to settle. At 20 and 30 it peaks 2 frames after the stop, settles in about 0.3 s, and a tap step leans forward over 6 frames, to about 9°.
+      - **The weapon rides the lean:** FighterView carries the stand-in weapon poses with the lean and the brace (`Locomotion.carry()`), so the arms keep their shape. Otherwise an 11° lean moves the shoulders about 20 cm against a weapon that stays put. `BodyLayer.about()` is now public.
+      - **What the strips show:**
+        - Setting off from rest, the Rogue leans 3°, 7° and 9° forward through the tap step, and is upright 16 frames in, running at speed.
+        - Letting go at 3.9 m/s, she leans back 2°, 6° and 8° as she slows, and stops at 10° back with the hips 4–5 cm down. She is upright again 18 frames (0.3 s) after the stop.
+        - From a sprint the back-lean reaches 11° while the legs still stride, and holds into the stop.
+        - Circling the opponent at 3 m leans about 3° toward it.
+        - The legs still pop from a mid-stride walk into the guard stance over the brake's last 2 frames (the blend drops from walk to idle between 0.9 m/s and 0). That is the low-speed band 14.9's shuffle takes over.
+      - **Strips:** new drives `run_brake` (still 12 frames, running 48, then letting go for 36) and `sprint_brake` (running 24, sprinting 36, letting go 36), side on, 26 m off. Strip captions gain a third line: "upright", or "lean 10° back · hips down 5 cm".
+      - **Tests:**
+        - `test_locomotion.gd` (30, 9 new):
+          - the target tilt (per m/s², the cap, the way), and the rotation tipping the body the way it says;
+          - the brace's drop against the way of travel only, and its cap;
+          - a run from rest leaning forward without a snap, never past 11°, upright at speed, no brace;
+          - a brake leaning back past 9° with the hips past 3.5 cm, furthest back within 3 frames of the stop, settled within 24 frames, and the values on the body;
+          - hit-stop and alpha;
+          - circling at 3 m leaning 2.5–4.5° toward the opponent;
+          - an attack from a run not leaning back;
+          - the grip riding the chest through the lean (within 1.5 cm of where it sits upright);
+          - the same lean shown every other frame, as at 30 fps.
+        - `test_move_sheet.gd` (2 new): the brake drives, and the caption's lean line and its height.
+        - Mutation-tested: 25 mutations, each failing a test:
+          - the gain, the cap, the way it leans, the prototype's slower rates, no spring;
+          - the drop's gain and cap, a brace when speeding up;
+          - counting every frame or every state, the fighter's frame turned wrong, forgetting the heading once stopped, the acceleration not shared over frames;
+          - the rotation's way, alpha, the carry's way, stepping in hit-stop;
+          - the lean or the brace left off the body, the crouch overwriting the brace, the weapon not riding;
+          - the caption's words, height and upright, and the sprint drive.
+  - [x] **14.8 Grounded guard stance.** A leg-IK stance with the front foot to the opponent, the rear foot turned out 30–45°, the width held and the knees over the toes. The pelvis is lowered with a slow weight shift. The Katana guard replaces its WeaponHold idle. Moved here from 14.3 with the owner's OK: the guard must pass PoseCheck, which today's fails (wrists about 42° sideways and 95° back, the Rogue's clip knee caved), so each hand also turns round the handle toward its forearm in place of the rig's fixed 25° grip roll, and the legs go on the stance's IK.
+    - Check: on both fighters, the knees on or outside the hip-to-foot line, the rear foot at 30–45°, no crossed feet, the width in band; guard shots reviewed against the critique's fixes 8 and 9; PoseCheck passes on the guard.
+    - Blocked by: 14.3 · Stories: 43
+    - Done:
+      - **`GuardStance`** (`game/view/fighter/guard_stance.gd`). A hold with `WeaponHold.guard` set stands in it. Both fighters' Katana holds have it set. It stands over the relaxed `Idle` clip in place of the hold's clip (the Rogue's `Sword_Idle`, the Hunter's `Idle_Shield`), which stood left foot forward with the chest twisted 30–45°.
+        - **The feet**, on leg IK:
+          - the right ankle 24 cm ahead and 14 cm to the right, its toes 6° out;
+          - the left ankle 25 cm behind and 15 cm to the left, turned out 32°, which is 38° from the front foot;
+          - 29 cm apart across the facing and 49 cm along it, at their rest height and flat.
+          The right foot leads, as in a right-handed sword stance, and as 14.9's check asks of the shuffle.
+        - **Knees over the toes.** Each knee's pole now sits ahead of its leg, on the plane through the hip, the ankle and the toes' direction. The spike's poles sat above the foot and caved the knees in. PoseCheck measures both knees on the plane (0.0 cm) on both fighters.
+        - **The pelvis:**
+          - lowered 9 cm and moved 3 cm forward over the stance;
+          - the hips turned 15° toward the rear foot's side, measured from straight ahead (the relaxed idle stands turned 13° to the right, which is taken out), with the clip's own twist above them taken out;
+          - the spine turned back 15°, so the chest faces the opponent (0.0°), and bent 6° forward over the hips;
+          - the head raised 14°: the relaxed idle looks 14° down at the floor and the bend tips it 6° more, so it now watches the opponent, 6° down.
+        - **The weight shift:** the pelvis sways ±3.5 cm along the line from the rear foot to the front one, once every 5 s (at most 4.4 cm/s). It runs on the rules' clock, so it holds still in hit-stop and pause.
+        - **The weapon rides the pelvis,** its drop and its sway, on top of the lean's carry (14.7).
+        - **Moving:** the stance shows as far as the legs stand (Locomotion's idle weight). Walking and running, the feet go back to the clips'. `FighterRig.clip_feet` is now a blend weight, in place of the `feet_from_clip` switch.
+        - The stance still pops into a stride over a tap step's first frame, and back over a brake's last two, as the hold clip did. That is 14.9's to smooth.
+        - The Greatsword and the Daggers keep their holds' clips and the clips' feet until task 15.
+      - **The grip:** each hand turns round the handle toward its forearm, in place of the fixed 25° roll (`FighterRig.seat()`).
+        - The rig predicts the elbow the arm's IK will bend toward its pole (`elbow_at()`, within 5 mm of the IK's), and turns the hand so it carries on the forearm's line. Four passes refine it, since the wrist moves round the handle as the hand turns.
+        - On four guards tried, the wrists bend under 6° on both fighters, where the fixed roll bent them 38–88° back.
+        - How far a wrist turns sideways is set by the guard, not the roll: the rig's hanging elbows want the handle steep.
+        - The roll applies to every posed weapon, so the stand-in attacks and the other weapons' guards gain it too. Right Cut now fails PoseCheck on 15 of its 29 frames, down from 29.
+      - **The Katana guard** is StickPose's row, which the attacks and blocks blend from.
+        - Both hands sit on the centre line at the navel, with the blade raised 50° toward the opponent.
+        - A search of about a thousand guards found the wrists passing with the blade raised 50–60° and the hands 30–40 cm out. As with every stand-in pose, the match pulls the guard 1–4 cm in toward the shoulders.
+        - PoseCheck passes on both fighters:
+
+          | | Wrists, right | Wrists, left | Elbows | Knees | Blade |
+          |---|---|---|---|---|---|
+          | Rogue | −1° bent, −18° sideways | −1°, +3° | 138°, 141° | on the line | 6.8 cm from the right forearm |
+          | Hunter | −1°, −18° | −2°, +4° | 135°, 139° | on the line | 13.0 cm |
+      - **Sheets and strips:**
+        - a new view, three-quarter from the left;
+        - a `stand` drive: 330 frames standing still at 2.5 m, seen from in front and side on, for the weight shift;
+        - strip captions give the shift after the blend, as "weight +3 cm" (+ toward the front foot).
+      - **Tests:**
+        - `test_guard_stance.gd` (8, new):
+          - the front foot ahead, pointing at the opponent, and the rear turned out 30–45°, flat and on the floor;
+          - the feet a stance's width apart and uncrossed, heels and toes;
+          - the knees over the toes;
+          - the pelvis lowered and turned under a square chest, the torso over the hips, the head up and facing the opponent;
+          - the weight shift: its reach, speed, period and line, the hips and the weapon going with it, and only the rules' clock moving it;
+          - PoseCheck passing on the guard;
+          - only the Katana in the guard;
+          - the stance giving way to the clips as the legs walk.
+        - `test_fighter_rig.gd` (2 new): each hand in line with its forearm on four guards on both fighters, and `elbow_at()` against the IK.
+        - `test_move_sheet.gd` (1 new, 2 extended): the left three-quarter view, the stand drive and the caption.
+        - Changed:
+          - the crouch test now plants the stance's feet with the Katana and the clip's with the Greatsword;
+          - at rest the guard squares the chest (untwist 1), and the brace sits on top of the stance's crouch;
+          - the sheet header's failure count is no longer fixed;
+          - the PoseCheck guard test's notes.
+        - Mutation-tested: 31 mutations, 30 failing a test:
+          - the roll fixed at 25°, turned the wrong way or refined once, the elbow away from its pole or its bones swapped, the hand frame worked out again after the update;
+          - the spike's knee poles, the poles behind the knee, the feet not turned, at the ground, crossed or the front one turned out, the clip's feet under the stance;
+          - the hips' turn not measured from straight ahead, the clip's twist left in, no crouch, the head left nodding, the sway across the feet, fast or on the wall's clock;
+          - the stance whatever the legs do, every weapon in it, the hold's clip under it, the weapon not riding it, the old guard;
+          - the upper body's move, the caption's sign and threshold, the stand drive's length, the left view on the right.
+          - The survivor leaves the chest unturned in the reach pull's wrist estimate. The stand-in poses keep the chest square, so the pull comes out the same.
+      - **Raised:** since 9.3 the Iai stance walks, but it is an attack state, which the legs don't count as walking (`Locomotion.MOVING_STATES`). The stance walk is a guard walk, so 14.9 is where it fits.
+  - [x] **14.9 Guard shuffle step.** A procedural shuffle in 8 directions (lead foot first, the trailing foot closes, the feet never cross, width and angles kept), with the cadence taken from the rules' speed and the arms on a slight spring, blending with the clips.
+    - Check: the step planner never crosses the mid-line and leads with the right foot; planted feet slide under 1 cm; guard strafe and backpedal strips reviewed.
+    - Blocked by: 14.5, 14.8 · Stories: 12, 14
+    - Done:
+      - **`GuardShuffle`** (`game/view/fighter/guard_shuffle.gd`), a step planner for the guard stance's feet, stepped by Locomotion on the rules' frames.
+        - **Planted feet stay put.** A planted foot keeps its place on the ground and its turn while the fighter moves and turns over it. Its offset from its stance spot is what grows. The feet are shown from the planner's own copy of where the match draws the fighter, so they stand still on screen between rules frames too.
+        - **One foot at a time, the lead first.** Moving, the feet take turns. The first to step is the foot on the side the fighter travels to, with across counted twice over along, since the stance is narrower than it is long:
+
+          | Way | Leads | Way | Leads |
+          |---|---|---|---|
+          | forward | right | back | left |
+          | forward-right | right | back-left | left |
+          | right | right | left | left |
+          | back-right | right | forward-left | left |
+
+        - **When a foot steps:**
+          - it has fallen behind its spot by as far as its steps land ahead (2 cm for the first step from rest);
+          - or it stands 6 cm to the side of its spot's way;
+          - or it is turned 12° from the stance;
+          - or it is about to come within 5 cm of the mid-line;
+          - at rest, it stands 2 cm off its spot.
+        - **Where it lands:** ahead of its spot by half the way the spot moves while the foot stands, so each foot stands about its spot, at most 13 cm off it (the front leg's reach) and at the stance's angle. The landing keeps 5 cm from the mid-line, both when it lands and after the drift to come. A swinging foot's offset moves in the fighter's frame from where it lifted to where it lands, so the swing can't cross the mid-line either. It lifts at most 4 cm, halfway through, less for a short step.
+        - **The cadence follows the speed.** The fighter travels 0.2 m + 0.12 m per m/s a cycle of both feet, and a swing takes half the cycle (5–12 frames):
+
+          | Speed | Steps a second | Swing | Each foot's step |
+          |---|---|---|---|
+          | 0.5 m/s | 4 | 12 frames | 25 cm |
+          | 1.0 m/s | 6 | 9 frames | 33 cm |
+          | 1.6 m/s | 7.5 | 8 frames | 43 cm |
+          | 2.34 m/s (the guard's forward walk) | 9 | 7 frames | 52 cm |
+
+          A slow walk pauses between steps; a fast one doesn't. Moving across, swings are shorter and a foot stands no longer than the fighter takes to travel 16 cm across, so the lead foot never drifts to the mid-line.
+        - **Setting off,** a swing is paced for the speed the fighter is speeding up to, 50 ms ahead, and re-paced every frame. The rules reach the guard's walk in 4 frames, so the waiting foot falls up to 22 cm behind its spot, where a step paced for its first frame's speed left it 26 cm behind.
+        - **Riding.** Where the feet can't stand planted (in the air, an attack, a dodge, a stun, over 6 m/s), they ride with the fighter at their offsets and still step back to their spots. While the clips have the legs, they ride, so a hand-over always starts from the stance.
+        - **The bob and the arms' spring.** The pelvis bobs with the stance's spread, lower as the feet open and higher as they close (−1.5 to +1.2 cm at the guard's backpedal). The weapon follows the bob on a critically damped spring (−1.0 to +0.9 cm, 1–4 frames behind).
+      - **The sink** (`GuardStance.sink()`): the pelvis sinks as far as a leg needs to reach its planted foot within 97% of its length, and the weapon goes down with it. Setting off from rest, the rear foot waits while the front one steps, about 9 frames in which the rules carry the body 26–30 cm. Without the sink, the leg ran out of reach (106%) and the IK dragged the foot 3 cm. With it, the hips dip up to 9–10 cm for about 4 frames as the shuffle sets off forward or back, on top of the stance's 9 cm crouch and a 9° lean into the start. It reads as a push-off.
+      - **The guard's legs** (`Locomotion.guard`, 0 to 1). With a guard stance's weapon (the Katana), the legs are the guard's unless the fighter has run with its guard down for 3 rules frames (free, the stick held, not blocking).
+        - That covers standing, walking while blocking or in the Iai stance, tap-stepping, braking and attacking.
+        - The guard's legs show the stance over the relaxed idle (the clips' blend leans to idle by the guard's weight), don't turn toward travel, and stand on the shuffle's feet.
+        - The hand-over to the clips and back takes 8 frames. The 3-frame wait keeps a tap step with the stick held to its end in the guard: it ran one frame, and its legs flicked toward the clips.
+        - A foot moves at most 12 cm in half a frame through the hand-overs, which is the jog's own swing.
+        - The other weapons keep the clips until task 15.
+      - **The Iai stance walks** (raised at 14.8): `Locomotion.walks()` counts it, through the rules' `Fighter.in_stance()` (public since 9.6), so its legs shuffle, its feet plant, and the lean follows its walk.
+      - **The tap step** is now a shuffle step, so the stance no longer pops into a stride on its first frame:
+        - forward and back take two steps (right then left, and left then right);
+        - the side steps take a small third step to settle, since the lead lands wide and the brake leaves it about 3 cm off its spot;
+        - at the forward tap's widest, the rear foot is still waiting for the front one to land, which reads as a short lunge;
+        - a foot swings about 10 cm in half a frame at most, where the pop moved the feet half a metre in a frame.
+      - **The brake** hands back from the clips over 8 frames and settles in a few shuffle steps, in place of the 2-frame pop.
+      - **Sheets and strips:**
+        - guard drives, all blocking: `guard_forward`, `guard_backpedal`, `guard_strafe_left`, `guard_strafe_right` and `guard_back_left`;
+        - `tap_steps` (a tap each way) and `iai_walk` (sheathed, walking at the opponent, then round it);
+        - a feet view from in front on the left, square to the line between the feet so neither hides the other (a straight-down view was tried: the hood hides the feet);
+        - a drive can set its own frame interval (the guard drives show every other frame);
+        - captions give the guard's legs and which foot is up ("guard · right foot up"), or the guard's weight during a hand-over.
+      - **Tests:**
+        - `test_guard_shuffle.gd` (22, new). On the planner:
+          - standing still on the stance;
+          - the lead first and the feet taking turns in eight directions, back on the stance's spots and angles after;
+          - the feet never crossing the mid-line (at least 2 cm clear) or passing each other, every way at 0.5, 1.2 and the guard's speed, and at a tap step's 4.1 m/s;
+          - planted feet exactly still while circling an opponent 2.5 m off, and between frames;
+          - turning on the spot, the feet turning as they swing;
+          - the cadence;
+          - the feet standing about their spots on average while walking (within 3 cm; 0.6–2.2 cm measured);
+          - setting off, the waiting foot at most 23 cm behind its spot;
+          - the landings' angles and reach;
+          - the low lift;
+          - riding;
+          - the bob and the weapon's spring.
+
+          On the fighter:
+          - the guard walk on both fighters, six ways including circling at 3 m: planted feet sliding 0.00 cm on the posed skeleton at alpha 0.5 and 1, the feet and toes at least 5 cm clear of the mid-line, the legs never turning;
+          - tap steps each way;
+          - the hand-overs and the ramp;
+          - the Iai stance's walk;
+          - the same feet shown every other frame;
+          - hit-stop;
+          - the other weapons on the clips;
+          - the hips bobbing and the grip riding the weapon's bob;
+          - the pelvis sinking for a foot out of reach, the leg reaching it at 97% and the weapon going down with the hips.
+        - `test_move_sheet.gd` (3 new, 3 changed): the guard drives, the tap and Iai drives, the feet view; the legend and the captions.
+        - Changed:
+          - three locomotion tests of the clips (the backpedal, the legs' turn in hit-stop, the planted foot on a diagonal) now use the Greatsword, whose legs run on the clips from the first frame;
+          - the brace's hips add the shuffle's bob and the sink;
+          - the first strip caption now reads the guard.
+        - Mutation-tested: 50 mutations, 48 failing a test:
+          - in the planner: planted feet keeping the last swing spot or riding along, the lead counted along only or never changing, both feet at once, no turns, landings out of the lane, past the reach or on the spot, no lift ahead of the mid-line, one step length, swings paced for the speed now or the slowest pace, no lane cap, a stand of only the other's swing, the first step waiting a whole lead, steps keeping their turn, turned feet never stepping, no lift or lifted while planted, never riding or riding on the ground, no bob, the weapon without its spring, the feet and the body not shown between frames, the feet shown from the world's frame;
+          - in the legs: never or always the guard's legs, the clips over at once, the clips under the guard, the ramp at once, the legs turning in the guard, the feet planted under the clips, frames missed in one jump, the Iai stance not walking or riding, the lean leaving it out;
+          - in the body: no sink, the sink from the clip's hips, the hips not bobbing, the weapon not riding the bob or the sink, the stance's fixed feet;
+          - in the sheet: the feet view along the feet, the caption without the guard or naming the wrong foot, a drive's interval ignored, the guard drives not blocking.
+          - The first run left four survivors, each a missing check, and four checks were added for them: the feet standing about their spots, the waiting foot setting off, the feet turning as they swing, and the sink with the weapon.
+          - Two mutations can't change anything: setting a planted foot's place from its own offset, and zeroing the turn a finished swing already ended on. A planted foot riding along in their place fails 12 tests.
+      - **Raised (rules, not changed):** a tap step toward or away from the opponent stops dead when the stick is let go before its 8 frames end. The strafe's keep-the-distance check in `Fighter._integrate()` counts a neutral stick as sideways, so it holds the spacing. Side taps go their full 0.55 m.
+  - [x] **14.10 Swing playback: weapon and arms (`SwingPlayer`).** Samples the swing at the fractional attack frame and places the weapon from the grip, hand frame and edge, with the arms on IK. The root stays the rules' position. Moves without a swing fall back to StickPose.
+    - Check: at every frame of a synthetic swing move, the displayed grip and blade equal the sample (1 mm, 0.5°); its contact sheet is reviewed.
+    - Blocked by: 7.15, 14.4, 14.8 · Stories: 16, 21
+    - **Done** (Oct 2, in the stage 8 lane, branch `godot/stage-8-swing-playback`, built on the stage 7 lane's branch at 7.12; 7.13–7.15 are still that lane's, and nothing here needs them):
+      - `SwingPlayer` (game/view/fighter/swing_player.gd): the frame shown is `AttackState.frame - 1 + alpha` from 0, or the frame itself while charging, where the rules hold the blade; a follow-up enters from the hand-off of the move it follows, as the rules' does. The right hand's track places the weapon (the first of a pair), the left hand's the second of a pair; a two-handed weapon's off hand grips its off-hand grip on the rig. Swings are (right, up, forward), skeleton space +X left, so x turns round.
+      - `FighterView` plays a move with a swing of the held weapon's own moveset from it: the weapon exactly where the swing has it (no pull into reach, no riding the stance or the lean), and StickPose's lean, crouch and spin left out. A held weapon with no track (a dagger the swing doesn't move) stays on the stand-in, as does every move without a swing.
+      - `FighterRig.pole_tweak`: a key's elbow-pole tweak, in skeleton space and arm lengths, added after the chest's turn, as `SwingCheck` bends the elbow.
+      - Sheets: `move_sheet.tscn --swings=<res:// path>` plays a swing file on a fresh copy of the weapon. `game/tools/swings/katana_demo.json` (written by `scripts/swings/katana-demo.mjs`) holds stand-in swings for the four lights: arcs round the shoulders' pivot with a cocked hold and a body coil. They are not the 7.17 keys and fail the swing check (wrists up to 110° sideways; grips up to 10 cm past reach), so the sheets show the playback, not the swings. `npm run shots -- res://tools/shot_scenes/move_sheet.tscn shots/k_l1.png 1 --move=k_l1 --swings=res://tools/swings/katana_demo.json` for the owner's review.
+      - Tests: `test_swing_player.gd` (7, new): the shown grip, blade and edge equal the sample at every frame, at alpha 1 and halfway, for the Hunter and the Rogue with the Greatsword, the Katana and the Daggers; a follow-up's chained entry; the frame shown and the charge's hold; the root and no stand-in body; both hands on a swung Greatsword wherever their arms reach (the Katana-sized level slash takes the Hunter's right hand up to 18 cm past reach across the body); the stand-in for moves and daggers without a swing; the pole tweak.
+      - 1080 Godot tests. `test_move_sheet`'s batch test failed once in the full run and passes alone: Godot runs from other checkouts share `user://test_move_sheet`.
+  - [x] **14.11 Chains: entries, exits and hand-offs.** A follow-up blends from the displayed pose into its chained entry over at most 4 ticks; an opener starts from guard; a recovery with no follow-up runs the exit to guard.
+    - Check: the displayed grip never jumps at a chain point; a stopped string ends on the guard.
+    - Blocked by: 14.10 · Stories: 16, 17
+    - **Done** (Oct 2, stage 8 lane):
+      - A weapon with swings stands in its swings' guard (`SwingPlayer.guard_poses()`, the file's shared guard) whenever the stand-in would show its guard, riding the stance's pelvis, the shuffle's bob and the lean as the stand-in's guard did. Blocks and the other stand-in states keep StickPose.
+      - `SwingPlayer.show()`: whenever what poses the weapons changes (a swing starts, a follow-up takes over, a swing ends or a dodge cuts it off), the gap between what was shown and where the new poses were at that moment (a swing's own pose a frame back) closes over `BLEND_FRAMES` (4) rules frames, eased, while the new poses move on their own. So the swing's motion is kept, a gap of nothing changes nothing, and the blend holds in hit-stop. The rules' chain point (`S + A + 2`) comes before the level slash's hand-off key, so a follow-up's entry starts up to about 2 cm past where the move before was shown; the blend closes it.
+      - An opener from the guard it stands in plays exactly, except under the Katana's stance, where the guard rides the lowered pelvis: there the first 2–4 frames close that gap (about 10 cm).
+      - **Raised for the stage 7 lane, not changed:** a swing's exit reaches the guard on the move's last frame (`Swing.last_frame`, the total frames), which is never shown: the attack ends on the step that reaches it, so the last frame shown is one frame of exit short of the guard, and the blend into the guard closes it.
+      - Sheets: string drives `string_l`, `string_ll`, `string_lll` and `string_llll` press the Katana's light just after each move's startup, so the string stops after one to four lights; drive captions name the move and its frame. `npm run shots -- res://tools/shot_scenes/move_sheet.tscn shots/llll.png 1 --drive=string_llll --swings=res://tools/swings/katana_demo.json --views=three_quarter`.
+      - Tests: `test_swing_player.gd` (+4): an opener from the Greatsword's guard plays exactly from its first frame; the Katana's guard rides the stance and its opener blends in 2–4 frames, then plays exactly; through the Katana's L, L-L, L-L-L and L-L-L-L the shown grip moves no more in a frame at a chain point than the swings either side move on their own, and a stopped string runs its exit and blends to the guard; a dodge-cancelled swing closes at most a fifth of its gap to the stand-in in the first frame and settles within 4. `test_move_sheet.gd` (+1): each string drive plays its lights. Mutations caught: no blend (the opener, chain points and the end of a string jump 8–10 cm), and no swing guard.
+      - 1085 Godot tests.
+  - [x] **14.12 Coil, weight shift, cocked hold and firing order.** Torso and pelvis coil and the pelvis shift from the swing keys; hips lead chest lead arms; the head counter-turns; the pelvis dips about 5 cm at contact; a camera kick on contact scaled by weight.
+    - Check: on a synthetic cut the pelvis yaw-rate peaks before the chest's, which peaks before the blade's; the cocked hold and the shift over the rear foot show on the skeleton; PoseCheck's knee check passes through the swing; sheets reviewed.
+    - Blocked by: 14.10 · Stories: 19
+    - **Done** (Oct 2, stage 8 lane):
+      - `SwingPlayer.body()` / `Body`: the body track's pelvis coil turns the hips, the torso coil the chest (the spine turns on from the hips, so the chest faces as keyed), as the swing check's reference body turns them; the pelvis shift moves the hips. The pelvis is sampled 2 frames ahead of the weapon and the chest 1 (`PELVIS_LEAD`, `CHEST_LEAD`), so the turn ripples from the hips to the blade, which stays exactly the rules'. The head turns back 85% of the chest's turn. The pelvis dips 5 cm at the first active frame, easing over 4 frames either side.
+      - The swing's body takes over from the guard stance's hip and spine turns, forward bend, head nod and lowered, swaying pelvis over 4 frames as a swing starts, and hands back over 4 after it ends (`GuardStance.pose()`'s new `share`). So a swing moves the reference body it was checked on. The stance's feet stay planted, and its sink still lowers the pelvis as far as the legs need to reach them. The guard's weapon rides the stance only as far as the stance shows.
+      - A cocked hold is the keys' ease-0 hold; with the hips leading, the hips and the chest set off from it before the hand does.
+      - `MatchView.contact_kick`: a hit or block kicks the camera's field of view by the attacker's weapon class (bare hands 0.6°, the Daggers 0.8°, the Katana 1.4°, the Greatsword 2.4°), half again for a heavy. Hits and blocks by every move kick, swing or not.
+      - Tests: `test_swing_player.gd` (+5) on a synthetic cut whose hand and body keys share frames: the hips' turn peaks before the chest's, which peaks before the blade's (about 2 frames between the hips and the blade); the chest coils 45° and the hips 25°, and the head keeps 15% of the chest's turn; the hips go 6 cm back in the wind-up and dip 5 cm at contact; the fist holds still for 2–4 frames before the strike while the hips set off; PoseCheck's knee check passes through the cut on both fighters. `test_match_scene.gd` (+1): the kick by weight. Mutations caught: no leads, no head counter-turn, no dip. The first head and dip tests read their expected values from the constants they tested, so they passed with the feature switched off; they now state the spec's numbers.
+      - Sheets: `--move=k_l1 --swings=res://tools/swings/katana_demo.json --at=1,6,9,11,12,14,18,24 --views=three_quarter,front,attacker` shows the coil through the cocked hold and the turn through to the left.
+      - 1091 Godot tests.
+  - [x] **14.13 Footwork in time with the rules' lunge.** The front foot lands on the first active frame and the rear foot follows; otherwise the feet stay planted on leg IK.
+    - Check: touchdown on the first active frame ±1 for synthetic lunging moves; planted feet slide under 1 cm.
+    - Blocked by: 14.9, 14.10 · Stories: 19, 21
+    - **Done** (Oct 2, stage 8 lane):
+      - A swing played in the guard is a strike (`Locomotion.strike()`, `GuardShuffle.Strike`, `GuardShuffle.strike_for()`): the guard's feet stand planted through it, where before they rode with the fighter in every attack. The foot that leads the lunge's way (the right straight ahead; the side foot for a lunge along a dodge) lifts so that it lands on the first active frame, swinging 4–10 frames and lifting no earlier than the lunge starts. It lands ahead of its spot by what is left of the lunge then, eased as the rules ease it and at most 25 cm. The other foot lifts as it lands and lands 6 frames later. A lunge-free swing takes no steps. No other step is taken until the strike ends, and a charge holds the steps.
+      - A strike's step counts whole frames: adding 1/10 a frame ten times falls short of 1, which landed it a frame late.
+      - Moves without a swing keep the stand-in's riding feet, and the other weapons, which have no guard stance, keep the clips' feet until task 15.
+      - Tests: `test_guard_shuffle.gd` (+3, the planner): the front foot's lift, landing and place ahead, the rear foot after it, the lunge's start and the cap; the foot on a dodge-lunge's side leads; planted feet stand exactly still through a strike and only the strike's steps are taken, ending on their spots where the lunge ends. `test_swing_player.gd` (+2): for each of the Katana's four lunging lights with a swing, the front foot lands exactly on the first active frame and the rear foot after it, and on the posed skeleton the standing feet slide less than 1 cm in the world; a move without a swing keeps the feet riding. Mutation caught: no strikes (no step, feet sliding 5 cm).
+      - Sheet: `--move=k_l1 --swings=res://tools/swings/katana_demo.json --at=1,3,6,9,11,12,15,18 --views=side,feet` shows the front foot stepping out through the wind-up, down on frame 12, and the rear one closing by 18.
+      - 1096 Godot tests. **14.10–14.13 done: with 14.3–14.9 (merged in PR #4), stage 8 of the build order is built**, built on the stage 7 lane's branch at 7.12; on Oct 3 the lane's 7.13–7.15 (and 22.1, through it) were merged in, which clears the plan's block on 7.15, with 1135 Godot tests passing. Waiting on the owner: the sheets above, from the demo swings.
+  - [ ] **14.14 Blade lag and follow-through overshoot.** A spring on the displayed blade behind the hand path, on the rules' clock, kept inside the wrist limits and 5 cm from the body. The rules' blade is unchanged.
+    - Check: no lag in the guard; a bounded trailing angle that settles within a set number of frames; nothing moves in hit-stop; PoseCheck passes on the Katana lights.
+    - Blocked by: 7.17 · Stories: 19
+  - [ ] **14.15 Parry-bounce prototype.** On a parry, the attacker's blade rebounds back along its swing from the contact point, and the defender's blade rebounds off the same point (Katana only).
+    - Check: the attacker's tip moves away from the contact point and retraces earlier samples; the defender's blade moves away; PoseCheck through the bounce; a contact sheet of the parry is reviewed.
+    - Blocked by: 7.17, 14.12 · Stories: 40
+  - [ ] **14.16 The saya and the sheathed hold.** A saya built in code at the left hip whenever the Katana is the weapon; the sheathe on the heavy press; the sheathed hold that the Iai's swings start from, kept while walking and strafing at block speed; the dodge cancel out of it.
+    - Check: the pose follows the rules' stance; walking keeps the hold; PoseCheck passes; sheets of the stance standing and walking reviewed.
+    - Blocked by: 7.19, 14.9 · Stories: 26, 29
+  - [ ] **14.17 Animation core review sheets; task 14 ticked.** The full sheet set from the gameplay camera, three-quarter and hands. It covers the four lights, the Iai draws, thrust, sweep, the L-L-L-L string with each stop, guard, shuffle, run and brake, strafe and backpedal, the parry bounce and the trails. A checklist maps each of the spike critique's 10 fixes and 7 conditions to its sheet or test, and fixes follow.
+    - Check: PoseCheck passes for every Katana move on both fighters; the soak is clean; the sheets and checklist are committed and sent to the owner.
+    - Owner: approves the sheets. This OK is the gate for 15.1.
+    - Blocked by: 7.23, 14.6, 14.7, 14.14, 14.15, 18.3 · Stories: 16, 19, 25, 40
+- [ ] **14b. Swing editor.** An editor plugin that scrubs a move frame by frame on a fighter.
+  - Delivers:
+    - drag path keys, poles and body keys with live preview;
+    - edits saved back to the move data;
+    - the wrist and self-collision checks shown live.
+  - Check: re-key one Katana move in the editor and the saved data reloads identically; documented in the README.
+  - [ ] **14b.1 Swing data save and reload.** A writer for the swing JSON with stable formatting and validation (frames inside the move, keys sorted, valid eases).
+    - Check: the Katana's file round-trips byte for byte; edit, save and reload give the same sample at every quarter frame.
+    - Blocked by: 7.23 · Stories: 16, 21
+  - [ ] **14b.2 Editor plugin: dock, preview and scrubbing.** An EditorPlugin in `game/addons/swing_editor`. Its dock picks weapon, move, fighter and palette, with a frame slider, step and play, and a defender at the duelling distance. Its logic, undo included, lives in a non-UI controller that the typecheck covers, since the typecheck now skips only `addons/gut`.
+    - Check: the controller's pose at a frame equals SwingPlayer's; the editor opens headless with the plugin and no errors; a shot scene hosting the controller's preview renders and is reviewed.
+    - Blocked by: 14b.1, 14.13 · Stories: 16, 19
+  - [ ] **14b.3 Drag the path keys with live preview.** Gizmo handles for the grip, the hand and blade direction and the edge, calling the controller; the path drawn at quarter frames; undo and redo.
+    - Check: the controller's edit operations change the samples as expected, and undo restores them exactly; the preview shot shows the path and handles.
+    - Owner: tries dragging in the editor.
+    - Blocked by: 14b.2 · Stories: 16, 19
+  - [ ] **14b.4 Poles, body keys and timing.** Pole offsets, coil, pelvis shift, pitch and roll, eases, and adding, removing and retiming keys.
+    - Check: each edit changes the sample as expected and undoes exactly; retiming keeps keys sorted and inside the move.
+    - Blocked by: 14b.3 · Stories: 19
+  - [ ] **14b.5 Live wrist, self-collision and reach checks.** The timeline marks frames that fail either check, and shows the current frame's numbers with the tip's depth in the defender.
+    - Check: a bad edit flags exactly the frames the checks fail.
+    - Blocked by: 14b.2 · Stories: 21
+  - [ ] **14b.6 Re-key one Katana move through the editor, and document the editor; task 14b ticked.** The move is re-keyed through the controller's operations (the ones the gizmos call), saved and reloaded. A README section explains the editor.
+    - Check: the saved data reloads identically; both checks and the swing-hit and reach tests pass; the soak is clean; before and after sheets reviewed.
+    - Owner: re-keys a move by hand in the editor.
+    - Blocked by: 14b.4, 14b.5 · Stories: 16, 19
+- [ ] **15. Full fighter animation.**
+  - Delivers:
+    - every move of the three weapons and bare hands;
+    - two-handed grips for the Greatsword;
+    - both hands for the Daggers;
+    - the Iai sheathe;
+    - block and guard;
+    - the parry deflect with both weapons rebounding;
+    - flinches by hit direction;
+    - stun and daze;
+    - disarm and weapon pickup;
+    - dodge and backstep poses with ghost trails;
+    - jump and land;
+    - stomp and leap counters;
+    - KO, death and a victory hold;
+    - the three ultimates' presentation.
+  - Defender reactions (flinch, block impact, parry recoil, stagger) are their own system: procedural recoil from the hit direction blended with the pack's flinch clips. Weapon paths don't animate the defender. Ultimates, disarms and the dropped weapon may use keyed motion or physics on top of the paths.
+  - Check: the gameplay-camera contact sheet for every move on both fighters, with the wrist and self-collision tests passing for all; a match screenshot series; an art-direction review.
+  - The Iai sheathe is 14.16, and the swings of every move are task 7's (7.16–7.36), authored on the real fighters.
+  - [ ] **15.1 The Greatsword's two-handed guard and carry.** Both hands on IK, the off hand on `OffHandGrip`, a lower guard and a wider stance, through the shuffle and the run. It matches the rules' guard key.
+    - Check: PoseCheck on the guard and the walk on both fighters; sheets reviewed.
+    - Blocked by: 14.17 and the owner's OK on its sheets · Stories: 31, 44
+  - [ ] **15.2 The Daggers in both hands: guard and carry.** Forward grip, each dagger on its own arm.
+    - Check: PoseCheck for both blades on the guard and the walk on both fighters; sheets reviewed.
+    - Blocked by: 15.1 · Stories: 35, 44
+  - [ ] **15.3 The bare-hand guard.**
+    - Check: PoseCheck on the guard and the walk; sheets reviewed.
+    - Blocked by: 15.1 · Stories: 41, 44
+  - [ ] **15.4 Block and guard for every weapon.** Raise, hold and lower from the rules' blocking flag and blockstun; an impact pushing the guard back from the contact point; the hand-off into a guard crush.
+    - Check: block poses follow blocking with no pop; the impact follows the contact point; PoseCheck; sheets from the gameplay camera.
+    - Blocked by: 15.3, 7.38 · Stories: 24, 41
+  - [ ] **15.5 The parry deflect for every weapon.** 14.15 made production for every pairing, both daggers and two-handed recoil, for the parry, flash and redirect kinds.
+    - Check: both weapons move away from the contact point for each pairing; PoseCheck through the bounces; sheets per pairing.
+    - Blocked by: 15.4 · Stories: 40, 41
+  - [ ] **15.6 Flinches by hit direction.** A reaction system apart from swings: recoil away from the contact point, blended with the pack's hit clips over the rules' hitstun.
+    - Check: the recoil follows the contact side (front, left, right, high, low) and returns to guard when hitstun ends; sheets.
+    - Blocked by: 15.4 · Stories: 19, 24
+  - [ ] **15.7 Stun, stagger and daze.** Poses for the stunned, stagger, disarm-stagger and impaled states, with a daze sway on the rules' clock.
+    - Check: each state maps to its pose and holds in hit-stop; sheets.
+    - Blocked by: 15.6 · Stories: 41
+  - [ ] **15.8 Disarm and pickup.** The weapon leaves the hands on a disarm (its model on the ground is 18.10's), a pickup pose, and the bare-hand guard while disarmed.
+    - Check: the weapon leaves on the disarm event and returns on pickup; sheets of both.
+    - Blocked by: 15.7, 18.10 · Stories: 41
+  - [ ] **15.9 Dodge and backstep poses with ghost trails.** Dash poses by direction for dodge, backstep and evade, and fading afterimages on the rules' clock.
+    - Check: the lean follows the dodge direction; the afterimages fade by frame and clear at round start; sheets.
+    - Blocked by: 15.4 · Stories: 12, 13
+  - [ ] **15.10 Jump and land.** Jump clips seeked from the rules' jump state and height, and the landing crouch.
+    - Check: the clip phase follows rise, apex and fall; the crouch lasts the land recovery; sheets.
+    - Blocked by: 15.4 · Stories: 12
+  - [ ] **15.11 Stomp and leap counters.** Poses for the stomp (onto a thrust) and the leap (over a sweep).
+    - Check: each counter state maps to its pose; sheets of a stomp on Skewer and a leap over Low Sweep.
+    - Blocked by: 15.10 · Stories: 41, 42
+  - [ ] **15.12 KO, death and a victory hold.**
+    - Check: the KO plays once and holds; round start resets it; the winner holds a simple victory pose; sheets.
+    - Blocked by: 15.6 · Stories: 6, 49
+  - [ ] **15.13 Moonsplitter presentation.** Keyed motion over the paths for the ultimate, the choice and the recall, in time with the rules' wave hits.
+    - Check: the poses follow the rules' phases; sheets.
+    - Blocked by: 15.4 · Stories: 30
+  - [ ] **15.14 Impaler presentation.** The dash, impale and burst for the attacker and the impaled defender.
+    - Check: the poses follow the phases, and the impaled defender's pose holds; sheets.
+    - Blocked by: 15.7 · Stories: 34
+  - [ ] **15.15 Lightning Tempest presentation.** The spin and the Thunder Finisher with both daggers.
+    - Check: the spin follows the rules' phase; sheets.
+    - Blocked by: 15.4 · Stories: 39
+  - [ ] **15.16 Retire the stand-in poses, and the final animation sheets; task 15 ticked.** StickPose and the WeaponHold idles removed; contact sheets for every move on both fighters, from the batch mode; a match screenshot series.
+    - Check: PoseCheck passes on every move on both fighters; the soak is clean; the sheets are reviewed and sent to the owner.
+    - Owner: the final art-direction review.
+    - Blocked by: 15.5–15.15 · Stories: 21, 43, 44
+
+### Phase E: look, arena and effects
+
+- [x] **16. Toon, outline and ink-wash look.** The toon material, inverted-hull outlines, the ink-wash post pass, and graphics presets.
+  - Check: side-by-side screenshots of each preset; no shader errors when loading.
+  - Done (16.1–16.7): the toon material (one- and two-sided), the ink outlines, the ink-wash pass and grade, and the three presets with the saved setting. They cover the stand-in arena, the dropped weapons, the Rogue, the Hunter and the three weapons. The presets were compared side by side on the look bench (16.5) and the fighter lineup (16.7). `shader_check` compiles every shader in a real window, and screenshot runs fail on any shader error. The capsule fighters in the match keep their old materials until 14.2 replaces them.
+  - Each piece below is salvaged from the uncommitted `look-and-arena` worktree (`.claude/worktrees/wf_c7f99fe5-f9a-1`), reviewed, fixed and tested on its own. Its stand-in fighter and `game/_probe` are dropped.
+  - [x] **16.1 Screenshot runs fail on shader errors, and a scene smoke test.**
+    - Delivers:
+      - `npm run shots` exits non-zero on `SHADER ERROR`.
+      - A `shader_check` shot scene puts every shader in `res://shaders` on screen, so each one compiles in a real window. Headless runs use the dummy renderer and never compile shaders.
+      - `test_scene_smoke.gd` loads and instantiates every scene outside `addons/` without adding it to the tree, and fails on any error.
+    - Check: a deliberately broken scratch shader makes the shot fail, and passes once it is removed; a deliberately broken scratch scene fails the smoke test.
+    - Blocked by: none · Stories: 46, 60, 65
+    - Done: `npm run shots` fails on `SHADER ERROR` and on script errors. Every existing shot scene and the fighter preview sheet still pass. `tools/shot_scenes/shader_check.tscn` scans the whole project rather than only `res://shaders`, which arrives in 16.3. It draws spatial, canvas_item, particle, fog and sky shaders, and reports any other mode as an error. A scratch broken shader failed it (exit 1). `tests/test_scene_smoke.gd` instantiates every `.tscn` outside `addons/` (imported models are left to the content tests), and a scratch scene pointing at a missing script failed it. Run `shader_check` before every visual commit in 16-18.
+  - [x] **16.2 MeshKit and MeshKitSet.** The procedural mesh builders (boxes, discs, lathes, tubes, tori, spheres, roofs), merged per material, with smoothed outline normals baked into CUSTOM0.
+    - Check: front faces face outward for every primitive; CUSTOM0 is baked only for outlined kits; one mesh per non-empty kit.
+    - Blocked by: 16.1 · Stories: 47, 63
+    - Done: `view/mesh_kit.gd` and `view/mesh_kit_set.gd` come from the worktree, reviewed and fixed:
+      - Tubes carry their frame round each bend by the smallest rotation, and mitre their joints. Before, a sharp turn collapsed a ring to a point, and a short segment next to a long one was squashed flat.
+      - The outline normals counted a face once per triangle, so a box corner's CUSTOM0 leaned about 0.27 towards the faces split into more triangles. It is now the sum of the distinct normals at each spot, which runs along the corner's diagonal.
+      - `MeshKitSet.finish` now reports a kit with no material, and `MeshKit.multimesh` a colour count that doesn't match. Both used to fail silently.
+      - Parameters and methods that nothing calls are dropped: `mesh()`, the lathe's twist, the sphere's flat bottom, the quad's UV scale, the cylinder's caps and smoothing, and the tube's end cap. When 17.x salvages the shrine's builders, `rope.tube(pts, radii, 7, false)` loses its `false`.
+    - `tests/view/test_mesh_kit.gd` has 10 tests:
+      - every triangle of 19 shapes is checked against both its own normals and the shape's inside (the worktree's test only compared triangles with their normals, and let 3% disagree);
+      - tube rings keep their radius;
+      - grid colours, CUSTOM0, multimeshes and `MeshKitSet` are each checked.
+  - [x] **16.3 Toon material and ink outlines.** The toon shader (three soft bands, brushed terminator, cold shadow fill, rim, hard specular); inverted-hull outlines sized in pixels at 1080p; `ToonMaterials` for fighter, weapon and prop classes; `LookNoise`; and a trimmed `LookPalette`. A look bench shot shows toon capsules and props near and 14 m back, with outlines on and off. The outlines are widened for the owner's review.
+    - Check: the material tests pass; the shader check passes; bench shots reviewed (bands, rim, outlines visible near and far).
+    - Owner: the outline width (settled: 3, 2.4 and 2.25 px).
+    - Blocked by: 16.2 · Stories: 46
+    - Done: `shaders/toon.gdshader`, `toon_light.gdshaderinc`, `outline.gdshader`, `look_noise.gdshaderinc`, and `view/look/toon_materials.gd`, `look_noise.gd` and `look_palette.gd` come from the worktree, reviewed. The worktree's outline had three faults:
+      - **The outlines never drew.** Godot's Vulkan projection flips Y, so the shader's pixel-to-metre factor came out negative and every hull was clamped to its 1.5 mm minimum. That is why the worktree's comparison showed its outline, stencil and no-outline columns alike. The shader now takes the size of the projection's y scale.
+      - **The hulls drew into the shadow maps,** where the light's projection pushed them to the 6 cm cap. An outlined sphere's shadow came out 40 px wider, and a blade's shadow across a body about 20 px instead of 4. The shader now collapses the hull whenever it draws for a view other than the main camera (`MAIN_CAM_INV_VIEW_MATRIX`).
+      - **Box and rim lines came out thin.** A unit smoothed normal moved a box face out by only 1/√3 of the width. MeshKit now stores a miter in CUSTOM0.w (√3 at a box corner, at most `MeshKit.MAX_MITER`), so every face moves out by the whole width.
+    - `tools/shot_scenes/outline_check.tscn` guards all three. It measures the ink rings around an outlined sphere and an outlined MeshKit box, and compares the outlined sphere's shadow with a plain one's. It exits 1 on any miss. Before the fixes: rings 0 px, then 4 of 7.5 px on the box; shadows 274 against 234 px. After: 11 of 10, 8 of 7.5, 235 against 234. Run it with `shader_check` before visual commits; headless tests can't render.
+    - Outline widths: the owner reviewed the look bench at 4, 3.2 and 3 px and at 0.75 times that, and picked 0.75 on Oct 1. The widths are now fighters 3 px, weapons 2.4 and props 2.25 at 1080p.
+    - Review changes:
+      - `OutlineClass` became `OutlineKind`, since the glossary's Weapon class means the weapon's size group;
+      - `has_outline` became `is_outlined`, which is true while the outline is on;
+      - the width comes from the kind.
+    - Dropped:
+      - the shaders' unused UV scale and light scale;
+      - the noise include's two lookups that only the ink-wash pass uses (they come back with it in 16.4);
+      - LookPalette's fighter colours (the fighters have their own palettes), the petal, and 12 other colours that nothing in the worktree's later code uses.
+    - `tests/view/test_look.gd` has 11 tests:
+      - each kind's lighting and outline, with every parameter checked against the uniforms its shader declares;
+      - switching outlines off and on;
+      - the shared noise texture on every material;
+      - LookNoise being deterministic, seamless, mipmapped, and on the include's lattice.
+    - `test_mesh_kit.gd` checks that the miter moves every face out by the whole width.
+    - `tools/shot_scenes/look_bench.tscn` shows outlines on and off, near and 14 m back; `--width-scale=` scales every outline, for comparing widths. Reviewed: three bands with a brushed terminator, cold fill, rim, the steel highlight, and outlines near and far. At 20 m the 0.06 m cap thins a fighter's line to about 3 px.
+  - [x] **16.4 Ink-wash post pass and colour grade.** Distance mist, depth ink lines, dry-brush breaks, paper grain and a brushy vignette, in full and lite variants (with their stale comments fixed). `InkWashPass` picks its variant by quality. `InkGrade` bakes the colour grade into a LUT, and the night environment is added.
+    - Check: the pass and grade tests pass; the shader check passes; bench shots with the pass off, lite, lines and full are reviewed.
+    - Owner: the ink-line strength (settled: 2 px at 0.85).
+    - Blocked by: 16.3 · Stories: 46
+    - Notes from 16.3:
+      - The worktree's outlines looked "faint" because they never drew. Its ink lines were judged faint too, so measure them in a shot, as `outline_check` does, before tuning their strength.
+      - The pass's shaders need `look_noise_lod0()` and `look_white()` back in `look_noise.gdshaderinc` (see the worktree's copy).
+      - The worktree's grade test uses `LookPalette.FIGHTER_RED` and `FIGHTER_BLUE`, which are gone: use `FighterStandin.PALETTES`.
+    - Done: `shaders/ink_wash.gdshaderinc`, `ink_wash.gdshader`, `ink_wash_lite.gdshader`, `view/look/ink_wash_pass.gd`, `ink_grade.gd` and `ink_night_environment.tres` come from the worktree, reviewed:
+      - **The jittered lines drew along flat floors.** At full quality the edge test sampled its neighbours at the jittered spot but its centre at the pixel itself, so a floor seen at a grazing angle (within about 16 px of the horizon) read as a depth break. The centre now moves with its neighbours. `ink_check` found 949 stray ink pixels on an open floor before the fix and none after.
+      - **InkGrade's tuning never reached its table.** Its numbers were static variables, but `lut()` caches the table, so changing them did nothing. They are constants now, which also keeps static state from leaking between tests.
+      - **Stale comments fixed.** The shaders' headers said High uses normal lines, and the pass's doc said quality picks the shader. Normal lines pick it, and no preset turns them on. The constants are now `SHADER_NORMALS` and `SHADER_DEPTH`, so they don't read like `Quality.FULL`. `normal_threshold` moved under `INK_NORMALS` with the normal buffer.
+      - The quality enum lives in the pass as `InkWashPass.Quality` (OFF, LITE, LINES, FULL), the way outline kinds live in `ToonMaterials`. `set_param` rejects a name neither variant declares.
+      - `look_noise_lod0()` and `look_white()` are back in `look_noise.gdshaderinc`. `look_white` wraps at the texture's size instead of a hard-coded 256.
+      - The night environment has glow off (it cost about 2 ms on the target laptop), with the worktree's subtle glow kept for when a preset turns it on.
+    - `tests/view/test_ink_wash.gd` has 15 tests:
+      - the two variants load, and only the normals variant reads the normal buffer;
+      - the pass is a screen quad drawn first in the transparent pass, quality sets the shader's quality, and OFF hides it;
+      - normal lines pick the variant only when lines are drawn, and parameters survive a swap;
+      - the grade keeps the fighters' red and blue, mutes the rest, inks the blacks, and keeps greys in order;
+      - the LUT is the grade sampled on a 24-cube, and `apply` leaves the other adjustments neutral;
+      - the night environment is tuned;
+      - the ink lines are the owner's pick.
+    - `tools/shot_scenes/ink_check.tscn` renders a white box on a white floor that runs to the horizon. It measures the ink lines at the box's edge against the sky (1 px, since the sky side is never inked) and against a floor 13 m away (2 px). It checks there is no ink on the open floor, and no line at LITE. It exits 1 on any miss.
+    - The look bench uses the night environment and the grade, and takes `--ink=off|lite|lines|full`, `--ink-strength=`, `--ink-width=` and `--no-grade`. Shots at off, lite, lines and full were reviewed: grain and vignette stay weak in the middle, and the lines show on silhouettes.
+    - **Why the lines look faint, measured:**
+      - The pass blends in linear light, so a 0.85-strength line on white comes out at about 0.43 on screen, and the dry-brush breaks lift parts of it to about 0.65.
+      - At the default 1.2 px a line is 1–2 px wide.
+      - At a duel's distance the lines also draw over the fighters' rim light.
+      - Bench renders at widths 1.2, 2 and 3 px and strengths 0.85 and 1.0 went to the owner (`look_bench.tscn ... --ink-width=2 --ink-strength=0.85` and so on). 2 px read clearly, and 3 px turned ragged.
+    - Ink lines: the owner picked 2 px at strength 0.85 on Oct 1. `InkWashPass.LINE_WIDTH_PX` and `LINE_STRENGTH` hold them, and the pass sets them on its material (the shader's default agrees). `ink_check` now needs 2 px lines: they measure 2 px against the sky and 4 px against the far floor.
+  - [x] **16.5 Low, Medium and High presets, and the saved setting.** `GraphicsPreset` (High by default) and `GraphicsApplier` act through node groups and outline kinds (`ToonMaterials.OutlineKind`). `GameSettings` in `game/core`, owned by `GameServices`, saves the preset id to `user://settings.cfg` and applies it at start. The spec's Look paragraph is updated from the worktree's decisions: the presets' contents, FXAA, glow off, and the target laptop. 16.3 already added the outline decision and the noise texture.
+    - Check: the preset tests pass (monotonic from Low to High, fighters always outlined, each preset applies); settings save and load, and an unknown id falls back to High; bench shots at the three presets reviewed.
+    - Blocked by: 16.4 · Stories: 46, 57
+    - Note from 16.4: the presets' post quality is `InkWashPass.Quality`; the worktree's `GraphicsPreset.PostQuality` (whose comments were stale) is not brought over, and `test_graphics_presets` changes to match. The night environment already has glow off.
+    - Done: `view/look/graphics_preset.gd`, `graphics_applier.gd` and `presets/low|medium|high.tres` come from the worktree, reviewed. `core/game_settings.gd` is new.
+      - **What each preset sets.**
+        - Every preset: FXAA, no MSAA, glow off, no normal lines, and fighters and weapons outlined.
+        - Low: no ink-wash pass, no height fog, a 1024 px orthogonal shadow map out to 22 m, 30% particles, no lantern lights, silhouettes only.
+        - Medium: ink lines, a 2048 px map out to 28 m, 60% particles, props in the distance.
+        - High: the full pass, prop outlines, a 4096 px map out to 34 m, everything.
+      - **No static "current preset".** The worktree's `GraphicsApplier.current()` kept the last preset in a static variable, which leaked between tests. The applier keeps no state now: the chosen preset is `GameSettings`', and a scene applies `GameServices.graphics_preset()` to itself when it loads.
+      - **`GameSettings`** (in `game/core`, owned by `GameServices`):
+        - it saves the preset id to `user://settings.cfg` under `[graphics]`;
+        - an unknown id, whether saved, set or assigned directly, leaves High (or the last good id) in place;
+        - nothing saves by itself, as with `ControlProfiles`.
+      - **Applied at start.** `GameServices` applies the preset to the renderer (the shadow atlas and filtering, which are global) and the root viewport.
+      - **The project's own anti-aliasing changed.** `project.godot` had 4x MSAA since the skeleton; it now has FXAA and no MSAA, to match High. The outline (16.3) and ink-line (16.4) picks were judged under 4x MSAA.
+        - With FXAA, `outline_check` measures the rings at 7 and 5 px (7.5 and 5.6 asked, 8 and 6 before).
+        - `ink_check` measures the ink lines slightly lighter (luma 0.49 against 0.43).
+      - **Test and shot runs use the defaults.** `godot.mjs` sets `MONOMACHIA_DEFAULT_SETTINGS` for them, so a preset a player saved on the machine can't change them. GUT refuses unknown command-line arguments, so it is an environment variable.
+      - **Review changes:**
+        - Low's outline width scale went from 0.9 to 1.0, so the owner's widths hold on every preset;
+        - `GraphicsPreset.outlines_on(kind)` replaced the applier's per-material lookup;
+        - `load_id` returns null for an unknown id instead of trying to load a missing file.
+    - Tests:
+      - `tests/view/test_graphics_presets.gd` has 8 tests:
+        - the three presets load and scale up from Low to High;
+        - fighters and weapons are always outlined, and props only on High;
+        - FXAA is on, and glow and normal lines are off, on every preset;
+        - each preset applies to a scene with one of everything and to a viewport;
+        - height fog comes back;
+        - a scene's own grade is kept;
+        - a shared material is switched consistently.
+      - `tests/core/test_game_settings.gd` has 7 tests: the default, save and load, unknown ids, unreadable files, and a run that asks for the defaults.
+      - `test_game_services.gd` checks that the settings' preset reached the root viewport.
+    - The look bench takes `--preset=low|medium|high`. Shots at the three presets were reviewed:
+      - Low has no ink and unoutlined props;
+      - Medium adds the ink lines;
+      - High adds prop outlines and the full pass.
+  - [x] **16.6 The stand-in arena and the dropped weapons in the toon look.** The stand-in arena uses the toon materials with the ink-wash pass and the current preset, and so do the dropped weapons. The capsule fighters are left alone, since 14.2 replaces them.
+    - Check: the view tests pass, including the no-stray-nodes test; the skeleton shots are re-rendered and reviewed.
+    - Blocked by: 16.5 · Stories: 46
+    - Done: `view/match/standin_arena.gd` is rebuilt in the look, still from the rules' radius:
+      - **Built with MeshKit**, one mesh per material:
+        - a dark stone floor, with lighter inlaid rings every 3 m and a centre mark;
+        - the apron;
+        - a lacquered wall with a bevelled top, its inner face on the wall line;
+        - stone pillars with lacquer caps.
+      - **Materials and layers.** Every surface is a toon prop material. The wall and pillars are outlined props (High only). The floor, apron and rings are never outlined, and sit on the ground layer.
+      - **Environment and lights.**
+        - A copy of the night environment under the old dusk sky; applying the preset adds the colour grade.
+        - The moon is the preset's shadow light.
+        - The warm rim light touches the fighters' layer only.
+        - The two lanterns are minor lights that leave the ground out.
+      - **The look.** An ink-wash pass, and the arena applies `GameServices.graphics_preset()` to itself when it loads.
+      - **Floor colour.** The look's `STONE_DARK` read blue under the cold moon, and the blue fighter blended into it. The floor is now darker (`#24232a`), with `STONE_DARK` rings, so both palettes stand out as they did before.
+      - **The capsules lose the rim light.** They sit on layer 1 only, so they no longer get the warm rim light the old stand-in shone on everything. 14.2's fighters go on the fighter layer.
+    - Dropped weapons (`MatchView._make_dropped`):
+      - MeshKit blades with outline normals, `ToonMaterials.weapon`, on layers 1 and 2, with the preset applied.
+      - The blades' self-lit sheen is gone; the toon highlight and outline read without it.
+      - The light-beam marker is unchanged, since task 18's effects replace it.
+    - `GraphicsApplier.apply_to_tree()` applies a preset to a scene without touching the renderer's global shadow settings or a viewport, which `GameServices` sets at start. The arena and the dropped weapons use it.
+    - Tests:
+      - `tests/view/test_standin_arena.gd` has 8 tests: every surface toon; what is outlined; the ground layer and the lanterns' mask; the moon's shadows and the fighter-only rim; the night environment copied and graded; the pass at the preset's quality; Low applied when chosen; the floor and wall on the rules' radius.
+      - `test_match_scene.gd` checks that a dropped pair of daggers is toon, outlined and on the fighter layer.
+      - The no-stray-nodes test still passes: the pass lives inside the arena.
+    - Shots:
+      - `tools/shot_scenes/skeleton_dropped.tscn` is new: a Watch match until a weapon lies on the floor, with the camera beyond it.
+      - The seven skeleton shots were re-rendered and reviewed: the dark floor and pale rings, the outlined wall and pillars, paper grain and vignette, both fighters standing out, and the dropped Greatsword's toon blade with its outline.
+      - `shader_check`, `outline_check` and `ink_check` pass.
+  - [x] **16.7 The toon look on the Rogue, the Hunter and the three weapons; task 16 ticked.** FighterModel turns every outfit, skin, hair and headwear surface into a toon material that keeps its textures and palette, outlined and on the fighter layer. Palettes then recolour the toon materials, since `apply_palette` and `test_palettes` only handle `BaseMaterial3D` today. The weapons and the Katana's own shaders get toon versions. The art budget (56.4 of 60 MB after 13.1) covers any new textures.
+    - Check: content tests that every fighter and weapon surface is toon, outlined and on layer 2, and that the palettes still differ; lineup and mirror shots at Low and High reviewed, with no split outlines at seams.
+    - Blocked by: 13.1, 16.6 · Stories: 43, 45, 46
+    - Note from 16.3: CUSTOM0 doesn't follow skinning, so the research notes' fallback for split outlines (smoothed normals baked into CUSTOM0) won't work on the skinned fighters. If seams split, weld the normals at import, or give each fighter a second skinned outline mesh.
+    - Done:
+      - **Converters in `ToonMaterials`:**
+        - `fighter_from(material)` turns an imported StandardMaterial3D into a toon fighter material. It keeps the colour, the base-colour texture, the vertex colour, the normal map (at `FIGHTER_NORMAL_STRENGTH`, 40%) and the name.
+        - `weapon_from(material)` turns a StandardMaterial3D into toon steel (with the hard highlight) when it is at all metallic, and toon leather or wood otherwise. A toon-lit ShaderMaterial is copied with the weapon's rim and outline, and every parameter it sets is kept.
+        - `is_toon(material)` tells the look's materials apart.
+      - **Two-sided toon shader.** The Quaternius imports are all double-sided (hoods, cloth edges, hair cards), so the toon surface moved to `shaders/toon_surface.gdshaderinc`. `toon.gdshader` (back faces culled) and the new `toon_two_sided.gdshader` share it, and `fighter_from` picks by the import's cull mode.
+      - **Fighters (`FighterModel`):**
+        - every mesh goes on layers 1 and 2;
+        - the skin, eyes and hat band become toon materials when the model is built;
+        - the palettes recolour the imported material on a copy and convert that, cached per palette as before.
+        - A surface with no imported material is reported.
+      - **Weapons.** `WeaponLook.instantiate()` puts a model in the look (each instance with its own materials, held in the mesh's metadata so the renderer never sees them freed early), and `attach()` uses it. The Katana's blade and wrap shaders are now toon-lit, and `blade.tres` asks for the steel highlight.
+      - **Tuned on the real fighters.** The fighter parameters were set on capsules in 16.3. On the Quaternius meshes, a rim 0.32 wide at 0.9 plus a 0.22 fresnel glow drew a thick white band round the hood, and turned the face mask, the hat and dark cloth into glossy latex. Full-strength normal maps broke the bands into camouflage blotches. The rim is now 0.2 wide at 0.6, the glow 0.1, and normal maps 40%. The look bench's capsules still read well.
+      - **No split outlines.** Head, hood, hat, beard, hands and gloves were checked close up, and the hulls run unbroken over the Quaternius seams. The skinned outline uses the skinned normals.
+      - **The outfit's roughness map is gone.** The toon shader ignores roughness, so `fighters/materials/ranger_orm.png` (0.6 MB) and `FighterLook.outfit_orm` went, and `bake_palettes.gd` no longer bakes it. The art is now 55.8 MB.
+    - Tests:
+      - `test_look.gd` (+4): the two-sided shader differs only in culling; an imported fighter surface keeps what it was imported with; weapon materials become steel or leather; a toon-lit shader of its own keeps its parameters.
+      - `test_weapons.gd` (+2, and the attach test): every surface of an instanced weapon is toon, outlined as a weapon and on layer 2, keeps its colour, and shines only if metal; the Katana keeps its temper line and wrap.
+      - `test_fighters.gd` (+1): every fighter surface is toon, outlined and on layers 1 and 2 in both palettes. The texture, headwear and skin tests read the toon materials.
+      - `test_palettes.gd` reads the toon materials, and the palettes still differ by 12.7 to 16.6 from every side.
+    - Review shots:
+      - The fighter preview (`fighters/preview/preview.tscn`) has a night stage (`--stage=night`: the stand-in arena's environment, moon, rim light, lanterns and ink-wash pass, turned so the moon lights the fighters' fronts), `--preset=low|medium|high`, and a `mirror` mode (`--fighter=`, `--shoulder=-1|0|1`).
+      - Reviewed: the lineup in the studio and at night on Low and High; mirror matches side on and from the gameplay camera on Low and High; the heads, the back, the hands on the grips and the weapons close up.
+      - A "before" render from 16.6 showed the fighters just as dark at night with their old materials. The Rogue's charcoal palette is near-black under the moon either way, and the ink outlines now help her read.
+      - `shader_check` (7 shaders), `outline_check` and `ink_check` pass.
+    - For 14.1 and 14.2:
+      - a posed weapon comes from `WeaponLook.instantiate()`;
+      - `FighterView` applies `GameServices.graphics_preset()` to its fighters with `GraphicsApplier.apply_to_tree()`, as the arena and the dropped weapons do;
+      - the body flash stays a material overlay, leaving the toon materials alone.
+- [x] **17. The floating Moonlit Shrine.**
+  - Delivers:
+    - the platform at radius 15 with its parapet, torii, lanterns and pillars;
+    - the rocky underside;
+    - the sky, moon and clouds;
+    - the background mountains, pagodas, waterfalls and water;
+    - drifting embers and ash.
+  - Check: screenshots from the gameplay, Watch and menu cameras; frame time within budget.
+  - Salvaged from the same worktree. The shrine lands behind a radius guard and becomes the default arena once 8.3 sets the radius.
+  - [x] **17.1 Arena data and the radius guard.** `ArenaDef` and the shrine's `.tres`, fixed: the ambience id becomes `ambience_shrine`, the music id goes, `validate()` uses `SimConst.FIGHTER_RADIUS`, and the camera clamp duplicate goes. `ArenaScenes` uses an arena's scene only when its walkable radius equals the rules' radius. View tests that don't need the shrine ask for the stand-in arena by id, to stay fast and stable.
+    - Check: the arena-data tests pass (spawns facing as the rules place them, gates beyond the spawns, the wall outside the walkable circle, the sound id exists, the starting camera inside its limit); an arena with the wrong radius falls back to the stand-in.
+    - Blocked by: none · Stories: 11, 15, 63
+    - Done:
+      - **`ArenaDef`** (`game/arenas/arena_def.gd`), salvaged and fixed:
+        - the ambience is `ambience_shrine`, a looping cue in `SoundBank`;
+        - the music id is gone;
+        - `validate()` takes `SimConst.FIGHTER_RADIUS` by default and checks the data only, since `ArenaScenes` decides whether the scene can be drawn;
+        - `camera_bounds` and `clamp_camera()` are gone, since `CameraRig` clamps by `camera_max_radius`;
+        - `wall_outer_radius()` joins `wall_inner_radius()`.
+      - **The shrine's data** (`arenas/moonlit_shrine/moonlit_shrine.tres`): walkable 15 m, the parapet at 15.3 m (inner face 15.075 m), the floor to 15.9 m, spawns at ±3.2 m, gates at ±16.9 m, the camera out to 19.5 m with its far clip at 3000 m. The environment is left unset until 17.6.
+      - **`ArenaScenes` maps each id to its `ArenaDef`**, and `scene_path_for(def)` holds the radius guard: an arena's own scene only when it exists and its walkable radius is the rules' `ARENA_RADIUS`, else `STANDIN_SCENE`. Until 8.3 the shrine draws as the stand-in, under its own id, with the stand-in's camera limit. `def(id)` gives later tasks the data (the shot rig, the ambience in 19.5).
+      - **Tests on the stand-in:**
+        - `test_match_scene` asks for the stand-in by id, except the test of the default arena;
+        - `main.gd` gains `arena_id` (the shrine by default), which the duel behind the menus, Duel and Watch take, so `test_main_flow` and `test_smoke_run` set the stand-in before the scene enters the tree. Task 22's arena select replaces it.
+      - **Tests:**
+        - `test_arena_def`: the shrine's ids and its looping ambience; spawns where and facing as `World.reset_round` starts each round; gates past the wall facing the centre; the wall outside the walkable circle; `validate()` catching a wall inside it and a spawn too close to the wall; both sides' starting follow and Watch cameras inside the limit.
+        - `test_arena_scenes`: an arena at the rules' radius uses its own scene (`tests/fixtures/arena_fixture.tscn`), one at another radius or without a scene gets the stand-in, and the shrine waited behind the guard while the rules' wall was at 11.5 m. Since 8.3 that test checks that the shrine, at the rules' 15 m, draws as itself.
+        - `test_main_flow`: main's arena by default, and the stand-in reaches every match when set.
+  - [x] **17.2 Arena screenshot rig on the match host and CameraRig.** `arena_shot.gd` rebuilt on a stepped `MatchHost`, with the arena put in by `MatchView.set_arena` and the real fighters at the spawns. It shoots the follow, Watch and menu views, an establishing view and a top-down debug overlay, with a preset export. Its scenes live in `game/tools/shot_scenes`.
+    - Check: shots of the stand-in arena from every view reviewed.
+    - Blocked by: 17.1, 14.2 · Stories: 2, 54, 65
+    - Done:
+      - **`tools/shot_scenes/arena_shot.gd`**, rebuilt from the worktree's rig:
+        - a `MatchHost` stepped without the clock plays a computer duel (the Rogue with the katana against the Hunter with the greatsword), held in the round's intro, so the real fighters stand on the spawns, with the HUD hidden;
+        - `MatchView.set_arena` puts the arena in: its `ArenaDef`'s own scene whenever that exists, past the radius guard, so the shrine can be shot before 8.3; otherwise what `ArenaScenes` draws for the id;
+        - the chosen preset (`preset_id`, or `--preset=`; empty means the saved one) is applied to the renderer, the window and the whole rig. `--arena=` picks the arena, and a bad preset or arena fails the run.
+      - **Views, one scene each** (`arena_gameplay`, `arena_watch`, `arena_menu`, `arena_establishing` and `arena_top_down.tscn`, all on the shrine's id, so they show the stand-in until 17.3 builds the shrine):
+        - gameplay, Watch and menu are `CameraRig`'s own modes, snapped; the menu view stands 10 s into the orbit, where the fighters show three-quarter on;
+        - establishing keeps the worktree's numbers (58 m out at 228°, 5 m below the floor, looking at 13 m below), which frame the shrine's underside. The stand-in, with nothing under its floor, sits small at the top of that frame;
+        - top-down is orthographic (46 m tall) with a legend and a close-up of the wall at +X. It rings the rules' wall and the fighters' centre limit, the arena's walkable circle when it differs from the rules' and its wall's inner face (from its `ArenaDef`), and marks the arena's own Spawn and Gate markers with their facing.
+      - **The stand-in's markers face as `ArenaDef`'s do** (-Z toward the opponent or the centre), so side 0's spawn and gate are turned round. Only the top-down overlay reads their facing.
+      - **The bench mode waits for 17.9.**
+      - **Tests:** `test_arena_shot` (the fighters on the spawns, each view's camera, the menu's orbit time, the overlay's rings and marks, the preset chosen or saved) and a marker test in `test_standin_arena`.
+      - **Shots reviewed:** the stand-in from all five views at High, and the gameplay view at Low.
+  - [x] **17.3 The shrine's courtyard: floor, parapet, gate landings and markers.** (Note from 16.5: the worktree's `moonlit_shrine.gd` calls `GraphicsApplier.current()`, which is gone; apply `GameServices.graphics_preset()` instead.) The shrine scene (environment copy, moon key light, the fighter-only rim light, ink-wash pass, preset), `ShrineLayout` with its data, and the platform builder: stone floor, plinth, parapet, gate landings, rope barriers and pebbles.
+    - Check: the shrine tests pass (markers match the data, nothing but pebbles inside the walkable circle, floor at 0 under the spawns, one ink pass, rim light on fighters only); the shader check passes; gameplay, Watch and top-down shots reviewed.
+    - Blocked by: 17.2 · Stories: 15, 46, 47
+    - Done:
+      - **`MoonlitShrine`** (`arenas/moonlit_shrine/moonlit_shrine.gd` and `.tscn`), salvaged and trimmed to the courtyard:
+        - a copy of its environment: `def.environment` once 17.6 sets it, the night environment until then;
+        - the moon key light, in the shadow-light group so the preset sets its shadows, shining from `layout.key_light_direction`;
+        - the red rim light from the moon, on the fighter layer only and light-only for the sky;
+        - the markers from the `ArenaDef` and one ink-wash pass;
+        - the saved preset, applied when it loads (`GameServices.graphics_preset()`, as the 16.5 note asked).
+      - **`ShrineLayout`** (`shrine_layout.gd`, `moonlit_shrine_layout.tres`) holds only what the courtyard reads so far: the seed, the paving, `pebble_count` (in place of the worktree's share of the debris), the parapet's posts, gate openings, broken rails and damaged posts, the torii span for the landings, and the moon and key-light directions. Later tasks add their own groups.
+      - **`ShrinePlatform`** builds:
+        - the stone floor (`shaders/stone_floor.gdshader`, its grime band now following the wall radius from the data) on the ground layer, and the plinth;
+        - the parapet;
+        - each gate's landing (its own `landing` kit) with two steps down, and its rope barrier (`GateRope0`, `GateRope1`);
+        - flat pebbles along the foot of the parapet.
+      - **`ShrineProps`** so far holds the platform's materials and `shimenawa()` for the ropes.
+      - **Tests:** `test_moonlit_shrine` covers the data and layout, the markers, the environment copy, the lights, one ink pass, the floor at 0 under the spawns, the posts, the gate landings and the ropes outside the walkable circle, nothing but flat pebbles inside it, and the presets on load and on change.
+      - **Shots reviewed:** gameplay, Watch, menu, establishing and top-down. The courtyard floats in the dark until the underside (17.5) and the sky (17.6).
+      - The 0.17 m parapet curb runs across the gate openings as a sill, under the ropes.
+  - [x] **17.4 Torii, lanterns, pillars, trees and debris.** The prop builders, lantern lights that skip the ground layer with their flicker and halos, and the `prop_scenes` seam for bought art.
+    - Note from 17.3: `ShrineProps` already holds the platform's materials and `shimenawa()`. The `stone` material (dropped while nothing used it) comes back with the lanterns and pillars, and the torii stand on the gate landings. The ledge debris needs `debris_count` and the crag radius in `ShrineLayout`.
+    - Check: every lantern lights fighters and skips the ground; a scene in `prop_scenes` replaces the procedural lantern; prop outlines follow the preset; gameplay and Watch shots at High and Medium reviewed.
+    - Blocked by: 17.3 · Stories: 46, 47, 63
+    - Done:
+      - **`ShrineProps`** gains, salvaged and trimmed (the pagoda, the temple hall and their materials wait for the backdrop in 17.7):
+        - the stone lantern, with lit paper round its fire (`LANTERN_FIRE`);
+        - the torii, with lacquered posts and beams and a black lacquer top;
+        - the pillar, whole with a rope and streamers or broken with a fallen drum;
+        - the black pine and the dead tree;
+        - the paper streamer shared by the gate ropes and the pillars, and the `stone`, `lacquer`, `black_lacquer`, `bark`, `pine` and `glow` materials.
+      - **`ShrinePlatform`** places them:
+        - a torii on each gate anchor, standing on its landing;
+        - eight lanterns at `lantern_radius`, six pillars, five trees and 48 rocks on the ledge at `LEDGE_Y`, clear of the gates;
+        - at each lantern's fire, a light (`Platform/LanternLights`) and a halo (`Platform/LanternHalos`, one MultiMesh with `shaders/particle_glow.gdshader`). The lights skip the ground (`SMALL_LIGHT_MASK`) and are minor lights, so only High shows them; the halos show on every preset.
+        - The lit paper uses `shaders/lantern_glow.gdshader`, which flickers by itself.
+      - **`MoonlitShrine`** flickers the lantern lights around `ShrinePlatform.LANTERN_ENERGY`.
+      - **Bought art:**
+        - `ShrineLayout.prop_scenes` takes a scene for any of `PROP_KINDS` (lantern, torii, pillar, pine, dead_tree), placed at the same spots as `Platform/Props/Lantern0` and so on;
+        - a key that isn't a prop kind is reported;
+        - each kind draws from its own random stream, seeded from the layout, so swapping one kind leaves the rest as they were;
+        - bought lanterns keep their fire at `LANTERN_FIRE`'s height, where the lights and halos go.
+      - **`ShrineLayout`** gains the torii's height, the lanterns, pillars, trees and `debris_count` (48, the ledge's share of the worktree's 70), `crag_radius` (the ledge's edge, which 17.5 builds), `prop_scenes` and `PROP_KINDS`.
+      - **Tests:**
+        - a torii on each landing;
+        - every lantern with a light at its fire that lights fighters and skips the ground, a halo per lantern, and the flicker;
+        - bought lanterns at the lantern spots, with their lights, and the trees and rocks unchanged;
+        - every kind swappable, and an unknown kind reported;
+        - outlines and lantern lights per preset for every prop material.
+        - Where the halos sit is checked in the shots: the headless renderer keeps no MultiMesh transforms.
+      - **Shots reviewed:** gameplay and Watch at High and Medium (Medium drops the prop outlines and the lantern lights, and keeps the halos), plus menu, establishing and top-down. The lanterns, pillars, trees and rocks stand on nothing until the ledge (17.5), and the trees barely show against the black sky until 17.6.
+      - For 17.8: the embers need the lantern fires, which `ShrinePlatform._fire_points()` gives; make it public then.
+  - [x] **17.5 The rocky underside, roots, chains and floating rocks.** The rock under the rim is hidden only from cameras above the courtyard, decided per camera so split screen works later.
+    - Check: the underside tests pass; establishing and top-down shots reviewed.
+    - Blocked by: 17.3 · Stories: 47
+    - Done:
+      - **`ShrineUnderside`** (`arenas/moonlit_shrine/shrine_underside.gd`), salvaged and trimmed (the floating rocks' temple hall waits for 17.7; no rock in the data was big enough to carry one):
+        - `Underside/Ledge`, the lattice's top rows, on the ground layer;
+        - `Underside/BelowDeck/Crag` (the sides down to the tip, and three spurs);
+        - `Roots`, hanging from the upper sides;
+        - `Chains`, one MultiMesh of iron links from `chain_angles` down into the clouds at `cloud_sea_height`;
+        - `Underside/FloatingRocks/FloatingRock0` and on, small crags carrying a lantern and a dead tree, a pine or a broken pillar. `bob_rocks()` places them, bobbing 0.7 m and slowly turning, from the layout and the time alone.
+        - The rock uses `shaders/rock.gdshader` (strata, ink strokes, dust on top, crevice shading), with no outline.
+      - **Two fixes to the worktree's crag:**
+        - Its rim's noise pulled the rim in by up to 14%, so trees and a pillar stood past it in mid-air. The bumps now only push outward. `crag_radius` (21.3 m, was 21.0) is the ledge's least reach all round, and the rim runs 22.3–23.8 m with this seed.
+        - Its buttresses bulged up to 1.8 m past the rim, where a grazing view from a fight camera could catch rock that is left out. The sides now stay 3% inside the rim (`UNDERCUT`).
+      - **The rock under the rim, left out per camera:**
+        - everything under `BelowDeck` is on `LookPalette.BELOW_DECK_LAYER` (layer 5);
+        - `MoonlitShrine.cull_below_deck(camera)` clears or sets that bit of the camera's cull mask. It is cleared for a camera inside `camera_max_radius` and 0–5 m above the floor (`BELOW_DECK_MAX_HEIGHT`), where the ledge hides the crag;
+        - the arena does this for its viewport's camera every frame, after the match view moves it. The bit stays as set when the arena leaves.
+      - **`MoonlitShrine`** also bobs the floating rocks.
+      - **`ShrineLayout`** gains:
+        - `crag_depth`, `root_count`, `chain_angles`, `floating_rocks` and `cloud_sea_height` (17.7's sea of clouds, read now by the chains);
+        - `floating_rock` in `PROP_KINDS`;
+        - `random_stream()` and `place_art()`, moved there from `ShrinePlatform` since both builders use them.
+      - **Tests:**
+        - the ledge on the ground layer, reaching past every lantern, pillar and tree;
+        - the crag, roots and chains on the below-deck layer only, the crag under the ledge and inside its rim, and the cameras' limit inside the ledge;
+        - the follow and Watch cameras (at the spawns, and backed against opposite walls) and the menu orbit leave the rock out; cameras beyond the edge, below the floor or high above draw it;
+        - each camera decided on its own, and the arena deciding for its viewport's camera every frame;
+        - the floating rocks bobbing over their spots;
+        - bought floating rocks;
+        - outlines per preset on the roots and chains, and none on the rock.
+      - **Shots reviewed:** establishing and top-down, plus gameplay, Watch and menu at High and establishing at Low. The establishing view is dark until the sky (17.6).
+      - **For 17.7:** the backdrop's cliffs used the worktree's `rock_material()`. It is `ShrineUnderside._rock_material()` now; make it public then.
+  - [x] **17.6 Night sky and blood moon.** The sky shader, the shrine environment, and the moon direction synced from the layout.
+    - Check: the moon rises ahead of player one; fog and height fog are set; gameplay and Watch shots reviewed.
+    - Owner: the red moon.
+    - Blocked by: 17.3 · Stories: 46, 47
+    - Done:
+      - **`shaders/sky_moonlit.gdshader`**, salvaged:
+        - an ink gradient with a cold mist band at the horizon, the colour the depth fog fades to;
+        - stars, kept clear of the moon;
+        - ink cloud streaks, torn and edged red near the moon;
+        - the blood-red moon with a red haze, stronger along the horizon.
+        - It uses no `TIME`, so Godot doesn't redraw its radiance map every frame.
+      - **Changes to the worktree's sky:**
+        - its noise is the look's shared texture (`look_noise.gdshaderinc`, four fetches for the clouds), in place of value noise computed per pixel, as the spec asks of every shader;
+        - the moon's seas, which the worktree's shots showed as blotchy noise (and the texture's lattice showed as squares), are now twelve soft overlapping patches laid out like the real moon's face, with shores roughened by the noise;
+        - a moon straight overhead keeps its face's axes.
+      - **`arenas/moonlit_shrine/moonlit_shrine_env.tres`**, the night environment's ambient light, tonemap and fog with the sky as background; glow off, as on every preset. It is the shrine's `ArenaDef.environment`.
+      - **`MoonlitShrine`**:
+        - copies its `def.environment`, sky included, so each shrine's sky is its own;
+        - sets the sky's `moon_direction` from `layout.moon_direction` (the red rim light already shines from it), paints its horizon in the depth fog's colour so the fog fades into it, and gives it the look's noise texture. A sky that isn't a shader, bought art say, is left as it is;
+        - no longer falls back to the night environment.
+      - **Tests:**
+        - the environment is the shrine's own copy, with the sky as background, its own sky material, the noise texture and the fog's colour at the horizon (each sky parameter read only once the shader is known to declare it);
+        - a sky that isn't a shader comes through as it is;
+        - the shrine's environment has depth fog that starts past the courtyard and height fog that gathers under the ledge, so the courtyard stays clear;
+        - the moon is above the horizon and inside player one's starting follow view;
+        - a layout with the moon elsewhere moves the sky's moon and the rim light, and leaves another shrine's moon alone;
+        - height fog per preset.
+      - **Shots reviewed:** gameplay, Watch, menu and establishing at High and gameplay at Low. The moon sits up and left of the opponent in player one's view; the Watch and menu views show the stars, the haze and the clouds. Below the horizon the sky is mist until the sea of clouds (17.7).
+  - [x] **17.7 Sea of clouds, mountains, cliff pagodas, waterfalls and the lake.** The backdrop builder and its shaders, with scenery detail per preset.
+    - Note from 17.5: `ShrineLayout.cloud_sea_height` is already there (the chains end in the clouds). `ShrineUnderside._rock_material()` is the rock for the cliffs, and the floating rocks could carry the temple hall.
+    - Check: the far clip reaches the farthest ring and the camera takes it; detail follows each preset; gameplay, Watch, menu and establishing shots at the three presets reviewed.
+    - Blocked by: 17.4, 17.6 · Stories: 46, 47, 57
+    - Done:
+      - **`ShrineBackdrop`** (`arenas/moonlit_shrine/shrine_backdrop.gd`), salvaged, builds `World`:
+        - `CloudSea`, the dense sea of clouds, and `CloudVeil`, a softer layer over it, with a clearing where the lake shows;
+        - `Mountains`, four rings (`Range0` nearest) with a valley toward the moon;
+        - `Lake`, far off under the moon, and `LakeLanterns` drifting on it;
+        - `Cliffs`: six spires out of the clouds (`Spires`, the crag's rock darkened) with pagodas and temple halls facing the shrine, and `Waterfalls` from three of them into the clouds;
+        - `Mist`, puffs at the waterfalls' feet and on the clouds near the island, and `CragMist` round the crag's tip, on the below-deck layer with the crag.
+        - No part casts a shadow or draws an outline. `ShrineBackdrop.DETAIL` gives each part's scenery detail: Low draws the sea of clouds, the mountains and the lake; Medium adds the veil, the cliffs and the lake lanterns; High adds both mists.
+      - **Shaders**, salvaged: `cloud_sea`, `mountain_layer`, `waterfall`, `lake_water` and `mist_puff`, all unshaded.
+      - **Changes to the worktree's backdrop:**
+        - every shader fetches the look's noise in place of value noise computed per pixel (the cloud sea's domain warp went from 48 hashed lattice lookups a pixel to 8 fetches);
+        - the clouds, the mountains and the lake take the depth fog's colour as `horizon_color`, as the sky's horizon does;
+        - the mountains' strokes round each ring are a multiple of the noise's period, so they meet where the ring closes;
+        - one random stream per kind (mountains, cliffs, pagodas, mist, crag mist, lake lanterns);
+        - the lake could never be seen: the rings in front of it stood 38–70 m above the water even in their valley. The valley toward the moon now drops each ring toward a floor 10 m under the water (`VALLEY_FLOOR`), and the two nearest rings drop all the way (0.95), so the lake shows under the moon from outside the walls. The fight cameras look over the parapet, which hides anything as far below the horizon as the water, so they see a gap in the ranges under the moon instead;
+        - the farthest ring rose 9° above the horizon right under the moon, into its disc; the two farthest valleys are now 0.6 and 0.65 (were 0.45 and 0.2), so every ridge stays under the moon;
+        - the mountains' red moon tint no longer goes negative below the clouds, where it turned the walls dropping into the valley teal;
+        - the lake's data is (angle, distance, height, radius), like the floating rocks'.
+      - **`ShrineProps`** gains the pagoda, the temple hall and their `wood`, `roof` and `window` materials (`distant_glow_material()` lights the windows and the lake lanterns); `materials(false)` gives far scenery's, without outlines.
+      - **`ShrineLayout`** gains `mountain_layers`, `cliffs` (their buildings go by radius: `ShrineBackdrop.PAGODA_CLIFF` and `TEMPLE_CLIFF`), `waterfall_cliffs` and `lake`, and `pagoda` and `temple_hall` in `PROP_KINDS`. A bought pagoda or temple hall is modelled 1 m wide, scaled to its cliff, and should come without outlines.
+      - **The sky's `moon_radius`** is set in the shrine's environment, so tests can read the moon's size.
+      - **`ShrineUnderside.rock_material()`** is public, as the 17.5 note asked. The floating rocks' temple hall stays out: in the worktree only a rock over 3.5 m with the fourth dressing got one, and no rock in the data is.
+      - **Tests:**
+        - the farthest ring is built out to its distance, every point of the backdrop is inside the far clip from anywhere the cameras go (the menu's orbit included), and the arena hands the far clip to the match's camera (`test_match_scene` checks the camera takes it);
+        - what each preset draws of the backdrop, as a table;
+        - the moon clears everything in the backdrop in player one's first view, by the sky's own `moon_radius`;
+        - the rings in front of the lake dip under its water toward the moon;
+        - the crag mist on the below-deck layer;
+        - no shadows or outlines in the backdrop on High;
+        - every backdrop shader in use, with the noise texture;
+        - a bought pagoda and temple hall on every cliff that has one.
+      - **Shots reviewed:** gameplay, Watch, menu and establishing at High, Medium and Low, and the top-down view. The establishing view shows the lake under the moon with its red glint and lanterns. Low's sea of clouds is a soft wash; the veil and the mist bring the billows on Medium and High.
+      - **The suite's run time:** the Godot tests took about 130 s on this machine for this task and for 17.6's commit alike (56 s when 17.6 was committed), so the slowdown was the machine's; the shrine's tests take about 6 s.
+  - [x] **17.8 Drifting embers and ash.** Embers from each lantern and up past the edge, and ash across the courtyard, following each preset's particle ratio. The petals are left out unless the owner wants them.
+    - Check: one ember emitter per lantern; counts follow the presets; shots at High and Low reviewed.
+    - Owner: whether to keep the petals.
+    - Blocked by: 17.4 · Stories: 47, 57
+    - Done:
+      - **`ShrineParticles`** (`arenas/moonlit_shrine/shrine_particles.gd`; the worktree's `ShrineAmbience`, renamed because "ambience" is the arena's sound bed, `ArenaDef.ambience_id`), salvaged, builds `Particles`:
+        - `LanternEmbers0` and on, embers rising from each lantern's fire (`ShrinePlatform.fire_points()`, public now as the 17.4 note asked), bought lanterns too;
+        - `EdgeEmbers`, embers carried up on the updraft from the open air under the ledge's rim, all round the island, up past the rim and over the courtyard on the wind;
+        - `Ash`, pale flakes falling with the wind over the whole island.
+        - GPU particles, as the 16–18 notes recommend for ambience, in `look_particles`, so each preset's particle ratio thins them: High draws 18 embers a lantern, 70 on the updraft and 260 flakes, Medium 60% and Low 30%. None casts a shadow.
+      - **Shaders:** `particle_flake`, salvaged (camera-facing flakes that spin and flip as they flutter), and `particle_billboard.gdshaderinc`, which it shares with `particle_glow`: turning a quad to face the camera, and fading it out near the camera.
+      - **Changes to the worktree's particles:**
+        - its updraft started inside the ledge's rock (16.5–21 m out, 3 m down), so its embers came up out of the ledge among the lanterns. They now start in the open air 4–8 m past `crag_radius` (the rim's bumps reach 16% past it), 2.5–5.5 m under the floor, and the slowest clear the floor;
+        - its wind blew toward +x while the sea of clouds drifts toward −x. `ShrineLayout.wind` (level, m/s) now carries both: the particles drift with it, and the clouds take its direction (`drift_direction` on `cloud_sea`, 6% slower than their old diagonal);
+        - its wind was a sideways pull labelled as a speed, and its ash's damping (0.3–0.6) outweighed its pull down (0.4), so the slowest flakes hung in the air. Every particle now sets off with the wind and climbs or falls at a set speed (`_launch`); the ash falls at 0.7–1.1 m/s from 8–11 m up, and the slowest reach the floor by three quarters of their life, while they still show;
+        - no turbulence. Godot's turbulence steers each particle toward its noise field every frame. Measured in a window with `capture_aabb()`: at the worktree's settings the updraft's embers peaked about 1.5 m above the floor, just over the parapet, and the ash wandered as far up as down; even at 1% the embers peaked at 3.5 m and the ash stayed 2 m up. Without it the embers climb to about 10 m and the ash falls past the floor. The flakes flutter in their shader instead;
+        - twice the size (embers 8–18 cm, flakes 6–12 cm): the worktree's came to 1–2 px at fight distance. Each lantern now trails a plume that shows;
+        - embers and flakes fade out within 1–4 m of the camera (`near_fade`, off for the lantern halos): a flake 2 m from the camera drew a 25 px pale disc over the opponent;
+        - each visibility box comes from its emitter's launch and pull, and `capture_aabb()` confirmed every particle stays inside;
+        - the petals stay out, waiting on the owner. The floating rocks' lanterns, 31–64 m off, have no embers.
+      - **Tests:**
+        - one ember emitter per lantern, at its fire, the slowest still climbing, bought lanterns too;
+        - the updraft's embers start past the ledge's measured rim and under it, and the slowest from the lowest clear the floor;
+        - ash over the whole floor from above the torii, the flakes that land on the upwind edge set off over the island, and the slowest from the lowest reach the floor by three quarters of their life (both guards fail when broken);
+        - the clouds' drift and every emitter's drift follow the layout's wind, at its speed, with no turbulence;
+        - the near-camera fade, no shadows, and each preset's ratio.
+      - **Shots reviewed:** gameplay, Watch, menu and establishing at High and Low, and the top-down view. The ash shows as pale flecks against the dark and is lost against the pale floor; embers rise past the rim in the establishing view; Low draws 30%.
+  - [x] **17.9 Preset benchmark of the shrine.** The worktree's bench mode in `arena_shot.gd` (interleaved rounds, average and 95th-percentile frame time), run at 1080p on the target laptop with the real fighters. Presets are tuned if High drops below 60 fps, and the numbers go in the spec.
+    - Check: High averages at least 60 fps at 1080p; side-by-side preset shots reviewed.
+    - Note from 17.7: Low draws the full domain-warped sea of clouds, and Medium two layers of it; a cloud shader without the warp for Low is the first saving if one is needed.
+    - Note from 17.8: the embers and ash are 10 GPU emitters, 474 small unshaded quads on High.
+    - Blocked by: 17.5, 17.7, 17.8 · Stories: 57
+    - Done:
+      - **The bench mode in `tools/shot_scenes/arena_shot.gd`**, rebuilt from the worktree's on the stepped `MatchHost`:
+        - it plays a real computer duel (the Rogue with the katana against the Hunter with the greatsword) from the view's camera, with the HUD, one rules step a frame, where the worktree timed capsules standing still;
+        - every entry restarts the match at the start of the fight, so each one times the same frames of the same fight;
+        - the window goes to 1080p (`bench_resolution`) with vsync off, and each entry is timed `bench_passes` times (3), interleaved: 45 frames to settle, then 300 timed. The task's "rounds" are called passes in the code, since a Round is the match's;
+        - it prints one line per entry: fps and the average frame time (each round's listed, to show drift), the 95th percentile, and the GPU's and the CPU's render times;
+        - the shot it saves is a sheet of the entries side by side at the same moment of the fight, each labelled. `shot.gd` takes a scene's own picture through `shot_image()`.
+      - **`tools/shot_scenes/arena_bench.tscn`** times Low, Medium and High from the gameplay view. `--bench=` turns any arena shot into a bench (`"--bench=low;medium;high"` on `arena_watch.tscn`, say), and `--bench-passes=`, `--bench-frames=` and `--bench-res=` override the rest (a count below 1 or a bad size is reported).
+      - **Overrides, to find what costs what:** an entry is a preset id, optionally with `:` and comma-separated overrides. `<setting>=<value>` sets any `GraphicsPreset` setting, and `hide=<path>` hides a node under the match view (`high:hide=Arena/World`). They replace the worktree's thirty hard-coded overrides, several of which needed its `_probe` shaders. An entry that can't run is reported, so the run fails, and left out.
+      - **The numbers** (1080p, on the target laptop plugged in; three passes, which agree within 0.4 ms):
+
+        | Preset | Gameplay view | 95th percentile | GPU | Watch view | Menu view |
+        |---|---|---|---|---|---|
+        | Low | 102 fps (9.8 ms) | 10.3 ms | 7.2 ms | 98 fps | 103 fps |
+        | Medium | 79 fps (12.6 ms) | 13.2 ms | 9.8 ms | 75 fps | 79 fps |
+        | High | 69 fps (14.6 ms) | 15.3 ms | 11.7 ms | 66 fps (p95 16.4 ms) | 68 fps |
+
+        High holds 60 fps in every view, so no preset is tuned. A short run on battery gave the same numbers. The worktree's High ran 61–63 fps with capsules standing still, so the salvaged shrine is cheaper than it was even with the real fighters (about 0.9 ms for both); where the saving came from wasn't traced (the backdrop's shaders fetching the noise texture in 17.7 is one candidate).
+      - **What High's parts cost** (gameplay view, two passes of 200 frames, by turning each off): the lantern lights 1.1 ms, the moon's shadows 1.1 ms, the fighters 0.9 ms, the backdrop 0.5 ms, the prop outlines 0.4 ms, the embers and ash 0.1 ms.
+      - **Tests** (`test_arena_shot`): the command line, and bad counts and sizes on it reported; entries with overrides and hidden nodes, and bad or repeated ones reported and left out; the passes interleaved; the average and the 95th percentile; each entry replaying the fight from the same moment at its preset; the match played with its HUD, one step a frame; every entry timed in every pass and reported; the sheet in order.
+      - **Shots reviewed:** the sheets from the gameplay, Watch and menu views. Low leaves out the cliffs, pagodas and waterfalls and the ink-wash pass, Medium brings back the cliffs, and High adds the mist and the prop outlines. The camera's shake can differ a little between entries, since its random offsets don't restart with the match.
+      - **For later:** for task 18's effects, High leaves about 2 ms a frame from the gameplay camera (1.4 ms at the 95th percentile), but only about 1.5 ms from the Watch camera (0.3 ms at the 95th percentile); see the notes on 18.1 and 18.12. (17.10, with the rules at 15 m: about 1.7 ms from the gameplay camera, 0.4 ms at the 95th percentile.)
+  - [x] **17.10 Radius check on the shrine as every match's arena; task 17 ticked.** With the rules at 15 m, a headless computer-vs-computer match on the shrine keeps fighters inside the parapet and dropped weapons bouncing inside. The camera at the wall doesn't pass through lanterns, pillars or trees.
+    - Check: the shrine tests pass with the radius from `SimConst`; wall and top-down shots reviewed; the bench is still within budget.
+    - Blocked by: 8.3, 17.9 · Stories: 11, 15
+    - Done:
+      - `test_shrine_as_arena.gd` (new), with the props' real triangles (the shrine's built meshes, bought art included, and the gates' ropes) as trimesh bodies in a physics space:
+        - a default match is fought on the shrine, whose walkable radius is the rules';
+        - three Hard computer matches (Katana against Greatsword) play to the end, back a fighter against the wall (a body reaches 15.0 m) and keep every body inside the parapet's inner face (15.075 m), with feet never above 2.5 m;
+        - each weapon, dropped at the wall, bounces off its 14.2 m ring and, drawn centred along its real length, never pokes into the parapet: the greatsword (1.72 m) reaches 15.06 m at most;
+        - no prop reaches into the room the match cameras move in: within the camera limit plus 0.3 m of the centre, between the lowest and highest the rig puts a camera (1.57–4.60 m with that margin: fighters closest and furthest apart, feet at the floor and at 2.5 m, shake included). That covers every mode, the KO orbit and Versus too. A dead tree's branch overhangs inside 16.2 m, but only from 5.1 m up;
+        - the cameras pass over the parapet with its top more than the near plane's 0.16 m below them;
+        - the sweep that found the problem stays as a scenario: the follow camera round the wall at every degree, the opponent 2.5, 6 or 12 m away at bearings up to 60° either side, never within 0.3 m of a prop nor passing through one between degrees.
+      - The review found the first version's match loop waiting for a `matchOver` phase that doesn't exist (the phase is `matchEnd`), no weapon getting near the wall, and the sweep covering only 1.95–2.86 m up; the tests above replaced it.
+      - That sweep found the cameras inside lanterns, pillars, pine canopies, dead trees, ropes and streamers all round the wall at the old 19.5 m limit; a gameplay shot at 40° was black, the camera inside a pine. Moving the props out wasn't possible (the pines' canopies would need the ledge past its 21.3 m rim), so the shrine's `camera_max_radius` is now 16.2 m: every radius up to 16.4 m was clear, and from 16.6 m the cameras hit the torii posts and the lanterns. With a fighter backed against the wall, the follow camera now sits about 1.6 m behind them; the owner reviews that framing (Waiting list).
+      - `arena_shot.gd` takes `wall_angle_deg` (`--wall=<degrees>`) to back side 0 against the wall, `wall_separation` metres from side 1, and `arena_wall.tscn` uses it at 40°; `test_arena_shot` covers both. Reviewed by eye: the gameplay view at the wall before (black, inside a pine) and after, the Watch view there, and the shrine's top-down view (the rules' wall at 15.00 m just inside the parapet's inner face at 15.075 m, centres stopping at 14.58 m, and no ring for a walkable circle that differs from the rules').
+      - `test_arena_def` checks the shrine's walkable radius against `SimConst.ARENA_RADIUS`; the other shrine tests read it from the data.
+      - The bench at 1080p on mains power: High 66.8 fps (95th percentile 16.3 ms), Medium 76.9, Low 99.9, against 69, 79 and 102 at 17.9, when the rules' wall was at 11.5 m. Still within budget; no preset needed tuning. Task 18's headroom on High shrinks to about 1.7 ms a frame (0.4 ms at the 95th percentile); see 18.1.
+      - Story 15 ticked in the spec. Story 11 (the over-the-shoulder camera) waits for the owner's look at the camera at the wall. Task 17 is done.
+- [ ] **18. Combat effects and game feel.**
+  - Delivers:
+    - brush-stroke trails in three colours;
+    - sparks and ink splashes;
+    - the parry ring and camera push-in;
+    - the warning mark with a reach effect for unblockables;
+    - the ultimate aura;
+    - the dropped-weapon beam and marker;
+    - shake, field-of-view kicks, hit-stop and slow motion;
+    - the reduce-flashes option.
+  - Check: screenshots of each event; every event in the demo's event table has its effect.
+  - Task 6 already does hit-stop, slow motion, shake and field-of-view kicks.
+  - [ ] **18.1 The effects layer on the match clock.** `CombatEffects` with pooled flashes and rings and a MultiMesh particle pool, timed on the world frame plus the host's alpha, cleared at round start, and scaled by the preset. An effect table maps events to effects, starting with today's contact flashes.
+    - Check: effects hold through hit-stop and pause, run at 0.3× in the KO slow motion, clear at round start and leave no stray nodes; particle counts follow the preset; exchange and parry shots are deterministic.
+    - Note from 17.9: on the target laptop at 1080p, High takes 14.6 ms a frame from the gameplay camera (15.3 ms at the 95th percentile), which leaves about 2 ms, and 15.2 ms from the Watch camera (16.4 ms at the 95th percentile), which leaves about 1.5 ms on average and almost nothing in the slow frames. Since 17.10 (rules at 15 m, fights reaching the props' side of the courtyard) the gameplay camera takes 15.0 ms (16.3 ms at the 95th percentile): about 1.7 ms left, and 0.4 ms in the slow frames. `tools/shot_scenes/arena_bench.tscn` times a real fight on the shrine, hits included, so run it as effects land; `high:hide=<path>` entries time a part on its own.
+    - Blocked by: 14.2, 16.5 · Stories: 19, 48, 49
+  - [ ] **18.2 Trail rules.** `TrailState` per fighter and hand: on in the active frames plus about two frames of fade, off while charging or for Flash, red for unblockables, gold for ultimates, white otherwise, and both hands for the Daggers.
+    - Check: tests drive a world through a Katana light, a Greatsword unblockable, a charged heavy and an ultimate.
+    - Blocked by: 18.1 · Stories: 22, 48
+  - [ ] **18.3 Brush-stroke trails in white, red and gold.** A tapered, ink-edged ribbon over the blade's last half metre, taken from the fighter view's blade segments and sampled on the effect clock.
+    - Check: the ribbon exists only while the trail is on, stays clear of the attacker's body and freezes in hit-stop; shots of a Katana light, a Katana unblockable and a Moonsplitter reviewed.
+    - Blocked by: 18.2 · Stories: 16, 22, 48
+  - [ ] **18.4 Sparks and ink splashes.** Hits give warm sparks and a dark-red ink splash (dust for fists, a ground ring for colossal hits, purple for backstabs); blocks give sparks and a flash; weapon bounces give sparks. Everything sits at the event's contact point.
+    - Check: the table tests (counts by weight); splashes fall and settle; shots of light, heavy, blocked and colossal hits reviewed.
+    - Blocked by: 18.1 · Stories: 19, 48
+  - [ ] **18.5 Parry ring, sparks and the camera push-in.** A camera-facing ring (parry, flash and redirect colours), 60 sparks and a flash; `CameraRig.push_in` dollies toward the look point and eases back, frozen in hit-stop.
+    - Check: the push-in moves toward the look point and settles back; a parry spawns the ring and the push-in; the parry shot reviewed.
+    - Blocked by: 18.4 · Stories: 40, 49
+  - [ ] **18.6 Warning mark and reach arc for unblockables.** A billboard 危 with THRUST, SWEEP or SLAM in red (奥義 ULTIMATE in gold) over the attacker's head, timed on the effect clock, and a red ink arc on the floor showing the move's reach and arc during the wind-up.
+    - Check: text and colour by kind; lifetime in frames; the mark follows the head; the arc's radius equals the move's reach; shots of each kind reviewed.
+    - Blocked by: 18.1, 22.1 · Stories: 22, 42
+  - [ ] **18.7 Ultimate-ready aura.** Rising embers in the side colour while the fighter can use the ultimate.
+    - Check: the aura is on exactly when the ultimate is ready and the fighter isn't KO'd; a shot reviewed.
+    - Blocked by: 18.1 · Stories: 48
+  - [ ] **18.8 Ultimate effects.** Rings for the ultimate start and choice; the Moonsplitter wave travelling at the rules' speed and range; Impaler dust, impale and burst; Tempest lightning.
+    - Check: the wave stands where the rules put it on each frame and is gone at its range; each ultimate event spawns its effect; shots of each ultimate reviewed.
+    - Blocked by: 18.4 · Stories: 30, 34, 39, 48
+  - [ ] **18.9 Counter, disarm, KO and status flashes, and movement dust.**
+    - Check: the table tests; shots of a stomp, a disarm and a KO reviewed.
+    - Blocked by: 18.4 · Stories: 41, 48
+  - [ ] **18.10 Dropped-weapon beam, ground marker and model.** An additive column and a pulsing ring in the owner's colour while the weapon lies on the ground, with the toon weapon model (the Daggers as a pair).
+    - Check: beam and ring only while grounded; removed on pickup, recall and round start; the pulse runs on the effect clock; a shot after a disarm reviewed.
+    - Blocked by: 18.1 · Stories: 48
+  - [ ] **18.11 Reduce flashes and shaking.** `GameSettings.reduce_flashes`, saved and off by default, sets the shake to 0.15, turns off the field-of-view kicks and the push-in, and scales flashes to 0.45.
+    - Check: with it on, a parry makes no kick or push-in, shake is scaled and flashes dimmed; the setting saves and loads.
+    - Blocked by: 18.5 · Stories: 57
+  - [ ] **18.12 Effects parity check, re-shoot and re-benchmark on the finished fighters; task 18 ticked.** A test that every rules event has an effect or is on an explicit no-visual list, including shake and kick amounts; the effects shot series at High and Low; the shrine bench rerun with the finished fighters and effects.
+    - Check: the parity test passes; the shot series is reviewed; High still averages at least 60 fps at 1080p on the target laptop, or the presets are tuned until it does.
+    - Note from 17.9: the bench is `arena_bench.tscn` (gameplay view), plus `"--bench=low;medium;high"` on `arena_watch.tscn`, the heaviest view. Tuning candidates on High, by what they cost in 17.9: the lantern lights 1.1 ms, the moon's shadows 1.1 ms, the prop outlines 0.4 ms.
+    - Blocked by: 15.16, 18.4–18.11 · Stories: 40, 48, 49, 57, 65
+
+### Phase F: sound and music
+
+- [x] **19. Sound effects.** The Sonniss extraction and processing script with its sources list; generated gap-fill sounds; the event-to-sound table with variations; buses; 3D impacts; footsteps; arena ambience.
+  - Check: every event in the demo's audio table has a sound; a headless run logs no missing sound files; the committed audio is under 40 MB.
+  - The assets, the sound bank and the bus layout were built early and merged; what remains is playback.
+  - [x] **19.1 Pooled sound player.** `SoundPlayer` with cached streams, flat and 3D voice pools that steal their oldest voice, variations that never repeat back to back, pitch ranges, delayed cues, hold and stop, and a list of anything missing.
+    - Check: a colossal hit requests both its cues on Combat; delayed cues fire when due and never while held; pools steal; spatial cues get 3D voices; nothing is missing for the real bank.
+    - Blocked by: none · Stories: 50, 63
+  - [x] **19.2 The rules events' sounds in a match.** `MatchAudio` in the match host plays every event's cues in played matches and on the results screen, keeps the attract duel silent, holds sound in pause, and stops on quit.
+    - Check: a scripted Duel plays its cues, in event order, on the right buses; the attract duel is silent; a pause holds the round gong; quitting leaves nothing playing; no stray nodes.
+    - Blocked by: 19.1 · Stories: 19, 40, 50
+  - [x] **19.3 Impacts in 3D, the arena reverb and the listener.** Event positions (contact points, else the named fighter's chest); gentle attenuation; an explicit listener on the view camera; the Arena reverb on the Combat and Foley bus chain (it replaced the planned `Area3D`; see Decisions).
+    - Check: a hit plays from a 3D voice at its point; the opponent's hits sit on the opponent's side of the listener (the sign of their position in the listener's space); a dodge plays at the dodging fighter; the KO calls stay flat while the body fall is placed; Combat and Foley pass through the Arena reverb, which keeps the dry sound.
+    - Blocked by: 19.2 · Stories: 50
+  - [x] **19.4 Footsteps.** `FootstepCadence` counts ground distance per fighter (not in the air, a dodge, a knockdown or hit-stop) and plays the footstep cue at the feet every stride, behind an interface the real foot contacts can drive later.
+    - Check: distance over stride gives the count; standing, jumping and dodging give none; hit-stop gives none.
+    - Blocked by: 19.3 · Stories: 50
+  - [x] **20.1 Music player with 10–20 ms fades.** `FadedLoop` and `MusicPlayer` with crossfades, following the director's track changes. The fades are the mixer's own volume ramp (see Decisions).
+    - Check: the gain reaches full and silence within 10–20 ms; switches overlap with no gap; streams stop only after their fade; one windowed capture of a start, a stop and a switch shows no click in the captured samples.
+    - Blocked by: none · Stories: 51
+  - [x] **20.2 Music driven by the menus and the match.** `GameServices` owns the director and player. The title, menus and results play the menu track and a played match plays battle; a round call with a fighter on two wins switches to match point. The attract duel never changes the track.
+    - Check: the flow tests cover each switch, including match point at the next round start and none from the attract duel.
+    - Blocked by: 19.2, 20.1 · Stories: 6, 51
+  - [x] **19.5 Arena ambience.** The arena's ambience loop (from its data, `ambience_shrine` by default) fades in with a played match, carries through pauses and fades out on quit.
+    - Check: a Duel starts the loop on the Ambience bus; the attract duel has none; quit fades it; a fake arena's cue plays.
+    - Blocked by: 19.2, 20.1 · Stories: 47, 50
+  - [x] **19.6 Ducking.** Compressors on the Music and Ambience buses, sidechained to Combat (threshold −10 dB, ratio 1.3, release 300 ms: a combat sound at −3 dB ducks them 3.4 dB, and they come back within 1 dB in about 0.36 s; in a Watch match the music dips up to about 3 dB, usually under 1.5).
+    - Check: the bus layout test asserts both, with their sidechain.
+    - Blocked by: 19.2, 20.2 · Stories: 50, 51
+  - [x] **20.3 Master, effects and music volumes, saved.** Volumes in `GameSettings` (0–100 in steps of 5), applied on top of the layout's levels, muting at 0.
+    - Check: defaults, save and load, clamping and snapping, the levels at 100 and 0, without touching the real settings file.
+    - Blocked by: 16.5 · Stories: 52
+  - [x] **19.7 Menu sounds.** `GameServices.play_ui` for move, select, confirm and back, called from the menus.
+    - Check: focus moves, presses and Back play their cues on the UI bus; the attract duel stays silent.
+    - Blocked by: 19.1 · Stories: 3
+  - [x] **19.8 Headless check that every sound plays.** Seeded computer-vs-computer matches per weapon pairing with the audio attached, failing on a missing file, an event that played nothing, a logged error, or a music track that doesn't load.
+    - Check: it passes, and a scratch edit pointing a cue at a missing file makes it fail.
+    - Blocked by: 19.3, 19.4, 19.5, 20.2 · Stories: 50, 60, 63
+  - [x] **19.9 Sound check scene; tasks 19 and 20 ticked.** A tool scene steps through every event's cues, the footsteps, the ambience and the three tracks with their switches, so the owner can hear what a Duel rarely triggers.
+    - Check: the scene runs through every cue without errors; the Node audio tests still pass.
+    - Owner: a listening pass over a Duel, a Watch match and the sound check. Its fixes (levels, delays, attenuation, ducking, default volumes) come back as their own small tasks.
+    - Blocked by: 19.6, 19.7, 19.8, 20.3 · Stories: 50, 51, 52
+    - Done:
+      - `tools/sound_check.tscn` (`SoundCheck`), played with `node scripts/godot.mjs run res://tools/sound_check.tscn`: 58 steps, about 2.6 minutes, each starting from silence and moving on when its last sound has played out:
+        - every rules event that has sound, in each form the sound bank tells apart (swings by weapon and weight, hits by sound and weight, light and heavy blocks, the three parries, the three counters, slow and fast bounces), with the stagger, the ultimates, the recall and the pickup that a Duel rarely reaches, and the KO and the round call with their delayed cues;
+        - the four menu sounds, a heavy hit at 1.5, 3, 6, 12 and 24 m, footsteps at the guard walk, the run and the sprint and the opponent's run, and the shrine's ambience fading in and out;
+        - the music through the director: the menu track from silence, a match starting, the round call with a fighter on two wins (match point), the results, and the fade out; then Greatsword and light hits over the battle music and the ambience, to hear the ducking.
+        - The camera stands where the gameplay camera follows your fighter, and each event plays where a match puts it. The screen lists each cue's file, level, pitch, bus and distance. Right and Left step, Down and Up jump between sections, Enter plays a step again, Space stays on a step, Esc quits.
+      - `test_sound_check.gd` (13 tests) runs it to the end on its own clock: each step plays exactly its events' cues, delayed ones included, and every sound ends before the next step starts; every cue in the bank and every form the bank tells apart plays; the music and the ambience play only in their steps, with the switches above; and the keys. Twenty deliberate breaks each failed it.
+      - Played through in a window (WASAPI, 48 kHz) in 157 s with no errors. Each step's peak on the Master bus (after its compressor, before the master volume), for the listening pass: swings −20 to −15 dB; hits −13 to −8; blocks −12 and −10; parries and counters −11 to −5; the disarm −4; the stagger −14; dodges, jumps, landings and tap steps −19 to −16; the KO −6; the round call −9 and the fight call −5; the ultimates −12 to −5; the recall −13 and the pickup −17; bounces −26 (slow) and −16 (fast); the menu sounds −16 to −7; the music −10 to −8; the ambience −22; and the footsteps −30 (the opponent's −34), well under everything else.
+      - Tasks 19 and 20 are done (the committed audio is 30.4 MB, under 40). Stories 50 and 51 wait for the owner's listening pass, and story 52 (volume settings) for the Settings screen (22.9): the volumes can't be changed in the game yet.
+- [x] **20. Placeholder music.** Generated menu (110 BPM), battle (140 BPM) and match-point (160 BPM) tracks; a music director that switches at the round call; volume settings.
+  - Check: tempos measured from the files; switching happens when a fighter reaches two wins.
+  - The tracks and the director are built and merged. 20.1–20.3 are listed with task 19 above, in build order.
+
+### Phase G: screens and modes
+
+- [x] **21. Input devices and controls.** Per-player devices (keyboard and mouse, arrow-key layout, controllers 1 and 2), profiles with rebinding, PlayStation and Xbox names, the fight-stick preset, and saving.
+  - Blocked by: 6.
+  - Check: tests for the profile mapping and saving; rebinding every action works on keyboard and controller.
+  - Done early on its own branch: 118 input tests, reviewed for parity with the demo (11 differences fixed). The Controls screen that drives rebinding is part of task 22.
+- [ ] **22. Menus.**
+  - Delivers:
+    - the title with a live background duel;
+    - the main menu;
+    - fighter and loadout select;
+    - settings;
+    - how to play and a move list generated from the data;
+    - pause;
+    - results;
+    - the ink-wash UI theme and bundled fonts;
+    - the Controls screen with rebinding capture, and the Versus device and profile pickers;
+    - the pause menu's Controls screen, using the input host task 6 built.
+  - The fighter select uses the design doc's final layout, without the gate cinematic or intros: a fighter grid; the hovered fighter's model on the right, in a 3D preview; the loadout (weapon and two block abilities) on the left; an arena slot with one entry plus Random; lock in.
+  - Check: screenshots of every screen; the whole flow is navigable with keyboard only and with controller only.
+  - [x] **22.1 Ink-wash UI theme and bundled fonts.** Zen Antique and Zen Kaku Gothic New with their licence (or Godot's default font until the owner approves the download). `UiPalette` takes the demo's colours. A project theme gives display, kanji, eyebrow and muted variations and lacquered panels and buttons, and the stand-in screens and HUD move onto it.
+    - Check: the theme loads with its fonts, and the bundled fonts have every kanji the UI uses; shots of the current screens and HUD in the theme reviewed.
+    - Blocked by: none · Stories: 2, 3, 8, 9, 46
+    - Done:
+      - The owner approved the fonts on Oct 2: Zen Antique and Zen Kaku Gothic New from google/fonts, with their SIL Open Font Licences, in `game/ui/fonts` (7.9 MB, each file under the 10 MB check). Only the Regular weights: the Bold the demo loads waits for the screen that uses it (the loadout panel's ability names, 22.6).
+      - `UiPalette` holds the demo's colours (`:root` in `src/ui/style.css`, with its lit button text and hot posture fill). `ui/theme/ink_wash.tres` is the project theme (`gui/theme/custom`), and `UiTheme` names its variations and makes labels in them: Zen Kaku Gothic New at 22 px on paper with a soft shadow for text; DisplayLabel (Zen Antique, slightly spaced), KanjiLabel (Zen Antique in lacquer), EyebrowLabel (spaced Zen Kaku Gothic New in the dimmed paper; `UiTheme.label` sets it in capitals) and MutedLabel; buttons as the demo's `.btn` (Zen Antique on ink in a gold-dim border, gold and #ffe6b0 text when focused or hovered, lacquer-deep in a lacquer border when pressed, as its `.btn.primary`); MenuEntry as its `.mbtn` (no box until focused or hovered, then a lacquer wash with a full-height 3 px lacquer bar, the text staying paper; Godot draws the focus box only for focus from keys or a controller, so the mouse shows the hover box alone); and panels of `--ink-2` at 95% in a 1 px line with a shadow (the demo's gradient and gold inset line left out). A menu button's subline is still a second line in Zen Antique; 22.3 gives the main menu its sublabels.
+      - The stand-in screens moved onto it: `MenuScreen` drops its own panel and button styles (headings through `add_heading`, buttons as MenuEntry), the title sets its name in gold Zen Antique with a spaced tagline and prompt, the results set their title, side names and stat names in the theme's variations, and the HUD's labels (now named, for tests and later tasks) take the variations with an ink outline, its colours from `UiPalette`. A `title` shot joins the skeleton shots.
+      - Neither font has "✕", so the PlayStation cross is named "×" (`BindingLabels`), and the spec says so.
+      - `test_ui_theme.gd` checks, through real labels, buttons and panels: plain text in Zen Kaku Gothic New on paper; the display, kanji, muted and eyebrow variations (an eyebrow sets wider than plain text); the buttons', menu entries' and panels' styles; that both fonts have every kanji in the game's scripts and scenes and every kanji the demo's UI shows, and both fonts every button symbol (×○□△ and the arrows); and that the title, menus, results and HUD set no font or style of their own, with their titles in Zen Antique.
+      - Review fixes: `UiTheme` takes the variation names and the label factory (from `MenuScreen`, which the HUD had borrowed); the tests take their colours from `UiPalette`, so it and the theme file can't drift apart; the lit text and hot posture colours join `UiPalette`; the announcement's subline keeps the eyebrow's dimmed paper, as the demo's; the button symbols are checked in Zen Antique too; menu entries keep paper text when lit; the unused Bold weight is left out.
+      - Shots reviewed (title, main menu, results, round start, dropped weapon): the theme reads over the arena, and the menu's focus bar and the HUD's plates are as the demo's.
+  - [ ] **22.2 Screen stack and menu navigation.** `ScreenStack` (Back returns to the opener) and a `MenuPage` base that acts in `_unhandled_input`. It supports arrows and WASD, Enter and Space, Esc and Backspace, the D-pad, and the stick with the demo's repeat. A chooses and B goes back, and hover focuses. Option and slider rows. `main.gd` moves onto the stack with the flow unchanged, keeping the UI sound hook.
+    - Check: stack and navigation tests with key and joypad events and a fake clock for the repeat; the main flow test passes unchanged.
+    - Blocked by: 22.1 · Stories: 3, 9
+  - [ ] **22.3 Title over the live duel, and the main menu.** The demo's title content over the attract duel on the menu orbit, and the main menu with sublabels (entries are added as their screens land); Back returns to the title.
+    - Check: any key, click or button goes on; the entries and order; keyboard-only and controller-only walks from the title to a Duel; shots reviewed with the fighters visible behind the text.
+    - Blocked by: 22.2 · Stories: 2, 3
+  - [ ] **22.4 Selection model.** `MatchSelection`, plain data:
+    - one draft per mode, with the demo's defaults;
+    - a weapon change resets the side's abilities, and picking the other slot's ability swaps them;
+    - the mirror palette rule;
+    - random weapon and arena resolved at lock in;
+    - saved to `user://last_select.cfg`.
+    `MatchConfig.default_training()`, and `ArenaScenes` lists the selectable arenas.
+    - Check: every mode's default resolves with no problem; the ability swap; the mirror palette; seeded random picks; save and load; a corrupt file gives the defaults.
+    - Blocked by: 22.3 · Stories: 4, 5, 44, 45
+  - [ ] **22.5 Fighter select: grid, sides, difficulty, arena and lock in.** The design layout, with the right side reserved for the preview. Sides pick one after the other, titled per mode. A skill row appears on computer sides. The arena slot offers the Moonlit Shrine or Random. Lock in starts the match, and Duel and Watch open the select. The spec's Out of Scope line about the select is corrected.
+    - Check: walking the select with keys and with a joypad starts the expected config; Back steps between sides; the last picks return; shots in Duel and Watch reviewed.
+    - Blocked by: 22.4 · Stories: 3, 4, 5, 44
+  - [ ] **22.6 Fighter select: loadout panel.** Menu data per weapon (kanji, class, stat bars, ultimate) and per ability; weapon cards, the blurb and ultimate, the two ability slots with descriptions; Random weapon for the Duel opponent; no abilities for the dummy.
+    - Check: every playable weapon and ability has menu data; a card resets abilities; the swap works through the UI; Random hides the blurb; keyboard-only and controller-only walks; shots of each weapon reviewed.
+    - Blocked by: 22.5 · Stories: 4, 5
+  - [ ] **22.7 Fighter select: 3D preview.** A SubViewport with its own small stage showing the hovered fighter in the side's palette with the chosen weapon, idling and slowly turning.
+    - Check: hover, palette and weapon changes swap the model; no orphan nodes after 20 changes; shots with each fighter, palette and weapon reviewed.
+    - Blocked by: 22.6 · Stories: 4, 44, 45
+  - [ ] **22.8 Results with stats, Rematch and Change fighters.** The kanji and title, rounds, the seven stats per side in their colours; Rematch, Change fighters and Main menu.
+    - Check: a lost Duel shows Defeat with stats; Watch names the winner; Rematch takes a new seed; Change fighters opens the mode's select; walks with keys and with a controller; shots reviewed.
+    - Blocked by: 22.5 · Stories: 8
+  - [ ] **22.9 Settings screen.** Graphics, Reduce flashes and shaking, Button hints, and the Master, Effects and Music sliders, each applied and saved at once.
+    - Check: each row changes the settings and the file; sliders step by 5; walks with keys and with a controller; a shot reviewed.
+    - Blocked by: 22.3, 18.11, 20.3, 24.4 · Stories: 52, 57
+  - [ ] **22.10 Controls: the binding table.** Keyboard-and-mouse and Controller tabs opening on the last device used; the controller status line; the 13 actions with two slots each, named in the detected style; Reset and the fight-stick layout.
+    - Check: the table shows each profile's bindings with the right names for keyboard, PlayStation and Xbox; reset and fight stick change and save the profile; walks; shots of both tabs.
+    - Blocked by: 22.3 · Stories: 56
+  - [ ] **22.11 Controls: rebinding capture.** Choosing a slot listens for a key or button (cancel and clear included), feeding the input feed before taking each event; the result goes into the active profile and saves; Back is ignored while listening.
+    - Check: binding a key, a mouse button, a controller button, a trigger and a stick direction; a token moving off its old action; clear and cancel; the saved file changes; a shot of a slot listening.
+    - Blocked by: 22.10 · Stories: 56
+  - [ ] **22.12 Controls: profiles.** Pick, rename (keyboard), new and delete, saved.
+    - Check: each operation changes the profiles and the file; Delete is hidden with one profile; the table follows the active profile; a shot reviewed.
+    - Blocked by: 22.11 · Stories: 56
+  - [ ] **22.13 Move list from the move data.** `MoveList` walks each weapon's light and heavy strings, release variants, movement attacks and block abilities into rows with damage, posture, reach and counter kind.
+    - Check: every move reachable from a weapon appears once with the data's numbers; a changed or added move changes the rows.
+    - Blocked by: 22.3 · Stories: 58
+  - [ ] **22.14 How to play and the move list screen.** The demo's rule blocks, updated for this build's rules, and a move-list tab per weapon and bare hands; Back returns to the opener.
+    - Check: the tabs show the move list's rows; scrolling and tabs work with keys and with a controller; shots reviewed.
+    - Blocked by: 22.13 · Stories: 9, 58
+  - [ ] **22.15 Pause menu.** 休止 Paused with Resume, Move list, Controls, Settings, Restart and Quit to menu; sub-screens over the frozen match; a profile picked here takes effect on resume.
+    - Check: it opens on the pause binding and on focus loss; each entry and Back work; a profile change applies on resume; the rules never step while it is open; walks; shots reviewed.
+    - Blocked by: 22.9, 22.12, 22.14 · Stories: 9, 10, 56
+  - [ ] **22.16 Versus on the menu: device and profile pickers; task 23 ticked.** Player 1 and Player 2 select steps with "Plays with" and a profile picker; a clash refuses lock in.
+    - Check: the pickers write the device and profile; a clash blocks lock in; a started Versus samples each player from their own device and profile; shots reviewed.
+    - Owner: playtests Versus with two controllers and with a shared keyboard.
+    - Blocked by: 22.6, 22.12, 23.7 · Stories: 3, 55, 56
+  - [ ] **22.17 Whole-flow walks with keys only and with a controller only; task 22 ticked.** Two walks through every screen, every mode's select to a started match, the pause and its sub-screens, Controls with capture, Settings, How to play and the results; the stand-in menus retired; a shot scene for every screen.
+    - Check: both walks pass; shots of every screen reviewed.
+    - Blocked by: 22.16 · Stories: 3, 9
+- [ ] **23. Training, Watch and Versus.** The training panel with dummy behaviours, refill and parry timing feedback; Watch with the side-on camera; Versus split screen with per-player cameras and prompts.
+  - Check: screenshots of each mode; Versus runs smoothly with two controllers or a shared keyboard.
+  - [ ] **23.1 Training upkeep in the rules.** `TrainingUpkeep` in `game/sim`, run by the host inside the fixed step: getting up at once after a KO, refill after 90 frames unhurt, the dummy's posture drain and ultimate back, and re-arming after 240 frames disarmed.
+    - Check: a KO in Training stands up; refill timing and rates; the re-arm; refill off; nothing changes outside Training; a short soak is clean.
+    - Blocked by: none · Stories: 53
+  - [ ] **23.2 Choosing the dummy's behaviour.** `MatchHost.set_training_behaviour`. The dummy swaps to a weapon that can perform the behaviour, cleanly in the rules, and the view and HUD follow the swap.
+    - Check: each of the nine behaviours on each dummy weapon ends with a weapon that can do it; no dropped weapon or impale is left behind; a shot after a swap reviewed.
+    - Blocked by: 23.1 · Stories: 53
+  - [ ] **23.3 Training: select and panel.** Training on the menu through the select (the dummy picks fighter and weapon only). A panel shows the nine behaviour chips and refill, driven by keys 1–9 and 0 and by mouse. The pause menu gets a Training section for controllers.
+    - Check: keys, clicks and the pause section change the behaviour and refill; a digit bound in the profile is ignored; Training starts from the menu; shots reviewed.
+    - Blocked by: 22.6, 22.15, 23.2, 24.3 · Stories: 3, 53
+  - [ ] **23.4 Parry timing feedback.** In Training: the frames before impact and the window on a parry, and too early, too late and evaded.
+    - Check: scripted parries in the window, 5 frames early and 3 late each give the right toast and number; nothing shows outside Training; shots reviewed.
+    - Blocked by: 23.3, 24.3 · Stories: 53
+  - [ ] **23.5 Watch through the select.** Two computer sides with difficulties, the side-on camera, the HUD's Watch form, and results naming the winner.
+    - Check: Watch samples no human input and uses the Watch camera; the results name the winner; Watch shots at round start, mid-exchange and a KO reviewed.
+    - Blocked by: 22.5, 24.3 · Stories: 54
+  - [ ] **23.6 Versus split screen.** Two side-by-side views on one world, each with its own CameraRig. Shake and kicks reach both, the preset and the ink pass apply to both, the shrine's underside is hidden per camera, and only one listener hears 3D sound. The other modes keep one view.
+    - Check: Versus builds two cameras and other modes one; no stray viewports after rematches; the underside rule holds in both views, with a Versus shot of a fighter at the wall; frame time at 1080p on each preset measured.
+    - Note from 17.5: the shrine decides only for its own viewport's camera each frame. Call `MoonlitShrine.cull_below_deck(camera)` for the other view's camera every frame, after it moves.
+    - Note from 17.9: the bench in `tools/shot_scenes/arena_shot.gd` times the root viewport with one camera. Measuring split screen needs the rig to build the two views, or a Versus mode on the bench.
+    - Blocked by: 16.5, 17.5, 19.3 · Stories: 55
+  - [ ] **23.7 Versus HUD.** Player 1 and Player 2 plates; prompts per half with each player's own device names; a dropped-weapon marker per half; the demo's Versus toasts and calls.
+    - Check: each player's prompts use their own device's labels; markers project through the right camera; toasts name the player; shots reviewed.
+    - Blocked by: 23.6, 24.2, 24.3, 24.4, 24.5 · Stories: 55, 56
+- [ ] **24. The full HUD.** Bars with a lag bar, posture hot and full states, pips, the ultimate badge, announcements timed on the rules' frames, toasts, prompts and the dropped-weapon marker.
+  - Check: screenshots of each HUD state; announcements freeze during pause.
+  - [x] **24.1 The HUD's top bar.** Plates with the 赤 and 青 seals, HP with its lag band and low-HP pulse, posture with its hot and full states, three pips, the 奥義 badge in three states, and the round kanji; a pure HUD-state function for tests.
+    - Check: each bar state from HP, posture and wins; lag hold and drain; the badge states; shots of each state on each side reviewed.
+    - Blocked by: 22.1 · Stories: 7
+    - Done:
+      - `HudState.of()` (or `of_fighter()`) works out a side's top bar with no nodes: HP as a share and whether it runs low (a quarter or less, standing), posture as a share and its level (calm, hot from 70%, full from 99.9%), the pips lit (rounds won, up to three), the 奥義 badge (ready while the ultimate can be used; used once spent while at a quarter or less; hidden otherwise) and the disarmed tag; `round_kanji()` gives 一 to 九, then round again. `HudLag` is the HP lag band: it holds 0.45 s after a loss, then drains 0.6 of the bar a second to the HP, and a heal moves it at once. All the demo's numbers (`src/ui/hud.ts`).
+      - `MatchHud` builds the top bar on it: each plate's seal (赤 on lacquer, 青 on indigo), name, weapon in spaced capitals and the Disarmed tag (a new theme variation, `UiTheme.TAG`, boxed in danger red); `HudBar` draws HP with the demo's gradient and a 10 px slant at its inner end (the edge open along it) and pulses its fill brighter at low HP; posture with its caption on the inner side, hot and full colours and the full blink on the fill alone; `HudPips` the three diamonds, filled and glowing per round won, the leftmost first on both sides; `HudBadge` the badge in its three states; and the round's kanji in gold over "Round N".
+      - `test_hud_state.gd` checks each state from HP, posture, wins and the ultimate, the lag's hold and drain, the slanted bar's shape on both sides, and the top bar in a match (seals, names, weapons, kanji, the bars' values and lag, pips, badges, the tag, and the posture blink on the fill). `test_ui_theme.gd` checks the tag variation.
+      - Shots reviewed: `skeleton_hud_states` and `skeleton_hud_states_swap` put every state on each side (low HP with its held lag band at the pulse's peak and in its dim, hot and full posture with the blink lit and dimmed, the ready and used badges, one, two and three pips, the disarmed tag), with `round_start` for the calm bars and hidden badges.
+      - Review fixes: the right side's pips fill from the left, as the demo's; the full blink dims the fill, not the bar; the slanted end has no edge; the posture caption and the tag's box were added; the seals, badge, round kanji, bar height and pip spacing came down to the demo's proportions; the tests cover the bars' values, the lag in the scene, the tag, the used badge, the blink and the bar's shape.
+  - [x] **24.2 Announcements with kanji, on the rules' frames.** Round calls (with Final round), Fight, K.O., Double K.O., round results and Disarmed, with the demo's entrance animation driven by the host's step count.
+    - Check: each event's text and length; pausing freezes the announcement and its animation; slow motion stretches it; shots reviewed.
+    - Blocked by: 24.1 · Stories: 6, 7
+    - Done:
+      - `MatchHud.announce(kanji, words, subline, frames)` puts a call on screen; the events give the demo's kanji and words (第N戦 Round N with Final round at two rounds each, 始め Fight, 一本 K.O., 相打ち Double K.O., 勝 or 敗 with the round's result from `_round_result` (勝 in Watch and for a round won, 敗 otherwise, a draw included, as the demo's), 武器喪失 Disarmed with the player's advice) and their lengths in rules frames. The box sits 32% of the way down: the kanji in lacquer, the words in the display font, the subline in spaced capitals.
+      - `AnnouncementEntrance` is the demo's `@keyframes announce` over its 1.3 s (78 frames) whatever the call's length: fade in while shrinking from 1.35 over the first 12%, hold, fade out from 78% while easing to 0.98, then stay gone; Fight, at 54 frames, is cut off at full strength as the demo's. `MatchHud.announcement_age()` counts rules steps since the call plus the part of a step in the host's clock (not the render blend, which holds through hit-stop), so a pause freezes the call and its entrance and slow motion stretches them. The blur in is left out.
+      - `test_hud_announcements.gd` checks the entrance curve, each event's kanji, words, subline and length from the player's side and Watch's, that the entrance runs the same 78 frames for a K.O. and cuts Fight off, that a pause mid-entrance freezes the age and look, and that a second of slow motion leaves the round call under 20 frames in.
+      - Shots reviewed: `skeleton_call` (`--call=final_round|fight|double_ko|round_won|disarmed`, from the player's side), `skeleton_ko` (`--frame=` steps after the K.O.: 5 mid-entrance, 16 settled) and `round_start`.
+      - Review fixes: the entrance runs the demo's fixed 1.3 s rather than stretching over each call; a draw keeps the demo's 勝/敗 (an 引分 was tried and dropped); the box sits at the demo's 32% with its gap and subline size; the age reads the host's clock, not the render blend; the box's height refits to each call so it scales about the middle; the pause test pauses mid-entrance; the curve class is `AnnouncementEntrance`; the shot scene got its own `steps_after` and a shot per call. Versus wording is left to 23.7.
+  - [ ] **24.3 Toasts.** Up to three, 69 rules frames each, for parries, counters, ultimates, backstabs, dazes and evades, in the player's and Watch's wording.
+    - Check: each event's text, subline and colour from both views; a fourth drops the oldest; they expire on steps and hold in pause; shots of each colour.
+    - Blocked by: 24.2 · Stories: 7
+  - [ ] **24.4 Prompts with button names.** Up to two prompts with key caps from the last device used, for recall, Breaker Palm, the Moonsplitter tilt, detonating the Impaler, the counter lunge, picking up the weapon and the ultimate. `GameSettings` gains button hints, which hide them.
+    - Check: each state gives its prompt, at most two and urgent first; labels follow the device; the setting hides them; shots with keyboard and controller names.
+    - Blocked by: 24.3 · Stories: 7, 56, 57
+  - [ ] **24.5 The dropped-weapon marker on screen; task 24 ticked.** "Your weapon" over your dropped weapon, clamped to the screen edge with an arrow when it is off screen or behind.
+    - Check: placement on screen, at each edge and behind; shown only for your own weapon while disarmed; shots reviewed.
+    - Blocked by: 24.4 · Stories: 7, 48
+
+### Phase H: ship
+
+- [ ] **25. Windows build and docs.**
+  - Delivers:
+    - the export preset;
+    - the CI export job and the Release workflow uploading the zipped build;
+    - the Pages workflow removed;
+    - README, CLAUDE.md commands and code notes rewritten for Godot;
+    - credits and licence notices;
+    - `mvp-spec.md` marked as the web demo's record.
+  - Check: CI produces a Windows zip; the exported game launches and plays a match.
+  - [x] **25.1 Size guard and binary attributes.** `scripts/check-sizes.mjs` (`npm run check:sizes`) fails on tracked files over 10 MB unless allow-listed, and prints the asset and repo sizes. It runs in CI. `.gitattributes` gains `*.exr`, `*.blend`, `*.mp3` and `*.tpz`.
+    - Check: it passes on the branch (allowing the 10.58 MB ambience loop) and fails on a scratch 11 MB file; CI prints the sizes.
+    - Blocked by: 13.1 · Stories: 60, 63
+    - Done: the repo comes to 99.9 MB (the spec's estimate was about 100), with game/assets at 73.0 MB (30.4 of it audio), game/fighters 13.7 and game/weapons 0.2. `--include` checks a file before it is added. The guard sees only the tracked tip: a large file added and removed within one push stays in history unnoticed, and CI reports after the push rather than preventing it.
+  - [x] **25.2 Windows export preset, a smoke flag and a local build.** `game/export_presets.cfg`: x86_64 release with the pack embedded, the Shader Baker on, and `tests`, `tools`, `addons/gut` and `_probe` excluded. A `--smoke` flag plays a computer-vs-computer match to the results and exits 0.
+    - Check: `npm run godot -- build` exports with no errors; the exe run with `--smoke` reaches the results and exits 0; `user://controls.cfg` survives between two runs.
+    - Owner: plays a Duel in the exe.
+    - Blocked by: 25.1 · Stories: 1, 64
+    - Done: `npm run build` exports a 179 MB `build/windows/Monomachia.exe` (pack embedded, 528 shaders baked; the dev-only fighter preview left out). The export runs in a window, since baking needs a GPU, and the editor it opens rewrites `project.godot` without its default-valued lines, so the file is committed that way. `Monomachia.exe --smoke` (`SmokeRun`) plays a Watch match to the results in about 3 s and exits 0. It exits 1 on any logged engine or script error, on running out of steps or 120 s, or if the match stops, and resumes a match the window's focus loss paused. Two smoke runs both reported a planted controls profile.
+  - [x] **25.3 CI exports the Windows build and runs a short soak.** The export templates installed and cached; a 4-match soak; the export uploaded as a zip artifact. CI has no GPU, so its export runs headless and can't bake the shaders: its build compiles them on first use (the PC's `npm run build` bakes them).
+    - Check: CI is green and its run page offers the zip; the downloaded zip's exe passes `--smoke`.
+    - Blocked by: 25.2 · Stories: 60, 62, 64
+    - Done: CI run 36879056482 on 516d0ff passed both jobs. The test job (with the 4-match soak) took 72 s, and the export job, templates included, 57 s. The `Monomachia-windows` download holds a 172 MB exe (no baked shaders), and its `--smoke` run reached the results and exited 0 on the owner's PC.
+  - [ ] **25.4 Credits and licence notices with the build.** A tool writes the engine's licence notices. A credits file lists Quaternius (CC0), the Sonniss terms, the fonts (OFL), GUT (dev only) and the project's licence. The build places both beside the exe.
+    - Check: the build output has both files, and every asset folder's licence is listed.
+    - Owner: approves the wording and picks the project's licence.
+    - Blocked by: 22.1, 25.3 · Stories: 64
+  - [ ] **25.5 Release workflow; Pages removed.** On a published release it tests, exports and attaches `Monomachia-<tag>-windows.zip`; a manual run uploads an artifact instead. `pages.yml` goes. Like CI's, its build has no baked shaders; the README says a build from `npm run build` has them.
+    - Check: a manual run on the branch produces the zip, and its exe passes `--smoke`.
+    - Blocked by: 25.3 · Stories: 1, 64
+  - [ ] **25.6 CLAUDE.md for Godot, and mvp-spec marked as the web record.** The intro, design-docs paragraph, commands and code notes rewritten for the Godot game; `mvp-spec.md` marked as the record of the demo at `v0.1-web-mvp`.
+    - Check: every path and command in CLAUDE.md exists and runs.
+    - Owner: approves the CLAUDE.md change.
+    - Blocked by: 26.3 · Stories: 59, 60
+  - [ ] **25.7 README for the Godot game; task 25 ticked.** The download, the modes, how a fight works under the new rules, controls, building and developing, the swing editor, the folder layout, the workflows and the credits, with new screenshots.
+    - Check: every command in it runs as written; the screenshots are reviewed.
+    - Owner: reads it.
+    - Blocked by: 14b.6, 25.6 · Stories: 1, 56, 64, 65
+- [ ] **26. Retire the web version and verify.** Delete the TypeScript sources, web tests and scripts, the Vite config, the built `Monomachia.html` and the web dependencies, keeping npm only as the task runner. Run the full test suite, a 40-match soak and the whole screenshot set.
+  - Check: all tests pass, the soak run is clean, and the screenshots are reviewed; the pull request is marked ready.
+  - [ ] **26.1 The Node audio tests on Node's own runner.** The 27 audio tests move from Vitest to `node --test`, and `npm test` runs them with GUT.
+    - Check: the same counts run, and a deliberately broken test fails the run.
+    - Blocked by: none · Stories: 60
+  - [ ] **26.2 Delete the web version.** `src/`, `index.html`, the Vite and TypeScript configs, `Monomachia.html`, the web tests and scripts, the web screenshots, the web dependencies and the web CI steps. Comments point to the tag for the old sources, and the fixtures stay as frozen data.
+    - Check: outside `docs/` and lines naming `v0.1-web-mvp`, nothing refers to `src/`, Vite, three or tsx; `npm ci`, `npm test` and `npm run typecheck` pass; CI is green.
+    - Blocked by: 12.9, 18.12, 22.17, 26.1 · Stories: 59, 60
+  - [ ] **26.3 Final npm script names.** `test`, `typecheck`, `soak`, `build`, `dev`, `shots`, `play`, `counterlab`, `godot`, `check:sizes` and the `audio:*` scripts; the old names removed; the workflows and the usage text updated.
+    - Check: each script runs (`npm run soak -- 4`, `npm run build`, one shot); CI is green.
+    - Blocked by: 26.2 · Stories: 60, 62, 64, 65
+  - [ ] **26.4 Final verification; tasks 25 and 26 ticked; the pull request marked ready.** Tests, typecheck, the scene smoke test, a 40-match soak within the spec's targets, every shot scene reviewed, the size check, CI green with the zip, and the downloaded zip's exe passing `--smoke`.
+    - Check: all of the above pass; the owner gets the one-line summary and link.
+    - Owner: plays the downloaded build to the results on the target laptop, then approves the merge.
+    - Blocked by: 19.9, 25.5, 25.7 · Stories: 1, 60, 62, 64, 65

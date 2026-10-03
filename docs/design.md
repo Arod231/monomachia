@@ -1,14 +1,26 @@
-Third person Arena fighter with melee and weapons based combat
+Third person arena fighter with melee and weapon based combat
 
 # Game Design Document: *Monomachia*
 
+This is the full vision for the finished game. It combines the original design document with the "Updates to game design doc and plan" notes of Sep 30, 2026 (rebuild in Godot, eight fighters, per-weapon movesets, floating arenas, character select, match intros, music). Where the update changed or added something, it is marked **(update)**. How the current build works, and every rule question the design leaves open, is recorded in `docs/mvp-spec.md` (the original web demo) and in the specs under `docs/specs/`.
+
 ## 1. High Concept & Overview
 
-***Monomachia*** is a 3D arena fighter inspired by For Honor, Tekken, Sekiro, and Soul Caliber. Each match is won by being the first to win 3 rounds. Fighters face off in a confined arena where they must utilize their fighter’s specific move sets to reduce the opponents HP to zero. Players control fighters that specialize in unique fighting styles, and begin the match with a character specific weapon. Attacks can be blocked, parried, countered, and dodged with precise timing. Players are encouraged to keep up the pressure, as each attack will increase their “posture meter”. Blocking attacks increases your posture meter, parrying a player’s weapon increases their posture meter. Countering a players attack will stun them briefly, and open them to attacks that lower their HP. Once the posture meter of a player is full, if one of their attacks are parried then they will be disarmed. Disarmed fighters are forced into hand to hand melee combat, where they have increased agility, extra movement options, and ability to dodge. Disarmed fighters can no longer parry a weapon or block, but they can counter by redirecting attacks with their hands. Melee hits in disarmed mode deal extra posture damage to the opponents posture meter. Melee hits in disarmed mode also have extra knockback. Once a player is reduced to 25% HP or less, they gain access to a single use per round “ultimate ability”. In weapon mode, this ultimate ability takes the form of an attack unique to the fighters weapon. In disarmed mode, the ultimate ability can re-arm the fighter with their weapon, or deal an hard blow to the opponents posture meter. Holding block while not taking attacks reduces your fighters posture meter. Holding block while standing restores posture faster than if blocking and moving. Disarmed weapons can be picked back up by the disarmed fighter, however the other fighter will stand in their way to prevent that from happening to maintain their advantage.
+***Monomachia*** is a 3D arena fighter inspired by For Honor, Tekken, Sekiro, and Soul Calibur. Each match is won by being the first to win 3 rounds. Fighters face off in an arena where they must use their weapon's move set to reduce the opponent's HP to zero. Players choose a fighter and a weapon before the match. Attacks can be blocked, parried, countered, and dodged with precise timing.
+
+Players are encouraged to keep up the pressure, because each attack fills the defender's posture meter. Blocking attacks fills your own posture meter; parrying an opponent's attack fills theirs. Countering an attack stuns the attacker briefly and opens them to attacks that lower their HP. Once a player's posture meter is full, having one of their attacks parried disarms them.
+
+Disarmed fighters fight hand to hand, with more agility, extra movement options and longer dodges. They can no longer parry a weapon or block, but they can counter by redirecting attacks with their hands. Bare-hand hits deal extra posture damage and extra knockback. A disarmed fighter can pick their weapon back up, while the other fighter tries to stand in their way to keep the advantage.
+
+Once a player is at 25% HP or less, they gain a single-use-per-round **ultimate ability**. Armed, it is an attack unique to the weapon. Disarmed, it either re-arms the fighter or deals a hard blow to the opponent's posture meter.
+
+Holding block while not being attacked lowers your posture meter. Holding block while standing still restores posture faster than blocking while moving.
 
 * **Genre:** Arena fighter / Action combat / Local & Online Multiplayer
-* **Target Audience:** Fans of competitive, fast paced fighting games and action RPG’s (e.g., *for honor*, *Tekken*, *Sekiro*, *Dark Souls*, *Soul Caliber*).
-* **Core Loop:** control your fighter and leverage their unique capabilities to disarm your opponent and reduce their HP to 0. $\rightarrow$ Maintain your posture meter $\rightarrow$ parry/block/counter/dodge attacks $\rightarrow$ win 3 rounds to earn victory in the match $\rightarrow$ use your ultimate ability to deal a devastating blow to your opponent $\rightarrow$
+* **Platform (update):** PC (Windows). Built in the Godot engine.
+* **Target Audience:** Fans of competitive, fast-paced fighting games and action RPGs (e.g., *For Honor*, *Tekken*, *Sekiro*, *Dark Souls*, *Soul Calibur*).
+* **Core Loop:** control your fighter and use their weapon's capabilities to disarm the opponent and reduce their HP to 0 → maintain your posture meter → parry, block, counter and dodge attacks → use your ultimate ability to deal a devastating blow → win 3 rounds to win the match.
+* **Tone (update):** dark fantasy, ancient oriental, gritty. Noble warriors who fight for honor and glory.
 
 ---
 
@@ -16,58 +28,146 @@ Third person Arena fighter with melee and weapons based combat
 
 ### Camera Perspective
 
-* **third person, behind the back camera perspective
+* **(update)** Over-the-shoulder, like For Honor, but slightly more zoomed out. The camera stays locked on to the opponent: this is always a one-on-one duel.
 
 ### Movement & Physics
 
-* **Precision fighter Control:** Movement along an eight way run system, allowing your fighter to move smoothly in any direction. Pushing up or down moves your character toward and away from the enemy fighter. Pushing right or left (including diagonally) while locked on to the enemy fighter will move your character around the arena with the enemy fighter as the focus point. Tapping the control stick in a direction will perform a short precise step instead of a full run. Double tapping and holding a direction will trigger a sprint, which grant access to running-only moves. Holding the stick in a direction and pressing the “dodge” button will have the fighter dash in the chosen direction, this grant “invincibility frames” in which enemy fighter attacks will not damage your fighter, but rather pass through your fighter. with momentum and slight friction for smooth control. Tapping dodge with no direction triggers a back step. Tapping jump will grant access to a light or heavy jumping attack.
-* **Attacking:** Armed Mode: players have access to two attack buttons, light attack and heavy attack. Light attacks are quick strikes that can be quickly repeated to pressure the opponent. Heavy attacks are slow, powerful strikes that deal more HP and posture damage, as well as more knockback. Heavy attacks can be charged by holding the heavy attack button. After charging for 2.5 seconds, the attack is released and does more HP and posture damage, and knockback. This charged attack leaves the player vulnerable for a moment. The fighter will have more combat options depending on how light and heavy attacks are used following movement commands. Sprinting allows access to running attacks, attacks after a dodge will trigger a dodge follow-up attack. Attacking after a back step will trigger a back-step specific attack. Light attacks, heavy attacks, and movement attacks can be arranged in different ways for combo strings. Attacks will be classified as directional slash attacks, thrusts, sweeps, overhead attacks, ranged attacks, and can be responded to accordingly. For example, if the enemy fighter uses a thrust attack, the player can respond by dodging “into” (into as in towards the incoming attack) the attack which will trigger a counter where the countering fighter stomps on the thrusted weapon, briefly stunning the enemy and opening them up for a string of attacks. Likewise, if an enemy uses a sweep attack (an attack that horizontally sweeps your fighters feet), the player can jump over it to leap off the enemy player, this leap would deal extra posture damage. Thrusts and sweeps cannot be blocked or dodged, but can be parried or countered (the counter is specific to the thrust or sweep, dodging into a thrust triggers the thrust counter, while leaping over the sweep triggers a leap counter). Attacking while blocking will trigger one of two character specific abilities, which will depend on if you press light or heavy attack while blocking. When a fighter has access to their ultimate ability, pressing light and heavy attack at the same time will trigger it. This ability will depend on the weapon the fighter is holding. Disarmed Mode: while in disarmed mode, fighters have increased agility, their dodges go farther, and they can jump higher. Light attacks in disarmed mode deal low HP damage, but repeated strikes deal good posture damage. Fighters have unique hand to hand combat light attacks, heavy attacks, and movement attacks specific to the selected fighter. Parrying in disarm mode will instead counter, and countering will deal extra posture damage to the enemy. This counter replaces the parry, but is unique to the thrust and sweep counters.
-* **Defending:** Fighters have several defensive options. dodging, parrying, countering, blocking, and jumping. A dodge will have your fighter gain brief “invincibility frames” (like in dark souls), allowing you to pass through attacks. The dodge is not a roll, but a dash in the direction you’re holding the control stick. Parrying is triggered by tapping the block button at the precise moment an enemy attack would land on your fighter. When an attack is parried, the enemies weapon bounces back in a flashy “clang” effect/sound. Parrying does not open the fighter up to damage, but rather lets the fighter that parries the attack follow up with a light or heavy attack which the enemy can in turn also parry. Once an attack is parried, the parrying fighter must decide whether to follow up with what kind of attack/movement option that would be mode advantageous to them. Every attack can be parried. Each Larry does a consistent amount of posture damage. Counters are meant for unblock-able/undodge-able attacks. When I say undodgeable, that means that the “invincibility frames” a fighter gets from dodging do not apply to these attacks. Unblockable attacks are slow and telegraphed. Unblockable attacks are thrusts, sweeps, and overhead slam attacks which each have their own corresponding method of countering. Thrusts must be dodged into and stomped. (Like the mikiri counter from Sekiro) sweeps must be jumped over, where the fighter leaps off the opponent for good posture damage. Overhead weapon slams are countered by back dashing. When an overhead weapon slam is successfully countered, the animation would look like a quick back dash which can be instantly followed up with a special light attack than dashes you right to your opponent while they are recovering from the big move. Blocking will shield your HP from all over attacks, but does not stop posture damage build up. Blocking will mitigate posture damage from attacks, but not neutralize it. Disarmed: when disarmed, a player cannot parry or block. Parry is replaced by a special timed counter, which deals high posture damage and stuns.
+* **Precision fighter control:** an eight-way run system lets your fighter move smoothly in any direction. Pushing up or down moves you toward and away from the opponent. Pushing left or right (including diagonals) circles the opponent, who stays the focus point.
+* **Step:** tapping the stick in a direction performs a short, precise step instead of a full run.
+* **Sprint:** double-tapping and holding a direction sprints, which opens running-only attacks.
+* **Dodge:** holding a direction and pressing dodge dashes that way. The dash grants invincibility frames: normal attacks pass through the fighter. It is a dash, not a roll, with momentum and slight friction for smooth control. Tapping dodge with no direction performs a backstep.
+* **Jump:** opens a light or heavy jumping attack, and clears sweeps.
+* **Blocking movement (update):** players can walk a little faster while blocking than in the original demo.
+
+### Attacking
+
+**Armed mode.** Players have two attack buttons, light and heavy.
+
+* **Light attacks** are quick strikes that can be repeated to pressure the opponent.
+* **Heavy attacks** are slow, powerful strikes that deal more HP and posture damage and more knockback. Holding heavy charges the attack; after 2.5 seconds it releases by itself and deals even more HP damage, posture damage and knockback. A charged attack leaves the player vulnerable for a moment.
+* **Movement attacks:** sprinting opens running attacks, attacking out of a dodge triggers a dodge follow-up attack, and attacking after a backstep triggers a backstep attack.
+* **Strings:** light attacks, heavy attacks and movement attacks combine into combo strings. Each weapon's strings are listed in section 3.
+* **String flow (update):**
+  * Strings should flow naturally from one swing into the next. If a fighter swings from left to right, the weapon ends on their right, so the next swing in the string comes back from right to left.
+  * **Follow-ups are optional.** Many attacks can be followed up by a specific next attack, but the player never has to commit to the follow-up. This applies to every weapon.
+  * Two light attacks should flow smoothly into a heavy attack as the third hit.
+* **Attack types:** attacks are classed as directional slashes, thrusts, sweeps, overhead slams and ranged attacks, and each is answered in its own way. Thrusts, sweeps and overhead slams are **unblockable**; each has its own counter (see Defending).
+* **Block abilities:** attacking while holding block triggers one of two weapon-specific abilities, depending on whether light or heavy is pressed.
+* **Ultimate:** when available, pressing light and heavy together triggers the weapon's ultimate.
+
+**Disarmed mode.** Fighters are more agile: dodges go farther and jumps go higher. Bare-hand light attacks deal little HP damage, but repeated strikes deal good posture damage. Each fighter has their own hand-to-hand light, heavy and movement attacks. Tapping block on impact performs a **redirect** counter instead of a parry; it deals extra posture damage to the opponent.
+
+### Defending
+
+Fighters have several defensive options: dodging, parrying, countering, blocking and jumping.
+
+* **Dodge:** a dash with brief invincibility frames (like Dark Souls) that passes through attacks.
+* **Parry:** tap block at the precise moment an attack would land. Every attack can be parried, and each parry does a consistent amount of posture damage. Parrying doesn't open the parrier to damage; it lets them act first with a light or heavy attack, which the opponent can in turn parry. The parrier then decides which attack or movement option gives them the advantage.
+* **Parry presentation (update):** parries should be cinematic. The two weapons visibly bounce off each other, as in Sekiro, with a flashy "clang" effect and sound.
+* **Block:** shields HP from blockable attacks, and reduces, but doesn't remove, posture damage.
+* **Counters** answer the unblockable attacks, which are slow and telegraphed. Dodge invincibility doesn't work against them.
+  * **Thrusts** must be dodged *into* to stomp on the thrusting weapon (like Sekiro's mikiri counter). The attacker is stunned and open to a string of attacks.
+  * **Sweeps** (horizontal attacks at the feet) must be jumped over; the fighter leaps off the opponent for good posture damage.
+  * **Overhead slams** are countered by back-dashing. The counter looks like a quick back dash that can instantly be followed by a special light attack that dashes you to the opponent while they recover.
+* **Disarmed:** a disarmed fighter can't parry or block. Parry is replaced by the timed redirect counter, which deals high posture damage and stuns.
+* **Not in this game (update):** no directional guard (block is a single hold, not For Honor's stance directions), and no combo breaker (there is no way to break out of a string once it connects; defense happens before the hit lands).
 
 ### Posture Meter (Posture System)
 
-* Fighters take posture damage when blocking, failing to defend incoming attacks, when their attacks are parried and countered. Blocking mitigates posture damage and defends HP. Failing to defend attacks causes more HP damage, and the same amount of posture damage is if an attack is parried. Counters deal more posture damage. A player is disarmed after being parried or when they attempt to block an unblockable attack, a power attack, or an ultimate ability when the posture meter is full. A player doesn’t receive damage to their HP when they’re disarmed.
-* the lower a player’s HP is, the slower the posture meter will be restored when holding block. Posture can be lowered when the fighter holds block and is not receiving attacks. Standing still while blocking is the fastest way to restore posture, while moving and holding block will restore it more slowly.
+* Fighters take posture damage when they block, when they fail to defend an attack, and when their attacks are parried or countered. Blocking reduces posture damage and protects HP. Failing to defend deals more HP damage, plus the same posture damage as having an attack parried. Counters deal more posture damage.
+* A fighter whose posture meter is full is disarmed when one of their attacks is parried, or when they try to block an unblockable attack, a fully charged power attack or an ultimate. The disarming blow does no HP damage.
+* The lower a fighter's HP, the more slowly posture drains while holding block. Posture drains only while the fighter holds block and isn't being attacked; standing still while blocking is the fastest way to restore it, and moving while blocking restores it more slowly.
 
 ---
 
-## 3. Abilities
+## 3. Fighters, Weapons & Abilities
 
-Each fighter has three unique abilities. Their weapon specific ultimate ability. And two abilities that can be selected from an assortment of weapon/class specific abilities before the game starts. When a player is choosing their character, they have the option to choose which abilities that will be accessible when the fighter is blocking. As in, when the fighter is holding block, using a light or heavy attack will trigger one of these abilities. For example, if a player chooses to fight with a polearm, the light ability may be a thrust, and the heavy ability may be an overhead attack.
+### Fighters (update)
+
+Before a match, each player chooses a **fighter** and a **loadout** (a weapon and its two block abilities). Any fighter can wield any weapon; each fighter has a signature weapon offered by default. A fighter's identity shows in their model, personality, match intro and bare-hand fighting style.
+
+| Fighter | Personality |
+|---|---|
+| **Fantasy Knight** | Noble, duty-driven warrior. |
+| **Samurai** | Honor-driven samurai. |
+| **Orc / Brute** | Large. Lives to fight: aggressive, but finds honor and glory in defeating enemies, and respects strong fighters. |
+| **Rogue / Ninja** | Doesn't care about honor or glory; lives only to execute the mission, and will do anything to slay the enemy. |
+| **Aristocrat / Noble** | Raised wealthy and trained in every combat art by the best teachers. Looks down on commoners and claims fighting is boorish, but finds euphoria in dominating an opponent. |
+| **Hunter** | Think Bloodborne's Hunter, with old-English flavor. Views opponents as beasts to be eliminated; a slayer of nightmares. |
+| **Monk** | Would rather not resort to violence, but defends himself when he must. Wears giant prayer beads around his neck. |
+| **Skeleton Knight** | An armored Norse draugr. His bones clack and rattle as he moves. Lacking a soul of his own, he is drawn to powerful souls and believes reaping them will restore him to life. |
+
+**Character models:** clothing should carry the game's aesthetic (gritty, worn, flowing) while also emphasizing each fighter's type and style.
+
+### Abilities
+
+Each fighter has three abilities in a match: the weapon's ultimate, and two block abilities chosen before the match from a pool specific to the weapon. When choosing a loadout, the player picks which ability goes on light and which on heavy; holding block and pressing that attack triggers it. For example, a polearm's light ability might be a thrust and its heavy ability an overhead attack.
 
 ### Weapons
 
-| Weapon | Description |
-|---|---|
-| **Katana** | standard Japanese katana, well rounded versatile moveset with decent speed. Special equitable ability is called “flash” which is a parry with a larger parry window that stuns the opponent and leaves them open. |
-| **Odachi** | giant katana, slow powerful attacks, access to overhead slam, sweeping, and AOE spin abilities. Larger parry window. Longer range than katana |
-| **giant Hammer** | Slow and powerful. High posture and HP damage, high knockback, access to overhead slam abilities and powerful swing. Larger parry window |
-| **Staff** | fast and agile, low HP damage, but quick repetitive strikes to compensate. Access to thrust, sweep, and spin abilities. Standard posture damage. Good range. |
-| **twin daggers** | fast and agile, low posture damage but good HP damage with repetitive strikes. Access to low dash sweep, and special movement abilities that allow them to quickly outmaneuver the enemy. Short parry window |
-| **greatsword** | slow and powerful, high HP and posture damage, high knockback, access to sweep, overhead slam abilities. |
-| **longsword and buckler shield** | all around class, good blocking because of the shield. Access to special thrust abilities, and a shield bash ability that stuns opponents. |
-| **bladed whip** | fast and agile, long range but middle tier damage. Ability access: sweeps, thrust ( the while extends in a straight line after a telegraphed windup” |
-| **Scythe** | slow and powerful, colosal weapon high HP and posture damage, high knockback, access to special ability sweeps, overhead slam, and an auto parry that spins the scythe around. |
+| Weapon | Class | Description |
+|---|---|---|
+| **Katana** | Medium | Standard Japanese katana: a well-rounded, versatile moveset with decent speed. Its signature block ability, **Flash**, is a parry with a larger window that stuns the opponent and leaves them open. |
+| **Odachi** | Colossal | Giant katana: slow, powerful attacks, with overhead slam, sweep and area spin abilities. Larger parry window. Longer range than the katana. |
+| **Giant Hammer** | Colossal | Slow and powerful. High posture and HP damage, high knockback, overhead slam abilities and a powerful swing. Larger parry window. |
+| **Staff** | Medium | Fast and agile, low HP damage, but quick repeated strikes compensate. Thrust, sweep and spin abilities. Standard posture damage. Good range. |
+| **Twin Daggers** | Small | Fast and agile, low posture damage but good HP damage over repeated strikes. A low dashing sweep, and movement abilities that outmaneuver the enemy. Short parry window. |
+| **Greatsword** | Colossal | Slow and powerful, high HP and posture damage, high knockback, with sweep and overhead slam abilities. |
+| **Longsword & Buckler** | Medium | All-round weapon with good blocking thanks to the shield. Special thrust abilities, and a shield bash that stuns. |
+| **Bladed Whip** | Small | Fast and agile, long range, mid-tier damage. Sweep and thrust abilities (the whip extends in a straight line after a telegraphed windup). |
+| **Scythe** | Colossal | Slow and powerful, high HP and posture damage, high knockback. Sweep and overhead slam abilities, and an auto-parry that spins the scythe around. |
 
-Colossal weapons: odachi, hammer, scythe, greatsword
+* **Colossal weapons:** odachi, giant hammer, scythe, greatsword. **(update)** Colossal weapons are significantly bigger two-handed weapons (as in Elden Ring). They are heavy and must look it: swinging one carries the fighter along with its momentum.
+* **Medium weapons:** katana, longsword & buckler, staff.
+* **Small weapons:** twin daggers, bladed whip.
 
-Medium weapons: katana, longsword and shield, staff
+### Movesets (update)
 
-Small weapons: twin daggers, bladed whip
+* **Katana:** focused on slashes.
+  * Lights: a string of four.
+  * Heavy, **Iai Slash:** the fighter sheathes the blade and can strafe while holding; on release, a long-range horizontal or vertical draw slash.
+    * The vertical slash comes from above and can be followed by a heavy that rises from below, continuing the overhead motion.
+    * The horizontal slash cuts right to left and can be followed by a left-to-right heavy.
+    * The Iai Slash reaches far but stays a melee attack; the ultimate's slash crosses the whole stage.
+* **Odachi:** large, hard-commitment strings.
+  * Lights: a three-hit string of two overhead strikes, then a final low-to-high strike.
+  * Heavy: a charged spin; the fighter slowly spins and hurls toward the enemy with a heavy swing.
+* **Giant Hammer:** large, heavy, slow strikes.
+  * Lights: a three-hit string of two side-to-side swings, then a low-to-high golf swing.
+  * Heavies: a two-hit string. A low-to-high swing flows, using the hammer's momentum, into a spin that ends in a hard-hitting side-to-side sweep across the front.
+  * Charged heavy: a forward-flip overhead slam.
+  * Backstep into heavy: a jumping slam.
+* **Greatsword:** the sword is heavy; the fighter swings it and rides its momentum.
+  * Lights: side-to-side swings.
+  * Heavies: a two-hit string, an overhead strike into an unblockable low sweep.
+  * Attacking out of a dodge: a thrust.
+* **Bladed Whip:**
+  * Lights: a four-hit whip string.
+  * Charged heavy: extends the whip's range.
+* **Scythe:** a colossal weapon.
+  * Lights: side-to-side "reaping" strikes.
+  * Heavies: an overhead slam, and an unblockable sweep.
+  * Charged heavy: a wound-up side-to-side slash.
+* **Longsword & Buckler:** as described in the Weapons table above.
+* **Staff:** sweeping and slam attacks. Spinning the staff around is core to its identity.
+* **Twin Daggers:** iterate on the demo's daggers. Proposal, to confirm by playtest:
+  * Lights: a four-hit string alternating hands: right slash, left slash, crossing X-cut, double stab.
+  * Any light can be cancelled into a dodge right after it connects or whiffs. Their identity is slipping in and out.
+  * Heavies: a dashing double stab, flowing optionally into a spinning backhand.
+  * Dodge attacks: a passing slash that carries the fighter past the opponent's side.
+  * Block abilities: Serpent Sweep (a low, dashing, unblockable sweep), Shadow Step (a blink behind the opponent that turns the next light into a backstab), and Needle Thrust (a quick unblockable thrust).
 
-#### Ultimate weapon Abilities (Requires < or = 25% HP)
+#### Ultimate Weapon Abilities (require 25% HP or less)
 
-1. **katana:** the fighter sheathes their blade and unleashes a full stage length vertical or horizontal slash, chosen by tilting the stick up/down and left/right while sheathed. The horizontal version can be jumped over.
-2. **odachi:** the fighter drags the blade along the floor to unleash a powerful slash from the floor, knocking the enemy straight into the air which can be followed up with a powerful slash as they fall out of the air
-3. **giant hammer:** the player uses the giant hammer to spin around, gaining momentum and moving towards the enemy before unleashing a powerful golf swing esque swing that hurls the enemy across the map, slamming them into a wall, stunning them.
-
-1. **staff:** the player sits atop the staff like sun wukong and the staff extends into the air before slamming down on the enemy.
-2. **twin daggers:** the player dashes like lightning to the enemy, spinning incredible fast dealing many strikes while spinning. Each spin can be consecutively parried.
-3. **greatsword:** the player takes a stance with the sword aimed at the enemy, and they perform a cross stage dash to the enemy impaling them on the greatsword, once the enemy is impaled, the player can press heavy attack to unleash and explosive burst of energy.
-
-1. **sword and shield:** the player jumps high into the air before slamming the shield down onto the enemy.
-2. ** bladed whip:** the player girls around, as if tightening a spring, before spinning around quickly unleashing a cross stage whip attack.
-3. **sycthe:** the player jumps high into the air, before launching themselves toward the enemy to perform a devastating horizontal sweep with the scythe.
+1. **Katana:** the fighter sheathes the blade and unleashes a full-stage-length vertical or horizontal slash, chosen by tilting the stick up/down or left/right while sheathed. The horizontal version can be jumped over.
+2. **Odachi:** the fighter drags the blade along the floor to unleash a powerful rising slash that knocks the enemy straight into the air, which can be followed by a powerful slash as they fall.
+3. **Giant Hammer:** the fighter spins with the hammer, gaining momentum and moving toward the enemy, before a powerful golf swing that hurls the enemy across the arena into a wall, stunning them.
+4. **Staff:** the fighter sits atop the staff like Sun Wukong; the staff extends into the air, then slams down on the enemy.
+5. **Twin Daggers:** the fighter dashes like lightning to the enemy and spins incredibly fast, striking many times. Each spin can be parried in turn.
+6. **Greatsword:** the fighter takes a stance aiming the sword at the enemy, then dashes across the stage to impale them. Once the enemy is impaled, pressing heavy unleashes an explosive burst of energy.
+7. **Longsword & Buckler:** the fighter jumps high into the air, then slams the shield down onto the enemy.
+8. **Bladed Whip:** the fighter coils up, as if tightening a spring, then spins around quickly, unleashing a cross-stage whip attack.
+9. **Scythe:** the fighter jumps high into the air, then launches toward the enemy for a devastating horizontal sweep.
 
 ---
 
@@ -75,12 +175,31 @@ Small weapons: twin daggers, bladed whip
 
 ### Game Modes
 
-* **Duel (1v1):** The standard competitive experience.
+* **Duel (1v1):** the standard competitive experience, against a computer opponent or another player.
+* **Training, Watch and Versus:** added by the demo. Training is a practice dummy you control; Watch is two computer fighters duelling; Versus is two players on one PC in split screen. They stay.
+
+### Character Select (update)
+
+1. Entering Duel opens the character select screen.
+2. Hovering over a fighter shows that fighter's model on the right side of the screen, and the loadout options (weapon and block abilities) on the left.
+3. Once a fighter and loadout are chosen, the player **locks in**.
+4. On lock-in, a giant gate with a dark fantasy, oriental design opens behind the fighter, and they walk through it. The arena is visible through the gate, unless the player picked random.
+
+### Match Intro (update)
+
+1. Gates appear at either end of the arena, and each selected fighter walks out of one.
+2. Each fighter walks a few steps forward and performs an intro animation that reflects who they are and which weapon they picked.
+3. The intros play one fighter at a time, and players can skip them.
+4. The fighters then take their positions and the match begins (like Tekken 8).
+
+### Arenas
+
+* **(update)** Arenas are larger than the demo's and float above the land, suspended over a void or flying in the air. The backgrounds are dark fantasy, ancient oriental landscapes, with buildings and water features. Arena edges are walled; fighters can't fall off.
+* **Arena themes:** Moonlit Shrine (from the demo), fantasy coliseum, hell and ice, each reimagined as a floating dark fantasy, oriental arena. The original list's Cyberpunk Grid, Deep Space Nebula, Synthwave Sunset and Retro Vector are dropped because they clash with the art direction.
 
 ### Progression & Customization
 
-* **Cosmetics:** Unlock-able character skins based on character proficiency, gained by performing character specific feats.
-* **Arena Themes:** Cyberpunk Grid, Deep Space Nebula, Synthwave Sunset, and Retro Vector, fantasy coliseum, hell, ice map.
+* **Cosmetics:** unlockable fighter skins earned through fighter proficiency, by performing fighter-specific feats.
 
 ---
 
@@ -88,12 +207,40 @@ Small weapons: twin daggers, bladed whip
 
 ### Art Style & Presentation
 
-* **Visual Style:** gritty dark fantasy, ancient oriental
-* **UI Layout:** Minimalist HUD displaying HP bar in classic fighting game style, with the posture bar appearing underneath it. Ultimate ability access is notated by a glowing aura around the character when they are below 25% HP.
+* **Visual style:** gritty dark fantasy, ancient oriental. **(update)** Rendered as stylized toon with outlines, ink-wash and painterly touches.
+* **UI layout:** a minimalist HUD with HP bars in classic fighting-game style and the posture bar underneath. Ultimate access is shown by a glowing aura around the fighter when they are at 25% HP or less.
+
+### Animation (update)
+
+* Attacks should feel weighty, both when they land and when the attack begins.
+* Fighters behave realistically:
+  * Running fighters lean forward.
+  * Dodges look evasive.
+  * Each fighter moves according to their weapon. Colossal weapons are heavy and look it, and swinging one pulls the fighter along with its momentum.
+* Strings flow naturally; a swing that ends on the right continues from the right.
+* Unblockable attacks have longer range and a visible effect showing their reach.
+* Hitboxes should be as tight to the weapon as possible.
 
 ### Sound Design
 
-* **SFX:** emphasis on weapon clangs when they make contact, slicing flesh sounds when blades connect to the fighter, bone and rock crushing noises when colossal weapons land. Parried attacks should have a satisfying metal clang sound unique to parrying.
-* **Music:** fast paced combat music themed around each stage, emphasis on oriental instruments and hard metal.
+* **SFX:**
+  * Weapon clangs when weapons make contact, and a satisfying metal clang unique to parries.
+  * Slicing-flesh sounds when blades connect.
+  * Bone and rock crushing noises when colossal weapons land.
+  * **(update)** Each fighter's movement has its own sound, such as the Skeleton Knight's rattling bones.
+* **Music (update):** dark fantasy and ancient oriental instruments, combined with electronic and metal.
+  * Match music: 130–150 BPM, fast-paced, high-energy, upbeat battle themes, themed around each stage.
+  * Final-round ("match point") themes: 150–170+ BPM.
+  * Character select, menus and loading screens: 100–120 BPM, slower and groovier, an electric and oriental-funk fusion.
 
-Have the ability to map custom controls on individual player profiles for keyboard/mouse and controller.
+### Assets (update)
+
+* Asset budget: to be determined.
+* Assets must be easy to swap as new files and downloaded packs become available.
+* Current sources:
+  * Quaternius characters, outfits, animations and weapons (CC0).
+  * The Sonniss GDC 2026 game audio bundle (royalty-free).
+
+### Controls
+
+* Players can map custom controls on individual player profiles, for keyboard and mouse and for controller.

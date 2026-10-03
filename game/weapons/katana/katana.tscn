@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://weapons/katana/katana_mesh.res" id="1_nevyd"]
+
+[node name="Katana" type="Node3D" unique_id=1191871167]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1041337345]
+mesh = ExtResource("1_nevyd")
+
+[node name="BladeBase" type="Marker3D" parent="." unique_id=1968884440]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0014283245, 0.09, 0)
+
+[node name="BladeTip" type="Marker3D" parent="." unique_id=787338758]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07726, 0.777, 0)
+
+[node name="OffHandGrip" type="Marker3D" parent="." unique_id=1128273928]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)

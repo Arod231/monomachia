@@ -1,0 +1,6 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "leather_wrap_dark"
+albedo_color = Color(0.1, 0.07, 0.05, 1)
+roughness = 0.9

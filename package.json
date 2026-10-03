@@ -8,9 +8,24 @@
     "dev": "vite --port 5173",
     "build": "tsc --noEmit && vite build && node scripts/make-artifact.mjs",
     "preview": "vite preview --port 4173",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "soak": "tsx scripts/soak.ts"
+    "test": "npm run test:web && npm run test:godot",
+    "test:web": "vitest run",
+    "test:godot": "node scripts/godot.mjs test",
+    "typecheck": "npm run typecheck:web && npm run typecheck:godot",
+    "typecheck:web": "tsc --noEmit",
+    "typecheck:godot": "node scripts/godot.mjs typecheck",
+    "soak": "tsx scripts/soak.ts",
+    "soak:godot": "node scripts/godot.mjs soak",
+    "soak:tune": "node scripts/godot.mjs soak 300",
+    "godot": "node scripts/godot.mjs",
+    "godot:dev": "node scripts/godot.mjs dev",
+    "godot:run": "node scripts/godot.mjs run",
+    "shots": "node scripts/godot.mjs shots",
+    "godot:fixtures": "tsx scripts/sim-fixtures.ts && tsx scripts/port-fixtures.ts",
+    "audio:sonniss": "node scripts/audio/extract-sonniss.mjs",
+    "audio:synth": "node scripts/audio/synth.mjs",
+    "audio:music": "node scripts/audio/music.mjs",
+    "check:sizes": "node scripts/check-sizes.mjs"
   },
   "dependencies": {
     "three": "^0.186.1"

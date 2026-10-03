@@ -1,5 +1,8 @@
-# Runs the rule tests and builds the game on every push and pull request.
-# The built game is kept for 30 days as a download on the run's page.
+# On every push and pull request: checks that no tracked file is too large,
+# runs the rule tests (web and Godot), a short computer-vs-computer soak and
+# the typecheck, and builds the web game; then exports the Windows build.
+# The web game and the Windows build are kept for 30 days as downloads on the
+# run's page.
 name: CI
 
 on:
@@ -12,18 +15,51 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
       - run: npm ci
+      - run: npm run check:sizes
       - run: npm test
+      - run: npm run typecheck
+      - run: npm run soak:godot -- 4
       - run: npm run build
       - run: cp dist/index.html Monomachia.html
       - uses: actions/upload-artifact@v7
         with:
           name: Monomachia
           path: Monomachia.html
+          retention-days: 30
+
+  # The Windows build, exported headless: CI has no GPU, so the shaders
+  # aren't baked and compile on first use (a build from `npm run build` on a
+  # PC bakes them). The export templates come with Godot and are cached.
+  export-windows:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+      - run: npm run godot -- build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Monomachia-windows
+          path: build/windows/
           retention-days: 30

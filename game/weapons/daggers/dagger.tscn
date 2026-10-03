@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://weapons/daggers/dagger_mesh.res" id="1_pvw53"]
+
+[node name="Dagger" type="Node3D" unique_id=1915069172]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=58995454]
+mesh = ExtResource("1_pvw53")
+
+[node name="BladeBase" type="Marker3D" parent="." unique_id=1698360672]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0618479, 0)
+
+[node name="BladeTip" type="Marker3D" parent="." unique_id=1667799171]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.018767782, 0.32169953, 0)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="FighterPalette" format=3]
+
+[ext_resource type="Script" path="res://fighters/fighter_palette.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://fighters/hunter/hunter_palette_b_outfit.png" id="2_outfit"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Ash and rust"
+hood_color = Color(0.2, 0.2, 0.2, 1)
+vest_color = Color(0.3, 0.3, 0.29, 1)
+shirt_color = Color(0.35, 0.35, 0.34, 1)
+trim_color = Color(0.38, 0.17, 0.08, 1)
+sleeve_color = Color(0.42, 0.42, 0.4, 1)
+trouser_color = Color(0.3, 0.3, 0.295, 1)
+leather_color = Color(0.12, 0.12, 0.12, 1)
+boot_color = Color(0.085, 0.085, 0.09, 1)
+metal_color = Color(0.3, 0.28, 0.25, 1)
+wear = 0.75
+hair_color = Color(0.5, 0.49, 0.47, 1)
+headwear_color = Color(0.32, 0.32, 0.31, 1)
+outfit_albedo = ExtResource("2_outfit")

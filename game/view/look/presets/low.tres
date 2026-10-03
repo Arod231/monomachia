@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="GraphicsPreset" format=3]
+
+[ext_resource type="Script" path="res://view/look/graphics_preset.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"low"
+display_name = "Low"
+shadows_enabled = true
+shadow_atlas_size = 1024
+shadow_max_distance = 22.0
+shadow_splits = 1
+soft_shadow_quality = 0
+msaa_3d = 0
+screen_space_aa = 1
+render_scale = 1.0
+outline_fighters = true
+outline_weapons = true
+outline_props = false
+outline_width_scale = 1.0
+post_quality = 0
+ink_normal_lines = false
+fog_enabled = true
+height_fog = false
+glow_enabled = false
+particle_ratio = 0.3
+minor_lights = false
+scenery_detail = 0

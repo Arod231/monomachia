@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
       - run: npm ci
       - run: npm test
       - run: npm run build

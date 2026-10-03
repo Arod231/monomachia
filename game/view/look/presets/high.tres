@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="GraphicsPreset" format=3]
+
+[ext_resource type="Script" path="res://view/look/graphics_preset.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"high"
+display_name = "High"
+shadows_enabled = true
+shadow_atlas_size = 4096
+shadow_max_distance = 34.0
+shadow_splits = 2
+soft_shadow_quality = 1
+msaa_3d = 0
+screen_space_aa = 1
+render_scale = 1.0
+outline_fighters = true
+outline_weapons = true
+outline_props = true
+outline_width_scale = 1.0
+post_quality = 3
+ink_normal_lines = false
+fog_enabled = true
+height_fog = true
+glow_enabled = false
+particle_ratio = 1.0
+minor_lights = true
+scenery_detail = 2

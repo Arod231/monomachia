@@ -94,7 +94,7 @@ Unblockables show a red 危 ("danger") mark and the attack type above the attack
 
 #### Defense
 
-- **Block (hold):** no HP damage from blockable attacks, but reduced posture damage still lands (50–70% of the attack's posture value, by weapon). You must face the attacker.
+- **Block (hold):** no HP damage from blockable attacks, but reduced posture damage still lands (60–80% of the attack's posture value, by weapon). You must face the attacker.
 
 - **Parry (tap block just before impact):** works on every attack. Window: Daggers 0.10 s, Katana 0.15 s, Greatsword 0.20 s. The attacker's weapon bounces off with a clang, they take 16 posture damage, and you act first; they can still parry your follow-up. Pressing block repeatedly shrinks the window, so mashing fails, and one press parries only one hit.
 
@@ -140,9 +140,9 @@ Three weapons, one per size class, cover the design doc's full range from fast-a
 
 | Fighter | Class | Speed | HP damage | Posture damage | Reach | Parry window | Posture taken when blocking |
 |---|---|---|---|---|---|---|---|
-| Katana | Medium | Medium | Medium | Medium | 2.3 m | 0.15 s | 60% |
-| Greatsword | Colossal | Slow (moves 20% slower) | High | High | 2.9 m | 0.20 s | 50% |
-| Twin Daggers | Small | Fast (moves 15% faster) | Good over many hits | Low | 1.8 m | 0.10 s | 70% |
+| Katana | Medium | Medium | Medium | Medium | 2.2 m | 0.15 s | 70% |
+| Greatsword | Colossal | Slow (moves 10% slower) | High | High | 3.0 m | 0.20 s | 60% |
+| Twin Daggers | Small | Fast (moves 12% faster) | Good over many hits | Low | 1.8 m | 0.10 s | 80% |
 
 #### Katana — balanced
 

@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="FighterLook" format=3]
+
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Superhero_Female_FullBody.gltf" id="1_7pcsc"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/hair/Hair_Long.gltf" id="2_k48sm"]
+[ext_resource type="ArrayMesh" path="res://fighters/heads/female_head.res" id="3_w2ugp"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Female_Ranger_Body.gltf" id="4_uobiw"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Female_Ranger_Arms.gltf" id="5_ct78d"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Female_Ranger_Legs.gltf" id="6_bvehj"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Female_Ranger_Feet.gltf" id="7_htuxw"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Female_Ranger_Head_Hood.gltf" id="8_y2gux"]
+[ext_resource type="ArrayMesh" path="res://fighters/rogue/face_mask.res" id="9_mask"]
+[ext_resource type="Script" path="res://fighters/fighter_palette.gd" id="10_6pd44"]
+[ext_resource type="Resource" path="res://fighters/rogue/rogue_palette_a.tres" id="11_ooh5w"]
+[ext_resource type="Resource" path="res://fighters/rogue/rogue_palette_b.tres" id="12_d133r"]
+[ext_resource type="Script" path="res://fighters/fighter_look.gd" id="13_g01jy"]
+[ext_resource type="Script" path="res://fighters/weapon_hold.gd" id="15_hold"]
+[ext_resource type="Texture2D" path="res://fighters/rogue/rogue_skin.png" id="16_skin"]
+
+[sub_resource type="Resource" id="Hold_daggers"]
+script = ExtResource("15_hold")
+weapon = &"daggers"
+reverse_grip = true
+blade_tilt = -40.0
+set_right_wrist = true
+right_wrist = Vector3(0, 0, -25)
+left_wrist = Vector3(0, 0, 25)
+
+[sub_resource type="Resource" id="Hold_katana"]
+script = ExtResource("15_hold")
+weapon = &"katana"
+guard = true
+
+[sub_resource type="Resource" id="Hold_greatsword"]
+script = ExtResource("15_hold")
+weapon = &"greatsword"
+reverse_grip = true
+blade_tilt = 30.0
+set_right_wrist = true
+
+[resource]
+script = ExtResource("13_g01jy")
+id = &"rogue"
+display_name = "Rogue"
+body_scene = ExtResource("1_7pcsc")
+head_mesh = ExtResource("3_w2ugp")
+outfit_parts = Array[PackedScene]([ExtResource("4_uobiw"), ExtResource("5_ct78d"), ExtResource("6_bvehj"), ExtResource("7_htuxw"), ExtResource("8_y2gux")])
+hair = Array[PackedScene]([ExtResource("2_k48sm")])
+head_wrap = ExtResource("9_mask")
+palettes = Array[ExtResource("10_6pd44")]([ExtResource("11_ooh5w"), ExtResource("12_d133r")])
+signature_weapon = &"daggers"
+idle_clip = &"Sword_Idle"
+holds = Array[ExtResource("15_hold")]([SubResource("Hold_daggers"), SubResource("Hold_katana"), SubResource("Hold_greatsword")])
+skin_albedo = ExtResource("16_skin")
+eye_shadow = 0.6
+eye_band = 0.85
+soot = 0.2

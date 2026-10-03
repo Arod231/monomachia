@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://fighters/materials/worn_cloth.png" id="1_cloth"]
+
+[resource]
+resource_name = "hat_band"
+cull_mode = 2
+albedo_color = Color(0.075, 0.06, 0.05, 1)
+albedo_texture = ExtResource("1_cloth")
+roughness = 0.8
+metallic_specular = 0.3

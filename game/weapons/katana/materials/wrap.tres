@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://weapons/katana/katana_wrap.gdshader" id="1_wrap"]
+
+[resource]
+resource_name = "wrap"
+shader = ExtResource("1_wrap")
