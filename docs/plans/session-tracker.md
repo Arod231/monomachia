@@ -541,7 +541,7 @@ export function renderMarkdown(src) {
 
 ### Task 4: Cut task blocks and stories out of the plan and spec
 
-- [ ] Done when: `stageDocs()` gives stage 7's parent text, each task's block and its stories from fixture text.
+- [x] Done when: `stageDocs()` gives stage 7's parent text, each task's block and its stories from fixture text.
 
 **Files:**
 - Create: `tools/progress-dashboard/docs.mjs`
@@ -556,7 +556,7 @@ export function renderMarkdown(src) {
   - `parseStories(specText): Map<number, {n, done, text}>`
   - `stageDocs(planText, specText, stage, states): {n, name, full, parents: [{id, markdown}], tasks: [{id, title, state, blockedBy, markdown, stories}]}`, where `states` is `Map<id, {state, blockedBy}>` (from Task 5's `taskStates`)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```js
 import { test } from 'node:test';
@@ -618,9 +618,9 @@ test('stageDocs puts it together, skipping missing stories', () => {
 });
 ```
 
-- [ ] **Step 2: Run them and see them fail.**
+- [x] **Step 2: Run them and see them fail.**
 
-- [ ] **Step 3: Write `docs.mjs`**
+- [x] **Step 3: Write `docs.mjs`**
 
 ```js
 // Cuts the build plan's task blocks and the spec's user stories, so a stage's
@@ -688,9 +688,9 @@ export function stageDocs(planText, specText, stage, states) {
 }
 ```
 
-- [ ] **Step 4: Run the tests and see them pass.** Then smoke test on the real plan: `node -e "import('./tools/progress-dashboard/docs.mjs').then(m=>{const fs=require('fs');console.log(m.taskBlock(fs.readFileSync('docs/plans/godot-rebuild.md','utf8'),'7.13'))})"` should print 7.13's three lines.
+- [x] **Step 4: Run the tests and see them pass.** Then smoke test on the real plan: `node -e "import('./tools/progress-dashboard/docs.mjs').then(m=>{const fs=require('fs');console.log(m.taskBlock(fs.readFileSync('docs/plans/godot-rebuild.md','utf8'),'7.13'))})"` should print 7.13's three lines.
 
-- [ ] **Step 5: Commit**: `git commit -m "Cut plan task blocks and spec stories for the stage pages"`, then push.
+- [x] **Step 5: Commit**: `git commit -m "Cut plan task blocks and spec stories for the stage pages"`, then push.
 
 ---
 
