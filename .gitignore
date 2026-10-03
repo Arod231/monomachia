@@ -18,3 +18,14 @@ Sonniss*.zip
 # Temporary git worktrees made by Claude Code workflows
 .claude/worktrees/
 .godot-path
+
+# Where the raw asset packs are unzipped (outside the repo), and the fallback folder
+.assets-src-path
+assets_src/
+
+# Converted Iglesias clips and their staged FBX copies: never committed (licence)
+game/assets/kevin_iglesias/library/
+game/assets/kevin_iglesias/staging/
+
+# Scratch for prototypes; may hold converted Iglesias clips, which must never be committed
+game/_scratch/

@@ -47,7 +47,7 @@ static func _v(p: V3) -> Vector3:
 ## playing `defend` (none: idle) for `steps` steps, feeding the view as the
 ## host does: each step's events, then the step.
 func _play(swing: Swing, defend: Callable = Callable(), steps: int = 32) -> World:
-	var w: WeaponDef = SF.weapon(&"katana", {CUT: swing}) if swing != null else Moves.KATANA
+	var w: WeaponDef = SF.weapon(&"katana", {CUT: swing}) if swing != null else SF.without_swings(&"katana")
 	var W: World = H.make_world(w, Moves.KATANA, 1.6)
 	var a: Fighter = W.fighters[0]
 	for i: int in steps:

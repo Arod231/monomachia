@@ -5,7 +5,10 @@ extends GutTest
 ## 2 cm and 10 degrees for each hand and foot, and 10 degrees of coil and 2 cm
 ## of pelvis shift for the body. It complements the sides check in
 ## test_string_continuity.gd; each weapon's follow-ups are checked once they
-## have swings.
+## have swings. A baked swing (authored animation) is left out, on either
+## side of a follow-up: the view crossfades one clip into the next, so a
+## clip's first pose needn't meet the last one's (authored-animation task
+## 10); the sides check still applies to it.
 
 const GRIP_GAP: float = 0.02
 const TURN_GAP: float = 10.0
@@ -47,6 +50,8 @@ func test_every_follow_up_starts_where_its_move_hands_off() -> void:
 			var m: AttackDef = w.moves[id]
 			for next_id: StringName in [m.chain_light, m.chain_heavy]:
 				if m.swing == null or next_id == &"" or not w.moves.has(next_id) or w.moves[next_id].swing == null:
+					continue
+				if not m.swing.clips.is_empty() or not (w.moves[next_id] as AttackDef).swing.clips.is_empty():
 					continue
 				problems.append_array(_gaps(m.swing, w.moves[next_id].swing, "%s.%s -> %s" % [wid, id, next_id]))
 	assert_eq(problems, [] as Array[String])

@@ -27,6 +27,15 @@ extends RefCounted
 ## fighter's space. The rig also swings the collarbone near full reach, so it
 ## straightens an elbow later than the check does.
 ##
+## A swing baked from a clip (authored-animation task 9) isn't checked: its
+## weapon was read from the clip's own hand on the Hunter's skeleton, so an
+## arm holds it by construction, and the reference body, which only turns
+## and shifts its torso, can't stand in for the clip's leaning body and
+## arms (on Right Cut it reports a 136° wrist and the off hand 32 cm out of
+## reach on the Hunter's own clip). The Rogue's hold on a baked path is
+## checked by the bake instead (SwingBake.drift()), and the reach and whiff
+## tests still run on baked paths.
+##
 ## A weapon held in both hands (WeaponDef.off_hand_grip) puts the left hand
 ## on its off-hand grip, seated like the right; such a swing keys no left
 ## hand. Otherwise each hand track holds its own copy of the weapon (the
@@ -103,7 +112,7 @@ class Moment:
 static func check(move: AttackDef, weapon: WeaponDef, body: ReferenceBody, chained_from: Swing = null) -> Array[String]:
 	var out: Array[String] = []
 	var swing: Swing = move.swing
-	if swing == null:
+	if swing == null or not swing.clips.is_empty() or swing.is_baked(&"right_hand") or swing.is_baked(&"left_hand"):
 		return out
 	if weapon.off_hand_grip != null and swing.parts().has(&"left_hand"):
 		out.append("left_hand: a weapon held in both hands keys no left hand; it grips the off-hand grip")

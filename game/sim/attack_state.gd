@@ -45,6 +45,14 @@ var lunge_dir: V2 = null
 var extra_recovery: int = 0
 var backstab: bool = false
 var started_by: int = -1
+## the frames the attack spends heaving the Greatsword off the shoulder before
+## its frame 1 (authored-animation task 15): GS_SHOULDER_LIFT_FRAMES for an
+## attack started shouldered, the rest of the lift for one started from a
+## guard still lifting off the shoulder, 0 otherwise
+var lift: int = 0
+## the frames of the lift still to come: while above 0 the attack holds its
+## frame 0, so everything after it comes that much later
+var lift_left: int = 0
 var evaded_emitted: bool = false
 var whiff_emitted: bool = false
 # shadow step path

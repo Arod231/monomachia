@@ -25,7 +25,7 @@ static func _cut() -> AttackDef:
 ## Fighter 0 with a Katana whose Right Cut has `swing` (none: the cone), 1.6 m
 ## from an idle Katana.
 static func _world(swing: Swing) -> World:
-	var w: WeaponDef = SF.weapon(&"katana", {CUT: swing}) if swing != null else Moves.KATANA
+	var w: WeaponDef = SF.weapon(&"katana", {CUT: swing}) if swing != null else SF.without_swings(&"katana")
 	return H.make_world(w, Moves.KATANA, 1.6)
 
 

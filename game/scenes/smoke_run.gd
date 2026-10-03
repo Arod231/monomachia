@@ -61,6 +61,8 @@ var _status: Status = Status.RUNNING
 var _started: bool = false
 var _started_msec: int = 0
 var _logging: bool = false
+## What the clip check found (see check_clips()).
+var clips: String = ""
 
 
 ## Whether the smoke flag is among the command-line arguments.
@@ -83,6 +85,7 @@ func start() -> void:
 	_started_msec = Time.get_ticks_msec()
 	_host.auto_run = false
 	_host.match_finished.connect(func(r: MatchResults) -> void: results = r)
+	clips = check_clips(_main)
 	_main.call("start_watch")
 
 
@@ -133,7 +136,40 @@ func report() -> String:
 		outcome += "; %d error%s logged, the first %s" % [errors.count, "" if errors.count == 1 else "s", errors.first]
 	var profiles: PackedStringArray = GameServices.profiles.names() if GameServices.profiles != null else PackedStringArray()
 	var saved: String = "saved" if FileAccess.file_exists(ControlProfiles.PATH) else "defaults, nothing saved"
-	return "smoke: %s; control profiles: %s (%s)" % [outcome, ", ".join(profiles), saved]
+	return "smoke: %s; control profiles: %s (%s); %s" % [outcome, ", ".join(profiles), saved, clips]
+
+
+## Plays every clip of the Iglesias libraries on a Hunter under `parent`
+## and checks each poses the body away from its rest pose (a held pose, like
+## lying on the ground, counts): the exported pack holds the libraries and
+## they play. A clip that doesn't move the body is logged as an error, which
+## fails the run. Without the libraries (a build from a fresh clone) it says
+## so and passes. Returns a line for the report.
+static func check_clips(parent: Node) -> String:
+	if not ClipLibraries.available():
+		return "Iglesias clips: not in this build (the CC0 fallback plays)"
+	var model: FighterModel = (load("res://fighters/hunter/hunter.tscn") as PackedScene).instantiate()
+	model.autoplay_idle = false
+	parent.add_child(model)
+	var counts: PackedStringArray = []
+	var hand: int = model.skeleton.find_bone("RightHand")
+	for set_name: StringName in ClipLibraries.SETS:
+		var lib: AnimationLibrary = ClipLibraries.load_set(set_name)
+		model.animation_player.add_animation_library(set_name, lib)
+		for clip: StringName in lib.get_animation_list():
+			var anim_name: String = "%s/%s" % [set_name, clip]
+			model.animation_player.play(anim_name, 0.0)
+			var start: Vector3 = model.skeleton.get_bone_global_rest(hand).origin
+			var moved: float = 0.0
+			for i: int in 9:
+				model.animation_player.seek(lib.get_animation(clip).length * i / 8.0, true)
+				moved = maxf(moved, model.skeleton.get_bone_global_pose(hand).origin.distance_to(start))
+			if moved < 0.01:
+				push_error("SmokeRun: clip %s doesn't move the body" % anim_name)
+		counts.append("%d %s" % [lib.get_animation_list().size(), set_name])
+	parent.remove_child(model)
+	model.free()
+	return "Iglesias clips: %s, each played" % ", ".join(counts)
 
 
 func _out_of_time() -> bool:

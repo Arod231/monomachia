@@ -33,8 +33,16 @@ extends RefCounted
 ## SwingSampler gives a track's pose between keys. Each track's poses at the
 ## whole frames 0 to last_frame, entered from the guard, are worked out once,
 ## when it is added, and tick() reads them.
+##
+## A baked track (authored-animation task 6: SwingBake, from a clip) keys
+## every frame from 0 to last_frame, so it has no entry or exit: each frame's
+## pose is its key, and between frames the poses are blended in a straight
+## line (the blade and edge turned between the two), never splined.
 
-const PARTS: Array[StringName] = [&"right_hand", &"left_hand", &"right_foot", &"left_foot", &"body"]
+## A bash strikes with a shoulder (authored-animation task 19): its track's
+## grip is the shoulder joint, its blade the way out along the shoulder line
+## and its edge forward (SimConst.SHOULDER_STRIKE_*).
+const PARTS: Array[StringName] = [&"right_hand", &"left_hand", &"right_foot", &"left_foot", &"right_shoulder", &"left_shoulder", &"body"]
 
 
 ## One key pose of a track. Hand and foot keys use frame, grip, blade, edge,
@@ -79,14 +87,18 @@ class Sample:
 
 
 ## What the track for `part` strikes with on `weapon` (task 7.9): a hand the
-## weapon's blade (bare hands' fist), a foot bare hands' foot; null for the
-## body, which doesn't strike, or a foot on a weapon with no kicks.
+## weapon's blade (bare hands' fist), a foot bare hands' foot, a shoulder the
+## bash's shoulder on any weapon; null for the body, which doesn't strike, or
+## a foot on a weapon with no kicks.
 static func strike_segment(part: StringName, weapon: WeaponDef) -> StrikeSegment:
 	match part:
 		&"right_hand", &"left_hand":
 			return weapon.blade
 		&"right_foot", &"left_foot":
 			return weapon.foot
+		&"right_shoulder", &"left_shoulder":
+			return StrikeSegment.make(V3.make(0.0, SimConst.SHOULDER_STRIKE_BASE, 0.0),
+				V3.make(0.0, SimConst.SHOULDER_STRIKE_TIP, 0.0), SimConst.SHOULDER_STRIKE_THICKNESS)
 	return null
 
 
@@ -101,8 +113,38 @@ var guard: Dictionary[StringName, KeyPose] = {}
 ## .reach_arc() read them.
 var reach: float = -1.0
 var arc: float = -1.0
+## A baked swing's reach correction (authored-animation task 7, SwingBake):
+## how far its striking tracks' grips were pushed toward the reach rule
+## (metres, right, up, forward; at most 15 cm), already in their keys. It
+## eases in over the startup and out over the recovery (reach_weight()); the
+## view plays the same push, moving the body above the hips.
+var reach_offset: V3 = V3.make()
+## The startup and the active frames, which reach_weight() eases by (set by
+## SwingFile from the move).
+var reach_startup: int = 0
+var reach_active: int = 0
+## True when the Rogue's HumanF clip strays more than 5 cm from this path in
+## the active frames, so she plays the Hunter's HumanM clip for it.
+var rogue_humanm: bool = false
+## What a baked swing was baked from, for the view to play the same clip on
+## the same frames (ClipDirector): the clips (clip-manifest ids, played one
+## after another, each maybe part of one: ClipChain), the speed (times their
+## 30 fps), the four markers in source frames from the chain's start
+## (ClipManifest.MARKERS' order) and a fifth, the hold, for a move whose
+## clip holds while it charges (ClipTiming), and the committed CC0 clip
+## played without the Iglesias packs (empty for none). Empty for a
+## hand-keyed swing.
+var clips: Array[StringName] = []
+var speed: float = 1.0
+var marks: PackedFloat64Array = PackedFloat64Array()
+var fallback: StringName = &""
+## The attack frames the blade spends in the saya (the Iai's sheathe and
+## stance, task 11), first and last: the view shows it there and no hand
+## holds it; empty for none. Always before the active frames.
+var sheathed: PackedInt32Array = PackedInt32Array()
 var _tracks: Dictionary[StringName, Array] = {}
 var _ticks: Dictionary[StringName, Array] = {}
+var _baked: Dictionary[StringName, bool] = {}
 
 
 func _init(p_last_frame: int = 0, p_guard: Dictionary[StringName, KeyPose] = {}) -> void:
@@ -111,13 +153,66 @@ func _init(p_last_frame: int = 0, p_guard: Dictionary[StringName, KeyPose] = {})
 
 
 ## Adds the track for `part` (one of PARTS), its keys sorted by frame, and
-## works out its poses at every whole frame, entered from the guard.
-func add_track(part: StringName, keys: Array[KeyPose]) -> void:
+## works out its poses at every whole frame, entered from the guard. A baked
+## track's keys are one per frame, 0 to last_frame (SwingFile checks them).
+func add_track(part: StringName, keys: Array[KeyPose], baked: bool = false) -> void:
 	_tracks[part] = keys
+	_baked[part] = baked
 	var ticks: Array[Sample] = []
 	for f: int in last_frame + 1:
-		ticks.append(SwingSampler.sample(keys, part, float(f), guard.get(part), guard.get(part), last_frame))
+		if baked:
+			ticks.append(held(keys[mini(f, keys.size() - 1)]))
+		else:
+			ticks.append(SwingSampler.sample(keys, part, float(f), guard.get(part), guard.get(part), last_frame))
 	_ticks[part] = ticks
+
+
+## A key's own pose, as a sample: a baked track's frames. (Here rather
+## than SwingSampler's, so building a weapon with baked swings while the
+## scripts load needs no other script.)
+static func held(k: KeyPose) -> Sample:
+	var out: Sample = Sample.new()
+	out.grip = k.grip
+	out.blade = k.blade
+	out.edge = k.edge
+	out.pole = k.pole
+	out.torso = k.torso
+	out.pelvis = k.pelvis
+	out.pelvis_shift = k.pelvis_shift
+	return out
+
+
+## Whether the blade is in the saya on attack frame `f` (sheathed).
+func is_sheathed(f: float) -> bool:
+	return sheathed.size() == 2 and f >= float(sheathed[0]) and f <= float(sheathed[1])
+
+
+## Whether the track for `part` was baked from a clip.
+func is_baked(part: StringName) -> bool:
+	return _baked.get(part, false)
+
+
+## How much of the reach correction is on at frame `f` (0 to 1): none on
+## frame 0, easing in to all of it on the last startup frame, all of it
+## through the active frames, and easing out to none on the last frame.
+func reach_weight(f: float) -> float:
+	return reach_weight_at(f, reach_startup, reach_active, last_frame)
+
+
+## The reach correction at frame `f` (reach_offset times reach_weight()).
+func reach_at(f: float) -> V3:
+	return V3.scale(reach_offset, reach_weight(f))
+
+
+## reach_weight() for a move of these frames.
+static func reach_weight_at(f: float, startup: int, active: int, last: int) -> float:
+	if f <= 0.0 or f >= float(last):
+		return 0.0
+	if f < float(startup):
+		return smoothstep(0.0, float(startup), f)
+	if f <= float(startup + active):
+		return 1.0
+	return 1.0 - smoothstep(float(startup + active), float(last), f)
 
 
 ## The parts this swing has tracks for, in the order they were added.
@@ -171,4 +266,32 @@ func tick(part: StringName, frame: int, chained_from: Swing = null) -> Sample:
 func sample(part: StringName, t: float, chained_from: Swing = null) -> Sample:
 	if not _tracks.has(part):
 		return null
+	if _baked[part]:
+		return _between(part, t)
 	return SwingSampler.sample(track(part), part, t, entry(part, chained_from), guard.get(part), last_frame)
+
+
+## A baked track's pose at frame `t`: the two frames either side blended in
+## a straight line, the blade and edge turned between them and squared.
+func _between(part: StringName, t: float) -> Sample:
+	var ticks: Array = _ticks[part]
+	var c: float = clampf(t, 0.0, float(last_frame))
+	var i: int = mini(floori(c), last_frame - 1) if last_frame > 0 else 0
+	var s: float = c - float(i)
+	var a: Sample = ticks[i]
+	if s <= 0.0 or last_frame == 0:
+		return a
+	var b: Sample = ticks[i + 1]
+	var out: Sample = Sample.new()
+	out.grip = V3.lerp(a.grip, b.grip, s)
+	out.pole = V3.lerp(a.pole, b.pole, s)
+	out.torso = lerpf(a.torso, b.torso, s)
+	out.pelvis = lerpf(a.pelvis, b.pelvis, s)
+	out.pelvis_shift = V3.lerp(a.pelvis_shift, b.pelvis_shift, s)
+	out.blade = V3.normalized(V3.lerp(a.blade, b.blade, s))
+	if V3.length(out.blade) < 1e-9:
+		out.blade = a.blade
+	var edge: V3 = V3.lerp(a.edge, b.edge, s)
+	var square: V3 = V3.sub(edge, V3.scale(out.blade, V3.dot(edge, out.blade)))
+	out.edge = V3.normalized(square) if V3.length(square) > 1e-9 else a.edge
+	return out

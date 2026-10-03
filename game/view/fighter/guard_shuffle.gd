@@ -414,7 +414,8 @@ func step(pos: Vector3, yaw: float, anchored: bool, strike: Strike = null) -> vo
 	if strike != null:
 		for side: String in SIDES:
 			var foot: Foot = feet[side]
-			if not foot.swinging and strike.lifts.get(side, -1) == strike.frame:
+			# (a plan with no steps, held by a charge or with no lunge, lifts nothing)
+			if not foot.swinging and strike.lifts.has(side) and strike.lifts[side] == strike.frame:
 				_lift(foot)
 				foot.planned_frames = maxi(1, strike.lands[side] - strike.lifts[side])
 				foot.planned_land = strike.ahead[side]

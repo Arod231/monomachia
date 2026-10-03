@@ -196,6 +196,34 @@ func test_a_ko_falls_with_the_death_clip() -> void:
 	assert_not_null(head.material_overlay, "a knocked-out fighter dims")
 
 
+## A knockdown (task 16) lets go of the pose and plays the fallback's
+## stand-in until task 28's clips: the fall clip over the fall, then the
+## rising clip, held at its start on the ground and played over the stand-up.
+func test_a_knockdown_falls_and_rises_with_the_stand_in_clips() -> void:
+	var W: World = _world()
+	var b: Fighter = W.fighters[1]
+	var v: FighterView = _view(&"rogue", Moves.KATANA)
+	var ap: AnimationPlayer = v.model.animation_player
+	b.enter_knockdown()
+	_step(W, 11)
+	_update(v, b, 0.5)
+	assert_eq(ap.current_animation, "ual/" + String(FighterView.KNOCKDOWN_FALL_CLIP))
+	var fall_len: float = ap.get_animation(ap.current_animation).length
+	assert_almost_eq(ap.current_animation_position, fall_len * 10.5 / SimConst.KNOCKDOWN_FALL_FRAMES, 1e-4, "fitted to the fall")
+	assert_false(v.model.rig.drives("Right"), "the arms go with the fall")
+	_step(W, 20)
+	_update(v, b, 0.5)
+	assert_eq(ap.current_animation, "ual/" + String(FighterView.KNOCKDOWN_RISE_CLIP))
+	assert_almost_eq(ap.current_animation_position, 0.0, 1e-4, "lying in the rise's first pose")
+	var rise_from: int = SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES
+	_step(W, rise_from + 10 - b.sf)
+	_update(v, b, 1.0)
+	var rise_len: float = ap.get_animation(ap.current_animation).length
+	assert_almost_eq(ap.current_animation_position, rise_len * 10.0 / SimConst.KNOCKDOWN_STANDUP_FRAMES, 1e-4, "fitted to the stand-up")
+	var head: MeshInstance3D = v.model.skeleton.get_node(^"Head")
+	assert_null(head.material_overlay, "a knocked-down fighter doesn't dim")
+
+
 func test_a_disarmed_fighter_holds_nothing_until_rearmed() -> void:
 	var W: World = _world(Moves.DAGGERS)
 	var f: Fighter = W.fighters[0]

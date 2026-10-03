@@ -5,9 +5,12 @@ extends SceneTree
 ##
 ##   node scripts/godot.mjs script res://tools/build_bone_map.gd
 ##   node scripts/godot.mjs script res://tools/import_assets.gd -- \
-##       --quaternius=<folder holding the four Quaternius packs> \
+##       [--quaternius=<folder holding the four Quaternius packs>] \
 ##       --weapons=<folder holding the Medieval Weapons Pack's FBX/ folder>
 ##   node scripts/godot.mjs import
+##
+## Without --quaternius it reads the packs from the `quaternius/` folder of
+## the packs' folder (AssetSource: the repo root's `.assets-src-path`).
 ##
 ## What it does:
 ## - copies the animation GLBs in ANIMATIONS, the two base bodies, the UAL2
@@ -25,7 +28,6 @@ extends SceneTree
 
 const DEST: String = "res://assets"
 const BONE_MAP: String = "res://assets/quaternius/ual_bone_map.tres"
-const DEFAULT_QUATERNIUS: String = "C:/Users/Win11/Desktop/Monomachia-assets/quaternius"
 
 const UAL1: String = "Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot"
 const UAL2: String = "Universal Animation Library 2[Standard]/Universal Animation Library 2[Standard]/Unreal-Godot"
@@ -89,7 +91,7 @@ var _failed: bool = false
 
 
 func _initialize() -> void:
-	_quaternius = _arg("quaternius", DEFAULT_QUATERNIUS)
+	_quaternius = _arg("quaternius", AssetSource.pack_folder("quaternius"))
 	_weapons = _arg("weapons", "")
 	_register_textures()
 	for f: String in ANIMATIONS:

@@ -60,8 +60,12 @@ The once-per-round signature move a fighter can use at 25% HP or less.
 ## Hits
 
 **Swing**:
-The path a move's weapon travels through the move, in the fighter's own space: key poses of the grip, the blade and the body's coil. The same swing decides hits and drives the animation.
+The path a move's weapon travels through the move, in the fighter's own space: the grip, the blade and the body's coil, frame by frame. It is baked from the move's clip, so the same motion decides hits and is seen on screen.
 _Avoid_: Animation (for the path itself), hitbox
+
+**Clip**:
+An authored animation a fighter plays, such as an attack, a damage reaction or a walk. Clips are fitted to the rules' frames and never decide anything themselves.
+_Avoid_: Animation (when the swing is meant), mocap
 
 **Hurt capsule**:
 The capsule around a fighter's body, from the feet up, that a swing must touch to hit them. It rises with the fighter in a jump.
@@ -85,6 +89,17 @@ Holding the block button to protect HP from blockable attacks; posture still fil
 **Parry**:
 Tapping block just before an attack lands, so the weapons bounce off each other.
 _Avoid_: Deflect (as a separate mechanic), guard break
+
+**Dodge**:
+Pressing dodge with a direction: a **roll** that way, invincible to normal attacks for its first frames. Pressing dodge with no direction is a **backstep**, a quick hop away from the opponent.
+_Avoid_: Dash (for the dodge), evade (that's a counter)
+
+**Knockdown**:
+Being knocked to the ground by an unblockable, a fully charged heavy or a colossal slam. The downed fighter can't be hit, and stands up on a fixed timer, able to block or parry as they rise.
+_Avoid_: Knockback (the push every hit gives), launch
+
+**Shouldered**:
+A Greatsword resting on its fighter's shoulder, as it does at the round intro and after moving for a moment. An attack started shouldered is slower, because the sword has to be heaved off first.
 
 **Counter**:
 The specific answer to an unblockable: **stomp** (dodge into a thrust), **leap** (jump over a sweep) or **evade** (back-dash from a slam, then lunge).

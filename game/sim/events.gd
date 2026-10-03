@@ -57,6 +57,8 @@ extends RefCounted
 ##   fight:         round: int
 ##   roundOver:     winner: int, wins: [int, int], perfect: bool
 ##   matchOver:     winner: int
+##   knockdown:     f: int (the downed fighter), attacker: int (authored animation, task 16)
+##   standup:       f: int (the knockdown over, the fighter free again; task 16)
 
 ## Every SimEvent "t" value, in the order of the TS union.
 const TYPES: Array[StringName] = [
@@ -93,6 +95,8 @@ const TYPES: Array[StringName] = [
 	&"fight",
 	&"roundOver",
 	&"matchOver",
+	&"knockdown",
+	&"standup",
 ]
 
 ## worldTypes.ts OutcomeKind: what World.evaluate decides for one attack.

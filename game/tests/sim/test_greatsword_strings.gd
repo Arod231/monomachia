@@ -15,7 +15,7 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 		"light": &"", "heavy": &"g_h1", "sides": [&"left", &"right"],
 	},
 	&"g_h1": {
-		"name": "Overhead Strike", "frames": [26, 5, 32], "damage": 18, "posture": 22,
+		"name": "Overhead Strike", "frames": [26, 5, 29], "damage": 18, "posture": 22,
 		"light": &"", "heavy": &"g_h2", "sides": [&"centre", &"right"],
 	},
 	&"g_h2": {
@@ -245,15 +245,16 @@ func test_low_sweep_is_marked_as_an_unblockable_that_can_be_jumped() -> void:
 
 
 func test_low_sweep_is_a_sweep_with_its_interim_cone_and_earthbreakers_lunge() -> void:
-	# until weapon paths decide hits (task 7): a sweep (the stand-in's sweep
-	# pose), 3.2 m and 110°, with Earthbreaker's lunge, knockback and
-	# hitstop, its lunge ending two frames after its cut starts, as
-	# Earthbreaker's did
+	# a sweep (the stand-in's sweep pose), 3.2 m and 110° (the cone, kept for
+	# the computer opponent), with Earthbreaker's knockback and hitstop, its
+	# lunge ending two frames after its cut starts, as Earthbreaker's did;
+	# 0.85 m, 5 cm past Earthbreaker's, so its clip (Attack2H03) reaches
+	# 3.5 m (authored animation 20)
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_h2"]
 	assert_eq([m.type, m.anim], [&"sweep", &"sweep"], "a sweep")
 	assert_eq(
 		[m.range, m.arc, m.lunge, m.lunge_start, m.lunge_end, m.knockback, m.hitstop],
-		[3.2, 110.0, 0.8, 10, 28, 2.0, 10],
+		[3.2, 110.0, 0.85, 10, 28, 2.0, 10],
 		"range, arc, lunge and its window, knockback and hitstop",
 	)
 
@@ -301,12 +302,13 @@ func test_a_defender_dodging_forward_into_skewer_stomps_it() -> void:
 
 
 func test_piercing_lunge_is_a_blockable_stab_with_its_interim_cone() -> void:
-	# until weapon paths decide hits (task 7): a stab (the stand-in's thrust
-	# pose), 3.0 m and 50° after a 0.8 m lunge, with Pommel Strike's
-	# knockback, and blockable
+	# a stab (the stand-in's thrust pose), 3.0 m and 50° (the cone, kept for
+	# the computer opponent) after a 1.0 m lunge (0.8 until its clip,
+	# AttackPolearm01, reached less far: authored animation 18), with Pommel
+	# Strike's knockback, and blockable
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_dl"]
 	assert_eq([m.type, m.anim, m.unblockable, m.counter], [&"stab", &"thrust", false, &""], "a blockable stab")
-	assert_eq([m.range, m.arc, m.lunge, m.knockback], [3.0, 50.0, 0.8, 0.8], "range, arc, lunge and knockback")
+	assert_eq([m.range, m.arc, m.lunge, m.knockback], [3.0, 50.0, 1.0, 0.8], "range, arc, lunge and knockback")
 
 
 func test_skewer_is_an_unblockable_thrust_reaching_past_the_lights_with_its_interim_cone() -> void:
@@ -339,20 +341,22 @@ func test_all_six_rows_match_the_spec_table() -> void:
 
 
 func test_overhead_strike_is_an_overhead_with_crushing_blows_cone() -> void:
-	# until weapon paths decide hits (task 7): an overhead (the stand-in's
-	# overhead pose) with Crushing Blow's reach, width, lunge, knockback and
-	# hitstop
+	# an overhead (the stand-in's overhead pose) with Crushing Blow's reach,
+	# width, knockback and hitstop, and its lunge grown from 0.7 m for its
+	# clip (Attack2H02) to reach from 3.5 m (authored animation 18)
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_h1"]
 	assert_eq([m.type, m.anim], [&"overhead", &"overhead"], "an overhead")
 	assert_eq(
 		[m.range, m.arc, m.lunge, m.lunge_start, m.lunge_end, m.knockback, m.hitstop],
-		[3.1, 90.0, 0.7, 10, 30, 1.6, 9],
+		[3.1, 90.0, 1.05, 10, 30, 1.6, 9],
 		"range, arc, lunge and its window, knockback and hitstop",
 	)
 
 
 func test_backswings_lunge_and_dodge_cancel_keep_pace_with_its_faster_start() -> void:
-	# the lunge ends one frame after the cut starts, and the dodge cancel
-	# opens 8 frames after the cut ends, as Heavy Swing's do (15 and 26)
+	# the lunge ends one frame after the cut starts, on its blade's first
+	# touch, and the dodge cancel opens 8 frames after the cut ends, as Heavy
+	# Swing's do (16 and 26); 0.55 m, as its clip (Attack2H01 mirrored)
+	# reaches less far than its cone (authored animation 18)
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_l2"]
-	assert_eq([m.lunge, m.lunge_end, m.dodge_cancel_from], [0.4, 12, 23])
+	assert_eq([m.lunge, m.lunge_end, m.dodge_cancel_from], [0.55, 12, 23])

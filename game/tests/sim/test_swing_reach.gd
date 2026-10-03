@@ -18,8 +18,9 @@ func after_each() -> void:
 	H.dispose_all()
 
 
+## Right Cut on a Katana with no swings (its baked one left off).
 static func _cut() -> AttackDef:
-	return Moves.KATANA.moves[CUT]
+	return SF.without_swings(&"katana").moves[CUT]
 
 
 ## A Katana whose Right Cut has `swing` and whose blade is a straight test
@@ -121,10 +122,16 @@ func test_a_move_reads_its_swings_reach_and_arc_and_without_one_its_authored_ran
 	assert_eq(def.range, 2.2, "the authored range stays for the counters' cones")
 
 
-func test_the_weapons_reach_comes_from_its_light_starters_swing() -> void:
-	assert_eq(Moves.KATANA.reach, 2.1, "the Katana's authored reach while Right Cut has no swing")
-	var other: WeaponDef = SF.weapon(&"katana", {&"k_l2": SF.level_slash(Moves.KATANA.moves[&"k_l2"])})
+func test_the_weapons_reach_comes_from_its_light_starters_hand_keyed_swing() -> void:
+	assert_eq(SF.without_swings(&"katana").reach, 2.1, "the Katana's authored reach while Right Cut has no swing")
+	var other: WeaponDef = SF.without_swings(&"katana")
+	other.moves[&"k_l2"].swing = SF.level_slash(other.moves[&"k_l2"])
+	other.derive_reach()
 	assert_eq(other.reach, 2.1, "a swing on another move leaves it")
+	# a swing baked from a clip leaves the authored reach (its lunge was
+	# lengthened to keep the reach table's distances; authored animation 20)
+	assert_eq(Moves.KATANA.reach, 2.1, "Right Cut's swing, baked from a clip, leaves the Katana's authored reach")
+	assert_eq(Moves.GREATSWORD.reach, 2.75, "and Heavy Swing's the Greatsword's")
 	var w: WeaponDef = _straight(SF.level_slash(_cut()))
 	assert_almost_eq(w.reach, 1.26, EPS, "a swing on the light starter gives it")
 
@@ -144,6 +151,8 @@ func test_the_computer_takes_a_move_as_a_threat_within_its_reach() -> void:
 func test_the_dummy_keeps_its_practice_distance_until_its_light_starter_has_a_swing() -> void:
 	var demo: Dictionary[StringName, float] = {&"katana": 2.2, &"greatsword": 2.6, &"daggers": 1.8, &"fists": 2.2}
 	for id: StringName in demo:
-		assert_eq(TrainingBrain.practice_distance(Moves.WEAPONS[id]), demo[id], "%s: the demo's distance" % id)
+		var w0: WeaponDef = SF.without_swings(id)
+		assert_eq(TrainingBrain.practice_distance(w0), demo[id], "%s: the demo's distance" % id)
+	assert_eq(TrainingBrain.practice_distance(Moves.KATANA), Moves.KATANA.reach, "the Katana's Right Cut is baked (task 9): its reach")
 	var w: WeaponDef = _straight(SF.level_slash(_cut()))
 	assert_almost_eq(TrainingBrain.practice_distance(w), 1.26, EPS, "with a swing on Right Cut, the weapon's reach")

@@ -31,6 +31,14 @@ const JUMP_CLEAR: float = 0.3 # feet height above which low attacks miss
 ## further than the same swing without the flag. Presentation reads it for
 ## the reach shown on the warning mark.
 const UNBLOCKABLE_SWEEP_BONUS: float = 0.1
+## A bash's striking shoulder (authored-animation task 19; Swing's
+## left_shoulder and right_shoulder tracks): in the shoulder's frame (origin
+## at the shoulder joint, +Y out along the shoulder line, +X forward), from
+## just inside the joint to the outside of the upper arm, 24 cm thick for the
+## deltoid and the arm's bulk.
+const SHOULDER_STRIKE_BASE: float = -0.04
+const SHOULDER_STRIKE_TIP: float = 0.08
+const SHOULDER_STRIKE_THICKNESS: float = 0.24
 
 # --- Defence ---------------------------------------------------------------
 const PARRY_POSTURE: float = 16.0 # "each parry does a consistent amount of posture damage"
@@ -67,6 +75,22 @@ const REDIRECT_POSTURE: float = 35.0
 const REDIRECT_STUN: int = 50
 const FLASH_STUN: int = 60
 
+# --- Knockdown (authored-animation task 16) ---------------------------------
+# A hit from an unblockable (not an ultimate), a heavy released at full charge,
+# or one of KNOCKDOWN_MOVES knocks the defender down instead of into hitstun:
+# a fall, a time on the ground and a stand-up. Provisional lengths, for the
+# knockdown clips' markers and soak runs to settle.
+const KNOCKDOWN_FALL_FRAMES: int = 20
+const KNOCKDOWN_GROUND_FRAMES: int = 30
+const KNOCKDOWN_STANDUP_FRAMES: int = 25
+## The stand-up's last frames, in which the fighter is no longer invulnerable
+## and can block or parry (but not attack, dodge or move); before them the
+## fighter is invulnerable from the fall's first frame.
+const KNOCKDOWN_GUARD_FRAMES: int = 15
+## The Greatsword's slams, which knock down though they aren't all
+## unblockable: Mountain Slam, Meteor Drop and Leaping Smash.
+const KNOCKDOWN_MOVES: Array[StringName] = [&"g_slam", &"g_jh", &"g_sh"]
+
 # --- Disarm ----------------------------------------------------------------
 const DISARM_STAGGER: int = 26 # the disarmed fighter reels back
 const PICKUP_RANGE: float = 1.25
@@ -99,6 +123,13 @@ const MOVE_DODGE_DIST: float = 2.8
 const MOVE_DODGE_FRAMES: int = 16
 const MOVE_DODGE_I_FRAMES: int = 12
 const MOVE_DODGE_RECOVERY: int = 9
+## The roll's travel (authored-animation task 17): the share of its distance
+## covered after each of its 16 frames, from 0 to 1, read from Roll01 [RM]'s
+## root on HumanM by the import tool (tools/import_clips.gd prints it): about
+## even speed with a soft stop. The backstep keeps ease_out_cubic.
+const MOVE_ROLL_CURVE: Array[float] = [
+	0.0, 0.0876, 0.1958, 0.2823, 0.3651, 0.4479, 0.5398, 0.6502, 0.748, 0.8015, 0.8413, 0.8697, 0.912, 0.9585, 0.9709, 0.9899, 1.0,
+]
 const MOVE_BACKSTEP_DIST: float = 2.1
 const MOVE_BACKSTEP_FRAMES: int = 14
 const MOVE_BACKSTEP_I_FRAMES: int = 10
@@ -117,6 +148,16 @@ const ATTACK_MOMENTUM_KEEP: float = 0.5
 const COLOSSAL_SLIDE_DIST: float = 0.35
 ## The slide takes this many recovery frames.
 const COLOSSAL_SLIDE_FRAMES: int = 10
+
+# --- Greatsword shoulder carry (authored-animation task 15) ----------------
+## An armed Greatsword goes onto the shoulder (Fighter.shouldered) after this
+## many frames in a row of moving in the free state (walking, running,
+## sprinting or stepping), and at every round start.
+const GS_SHOULDER_MOVE_FRAMES: int = 20
+## An attack started from the shoulder holds its frame 0 this many frames
+## while the sword is heaved off: its startup and its dodge cancel come this
+## much later, its active and recovery frames don't change.
+const GS_SHOULDER_LIFT_FRAMES: int = 6
 
 # DISARMED_MULT = { speed, dodge, jump }
 const DISARMED_MULT_SPEED: float = 1.2

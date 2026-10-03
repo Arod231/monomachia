@@ -32,11 +32,17 @@ static func _files(dir_path: String, out: Array[String]) -> Array[String]:
 	return out
 
 
-## Every file in game/assets except the audio, and the baked art beside it.
+## The gitignored folders the Iglesias import tool writes (the staged FBX
+## copies and the clip libraries): never committed, so outside the budget.
+const UNCOMMITTED: Array[String] = ["res://assets/kevin_iglesias/staging/", "res://assets/kevin_iglesias/library/"]
+
+
+## Every committed file in game/assets except the audio, and the baked art
+## beside it.
 static func _art_files() -> Array[String]:
 	var art: Array[String] = []
 	for path: String in _files(ASSETS, []):
-		if not path.begins_with(AUDIO + "/"):
+		if not path.begins_with(AUDIO + "/") and not UNCOMMITTED.any(func(p: String) -> bool: return path.begins_with(p)):
 			art.append(path)
 	for root: String in BAKED:
 		for path: String in _files(root, []):

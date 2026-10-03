@@ -31,6 +31,8 @@ const PIVOTS: Dictionary[StringName, Array] = {
 	&"left_hand": [0.0, 1.44, -0.06],
 	&"right_foot": [0.0, 0.96, -0.045],
 	&"left_foot": [0.0, 0.96, -0.045],
+	&"right_shoulder": [0.0, 1.44, -0.06],
+	&"left_shoulder": [0.0, 1.44, -0.06],
 }
 ## The steepest an ease can make a capped spline: three times the slopes.
 const MAX_SLOPE: float = 3.0

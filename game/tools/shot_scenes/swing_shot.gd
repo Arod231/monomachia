@@ -9,6 +9,11 @@ extends Node
 ##   node scripts/godot.mjs shots res://tools/shot_scenes/swing_debug.tscn <out.png> 30 --moment=hit
 ## --moment= picks hit (the dummy standing), block (the dummy holding block)
 ## or whiff (the slash at 2.2 m, over the dummy's head).
+##
+## --baked keeps Right Cut's own baked swing (authored-animation task 9) in
+## place of the test slash, --apart=<m> sets the fighters' distance (1.6 by
+## default; the Katana duels at 2.5) and --attacker=hunter|rogue who cuts
+## (the Rogue by default).
 
 const SF := preload("res://tests/sim/swing_fixtures.gd")
 const SEED: int = 7
@@ -17,6 +22,9 @@ const CUT: StringName = &"k_l1"
 @export_enum("hit", "block", "whiff") var moment: String = "hit"
 ## Frames to let the renderer settle before the capture.
 @export var settle_frames: int = 10
+@export var baked: bool = false
+@export var apart: float = 1.6
+@export var attacker: StringName = &"rogue"
 
 var host: MatchHost
 var _ready_flag: bool = false
@@ -35,14 +43,21 @@ func _ready() -> void:
 	for a: String in OS.get_cmdline_user_args():
 		if a.begins_with("--moment="):
 			moment = a.trim_prefix("--moment=")
-	var cut: AttackDef = Moves.KATANA.moves[CUT]
-	cut.swing = SF.level_slash(cut, 2.2 if moment == "whiff" else 1.2)
-	Moves.KATANA.derive_reach()
+		elif a == "--baked":
+			baked = true
+		elif a.begins_with("--apart="):
+			apart = float(a.trim_prefix("--apart="))
+		elif a.begins_with("--attacker="):
+			attacker = StringName(a.trim_prefix("--attacker="))
+	if not baked:
+		var cut: AttackDef = Moves.KATANA.moves[CUT]
+		cut.swing = SF.level_slash(cut, 2.2 if moment == "whiff" else 1.2)
+		Moves.KATANA.derive_reach()
 
 	var keys: FakeDeviceState = FakeDeviceState.new()
-	var dummy: MatchSide = MatchSide.computer(&"hunter", &"katana", 1)
+	var dummy: MatchSide = MatchSide.computer(&"rogue" if attacker == &"hunter" else &"hunter", &"katana", 1)
 	dummy.controller = MatchSide.DUMMY
-	var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
+	var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(attacker, &"katana"), dummy, SEED)
 	host = (load("res://view/match/match_host.tscn") as PackedScene).instantiate()
 	host.auto_run = false
 	host.input = InputDevices.new(keys)
@@ -55,7 +70,7 @@ func _ready() -> void:
 	if moment == "block":
 		(host.brain(1) as TrainingBrain).set_behaviour(&"block")
 	host.step(Match.INTRO_FRAMES + 20)
-	_place_apart(1.6)
+	_place_apart(apart)
 
 	keys.press_key(KEY_J)
 	host.step(2)

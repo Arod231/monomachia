@@ -97,6 +97,80 @@ const MOVE_CHANGES: Array[Dictionary] = [
 	# 11.2: Twin Fang dashes 1.4 m, and the spin after it is Spinning Backhand
 	{"move": "d_h1", "field": "lunge", "was": 0.8, "now": 1.4},
 	{"move": "d_h2", "field": "name", "was": "Gutting Spiral", "now": "Spinning Backhand"},
+	# authored animation 9: Right Cut baked from Attack1H01_R first touches a
+	# defender at the duelling distance on frame 13, its last but one active
+	# frame, where its lunge now ends (test_duel_reach)
+	{"move": "k_l1", "field": "lunge_end", "was": 12, "now": 13},
+	# authored animation 10: Return Cut (Attack1H03_R) and Crown Cut
+	# (Attack2H02) reach less far than their cones; their lunges grow so a
+	# push of at most 15 cm puts 17.5 cm into a defender at the duelling
+	# distance, Crown Cut's ending on its first touch, frame 15
+	{"move": "k_l2", "field": "lunge", "was": 0.35, "now": 0.45},
+	{"move": "k_l4", "field": "lunge", "was": 0.5, "now": 0.7},
+	{"move": "k_l4", "field": "lunge_end", "was": 16, "now": 15},
+	# authored animation 11: the heavies' clips reach far less than their
+	# cones, so their lunges carry them to a touch from the heavies' test
+	# distance (3.0 m): Rising Heaven (Attack1H05_R) and Heaven Splitter
+	# (Attack2H04)
+	{"move": "k_h1f", "field": "lunge", "was": 0.5, "now": 1.2},
+	{"move": "k_h2", "field": "lunge", "was": 0.7, "now": 0.95},
+	# authored animation 12: the movement attacks' clips reach less far than
+	# their cones, so their lunges carry them to a touch from their test
+	# distances (the sprint attacks 4.0 and 5.0 m, the dodge attacks 2.5, the
+	# back attacks 3.0 and 4.5)
+	{"move": "k_sl", "field": "lunge", "was": 1.6, "now": 1.7},
+	{"move": "k_sh", "field": "lunge", "was": 2.6, "now": 2.9},
+	{"move": "k_dl", "field": "lunge", "was": 0.4, "now": 0.5},
+	{"move": "k_dh", "field": "lunge", "was": 0.3, "now": 0.5},
+	{"move": "k_bl", "field": "lunge", "was": 0.8, "now": 1.25},
+	{"move": "k_bh", "field": "lunge", "was": 2.2, "now": 2.3},
+	# authored animation 13: the unblockables' clips (AttackPolearm01 and
+	# Attack2H03) reach less far than their cones, so their lunges carry them
+	# to a touch from the unblockables' test distance (3.5 m)
+	{"move": "k_thrust", "field": "lunge", "was": 1.0, "now": 1.4},
+	{"move": "k_sweep", "field": "lunge", "was": 0.4, "now": 1.4},
+	# authored animation 18: the Greatsword's lights (Attack2H01 and its
+	# mirror) reach less far than their cones, so their lunges grow so a push
+	# of at most 15 cm puts 17.5 cm into a defender at the duelling distance
+	# (3.0 m), Heavy Swing's ending on its first touch, frame 16; Overhead
+	# Strike (Attack2H02) reaches 3.5 m with a longer lunge, and its clip ends
+	# 3 frames sooner (Piercing Lunge, an added move, is in its strings test)
+	{"move": "g_l1", "field": "lunge", "was": 0.4, "now": 0.45},
+	{"move": "g_l1", "field": "lunge_end", "was": 15, "now": 16},
+	{"move": "g_l2", "field": "lunge", "was": 0.4, "now": 0.55},
+	{"move": "g_h1", "field": "lunge", "was": 0.7, "now": 1.05},
+	{"move": "g_h1", "field": "recovery", "was": 32, "now": 29},
+	# authored animation 19: the Greatsword's movement attacks and Guard
+	# Crusher reach less far on their clips than their cones, so their lunges
+	# carry them to a touch from their test distances (sprint 4.5 and 5.5 m,
+	# back 3.5 and 5.0, the ability 3.0); the bashes strike with the left
+	# shoulder
+	{"move": "g_sl", "field": "lunge", "was": 2.2, "now": 3.35},
+	{"move": "g_sh", "field": "lunge", "was": 3.0, "now": 3.15},
+	{"move": "g_bl", "field": "lunge", "was": 0.9, "now": 1.15},
+	{"move": "g_bh", "field": "lunge", "was": 2.2, "now": 2.35},
+	{"move": "g_crush", "field": "lunge", "was": 1.6, "now": 1.85},
+	# authored animation 20: Reaping Sweep (AttackPolearm04's spin) and
+	# Mountain Slam (AttackPolearm03) reach less far than their cones, so
+	# their lunges carry them to a touch from the unblockables' test distance
+	# (4.0 m; Low Sweep, an added move, is in its strings test)
+	{"move": "g_sweep", "field": "lunge", "was": 0.3, "now": 1.65},
+	{"move": "g_slam", "field": "lunge", "was": 0.6, "now": 1.35},
+	# authored animation 21: the Daggers' lights (Attack1H01_R and _L,
+	# AttackDW01 and 02) reach further on their clips than their cones put
+	# them, the whole dagger inside a defender at the duelling distance (2.0
+	# m), so their lunges shorten to put 17.5 cm in, each ending on its first
+	# touch; Spinning Backhand's spin (AttackPolearm04) falls short of 2.5 m,
+	# so its lunge grows
+	{"move": "d_l1", "field": "lunge", "was": 0.3, "now": 0.15},
+	{"move": "d_l1", "field": "lunge_end", "was": AttackDef.UNSET, "now": 8},
+	{"move": "d_l2", "field": "lunge", "was": 0.3, "now": 0.17},
+	{"move": "d_l2", "field": "lunge_end", "was": AttackDef.UNSET, "now": 8},
+	{"move": "d_l3", "field": "lunge", "was": 0.4, "now": 0.38},
+	{"move": "d_l3", "field": "lunge_end", "was": AttackDef.UNSET, "now": 11},
+	{"move": "d_l4", "field": "lunge", "was": 0.6, "now": 0.35},
+	{"move": "d_l4", "field": "lunge_end", "was": AttackDef.UNSET, "now": 13},
+	{"move": "d_h2", "field": "lunge", "was": 0.4, "now": 1.1},
 ]
 
 ## Moves the new strings added, with no demo move to compare with: each
@@ -202,6 +276,13 @@ static func _rebuilt(ts: Dictionary, id: StringName) -> Dictionary:
 ## The value a weapon's field should hold: its TS value, or its
 ## WEAPON_CHANGES row's.
 static func _weapon_wanted(wid: String, field: String, ts_value: Variant) -> Variant:
+	# a weapon's reach is its light starter's swing's once it has a hand-keyed
+	# one (7.13); one baked from a clip leaves the authored reach (authored
+	# animation 20)
+	var w: WeaponDef = Moves.WEAPONS.get(StringName(wid))
+	var starter: AttackDef = w.moves[w.light_start] if w != null else null
+	if field == "reach" and starter != null and starter.swing != null and starter.swing.clips.is_empty():
+		return (w.moves[w.light_start] as AttackDef).swing.reach
 	for row: Dictionary in WEAPON_CHANGES:
 		if row["weapon"] == wid and row["field"] == field:
 			return row["now"]
@@ -243,7 +324,8 @@ func test_every_attack_def_field_is_a_key() -> void:
 	assert_eq(props, AttackDef.KEYS)
 	var wprops: Array[String] = []
 	for p: Dictionary in WeaponDef.new().get_property_list():
-		if int(p["usage"]) & PROPERTY_USAGE_SCRIPT_VARIABLE:
+		# authored_reach is the record's reach, kept for derive_reach()
+		if int(p["usage"]) & PROPERTY_USAGE_SCRIPT_VARIABLE and String(p["name"]) != "authored_reach":
 			wprops.append(String(p["name"]))
 	assert_eq(wprops, WeaponDef.KEYS)
 

@@ -35,7 +35,7 @@ Holding block while not being attacked lowers your posture meter. Holding block 
 * **Precision fighter control:** an eight-way run system lets your fighter move smoothly in any direction. Pushing up or down moves you toward and away from the opponent. Pushing left or right (including diagonals) circles the opponent, who stays the focus point.
 * **Step:** tapping the stick in a direction performs a short, precise step instead of a full run.
 * **Sprint:** double-tapping and holding a direction sprints, which opens running-only attacks.
-* **Dodge:** holding a direction and pressing dodge dashes that way. The dash grants invincibility frames: normal attacks pass through the fighter. It is a dash, not a roll, with momentum and slight friction for smooth control. Tapping dodge with no direction performs a backstep.
+* **Dodge (update):** holding a direction and pressing dodge rolls that way, in any direction. The roll grants invincibility frames: normal attacks pass through the fighter. It keeps the old dash's distance and timing. Its travel follows the roll: an even pace while the fighter tumbles, easing to a stop as they come up. Tapping dodge with no direction performs a backstep, a quick hop back.
 * **Jump:** opens a light or heavy jumping attack, and clears sweeps.
 * **Blocking movement (update):** players can walk a little faster while blocking than in the original demo.
 
@@ -61,7 +61,7 @@ Holding block while not being attacked lowers your posture meter. Holding block 
 
 Fighters have several defensive options: dodging, parrying, countering, blocking and jumping.
 
-* **Dodge:** a dash with brief invincibility frames (like Dark Souls) that passes through attacks.
+* **Dodge:** a roll with brief invincibility frames (like Dark Souls) that passes through attacks.
 * **Parry:** tap block at the precise moment an attack would land. Every attack can be parried, and each parry does a consistent amount of posture damage. Parrying doesn't open the parrier to damage; it lets them act first with a light or heavy attack, which the opponent can in turn parry. The parrier then decides which attack or movement option gives them the advantage.
 * **Parry presentation (update):** parries should be cinematic. The two weapons visibly bounce off each other, as in Sekiro, with a flashy "clang" effect and sound.
 * **Block:** shields HP from blockable attacks, and reduces, but doesn't remove, posture damage.
@@ -69,6 +69,7 @@ Fighters have several defensive options: dodging, parrying, countering, blocking
   * **Thrusts** must be dodged *into* to stomp on the thrusting weapon (like Sekiro's mikiri counter). The attacker is stunned and open to a string of attacks.
   * **Sweeps** (horizontal attacks at the feet) must be jumped over; the fighter leaps off the opponent for good posture damage.
   * **Overhead slams** are countered by back-dashing. The counter looks like a quick back dash that can instantly be followed by a special light attack that dashes you to the opponent while they recover.
+* **Knockdown (update):** an unblockable, a fully charged heavy or a colossal slam knocks the defender down when it hits. A downed fighter can't be hit. They stand up on a fixed timer and can block or parry as they rise. A hit that knocks out plays a death instead.
 * **Disarmed:** a disarmed fighter can't parry or block. Parry is replaced by the timed redirect counter, which deals high posture damage and stuns.
 * **Not in this game (update):** no directional guard (block is a single hold, not For Honor's stance directions), and no combo breaker (there is no way to break out of a string once it connects; defense happens before the hit lands).
 
@@ -138,6 +139,7 @@ Each fighter has three abilities in a match: the weapon's ultimate, and two bloc
   * Charged heavy: a forward-flip overhead slam.
   * Backstep into heavy: a jumping slam.
 * **Greatsword:** the sword is heavy; the fighter swings it and rides its momentum.
+  * **(update)** It rests on the fighter's shoulder at the round intro and while moving. Heaving it off the shoulder makes that attack a little slower.
   * Lights: side-to-side swings.
   * Heavies: a two-hit string, an overhead strike into an unblockable low sweep.
   * Attacking out of a dodge: a thrust.
@@ -215,11 +217,13 @@ Each fighter has three abilities in a match: the weapon's ultimate, and two bloc
 * Attacks should feel weighty, both when they land and when the attack begins.
 * Fighters behave realistically:
   * Running fighters lean forward.
-  * Dodges look evasive.
+  * Dodges look evasive: a directional dodge is a roll.
   * Each fighter moves according to their weapon. Colossal weapons are heavy and look it, and swinging one pulls the fighter along with its momentum.
 * Strings flow naturally; a swing that ends on the right continues from the right.
 * Unblockable attacks have longer range and a visible effect showing their reach.
 * Hitboxes should be as tight to the weapon as possible.
+* **(update)** Fighters animate from authored clips: attacks, reactions, movement, draws and victory poses. The clips are fitted to the rules' timing, and the path that decides hits is taken from the same clip.
+* **(update)** Each weapon is drawn at the round intro and has its own victory pose. The Katana is sheathed with a bow, the Daggers toss and catch a blade, the Greatsword is planted in the ground, and bare hands cheer.
 
 ### Sound Design
 
@@ -239,6 +243,7 @@ Each fighter has three abilities in a match: the weapon's ultimate, and two bloc
 * Assets must be easy to swap as new files and downloaded packs become available.
 * Current sources:
   * Quaternius characters, outfits, animations and weapons (CC0).
+  * Kevin Iglesias's Human Melee and Human Basic Motions animation packs (Standard Asset Store EULA: commercial use allowed, no redistribution). They are used in builds but never committed: an import tool converts the clips locally, and CC0 clips stand in when the packs are missing.
   * The Sonniss GDC 2026 game audio bundle (royalty-free).
 
 ### Controls

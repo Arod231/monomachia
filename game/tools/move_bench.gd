@@ -94,6 +94,8 @@ func stand() -> void:
 	defender.yaw = PI
 	attacker.set_state(&"free")
 	defender.set_state(&"free")
+	# in its guard, not on the shoulder: the bench plays a move's own frames
+	attacker.shouldered = false
 	_show()
 
 

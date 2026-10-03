@@ -10,8 +10,8 @@ const H := preload("res://tests/sim/sim_helpers.gd")
 const CLOSE: float = 0.005
 ## The buttons that start a follow-up.
 const LIGHT_OR_HEAVY: Array[int] = [Btn.LIGHT, Btn.HEAVY]
-## How far apart the fighters start (m), and how many steps a string plays
-## for.
+## How far apart the fighters start (m; or the weapon's duelling distance
+## when nearer, _gap()), and how many steps a string plays for.
 const GAP: float = 2.2
 const STEPS: int = 240
 ## How far apart the fighters start for a string to whiff (m).
@@ -49,16 +49,24 @@ static func _named(presses: Array[int]) -> String:
 ## the step after the attack before it swings; mx the stick's sideways push
 ## throughout; a dodge pressed on attack dodge_in's frame dodge_on).
 func _play(
-	presses: Array[int], gap: float = GAP, mx: float = 0.0, dodge_in: StringName = &"", dodge_on: int = -1
+	presses: Array[int], gap: float = NAN, mx: float = 0.0, dodge_in: StringName = &"", dodge_on: int = -1
 ) -> PlayedString:
-	return PlayedString.play(weapon, presses, gap, mx, dodge_in, dodge_on)
+	return PlayedString.play(weapon, presses, _gap() if is_nan(gap) else gap, mx, dodge_in, dodge_on)
 
 
 ## Fighter 0, holding the weapon, plays the input p0 gives each step (step
 ## index -> RawInput) for n steps against a Katana gap m away, which plays
 ## the input p1 gives (idle without one).
-func _run(p0: Callable, gap: float = GAP, n: int = STEPS, p1: Callable = Callable()) -> PlayedString:
-	return PlayedString.run(weapon, p0, gap, n, p1)
+func _run(p0: Callable, gap: float = NAN, n: int = STEPS, p1: Callable = Callable()) -> PlayedString:
+	return PlayedString.run(weapon, p0, _gap() if is_nan(gap) else gap, n, p1)
+
+
+## How far apart a string starts: GAP, or the weapon's duelling distance when
+## nearer (the Daggers' 2.0 m: their lights, baked from clips, put 17.5 cm of
+## blade into a defender from there and fall short of 2.2; authored
+## animation 21).
+func _gap() -> float:
+	return minf(GAP, weapon.duel_distance)
 
 
 ## Plays presses against a Katana GAP m away that plays the input p1 gives
@@ -69,7 +77,7 @@ func _play_against(presses: Array[int], p1: Callable) -> PlayedString:
 	var p0: Callable = func(i: int) -> RawInput:
 		var k: int = on.find(i)
 		return H.btn(presses[k]) if k >= 0 else H.idle()
-	return _run(p0, GAP, STEPS, p1)
+	return _run(p0, _gap(), STEPS, p1)
 
 
 ## Plays presses (the stick at mx), then each of buttons as the last of swings
@@ -80,7 +88,7 @@ func _assert_starts_nothing_in(presses: Array[int], swings: Array[StringName], b
 	for press: int in buttons:
 		var played: Array[int] = presses.duplicate()
 		played.append(press)
-		var r: PlayedString = _play(played, GAP, mx)
+		var r: PlayedString = _play(played, _gap(), mx)
 		var what: String = "a %s pressed in %s" % ["light" if press == Btn.LIGHT else "heavy", rows[id]["name"]]
 		assert_eq(r.ids(&"swing"), swings, "%s starts nothing" % what)
 		assert_eq(r.ended_on(id), _length(id), "%s: it ends on startup + active + recovery" % what)
@@ -91,7 +99,7 @@ func _assert_starts_nothing_in(presses: Array[int], swings: Array[StringName], b
 ## string then stops: its last move, one of the spec's rows, ends on startup
 ## + active + recovery, leaving the fighter free.
 func _assert_stops_after(presses: Array[int], mx: float = 0.0) -> void:
-	var r: PlayedString = _play(presses, GAP, mx)
+	var r: PlayedString = _play(presses, _gap(), mx)
 	var what: String = "%s%s" % [_named(presses), " sideways" if mx != 0.0 else ""]
 	var hits: Array[StringName] = r.ids(&"hit")
 	assert_eq(hits.size(), presses.size(), "every press of %s hits" % what)
@@ -110,7 +118,9 @@ func _assert_stops_after(presses: Array[int], mx: float = 0.0) -> void:
 ## right by default), then press button wait steps after the dodge ends (from
 ## the step it is free again; a dodge attack may follow within 12 frames), gap
 ## m from the defender.
-func _dodge_then(button: int, stick: Vector2 = Vector2(1.0, 0.0), gap: float = GAP, wait: int = 0) -> Callable:
+func _dodge_then(button: int, stick: Vector2 = Vector2(1.0, 0.0), gap: float = NAN, wait: int = 0) -> Callable:
+	if is_nan(gap):
+		gap = _gap()
 	var dodge: Callable = func(i: int) -> RawInput: return H.move(stick.x, stick.y, Btn.DODGE) if i == 0 else H.idle()
 	var press_on: int = _run(dodge, gap).state.find(&"free") + wait
 	return func(i: int) -> RawInput: return H.btn(button) if i == press_on else dodge.call(i)
@@ -119,8 +129,10 @@ func _dodge_then(button: int, stick: Vector2 = Vector2(1.0, 0.0), gap: float = G
 ## Plays _dodge_then's input against a Katana gap m away that plays the input
 ## p1 gives (idle without one).
 func _out_of_a_dodge(
-	button: int, p1: Callable = Callable(), stick: Vector2 = Vector2(1.0, 0.0), gap: float = GAP, wait: int = 0
+	button: int, p1: Callable = Callable(), stick: Vector2 = Vector2(1.0, 0.0), gap: float = NAN, wait: int = 0
 ) -> PlayedString:
+	if is_nan(gap):
+		gap = _gap()
 	return _run(_dodge_then(button, stick, gap, wait), gap, STEPS, p1)
 
 
@@ -131,8 +143,8 @@ func _out_of_a_dodge(
 func _assert_dodge_cancels_from(presses: Array[int], id: StringName, cancel: int, also_early: Array[int] = []) -> void:
 	var early_frames: Array[int] = [cancel - 1]
 	early_frames.append_array(also_early)
-	for gap: float in [GAP, WHIFF_GAP]:
-		var what: String = "%s %s" % [rows[id]["name"], "after a hit" if gap == GAP else "after a whiff"]
+	for gap: float in [_gap(), WHIFF_GAP]:
+		var what: String = "%s %s" % [rows[id]["name"], "after a hit" if gap != WHIFF_GAP else "after a whiff"]
 		for pressed: int in early_frames:
 			var early: PlayedString = _play(presses, gap, 0.0, id, pressed)
 			assert_eq(

@@ -228,7 +228,7 @@ func test_the_first_tick_s_last_segment_is_its_own() -> void:
 
 
 func test_only_striking_tracks_of_swings_have_segments() -> void:
-	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 6.0)
+	var W: World = H.make_world(SF.without_swings(&"katana"), Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	assert_eq(f.blade_segments(), [] as Array[BladeSegment], "none outside an attack")
 	W.step([H.btn(Btn.LIGHT), H.idle()])

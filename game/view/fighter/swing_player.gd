@@ -235,11 +235,14 @@ func body(f: Fighter, alpha: float) -> Body:
 	return out
 
 
-## The guard of weapon `w`'s swings (shared by all of them), or empty when
-## it has none.
+## The guard of weapon `w`'s hand-keyed swings (shared by all of them), or
+## empty when it has none.
 static func guard_of(w: WeaponDef) -> Dictionary[StringName, Swing.KeyPose]:
 	for m: AttackDef in w.moves.values():
-		if m.swing != null:
+		# a baked swing's guard is only its file's (authored-animation task 9),
+		# a pose-only one's too (task 13): the free state keeps the stand-in
+		# guard until the stances are authored
+		if m.swing != null and m.swing.clips.is_empty() and not m.swing.is_baked(&"right_hand") and not m.swing.is_baked(&"left_hand"):
 			return m.swing.guard
 	return {} as Dictionary[StringName, Swing.KeyPose]
 

@@ -18,6 +18,9 @@ var pf: int = 0
 var variant: StringName = &"vertical"
 var spins: int = 0
 var impaled: bool = false
+## frames left heaving the Greatsword off the shoulder before the first phase
+## runs (authored-animation task 15; see AttackState.lift_left)
+var lift_left: int = 0
 
 
 ## { kind, phase, pf, variant, spins, impaled }

@@ -22,6 +22,12 @@ extends RefCounted
 ## - threatens() is the rebuild's (task 7.13): the reach test _respond_to()
 ##   made inline, now reading AttackDef.reach(), a swing's reach once a move
 ##   has one.
+## - Waiting out a knockdown (_think_neutral() and _output()) is authored
+##   animation's (task 16).
+## - The Greatsword's lift off the shoulder (authored-animation task 15) is
+##   in its estimates: frames_to_impact() for an opponent's attack, and for
+##   its own the follow-up and charge timings and the reach it attacks from
+##   (_lift_drift()).
 
 
 ## Difficulty: &"easy" | &"normal" | &"hard"
@@ -178,6 +184,12 @@ func _output(frame: int) -> RawInput:
 		if t.to >= frame:
 			kept.append(t)
 	_taps = kept
+	# A downed opponent can't be hit (task 16): no attack goes in, even one
+	# planned before they fell, until their stand-up's guard window. A charge
+	# already held stays held.
+	if me.opp != null and me.opp.is_downed():
+		var charging: bool = me.state == &"attack" and me.atk != null and me.atk.charging
+		buttons &= ~((1 << Btn.LIGHT) | (1 << Btn.ULTIMATE) | (0 if charging else 1 << Btn.HEAVY))
 	return RawInput.make(mx, my, buttons)
 
 
@@ -259,8 +271,9 @@ func think() -> RawInput:
 			var choice: int = Btn.LIGHT if w != null and d > 2.5 else Btn.HEAVY
 			_tap(choice, frame + 6, 2)
 		elif me.weapon.ultimate == &"impaler":
+			var lift: int = me.shoulder_lift()
 			for k: int in range(50, 90, 4):
-				_tap(Btn.HEAVY, frame + k, 2)
+				_tap(Btn.HEAVY, frame + lift + k, 2)
 		_next_think = frame + 30
 		return _output(frame)
 
@@ -338,7 +351,7 @@ func _perceive(frame: int) -> void:
 	if _react_at < 0 or frame < _react_at or atk.charging:
 		return
 	_react_at = -1
-	_respond_to(atk.def, atk.frame, frame)
+	_respond_to(atk.def, frame, frames_to_impact(atk))
 
 
 func _set_plan(p: StringName, until: int) -> void:
@@ -372,12 +385,20 @@ static func threatens(def: AttackDef, d: float) -> bool:
 	return d <= def.reach() + SimConst.FIGHTER_RADIUS + def.lunge + 0.6 or def.counter != &""
 
 
-func _respond_to(def: AttackDef, atk_frame: int, frame: int) -> void:
+## The frames from now until the attack's first active frame: the rest of its
+## startup, and the rest of its lift off the shoulder for a Greatsword attack
+## started shouldered (authored-animation task 15).
+static func frames_to_impact(atk: AttackState) -> int:
+	return atk.def.startup + 1 - atk.frame + atk.lift_left
+
+
+## to_impact: frames_to_impact() of the attack.
+func _respond_to(def: AttackDef, frame: int, to_impact: int) -> void:
 	var opp: Fighter = me.opp
 	var P: AIParams = params
 	if def.damage <= 0.0:
 		return # stances
-	var impact: int = frame + (def.startup + 1 - atk_frame)
+	var impact: int = frame + to_impact
 	if impact < frame:
 		return # too late
 	if not threatens(def, SimMath.dist2(me.pos, opp.pos)):
@@ -464,6 +485,9 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 		or (opp.state == &"attack" and opp.attack_phase() == &"recovery" and opp.atk.frame > 0)
 	)
 	var can_act: bool = me.state == &"free" or me.state == &"step" or me.state == &"parryAnim" or me.state == &"land"
+	# wait out a knockdown: close in, but attack only once they rise in guard
+	if opp.is_downed():
+		can_act = false
 
 	# With a full meter, a parried attack would disarm us: only attack into openings.
 	var risky: bool = me.posture_full() or (me.posture > 80.0 and not punish)
@@ -485,7 +509,7 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 			_start_combo(frame, length, finish_heavy)
 			_attack_cooldown_until = frame + 12
 			return _output(frame)
-		if d < reach + 0.25 and rng.chance(0.08 + P.aggression * 0.25):
+		if d < reach - _lift_drift() + 0.25 and rng.chance(0.08 + P.aggression * 0.25):
 			_pick_attack(frame, d)
 			return _output(frame)
 		# sprint attack from mid range
@@ -532,15 +556,24 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 	return _output(frame)
 
 
+## How far the opponent can back off while the computer heaves its Greatsword
+## off the shoulder: the reach it attacks from shrinks by this
+## (authored-animation task 15).
+func _lift_drift() -> float:
+	return SimConst.MOVE_RUN_BACK * me.opp.speed_mult() * float(me.shoulder_lift()) * SimConst.DT
+
+
 func _start_combo(frame: int, length: int, finish_heavy: bool) -> void:
+	# the follow-up presses wait out the first attack's lift off the shoulder
+	var lift: int = me.shoulder_lift()
 	_tap(Btn.LIGHT, frame, 2)
 	_combo_left = length - 1
 	_combo_btn = Btn.LIGHT
-	_next_combo_press = frame + 8
+	_next_combo_press = frame + lift + 8
 	if finish_heavy and length > 1:
 		# replace the last press with a heavy
 		_combo_left = length - 2
-		_tap(Btn.HEAVY, frame + 8 * (length - 1), 2)
+		_tap(Btn.HEAVY, frame + lift + 8 * (length - 1), 2)
 	_move_x = 0.0
 	_move_y = 0.0
 
@@ -584,12 +617,12 @@ func _pick_attack(frame: int, _d: float) -> void:
 	elif r < 0.8:
 		_tap(Btn.HEAVY, frame, 2)
 		if rng.chance(0.3):
-			_tap(Btn.HEAVY, frame + 30, 2)
+			_tap(Btn.HEAVY, frame + me.shoulder_lift() + 30, 2)
 		_attack_cooldown_until = frame + 40 + SimMath.js_round((1.0 - P.aggression) * 40.0)
 	elif r < 0.88 and me.armed:
 		# charged heavy
 		_hold_mask |= 1 << Btn.HEAVY
-		_charge_until = frame + rng.int(30, 160)
+		_charge_until = frame + rng.int(30, 160) + me.shoulder_lift()
 		_attack_cooldown_until = frame + 90
 	else:
 		# dodge then attack

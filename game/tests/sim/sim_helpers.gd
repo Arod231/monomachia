@@ -35,6 +35,9 @@ static func make_world(
 	b.yaw = PI
 	a.set_state(&"free")
 	b.set_state(&"free")
+	# mid-round, in guard: neither Greatsword is on the shoulder (task 15)
+	a.shouldered = false
+	b.shouldered = false
 	return track(W)
 
 

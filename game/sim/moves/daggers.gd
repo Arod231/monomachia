@@ -17,7 +17,7 @@ const MOVES: Dictionary = {
 		"id": &"d_l1", "name": "Quick Slice", "kind": &"light", "type": &"slash", "anim": &"slashRL", "hand": &"R", "sound": D,
 		"side_start": &"right", "side_end": &"left",
 		"startup": 7, "active": 2, "recovery": 13, "damage": 4, "posture": 4, "knockback": 0.2, "hitstun": STRING_HITSTUN,
-		"range": 1.8, "arc": 110, "lunge": 0.3, "chain_light": &"d_l2", "chain_heavy": &"d_h1", "dodge_cancel_from": 10,
+		"range": 1.8, "arc": 110, "lunge": 0.15, "lunge_end": 8, "chain_light": &"d_l2", "chain_heavy": &"d_h1", "dodge_cancel_from": 10,
 	},
 	# the left hand's slash: the stand-in mirrors slashRL onto the left hand, so
 	# it runs left to right
@@ -25,19 +25,19 @@ const MOVES: Dictionary = {
 		"id": &"d_l2", "name": "Off-hand Slice", "kind": &"light", "type": &"slash", "anim": &"slashRL", "hand": &"L", "sound": D,
 		"side_start": &"left", "side_end": &"right",
 		"startup": 7, "active": 2, "recovery": 13, "damage": 4, "posture": 4, "knockback": 0.2, "hitstun": STRING_HITSTUN,
-		"range": 1.8, "arc": 110, "lunge": 0.3, "chain_light": &"d_l3", "chain_heavy": &"d_h1", "dodge_cancel_from": 10,
+		"range": 1.8, "arc": 110, "lunge": 0.17, "lunge_end": 8, "chain_light": &"d_l3", "chain_heavy": &"d_h1", "dodge_cancel_from": 10,
 	},
 	&"d_l3": {
 		"id": &"d_l3", "name": "Twin Rip", "kind": &"light", "type": &"slash", "anim": &"cross", "hand": &"both", "sound": D,
 		"side_start": &"centre", "side_end": &"centre",
 		"startup": 9, "active": 3, "recovery": 14, "damage": 6, "posture": 5, "knockback": 0.3, "hitstun": STRING_HITSTUN,
-		"range": 1.8, "arc": 100, "lunge": 0.4, "chain_light": &"d_l4", "dodge_cancel_from": 13,
+		"range": 1.8, "arc": 100, "lunge": 0.38, "lunge_end": 11, "chain_light": &"d_l4", "dodge_cancel_from": 13,
 	},
 	&"d_l4": {
 		"id": &"d_l4", "name": "Flurry Finisher", "kind": &"light", "type": &"stab", "anim": &"doubleStab", "hand": &"both", "sound": D,
 		"side_start": &"centre", "side_end": &"centre",
 		"startup": 11, "active": 3, "recovery": 18, "damage": 7, "posture": 6, "knockback": 0.6, "hitstun": STRING_HITSTUN,
-		"range": 1.9, "arc": 70, "lunge": 0.6, "chain_heavy": &"d_h2", "dodge_cancel_from": 15,
+		"range": 1.9, "arc": 70, "lunge": 0.35, "lunge_end": 13, "chain_heavy": &"d_h2", "dodge_cancel_from": 15,
 	},
 	# a dashing double stab
 	&"d_h1": {
@@ -51,7 +51,7 @@ const MOVES: Dictionary = {
 		"id": &"d_h2", "name": "Spinning Backhand", "kind": &"heavy", "type": &"spin", "anim": &"spin", "hand": &"both", "sound": D,
 		"side_start": &"centre", "side_end": &"centre",
 		"startup": 18, "active": 5, "recovery": 22, "damage": 12, "posture": 10, "knockback": 0.9,
-		"range": 1.9, "arc": 360, "lunge": 0.4,
+		"range": 1.9, "arc": 360, "lunge": 1.1,
 	},
 	&"d_sl": {
 		"id": &"d_sl", "name": "Slide Slash", "kind": &"light", "type": &"slash", "anim": &"slideSlash", "hand": &"R", "sound": D,

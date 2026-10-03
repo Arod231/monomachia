@@ -54,6 +54,9 @@ var default_abilities: Array[StringName] = []
 var ultimate: StringName = &""
 ## preferred fighting distance for the AI
 var reach: float = 0.0
+## The reach the weapon was given, before its light starter's hand-keyed
+## swing (if any) replaced it (derive_reach()).
+var authored_reach: float = 0.0
 ## How far apart (m, centre to centre) the weapon duels: its string's lights
 ## put the last 15-20 cm of blade into a defender standing there, and its
 ## other moves are tested from distances measured from it (task 7.14; the
@@ -114,6 +117,7 @@ static func from_dict(d: Dictionary) -> WeaponDef:
 	w.default_abilities.assign(d["default_abilities"])
 	w.ultimate = StringName(d["ultimate"])
 	w.reach = float(d["reach"])
+	w.authored_reach = w.reach
 	w.duel_distance = float(d["duel_distance"])
 	w.blurb = String(d["blurb"])
 	w.blade = d["blade"]
@@ -124,12 +128,18 @@ static func from_dict(d: Dictionary) -> WeaponDef:
 
 
 ## Works out each swing's reach and arc (SwingReach, task 7.13) and, when the
-## light starter has a swing, takes the weapon's reach from it. from_dict()
-## calls it; call it again after giving a built weapon's moves swings.
+## light starter has a hand-keyed swing, takes the weapon's reach from it.
+## A swing baked from a clip (authored animation) leaves the authored reach:
+## a clip's arm reaches less far standing, and its lunge was lengthened to
+## keep the reach table's distances, so the weapon still fights from where
+## it did (the Greatsword's Heavy Swing reaches 2.42 m standing where its
+## authored reach is 2.75; spaced from 2.42 the computer opponent fought
+## 33 cm closer and won 7 points fewer, task 20). from_dict() calls it; call
+## it again after giving a built weapon's moves swings.
 func derive_reach() -> void:
 	for m: AttackDef in moves.values():
 		if m.swing != null:
 			SwingReach.derive(m, self)
 	var starter: AttackDef = moves.get(light_start)
-	if starter != null and starter.swing != null:
-		reach = starter.swing.reach
+	var keyed: bool = starter != null and starter.swing != null and starter.swing.clips.is_empty()
+	reach = starter.swing.reach if keyed else authored_reach

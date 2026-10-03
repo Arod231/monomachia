@@ -12,7 +12,8 @@ extends RefCounted
 ##    knee poles (the knees over the toes);
 ## 3. RightArmIK and LeftArmIK (TwoBoneIK3D: upper arm, forearm, hand), one
 ##    per arm so that each can be on or off;
-## 4. LegIK (TwoBoneIK3D, both legs: thigh, shin, foot);
+## 4. LegIK (TwoBoneIK3D, both legs: thigh, shin, foot), planted feet held
+##    where they landed when there is a foot lock (FootLock);
 ## 5. RigPost: each gripping hand turned to its frame, with part of the turn
 ##    taken by the forearm, and the feet laid flat at their yaw;
 ## 6. HandGrip: closes the holding hands' fingers, and sets the wrists of
@@ -22,7 +23,12 @@ extends RefCounted
 ## Skeleton space is the fighter's own frame: +Z forward, +X to the
 ## fighter's left, +Y up, metres from the ground.
 ##
-## A held weapon is posed or carried:
+## A held weapon is fixed, posed or carried:
+## - fixed (fix_weapons()), while an authored clip drives the arms: each
+##   weapon rides its hand at its grip (the measured fist turned by the
+##   look's grip_offset, and by 180° about the knuckles for a reverse grip),
+##   and the off hand of a two-handed weapon reaches its OffHandGrip on IK
+##   over the clip;
 ## - posed (pose_weapon()): its transform in skeleton space is given, and
 ##   the arms reach for it on IK. The main hand grips the weapon's origin;
 ##   the off hand of a two-handed weapon grips its OffHandGrip marker; each
@@ -56,6 +62,9 @@ const ELBOW_POLE: Vector3 = Vector3(0.61, -1.12, -0.72)
 const CLAVICLE_START: float = 0.9
 const CLAVICLE_GAIN: float = 2.2
 const CLAVICLE_MAX: float = 18.0
+## How far a fixed two-handed weapon's off arm reaches, as a share of its
+## length, before the weapon is drawn in toward it (see _draw_in()).
+const REACH_SHARE: float = 0.97
 
 var skeleton: Skeleton3D
 var body: BodyLayer
@@ -87,6 +96,17 @@ var foot_yaw: Dictionary[String, float] = {"Right": 0.0, "Left": 0.0}
 ## than on the foot targets (0): the body layer can drop the hips into a
 ## crouch over the clip's planted feet.
 var clip_feet: float = 0.0
+## Holds planted feet where they landed under the clip (authored-animation
+## task 8), on top of the leg IK's targets; null for none. It steps once per
+## rules frame: rules_frame, which the view sets.
+var foot_lock: FootLock = null
+var rules_frame: int = 0
+## The Katana's saya (Saya), carried at the left hip at saya_frame (in the
+## Hips bone's frame); null for none. While sheathed, the katana sits in it
+## and no hand reaches for it on IK (the Iai's sheathe and stance, task 11).
+var saya: Node3D = null
+var saya_frame: Transform3D = Transform3D.IDENTITY
+var sheathed: bool = false
 
 var _arm_ik: Dictionary[String, TwoBoneIK3D] = {}
 var _leg_ik: TwoBoneIK3D
@@ -104,6 +124,13 @@ var _weapons: Array[Node3D] = []
 var _posed: Array[bool] = []
 var _poses: Array[Transform3D] = []
 var _hold: WeaponHold
+## Fixed to the hands (see fix_weapons()), and how far turned into the
+## reverse grip (0 forward, 1 reverse; set_reverse_turn()).
+var _fixed: bool = false
+var _reverse: float = 0.0
+## In this update, a fixed two-handed weapon was drawn in toward the off
+## shoulder (see _draw_in()), and the main arm reaches for it on IK too.
+var _drawn_in: bool = false
 ## The hand frames being reached in the current update, by side.
 var _frames: Dictionary[String, Transform3D] = {}
 
@@ -182,6 +209,14 @@ func rest_foot(side: String) -> Vector3:
 	return _rest_origin(side + "Foot")
 
 
+## A foot lock for this skeleton, its ankles' rest heights measured.
+func new_foot_lock() -> FootLock:
+	var heights: Dictionary[String, float] = {}
+	for side: String in SIDES:
+		heights[side] = rest_foot(side).y
+	return FootLock.new(heights)
+
+
 ## Puts a weapon's instances in the hands (one, or two for a pair, made from
 ## `look`), carried as `hold` says (null: straight in the fist) until posed.
 func hold_weapons(look: WeaponLook, instances: Array[Node3D], hold: WeaponHold) -> void:
@@ -192,6 +227,8 @@ func hold_weapons(look: WeaponLook, instances: Array[Node3D], hold: WeaponHold) 
 		hand_grip.grip_radius = look.grip_radius
 	_posed.clear()
 	_poses.clear()
+	_fixed = false
+	_reverse = 0.0
 	for w: Node3D in _weapons:
 		_posed.append(false)
 		_poses.append(Transform3D.IDENTITY)
@@ -204,8 +241,9 @@ func release_weapons() -> void:
 
 
 ## Poses held weapon `index` at `xf` in skeleton space (see weapon_frame()):
-## the hands that grip it reach for it on IK.
+## the hands that grip it reach for it on IK. The weapons stop being fixed.
 func pose_weapon(index: int, xf: Transform3D) -> void:
+	_fixed = false
 	_posed[index] = true
 	_poses[index] = xf
 	_weapons[index].transform = xf
@@ -214,24 +252,79 @@ func pose_weapon(index: int, xf: Transform3D) -> void:
 
 ## Lets every held weapon follow its hand again, as carried.
 func carry_weapons() -> void:
+	_fixed = false
 	for i: int in _posed.size():
 		_posed[i] = false
 	_update_hands()
+
+
+## Fixes every held weapon to its hand for a clip to drive (see
+## fixed_grip()): the main hand holds the first, the off hand the second of
+## a pair, and the off hand of a two-handed weapon reaches its OffHandGrip
+## on IK. `reverse` turns each weapon 180° about the knuckles (the Daggers'
+## reverse grip).
+func fix_weapons(reverse: bool = false) -> void:
+	_fixed = true
+	_reverse = 1.0 if reverse else 0.0
+	for i: int in _posed.size():
+		_posed[i] = false
+	_update_hands()
+
+
+func is_fixed() -> bool:
+	return _fixed
+
+
+## Turns each fixed weapon part of the way into the reverse grip, `turn`
+## (0 forward to 1 reverse) of the 180° about the knuckles: the Daggers'
+## flip between the reverse-grip idle and their forward-grip attacks
+## (authored-animation task 21; ClipDirector.Shot.grip).
+func set_reverse_turn(turn: float) -> void:
+	_reverse = clampf(turn, 0.0, 1.0)
+
+
+func reverse_turn() -> float:
+	return _reverse
+
+
+## True when the last update drew a fixed two-handed weapon in toward the
+## off shoulder (see _draw_in()).
+func is_drawn_in() -> bool:
+	return _drawn_in
 
 
 func is_posed(index: int) -> bool:
 	return index < _posed.size() and _posed[index]
 
 
-## True when the hand grips a weapon, posed or carried.
+## A fixed weapon's transform in its hand's bone space: the fist round the
+## handle, turned by the look's grip offset, and by up to 180° about the
+## knuckles (+X) toward the reverse grip (set_reverse_turn()).
+func fixed_grip(side: String) -> Transform3D:
+	var grip: Transform3D = hand_grip.fist(side)
+	if _look != null:
+		grip = grip * _look.grip_offset
+	if _reverse > 0.0:
+		grip = grip * Transform3D(Basis(Vector3.RIGHT, PI * _reverse), Vector3.ZERO)
+	return grip
+
+
+## True when the hand grips a weapon, fixed, posed or carried.
 func holds(side: String) -> bool:
 	return drives(side) or _carried_index(side) >= 0
 
 
-## True when the IK places this arm: the hand grips a posed weapon.
+## True when the IK places this arm: the hand grips a posed weapon, or it is
+## the off hand on a fixed two-handed weapon.
 func drives(side: String) -> bool:
+	if sheathed and saya != null:
+		return false
 	var grip: Array = _grip(side)
-	return not grip.is_empty() and _posed[grip[0]]
+	if grip.is_empty():
+		return false
+	if _fixed:
+		return (side == "Left" and not _look.paired) or (side == "Right" and _drawn_in)
+	return _posed[grip[0]]
 
 
 ## Where the hand's grip centre should be, in skeleton space: the point it
@@ -306,19 +399,22 @@ func _grip(side: String) -> Array:
 	return []
 
 
-## The weapon a hand carries (unposed), or -1: the main hand carries the
-## first, the off hand the second of a pair.
+## The weapon a hand carries or has fixed to it (unposed), or -1: the main
+## hand the first, the off hand the second of a pair.
 func _carried_index(side: String) -> int:
 	var index: int = 0 if side == "Right" else 1
 	return index if index < _weapons.size() and not _posed[index] else -1
 
 
 ## Closes the holding hands, and sets the hold's wrists on the hands that
-## carry a weapon (never on a hand the IK places).
+## carry a weapon (never on a hand the IK places, nor while fixed, when the
+## clip owns the wrists).
 func _update_hands() -> void:
 	hand_grip.right_hand = holds("Right")
 	hand_grip.left_hand = holds("Left")
 	hand_grip.clear_wrists()
+	if _fixed:
+		return
 	if _carried_index("Right") >= 0 and _hold != null and _hold.set_right_wrist:
 		hand_grip.set_wrist("Right", _hold.right_wrist)
 	if _carried_index("Left") >= 0 and (_hold == null or _hold.set_left_wrist):
@@ -327,6 +423,16 @@ func _update_hands() -> void:
 
 func _pre(sk: Skeleton3D, _delta: float) -> void:
 	_frames.clear()
+	_drawn_in = false
+	if _fixed:
+		# Each fixed weapon where the clip has its hand, so the off hand of a
+		# two-handed one can reach for its grip.
+		for side: String in SIDES:
+			var index: int = _carried_index(side)
+			if index >= 0:
+				_poses[index] = sk.get_bone_global_pose(_id(side + "Hand")) * fixed_grip(side)
+		if drives("Left"):
+			_draw_in(sk)
 	var chest: Basis = sk.get_bone_global_pose(_id("UpperChest")).basis.orthonormalized()
 	for side: String in SIDES:
 		var ik: TwoBoneIK3D = _arm_ik[side]
@@ -354,6 +460,14 @@ func _pre(sk: Skeleton3D, _delta: float) -> void:
 	if not _leg_ik.active:
 		return
 	var from_clip: float = clampf(clip_feet, 0.0, 1.0)
+	var to_world: Transform3D = sk.global_transform
+	if foot_lock != null:
+		var feet: Dictionary[String, Vector3] = {}
+		var hips: Dictionary[String, Vector3] = {}
+		for side: String in SIDES:
+			feet[side] = to_world * body.clip_feet[side].origin
+			hips[side] = to_world * _origin(sk, side + "UpperLeg")
+		foot_lock.update(rules_frame, feet, hips, _leg_length)
 	for side: String in SIDES:
 		# The knee over the toes: its pole ahead of the leg, on the plane
 		# through the hip, the ankle and the way the toes point.
@@ -370,6 +484,8 @@ func _pre(sk: Skeleton3D, _delta: float) -> void:
 				bend = body.clip_feet[side].basis.y
 			at = at.lerp(foot, from_clip)
 			pole = pole.lerp(knee + bend.normalized() * _leg_length[side], from_clip)
+		if foot_lock != null:
+			at = to_world.affine_inverse() * foot_lock.target(side, to_world * at)
 		_markers[side + "FootTarget"].position = at
 		_markers[side + "KneePole"].position = pole
 
@@ -399,13 +515,49 @@ func _post(sk: Skeleton3D, _delta: float) -> void:
 			BodyLayer.rot_global(sk, foot, now.slerp(want, _leg_ik.influence) * now.inverse())
 
 
-## Puts each carried weapon in its hand's fist, turned by the hold's grip.
+## Where the clip puts a fixed two-handed weapon's off-hand grip out of the
+## off arm's reach (past REACH_SHARE of it, wrist to shoulder), slides the
+## weapon toward the off shoulder by the shortfall, and the main arm then
+## reaches for it on IK as well: both hands stay on the handle, the main
+## hand moved as little as the off hand needs.
+func _draw_in(sk: Skeleton3D) -> void:
+	var off: Marker3D = WeaponLook.marker(_weapons[0], WeaponLook.OFF_HAND_GRIP)
+	if off == null:
+		return
+	var shoulder: Vector3 = _origin(sk, "LeftUpperArm")
+	var chest: Basis = sk.get_bone_global_pose(_id("UpperChest")).basis.orthonormalized()
+	var reach: float = _arm_length["Left"] * REACH_SHARE
+	# where the wrist seats on the grip, not the grip itself: the fist puts
+	# the wrist further out on some turns of the handle
+	for attempt: int in 3:
+		var wrist: Vector3 = seat("Left", _poses[0], off.position, shoulder, chest).origin
+		var short: float = shoulder.distance_to(wrist) - reach
+		if short <= 0.001:
+			return
+		_poses[0].origin += (shoulder - wrist).normalized() * short
+		_drawn_in = true
+
+
+## Puts each carried weapon in its hand's fist, turned by the hold's grip,
+## or each fixed one at its fixed grip (or where it was drawn in to); the
+## saya at the hip, and the katana in it while sheathed.
 func _carry(sk: Skeleton3D, _delta: float) -> void:
 	var grip: Transform3D = _hold.grip_transform() if _hold != null else Transform3D.IDENTITY
+	var in_saya: bool = false
+	if saya != null:
+		saya.transform = sk.get_bone_global_pose(_id("Hips")) * saya_frame
+		in_saya = sheathed and not _weapons.is_empty()
+		if in_saya:
+			_weapons[0].transform = saya.transform
 	for side: String in SIDES:
 		var index: int = _carried_index(side)
-		if index >= 0:
-			_weapons[index].transform = sk.get_bone_global_pose(_id(side + "Hand")) * hand_grip.fist(side) * grip
+		if index < 0 or (in_saya and index == 0):
+			continue
+		if _fixed and _drawn_in and index == 0:
+			_weapons[0].transform = _poses[0]
+			continue
+		var hand: Transform3D = sk.get_bone_global_pose(_id(side + "Hand"))
+		_weapons[index].transform = hand * fixed_grip(side) if _fixed else hand * hand_grip.fist(side) * grip
 
 
 ## Sets every elbow's pole tweak back to none.

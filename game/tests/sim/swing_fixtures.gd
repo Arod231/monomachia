@@ -114,6 +114,17 @@ static func level_swing(move: AttackDef, height: float, degs: Dictionary[int, fl
 ## A fresh copy of weapon `id` (katana, greatsword, daggers or fists) with
 ## each move of `swings` given its swing, and its reaches derived from them
 ## (WeaponDef.derive_reach()).
+## Weapon `id` built afresh with no swing on any move: its swing file's baked
+## swings (authored animation, task 9 on) left off, for tests of moves
+## without one.
+static func without_swings(id: StringName) -> WeaponDef:
+	var w: WeaponDef = weapon(id, {} as Dictionary[StringName, Swing])
+	for m: AttackDef in w.moves.values():
+		m.swing = null
+	w.derive_reach()
+	return w
+
+
 static func weapon(id: StringName, swings: Dictionary[StringName, Swing]) -> WeaponDef:
 	var w: WeaponDef
 	match id:

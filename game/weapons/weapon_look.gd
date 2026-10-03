@@ -43,6 +43,11 @@ const OFF_HAND_GRIP: StringName = &"OffHandGrip"
 ## fitted to it (see HandGrip). An oval handle takes the mean of its two
 ## half-widths.
 @export var grip_radius: float = 0.015
+## How the weapon sits in the fist when it is fixed to the hand for a clip
+## (FighterModel.fix_weapons()), in the fist's frame: identity holds it
+## straight, its origin in the hollow of the fist. The fist itself is
+## measured on each fighter's hand (HandGrip.fist()).
+@export var grip_offset: Transform3D = Transform3D.IDENTITY
 ## Width in metres of the swing trail, measured from the tip toward the base.
 @export var trail_width: float = 0.5
 

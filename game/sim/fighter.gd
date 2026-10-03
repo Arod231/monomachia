@@ -21,6 +21,11 @@ extends RefCounted
 ##   division.
 ## - body and hurt_capsule() are the rebuild's (task 7.5), as are
 ##   place_blades() and blade_segments() (task 7.9) and blade_touch() (7.10).
+## - The knockdown state is authored animation's (task 16): enter_knockdown(),
+##   knockdown_phase(), is_downed() and knockdown_frames().
+## - The Greatsword's shoulder carry (shouldered, shoulder_lift() and the
+##   lift on AttackState and UltState) is the authored-animation feature's
+##   (its task 15).
 
 ## FState
 const STATES: Array[StringName] = [
@@ -48,10 +53,15 @@ const STATES: Array[StringName] = [
 	&"impaled",
 	&"ko",
 	&"victory",
+	&"knockdown",
 ]
 
 const CHARGE_CHECK_FRAME: int = 9
 const GUARD_STATES: Array[StringName] = [&"free", &"step", &"blockstun", &"land", &"parryAnim"]
+## The states that leave the shoulder carry as it is: the round intro and
+## victory, moving (free, step) and jumping (jump, land). Entering any other
+## takes the Greatsword off the shoulder at once.
+const CARRY_STATES: Array[StringName] = [&"intro", &"free", &"step", &"jump", &"land", &"victory"]
 
 var id: int
 var opp: Fighter
@@ -101,6 +111,20 @@ var dodge_was_back: bool = false
 var last_dodge_dir: V2 = null
 var air_attack_used: bool = false
 var step_dir: V2 = V2.make(0.0, 0.0)
+
+# the Greatsword's shoulder carry
+## Whether the Greatsword rests on the fighter's shoulder (Shouldered): on at
+## every round start and after SimConst.GS_SHOULDER_MOVE_FRAMES frames in a
+## row of moving in the free state, off at once on anything but standing
+## still or jumping (a raised guard, or entering a state outside
+## CARRY_STATES). Only ever true for an armed Greatsword. An attack started
+## shouldered pays SimConst.GS_SHOULDER_LIFT_FRAMES (shoulder_lift()).
+var shouldered: bool = false
+## frames in a row of moving in the free state, toward shouldering
+var shoulder_move_frames: int = 0
+## frames left of the lift a guard raised from the shoulder started: an
+## attack started before it ends (a block ability) waits for the rest
+var guard_lift_left: int = 0
 
 # knockback slide
 var knock_x: float = 0.0
@@ -229,6 +253,9 @@ func is_guard_capable() -> bool:
 		return true
 	if state == &"recoil" and sf >= recoil_guard_after:
 		return true
+	# rising in guard: the stand-up's last frames
+	if state == &"knockdown" and not is_downed():
+		return true
 	return false
 
 
@@ -257,7 +284,33 @@ func is_invulnerable() -> bool:
 		return true
 	if state == &"ko" or state == &"intro" or state == &"victory":
 		return true
+	if state == &"knockdown":
+		return is_downed()
 	return false
+
+
+## A knockdown's whole length: its fall, its time on the ground and its
+## stand-up.
+static func knockdown_frames() -> int:
+	return SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES + SimConst.KNOCKDOWN_STANDUP_FRAMES
+
+
+## Whether the fighter is down: knocked down and not yet in the stand-up's
+## guard window, so it can't be hit (not even by an undodgeable move) and
+## can't guard.
+func is_downed() -> bool:
+	return state == &"knockdown" and sf <= knockdown_frames() - SimConst.KNOCKDOWN_GUARD_FRAMES
+
+
+## &"fall" | &"ground" | &"standUp" while knocked down, or &"" otherwise.
+func knockdown_phase() -> StringName:
+	if state != &"knockdown":
+		return &""
+	if sf <= SimConst.KNOCKDOWN_FALL_FRAMES:
+		return &"fall"
+	if sf <= SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES:
+		return &"ground"
+	return &"standUp"
 
 
 ## dodging toward the attacker, early enough to count as "dodging into" a thrust
@@ -310,6 +363,19 @@ func speed_mult() -> float:
 	return moveset().speed_mult * (1.0 if armed else SimConst.DISARMED_MULT_SPEED)
 
 
+## Whether the fighter carries its weapon on the shoulder while moving: an
+## armed Greatsword.
+func carries_on_shoulder() -> bool:
+	return armed and weapon.id == &"greatsword"
+
+
+## The frames an attack (or the ultimate) started now would spend heaving the
+## Greatsword off the shoulder before its frame 1: GS_SHOULDER_LIFT_FRAMES
+## shouldered, the rest of a guard's lift off the shoulder, otherwise 0.
+func shoulder_lift() -> int:
+	return SimConst.GS_SHOULDER_LIFT_FRAMES if shouldered else guard_lift_left
+
+
 # ------------------------------------------------------------------ setup
 
 func reset_for_round(x: float, z: float, p_yaw: float) -> void:
@@ -333,6 +399,8 @@ func reset_for_round(x: float, z: float, p_yaw: float) -> void:
 	sprint_frames = 0
 	last_posture_damage = -99999
 	block_press_frame = -99999
+	_off_shoulder()
+	shouldered = carries_on_shoulder()
 	set_state(&"intro")
 
 
@@ -340,6 +408,8 @@ func set_state(s: StringName, dur: int = 0) -> void:
 	state = s
 	sf = 0
 	state_dur = dur
+	if not CARRY_STATES.has(s):
+		_off_shoulder()
 	if s != &"attack":
 		atk = null
 	if s != &"dodge" and s != &"backstep":
@@ -362,6 +432,8 @@ func to_free() -> void:
 
 func update() -> void:
 	sf += 1
+	if guard_lift_left > 0:
+		guard_lift_left -= 1
 	_handle_guard_press()
 
 	match state:
@@ -426,10 +498,13 @@ func update() -> void:
 			vel.z = 0.0
 		&"ko":
 			_brake()
+		&"knockdown":
+			_update_knockdown()
 
 	_integrate()
 	_update_facing()
 	_update_posture()
+	_update_shoulder()
 	if can_ult() and not ult_announced:
 		ult_announced = true
 		world.emit({"t": &"ultReady", "f": id})
@@ -453,6 +528,49 @@ func _handle_guard_press() -> void:
 	var base: int = moveset().parry_window
 	parry_window_at_press = maxi(SimConst.PARRY_MIN_WINDOW, base - spam_count * SimConst.PARRY_SPAM_PENALTY)
 	block_press_frame = W.frame
+	if shouldered:
+		# a parry (or a block) lifts the sword off the shoulder into the guard
+		_off_shoulder(SimConst.GS_SHOULDER_LIFT_FRAMES)
+
+
+# ------------------------------------------------------------------ shoulder carry
+
+## The shoulder carry's frame: a raised guard takes the Greatsword off the
+## shoulder, and moving in the free state (walking, running, sprinting or
+## stepping) puts it back on after GS_SHOULDER_MOVE_FRAMES frames in a row.
+## Standing still and jumping leave it as it is; entering any state outside
+## CARRY_STATES takes it off (set_state()).
+func _update_shoulder() -> void:
+	if not carries_on_shoulder():
+		_off_shoulder()
+		return
+	if blocking:
+		if shouldered:
+			_off_shoulder(SimConst.GS_SHOULDER_LIFT_FRAMES)
+		shoulder_move_frames = 0
+		return
+	if (state == &"free" or state == &"step") and moving:
+		shoulder_move_frames += 1
+		if shoulder_move_frames >= SimConst.GS_SHOULDER_MOVE_FRAMES:
+			shouldered = true
+	else:
+		shoulder_move_frames = 0
+
+
+## Takes the Greatsword off the shoulder, with `lift_left` frames still to
+## run of the lift it started (a guard raised from the shoulder's).
+func _off_shoulder(lift_left: int = 0) -> void:
+	shouldered = false
+	shoulder_move_frames = 0
+	guard_lift_left = lift_left
+
+
+## The lift an attack started now pays (shoulder_lift()), taking the
+## Greatsword off the shoulder.
+func _take_shoulder_lift() -> int:
+	var lift: int = shoulder_lift()
+	_off_shoulder()
+	return lift
 
 
 # ------------------------------------------------------------------ free / movement
@@ -658,6 +776,7 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 	if was_dodging:
 		dodge_end_frame = W.frame
 		dodge_was_back = dodge != null and dodge.back
+	var lift: int = _take_shoulder_lift()
 	set_state(&"attack")
 	blocking = false
 	var lunge_total: float = def.lunge_from(SimMath.dist2(pos, opp.pos))
@@ -676,6 +795,8 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 	atk.extra_recovery = 0
 	atk.backstab = def.kind == &"light" and W.frame <= backstab_until
 	atk.started_by = started_by
+	atk.lift = lift
+	atk.lift_left = lift
 	atk.evaded_emitted = false
 	atk.whiff_emitted = false
 	if atk.backstab:
@@ -712,13 +833,22 @@ func _update_attack() -> void:
 	var inp: InputTracker = input
 	var W: World = world
 
-	# Light + heavy within a few frames: cancel into the ultimate.
-	if a.frame <= SimConst.CHORD_FRAMES and a.started_by != -1 and can_ult() and def.kind != &"ability":
+	# Light + heavy within a few frames: cancel into the ultimate, which pays
+	# what is left of the attack's lift off the shoulder.
+	var lifted: int = a.lift - a.lift_left
+	if a.frame + lifted <= SimConst.CHORD_FRAMES and a.started_by != -1 and can_ult() and def.kind != &"ability":
 		var other: int = Btn.HEAVY if a.started_by == Btn.LIGHT else Btn.LIGHT
 		if inp.buffered(other, SimConst.CHORD_FRAMES):
 			inp.consume(other)
-			start_ult()
+			start_ult(a.lift_left)
 			return
+
+	# Heaving the Greatsword off the shoulder: the attack holds its frame 0.
+	if a.lift_left > 0:
+		a.lift_left -= 1
+		if not def.airborne and not airborne():
+			_brake()
+		return
 
 	# Charging a heavy. A tapped heavy is drawn here, as its sheathe ends, and a
 	# held one as its stance ends, on release or at CHARGE_MAX; the stick then
@@ -934,8 +1064,10 @@ func _update_dodge() -> void:
 	var dg: DodgeState = dodge
 	var f: int = sf
 	if f <= dg.frames:
-		var t0: float = SimMath.ease_out_cubic(float(f - 1) / float(dg.frames))
-		var t1: float = SimMath.ease_out_cubic(float(f) / float(dg.frames))
+		# a roll travels along Roll01's curve, the backstep eases out
+		var roll: bool = state == &"dodge"
+		var t0: float = SimMath.roll_travel(float(f - 1) / float(dg.frames)) if roll else SimMath.ease_out_cubic(float(f - 1) / float(dg.frames))
+		var t1: float = SimMath.roll_travel(float(f) / float(dg.frames)) if roll else SimMath.ease_out_cubic(float(f) / float(dg.frames))
 		var step: float = (t1 - t0) * dg.dist
 		pos.x += dg.dir_x * step
 		pos.z += dg.dir_z * step
@@ -1052,6 +1184,7 @@ func _on_land() -> void:
 		var d: AttackDef = a.def
 		if a.frame < d.startup + d.active:
 			a.frame = maxi(a.frame, d.startup)
+			a.lift_left = 0
 
 
 func _update_facing() -> void:
@@ -1072,6 +1205,10 @@ func _update_facing() -> void:
 			rate = 2.0
 		&"ko", &"impaled", &"leap":
 			return
+		&"knockdown":
+			# down, the body doesn't turn; rising in guard, it turns to face
+			if is_downed():
+				return
 		&"ult":
 			var up: StringName = ult.phase if ult != null else &""
 			rate = 8.0 if up == &"windup" or up == &"aim" else (0.6 if up == &"dash" else 3.0)
@@ -1131,6 +1268,25 @@ func enter_stun(frames: int, kind: StringName = &"stunned") -> void:
 	set_state(kind, frames)
 	vel.x = 0.0
 	vel.z = 0.0
+
+
+## Knocked down (task 16), in place of hitstun, by a hit from an unblockable,
+## a full charge or a Greatsword slam (World.knocks_down()).
+func enter_knockdown() -> void:
+	set_state(&"knockdown", knockdown_frames())
+	vel.x = 0.0
+	vel.z = 0.0
+
+
+## Lies still through the fall and on the ground, then stands up: in the
+## stand-up's guard window the fighter may block or parry but not attack,
+## dodge or move. Free on the last frame.
+func _update_knockdown() -> void:
+	_brake()
+	blocking = armed and not is_downed() and input.is_held(Btn.BLOCK)
+	if sf >= state_dur:
+		world.emit({"t": &"standup", "f": id})
+		to_free()
 
 
 func enter_recoil(frames: int, guard_after: int) -> void:
@@ -1233,8 +1389,11 @@ func _update_leap() -> void:
 
 # ------------------------------------------------------------------ ultimates
 
-func start_ult() -> void:
+## lift: the frames it spends heaving the Greatsword off the shoulder first;
+## -1 takes them from the shoulder (shoulder_lift()).
+func start_ult(lift: int = -1) -> void:
 	var W: World = world
+	var lift_frames: int = _take_shoulder_lift() if lift < 0 else lift
 	ult_used = true
 	stats.ultimates += 1
 	vel.x = 0.0
@@ -1254,6 +1413,7 @@ func start_ult() -> void:
 		0,
 		false,
 	)
+	ult.lift_left = lift_frames
 	W.emit({"t": &"ultStart", "f": id, "ult": kind})
 	W.emit({"t": &"telegraph", "f": id, "kind": &"ult", "attack": kind})
 
@@ -1265,6 +1425,11 @@ func _set_ult_phase(p: StringName) -> void:
 
 func _update_ult() -> void:
 	var u: UltState = ult
+	if u.lift_left > 0:
+		# heaving the Greatsword off the shoulder: the first phase waits
+		u.lift_left -= 1
+		_brake()
+		return
 	u.pf += 1
 	_brake()
 	match u.kind:

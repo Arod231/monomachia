@@ -184,7 +184,8 @@ func test_the_katana_guard_passes_pose_check() -> void:
 
 
 ## The guard stands over the relaxed idle clip in place of the Katana
-## hold's; the other weapons keep their holds' clips and the clips' feet.
+## hold's; the other weapons stand in their weapon class's idle (the clip
+## director's, authored-animation task 8) on the clips' feet.
 func test_only_the_katana_stands_in_the_guard() -> void:
 	for id: StringName in FighterLook.IDS:
 		var bench: MoveBench = _bench(id)
@@ -194,7 +195,8 @@ func test_only_the_katana_stands_in_the_guard() -> void:
 		for weapon: WeaponDef in [Moves.GREATSWORD, Moves.DAGGERS]:
 			var other: MoveBench = _bench(id, weapon)
 			await other.frame()
-			assert_eq(other.view.locomotion.idle_clip(), other.view.model.idle_clip(), "%s with the %s: the hold's clip" % [id, weapon.id])
+			var idle: StringName = (ClipDirector.IDLE if ClipLibraries.available() else ClipDirector.FALLBACK_IDLE)[weapon.id]
+			assert_eq(String(other.view.locomotion.idle_clip()).get_file(), String(idle), "%s with the %s: the class's idle" % [id, weapon.id])
 			assert_almost_eq(other.view.model.rig.clip_feet, 1.0, 1e-5, "%s with the %s: the clip's feet" % [id, weapon.id])
 			assert_eq(other.view.model.rig.body.untwist, 0.0, "%s with the %s: the clip's own chest" % [id, weapon.id])
 			assert_eq(other.view.model.rig.body.hips_offset, Vector3.ZERO, "%s with the %s: the clip's own hips" % [id, weapon.id])

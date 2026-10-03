@@ -160,8 +160,8 @@ func test_unknown_fields_are_refused() -> void:
 	d["swings"]["t_cut"]["tracks"]["tail"] = d["swings"]["t_cut"]["tracks"]["body"]
 	_assert_refused(d, "t_cut.tail: unknown part", "an unknown part")
 	d = _good()
-	d["swings"]["t_cut"]["speed"] = 2
-	_assert_refused(d, "t_cut: unknown field speed", "an unknown swing field")
+	d["swings"]["t_cut"]["tempo"] = 2
+	_assert_refused(d, "t_cut: unknown field tempo", "an unknown swing field")
 	d = _good()
 	d["swings"]["t_nope"] = d["swings"]["t_cut"]
 	_assert_refused(d, "t_nope: not a move of this weapon", "an unknown move")
@@ -269,3 +269,108 @@ func test_each_weapon_carries_the_swings_in_its_file() -> void:
 			assert_eq(w.moves[id].swing != null, in_file.has(id), "%s.%s has a swing only if its file gives it one" % [wid, id])
 			if in_file.has(id):
 				assert_eq(w.moves[id].swing.parts(), in_file[id].parts(), "%s.%s" % [wid, id])
+
+
+## t_cut's right hand baked (authored-animation task 6): a key on each of its
+## 13 frames, the grip rising 1 cm a frame and the blade turning.
+static func _baked() -> Dictionary:
+	var d: Dictionary = _good()
+	var keys: Array = []
+	for f: int in 13:
+		keys.append({"frame": f, "grip": [0.1, 1.0 + 0.01 * f, 0.4], "blade": [0, 1, 0] if f < 6 else [0, 0, 1], "edge": [1, 0, 0]})
+	d["swings"]["t_cut"]["tracks"]["right_hand"] = {"baked": true, "keys": keys}
+	return d
+
+
+func test_a_baked_track_plays_key_by_key() -> void:
+	var swings: Dictionary[StringName, Swing] = SwingFile.parse(JSON.stringify(_baked()), _moves(), "baked.json")
+	assert_eq(swings.keys(), [&"t_cut"], "read without an error")
+	var cut: Swing = swings[&"t_cut"]
+	assert_true(cut.is_baked(&"right_hand"))
+	assert_false(cut.is_baked(&"body"), "a hand-keyed track beside it")
+	for f: int in 13:
+		_assert_v3(cut.tick(&"right_hand", f).grip, 0.1, 1.0 + 0.01 * f, 0.4, "frame %d is its key, no spline, no entry" % f)
+	_assert_v3(cut.sample(&"right_hand", 2.5).grip, 0.1, 1.025, 0.4, "between frames, a straight line")
+	_assert_v3(cut.sample(&"right_hand", 5.5).blade, 0.0, R2, R2, "the blade turned halfway")
+	_assert_v3(cut.sample(&"right_hand", 5.5).edge, 1.0, 0.0, 0.0, "the edge square to it")
+	_assert_v3(cut.sample(&"right_hand", 20.0).grip, 0.1, 1.12, 0.4, "past the end holds the last")
+	var other: Swing = SwingFile.parse(JSON.stringify(_good()), _moves(), "good.json")[&"t_cut"]
+	_assert_v3(cut.tick(&"right_hand", 0, other).grip, 0.1, 1.0, 0.4, "a follow-up's baked track has no entry stretch")
+
+
+func test_baked_track_mistakes_are_refused() -> void:
+	var d: Dictionary = _baked()
+	(d["swings"]["t_cut"]["tracks"]["right_hand"]["keys"] as Array).remove_at(7)
+	_assert_refused(d, "t_cut.right_hand: a baked track keys every frame from 0 to 12; frame 7 is missing", "a missing frame")
+	d = _baked()
+	(d["swings"]["t_cut"]["tracks"]["right_hand"]["keys"] as Array).pop_back()
+	_assert_refused(d, "frame 12 is missing", "the last frame missing")
+	d = _baked()
+	d["swings"]["t_cut"]["tracks"]["right_hand"]["keys"][3]["ease"] = 0
+	_assert_refused(d, "t_cut.right_hand key 3: unknown field ease", "an ease on a baked key")
+	d = _baked()
+	d["swings"]["t_cut"]["tracks"]["right_hand"]["baked"] = "yes"
+	_assert_refused(d, "t_cut.right_hand: baked must be true or false", "baked as text")
+	d = _baked()
+	d["swings"]["t_cut"]["tracks"]["right_hand"]["speed"] = 1.5
+	_assert_refused(d, "t_cut.right_hand: unknown field speed", "an unknown track field")
+	d = _baked()
+	d["swings"]["t_cut"]["tracks"]["right_hand"].erase("keys")
+	_assert_refused(d, "t_cut.right_hand: missing keys", "no keys")
+	d = _baked()
+	d["swings"]["t_cut"]["tracks"]["right_hand"]["baked"] = false
+	assert_eq(SwingFile.parse(JSON.stringify(d), _moves(), "good.json").keys(), [&"t_cut"], "baked false: hand-keyed keys in the object form")
+
+
+func test_a_baked_swing_carries_its_reach_correction_and_the_rogues_clip() -> void:
+	var d: Dictionary = _baked()
+	d["swings"]["t_cut"]["reach"] = [0, 0, 0.12]
+	d["swings"]["t_cut"]["rogue_humanm"] = true
+	var cut: Swing = SwingFile.parse(JSON.stringify(d), _moves(), "baked.json")[&"t_cut"]
+	_assert_v3(cut.reach_offset, 0.0, 0.0, 0.12, "the reach correction")
+	assert_eq([cut.reach_startup, cut.reach_active], [4, 2], "eased by the move's frames")
+	_assert_v3(cut.reach_at(5.0), 0.0, 0.0, 0.12, "all of it in the active frames")
+	_assert_v3(cut.reach_at(0.0), 0.0, 0.0, 0.0, "none on frame 0")
+	assert_true(cut.rogue_humanm)
+	var plain: Swing = SwingFile.parse(JSON.stringify(_baked()), _moves(), "baked.json")[&"t_cut"]
+	_assert_v3(plain.reach_offset, 0.0, 0.0, 0.0, "none by default")
+	assert_false(plain.rogue_humanm, "the Rogue's own clip by default")
+
+
+func test_reach_and_rogue_mistakes_are_refused() -> void:
+	var d: Dictionary = _baked()
+	d["swings"]["t_cut"]["reach"] = [0, 0.1, 0.12]
+	_assert_refused(d, "t_cut: the reach correction is 15.6 cm; at most 15", "a correction over 15 cm")
+	d = _baked()
+	d["swings"]["t_cut"]["reach"] = [0, 0.1]
+	_assert_refused(d, "t_cut: reach must be three numbers", "a short vector")
+	d = _baked()
+	d["swings"]["t_cut"]["rogue_humanm"] = 1
+	_assert_refused(d, "t_cut: rogue_humanm must be true or false", "a number for the flag")
+
+
+func test_a_baked_swing_carries_its_sheathed_frames_and_hold() -> void:
+	var d: Dictionary = _baked()
+	d["swings"]["t_cut"]["clips"] = ["Sheathe@3-12", "Cut"]
+	d["swings"]["t_cut"]["marks"] = [0, 18, 21, 36, 9]
+	d["swings"]["t_cut"]["sheathed"] = [1, 3]
+	var cut: Swing = SwingFile.parse(JSON.stringify(d), _moves(), "baked.json")[&"t_cut"]
+	assert_eq(cut.marks, PackedFloat64Array([0, 18, 21, 36, 9]), "the four markers and the hold")
+	assert_eq(cut.sheathed, PackedInt32Array([1, 3]))
+	assert_true(cut.is_sheathed(2.5), "in the saya between them")
+	assert_false(cut.is_sheathed(0.0), "not before")
+	assert_false(cut.is_sheathed(3.5), "nor after")
+	var plain: Swing = SwingFile.parse(JSON.stringify(_baked()), _moves(), "baked.json")[&"t_cut"]
+	assert_false(plain.is_sheathed(1.0), "never sheathed by default")
+
+
+func test_sheathed_mistakes_are_refused() -> void:
+	var d: Dictionary = _baked()
+	d["swings"]["t_cut"]["sheathed"] = [2, 4]
+	_assert_refused(d, "t_cut: sheathed must be two attack frames, the first no later than the second, both before the active frames", "into the active frames")
+	d = _baked()
+	d["swings"]["t_cut"]["sheathed"] = [3, 1]
+	_assert_refused(d, "t_cut: sheathed must be two attack frames", "backwards")
+	d = _baked()
+	d["swings"]["t_cut"]["marks"] = [0, 1, 2]
+	_assert_refused(d, "t_cut: marks must be four numbers, or five with the hold", "three marks")

@@ -6,7 +6,8 @@ extends RefCounted
 ## (Fighter.blade_segments()). A blade sweep (BladeSweep) runs from the last
 ## tick's segment to this one.
 
-## the swing's track: right_hand, left_hand, right_foot or left_foot
+## the swing's track: right_hand, left_hand, right_foot, left_foot or a
+## bash's right_shoulder or left_shoulder
 var part: StringName = &""
 var base: V3 = V3.make()
 var tip: V3 = V3.make()

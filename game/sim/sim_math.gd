@@ -94,6 +94,20 @@ static func angle_between(yaw: float, dir_yaw: float) -> float:
 const DEG: float = PI / 180.0
 
 
+## The roll's travel at `t` (0 to 1 of its frames): SimConst.MOVE_ROLL_CURVE,
+## in a straight line between its points.
+static func roll_travel(t: float) -> float:
+	var c: Array[float] = SimConst.MOVE_ROLL_CURVE
+	var n: int = c.size() - 1
+	if t <= 0.0:
+		return c[0]
+	if t >= 1.0:
+		return c[n]
+	var x: float = t * float(n)
+	var i: int = floori(x)
+	return c[i] + (c[i + 1] - c[i]) * (x - float(i))
+
+
 static func ease_out_cubic(t: float) -> float:
 	var u: float = 1.0 - t
 	return 1.0 - u * u * u

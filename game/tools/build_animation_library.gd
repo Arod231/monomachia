@@ -1,8 +1,11 @@
 extends SceneTree
 ## Builds the shared AnimationLibrary every fighter plays: the clips the game
-## needs from the two Universal Animation Library GLBs (already retargeted to
-## the humanoid profile by their .import files), with the loop flags set and
-## no root motion, because the rules own movement.
+## needs from the Universal Animation Library GLBs (already retargeted to the
+## humanoid profile by their .import files), with the loop flags set and no
+## root motion, because the rules own movement. It is the committed CC0
+## library: besides the clips the game plays today, it holds every UAL clip
+## the clip table in docs/specs/authored-animation.md names, so a fresh clone
+## without the Iglesias packs can play each move's fallback.
 ##
 ## Run: node scripts/godot.mjs script res://tools/build_animation_library.gd [-- --verbose]
 ##
@@ -11,8 +14,12 @@ extends SceneTree
 ##   FighterModel).
 ## - The clips keep their pack names, without the `_Loop` suffix the importer
 ##   strips.
-## - Root motion: the packs' Standard GLBs are in place (their root bone never
-##   moves; the _RM files carry the travel, and the game doesn't use them).
+## - A clip found in more than one GLB is taken from the first in SOURCES, so
+##   the Standard clips the game already played stay as they were, and the
+##   Source GLB adds only the clips the Standard tier lacks.
+## - Root motion: the packs' Standard and Source GLBs are in place (their root
+##   bone never moves; the _RM files carry the travel, and the game doesn't
+##   use them).
 ##   The builder still drops any track on the Root bone, so swapping in a
 ##   root-motion file can't move a fighter. The hips keep their in-pose
 ##   sway and weight shifts (up to about half a metre in the death fall).
@@ -22,6 +29,7 @@ extends SceneTree
 const SOURCES: Array[String] = [
 	"res://assets/quaternius/animations/UAL1_Standard.glb",
 	"res://assets/quaternius/animations/UAL2_Standard.glb",
+	"res://assets/quaternius/animations/UAL2_Source.glb",
 ]
 const OUT_PATH: String = "res://assets/quaternius/animations/ual_library.res"
 const SKELETON_PREFIX: String = "%GeneralSkeleton"
@@ -30,6 +38,10 @@ const SKELETON_PREFIX: String = "%GeneralSkeleton"
 const LOOPING: Array[StringName] = [
 	&"Idle", &"Sword_Idle", &"Walk", &"Walk_Formal", &"Jog_Fwd", &"Sprint", &"Jump", &"NinjaJump_Idle",
 	&"Dance", &"Idle_FoldArms", &"Idle_Shield", &"Idle_Lantern",
+	# The clip table's UAL2 clips: the eight walk directions and the aerial
+	# combo (Sword_Aerial_Combo_Loop in the pack).
+	&"Walk_Fwd", &"Walk_Bwd", &"Walk_L", &"Walk_R", &"Walk_Fwd_L", &"Walk_Fwd_R", &"Walk_Bwd_L", &"Walk_Bwd_R",
+	&"Sword_Aerial_Combo",
 ]
 ## Clips that play once.
 const ONE_SHOT: Array[StringName] = [
@@ -41,6 +53,11 @@ const ONE_SHOT: Array[StringName] = [
 	&"Sword_Regular_A", &"Sword_Regular_A_Rec", &"Sword_Regular_B", &"Sword_Regular_B_Rec", &"Sword_Regular_C",
 	&"Sword_Heavy_Combo", &"Sword_Dash", &"Sword_Attack",
 	&"Yes",
+	# The clip table's UAL2 clips, as fallbacks or first candidates.
+	&"Sword_Light_A", &"Sword_Light_B", &"Sword_Light_C", &"Sword_Light_D",
+	&"Sword_Heavy_A", &"Sword_Heavy_B", &"Sword_Heavy_C", &"Sword_Heavy_D",
+	&"Sword_UpperCut", &"Sword_Aerial_A", &"Sword_Aerial_B", &"Sword_GroundPound",
+	&"Shield_Dash", &"Slide_Start", &"Melee_Uppercut", &"Melee_Knee",
 ]
 
 

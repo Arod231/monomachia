@@ -41,7 +41,10 @@ extends Node3D
 ## letting go; strafe_left and strafe_right round the opponent, backpedal and
 ## back_left away from it, each then stopping; the guard_ drives the same
 ## while blocking, in the guard shuffle; tap_steps: a tap step each way;
-## iai_walk: walking in the Iai stance; string_l to string_llll: the Katana's
+## iai_walk: walking in the Iai stance; carry_walk, carry_lift and
+## carry_guard: the Greatsword going onto the shoulder as it walks, then
+## standing and strafing, attacking from it, or raising the guard off it
+## (task 18); string_l to string_llll: the Katana's
 ## light string stopped after one, two, three and four lights, each press
 ## made after the move before has passed its startup, so it follows it), with
 ## the opponent out of the way,
@@ -189,6 +192,27 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 		"views": [&"side", &"feet"],
 		"spacing": 8.0,
 		"every": 3,
+	},
+	&"carry_walk": {
+		"input": [[12, 0.0, 0.0, 0], [48, 0.0, 1.0, 0], [24, 0.0, 0.0, 0], [36, 1.0, 0.0, 0]],
+		"notes": "still for 12 frames, walking at the opponent for 48 (onto the shoulder after 20), standing for 24, then strafing right for 36",
+		"views": [&"side", &"three_quarter"],
+		"spacing": 8.0,
+		"every": 4,
+	},
+	&"carry_lift": {
+		"input": [[12, 0.0, 0.0, 0], [36, 0.0, 1.0, 0], [1, 0.0, 0.0, LIGHT], [60, 0.0, 0.0, 0]],
+		"notes": "still for 12 frames, walking at the opponent for 36 (onto the shoulder), then Heavy Swing from the shoulder, its 6-frame lift first",
+		"views": [&"side", &"three_quarter"],
+		"spacing": 4.0,
+		"every": 2,
+	},
+	&"carry_guard": {
+		"input": [[12, 0.0, 0.0, 0], [36, 0.0, 1.0, 0], [30, 0.0, 0.0, BLOCK], [24, 0.0, 0.0, 0]],
+		"notes": "still for 12 frames, walking at the opponent for 36 (onto the shoulder), then blocking for 30 (the guard lifted off the shoulder), then letting go",
+		"views": [&"side", &"three_quarter"],
+		"spacing": 8.0,
+		"every": 2,
 	},
 	&"string_l": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [60, 0.0, 0.0, 0]],

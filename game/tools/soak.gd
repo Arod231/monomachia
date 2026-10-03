@@ -135,6 +135,8 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 						_add(totals, "stagger")
 					&"evade":
 						_add(totals, "evade")
+					&"knockdown":
+						_add(totals, "knockdown")
 					&"ko":
 						if int(e["winner"]) < 0:
 							_add(totals, "doubleKO")

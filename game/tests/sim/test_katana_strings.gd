@@ -43,9 +43,10 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 	},
 }
 
-## Wind Cut, the dodge light, lunges 0.4 m, as the demo's did (the spec
-## leaves the Katana's dodge attacks unchanged).
-const WIND_CUT_LUNGE: float = 0.4
+## Wind Cut, the dodge light, lunged 0.4 m, as the demo's did (the spec
+## leaves the Katana's dodge attacks unchanged); 0.5 m since its clip
+## (authored-animation task 12), to reach the duelling distance.
+const WIND_CUT_LUNGE: float = 0.5
 
 ## Kesa Cut dodge-cancels from frame 20 (the plan's decisions: startup +
 ## active + 6, as Right Cut and Return Cut).
@@ -122,7 +123,7 @@ func test_wind_cut_out_of_a_dodge_still_lunges_toward_the_defender() -> void:
 	assert_gt(start, 0, "Wind Cut starts")
 	if start <= 0:
 		return
-	assert_almost_eq(r.displacement(&"k_dl").length(), WIND_CUT_LUNGE, CLOSE, "its 0.4 m lunge")
+	assert_almost_eq(r.displacement(&"k_dl").length(), WIND_CUT_LUNGE, CLOSE, "its 0.5 m lunge")
 	var closed: float = r.apart[start - 1] - r.apart[r.attack.rfind(&"k_dl")]
 	assert_almost_eq(closed, WIND_CUT_LUNGE, CLOSE, "straight at the defender: the gap shrinks by all of it")
 
@@ -169,6 +170,38 @@ func test_the_iai_hits_at_3_8_m_where_right_cut_whiffs() -> void:
 	var cut: PlayedString = _play([Btn.LIGHT], 3.8)
 	assert_eq(cut.ids(&"whiff"), [&"k_l1"] as Array[StringName], "Right Cut whiffs")
 	assert_eq(_play([Btn.HEAVY], 3.8).ids(&"hit"), [&"k_iai"] as Array[StringName], "the Iai hits")
+
+
+## The Iai's clips (authored-animation task 11) still reach as the spec's
+## Iai does: into a defender 3.6 m away, not one 4.2 m away.
+func test_the_iai_enters_a_defender_at_3_6_m_and_misses_at_4_2_m() -> void:
+	for id: StringName in [&"k_iai", &"k_iai_h"]:
+		var m: AttackDef = Moves.KATANA.moves[id]
+		assert_not_null(m.swing, "%s has its baked swing" % id)
+		if m.swing == null:
+			continue
+		assert_not_null(SwingReach.first_contact(m, Moves.KATANA, 3.6, 0.0, FighterBody.of(&"")), "%s enters at 3.6 m" % id)
+		assert_null(SwingReach.first_contact(m, Moves.KATANA, 4.2, 0.0, FighterBody.of(&"")), "%s misses at 4.2 m" % id)
+
+
+## The unblockables' clips (authored-animation task 13), with their thicker
+## sweep, reach a defender 3.5 m away, where Right Cut whiffs.
+func test_an_unblockable_hits_where_the_light_misses() -> void:
+	var body: FighterBody = FighterBody.of(&"")
+	assert_null(SwingReach.first_contact(Moves.KATANA.moves[&"k_l1"], Moves.KATANA, 3.5, 0.0, body), "Right Cut misses at 3.5 m")
+	for id: StringName in [&"k_thrust", &"k_sweep"]:
+		var m: AttackDef = Moves.KATANA.moves[id]
+		assert_true(m.unblockable, "%s is unblockable" % id)
+		assert_not_null(SwingReach.first_contact(m, Moves.KATANA, 3.5, 0.0, body), "%s hits at 3.5 m" % id)
+
+
+## Flash (task 13) is a pose-only clip: its swing moves the body alone, so it
+## places no blade and never strikes.
+func test_flash_plays_a_clip_but_strikes_nothing() -> void:
+	var flash: AttackDef = Moves.KATANA.moves[&"k_flash"]
+	assert_not_null(flash.swing, "a baked swing")
+	assert_false(flash.swing.clips.is_empty(), "played from its clips")
+	assert_eq(flash.swing.parts(), [&"body"] as Array[StringName], "the body alone")
 
 
 func test_a_sheathed_fighter_cannot_block() -> void:
@@ -467,33 +500,36 @@ func test_all_nine_rows_match_the_spec_table() -> void:
 func test_the_horizontal_iai_hits_with_the_specs_interim_cone() -> void:
 	# until weapon paths decide hits (task 7): a right-to-left slash drawn
 	# from the sheathe (its anim, iaiHorizontal), as far as the vertical Iai
-	# and as wide as Right Cut
+	# and as wide as Right Cut; lunging 2.1 m with the vertical since their
+	# clips (authored-animation task 11), from 0.4
 	var m: AttackDef = Moves.KATANA.moves.get(&"k_iai_h", null)
 	assert_not_null(m, "the horizontal Iai exists")
 	if m == null:
 		return
 	assert_eq([m.type, m.anim], [&"slash", &"iaiHorizontal"], "a right-to-left slash, drawn from the sheathe")
-	assert_eq([m.range, m.arc, m.lunge, m.knockback], [3.6, 110.0, 0.4, 1.0], "range, arc, lunge and knockback")
+	assert_eq([m.range, m.arc, m.lunge, m.knockback], [3.6, 110.0, 2.1, 1.0], "range, arc, lunge and knockback")
 
 
 func test_returning_draw_hits_with_the_specs_interim_cone() -> void:
 	# until weapon paths decide hits (task 7): a left-to-right slash (the
 	# stand-in's slashLR) with Rising Heaven's reach, lunge and knockback and
-	# Return Cut's width, its lunge ending two frames after its cut starts
+	# Return Cut's width, its lunge ending two frames after its cut starts;
+	# the lunge is 1.1 m since its clip (authored-animation task 11), from 0.5
 	var m: AttackDef = Moves.KATANA.moves.get(&"k_rdraw", null)
 	assert_not_null(m, "Returning Draw exists")
 	if m == null:
 		return
 	assert_eq([m.type, m.anim], [&"slash", &"slashLR"], "a left-to-right slash")
 	assert_eq(
-		[m.range, m.arc, m.lunge, m.lunge_end, m.knockback], [2.3, 110.0, 0.5, 18, 0.9], "range, arc, lunge, the lunge's end and knockback"
+		[m.range, m.arc, m.lunge, m.lunge_end, m.knockback], [2.3, 110.0, 1.1, 18, 0.9], "range, arc, lunge, the lunge's end and knockback"
 	)
 
 
 func test_kesa_cut_hits_with_the_specs_interim_cone() -> void:
 	# until weapon paths decide hits (task 7): a slash from the right shoulder
 	# to the left hip (the stand-in's diagonal cut down), 2.2 m and 100° after
-	# a 0.35 m lunge, knocking back 0.4 m
+	# a lunge, knocking back 0.4 m; the lunge is 0.4 m since its clip
+	# (authored-animation task 10), from 0.35, to reach the duelling distance
 	var m: AttackDef = Moves.KATANA.moves[&"k_l3"]
 	assert_eq([m.type, m.anim], [&"slash", &"diagDown"], "Kesa Cut is a diagonal slash down")
-	assert_eq([m.range, m.arc, m.lunge, m.knockback], [2.2, 100.0, 0.35, 0.4], "range, arc, lunge and knockback")
+	assert_eq([m.range, m.arc, m.lunge, m.knockback], [2.2, 100.0, 0.4, 0.4], "range, arc, lunge and knockback")
