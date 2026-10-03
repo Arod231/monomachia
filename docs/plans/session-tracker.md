@@ -696,7 +696,7 @@ export function stageDocs(planText, specText, stage, states) {
 
 ### Task 5: Match sessions to stages, and the session and stage API
 
-- [ ] Done when: `GET /api/sessions`, `/api/session/:id` and `/api/stage/:n` answer with real data on port 5198.
+- [x] Done when: `GET /api/sessions`, `/api/session/:id` and `/api/stage/:n` answer with real data on port 5198.
 
 **Files:**
 - Create: `tools/progress-dashboard/stage.mjs`, `tools/progress-dashboard/routes.mjs`
@@ -711,7 +711,7 @@ export function stageDocs(planText, specText, stage, states) {
   - `taskStates(stage, data): Map<id, {state, blockedBy}>`
   - `makeRoutes(ctx): (req, res) => Promise<boolean>`, where `ctx = { here, port, repo, getData, listSessions, feedbackDir, hookInstalled }`
 
-- [ ] **Step 1: Write the failing tests** `tests/stage.test.mjs`
+- [x] **Step 1: Write the failing tests** `tests/stage.test.mjs`
 
 ```js
 import { test } from 'node:test';
@@ -766,7 +766,7 @@ test('task states: done, working, next, blocked, rest', () => {
 });
 ```
 
-- [ ] **Step 2: Write `stage.mjs`**
+- [x] **Step 2: Write `stage.mjs`**
 
 ```js
 // Which build-order stage a Claude Code session works on, and which lane's
@@ -832,7 +832,7 @@ export function taskStates(stage, data) {
 
 The old main-checkout session in the second test keeps `laneState` null, because the main lane went to the newer session by folder. That is Review Focus line 2.
 
-- [ ] **Step 3: Write the failing route tests** `tests/routes.test.mjs` (GET routes now; Task 8 adds the feedback cases)
+- [x] **Step 3: Write the failing route tests** `tests/routes.test.mjs` (GET routes now; Task 8 adds the feedback cases)
 
 ```js
 import { test } from 'node:test';
@@ -890,7 +890,7 @@ test('session page and the renderer are served; other paths fall through', async
 
 Because `serve()` reads `session.html`, put a placeholder `tools/progress-dashboard/session.html` (`<!doctype html><html><body>Session</body></html>`) in this task. Task 7 replaces it.
 
-- [ ] **Step 4: Write `routes.mjs`** (the GET part; Task 8 adds POST and the feedback GET)
+- [x] **Step 4: Write `routes.mjs`** (the GET part; Task 8 adds POST and the feedback GET)
 
 ```js
 // /api/* and /session/* for the session tracker. Mounted by server.mjs before
@@ -944,7 +944,7 @@ export function makeRoutes(ctx) {
 }
 ```
 
-- [ ] **Step 5: Mount it in `server.mjs`.**
+- [x] **Step 5: Mount it in `server.mjs`.**
   - In `collect()`'s returned object, add `blockers,` and `doneIds: [...done].filter((id) => all.includes(id)),`.
   - At the top, add:
 
@@ -966,9 +966,9 @@ const routes = makeRoutes({
 
   As the first line inside the `try` of the request handler, add `if (await routes(req, res)) return;`.
 
-- [ ] **Step 6: Run all the tests and see them pass.** Then check live: `PORT=5198 node tools/progress-dashboard/server.mjs`, then `curl -s localhost:5198/api/sessions` (the stage 7 session should show stage 7) and `curl -s localhost:5198/api/stage/7` (15 tasks with markdown).
+- [x] **Step 6: Run all the tests and see them pass.** Then check live: `PORT=5198 node tools/progress-dashboard/server.mjs`, then `curl -s localhost:5198/api/sessions` (the stage 7 session should show stage 7) and `curl -s localhost:5198/api/stage/7` (15 tasks with markdown).
 
-- [ ] **Step 7: Commit**: `git commit -m "Serve sessions with their stage and lane, and each stage's docs"`, then push.
+- [x] **Step 7: Commit**: `git commit -m "Serve sessions with their stage and lane, and each stage's docs"`, then push.
 
 ---
 

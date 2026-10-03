@@ -11,7 +11,10 @@ import path from 'node:path';
 
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-import { findRepo } from './repo.mjs';
+import os from 'node:os';
+import { findRepo, projectPrefix } from './repo.mjs';
+import { makeRoutes } from './routes.mjs';
+import { listSessions } from './sessions.mjs';
 const REPO = await findRepo();
 const PLAN = 'docs/plans/godot-rebuild.md';
 const MAIN_BRANCH = 'feature/godot-rebuild';
@@ -208,6 +211,8 @@ async function collect() {
     lanes,
     others: trees.filter((t) => !isLane(t.branch)).map((t) => ({ folder: path.relative(REPO, t.path) || t.path, branch: t.branch })),
     titles,
+    blockers,
+    doneIds: [...done].filter((id) => all.includes(id)),
   };
 }
 
@@ -221,8 +226,14 @@ async function data() {
   return inflight;
 }
 
+const routes = makeRoutes({
+  here: HERE, repo: REPO, port: PORT, getData: data,
+  listSessions: () => listSessions({ projectsDir: path.join(os.homedir(), '.claude', 'projects'), prefix: projectPrefix(REPO) }),
+});
+
 createServer(async (req, res) => {
   try {
+    if (await routes(req, res)) return;
     if (req.url.startsWith('/data')) {
       const body = JSON.stringify(await data());
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
