@@ -422,7 +422,7 @@ Expected: about 20 sessions. The first is this one, titled "Claude Code session 
 
 ### Task 3: A safe Markdown renderer
 
-- [ ] Done when: plan task blocks render as nested lists, with nothing in the docs able to inject HTML.
+- [x] Done when: plan task blocks render as nested lists, with nothing in the docs able to inject HTML.
 
 **Files:**
 - Create: `tools/progress-dashboard/markdown.mjs` (no node imports, so the page can import it)
@@ -431,7 +431,7 @@ Expected: about 20 sessions. The first is this one, titled "Claude Code session 
 **Interfaces:**
 - Produces: `escapeHtml(s): string`, `renderMarkdown(md): string`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```js
 import { test } from 'node:test';
@@ -467,12 +467,12 @@ test('paragraphs and headings', () => {
 });
 ```
 
-- [ ] **Step 2: Run them and see them fail**
+- [x] **Step 2: Run them and see them fail**
 
 Run: `npm run test:dashboard`
 Expected: FAIL, the module is missing.
 
-- [ ] **Step 3: Write `markdown.mjs`**
+- [x] **Step 3: Write `markdown.mjs`**
 
 ```js
 // The small piece of Markdown the plan and spec use: paragraphs, headings,
@@ -533,9 +533,9 @@ export function renderMarkdown(src) {
 }
 ```
 
-- [ ] **Step 4: Run the tests and see them pass.** If the nested-list test fails on spacing, fix the renderer, not the expected string.
+- [x] **Step 4: Run the tests and see them pass.** If the nested-list test fails on spacing, fix the renderer, not the expected string.
 
-- [ ] **Step 5: Commit**: `git commit -m "Add a safe Markdown renderer for the dashboard's docs"`, then push.
+- [x] **Step 5: Commit**: `git commit -m "Add a safe Markdown renderer for the dashboard's docs"`, then push.
 
 ---
 
