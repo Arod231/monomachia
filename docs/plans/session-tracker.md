@@ -197,7 +197,7 @@ git push origin tools/session-tracker
 
 ### Task 2: Read Claude Code transcripts into sessions
 
-- [ ] Done when: `listSessions()` gives one record per transcript, newest first, from fixtures.
+- [x] Done when: `listSessions()` gives one record per transcript, newest first, from fixtures.
 
 **Files:**
 - Create: `tools/progress-dashboard/sessions.mjs`
@@ -207,7 +207,7 @@ git push origin tools/session-tracker
 - Produces: `LIVE_MS = 180000`; `summarize(records, into?): {title?, firstPrompt?, cwd?, branch?}`; `readSession(file, now?): Promise<Session>`; `listSessions({projectsDir, prefix, now?}): Promise<Session[]>`
 - `Session = { id, file, title, cwd, folder, branch, lastActive /* ms */, live }`
 
-- [ ] **Step 1: Write the failing tests** `tests/sessions.test.mjs`
+- [x] **Step 1: Write the failing tests** `tests/sessions.test.mjs`
 
 ```js
 import { test } from 'node:test';
@@ -290,12 +290,12 @@ test('a missing projects folder gives an empty list', async () => {
 });
 ```
 
-- [ ] **Step 2: Run them and see them fail**
+- [x] **Step 2: Run them and see them fail**
 
 Run: `npm run test:dashboard`
 Expected: FAIL, `Cannot find module '../sessions.mjs'`.
 
-- [ ] **Step 3: Write `sessions.mjs`**
+- [x] **Step 3: Write `sessions.mjs`**
 
 ```js
 // Claude Code sessions for this project, read from their transcript files
@@ -403,12 +403,12 @@ export async function listSessions({ projectsDir, prefix, now = Date.now() }) {
 
 (`path.win32.basename` after turning `/` into `\` gives the last folder for both Windows and posix cwd strings.)
 
-- [ ] **Step 4: Run the tests and see them pass**
+- [x] **Step 4: Run the tests and see them pass**
 
 Run: `npm run test:dashboard`
 Expected: all pass.
 
-- [ ] **Step 5: Smoke test it on the real transcripts**
+- [x] **Step 5: Smoke test it on the real transcripts**
 
 ```bash
 node -e "import('./tools/progress-dashboard/sessions.mjs').then(async m=>{const l=await m.listSessions({projectsDir:require('os').homedir()+'/.claude/projects',prefix:'C--Users-Win11-Desktop-Monomachia'});console.log(l.length,l.slice(0,3).map(s=>[s.title,s.branch,s.live]))})"
@@ -416,7 +416,7 @@ node -e "import('./tools/progress-dashboard/sessions.mjs').then(async m=>{const 
 
 Expected: about 20 sessions. The first is this one, titled "Claude Code session tracker and docs", and it is live.
 
-- [ ] **Step 6: Commit** (after `npm test` and `npm run typecheck`): `git add tools/progress-dashboard` then `git commit -m "Read Claude Code transcripts into dashboard sessions"`, and push.
+- [x] **Step 6: Commit** (after `npm test` and `npm run typecheck`): `git add tools/progress-dashboard` then `git commit -m "Read Claude Code transcripts into dashboard sessions"`, and push.
 
 ---
 
