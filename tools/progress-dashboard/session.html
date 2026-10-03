@@ -39,6 +39,7 @@ a { color: var(--done); }
 .top .back { font-size: 13px; text-decoration: none; }
 .top .back:hover { text-decoration: underline; }
 .top .meta { flex-basis: 100%; order: 3; font-size: 12px; color: var(--text-2); overflow-wrap: anywhere; }
+.top .net { flex-basis: 100%; order: 4; font-size: 12px; color: var(--alert); }
 .top .pick { margin-left: auto; font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
 .top select { font: inherit; font-size: 13px; max-width: 60vw; background: var(--card); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 6px; }
 
@@ -81,6 +82,7 @@ a { color: var(--done); }
   <a href="/" class="back">← Dashboard</a>
   <h1 id="title">Loading…</h1>
   <div class="meta" id="meta"></div>
+  <div class="net" id="net" hidden>Can't reach the dashboard server — retrying</div>
   <label class="pick">Stage <select id="stage-pick"></select></label>
 </header>
 <nav class="tiles" id="tiles" aria-label="Tasks in this stage"></nav>
@@ -119,7 +121,7 @@ function docs(stage) {
     <h2>${esc(t.id)} ${esc(t.title)}<span class="badge sw-${t.state}" data-badge>${LABEL[t.state]}</span></h2>
     <div class="doc">${renderMarkdown(t.markdown)}${t.stories.length ? `<div class="stories"><strong>Stories</strong><ul>${t.stories.map((s) => `<li>${s.done ? '✓' : '○'} ${s.n}. ${esc(s.text)}</li>`).join('')}</ul></div>` : ''}</div></section>`).join('');
 }
-window.onDocsRendered = [];
+window.onDocsRendered = []; // run after every docs rebuild; callbacks pushed after the first render should also run once themselves
 
 function showEmpty(html) {
   $('tiles').innerHTML = ''; lastTiles = '';
@@ -127,7 +129,7 @@ function showEmpty(html) {
 }
 
 async function load() {
-  const r = await fetch(`/api/session/${id}`, { cache: 'no-store' });
+  const r = await fetch(`/api/session/${encodeURIComponent(id)}`, { cache: 'no-store' });
   if (!r.ok) {
     $('title').textContent = 'Unknown session';
     document.title = 'Unknown session · Sessions';
@@ -139,9 +141,10 @@ async function load() {
   $('title').textContent = session.title ?? 'Unknown session';
   document.title = `${session.title ?? 'Session'} · Sessions`;
   $('meta').textContent = [session.branch, session.folder, session.live ? 'live' : `last active ${ago(session.lastActive / 1000)}`].filter(Boolean).join(' · ');
-  const asked = params.has('stage') ? Number(params.get('stage')) : NaN;
+  const raw = params.get('stage');
+  const asked = raw !== null && raw.trim() !== '' ? Number(raw) : NaN;
   stageNo = Number.isInteger(asked) ? asked : session.stage;
-  $('stage-pick').value = stageNo ?? '';
+  syncPicker();
   if (stageNo == null) { showEmpty('<p class="muted">No stage — pick one above.</p>'); return; }
   const sr = await fetch(`/api/stage/${stageNo}`, { cache: 'no-store' });
   if (!sr.ok) { showEmpty(`<p class="muted">Stage ${esc(stageNo)} not found.</p>`); return; }
@@ -163,21 +166,48 @@ async function load() {
   }
 }
 
+// The "No stage" option exists only for a session that has no stage; otherwise
+// load() would fall back to session.stage and the select would snap back.
+let stageList = null, pickHtml = '';
+function syncPicker() {
+  if (!stageList) return;
+  const sel = $('stage-pick');
+  const html = (session && session.stage == null ? '<option value="">No stage</option>' : '')
+    + stageList.map((s) => `<option value="${s.n}">${s.n}. ${esc(s.name)}</option>`).join('');
+  if (html !== pickHtml) { sel.innerHTML = html; pickHtml = html; }
+  const want = String(stageNo ?? '');
+  sel.value = want;
+  if (sel.value !== want) sel.selectedIndex = 0;
+}
 async function fillPicker() {
   const d = await (await fetch('/data', { cache: 'no-store' })).json();
-  $('stage-pick').innerHTML = `<option value="">No stage</option>` + d.stages.map((s) => `<option value="${s.n}">${s.n}. ${esc(s.name)}</option>`).join('');
-  $('stage-pick').value = stageNo ?? '';
+  stageList = d.stages;
+  syncPicker();
 }
-$('stage-pick').addEventListener('change', (e) => {
+function setNet(failed) { $('net').hidden = !failed; }
+// One refresh: load the session and stage, fill the picker if that hasn't worked yet,
+// and show or clear the "can't reach the server" note.
+async function tick() {
+  try {
+    await load();
+    if (!stageList) await fillPicker();
+    setNet(false);
+    return true;
+  } catch { setNet(true); return false; }
+}
+$('stage-pick').addEventListener('change', async (e) => {
   const v = e.target.value;
   if (v) params.set('stage', v); else params.delete('stage');
   const q = params.toString();
   history.replaceState(null, '', `${location.pathname}${q ? `?${q}` : ''}${location.hash}`);
   lastDocsKey = '';
-  load().catch(() => {});
+  await tick();
+  scrollTo(0, 0);
 });
 function jump() {
-  const el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+  let name = location.hash.slice(1);
+  try { name = decodeURIComponent(name); } catch { /* keep the raw hash */ }
+  const el = name && document.getElementById(name);
   if (!el) return;
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
@@ -187,8 +217,9 @@ $('tiles').addEventListener('click', (e) => {
   const a = e.target.closest('.tile');
   if (a && a.hash === location.hash) { e.preventDefault(); jump(); }
 });
-await load(); await fillPicker(); jump();
-setInterval(() => load().catch(() => {}), 10000);
+setInterval(tick, 10000); // registered first, so a failed first load never stops the refresh
+await tick();
+jump();
 </script>
 </body>
 </html>
