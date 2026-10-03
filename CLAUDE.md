@@ -67,6 +67,7 @@ Rules:
 - `npm run typecheck`: TypeScript check
 - `npm run build`: type-check, then build the single-file game
 - `npm run soak -- 40`: 40 computer-vs-computer matches, prints balance numbers
+- `npm run dashboard`: progress dashboard and session tracker at http://localhost:5199 (reads the main checkout from any worktree)
 
 ## Code notes
 
