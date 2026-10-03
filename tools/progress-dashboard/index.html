@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rebuild progress</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff;
+  --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+  --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
+  --done: #2a78d6; --working: #eb6834; --next: #1baf7a; --rest: #d3d1c7; --blocked: #898781;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+    --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+    --done: #3987e5; --working: #d95926; --next: #199e70; --rest: #444441; --blocked: #898781;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+  --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+  --done: #3987e5; --working: #d95926; --next: #199e70; --rest: #444441; --blocked: #898781;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 16px; }
+h1 { font-size: 20px; font-weight: 600; margin: 0; }
+h2 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; }
+.stamp { font-size: 12px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.stamp.err { color: var(--working); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.kpi { background: var(--surface); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.kpi .l { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.kpi .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpi .s { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
+.legend span { display: flex; align-items: center; gap: 5px; }
+.legend .note { margin-left: auto; color: var(--muted); }
+.row { display: grid; grid-template-columns: minmax(0, 236px) minmax(0, 1fr) 46px; align-items: center; gap: 10px; padding: 3px 0; cursor: default; }
+.row:hover .rl { color: var(--text); }
+.rl { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rl .num { color: var(--muted); display: inline-block; width: 58px; font-variant-numeric: tabular-nums; }
+.track { display: flex; align-items: center; min-width: 0; }
+.bar { display: flex; gap: 2px; height: 16px; flex: none; }
+.seg { height: 100%; }
+.seg:last-child { border-radius: 0 4px 4px 0; }
+.tag { font-size: 11px; color: var(--text-2); white-space: nowrap; margin-left: 6px; overflow: hidden; text-overflow: ellipsis; }
+.rn { font-size: 12px; color: var(--text-2); text-align: right; font-variant-numeric: tabular-nums; }
+.done { background: var(--done); } .working { background: var(--working); } .next { background: var(--next); } .rest { background: var(--rest); } .blocked { background: var(--blocked); }
+.lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.lane { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.lane .name { font-weight: 600; white-space: nowrap; }
+.lane .where { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lane .state { display: flex; align-items: flex-start; gap: 7px; margin: 8px 0 6px; font-size: 13px; }
+.lane .state .sw { margin-top: 5px; }
+.lane .meta { font-size: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.others { font-size: 12px; color: var(--muted); margin-top: 10px; }
+#tip { position: fixed; pointer-events: none; background: var(--card); border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 10px; font-size: 12px; max-width: 320px; opacity: 0; transition: opacity .1s; z-index: 5; }
+#tip .t { font-weight: 600; } #tip .d { color: var(--text-2); }
+@media (max-width: 560px) {
+  .row { grid-template-columns: minmax(0, 1fr) 40px; }
+  .row .track { grid-column: 1 / -1; grid-row: 2; }
+  .tag { display: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Rebuild progress</h1>
+    <span class="stamp" id="stamp">Loading…</span>
+  </header>
+  <section class="kpis" id="kpis"></section>
+  <div class="legend">
+    <span><i class="sw done"></i>Done</span>
+    <span><i class="sw working"></i>Being worked on</span>
+    <span><i class="sw next"></i>Next up (lane idle, likely waiting for your OK)</span>
+    <span><i class="sw rest"></i>Not started</span>
+    <span class="note">Bar length = subtasks in stage</span>
+  </div>
+  <section id="rows"></section>
+  <h2>Lanes</h2>
+  <section class="lanes" id="lanes"></section>
+  <div class="others" id="others"></div>
+</main>
+<div id="tip"></div>
+<script>
+const REFRESH_MS = 10000;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function compress(ids) {
+  const out = [];
+  for (let i = 0; i < ids.length; i++) {
+    const [maj, min] = ids[i].split('.');
+    let j = i;
+    while (j + 1 < ids.length) {
+      const [m2, n2] = ids[j + 1].split('.');
+      if (m2 !== maj || Number(n2) !== Number(ids[j].split('.')[1]) + 1) break;
+      j++;
+    }
+    out.push(j > i + 1 ? `${ids[i]}–${ids[j]}` : j === i + 1 ? `${ids[i]}, ${ids[j]}` : ids[i]);
+    i = j;
+  }
+  return out.join(', ');
+}
+
+function ago(t) {
+  if (!t) return '';
+  const m = Math.round((Date.now() / 1000 - t) / 60);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  return h < 24 ? `${h} h ${m % 60} min ago` : `${Math.floor(h / 24)} d ago`;
+}
+
+const STATE = {
+  working: { cls: 'working', text: (l) => `Working on ${l.task ?? '—'}` },
+  next: { cls: 'next', text: (l) => `Next up: ${l.task} (idle, likely waiting for your OK)` },
+  blocked: { cls: 'blocked', text: (l) => `Blocked: ${l.task} waits for ${l.blockedBy.join(', ')}` },
+  finished: { cls: 'done', text: () => 'Finished its tasks' },
+  offplan: { cls: 'working', text: () => 'Working on a change outside the numbered tasks' },
+  idle: { cls: 'rest', text: () => 'Idle, nothing uncommitted' },
+};
+
+function render(d) {
+  const pct = Math.round((d.done / d.total) * 100);
+  const stagesDone = d.stages.filter((s) => s.done.length === s.tasks.length).length;
+  const working = d.stages.flatMap((s) => s.working);
+  const next = d.stages.flatMap((s) => s.next);
+  const notStarted = d.total - d.done - working.length - next.length;
+  const offplan = d.lanes.filter((l) => l.state === 'offplan').length;
+  const workingNote = `${working.length} task${working.length === 1 ? '' : 's'}${offplan ? ` + ${offplan} side change${offplan === 1 ? '' : 's'}` : ''}`;
+  $('kpis').innerHTML = [
+    ['done', 'Done', d.done, `${pct}% of ${d.total}`],
+    [null, 'Stages done', `${stagesDone} of ${d.stages.length}`, ''],
+    ['working', 'Being worked on', working.length ? working.join(' · ') : '—', workingNote],
+    ['next', 'Next up', next.length ? next.join(' · ') : '—', 'likely waiting for your OK'],
+    ['rest', 'Not started', notStarted, ''],
+  ].map(([c, l, v, s]) => `<div class="kpi"><div class="l">${c ? `<i class="sw ${c}"></i>` : ''}${l}</div><div class="v" title="${esc(v)}">${esc(v)}</div><div class="s">${esc(s)}</div></div>`).join('');
+
+  const max = Math.max(...d.stages.map((s) => s.tasks.length));
+  $('rows').innerHTML = d.stages.map((s, i) => {
+    const rest = s.tasks.length - s.done.length - s.working.length - s.next.length;
+    const tag = s.lanes.length ? s.lanes.join(' · ')
+      : s.done.length && s.waiting ? `${s.waiting.task} waits for ${s.waiting.on.join(', ')}` : '';
+    const segs = [[s.done.length, 'done'], [s.working.length, 'working'], [s.next.length, 'next'], [rest, 'rest']]
+      .filter(([n]) => n > 0).map(([n, c]) => `<div class="seg ${c}" style="flex:${n} 0 0"></div>`).join('');
+    return `<div class="row" data-i="${i}">
+      <div class="rl" title="Stage ${s.n}: ${esc(s.full)}"><span class="num">Stage ${s.n}</span>${esc(s.name)}</div>
+      <div class="track"><div class="bar" style="width:${(s.tasks.length / max * 100).toFixed(2)}%">${segs}</div>${tag ? `<span class="tag">${esc(tag)}</span>` : ''}</div>
+      <div class="rn">${s.done.length}/${s.tasks.length}</div></div>`;
+  }).join('');
+
+  $('lanes').innerHTML = d.lanes.map((l) => {
+    const st = STATE[l.state] ?? STATE.next;
+    const extras = [l.merging ? 'merge in progress' : '', l.dirty ? `${l.dirty} uncommitted file${l.dirty === 1 ? '' : 's'}` : 'nothing uncommitted'].filter(Boolean).join(' · ');
+    return `<div class="lane">
+      <div class="name">${esc(l.label)}</div>
+      <div class="where" title="${esc(l.path)}">${esc(l.folder)} · ${esc(l.branch)}</div>
+      <div class="state"><i class="sw ${st.cls}"></i><div><div>${esc(st.text(l))}</div>${l.title ? `<div class="meta" title="${esc(l.title)}">${esc(l.title)}</div>` : ''}</div></div>
+      <div class="meta" title="${esc(l.last.subject)}">Last commit ${esc(ago(l.last.time))}: ${esc(l.last.subject)}</div>
+      <div class="meta">${esc(extras)}</div></div>`;
+  }).join('');
+
+  $('others').textContent = d.others.length
+    ? `Other worktrees (not lanes): ${d.others.map((o) => `${o.folder} [${o.branch ?? 'detached'}]`).join(', ')}`
+    : '';
+
+  window.__data = d;
+}
+
+const tip = $('tip');
+$('rows').addEventListener('mousemove', (e) => {
+  const row = e.target.closest('.row');
+  if (!row || !window.__data) { tip.style.opacity = 0; return; }
+  const s = window.__data.stages[row.dataset.i];
+  const done = new Set([...s.done, ...s.working, ...s.next]);
+  const rest = s.tasks.filter((id) => !done.has(id));
+  const lines = [
+    s.done.length && `Done: ${compress(s.done)}`,
+    s.working.length && `Being worked on: ${s.working.join(', ')}`,
+    s.next.length && `Next up: ${s.next.join(', ')}`,
+    rest.length && `Not started: ${compress(rest)}`,
+    s.waiting && `Next, ${s.waiting.task}, waits for ${s.waiting.on.join(', ')}`,
+  ].filter(Boolean);
+  tip.innerHTML = `<div class="t">Stage ${s.n}: ${esc(s.full)}</div>${lines.map((l) => `<div class="d">${esc(l)}</div>`).join('')}`;
+  tip.style.opacity = 1;
+  const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  tip.style.left = `${Math.max(8, x)}px`;
+  tip.style.top = `${e.clientY + 16}px`;
+});
+$('rows').addEventListener('mouseleave', () => { tip.style.opacity = 0; });
+
+async function refresh() {
+  try {
+    const res = await fetch('/data', { cache: 'no-store' });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error);
+    render(d);
+    $('stamp').className = 'stamp';
+    $('stamp').textContent = `Updated ${new Date(d.updated).toLocaleTimeString()} · refreshes every ${REFRESH_MS / 1000} s`;
+  } catch (err) {
+    $('stamp').className = 'stamp err';
+    $('stamp').textContent = `Can't refresh: ${err.message}`;
+  }
+}
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>

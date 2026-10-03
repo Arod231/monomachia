@@ -59,7 +59,7 @@
 
 ### Task 1: Move the dashboard into `tools/` and find the main checkout
 
-- [ ] Done when: the server runs from this worktree and shows the same stages and lanes as the old copy.
+- [x] Done when: the server runs from this worktree and shows the same stages and lanes as the old copy.
 
 **Files:**
 - Create: `tools/progress-dashboard/server.mjs`, copied from `C:/Users/Win11/Desktop/Monomachia/.claude/progress-dashboard/server.mjs`
@@ -71,7 +71,7 @@
 **Interfaces:**
 - Produces: `mainWorktree(porcelain: string): string|null`, `findRepo({cwd?, env?}): Promise<string>`, `projectPrefix(repo: string): string`
 
-- [ ] **Step 1: Copy the two files unchanged**
+- [x] **Step 1: Copy the two files unchanged**
 
 ```bash
 mkdir -p tools/progress-dashboard/tests
@@ -79,7 +79,7 @@ cp "C:/Users/Win11/Desktop/Monomachia/.claude/progress-dashboard/server.mjs" too
 cp "C:/Users/Win11/Desktop/Monomachia/.claude/progress-dashboard/index.html" tools/progress-dashboard/
 ```
 
-- [ ] **Step 2: Write the failing test** `tools/progress-dashboard/tests/repo.test.mjs`
+- [x] **Step 2: Write the failing test** `tools/progress-dashboard/tests/repo.test.mjs`
 
 ```js
 import { test } from 'node:test';
@@ -115,12 +115,12 @@ test('projectPrefix on posix paths', { skip: process.platform === 'win32' }, () 
 });
 ```
 
-- [ ] **Step 3: Run it and see it fail**
+- [x] **Step 3: Run it and see it fail**
 
 Run: `node --test "tools/progress-dashboard/tests/*.test.mjs"`
 Expected: FAIL, `Cannot find module '../repo.mjs'`.
 
-- [ ] **Step 4: Write `repo.mjs`**
+- [x] **Step 4: Write `repo.mjs`**
 
 ```js
 // Finds the main checkout, whose plan and worktree list the dashboard reads,
@@ -152,7 +152,7 @@ export function projectPrefix(repo) {
 }
 ```
 
-- [ ] **Step 5: Use it in `server.mjs`.** Replace `const REPO = path.resolve(HERE, '..', '..');` with:
+- [x] **Step 5: Use it in `server.mjs`.** Replace `const REPO = path.resolve(HERE, '..', '..');` with:
 
 ```js
 import { findRepo } from './repo.mjs';
@@ -161,7 +161,7 @@ const REPO = await findRepo();
 
 Then change the header comment's run line to `npm run dashboard   ->   http://localhost:5199`, and the "Local tooling, not committed." sentence to "Run from any checkout: it reads the main checkout."
 
-- [ ] **Step 6: Scripts and docs.** In `package.json` `scripts`, change `"test"` to `"npm run test:web && npm run test:godot && npm run test:dashboard"`, and add:
+- [x] **Step 6: Scripts and docs.** In `package.json` `scripts`, change `"test"` to `"npm run test:web && npm run test:godot && npm run test:dashboard"`, and add:
 
 ```json
 "test:dashboard": "node --test \"tools/progress-dashboard/tests/*.test.mjs\"",
@@ -170,12 +170,12 @@ Then change the header comment's run line to `npm run dashboard   ->   http://lo
 
 In CLAUDE.md's `## Commands`, add: `` - `npm run dashboard`: progress dashboard and session tracker at http://localhost:5199 (reads the main checkout from any worktree) ``.
 
-- [ ] **Step 7: Run the tests and see them pass**
+- [x] **Step 7: Run the tests and see them pass**
 
 Run: `npm run test:dashboard`
 Expected: 4 pass and 1 skipped.
 
-- [ ] **Step 8: Check it against the old copy**
+- [x] **Step 8: Check it against the old copy**
 
 ```bash
 PORT=5198 node tools/progress-dashboard/server.mjs &
@@ -185,7 +185,7 @@ node -e "const a=require('/tmp/new.json'),b=require('/tmp/old.json');console.log
 
 Expected: `true`. (Use the scratchpad instead of `/tmp`. If 5199 isn't running, start the old copy with `node C:/Users/Win11/Desktop/Monomachia/.claude/progress-dashboard/server.mjs`.) Stop the 5198 server afterwards.
 
-- [ ] **Step 9: Commit** (after `npm test` and `npm run typecheck`)
+- [x] **Step 9: Commit** (after `npm test` and `npm run typecheck`)
 
 ```bash
 git add tools/progress-dashboard package.json CLAUDE.md docs/plans/session-tracker.md
