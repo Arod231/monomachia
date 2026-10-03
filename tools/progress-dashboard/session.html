@@ -1,1 +1,194 @@
-<!doctype html><html><body>Session</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff;
+  --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+  --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
+  --done: #2a78d6; --working: #1baf7a; --working-glow: rgba(27,175,122,.55); --alert: #eb6834; --next: #0f9fb0; --rest: #d3d1c7; --blocked: #898781;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+    --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+    --done: #3987e5; --working: #199e70; --working-glow: rgba(27,175,122,.55); --alert: #d95926; --next: #22b5c6; --rest: #444441; --blocked: #898781;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+  --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+  --done: #3987e5; --working: #199e70; --working-glow: rgba(27,175,122,.55); --alert: #d95926; --next: #22b5c6; --rest: #444441; --blocked: #898781;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
+h1 { font-size: 20px; font-weight: 600; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+a { color: var(--done); }
+.muted { color: var(--muted); }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.top .back { font-size: 13px; text-decoration: none; }
+.top .back:hover { text-decoration: underline; }
+.top .meta { flex-basis: 100%; order: 3; font-size: 12px; color: var(--text-2); overflow-wrap: anywhere; }
+.top .pick { margin-left: auto; font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.top select { font: inherit; font-size: 13px; max-width: 60vw; background: var(--card); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 6px; }
+
+.tiles { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 18px; }
+.tile { display: block; min-width: 0; width: 132px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--card); color: var(--text); text-decoration: none; font-size: 12px; line-height: 1.3; }
+.tile .id { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .tt { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+.tile.done { background: var(--done); border-color: var(--done); color: #fff; } .tile.done .tt { color: rgba(255,255,255,.85); }
+.tile.done .id::after { content: " ✓"; }
+.tile.working { background: var(--working); border-color: var(--working); color: #fff; animation: flash 1.2s ease-in-out infinite; } .tile.working .tt { color: rgba(255,255,255,.9); }
+.tile.next { border: 2px solid var(--next); }
+.tile.blocked { background: var(--surface); color: var(--muted); border-style: dashed; }
+@keyframes flash { 0%,100% { box-shadow: 0 0 0 0 var(--working-glow); filter: brightness(1); } 50% { box-shadow: 0 0 0 6px transparent; filter: brightness(1.18); } }
+@media (prefers-reduced-motion: reduce) { .tile.working { animation: none; box-shadow: 0 0 0 3px var(--working-glow); } }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+@media (min-width: 900px) { .layout.with-side { grid-template-columns: minmax(0, 1fr) 320px; } }
+.docs, .side { min-width: 0; }
+.side:empty { display: none; }
+.parent { padding-bottom: 12px; }
+.task { scroll-margin-top: 12px; border-top: 1px solid var(--border); padding: 12px 0; }
+.task.flash { animation: hl 1.5s ease-out; }
+@keyframes hl { from { background: var(--working-glow); } to { background: transparent; } }
+.badge { font-size: 11px; font-weight: 400; padding: 1px 7px; border-radius: 999px; margin-left: 8px; vertical-align: 2px; background: var(--surface); color: var(--text-2); border: 1px solid transparent; }
+.badge.sw-done { background: var(--done); color: #fff; }
+.badge.sw-working { background: var(--working); color: #fff; }
+.badge.sw-next { border-color: var(--next); }
+.badge.sw-blocked { background: var(--surface); color: var(--muted); border: 1px dashed var(--border-strong); }
+.badge.sw-rest { background: var(--surface); color: var(--muted); }
+.doc { overflow-wrap: anywhere; }
+.doc p { margin: 6px 0; }
+.doc ul { padding-left: 20px; margin: 4px 0; } .doc code { font-size: 12.5px; background: var(--surface); padding: 0 3px; border-radius: 3px; }
+.stories { font-size: 13px; color: var(--text-2); margin-top: 6px; }
+.stories ul { list-style: none; padding-left: 4px; }
+</style>
+</head>
+<body>
+<main>
+<header class="top">
+  <a href="/" class="back">← Dashboard</a>
+  <h1 id="title">Loading…</h1>
+  <div class="meta" id="meta"></div>
+  <label class="pick">Stage <select id="stage-pick"></select></label>
+</header>
+<nav class="tiles" id="tiles" aria-label="Tasks in this stage"></nav>
+<div class="layout">
+  <article class="docs" id="docs"></article>
+  <aside class="side" id="side"></aside>
+</div>
+</main>
+<script type="module">
+import { renderMarkdown, escapeHtml as esc } from '/markdown.mjs';
+
+const $ = (id) => document.getElementById(id);
+function ago(t) {
+  if (!t) return '';
+  const m = Math.round((Date.now() / 1000 - t) / 60);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  return h < 24 ? `${h} h ${m % 60} min ago` : `${Math.floor(h / 24)} d ago`;
+}
+
+const id = location.pathname.split('/').pop();
+const params = new URLSearchParams(location.search);
+let session = null, stageNo = null, lastDocsKey = '', lastTiles = '';
+const LABEL = { done: 'Done', working: 'Being worked on', next: 'Next up', blocked: 'Blocked', rest: 'Not started' };
+
+function tiles(stage) {
+  return stage.tasks.map((t) => {
+    const tip = `${t.id} ${t.title} — ${LABEL[t.state]}${t.blockedBy.length ? ` (waits for ${t.blockedBy.join(', ')})` : ''}`;
+    return `<a class="tile ${t.state}" href="#task-${esc(t.id)}" title="${esc(tip)}"><span class="id">${esc(t.id)}</span><span class="tt">${esc(t.title)}</span></a>`;
+  }).join('');
+}
+function docs(stage) {
+  const parents = stage.parents.map((p) => `<section class="parent doc">${renderMarkdown(p.markdown)}</section>`).join('');
+  return parents + stage.tasks.map((t) => `<section class="task" id="task-${esc(t.id)}" data-task="${esc(t.id)}">
+    <h2>${esc(t.id)} ${esc(t.title)}<span class="badge sw-${t.state}" data-badge>${LABEL[t.state]}</span></h2>
+    <div class="doc">${renderMarkdown(t.markdown)}${t.stories.length ? `<div class="stories"><strong>Stories</strong><ul>${t.stories.map((s) => `<li>${s.done ? '✓' : '○'} ${s.n}. ${esc(s.text)}</li>`).join('')}</ul></div>` : ''}</div></section>`).join('');
+}
+window.onDocsRendered = [];
+
+function showEmpty(html) {
+  $('tiles').innerHTML = ''; lastTiles = '';
+  $('docs').innerHTML = html; lastDocsKey = '';
+}
+
+async function load() {
+  const r = await fetch(`/api/session/${id}`, { cache: 'no-store' });
+  if (!r.ok) {
+    $('title').textContent = 'Unknown session';
+    document.title = 'Unknown session · Sessions';
+    $('meta').textContent = '';
+    showEmpty('<p class="muted">No session with that id. <a href="/">Back to the dashboard</a>.</p>');
+    return;
+  }
+  session = await r.json();
+  $('title').textContent = session.title ?? 'Unknown session';
+  document.title = `${session.title ?? 'Session'} · Sessions`;
+  $('meta').textContent = [session.branch, session.folder, session.live ? 'live' : `last active ${ago(session.lastActive / 1000)}`].filter(Boolean).join(' · ');
+  const asked = params.has('stage') ? Number(params.get('stage')) : NaN;
+  stageNo = Number.isInteger(asked) ? asked : session.stage;
+  $('stage-pick').value = stageNo ?? '';
+  if (stageNo == null) { showEmpty('<p class="muted">No stage — pick one above.</p>'); return; }
+  const sr = await fetch(`/api/stage/${stageNo}`, { cache: 'no-store' });
+  if (!sr.ok) { showEmpty(`<p class="muted">Stage ${esc(stageNo)} not found.</p>`); return; }
+  const stage = await sr.json();
+  const t = tiles(stage);
+  if (t !== lastTiles) { $('tiles').innerHTML = t; lastTiles = t; }
+  const key = JSON.stringify(stage.tasks.map((x) => [x.id, x.title, x.markdown, x.stories])) + JSON.stringify(stage.parents);
+  if (key !== lastDocsKey) {
+    const y = scrollY;
+    $('docs').innerHTML = docs(stage);
+    lastDocsKey = key;
+    scrollTo(0, y);
+    for (const f of window.onDocsRendered) f();
+  } else {
+    for (const x of stage.tasks) {
+      const b = document.querySelector(`#task-${CSS.escape(x.id)} [data-badge]`);
+      if (b) { b.textContent = LABEL[x.state]; b.className = `badge sw-${x.state}`; }
+    }
+  }
+}
+
+async function fillPicker() {
+  const d = await (await fetch('/data', { cache: 'no-store' })).json();
+  $('stage-pick').innerHTML = `<option value="">No stage</option>` + d.stages.map((s) => `<option value="${s.n}">${s.n}. ${esc(s.name)}</option>`).join('');
+  $('stage-pick').value = stageNo ?? '';
+}
+$('stage-pick').addEventListener('change', (e) => {
+  const v = e.target.value;
+  if (v) params.set('stage', v); else params.delete('stage');
+  const q = params.toString();
+  history.replaceState(null, '', `${location.pathname}${q ? `?${q}` : ''}${location.hash}`);
+  lastDocsKey = '';
+  load().catch(() => {});
+});
+function jump() {
+  const el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+addEventListener('hashchange', jump);
+$('tiles').addEventListener('click', (e) => {
+  const a = e.target.closest('.tile');
+  if (a && a.hash === location.hash) { e.preventDefault(); jump(); }
+});
+await load(); await fillPicker(); jump();
+setInterval(() => load().catch(() => {}), 10000);
+</script>
+</body>
+</html>

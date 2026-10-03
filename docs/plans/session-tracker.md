@@ -1049,7 +1049,7 @@ $('earlier').addEventListener('toggle', () => { try { localStorage.setItem('earl
 
 ### Task 7: The session page: header, stage picker, task tiles and docs
 
-- [ ] Done when: `/session/<id>` shows the stage's tiles and docs, the current task pulses green, the tiles link to their sections, and a refresh keeps the scroll position.
+- [x] Done when: `/session/<id>` shows the stage's tiles and docs, the current task pulses green, the tiles link to their sections, and a refresh keeps the scroll position.
 
 **Files:**
 - Modify (replace the placeholder): `tools/progress-dashboard/session.html`
@@ -1058,7 +1058,7 @@ $('earlier').addEventListener('toggle', () => { try { localStorage.setItem('earl
 - Consumes: `GET /api/session/:id`, `GET /api/stage/:n`, `GET /data` (stage list for the picker), `/markdown.mjs` (`renderMarkdown`)
 - Produces, for Task 9: `<section class="task" id="task-<id>" data-task="<id>">` holding a `.doc` element with the rendered markdown and stories; `window.onDocsRendered` hooks (a list of callbacks run after docs are rebuilt)
 
-- [ ] **Step 1: Page skeleton.** Copy the `:root` token blocks from `index.html` (with Task 6's colours), the `body` and `main` base styles, and `esc()`/`ago()`. Then:
+- [x] **Step 1: Page skeleton.** Copy the `:root` token blocks from `index.html` (with Task 6's colours), the `body` and `main` base styles, and `esc()`/`ago()`. Then:
 
 ```html
 <header class="top">
@@ -1078,7 +1078,7 @@ import { renderMarkdown, escapeHtml as esc } from '/markdown.mjs';
 </script>
 ```
 
-- [ ] **Step 2: Styles for tiles and layout**
+- [x] **Step 2: Styles for tiles and layout**
 
 ```css
 .tiles { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 18px; }
@@ -1103,7 +1103,7 @@ import { renderMarkdown, escapeHtml as esc } from '/markdown.mjs';
 main { max-width: 1200px; }
 ```
 
-- [ ] **Step 3: Load and render**
+- [x] **Step 3: Load and render**
 
 ```js
 const id = location.pathname.split('/').pop();
@@ -1151,7 +1151,7 @@ async function load() {
 
 (`$` is `(id) => document.getElementById(id)`. Give `.badge.sw-done/working/next/blocked/rest` the same colours as the tiles.)
 
-- [ ] **Step 4: Stage picker, hash jumps, refresh**
+- [x] **Step 4: Stage picker, hash jumps, refresh**
 
 ```js
 async function fillPicker() {
@@ -1179,7 +1179,7 @@ setInterval(() => load().catch(() => {}), 10000);
 
 (Tile links are plain `#task-…` hrefs, so a click sets the hash and fires `hashchange`. Clicking the same tile twice doesn't change the hash, so also add a click listener on `#tiles` that calls `jump()` when `e.target.closest('.tile').hash === location.hash`.)
 
-- [ ] **Step 5: Check it in the Browser pane** at `/session/<stage-7-session-id>`:
+- [x] **Step 5: Check it in the Browser pane** at `/session/<stage-7-session-id>`:
   - stage 7's 15 tiles show, with 7.1–7.12 blue and ticked, 7.13 pulsing green or teal depending on its lane state, and the blocked tiles grey;
   - clicking a tile scrolls to and flashes its section, and the URL shows `#task-7.13`;
   - reloading with the hash lands on that section;
@@ -1188,7 +1188,7 @@ setInterval(() => load().catch(() => {}), 10000);
   - after scrolling, waiting 10 s doesn't move the page;
   - shots at 1280 px and 375 px, in light and dark.
 
-- [ ] **Step 6: Commit**: `git commit -m "Add a page per session with the stage's task tiles and docs"`, then push.
+- [x] **Step 6: Commit**: `git commit -m "Add a page per session with the stage's task tiles and docs"`, then push.
 
 ---
 
