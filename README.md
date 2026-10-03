@@ -98,6 +98,9 @@ unblockable counter. `node scripts/browser.mjs <scenario>` plays the built game
 in a headless browser and saves screenshots to `shots/` (needs Playwright:
 `npm i -D playwright && npx playwright install chromium`).
 
+For a map of the whole codebase with diagrams, including the Godot build in
+`game/`, see [docs/architecture.md](docs/architecture.md).
+
 | Folder | What it holds |
 | --- | --- |
 | `src/sim` | The rules, with no graphics. They run at a fixed 60 steps per second, so timing is identical on every computer. `fighter.ts` (states), `world.ts` (hits, blocks, parries, counters), `match.ts` (rounds), `ai/` (computer opponent and training dummy). |

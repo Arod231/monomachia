@@ -8,6 +8,7 @@ Read these before changing gameplay or planning new features:
 
 - `docs/design.md`: the full game design document, the vision for the finished game (all 9 weapons, arenas, progression, online play).
 - `docs/mvp-spec.md`: the MVP plan and spec, what the current demo builds and how. Its "Decisions", "Scope" and "Gaps in the design doc" tables record the choices made so far, and its combat numbers match the code.
+- `docs/architecture.md`: a map of the code with diagrams: the folders, how one frame flows through the Godot game, the rules, the view, tests and tools. Start here when new to the code, and update it when a change moves a boundary it describes.
 
 - `GLOSSARY.md`: the game's vocabulary (Fighter, Weapon, Loadout and so on). Use its terms.
 
