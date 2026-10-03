@@ -10,7 +10,7 @@
   --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff;
   --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
   --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
-  --done: #2a78d6; --working: #eb6834; --next: #1baf7a; --rest: #d3d1c7; --blocked: #898781;
+  --done: #2a78d6; --working: #1baf7a; --working-glow: rgba(27,175,122,.55); --alert: #eb6834; --next: #0f9fb0; --rest: #d3d1c7; --blocked: #898781;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -18,7 +18,7 @@
     --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
     --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
     --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
-    --done: #3987e5; --working: #d95926; --next: #199e70; --rest: #444441; --blocked: #898781;
+    --done: #3987e5; --working: #199e70; --working-glow: rgba(27,175,122,.55); --alert: #d95926; --next: #22b5c6; --rest: #444441; --blocked: #898781;
   }
 }
 :root[data-theme="dark"] {
@@ -26,7 +26,7 @@
   --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
   --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
   --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
-  --done: #3987e5; --working: #d95926; --next: #199e70; --rest: #444441; --blocked: #898781;
+  --done: #3987e5; --working: #199e70; --working-glow: rgba(27,175,122,.55); --alert: #d95926; --next: #22b5c6; --rest: #444441; --blocked: #898781;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -35,7 +35,7 @@ header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; m
 h1 { font-size: 20px; font-weight: 600; margin: 0; }
 h2 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; }
 .stamp { font-size: 12px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
-.stamp.err { color: var(--working); }
+.stamp.err { color: var(--alert); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
 .kpi { background: var(--surface); border-radius: 8px; padding: 10px 12px; min-width: 0; }
 .kpi .l { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
@@ -66,6 +66,19 @@ h2 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; }
 .others { font-size: 12px; color: var(--muted); margin-top: 10px; }
 #tip { position: fixed; pointer-events: none; background: var(--card); border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 10px; font-size: 12px; max-width: 320px; opacity: 0; transition: opacity .1s; z-index: 5; }
 #tip .t { font-weight: 600; } #tip .d { color: var(--text-2); }
+.sessions { display: grid; gap: 6px; }
+.sess { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: inherit; text-decoration: none; }
+.sess:hover { border-color: var(--border-strong); }
+.sess .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sess .m { grid-column: 2 / -1; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sess .ago { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--surface); margin-right: 6px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--rest); }
+.dot.live { background: var(--working); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 var(--working-glow); } 50% { box-shadow: 0 0 0 5px transparent; } }
+@media (prefers-reduced-motion: reduce) { .dot.live { animation: none; box-shadow: 0 0 0 2px var(--working-glow); } }
+.earlier { margin-top: 8px; } .earlier summary { cursor: pointer; font-size: 13px; color: var(--text-2); padding: 4px 0; }
+.earlier .sessions { margin-top: 6px; }
 @media (max-width: 560px) {
   .row { grid-template-columns: minmax(0, 1fr) 40px; }
   .row .track { grid-column: 1 / -1; grid-row: 2; }
@@ -88,6 +101,9 @@ h2 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; }
     <span class="note">Bar length = subtasks in stage</span>
   </div>
   <section id="rows"></section>
+  <h2>Sessions</h2>
+  <section class="sessions" id="sessions"></section>
+  <details class="earlier" id="earlier" hidden><summary id="earlier-sum"></summary><section class="sessions" id="sessions-old"></section></details>
   <h2>Lanes</h2>
   <section class="lanes" id="lanes"></section>
   <div class="others" id="others"></div>
@@ -201,6 +217,28 @@ $('rows').addEventListener('mousemove', (e) => {
 });
 $('rows').addEventListener('mouseleave', () => { tip.style.opacity = 0; });
 
+const DAY = 864e5;
+const STATE_CLS = { working: 'working', next: 'next', blocked: 'blocked', finished: 'done', offplan: 'working', idle: 'rest' };
+function sessRow(s) {
+  const task = s.task ? `<span class="sw ${STATE_CLS[s.laneState] ?? 'rest'}"></span> ${esc(s.task)} ${esc(s.taskTitle)}` : '';
+  return `<a class="sess" href="/session/${encodeURIComponent(s.id)}">
+    <i class="dot${s.live ? ' live' : ''}" title="${s.live ? 'Live' : 'Not live'}"></i>
+    <span class="t" title="${esc(s.title)}">${esc(s.title)}</span>
+    <span class="ago">${esc(ago(s.lastActive / 1000))}</span>
+    <span class="m">${s.stage != null ? `<span class="chip">Stage ${s.stage}</span>` : ''}${task}${task ? ' · ' : ''}${esc(s.branch ?? '')}</span></a>`;
+}
+async function refreshSessions() {
+  const list = await (await fetch('/api/sessions', { cache: 'no-store' })).json();
+  const recent = list.filter((s) => Date.now() - s.lastActive < DAY);
+  const old = list.filter((s) => Date.now() - s.lastActive >= DAY);
+  $('sessions').innerHTML = recent.map(sessRow).join('') || '<div class="others">No sessions in the last day.</div>';
+  $('sessions-old').innerHTML = old.map(sessRow).join('');
+  $('earlier').hidden = !old.length;
+  $('earlier-sum').textContent = `Earlier (${old.length})`;
+}
+try { $('earlier').open = localStorage.getItem('earlierOpen') === '1'; } catch {}
+$('earlier').addEventListener('toggle', () => { try { localStorage.setItem('earlierOpen', $('earlier').open ? '1' : '0'); } catch {} });
+
 async function refresh() {
   try {
     const res = await fetch('/data', { cache: 'no-store' });
@@ -209,6 +247,7 @@ async function refresh() {
     render(d);
     $('stamp').className = 'stamp';
     $('stamp').textContent = `Updated ${new Date(d.updated).toLocaleTimeString()} · refreshes every ${REFRESH_MS / 1000} s`;
+    await refreshSessions();
   } catch (err) {
     $('stamp').className = 'stamp err';
     $('stamp').textContent = `Can't refresh: ${err.message}`;

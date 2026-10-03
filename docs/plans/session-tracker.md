@@ -974,7 +974,7 @@ const routes = makeRoutes({
 
 ### Task 6: Sessions section on the dashboard
 
-- [ ] Done when: the dashboard lists the sessions as specified, and every row opens its session page.
+- [x] Done when: the dashboard lists the sessions as specified, and every row opens its session page.
 
 **Files:**
 - Modify: `tools/progress-dashboard/index.html`
@@ -982,9 +982,9 @@ const routes = makeRoutes({
 **Interfaces:**
 - Consumes: `GET /api/sessions` (`SessionView[]`)
 
-- [ ] **Step 1: Colours.** Change `--next` to teal in all three token blocks (`#0f9fb0` light, `#22b5c6` dark). Add `--working-glow: rgba(27,175,122,.55)`, and set `--working: #1baf7a` (light) / `#199e70` (dark), so working is green as the spec says. Change the legend text to match.
+- [x] **Step 1: Colours.** Change `--next` to teal in all three token blocks (`#0f9fb0` light, `#22b5c6` dark). Add `--working-glow: rgba(27,175,122,.55)`, and set `--working: #1baf7a` (light) / `#199e70` (dark), so working is green as the spec says. Change the legend text to match.
 
-- [ ] **Step 2: Markup.** Above `<h2>Lanes</h2>`, add:
+- [x] **Step 2: Markup.** Above `<h2>Lanes</h2>`, add:
 
 ```html
 <h2>Sessions</h2>
@@ -992,7 +992,7 @@ const routes = makeRoutes({
 <details class="earlier" id="earlier"><summary id="earlier-sum"></summary><section class="sessions" id="sessions-old"></section></details>
 ```
 
-- [ ] **Step 3: Styles**
+- [x] **Step 3: Styles**
 
 ```css
 .sessions { display: grid; gap: 6px; }
@@ -1009,7 +1009,7 @@ const routes = makeRoutes({
 .earlier { margin-top: 8px; } .earlier summary { cursor: pointer; font-size: 13px; color: var(--text-2); padding: 4px 0; }
 ```
 
-- [ ] **Step 4: Script.** Add this to the page script and call `refreshSessions()` from `refresh()`:
+- [x] **Step 4: Script.** Add this to the page script and call `refreshSessions()` from `refresh()`:
 
 ```js
 const DAY = 864e5;
@@ -1035,7 +1035,7 @@ try { $('earlier').open = localStorage.getItem('earlierOpen') === '1'; } catch {
 $('earlier').addEventListener('toggle', () => { try { localStorage.setItem('earlierOpen', $('earlier').open ? '1' : '0'); } catch {} });
 ```
 
-- [ ] **Step 5: Check it in the Browser pane** at `http://localhost:5198`:
+- [x] **Step 5: Check it in the Browser pane** at `http://localhost:5198`:
   - the Sessions list shows the real sessions, with this one live and pulsing;
   - "Earlier" opens, closes and is remembered across a reload;
   - the stage chips and the lane task look right for the stage 7 session;
@@ -1043,7 +1043,7 @@ $('earlier').addEventListener('toggle', () => { try { localStorage.setItem('earl
 
   There are no unit tests for the page itself.
 
-- [ ] **Step 6: Commit**: `git commit -m "List Claude Code sessions on the dashboard; working is green, next is teal"`, then push.
+- [x] **Step 6: Commit**: `git commit -m "List Claude Code sessions on the dashboard; working is green, next is teal"`, then push.
 
 ---
 
