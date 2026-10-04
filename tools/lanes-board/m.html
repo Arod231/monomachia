@@ -524,7 +524,7 @@ $('laneSeg').addEventListener('click', (e) => {
 // ---------- plans ----------
 function renderPlan() {
   if (!planOf(planKey)) planKey = data.plans[0]?.key;
-  const SEG = { rm: 'Roadmap', gr: 'Rebuild', aa: 'Anim.' };
+  const SEG = { rm: 'Roadmap', gr: 'Rebuild', aa: 'Anim.', pm: 'PM' };
   $('planSeg').innerHTML = data.plans.map((p) => `<button data-plan="${p.key}" aria-pressed="${p.key === planKey}" aria-label="${esc(p.name)}">${esc(SEG[p.key] ?? p.short)} <span style="opacity:.6">${pct(p.counts.done, p.total)}%</span></button>`).join('');
   const p = planOf(planKey);
   if (!p) { $('plan').innerHTML = '<div class="empty">No plans found.</div>'; return; }
