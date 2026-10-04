@@ -275,7 +275,12 @@ async function main() {
             'Templates and download 4.7.2 (about 1.3 GB), or let CI build the Windows version.',
         );
       }
-      process.exit(r.code);
+      if (r.code !== 0) process.exit(r.code);
+      // LICENSE.txt, CREDITS.txt and THIRD-PARTY-NOTICES.txt beside the exe
+      // (tools/build_notices.gd).
+      const out = `--out=${outDir.split('\\').join('/')}`;
+      const notices = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/write_build_notices.gd', '--', out]);
+      if (notices.code !== 0 || hasScriptErrors(notices.output)) die('godot.mjs: writing the licence and credits files failed.');
       return;
     }
     default:

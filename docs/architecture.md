@@ -938,7 +938,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run soak:godot -- 40`, `npm run soak:tune` | The same in the Godot rules, with the balance report (`soak:tune` runs 300) |
 | `npm run godot:dev`, `npm run godot:run` | Open the Godot editor; run the game |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
-| `npm run godot -- build` | Export the Windows build to `build/windows/Monomachia.exe` |
+| `npm run godot -- build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script |
 | `npm run godot:fixtures` | Regenerate the TypeScript parity fixtures |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
