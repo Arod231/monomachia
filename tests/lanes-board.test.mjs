@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   GOAL_LIMIT, PLANS, PLAN_BY_KEY, cancelStops, expandIds, goalFor, linkMoved, mergeCopies, parseFlat, parseNested,
-  parsePlan, parseRoadmap, planOfBranch, roadmapView,
+  SUBJECT_TASK, parsePlan, parseRoadmap, planOfBranch, roadmapView,
 } from '../tools/lanes-board/plans.mjs';
 
 const GR = PLAN_BY_KEY.gr;
@@ -106,15 +106,40 @@ describe('parseFlat', () => {
 });
 
 describe('PLANS', () => {
-  it('follows the roadmap, milestone 1, the Godot rebuild and authored animation (closed), not the session tracker', () => {
+  it('follows the roadmap, milestone 1, the Godot rebuild, authored animation (closed) and the Project Manager\'s remote control, not the session tracker', () => {
     expect(PLANS.map((p) => [p.key, p.kind, p.branch, !!p.closed])).toEqual([
       ['rm', 'roadmap', 'feature/godot-rebuild', false],
       ['m1', 'flat', 'feature/milestone-1', false],
       ['gr', 'nested', 'feature/godot-rebuild', false],
       ['aa', 'flat', 'feature/authored-animation', true],
+      ['pm', 'flat', 'tools/project-manager-remote', false],
     ]);
     expect(RM.file).toBe('docs/plans/roadmap.md');
     expect(M1.file).toBe('docs/plans/milestone-1.md');
+    expect(PLAN_BY_KEY.pm.file).toBe('docs/plans/project-manager-remote.md');
+    expect(PLAN_BY_KEY.pm.into).toBe('feature/godot-rebuild');
+  });
+});
+
+describe('the Project Manager plan (PM)', () => {
+  const branches = Object.fromEntries(PLANS.map((p) => [p.key, p.branch]));
+
+  it('is claimed by its own branch and by launched pm lanes', () => {
+    expect(planOfBranch('tools/project-manager-remote', branches)).toEqual({ key: 'pm', scope: null });
+    expect(planOfBranch('lane/pm-6-7', branches)).toEqual({ key: 'pm', scope: ['6', '7'] });
+  });
+
+  it('names its tasks in commit subjects as "(PM task N)" only', () => {
+    expect('Hold questions while Away is on (PM task 6)'.match(SUBJECT_TASK.pm)?.[1]).toBe('6');
+    expect('The frame-data table (task 6)').not.toMatch(SUBJECT_TASK.pm);
+    expect('Swing sampler (task 7.3)').not.toMatch(SUBJECT_TASK.pm);
+  });
+
+  it('launches lanes into its branch, which merges into the Godot rebuild branch', () => {
+    const goal = goalFor({ plan: PLAN_BY_KEY.pm, ids: ['6'], tasks: { 6: { title: 'Away, and questions answered' } },
+      branch: 'lane/pm-6', repo: 'C:\\Repo' });
+    expect(goal).toContain('tools/project-manager-remote (which merges into feature/godot-rebuild)');
+    expect(goal).toContain('origin/tools/project-manager-remote');
   });
 });
 

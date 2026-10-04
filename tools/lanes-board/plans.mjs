@@ -16,8 +16,18 @@ export const PLANS = [
       10: 'Editor, HUD, effects, menus', 11: "Other weapons' swings", 12: 'Computer and balance', 13: 'Full animation', 14: 'Consolidate and ship' } },
   { key: 'aa', short: 'AA', name: 'Authored animation', file: 'docs/plans/authored-animation.md', kind: 'flat', branch: 'feature/authored-animation',
     into: 'feature/godot-rebuild', closed: true },
+  { key: 'pm', short: 'PM', name: 'Project Manager remote control', file: 'docs/plans/project-manager-remote.md', kind: 'flat',
+    branch: 'tools/project-manager-remote', into: 'feature/godot-rebuild' },
 ];
 export const PLAN_BY_KEY = Object.fromEntries(PLANS.map((p) => [p.key, p]));
+
+// How a commit subject names the plan task it finishes: "(task 7.1)" in the
+// rebuild, "(task 12)" or "(milestone-1 task 12)", "(roadmap task R3)", "(PM task 6)".
+export const SUBJECT_TASK = {
+  gr: /\(task (\d+b?\.\d+)\)/, aa: /\((?:authored animation )?task (\d+[a-z]?)\)/,
+  m1: /\((?:milestone[- ]1 )?task (\d+)\)/, rm: /\((?:roadmap )?task (R\d+)\)/,
+  pm: /\(PM task (\d+)\)/,
+};
 const KEY_BY_FILE = Object.fromEntries(PLANS.map((p) => [path.posix.basename(p.file), p.key]));
 
 // "8.4–8.9", "14b.1–14b.6", "13.1" -> ids.
@@ -264,7 +274,7 @@ export function linkMoved(plans) {
 // branch (branches: key -> the branch it uses now), godot/* or *authored-animation*
 // claims that plan; the rebuild comes before the roadmap that shares its branch.
 const LANE = new RegExp(`^lane/(${PLANS.map((p) => p.key).join('|')})-(.+)$`);
-const CLAIM_ORDER = ['gr', 'm1', 'rm', 'aa'];
+const CLAIM_ORDER = ['gr', 'm1', 'rm', 'aa', 'pm'];
 export function planOfBranch(branch, branches) {
   const b = branch ?? '';
   const lane = b.match(LANE);

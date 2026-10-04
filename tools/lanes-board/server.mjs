@@ -27,7 +27,7 @@ import { gzipSync } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
 import os from 'node:os';
 import path from 'node:path';
-import { PLANS, PLAN_BY_KEY, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
+import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
 import { PENDING_ID, SESSION_ID, contextTracker, parseTranscript, relayAnswer } from './sessions.mjs';
 
@@ -277,11 +277,6 @@ function refreshPrs() {
 }
 
 // ---------- the board ----------
-
-const SUBJECT_TASK = {
-  gr: /\(task (\d+b?\.\d+)\)/, aa: /\((?:authored animation )?task (\d+[a-z]?)\)/,
-  m1: /\((?:milestone[- ]1 )?task (\d+)\)/, rm: /\((?:roadmap )?task (R\d+)\)/,
-};
 
 async function collect() {
   refreshPrs();
