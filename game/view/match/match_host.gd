@@ -362,6 +362,13 @@ func label(action: String, side: int) -> String:
 	return input.label(action, p)
 
 
+## Whether a side's player names controller buttons now (InputDevices.on_pad;
+## false for a computer side).
+func on_pad(side: int) -> bool:
+	var p: int = _player_of_side[side]
+	return p >= 0 and input != null and input.on_pad(p)
+
+
 ## Whether Training refills health (always true outside Training).
 func refill() -> bool:
 	return _upkeep == null or _upkeep.refill

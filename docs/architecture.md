@@ -653,7 +653,7 @@ flowchart LR
 - An **InputToken** is one binding written as a string: `k:<keycode>` (with an optional L or R for modifiers), `m:<button>`, `b:<joy button>`, `a:<axis><+|->`.
 - A **ControlProfile** maps each of the 13 actions (`Bindings.ACTIONS`) to up to two tokens, for keyboard and for controller. Defaults come from `Bindings.default_kb()` and `default_pad()`; there is also a fight-stick layout and a fixed arrow-key layout for Versus player 2.
 - **InputDevices** owns the per-player device and profile (`set_single_player`, `set_versus`), binds controller seats so unplugging a pad doesn't shift players, and samples a `RawInput`: sticks through a dead-zone curve, triggers past 30/255, buttons on above 0.5.
-- **PadStyle** and **BindingLabels** turn tokens into PlayStation, Xbox or generic button names for the HUD and menus.
+- **PadStyle** and **BindingLabels** turn tokens into PlayStation, Xbox or generic button names for the HUD and menus. `InputDevices.label(action, player)` names an action's input for the device the player last used, and `on_pad(player)` says whether that is a controller (the HUD's prompts name the stick then).
 
 ## 8. Shared services (`game/core`)
 
@@ -853,8 +853,9 @@ stateDiagram-v2
 | `ui/menus/title_screen.gd` | `TitleScreen` | "Press any key". |
 | `ui/menus/pause_screen.gd` | `PauseScreen` | 休止 Paused: Resume, Move list, Controls, Settings, Restart, Quit to menu; in Training, Dummy and Refill health rows above them. |
 | `ui/menus/results_screen.gd` | `ResultsScreen` | Winner, rounds, seven stats, Rematch and Main menu. |
-| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, button hints, and in Training the `TrainingPanel`. Hidden in the attract duel. |
+| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, the prompts (shown by the Button hints setting), and in Training the `TrainingPanel`. Hidden in the attract duel. |
 | `ui/hud/hud_toasts.gd` | `HudToasts` | The toasts under the centre: `for_event()` says what a rules event toasts from the player's side or Watch's (no nodes); up to three on screen, 69 rules steps each, held by a pause. |
+| `ui/hud/hud_prompts.gd`, `key_cap.gd` | `HudPrompts`, `KeyCap` | The prompts at the bottom: `for_fighter()` says what the player can press now (no nodes), at most two, urgent first; each key a `KeyCap` named for the device used last. |
 | `ui/hud/training_panel.gd` | `TrainingPanel` | Training's panel at the bottom left: "Dummy · <weapon>", the nine behaviour chips (keys 1–9) and refill (key 0), clicks too; a digit bound in the player's profile is left to its action. Follows `MatchHost.training_changed` and `loadout_changed`; hidden while paused. |
 | `ui/hud/hud_bar.gd` | `HudBar` | A meter with a lagging band. |
 

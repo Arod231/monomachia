@@ -9,8 +9,10 @@ extends CanvasLayer
 ## Double K.O., 勝 or 敗 for the round's result, 武器喪失 Disarmed), with the
 ## demo's entrance (AnnouncementEntrance). The toasts under the centre
 ## (24.3, HudToasts): parries, counters, ultimates, backstabs and dazes, and
-## in Training evades and the dummy's behaviour. And a hint line (ultimate ready, pick up
-## your weapon), shown only while the round is being fought. In Training,
+## in Training evades and the dummy's behaviour. The prompts at the bottom
+## (24.4, HudPrompts): at most two, urgent first, naming each key as a key
+## cap from the device the player last used, for the player's own side only,
+## while the round is fought and the Button hints setting is on. In Training,
 ## the TrainingPanel at the bottom left (23.3). Without the Iglesias clip
 ## libraries a small note in the corner says the animation packs are missing
 ## (authored-animation task 8), and the log says what to fix
@@ -50,6 +52,10 @@ const SEAL_COLORS: Array[Color] = [UiPalette.LACQUER, UiPalette.INDIGO]
 const SEALS: Array[String] = ["赤", "青"]
 const BAR_WIDTH: float = 560.0
 const GOLD: Color = UiPalette.GOLD
+## The prompts' column: 720 px wide about the centre (the demo's), and its
+## least gap (px) to the Training panel when it moves right to clear it.
+const PROMPT_LEFT: float = -360.0
+const PROMPT_PANEL_GAP: float = 12.0
 
 var host: MatchHost
 
@@ -72,7 +78,6 @@ var _announce_box: VBoxContainer
 var _announce_kanji: Label
 var _announce_label: Label
 var _announce_sub: Label
-var _hint: Label
 var _packs_note: Label
 var _lags: Array[HudLag] = [HudLag.new(), HudLag.new()]
 var _states: Array[HudState] = [HudState.new(), HudState.new()]
@@ -81,6 +86,11 @@ var _blink: float = 0.0
 var training_panel: TrainingPanel
 ## The toasts under the centre (24.3).
 var toasts: HudToasts
+## The prompts at the bottom (24.4).
+var prompts: HudPrompts
+## The settings whose Button hints switch shows or hides the prompts; null
+## for the game's (GameServices.settings). Tests set their own.
+var settings: GameSettings
 ## The training dummy's behaviour last toasted (&"" outside Training).
 var _behaviour: StringName = &""
 
@@ -152,9 +162,6 @@ func announcement_look() -> Vector2:
 	return Vector2(AnnouncementEntrance.alpha(t), AnnouncementEntrance.scale(t))
 
 
-func hint_text() -> String:
-	return _hint.text if _hint != null else ""
-
 
 ## Drops the HP lag bands onto the current HP at once (after stepping without
 ## the clock, as screenshot scenes do).
@@ -207,13 +214,13 @@ func _on_training_changed() -> void:
 
 
 ## The results take the screen: the HUD clears its centre text, toasts and
-## hint and hides until the next match starts.
+## prompts and hides until the next match starts.
 func _on_match_finished(_results: MatchResults) -> void:
 	announcement = {}
 	_queued.clear()
 	toasts.clear()
 	_refresh_announcement()
-	_hint.text = ""
+	prompts.show_prompts([])
 	visible = false
 
 
@@ -333,25 +340,34 @@ func _process(delta: float) -> void:
 		_pips[i].lit = s.pips
 		_badges[i].state = s.badge
 		_tags[i].visible = s.disarmed
-	_hint.text = _hints()
+	prompts.show_prompts(_prompts_now())
+	_place_prompts()
 
 
-func _hints() -> String:
+## The prompts sit centred at the bottom; in Training they move right, as
+## far as they must, to clear the panel at the bottom left.
+func _place_prompts() -> void:
+	var shift: float = 0.0
+	if training_panel.visible and prompts.get_child_count() > 0:
+		var left: float = _root.size.x * 0.5 - prompts.get_combined_minimum_size().x * 0.5
+		shift = maxf(0.0, training_panel.get_rect().end.x + PROMPT_PANEL_GAP - left)
+	if prompts.offset_left != PROMPT_LEFT + shift:
+		prompts.offset_left = PROMPT_LEFT + shift
+		prompts.offset_right = -PROMPT_LEFT + shift
+
+
+## The player's prompts now (HudPrompts.for_fighter): none in Watch, outside
+## the fought round, or with the Button hints setting off.
+func _prompts_now() -> Array[Dictionary]:
 	var me: int = _me()
-	if me < 0 or not host.sim_match.fighting():
-		return ""
-	var f: Fighter = host.fighter(me)
-	var lines: PackedStringArray = []
-	if not f.armed:
-		var w: DroppedWeapon = host.world.weapon_of(me)
-		if w != null and w.grounded and Vector2(w.pos.x - f.pos.x, w.pos.z - f.pos.z).length() < 2.2:
-			lines.append("Pick up your weapon: %s" % host.label("interact", me))
-	if f.can_ult() and f.state != &"ult" and f.state != &"ultChoice":
-		var ult_key: String = host.label("ultimate", me)
-		lines.append(
-			"Ultimate ready: %s + %s%s" % [host.label("light", me), host.label("heavy", me), (" or %s" % ult_key) if ult_key != "" else ""]
-		)
-	return "\n".join(lines)
+	if me < 0 or not host.sim_match.fighting() or not _settings().button_hints:
+		return []
+	return HudPrompts.for_fighter(host.fighter(me), host.world, host.label.bind(me), host.on_pad(me))
+
+
+## The settings the HUD follows: settings, or the game's.
+func _settings() -> GameSettings:
+	return settings if settings != null else GameServices.settings
 
 
 ## The side a human plays (the HUD's "you"), or -1 in Watch.
@@ -533,16 +549,15 @@ func _build() -> void:
 	toasts.offset_right = 500.0
 	_root.add_child(toasts)
 
-	_hint = _label("Hint", "", &"", 22)
-	_hint.add_theme_color_override("font_color", GOLD)
-	_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	_hint.offset_left = -600.0
-	_hint.offset_right = 600.0
-	_hint.offset_top = -110.0
-	_hint.offset_bottom = -40.0
-	_root.add_child(_hint)
+	# the demo's prompts: bottom centre, 22 px up, growing upward
+	prompts = HudPrompts.new()
+	prompts.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	prompts.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	prompts.offset_left = PROMPT_LEFT
+	prompts.offset_right = -PROMPT_LEFT
+	prompts.offset_top = -22.0
+	prompts.offset_bottom = -22.0
+	_root.add_child(prompts)
 
 	_packs_note = _label("PacksNote", ClipLibraries.MISSING_NOTE, &"", 14, 3)
 	_packs_note.add_theme_color_override("font_color", Color(UiPalette.PAPER, 0.7))

@@ -49,6 +49,12 @@ extends Node
 ## (gold Parry, the jade Evade counter with its advice, the opponent's red
 ## Ultimate), "training" (the dim Dummy behaviour and Evaded, the jade Behind
 ## them) or "watch" (named in the sides' red and blue).
+##
+## "prompts" shows the prompts (24.4) by --prompts=: "keyboard" (the
+## disarmed Rogue 1.5 m from her Katana with the ultimate ready: the urgent
+## pick-up over Ultimate ready, in keyboard and mouse names), "pad" (the same
+## after a PlayStation controller was used) or "tilt" (the Moonsplitter's
+## wind-up on that controller, naming the stick, over the counter lunge).
 
 const SEED: int = 7
 
@@ -56,7 +62,7 @@ const SEED: int = 7
 	"round_start", "exchange", "parry", "watch", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
 	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
-	"recall_burst", "toasts",
+	"recall_burst", "toasts", "prompts",
 ) var shot: String = "round_start"
 ## The fighters' distance apart for the "spacing" shot (m).
 @export var spacing: float = 2.5
@@ -69,6 +75,8 @@ const SEED: int = 7
 @export var call: String = "final_round"
 ## The "toasts" shot's form: player, training or watch (--toasts= sets it too).
 @export var toasts_form: String = "player"
+## The "prompts" shot's form: keyboard, pad or tilt (--prompts= sets it too).
+@export var prompts_form: String = "keyboard"
 ## The "ko" shot's steps after the K.O. (--frame= sets it too).
 @export var steps_after: int = 16
 ## The "hud_states" shot with the two sides' states swapped.
@@ -109,6 +117,8 @@ func _ready() -> void:
 			call = a.trim_prefix("--call=")
 		elif a.begins_with("--toasts="):
 			toasts_form = a.trim_prefix("--toasts=")
+		elif a.begins_with("--prompts="):
+			prompts_form = a.trim_prefix("--prompts=")
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
 	match shot:
@@ -207,6 +217,8 @@ func _ready() -> void:
 			_recall_burst()
 		"toasts":
 			_toasts_shot()
+		"prompts":
+			_prompts_shot()
 	var view: MatchView = host.get_node("View")
 	view.snap_camera()
 	if shot == "dropped":
@@ -320,6 +332,41 @@ func _toasts_shot() -> void:
 		host.step(4)
 	host.step(20)
 	hud._process(0.0)
+
+
+## The player's Rogue 2.6 m from an idle training dummy at 20 HP (the
+## ultimate ready), by prompts_form: disarmed with her Katana on the ground
+## 1.5 m away, on the keyboard or after a PlayStation controller was used;
+## or ("tilt") in the Moonsplitter's wind-up on that controller with a
+## counter lunge open.
+func _prompts_shot() -> void:
+	var devices: FakeDeviceState = FakeDeviceState.new()
+	var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
+	dummy.controller = MatchSide.DUMMY
+	var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
+	_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(devices))
+	host.step(Match.INTRO_FRAMES + 20)
+	_place_apart(2.6)
+	if prompts_form != "keyboard":
+		devices.plug_pad(0, "PS5 Controller")
+		var press := InputEventJoypadButton.new()
+		press.button_index = JOY_BUTTON_A
+		press.pressed = true
+		host.input.note_event(press)
+	var a: Fighter = host.fighter(0)
+	a.hp = 20.0
+	if prompts_form == "tilt":
+		a.start_ult()
+		a.counter_lunge_until = host.world.frame + 30
+		host.step(4)
+		return
+	a.armed = false
+	var b: Fighter = host.fighter(1)
+	var away: Vector3 = Vector3(a.pos.x - b.pos.x, 0.0, a.pos.z - b.pos.z).normalized()
+	var w := DroppedWeapon.new(0, &"katana", V3.make(a.pos.x + away.x * 1.5, 0.0, a.pos.z + away.z * 1.5), V3.make(), Rng.new(SEED))
+	w.grounded = true
+	host.world.weapons.append(w)
+	host.step(2)
 
 
 func _config(mode: StringName) -> MatchConfig:
