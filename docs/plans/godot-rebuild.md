@@ -2322,6 +2322,11 @@ Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 
     - Blocked by: none (18.5 until Oct 4; see the Kept note) · Stories: 57
     - Superseded by ADR 0001 (Oct 4): moves into the slice plan with the effects it scales.
     - Kept (Oct 4), finished on `master` after the merge: cut down to what exists today: apply GameSettings.reduce_flashes at match start and whenever it changes, so the shake is scaled to 0.15, the field-of-view kicks are off, and 18.1's flashes are scaled to 0.45 through CombatEffects.flash_scale. It is no longer blocked by 18.5. The parry push-in and the milestone-1 effects follow the setting as they land.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), with 24.3, 24.4 and 24.5.
+    - Decided with the owner (Oct 4, 2026):
+      - flashes are dimmed, not shrunk: their brightness times 0.45 at full size, as `flash_scale` already works (the demo shrank them to 0.45 of their size instead);
+      - the fighters' body flashes (the whole-body tint on a hit, a disarm and a K.O.) are dimmed to 0.45 too, since they cover the most screen of any flash;
+      - the HUD's full-posture blink and low-HP pulse stay as they are.
   - [-] ~~**18.12 Effects parity check, re-shoot and re-benchmark on the finished fighters; task 18 ticked.**~~ A test that every rules event has an effect or is on an explicit no-visual list, including shake and kick amounts; the effects shot series at High and Low; the shrine bench rerun with the finished fighters and effects.
     - Check: the parity test passes; the shot series is reviewed; High still averages at least 60 fps at 1080p on the target laptop, or the presets are tuned until it does.
     - Note from 17.9: the bench is `arena_bench.tscn` (gameplay view), plus `"--bench=low;medium;high"` on `arena_watch.tscn`, the heaviest view. Tuning candidates on High, by what they cost in 17.9: the lantern lights 1.1 ms, the moon's shadows 1.1 ms, the prop outlines 0.4 ms.
@@ -2653,14 +2658,24 @@ Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 
     - Blocked by: 24.2 · Stories: 7
     - Note from 23.3 (built first, on the owner's word): also toast a behaviour change in Training, the demo's dim "<behaviour>" with the subline "Dummy behaviour", from the Training panel's and the pause rows' changes.
     - Kept (Oct 4), finished on `master` after the merge: function only, in today's theme; the restyle waits for milestone 1's UI redesign. Also add the Training "Dummy behaviour" toast, which the note from 23.3 above asks for.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), in the lane `lane/gr-24.3-24.4-24.5-18.11` with 24.4, 24.5 and 18.11.
+    - Decided with the owner (Oct 4, 2026):
+      - the dim "Evaded" toast (Training only) is built here, as the research notes list it; 23.4 keeps the parry timing numbers and Too early and Too late;
+      - only a change of the dummy's behaviour toasts ("Dummy behaviour"), as the demo did; switching Refill health doesn't;
+      - in Watch the toasts name the fighter ("Rogue: Parry", "Hunter: Stomp counter") for both sides' parries, counters, ultimates, backstabs and dazes, coloured by side (赤 red, 青 blue) so a mirror match reads too, with no advice sublines (the demo's Watch toasts named no one; 23.5's notes ask for names);
+      - a backstab on you toasts in red, as everything the opponent does to you; yours in jade (the demo toasted every backstab in jade).
   - [ ] **24.4 Prompts with button names.** Up to two prompts with key caps from the last device used, for recall, Breaker Palm, the Moonsplitter tilt, detonating the Impaler, the counter lunge, picking up the weapon and the ultimate. `GameSettings.button_hints` (added early with 22.9, with its Settings row) hides them.
     - Check: each state gives its prompt, at most two and urgent first; labels follow the device; the setting hides them; shots with keyboard and controller names.
     - Blocked by: 24.3 · Stories: 7, 56, 57
     - Kept (Oct 4), finished on `master` after the merge: function only, in today's theme; the restyle waits for milestone 1's UI redesign. Milestone 1's timed finisher prompt can build on this.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), with 24.3, 24.5 and 18.11.
+    - Decided with the owner (Oct 4, 2026): on a controller the Moonsplitter's tilt prompt names the stick ("Tilt the stick ↑/↓ vertical slash · ←/→ horizontal"), since players steer with it and the rule reads it; the keyboard names its keys (W/S, A/D) as the demo did.
   - [ ] **24.5 The dropped-weapon marker on screen; task 24 ticked.** "Your weapon" over your dropped weapon, clamped to the screen edge with an arrow when it is off screen or behind.
     - Check: placement on screen, at each edge and behind; shown only for your own weapon while disarmed; shots reviewed.
     - Blocked by: 24.4 · Stories: 7, 48
     - Kept (Oct 4), finished on `master` after the merge: function only, in today's theme; the restyle waits for milestone 1's UI redesign. It points at the weapon's place on the ground, so it carries over when milestone 1 lands the disarmed weapon blade-first in the ground. The label may then need lifting to clear the upright hilt.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), with 24.3, 24.4 and 18.11.
+    - Decided with the owner (Oct 4, 2026): the marker shows from the disarm, following the weapon while it flies, as the demo's did, not only once it lands.
 
 ### Phase H: ship
 
