@@ -68,7 +68,7 @@ flowchart TD
     ROOT --> TESTS["tests/<br/>Vitest: web rules, audio pipeline, size guard"]
     ROOT --> SCRIPTS["scripts/<br/>Node tooling: Godot runner, soak, fixtures, audio generation"]
     ROOT --> DOCS["docs/<br/>design, specs, plans, research"]
-    ROOT --> GH[".github/workflows/<br/>CI, release, Pages"]
+    ROOT --> GH[".github/workflows/<br/>CI"]
     ROOT --> META["CLAUDE.md, README.md, GLOSSARY.md,<br/>package.json, vite.config.ts, tsconfig.json,<br/>Monomachia.html (built web demo)"]
 
     GAME --> G_SIM["sim/ rules, no graphics"]
@@ -939,6 +939,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run godot:dev`, `npm run godot:run` | Open the Godot editor; run the game |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
 | `npm run godot -- build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
+| `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script |
 | `npm run godot:fixtures` | Regenerate the TypeScript parity fixtures |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
@@ -986,12 +987,12 @@ flowchart LR
     PUSH["push or pull request"] --> CI1["ci.yml: test-and-build<br/>setup Godot 4.7.2, npm ci,<br/>check:sizes, npm test, typecheck,<br/>4-match Godot soak, web build"]
     CI1 --> ART1["artifact: Monomachia (web HTML)"]
     CI1 --> CI2["ci.yml: export-windows<br/>Godot with export templates,<br/>npm run godot -- build"]
-    CI2 --> ART2["artifact: Monomachia-windows"]
-    REL["release published"] --> R1["release.yml<br/>test, build, attach Monomachia.html"]
-    MAN["manual run"] --> P1["pages.yml<br/>test, build, deploy to GitHub Pages"]
+    CI2 --> ART2["artifact: Monomachia-windows-stand-in<br/>(STAND-IN.txt inside)"]
+    PC["the developer's PC,<br/>with the clip libraries"] --> R1["npm run release -- v0.2.0<br/>checks, export, --smoke, zip"]
+    R1 --> R2["gh release upload<br/>Monomachia-v0.2.0-windows.zip<br/>to a draft release"]
 ```
 
-`pages.yml` runs `npm test` without installing Godot, so it fails as it stands; plan task 25 retires it along with the web version. The release workflow still attaches only the web HTML; attaching the Windows build is planned (task 25).
+CI's Windows build is a stand-in: CI has none of the licensed Kevin Iglesias clips, so the build plays the CC0 stand-in clips and carries `STAND-IN.txt` saying so. Releases come only from the PC. `npm run release -- <tag>` (`scripts/godot.mjs`, with its checks and zip in `scripts/release.mjs`) takes a tag of `v` plus `project.godot`'s `config/version` (optionally with a `-suffix`), refuses uncommitted changes to tracked files or a HEAD that isn't on `origin`, exports, plays the exe's `--smoke`, zips the exe with its text files, and uploads the zip to the tag's release, making it a draft release at HEAD if there is none; a person publishes it. Without the clip libraries it only warns: the zip then holds `STAND-IN.txt`. `--no-upload` stops at the zip in `build/release/`. There is no release workflow on GitHub, and the web demo's Pages and release workflows are gone.
 
 ## 18. Docs and where work is tracked
 

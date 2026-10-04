@@ -9,7 +9,7 @@ const SAMPLE: String = "# Credits\n\nBy us.\n\n<!-- packs: kevin_iglesias -->\nA
 
 
 func after_each() -> void:
-	for file: String in [BuildNotices.LICENSE_FILE, BuildNotices.CREDITS_FILE, BuildNotices.NOTICES_FILE]:
+	for file: String in [BuildNotices.LICENSE_FILE, BuildNotices.CREDITS_FILE, BuildNotices.NOTICES_FILE, BuildNotices.STAND_IN_FILE]:
 		DirAccess.remove_absolute(OUT.path_join(file))
 	DirAccess.remove_absolute(OUT)
 
@@ -78,3 +78,19 @@ func test_write_puts_the_three_files_in_the_folder() -> void:
 	assert_eq(licence, _repo_file("LICENSE"))
 	assert_eq(credits, BuildNotices.credits_text(_repo_file("CREDITS.md"), false))
 	assert_eq(notices, BuildNotices.notices_text())
+
+
+func test_a_build_without_the_clips_says_it_is_a_stand_in() -> void:
+	assert_eq(BuildNotices.write(ProjectSettings.globalize_path(OUT), false), OK)
+	var note: String = FileAccess.get_file_as_string(OUT.path_join(BuildNotices.STAND_IN_FILE))
+	assert_eq(note, BuildNotices.STAND_IN_TEXT)
+	assert_string_contains(note, "stand-in")
+	assert_string_contains(note, "not a release")
+
+
+func test_a_build_with_the_clips_drops_a_stale_stand_in_note() -> void:
+	assert_eq(BuildNotices.write(ProjectSettings.globalize_path(OUT), false), OK)
+	assert_true(FileAccess.file_exists(OUT.path_join(BuildNotices.STAND_IN_FILE)))
+	assert_eq(BuildNotices.write(ProjectSettings.globalize_path(OUT), true), OK)
+	assert_false(FileAccess.file_exists(OUT.path_join(BuildNotices.STAND_IN_FILE)))
+	assert_string_contains(FileAccess.get_file_as_string(OUT.path_join(BuildNotices.CREDITS_FILE)), "Kevin Iglesias")

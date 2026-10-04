@@ -145,6 +145,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 63. [x] As the developer, I want fighters, weapon models, sounds and music referenced by data, so that replacing an asset means replacing a file and one entry. Note: the rules never load a model, so they keep their own copy of each weapon's blade and of the bare fist and foot (task 7.5). Replacing a weapon model or a fighter therefore also means updating those numbers in the weapon files; `tests/content/test_strike_segments.gd` fails and names each mismatch until they match.
 64. [ ] As the developer, I want a Windows build produced by CI and attached to GitHub releases, so that the game is easy to share.
     > **Superseded by [ADR 0001](../adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** CI builds made without the asset repository use labelled stand-ins, so they aren't release builds. Real builds, playtests and releases always use the asset repository.
+    > **Task 25.5 (Oct 4, 2026):** `npm run release -- <tag>` exports the release on the PC with the clips, checks it with `--smoke`, zips it as `Monomachia-<tag>-windows.zip` and attaches it to the tag's GitHub release. CI's Windows build is the `Monomachia-windows-stand-in` artifact, with `STAND-IN.txt` inside.
 65. [x] As the developer, I want to capture screenshots of any scene from the command line, so that visual changes can be reviewed without clicking through the game.
 
 ## Implementation Decisions

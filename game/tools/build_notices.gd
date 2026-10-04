@@ -11,12 +11,25 @@ extends RefCounted
 ##   components and their licence texts, read from the running engine so they
 ##   match its version, then each font's SIL Open Font License.
 ##
+## A build without the clip libraries also gets STAND-IN.txt (plan task
+## 25.5), saying what it lacks, so CI's export and a release made without the
+## asset repository can't pass for the real thing.
+##
 ## CREDITS.md stays readable as plain text (bare links, no tables), so the
 ## build copies it as it is but for its section markers.
 
 const LICENSE_FILE: String = "LICENSE.txt"
 const CREDITS_FILE: String = "CREDITS.txt"
 const NOTICES_FILE: String = "THIRD-PARTY-NOTICES.txt"
+const STAND_IN_FILE: String = "STAND-IN.txt"
+const STAND_IN_TEXT: String = """This is a stand-in build of Monomachia, not a release.
+
+It was exported without the licensed Kevin Iglesias animation clips, which
+only the developer's PC has. The fighters play the free stand-in clips
+instead, and in attacks the weapons drift away from the hands.
+
+Releases are built with the clips: https://github.com/Arod231/monomachia/releases
+"""
 ## CREDITS.md's section naming the Kevin Iglesias packs sits between these
 ## two lines.
 const IGLESIAS_BEGIN: String = "<!-- packs: kevin_iglesias -->"
@@ -72,7 +85,8 @@ static func notices_text() -> String:
 
 
 ## Writes the three files into out_dir (an absolute path), from the
-## repository's LICENSE and CREDITS.md.
+## repository's LICENSE and CREDITS.md, and STAND-IN.txt unless with_iglesias
+## (a stale one from an earlier build is removed).
 static func write(out_dir: String, with_iglesias: bool) -> Error:
 	var made: Error = DirAccess.make_dir_recursive_absolute(out_dir)
 	if made != OK:
@@ -83,11 +97,18 @@ static func write(out_dir: String, with_iglesias: bool) -> Error:
 	if licence == "" or credits == "":
 		push_error("build_notices.gd: LICENSE or CREDITS.md is missing at %s" % root)
 		return ERR_FILE_NOT_FOUND
-	for entry: Array in [
+	var files: Array[Array] = [
 		[LICENSE_FILE, licence],
 		[CREDITS_FILE, credits_text(credits, with_iglesias)],
 		[NOTICES_FILE, notices_text()],
-	]:
+	]
+	var stand_in: String = out_dir.path_join(STAND_IN_FILE)
+	if with_iglesias:
+		if FileAccess.file_exists(stand_in):
+			DirAccess.remove_absolute(stand_in)
+	else:
+		files.append([STAND_IN_FILE, STAND_IN_TEXT])
+	for entry: Array in files:
 		var file: FileAccess = FileAccess.open(out_dir.path_join(entry[0]), FileAccess.WRITE)
 		if file == null:
 			return FileAccess.get_open_error()

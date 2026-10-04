@@ -1,8 +1,10 @@
 # On every push and pull request: checks that no tracked file is too large,
 # runs the rule tests (web and Godot), a short computer-vs-computer soak and
-# the typecheck, and builds the web game; then exports the Windows build.
-# The web game and the Windows build are kept for 30 days as downloads on the
-# run's page.
+# the typecheck, and builds the web game; then exports a stand-in Windows
+# build. The web game and the stand-in build are kept for 30 days as
+# downloads on the run's page. Releases are never built here: CI has no
+# licensed animation clips, so they're exported on the developer's PC with
+# `npm run release -- <tag>` (scripts/godot.mjs).
 name: CI
 
 on:
@@ -40,9 +42,11 @@ jobs:
           path: Monomachia.html
           retention-days: 30
 
-  # The Windows build, exported headless: CI has no GPU, so the shaders
-  # aren't baked and compile on first use (a build from `npm run build` on a
-  # PC bakes them). The export templates come with Godot and are cached.
+  # A stand-in Windows build, exported headless: CI has no GPU, so the
+  # shaders aren't baked and compile on first use (a PC's export bakes them),
+  # and it has no Kevin Iglesias clip libraries, so the build plays the CC0
+  # stand-in clips and carries STAND-IN.txt saying so. The export templates
+  # come with Godot and are cached.
   export-windows:
     needs: test-and-build
     runs-on: ubuntu-latest
@@ -60,6 +64,6 @@ jobs:
       - run: npm run godot -- build
       - uses: actions/upload-artifact@v7
         with:
-          name: Monomachia-windows
+          name: Monomachia-windows-stand-in
           path: build/windows/
           retention-days: 30
