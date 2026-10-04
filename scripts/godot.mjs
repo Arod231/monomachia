@@ -142,6 +142,7 @@ async function importProject(godot) {
   }
 }
 
+const UPLOAD_TRIES = 3;
 const STAND_IN_WARNING =
   'godot.mjs: WARNING: no Kevin Iglesias clip libraries, so this is a stand-in build (STAND-IN.txt is in it, and in ' +
   'attacks the weapons drift off the hands). Build the libraries with `node scripts/godot.mjs clips` before a real release.';
@@ -334,8 +335,16 @@ async function main() {
           if (made.status !== 0) die(`godot.mjs: gh release create failed:\n${made.stderr}`);
           console.log(`godot.mjs: made a draft release ${tag} at ${head.slice(0, 7)}.`);
         }
-        const sent = gh(['release', 'upload', tag, zip, '--clobber']);
-        if (sent.status !== 0) die(`godot.mjs: gh release upload failed:\n${sent.stderr}`);
+        // A slow uplink can stall long enough for GitHub to drop the upload
+        // (HTTP 408), so it gets three tries; --clobber replaces a partial asset.
+        let sent;
+        for (let attempt = 1; attempt <= UPLOAD_TRIES; attempt++) {
+          console.log(`godot.mjs: uploading ${zipName(tag)} (try ${attempt} of ${UPLOAD_TRIES})...`);
+          sent = gh(['release', 'upload', tag, zip, '--clobber']);
+          if (sent.status === 0) break;
+          console.warn(`godot.mjs: the upload failed: ${sent.stderr.trim()}`);
+        }
+        if (sent.status !== 0) die(`godot.mjs: gh release upload failed ${UPLOAD_TRIES} times; retry with gh release upload ${tag} "${zip}" --clobber`);
         const url = gh(['release', 'view', tag, '--json', 'url', '--jq', '.url']).stdout.trim();
         console.log(`godot.mjs: uploaded ${zipName(tag)} to ${url}`);
       }
