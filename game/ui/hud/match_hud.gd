@@ -7,14 +7,16 @@ extends CanvasLayer
 ## the round's kanji between them. The centre announcements (24.2): a kanji
 ## over the words and a subline (第一戦 Round 1, 始め Fight, 一本 K.O., 相打ち
 ## Double K.O., 勝 or 敗 for the round's result, 武器喪失 Disarmed), with the
-## demo's entrance (AnnouncementEntrance). And a hint line (ultimate ready, pick up
+## demo's entrance (AnnouncementEntrance). The toasts under the centre
+## (24.3, HudToasts): parries, counters, ultimates, backstabs and dazes, and
+## in Training evades and the dummy's behaviour. And a hint line (ultimate ready, pick up
 ## your weapon), shown only while the round is being fought. In Training,
 ## the TrainingPanel at the bottom left (23.3). Without the Iglesias clip
 ## libraries a small note in the corner says the animation packs are missing
 ## (authored-animation task 8), and the log says what to fix
 ## (ClipLibraries.warn_if_missing()). It hides when the results open.
 ##
-## Announcements, their entrance included, are timed on the host's rules
+## Announcements and toasts, their entrances included, are timed on the host's rules
 ## steps, not the wall clock, so they slow down with slow motion and freeze
 ## with pause. Port of the
 ## announcement and bar logic of src/ui/hud.ts (its milliseconds become
@@ -77,6 +79,10 @@ var _states: Array[HudState] = [HudState.new(), HudState.new()]
 var _blink: float = 0.0
 ## Training's behaviour and refill panel (shown only in Training).
 var training_panel: TrainingPanel
+## The toasts under the centre (24.3).
+var toasts: HudToasts
+## The training dummy's behaviour last toasted (&"" outside Training).
+var _behaviour: StringName = &""
 
 
 func _ready() -> void:
@@ -96,12 +102,15 @@ func bind(p_host: MatchHost) -> void:
 		host.stepped.disconnect(_on_stepped)
 		host.match_finished.disconnect(_on_match_finished)
 		host.loadout_changed.disconnect(_on_loadout_changed)
+		host.training_changed.disconnect(_on_training_changed)
 	host = p_host
 	host.match_started.connect(_on_match_started)
 	host.sim_event.connect(_on_sim_event)
 	host.stepped.connect(_on_stepped)
 	host.match_finished.connect(_on_match_finished)
 	host.loadout_changed.connect(_on_loadout_changed)
+	host.training_changed.connect(_on_training_changed)
+	toasts.host = host
 	training_panel.bind(host)
 	if host.is_started():
 		_on_match_started(host.config)
@@ -169,6 +178,8 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	_packs_note.visible = ClipLibraries.warn_if_missing()
 	announcement = {}
 	_queued.clear()
+	toasts.clear()
+	_behaviour = host.training_behaviour()
 	var me: int = _me()
 	for i: int in 2:
 		_lags[i].reset(1.0)
@@ -184,11 +195,23 @@ func _on_loadout_changed(side: int) -> void:
 	_weapons[side].text = host.fighter(side).weapon.name
 
 
-## The results take the screen: the HUD clears its centre text and hint and
-## hides until the next match starts.
+## Training's behaviour or refill changed (from the panel or the pause
+## menu's rows): a new behaviour toasts its name, as the demo's did; the
+## refill doesn't.
+func _on_training_changed() -> void:
+	var b: StringName = host.training_behaviour()
+	if b == _behaviour:
+		return
+	_behaviour = b
+	toasts.push(MenuData.BEHAVIOUR_NAMES.get(b, String(b)), HudToasts.Tone.DIM, "Dummy behaviour")
+
+
+## The results take the screen: the HUD clears its centre text, toasts and
+## hint and hides until the next match starts.
 func _on_match_finished(_results: MatchResults) -> void:
 	announcement = {}
 	_queued.clear()
+	toasts.clear()
 	_refresh_announcement()
 	_hint.text = ""
 	visible = false
@@ -196,8 +219,11 @@ func _on_match_finished(_results: MatchResults) -> void:
 
 func _on_sim_event(e: Dictionary) -> void:
 	var training: bool = host.config.mode == MatchConfig.TRAINING
-	var watch: bool = _me() < 0
+	var me: int = _me()
+	var watch: bool = me < 0
 	var now: int = host.step_count
+	var names: Array[String] = [host.fighter(0).name, host.fighter(1).name]
+	toasts.push_all(HudToasts.for_event(e, me, training, names, host.label("light", me) if me >= 0 else ""))
 	match e["t"]:
 		&"roundStart":
 			var n: int = int(e["round"])
@@ -251,6 +277,7 @@ func _on_stepped(_step: int) -> void:
 			keep.append(q)
 	_queued = keep
 	_refresh_announcement()
+	toasts.expire()
 
 
 ## Shows a centre announcement (a kanji over the words, and a subline) for
@@ -288,6 +315,7 @@ func _process(delta: float) -> void:
 		return
 	_blink += delta
 	_show_announcement()
+	toasts.refresh()
 	var pulse: float = 0.5 - 0.5 * cos(_blink * TAU / LOW_PULSE)
 	var blink_off: bool = fmod(_blink, POSTURE_BLINK) >= POSTURE_BLINK * 0.5
 	for i: int in 2:
@@ -495,6 +523,15 @@ func _build() -> void:
 	for l: Label in [_announce_kanji, _announce_label, _announce_sub]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_announce_box.add_child(l)
+
+	# the demo's toasts stack from 58% of the way down, centred
+	toasts = HudToasts.new()
+	toasts.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toasts.anchor_top = 0.58
+	toasts.anchor_bottom = 0.58
+	toasts.offset_left = -500.0
+	toasts.offset_right = 500.0
+	_root.add_child(toasts)
 
 	_hint = _label("Hint", "", &"", 22)
 	_hint.add_theme_color_override("font_color", GOLD)

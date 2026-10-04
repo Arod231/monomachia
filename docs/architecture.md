@@ -227,16 +227,16 @@ sequenceDiagram
         Host->>Host: snapshot positions for interpolation
         loop each event, in order
             Host->>View: sim_event(e): shake, FOV kick, flashes
-            Host->>Hud: sim_event(e): announcements
+            Host->>Hud: sim_event(e): announcements, toasts
             Host->>Audio: sim_event(e): sound cues
             Host->>Main: sim_event(e): music director
         end
         Host->>Host: _after_step(): results after 140 frames of matchEnd
-        Host->>Hud: stepped
+        Host->>Hud: stepped: queued calls, toasts expire
         Host->>Audio: stepped: footstep cadence
     end
     Note over View: MatchView._process: pose fighters at interpolated<br/>position and yaw, dropped weapons, flashes, camera
-    Note over Hud: MatchHud._process: bars, pips, ult badge, hints
+    Note over Hud: MatchHud._process: bars, pips, ult badge, toasts, hints
     Note over Audio: MatchAudio._process: listener follows camera,<br/>delayed cues start
 ```
 
@@ -853,7 +853,8 @@ stateDiagram-v2
 | `ui/menus/title_screen.gd` | `TitleScreen` | "Press any key". |
 | `ui/menus/pause_screen.gd` | `PauseScreen` | 休止 Paused: Resume, Move list, Controls, Settings, Restart, Quit to menu; in Training, Dummy and Refill health rows above them. |
 | `ui/menus/results_screen.gd` | `ResultsScreen` | Winner, rounds, seven stats, Rematch and Main menu. |
-| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements timed on rules steps, button hints, and in Training the `TrainingPanel`. Hidden in the attract duel. |
+| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, button hints, and in Training the `TrainingPanel`. Hidden in the attract duel. |
+| `ui/hud/hud_toasts.gd` | `HudToasts` | The toasts under the centre: `for_event()` says what a rules event toasts from the player's side or Watch's (no nodes); up to three on screen, 69 rules steps each, held by a pause. |
 | `ui/hud/training_panel.gd` | `TrainingPanel` | Training's panel at the bottom left: "Dummy · <weapon>", the nine behaviour chips (keys 1–9) and refill (key 0), clicks too; a digit bound in the player's profile is left to its action. Follows `MatchHost.training_changed` and `loadout_changed`; hidden while paused. |
 | `ui/hud/hud_bar.gd` | `HudBar` | A meter with a lagging band. |
 

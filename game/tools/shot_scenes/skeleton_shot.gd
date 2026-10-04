@@ -44,6 +44,11 @@ extends Node
 ## against the idle dummy at 2.2 m, up to its frame --frame= (default 18,
 ## just after the burst): the aura, the burst's flare and shockwave, the dummy
 ## blasted down.
+##
+## "toasts" shows three toasts (24.3) in their hold, by --toasts=: "player"
+## (gold Parry, the jade Evade counter with its advice, the opponent's red
+## Ultimate), "training" (the dim Dummy behaviour and Evaded, the jade Behind
+## them) or "watch" (named in the sides' red and blue).
 
 const SEED: int = 7
 
@@ -51,7 +56,7 @@ const SEED: int = 7
 	"round_start", "exchange", "parry", "watch", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
 	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
-	"recall_burst",
+	"recall_burst", "toasts",
 ) var shot: String = "round_start"
 ## The fighters' distance apart for the "spacing" shot (m).
 @export var spacing: float = 2.5
@@ -62,6 +67,8 @@ const SEED: int = 7
 ## The "call" shot's announcement (24.2), from the player's side: final_round,
 ## fight, double_ko, round_won (Perfect) or disarmed (--call= sets it too).
 @export var call: String = "final_round"
+## The "toasts" shot's form: player, training or watch (--toasts= sets it too).
+@export var toasts_form: String = "player"
 ## The "ko" shot's steps after the K.O. (--frame= sets it too).
 @export var steps_after: int = 16
 ## The "hud_states" shot with the two sides' states swapped.
@@ -100,6 +107,8 @@ func _ready() -> void:
 			steps_after = iai_frame
 		elif a.begins_with("--call="):
 			call = a.trim_prefix("--call=")
+		elif a.begins_with("--toasts="):
+			toasts_form = a.trim_prefix("--toasts=")
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
 	match shot:
@@ -196,6 +205,8 @@ func _ready() -> void:
 			host.step(40)
 		"recall_burst":
 			_recall_burst()
+		"toasts":
+			_toasts_shot()
 	var view: MatchView = host.get_node("View")
 	view.snap_camera()
 	if shot == "dropped":
@@ -262,6 +273,53 @@ func _call_shot() -> void:
 		"disarmed":
 			hud._on_sim_event({"t": &"disarm", "victim": 0})
 	host.step(20)
+
+
+## Three toasts of toasts_form, made a few steps apart and held 20 steps on
+## (all in their hold): a Duel with the player on side 0, Training against an
+## idle dummy, or Watch. The match's own events are cut off from the HUD
+## after the intro, so a live parry can't push one of them out.
+func _toasts_shot() -> void:
+	var events: Array[Dictionary] = []
+	match toasts_form:
+		"training":
+			var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
+			dummy.controller = MatchSide.DUMMY
+			var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
+			_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(FakeDeviceState.new()))
+			events = [{"t": &"evade", "f": 0, "attacker": 1}, {"t": &"backstabReady", "f": 0}]
+		"watch":
+			_gameplay(MatchConfig.WATCH)
+			events = [
+				{"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 3, "window": 6},
+				{"t": &"counter", "kind": &"stomp", "by": 1, "on": 0},
+				{"t": &"ultStart", "f": 1, "ult": &"impaler"},
+			]
+		_:
+			var cfg: MatchConfig = MatchConfig.make(
+				MatchConfig.DUEL,
+				MatchSide.human(&"rogue", &"katana", 0),
+				MatchSide.computer(&"hunter", &"greatsword", 1, &"hard"),
+				SEED,
+			)
+			_gameplay(MatchConfig.DUEL, cfg, InputDevices.new(FakeDeviceState.new()))
+			events = [
+				{"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 3, "window": 6},
+				{"t": &"counter", "kind": &"evade", "by": 0, "on": 1},
+				{"t": &"ultStart", "f": 1, "ult": &"impaler"},
+			]
+	host.step(Match.INTRO_FRAMES + 10)
+	var hud: MatchHud = host.get_node("Hud")
+	# only the shot's own toasts: the live duel's events no longer reach the HUD
+	host.sim_event.disconnect(hud._on_sim_event)
+	if toasts_form == "training":
+		host.set_training_behaviour(&"lights")
+		host.step(4)
+	for e: Dictionary in events:
+		hud._on_sim_event(e)
+		host.step(4)
+	host.step(20)
+	hud._process(0.0)
 
 
 func _config(mode: StringName) -> MatchConfig:
