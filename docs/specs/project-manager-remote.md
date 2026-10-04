@@ -1,6 +1,6 @@
 # Spec: remote session control in the Project Manager
 
-Status: approved in conversation on Oct 4, 2026 (interview and design); waiting for the owner's review of this text. Plan: `docs/plans/project-manager-remote.md`, written after that review.
+Status: approved by the owner on Oct 4, 2026, with its plan, `docs/plans/project-manager-remote.md`.
 
 ## Problem Statement
 

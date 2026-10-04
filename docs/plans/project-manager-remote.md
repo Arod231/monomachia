@@ -38,7 +38,8 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ## Progress
 
-- Oct 4, 2026: spec approved; plan drafted, awaiting the owner's OK (task 1).
+- Oct 4, 2026: spec approved; plan drafted.
+- Oct 4, 2026: the owner approved this plan (task 1). Next: task 2 in its own small pull request, then the spike (task 3).
 
 ## Build order
 
@@ -53,11 +54,12 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ### Phase A: approval and groundwork
 
-- [ ] **1. The owner's approval of this plan.** The owner reviews this plan, the spec being approved.
+- [x] **1. The owner's approval of this plan.** The owner reviews this plan, the spec being approved.
   - Delivers: the plan approved, and the spec's status line set to approved.
   - Check: the owner's OK recorded under Progress.
   - Blocked by: none
   - **Owner:** approves this plan. Nothing below starts until then.
+  - Done Oct 4: the owner approved this plan, after approving the spec the same day.
 - [ ] **2. The board follows this plan.** The Project Manager shows plan "PM" on its Progress and Graph tabs, outside the roadmap's phases.
   - Delivers:
     - a PM entry in the board's plan list (flat kind, this plan's branch, into `feature/godot-rebuild`);
