@@ -8,6 +8,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ## Notes
 
+- **Gate tasks are ticked only once the owner has done their part,** so a task blocked by one needs no "(and the owner's OK)" of its own.
 - **One task at a time, stopping only where the owner is needed.** The owner chose to stop only at the gates, which are tasks 1, 3, 9, 11, 14 and 19: approval, a few minutes of the owner's hands, a settings change or a check on the phone. After every other task, Claude reports it and carries on. After each task:
   - tick it here;
   - add a line to Progress;
@@ -40,6 +41,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 - Oct 4, 2026: spec approved; plan drafted.
 - Oct 4, 2026: the owner approved this plan (task 1). Next: task 2 in its own small pull request, then the spike (task 3).
+- Oct 4, 2026: task 2 is in pull request #37 (`tools/board-follows-pm-plan` into `feature/godot-rebuild`), waiting for the owner's approval; ticked here once it merges.
 
 ## Build order
 
@@ -70,7 +72,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a board test parses this plan's tasks, build order and blockers;
     - a test board on a spare port shows PM on Progress and Graph in the Browser pane;
     - the small pull request merges on the owner's approval.
-  - Blocked by: 1 (and the owner's OK) · Stories: 86
+  - Blocked by: 1 · Stories: 86
 - [ ] **3. Spike: the hook paths on a live session.** Before anything is built on them, prove on the desktop app what the spec rests on but nobody has tried.
   - Delivers: findings under Decisions so far, from a throwaway session in a scratch folder. That folder's own project settings carry test hooks, so user settings stay untouched. The findings:
     - a PermissionRequest hook answers AskUserQuestion (`answers`, several labels, an "Other" text, and `response`);
@@ -82,20 +84,20 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - when the app writes its turn summary.
     A proof that fails is replaced by the spec's fallback, written here before task 6.
   - Check: each item recorded as proven or replaced; the throwaway scripts stay in the scratchpad, never committed.
-  - Blocked by: 1 (and the owner's OK) · Stories: 12, 87
+  - Blocked by: 1 · Stories: 12, 87
   - **Owner:** presses Enter to start the throwaway session in the app (a new session's first prompt never sends itself), types `/rc` in it, and opens its link on the phone.
 - [ ] **4. Room for the new parts.** The board's session and relay code gets a module of its own, and the two pages share their session and question rendering, with no change in behaviour.
   - Delivers:
     - the Sessions and relay routes and helpers moved out of the server into a module it mounts;
     - a page module, served like the existing UI and graph modules, holding the question, permission and session rendering both pages use.
   - Check: every board test passes unchanged; both pages behave as before in the Browser pane.
-  - Blocked by: 1 (and the owner's OK) · Stories: 83
+  - Blocked by: 1 · Stories: 83
 - [ ] **5. Actions from the HTTPS address.** The Project Manager accepts its own pages' actions from `https://<pc>.<tailnet>.ts.net` through Tailscale Serve.
   - Delivers: the same-origin rule accepts an https origin whose host is one of the PC's tailnet names (requests through Serve arrive from loopback); everything else is refused as today.
   - Check:
     - access tests: the tailnet name over https is allowed; another https site, a plain form post and a wrong host are refused;
     - a harmless action (clearing a queued reply) succeeds through https://desktop-jk5bn8g.tailec6188.ts.net.
-  - Blocked by: 1 (and the owner's OK) · Stories: 41, 78, 79
+  - Blocked by: 1 · Stories: 41, 78, 79
 
 ### Phase B: Away and the Questions tab
 
@@ -242,5 +244,5 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a clip watched;
     - a pull request merged;
     - a session compacted.
-  - Blocked by: 9 (and the owner's OK), 11 (and the owner's OK), 13, 14 (and the owner's OK), 16, 17, 18 · Stories: 1–87
+  - Blocked by: 9, 11, 13, 14, 16, 17, 18 · Stories: 1–87
   - **Owner:** runs the check and approves the pull request.
