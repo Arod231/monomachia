@@ -1,10 +1,9 @@
 # On every push and pull request: checks that no tracked file is too large,
-# runs the rule tests (web and Godot), a short computer-vs-computer soak and
-# the typecheck, and builds the web game; then exports a stand-in Windows
-# build. The web game and the stand-in build are kept for 30 days as
-# downloads on the run's page. Releases are never built here: CI has no
-# licensed animation clips, so they're exported on the developer's PC with
-# `npm run release -- <tag>` (scripts/godot.mjs).
+# runs the tests (the Node tools' and the game's) and the typecheck, and a
+# short computer-vs-computer soak; then exports a stand-in Windows build, kept
+# for 30 days as a download on the run's page. Releases are never built here:
+# CI has no licensed animation clips, so they're exported on the developer's
+# PC with `npm run release -- <tag>` (scripts/godot.mjs).
 name: CI
 
 on:
@@ -15,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  test-and-build:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -23,7 +22,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
       - uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
@@ -34,13 +32,6 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run soak:godot -- 4
-      - run: npm run build
-      - run: cp dist/index.html Monomachia.html
-      - uses: actions/upload-artifact@v7
-        with:
-          name: Monomachia
-          path: Monomachia.html
-          retention-days: 30
 
   # A stand-in Windows build, exported headless: CI has no GPU, so the
   # shaders aren't baked and compile on first use (a PC's export bakes them),
@@ -48,7 +39,7 @@ jobs:
   # stand-in clips and carries STAND-IN.txt saying so. The export templates
   # come with Godot and are cached.
   export-windows:
-    needs: test-and-build
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

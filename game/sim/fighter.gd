@@ -1,6 +1,6 @@
 class_name Fighter
 extends RefCounted
-## Port of src/sim/fighter.ts.
+## Port of v0.1-web-mvp:src/sim/fighter.ts.
 ##
 ## A fighter: position, health, posture, and a frame-by-frame state machine.
 ## Pure simulation — no rendering code — so it can be unit tested.

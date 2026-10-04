@@ -8,8 +8,8 @@ Node is the task runner; every Godot command goes through `scripts/godot.mjs`, w
 
 | Command | What it does |
 |---|---|
-| `npm test` | The web demo's Vitest tests, the Node tests on Node's own runner (`node --test`), then the GUT tests headless (about 1,800) |
-| `npm run typecheck` | TypeScript, then every GDScript file loaded and checked |
+| `npm test` | The Node tests on Node's own runner (`node --test`), then the GUT tests headless (about 1,800) |
+| `npm run typecheck` | Every GDScript file loaded and checked |
 | `npm run soak:godot` | Computer-vs-computer matches with balance numbers (round length, disarms per round, win rates) |
 | `npm run soak:tune` | A 300-match tuning run |
 | `npm run shots` | Renders a scene to a PNG, failing on shader or script errors |

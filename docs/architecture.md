@@ -12,7 +12,7 @@ Line numbers drift, so this page names files and functions rather than lines. Se
 
 ## Contents
 
-1. [Two games in one repository](#1-two-games-in-one-repository)
+1. [Where the game came from](#1-where-the-game-came-from)
 2. [The repository at a glance](#2-the-repository-at-a-glance)
 3. [The Godot game: layers and rules of thumb](#3-the-godot-game-layers-and-rules-of-thumb)
 4. [Boot and the scene tree](#4-boot-and-the-scene-tree)
@@ -25,7 +25,7 @@ Line numbers drift, so this page names files and functions rather than lines. Se
 11. [The look: shaders and graphics presets](#11-the-look-shaders-and-graphics-presets)
 12. [Sound and music (`game/audio`)](#12-sound-and-music-gameaudio)
 13. [Screens and the HUD (`game/ui`, `game/scenes`)](#13-screens-and-the-hud-gameui-gamescenes)
-14. [The web demo (`src/`)](#14-the-web-demo-src)
+14. [The web demo (tag `v0.1-web-mvp`)](#14-the-web-demo-tag-v01-web-mvp)
 15. [Tests](#15-tests)
 16. [Tools, scripts and pipelines](#16-tools-scripts-and-pipelines)
 17. [CI and releases](#17-ci-and-releases)
@@ -35,25 +35,16 @@ Line numbers drift, so this page names files and functions rather than lines. Se
 
 ---
 
-## 1. Two games in one repository
+## 1. Where the game came from
 
-The repository holds the same duel twice:
+Monomachia began as a web demo: TypeScript, three.js and Vite, built into one self-contained HTML file, with block puppets posed by code and sound synthesised at runtime. The Godot game in `game/` was ported from it, and plan task 26.2 deleted the demo's code. Tag `v0.1-web-mvp` keeps it, and comments in the Godot code cite its files as `v0.1-web-mvp:src/…`, a path `git show` takes as written. Section 14 maps its files to the Godot code.
 
-| | Web demo | Godot rebuild |
-| --- | --- | --- |
-| Folder | `src/`, `tests/`, `index.html` | `game/` |
-| Language and engine | TypeScript, three.js, Vite | GDScript, Godot 4.7 (Forward+, Jolt physics) |
-| Status | Finished MVP. Frozen; retired once the Godot build matches it (plan task 26). | In active build, stage by stage (see `docs/plans/godot-rebuild.md`). |
-| Output | One self-contained HTML file | A Windows program |
-| Fighters | Block puppets posed by code | Rigged Quaternius fighters (Rogue, Hunter) |
-| Sound | Synthesised in code at runtime | WAV files from the Sonniss bundle plus generated ones |
-
-The Godot rules in `game/sim` started as a line-for-line port of `src/sim`, checked bit for bit against the TypeScript up to commit `4222167`. Since then the rules have changed on purpose (fluid combat, new strings), so the two no longer match. **New work goes into `game/`.** Touch `src/` only to keep the web build and its tests passing.
+The Godot rules in `game/sim` started as a line-for-line port of the demo's `src/sim`, checked bit for bit against the TypeScript up to commit `4222167`. Since then the rules have changed on purpose (fluid combat, new strings), so the two no longer match. The parity fixtures the port was checked against stay in `game/tests/fixtures` as frozen data (its README says where their generators went).
 
 ```mermaid
 flowchart LR
-    TS["src/sim<br/>TypeScript rules"] -- "ported line for line<br/>(plan phase A)" --> GD["game/sim<br/>GDScript rules"]
-    TS -- "scripts/sim-fixtures.ts<br/>scripts/port-fixtures.ts" --> FX["game/tests/fixtures/*.json"]
+    TS["v0.1-web-mvp:src/sim<br/>TypeScript rules"] -- "ported line for line<br/>(plan phase A)" --> GD["game/sim<br/>GDScript rules"]
+    TS -- "fixture scripts<br/>(deleted in 26.2)" --> FX["game/tests/fixtures/*.json<br/>frozen"]
     FX -- "parity tests" --> GD
     GD -- "deliberate rule changes<br/>since task 8.2" --> NEW["fluid combat,<br/>new strings, swings"]
 ```
@@ -64,12 +55,12 @@ flowchart LR
 flowchart TD
     ROOT["monomachia/"]
     ROOT --> GAME["game/<br/>Godot 4.7 project"]
-    ROOT --> SRC["src/<br/>web demo, TypeScript + three.js"]
-    ROOT --> TESTS["tests/<br/>Vitest: web rules<br/>node --test: audio pipeline, size guard,<br/>credits, release, lanes board, second brain"]
-    ROOT --> SCRIPTS["scripts/<br/>Node tooling: Godot runner, soak, fixtures, audio generation"]
+    ROOT --> TESTS["tests/<br/>node --test: audio pipeline, size guard,<br/>credits, release, lanes board, second brain"]
+    ROOT --> SCRIPTS["scripts/<br/>Node tooling: Godot runner, release, size guard, audio generation"]
+    ROOT --> TOOLS["tools/<br/>lanes board, second brain"]
     ROOT --> DOCS["docs/<br/>design, specs, plans, research"]
     ROOT --> GH[".github/workflows/<br/>CI"]
-    ROOT --> META["CLAUDE.md, README.md, GLOSSARY.md,<br/>package.json, vite.config.ts, tsconfig.json,<br/>Monomachia.html (built web demo)"]
+    ROOT --> META["CLAUDE.md, README.md, GLOSSARY.md,<br/>LICENSE, CREDITS.md, package.json"]
 
     GAME --> G_SIM["sim/ rules, no graphics"]
     GAME --> G_INPUT["input/ devices, bindings, profiles"]
@@ -103,7 +94,7 @@ flowchart TD
 | `game/scenes` | `main.tscn` and `main.gd` (the screen flow) and `smoke_run.gd` (the `--smoke` check). |
 | `game/tools` | Headless scripts: soak, typecheck, screenshots, asset builders and bakers. |
 | `game/tests` | GUT tests, by area. |
-| `src/` | The web demo (section 14). |
+| `tests/` | The Node tests of the tools and scripts (section 15). |
 | `scripts/` | Node scripts behind the `npm run` commands (section 16). |
 
 ## 3. The Godot game: layers and rules of thumb
@@ -246,7 +237,7 @@ sequenceDiagram
 
 ## 6. The rules (`game/sim`)
 
-Every file in `game/sim` says in its header which `src/sim/*.ts` file it was ported from.
+Every file in `game/sim` says in its header which of the demo's files (`v0.1-web-mvp:src/sim/*.ts`) it was ported from.
 
 ### 6.1 Files
 
@@ -857,9 +848,9 @@ stateDiagram-v2
 | `ui/hud/training_panel.gd` | `TrainingPanel` | Training's panel at the bottom left: "Dummy · <weapon>", the nine behaviour chips (keys 1–9) and refill (key 0), clicks too; a digit bound in the player's profile is left to its action. Follows `MatchHost.training_changed` and `loadout_changed`; hidden while paused. |
 | `ui/hud/hud_bar.gd` | `HudBar` | A meter with a lagging band. |
 
-## 14. The web demo (`src/`)
+## 14. The web demo (tag `v0.1-web-mvp`)
 
-The web demo has the same shape as the Godot game, because the Godot game was ported from it.
+The web demo's code was deleted in plan task 26.2; tag `v0.1-web-mvp` keeps it (`git checkout v0.1-web-mvp`, or `git show v0.1-web-mvp:src/game.ts` for one file). It has the same shape as the Godot game, because the Godot game was ported from it.
 
 ```mermaid
 flowchart TD
@@ -880,10 +871,10 @@ flowchart TD
 - **Loop.** `Game.loop()` runs on `requestAnimationFrame`: poll devices, handle menu navigation, then the same accumulator as `MatchHost` (at most 6 steps, slow motion scales it). `Game.step()` samples input or asks the brain, calls `match.step()`, drains events and hands them to audio, HUD and view. Unlike Godot, the web demo doesn't interpolate positions; `alpha` only smooths attack poses.
 - **Rendering.** `FighterRig` builds a block puppet from primitives with two-bone IK; `computePose()` in `pose.ts` picks a pose from the fighter's state and three keyframes per attack archetype. Versus draws the scene twice into a split screen. If shaders fail, `View` falls back to safer materials in two levels.
 - **Sound.** Everything is synthesised with Web Audio at runtime; there are no audio files in the web build.
-- **Build.** `npm run build` type-checks, builds with `vite-plugin-singlefile` (everything inlined into `dist/index.html`) and runs `scripts/make-artifact.mjs` (adds the three.js licence, writes a page-content variant). The committed `Monomachia.html` is a copy of that build.
+- **Build.** In the tag, `npm run build` type-checks, builds with `vite-plugin-singlefile` (everything inlined into `dist/index.html`) and runs `scripts/make-artifact.mjs` (adds the three.js licence, writes a page-content variant). The committed `Monomachia.html` is a copy of that build.
 - **Saved data** lives in `localStorage`: `monomachia.settings`, `monomachia.profiles.v1`, `monomachia.audio`, `monomachia.lastSelect`.
 
-| Web file | Godot counterpart |
+| Web file (in the tag) | Godot counterpart |
 | --- | --- |
 | `src/sim/fighter.ts`, `world.ts`, `match.ts`, `input.ts`, `events.ts`, `rng.ts`, `math.ts`, `constants.ts` | `game/sim/fighter.gd`, `world.gd`, `match.gd`, `input_tracker.gd` + `raw_input.gd` + `btn.gd`, `events.gd`, `rng.gd`, `sim_math.gd` + `js_math.gd` + `v2/v3.gd`, `constants.gd` |
 | `src/sim/moves/*.ts` | `game/sim/moves/*.gd` |
@@ -897,14 +888,12 @@ flowchart TD
 
 ## 15. Tests
 
-`npm test` runs three suites: Vitest for the web demo's rules, Node's own runner (`node --test`) for the Node tests, then GUT in headless Godot. A Node test file is `tests/**/*.test.mjs`, written with `node:test` and `node:assert/strict`; `tests/assert-matches.mjs` adds the one check `node:assert` lacks (a subset match, Vitest's `toMatchObject`).
+`npm test` runs two suites: Node's own runner (`node --test`) for the Node tests, then GUT in headless Godot. The web demo's Vitest tests went with it in plan task 26.2. A Node test file is `tests/**/*.test.mjs`, written with `node:test` and `node:assert/strict`; `tests/assert-matches.mjs` adds the one check `node:assert` lacks (a subset match, Vitest's `toMatchObject`).
 
 ```mermaid
 flowchart LR
-    NT["npm test"] --> W["test:web<br/>vitest run"]
-    NT --> N["test:node<br/>node --test"]
+    NT["npm test"] --> N["test:node<br/>node --test"]
     NT --> G["test:godot<br/>node scripts/godot.mjs test"]
-    W --> WT["tests/*.test.ts<br/>combat, match, regressions, ultimate"]
     N --> WA["tests/audio/*.test.mjs<br/>audio pipeline and committed WAVs"]
     N --> WS["tests/*.test.mjs<br/>size guard, credits, release,<br/>lanes board, second brain"]
     G --> IMP["godot --headless --import"]
@@ -932,17 +921,13 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 
 | Command | What it runs |
 | --- | --- |
-| `npm run dev` | Web demo dev server on port 5173 |
-| `npm test`, `npm run typecheck` | Vitest, `node --test` and GUT (`test:web`, `test:node`, `test:godot`); both type checks (`tsc` and `tools/typecheck.gd`) |
-| `npm run build` | The web demo's single HTML file |
-| `npm run soak -- 40` | 40 computer matches in the TypeScript rules |
-| `npm run soak:godot -- 40`, `npm run soak:tune` | The same in the Godot rules, with the balance report (`soak:tune` runs 300) |
+| `npm test`, `npm run typecheck` | `node --test` and GUT (`test:node`, `test:godot`); the GDScript type check (`tools/typecheck.gd`) |
+| `npm run soak:godot -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300) |
 | `npm run godot:dev`, `npm run godot:run` | Open the Godot editor; run the game |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
 | `npm run godot -- build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script |
-| `npm run godot:fixtures` | Regenerate the TypeScript parity fixtures |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
 | `npm run check:sizes` | Fail on any tracked file over 10 MB |
 
@@ -971,22 +956,15 @@ flowchart TD
         IMPRT --> BW["build_katana.gd, build_pack_weapons.gd"]
         IMPRT --> BK["bake_palettes.gd, bake_skins.gd"]
     end
-    subgraph FIXP["Parity fixtures"]
-        TSR["src/sim"] --> SF["scripts/sim-fixtures.ts<br/>scripts/port-fixtures.ts"]
-        SF --> JSON["game/tests/fixtures/*.json<br/>floats stored as hex bits"]
-    end
 ```
 
 Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
-
-On the web side, `scripts/browser.mjs` plays the built demo in a headless browser (needs Playwright, which isn't a dependency) and `scripts/counterlab.ts` measures how often the computer lands each counter.
 
 ## 17. CI and releases
 
 ```mermaid
 flowchart LR
-    PUSH["push or pull request"] --> CI1["ci.yml: test-and-build<br/>setup Godot 4.7.2, npm ci,<br/>check:sizes, npm test, typecheck,<br/>4-match Godot soak, web build"]
-    CI1 --> ART1["artifact: Monomachia (web HTML)"]
+    PUSH["push or pull request"] --> CI1["ci.yml: test<br/>setup Godot 4.7.2, npm ci,<br/>check:sizes, npm test, typecheck,<br/>4-match Godot soak"]
     CI1 --> CI2["ci.yml: export-windows<br/>Godot with export templates,<br/>npm run godot -- build"]
     CI2 --> ART2["artifact: Monomachia-windows-stand-in<br/>(STAND-IN.txt inside)"]
     PC["the developer's PC,<br/>with the clip libraries"] --> R1["npm run release -- v0.2.0<br/>checks, export, --smoke, zip"]

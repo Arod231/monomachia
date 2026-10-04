@@ -1,7 +1,5 @@
 node_modules/
-dist/
 shots/
-coverage/
 *.log
 .DS_Store
 Thumbs.db

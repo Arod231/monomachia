@@ -1,7 +1,7 @@
 extends GutTest
 ## The ink-wash UI theme (task 22.1): the project theme draws the UI in the
 ## demo's fonts (Zen Kaku Gothic New for text, Zen Antique for titles and
-## kanji) and colours (UiPalette, the demo's src/ui/style.css), checked through
+## kanji) and colours (UiPalette, the demo's v0.1-web-mvp:src/ui/style.css), checked through
 ## the controls that use it, so the theme file and UiPalette can't drift apart.
 
 const UI_FONT: String = "Zen Kaku Gothic New"
@@ -139,7 +139,7 @@ func _assert_color(got: Color, want: Color, what: String = "") -> void:
 	assert_true(got.is_equal_approx(want), "%s %s is %s" % [what, got, want])
 
 
-## Every kanji the demo's UI shows (src/ui/menus.ts, hud.ts and data.ts: the
+## Every kanji the demo's UI shows (v0.1-web-mvp:src/ui/menus.ts, hud.ts and data.ts: the
 ## title, seals, ultimate badge, round and fight calls, results, pause and the
 ## weapons' kanji), which the screens still to come take over.
 const DEMO_KANJI: String = "一騎討ち赤青奥義第二三四五六七八九戦始め武器喪失相打本勝敗利北決着休止危刀双短大剣"

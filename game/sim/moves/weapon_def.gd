@@ -1,6 +1,6 @@
 class_name WeaponDef
 extends RefCounted
-## Port of the weapon half of src/sim/moves/types.ts (WeaponId, UltimateId,
+## Port of the weapon half of v0.1-web-mvp:src/sim/moves/types.ts (WeaponId, UltimateId,
 ## WeaponClass, WeaponDef). The attack half is in attack_def.gd.
 ##
 ## Port notes:

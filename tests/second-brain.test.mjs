@@ -122,8 +122,8 @@ describe('parseScriptSummary', () => {
   });
 
   it('skips a leading "Port of" line and notes the port', () => {
-    const s = parseScriptSummary('class_name Fighter\nextends RefCounted\n## Port of src/sim/fighter.ts.\n##\n## A fighter: position, health. Pure.\n');
-    assert.equal(s.summary, 'A fighter: position, health. (port of src/sim/fighter.ts)');
+    const s = parseScriptSummary('class_name Fighter\nextends RefCounted\n## Port of v0.1-web-mvp:src/sim/fighter.ts.\n##\n## A fighter: position, health. Pure.\n');
+    assert.equal(s.summary, 'A fighter: position, health. (port of v0.1-web-mvp:src/sim/fighter.ts)');
   });
 
   it('falls back to plain # comments, and to nothing', () => {
@@ -182,7 +182,7 @@ describe('buildVault', () => {
     'game/sim/fighter.gd': 'class_name Fighter\nextends RefCounted\n## A fighter: position and posture (task 2.2).\n',
     'game/sim/moves/katana.gd': 'extends RefCounted\n## The Katana\'s moves.\n',
     'game/addons/gut/gut.gd': '## Not ours.\n',
-    'src/old.ts': 'x',
+    'scripts/old.mjs': 'x',
   }, [
     { subject: 'Add the fighter (task 1.2)', files: ['game/sim/fighter.gd', 'docs/plans/godot-rebuild.md'] },
     { subject: 'Tidy (godot-rebuild 2.1, 77.1)', files: ['game/sim/moves/katana.gd'] },
@@ -256,8 +256,8 @@ describe('safeName length', () => {
 
 describe('parseScriptSummary ports', () => {
   it('keeps a "Port of" sentence that says what the script is', () => {
-    assert.equal(parseScriptSummary('## Port of the AttackState interface in src/sim/fighter.ts: the attack in progress.\n').summary, 'Port of the AttackState interface in src/sim/fighter.ts: the attack in progress.');
-    assert.equal(parseScriptSummary('## Port of src/sim/match.ts. Round and match flow.\n').summary, 'Round and match flow. (port of src/sim/match.ts)');
+    assert.equal(parseScriptSummary('## Port of the AttackState interface in v0.1-web-mvp:src/sim/fighter.ts: the attack in progress.\n').summary, 'Port of the AttackState interface in v0.1-web-mvp:src/sim/fighter.ts: the attack in progress.');
+    assert.equal(parseScriptSummary('## Port of v0.1-web-mvp:src/sim/match.ts. Round and match flow.\n').summary, 'Round and match flow. (port of v0.1-web-mvp:src/sim/match.ts)');
   });
 });
 

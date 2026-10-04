@@ -1,6 +1,6 @@
 class_name ResultsScreen
 extends MenuScreen
-## The results after a match (port of showResults() in src/ui/menus.ts): the
+## The results after a match (port of showResults() in v0.1-web-mvp:src/ui/menus.ts): the
 ## kanji over the headline (Victory, Defeat, or the winner's name in Watch and
 ## Versus), the rounds, and the demo's seven per-fighter stats with each side
 ## in its colour; then Rematch, Change fighters and Main menu. Back goes to
