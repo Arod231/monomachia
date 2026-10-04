@@ -65,7 +65,7 @@ flowchart TD
     ROOT["monomachia/"]
     ROOT --> GAME["game/<br/>Godot 4.7 project"]
     ROOT --> SRC["src/<br/>web demo, TypeScript + three.js"]
-    ROOT --> TESTS["tests/<br/>Vitest: web rules, audio pipeline, size guard"]
+    ROOT --> TESTS["tests/<br/>Vitest: web rules<br/>node --test: audio pipeline, size guard,<br/>credits, release, lanes board, second brain"]
     ROOT --> SCRIPTS["scripts/<br/>Node tooling: Godot runner, soak, fixtures, audio generation"]
     ROOT --> DOCS["docs/<br/>design, specs, plans, research"]
     ROOT --> GH[".github/workflows/<br/>CI"]
@@ -897,15 +897,16 @@ flowchart TD
 
 ## 15. Tests
 
-`npm test` runs both suites: Vitest for the web side, then GUT in headless Godot.
+`npm test` runs three suites: Vitest for the web demo's rules, Node's own runner (`node --test`) for the Node tests, then GUT in headless Godot. A Node test file is `tests/**/*.test.mjs`, written with `node:test` and `node:assert/strict`; `tests/assert-matches.mjs` adds the one check `node:assert` lacks (a subset match, Vitest's `toMatchObject`).
 
 ```mermaid
 flowchart LR
     NT["npm test"] --> W["test:web<br/>vitest run"]
+    NT --> N["test:node<br/>node --test"]
     NT --> G["test:godot<br/>node scripts/godot.mjs test"]
     W --> WT["tests/*.test.ts<br/>combat, match, regressions, ultimate"]
-    W --> WA["tests/audio/*.test.mjs<br/>audio pipeline and committed WAVs"]
-    W --> WS["tests/check-sizes.test.mjs"]
+    N --> WA["tests/audio/*.test.mjs<br/>audio pipeline and committed WAVs"]
+    N --> WS["tests/*.test.mjs<br/>size guard, credits, release,<br/>lanes board, second brain"]
     G --> IMP["godot --headless --import"]
     IMP --> GUT["GUT: game/tests/**/test_*.gd<br/>fails on failures and on parse errors"]
 ```
@@ -932,7 +933,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | Command | What it runs |
 | --- | --- |
 | `npm run dev` | Web demo dev server on port 5173 |
-| `npm test`, `npm run typecheck` | Both suites; both type checks (`tsc` and `tools/typecheck.gd`) |
+| `npm test`, `npm run typecheck` | Vitest, `node --test` and GUT (`test:web`, `test:node`, `test:godot`); both type checks (`tsc` and `tools/typecheck.gd`) |
 | `npm run build` | The web demo's single HTML file |
 | `npm run soak -- 40` | 40 computer matches in the TypeScript rules |
 | `npm run soak:godot -- 40`, `npm run soak:tune` | The same in the Godot rules, with the balance report (`soak:tune` runs 300) |

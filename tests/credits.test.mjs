@@ -5,7 +5,8 @@
 // sounds) and game/assets/kevin_iglesias/clip_manifest.json (the licensed
 // clips, converted from the asset repository on the developer's PC).
 
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 
@@ -63,49 +64,49 @@ const spaced = (camel) => camel.replace(/([a-z])([A-Z])/g, '$1 $2');
 describe('CREDITS.md', () => {
   it('names every pack the art record lists', () => {
     const packs = tablePacks(ASSET_RECORD);
-    expect(packs.size).toBeGreaterThanOrEqual(5);
-    for (const pack of packs) expect(CREDITS, pack).toContain(pack);
+    assert.ok(packs.size >= 5);
+    for (const pack of packs) assert.ok(CREDITS.includes(pack), pack);
   });
 
   it('names every Kevin Iglesias pack the clip manifest uses, inside the section a build without the clips leaves out', () => {
     const manifest = JSON.parse(read('game/assets/kevin_iglesias/clip_manifest.json'));
     const packs = new Set(Object.values(manifest.clips).map((c) => c.pack).filter(Boolean));
-    expect([...packs].sort()).toEqual(['Human Basic Motions', 'Human Crafting Animations', 'Human Melee Animations']);
+    assert.deepEqual([...packs].sort(), ['Human Basic Motions', 'Human Crafting Animations', 'Human Melee Animations']);
     const section = CREDITS.slice(CREDITS.indexOf(IGLESIAS_BEGIN), CREDITS.indexOf(IGLESIAS_END));
-    expect(section).toContain('Kevin Iglesias');
-    for (const pack of packs) expect(section, pack).toContain(pack);
+    assert.ok(section.includes('Kevin Iglesias'));
+    for (const pack of packs) assert.ok(section.includes(pack), pack);
     const outside = CREDITS.replace(section, '');
-    expect(outside).not.toContain('Kevin Iglesias');
+    assert.ok(!outside.includes('Kevin Iglesias'));
   });
 
   it('names the Sonniss bundle and every maker whose sounds were cut from it', () => {
     const sources = read('game/assets/audio/SOURCES.md');
     const makers = new Set([...sources.matchAll(/(?:\| |<br>)([^|<>`]+?) - [^|<>`]+?: `/g)].map((m) => m[1].trim()));
-    expect(makers.size).toBeGreaterThanOrEqual(10);
-    expect(CREDITS).toContain('Sonniss');
-    for (const maker of makers) expect(CREDITS, maker).toContain(maker);
+    assert.ok(makers.size >= 10);
+    assert.ok(CREDITS.includes('Sonniss'));
+    for (const maker of makers) assert.ok(CREDITS.includes(maker), maker);
   });
 
   it('names the work behind every licence file in the game folder', () => {
     const files = licenceFiles();
-    expect(files).toContain('game/ui/fonts/ZenAntique-OFL.txt');
+    assert.ok(files.includes('game/ui/fonts/ZenAntique-OFL.txt'));
     for (const file of files) {
       const addon = file.match(/^game\/addons\/([^/]+)\//);
       const work = addon ? addon[1].toUpperCase() : spaced(file.split('/').pop().split(/[-_]/)[0]);
-      expect(CREDITS, file).toContain(work);
+      assert.ok(CREDITS.includes(work), file);
     }
   });
 
   it('carries the copyright line and points at the licence', () => {
-    expect(CREDITS).toContain('© 2026 Andrew Rodriguez');
-    expect(CREDITS).toContain('LICENSE');
+    assert.ok(CREDITS.includes('© 2026 Andrew Rodriguez'));
+    assert.ok(CREDITS.includes('LICENSE'));
   });
 });
 
 describe('game/assets/CREDITS.md', () => {
   it('names every folder in game/assets', () => {
     const folders = readdirSync(join(ROOT, 'game/assets')).filter((n) => statSync(join(ROOT, 'game/assets', n)).isDirectory());
-    expect(folders.length).toBeGreaterThanOrEqual(5);
-    for (const folder of folders) expect(ASSET_RECORD, folder).toContain(`\`${folder}/`);
+    assert.ok(folders.length >= 5);
+    for (const folder of folders) assert.ok(ASSET_RECORD.includes(`\`${folder}/`), folder);
   });
 });

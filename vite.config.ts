@@ -11,6 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts', 'tests/**/*.test.mjs'],
+    // The Node tests (tests/**/*.test.mjs) run on Node's own runner: npm run test:node.
+    include: ['tests/**/*.test.ts'],
   },
 });
