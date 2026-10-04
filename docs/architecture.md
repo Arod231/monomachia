@@ -660,7 +660,7 @@ flowchart LR
 | File | What it holds | Used by |
 | --- | --- | --- |
 | `game_services.gd` (autoload `GameServices`) | The shared `GameSettings`, `ControlProfiles`, `InputDevices`, `InputFeed`, music director and player, UI sounds, and the match being played. `begin_match`/`end_match`, `play_menu_music`, `play_match_music`, `music_event`, `play_ui`. | Nearly everything outside `sim` |
-| `game_settings.gd` | Graphics preset and volumes, saved to `user://settings.cfg`. With `MONOMACHIA_DEFAULT_SETTINGS=1` (tests, screenshots) the saved file is ignored. | GameServices, graphics applier |
+| `game_settings.gd` | Graphics preset, volumes, Reduce flashes and shaking, and Button hints, saved to `user://settings.cfg`. Its `changed` signal (emitted by the Settings screen after each change) lets a match follow a change made in the pause menu. With `MONOMACHIA_DEFAULT_SETTINGS=1` (tests, screenshots) the saved file is ignored. | GameServices, graphics applier, `MatchView` (Reduce flashes), `MatchHud` (Button hints) |
 | `match_config.gd` | Everything a match is built from: mode (Duel, Training, Watch, Versus), two `MatchSide`s, arena id, world seed. `default_duel`, `default_watch`, `attract`, `next_seed`, `problem()` (validation). | `MatchHost.start()`, main.gd, views, HUD |
 | `match_side.gd` | One side: fighter, palette, weapon, abilities, controller (human, computer, dummy), device, profile, difficulty. | MatchHost turns it into a `FighterConfig` plus a brain or a device |
 | `match_results.gd` | Winner, wins, names, weapons and stats for the results screen. | ResultsScreen, smoke run |
@@ -672,7 +672,7 @@ flowchart LR
 | File | Class | What it does |
 | --- | --- | --- |
 | `match_host.gd` | `MatchHost` | The fixed-step loop (section 5). Signals: `match_started`, `sim_event`, `stepped`, `match_finished`, `pause_changed`, `stopped`, `loadout_changed` (the training dummy swapped weapons; the view and the HUD's plate follow), `training_changed` (the dummy's behaviour or the refill changed). |
-| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. |
+| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
 | `camera_rig.gd` | `CameraRig` | FOLLOW (over the shoulder), WATCH (side-on) and MENU (orbit) cameras with damping, arena clamp, shake and FOV kick. |
 | `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera. |
 | `stick_pose.gd` | `StickPose` | Stand-in posing: hand positions and blade directions from the rules' state. Task 14.10 replaces it with authored swings. |

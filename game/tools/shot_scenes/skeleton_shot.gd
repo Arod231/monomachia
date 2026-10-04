@@ -23,6 +23,9 @@ extends Node
 ## halfway through the draw), the horizontal from her front right so its
 ## wind-up at the right shoulder shows.
 ##
+## --reduce-flashes plays any shot with Reduce flashes and shaking on (18.11):
+## the parry's glow and the fighters' body flashes dimmed.
+##
 ## --no-packs plays any shot as a fresh clone without the Iglesias clip
 ## libraries does: the CC0 fallback clips and the HUD's "animation packs
 ## missing" note (authored-animation task 8).
@@ -131,6 +134,9 @@ func _ready() -> void:
 			marker_place = a.trim_prefix("--marker=")
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
+		elif a == "--reduce-flashes":
+			# the run's own settings (shot runs use the defaults, never saved)
+			GameServices.settings.reduce_flashes = true
 	match shot:
 		"round_start":
 			_gameplay(MatchConfig.DUEL)

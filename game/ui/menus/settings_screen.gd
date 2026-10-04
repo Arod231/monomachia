@@ -89,4 +89,5 @@ func _on_volume(value: int, key: String) -> void:
 
 func _save() -> void:
 	settings.save(save_path)
+	settings.changed.emit()
 	settings_changed.emit()
