@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { assertMatches } from './assert-matches.mjs';
 import {
   GOAL_LIMIT, PLANS, PLAN_BY_KEY, cancelStops, expandIds, goalFor, linkMoved, mergeCopies, parseFlat, parseNested,
-  parsePlan, parseRoadmap, planOfBranch, roadmapView,
+  SUBJECT_TASK, parsePlan, parseRoadmap, planOfBranch, roadmapView,
 } from '../tools/lanes-board/plans.mjs';
 
 const GR = PLAN_BY_KEY.gr;
@@ -108,15 +108,40 @@ describe('parseFlat', () => {
 });
 
 describe('PLANS', () => {
-  it('follows the roadmap, milestone 1, the Godot rebuild and authored animation (closed), not the session tracker', () => {
+  it('follows the roadmap, milestone 1, the Godot rebuild, authored animation (closed) and the Project Manager\'s remote control, not the session tracker', () => {
     assert.deepEqual(PLANS.map((p) => [p.key, p.kind, p.branch, !!p.closed]), [
       ['rm', 'roadmap', 'feature/godot-rebuild', false],
       ['m1', 'flat', 'feature/milestone-1', false],
       ['gr', 'nested', 'feature/godot-rebuild', false],
       ['aa', 'flat', 'feature/authored-animation', true],
+      ['pm', 'flat', 'tools/project-manager-remote', false],
     ]);
     assert.equal(RM.file, 'docs/plans/roadmap.md');
     assert.equal(M1.file, 'docs/plans/milestone-1.md');
+    assert.equal(PLAN_BY_KEY.pm.file, 'docs/plans/project-manager-remote.md');
+    assert.equal(PLAN_BY_KEY.pm.into, 'feature/godot-rebuild');
+  });
+});
+
+describe('the Project Manager plan (PM)', () => {
+  const branches = Object.fromEntries(PLANS.map((p) => [p.key, p.branch]));
+
+  it('is claimed by its own branch and by launched pm lanes', () => {
+    assert.deepEqual(planOfBranch('tools/project-manager-remote', branches), { key: 'pm', scope: null });
+    assert.deepEqual(planOfBranch('lane/pm-6-7', branches), { key: 'pm', scope: ['6', '7'] });
+  });
+
+  it('names its tasks in commit subjects as "(PM task N)" only', () => {
+    assert.equal('Hold questions while Away is on (PM task 6)'.match(SUBJECT_TASK.pm)?.[1], '6');
+    assert.doesNotMatch('The frame-data table (task 6)', SUBJECT_TASK.pm);
+    assert.doesNotMatch('Swing sampler (task 7.3)', SUBJECT_TASK.pm);
+  });
+
+  it('launches lanes into its branch, which merges into the Godot rebuild branch', () => {
+    const goal = goalFor({ plan: PLAN_BY_KEY.pm, ids: ['6'], tasks: { 6: { title: 'Away, and questions answered' } },
+      branch: 'lane/pm-6', repo: 'C:\\Repo' });
+    assert.ok(goal.includes('tools/project-manager-remote (which merges into feature/godot-rebuild)'));
+    assert.ok(goal.includes('origin/tools/project-manager-remote'));
   });
 });
 
