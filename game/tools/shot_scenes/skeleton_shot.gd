@@ -55,6 +55,11 @@ extends Node
 ## pick-up over Ultimate ready, in keyboard and mouse names), "pad" (the same
 ## after a PlayStation controller was used) or "tilt" (the Moonsplitter's
 ## wind-up on that controller, naming the stick, over the counter lunge).
+##
+## "marker" shows the marker on the disarmed Rogue's Katana (24.5) by
+## --marker=: "on" (on the floor ahead, between her and the dummy, the arrow
+## down at it), "edge" (8 m off to her right, clamped to the right edge) or
+## "behind" (7 m behind her, behind the camera, clamped to the bottom).
 
 const SEED: int = 7
 
@@ -62,7 +67,7 @@ const SEED: int = 7
 	"round_start", "exchange", "parry", "watch", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
 	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
-	"recall_burst", "toasts", "prompts",
+	"recall_burst", "toasts", "prompts", "marker",
 ) var shot: String = "round_start"
 ## The fighters' distance apart for the "spacing" shot (m).
 @export var spacing: float = 2.5
@@ -77,6 +82,9 @@ const SEED: int = 7
 @export var toasts_form: String = "player"
 ## The "prompts" shot's form: keyboard, pad or tilt (--prompts= sets it too).
 @export var prompts_form: String = "keyboard"
+## Where the "marker" shot's weapon lies: on, edge or behind (--marker= sets
+## it too).
+@export var marker_place: String = "on"
 ## The "ko" shot's steps after the K.O. (--frame= sets it too).
 @export var steps_after: int = 16
 ## The "hud_states" shot with the two sides' states swapped.
@@ -119,6 +127,8 @@ func _ready() -> void:
 			toasts_form = a.trim_prefix("--toasts=")
 		elif a.begins_with("--prompts="):
 			prompts_form = a.trim_prefix("--prompts=")
+		elif a.begins_with("--marker="):
+			marker_place = a.trim_prefix("--marker=")
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
 	match shot:
@@ -219,6 +229,12 @@ func _ready() -> void:
 			_toasts_shot()
 		"prompts":
 			_prompts_shot()
+		"marker":
+			_marker_shot()
+			# the Training panel settles its size over a frame or two; the
+			# marker keeps off it by its rect
+			for k: int in 2:
+				await get_tree().process_frame
 	var view: MatchView = host.get_node("View")
 	view.snap_camera()
 	if shot == "dropped":
@@ -364,6 +380,35 @@ func _prompts_shot() -> void:
 	var b: Fighter = host.fighter(1)
 	var away: Vector3 = Vector3(a.pos.x - b.pos.x, 0.0, a.pos.z - b.pos.z).normalized()
 	var w := DroppedWeapon.new(0, &"katana", V3.make(a.pos.x + away.x * 1.5, 0.0, a.pos.z + away.z * 1.5), V3.make(), Rng.new(SEED))
+	w.grounded = true
+	host.world.weapons.append(w)
+	host.step(2)
+
+
+## The player's Rogue, disarmed, 2.6 m from an idle training dummy, her
+## Katana lying where marker_place puts it (relative to her and the dummy,
+## so to the follow camera behind her).
+func _marker_shot() -> void:
+	var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
+	dummy.controller = MatchSide.DUMMY
+	var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
+	_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(FakeDeviceState.new()))
+	host.step(Match.INTRO_FRAMES + 20)
+	_place_apart(2.6)
+	var a: Fighter = host.fighter(0)
+	var b: Fighter = host.fighter(1)
+	var ahead: Vector3 = Vector3(b.pos.x - a.pos.x, 0.0, b.pos.z - a.pos.z).normalized()
+	var right: Vector3 = ahead.cross(Vector3.UP)
+	var at: Vector3 = Vector3(a.pos.x, 0.0, a.pos.z)
+	match marker_place:
+		"edge":
+			at += right * 8.0 + ahead * 1.0
+		"behind":
+			at -= ahead * 7.0
+		_:
+			at += ahead * 1.2 + right * 0.9
+	a.armed = false
+	var w := DroppedWeapon.new(0, &"katana", V3.make(at.x, 0.0, at.z), V3.make(), Rng.new(SEED))
 	w.grounded = true
 	host.world.weapons.append(w)
 	host.step(2)

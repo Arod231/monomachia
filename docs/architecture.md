@@ -856,6 +856,7 @@ stateDiagram-v2
 | `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, the prompts (shown by the Button hints setting), and in Training the `TrainingPanel`. Hidden in the attract duel. |
 | `ui/hud/hud_toasts.gd` | `HudToasts` | The toasts under the centre: `for_event()` says what a rules event toasts from the player's side or Watch's (no nodes); up to three on screen, 69 rules steps each, held by a pause. |
 | `ui/hud/hud_prompts.gd`, `key_cap.gd` | `HudPrompts`, `KeyCap` | The prompts at the bottom: `for_fighter()` says what the player can press now (no nodes), at most two, urgent first; each key a `KeyCap` named for the device used last. |
+| `ui/hud/weapon_marker.gd` | `WeaponMarker` | "Your weapon" over your dropped weapon as the gameplay camera sees it; `place()` (no nodes) clamps it whole to the screen's edge, pointing the way, when the weapon is off screen or behind the camera. |
 | `ui/hud/training_panel.gd` | `TrainingPanel` | Training's panel at the bottom left: "Dummy · <weapon>", the nine behaviour chips (keys 1–9) and refill (key 0), clicks too; a digit bound in the player's profile is left to its action. Follows `MatchHost.training_changed` and `loadout_changed`; hidden while paused. |
 | `ui/hud/hud_bar.gd` | `HudBar` | A meter with a lagging band. |
 

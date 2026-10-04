@@ -12,7 +12,10 @@ extends CanvasLayer
 ## in Training evades and the dummy's behaviour. The prompts at the bottom
 ## (24.4, HudPrompts): at most two, urgent first, naming each key as a key
 ## cap from the device the player last used, for the player's own side only,
-## while the round is fought and the Button hints setting is on. In Training,
+## while the round is fought and the Button hints setting is on. The marker
+## on your dropped weapon (24.5, WeaponMarker): "Your weapon" over it as the
+## gameplay camera sees it, from the disarm until it is back in hand,
+## clamped to the screen's edge when it is off screen. In Training,
 ## the TrainingPanel at the bottom left (23.3). Without the Iglesias clip
 ## libraries a small note in the corner says the animation packs are missing
 ## (authored-animation task 8), and the log says what to fix
@@ -88,6 +91,8 @@ var training_panel: TrainingPanel
 var toasts: HudToasts
 ## The prompts at the bottom (24.4).
 var prompts: HudPrompts
+## The marker on your dropped weapon (24.5).
+var weapon_marker: WeaponMarker
 ## The settings whose Button hints switch shows or hides the prompts; null
 ## for the game's (GameServices.settings). Tests set their own.
 var settings: GameSettings
@@ -221,6 +226,7 @@ func _on_match_finished(_results: MatchResults) -> void:
 	toasts.clear()
 	_refresh_announcement()
 	prompts.show_prompts([])
+	weapon_marker.visible = false
 	visible = false
 
 
@@ -342,6 +348,34 @@ func _process(delta: float) -> void:
 		_tags[i].visible = s.disarmed
 	prompts.show_prompts(_prompts_now())
 	_place_prompts()
+	_place_weapon_marker()
+
+
+## Shows the marker on the player's dropped weapon, flying or grounded, as
+## the gameplay camera sees it; hides it while the player is armed, in Watch
+## (Versus waits for 23.7) and without a camera. In Training it rises above
+## the panel at the bottom left rather than sit on it.
+func _place_weapon_marker() -> void:
+	var me: int = _me()
+	var w: DroppedWeapon = null
+	if me >= 0 and not host.fighter(me).armed:
+		w = host.world.weapon_of(me)
+	var cam: Camera3D = _camera()
+	if w == null or cam == null:
+		weapon_marker.visible = false
+		return
+	weapon_marker.show_for(cam, Vector3(w.pos.x, maxf(w.pos.y, 0.0), w.pos.z), _root.size)
+	var panel: Rect2 = training_panel.get_rect()
+	if training_panel.visible and weapon_marker.get_rect().intersects(panel):
+		weapon_marker.position.y = panel.position.y - PROMPT_PANEL_GAP - weapon_marker.size.y
+
+
+## The gameplay camera: the match view's, else the viewport's.
+func _camera() -> Camera3D:
+	var view: MatchView = host.get_node_or_null("View") as MatchView
+	if view != null and view.camera != null:
+		return view.camera
+	return get_viewport().get_camera_3d()
 
 
 ## The prompts sit centred at the bottom; in Training they move right, as
@@ -548,6 +582,10 @@ func _build() -> void:
 	toasts.offset_left = -500.0
 	toasts.offset_right = 500.0
 	_root.add_child(toasts)
+
+	# the marker on your dropped weapon, placed each frame
+	weapon_marker = WeaponMarker.new()
+	_root.add_child(weapon_marker)
 
 	# the demo's prompts: bottom centre, 22 px up, growing upward
 	prompts = HudPrompts.new()
