@@ -41,7 +41,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 - Oct 4, 2026: spec approved; plan drafted.
 - Oct 4, 2026: the owner approved this plan (task 1). Next: task 2 in its own small pull request, then the spike (task 3).
-- Oct 4, 2026: task 2 is in pull request #37 (`tools/board-follows-pm-plan` into `feature/godot-rebuild`), waiting for the owner's approval; ticked here once it merges.
+- Oct 4, 2026: task 2 done: pull request #37 merged (38f43fa) and the live Project Manager follows PM. Next: the spike (task 3), with task 4 alongside while its long holds run.
 
 ## Build order
 
@@ -62,12 +62,13 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Blocked by: none
   - **Owner:** approves this plan. Nothing below starts until then.
   - Done Oct 4: the owner approved this plan, after approving the spec the same day.
-- [ ] **2. The board follows this plan.** The Project Manager shows plan "PM" on its Progress and Graph tabs, outside the roadmap's phases.
+- [x] **2. The board follows this plan.** The Project Manager shows plan "PM" on its Progress and Graph tabs, outside the roadmap's phases.
   - Delivers:
     - a PM entry in the board's plan list (flat kind, this plan's branch, into `feature/godot-rebuild`);
     - "(PM task N)" in a commit subject naming a lane's task;
     - launched PM lanes taking `lane/pm-<ids>` branches.
     It ships in its own small pull request, so that the live board follows this plan before the feature merges.
+  - Done Oct 4: pull request #37 merged into `feature/godot-rebuild` (38f43fa) on the owner's approval; the live Project Manager restarted onto it and shows PM.
   - Check:
     - a board test parses this plan's tasks, build order and blockers;
     - a test board on a spare port shows PM on Progress and Graph in the Browser pane;
