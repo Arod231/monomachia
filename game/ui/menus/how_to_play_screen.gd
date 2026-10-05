@@ -1,6 +1,6 @@
 class_name HowToPlayScreen
 extends MenuScreen
-## How to play (port of showHowTo() in src/ui/menus.ts, 22.14): a tab row
+## How to play (port of showHowTo() in v0.1-web-mvp:src/ui/menus.ts, 22.14): a tab row
 ## over a scrolling page. The Rules tab holds the demo's rule blocks, written
 ## for this build's rules; a tab per weapon and bare hands holds its move list
 ## (MoveList). Back returns to the page that opened it (the main menu now,

@@ -1,7 +1,7 @@
 class_name RebindCapture
 extends RefCounted
 ## Waits for the input to put in one binding slot on the Controls screen.
-## Port of startCapture() and its capture rules in src/input/devices.ts.
+## Port of startCapture() and its capture rules in v0.1-web-mvp:src/input/devices.ts.
 ##
 ## Keyboard-and-mouse tab: the next key or mouse button press is bound (keys by
 ## physical position, with the side for a left or right Shift, Ctrl or Alt).

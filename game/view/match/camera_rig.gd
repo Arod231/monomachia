@@ -1,6 +1,6 @@
 class_name CameraRig
 extends Camera3D
-## The match camera. Port of src/render/camera.ts, reframed as the spec's For
+## The match camera. Port of v0.1-web-mvp:src/render/camera.ts, reframed as the spec's For
 ## Honor camera (spec, Decisions: "Camera"):
 ##
 ## - FOLLOW: over the player's right shoulder on the line from the player to

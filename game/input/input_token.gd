@@ -1,7 +1,7 @@
 class_name InputToken
 extends RefCounted
 ## One physical input written as a short string, the unit of a binding.
-## Port of the token strings in src/input/bindings.ts, with Godot's codes:
+## Port of the token strings in v0.1-web-mvp:src/input/bindings.ts, with Godot's codes:
 ##
 ##   "k:<physical keycode>"   a key by its position on a US QWERTY keyboard (k:87 = W)
 ##   "k:<keycode><L|R>"       the left or right key of a pair, from InputEventKey.location

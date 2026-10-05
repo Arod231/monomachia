@@ -1,6 +1,6 @@
 class_name FighterStats
 extends RefCounted
-## Port of the FighterStats interface in src/sim/fighter.ts: per-fighter tallies
+## Port of the FighterStats interface in v0.1-web-mvp:src/sim/fighter.ts: per-fighter tallies
 ## for the results screen and the soak run.
 
 var hits_landed: int = 0

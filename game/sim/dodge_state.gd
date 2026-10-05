@@ -1,6 +1,6 @@
 class_name DodgeState
 extends RefCounted
-## Port of the DodgeState interface in src/sim/fighter.ts: a dodge or backstep
+## Port of the DodgeState interface in v0.1-web-mvp:src/sim/fighter.ts: a dodge or backstep
 ## in progress.
 
 var dir_x: float = 0.0

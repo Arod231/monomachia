@@ -1,6 +1,6 @@
 class_name V2
 extends RefCounted
-## Port of the Vec2 interface in src/sim/math.ts: a point or direction on the
+## Port of the Vec2 interface in v0.1-web-mvp:src/sim/math.ts: a point or direction on the
 ## ground plane (XZ).
 ##
 ## Port note: a 64-bit float pair instead of Godot's Vector2, which is float32

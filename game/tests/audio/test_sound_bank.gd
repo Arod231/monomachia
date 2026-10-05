@@ -2,7 +2,7 @@ extends GutTest
 ## The event-to-sound table: every rules event has an entry, every file it
 ## names exists and loads, and the demo's sub-selection rules hold.
 
-## The web demo's event list (src/sim/events.ts) plus the menu sounds.
+## The web demo's event list (v0.1-web-mvp:src/sim/events.ts) plus the menu sounds.
 const EXPECTED_EVENTS: Array[StringName] = [
 	&"swing", &"telegraph", &"hit", &"block", &"parry", &"counter", &"evade", &"disarm",
 	&"stagger", &"dodge", &"jump", &"land", &"step", &"ko", &"ultReady", &"ultStart",

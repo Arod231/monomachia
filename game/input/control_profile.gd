@@ -1,8 +1,8 @@
 class_name ControlProfile
 extends RefCounted
 ## A named controls profile: one binding set for keyboard and mouse ("kb") and
-## one for controllers ("pad"). Port of Profile in src/input/bindings.ts and the
-## binding edits of the Controls screen in src/ui/menus.ts.
+## one for controllers ("pad"). Port of Profile in v0.1-web-mvp:src/input/bindings.ts and the
+## binding edits of the Controls screen in v0.1-web-mvp:src/ui/menus.ts.
 
 ## The two tabs of the Controls screen, and the two binding sets.
 const KB: String = "kb"

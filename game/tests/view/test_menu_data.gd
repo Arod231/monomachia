@@ -25,7 +25,7 @@ func test_bare_hands_and_unknown_weapons_have_none() -> void:
 	assert_null(MenuData.weapon(&"spear"))
 
 
-## The demo's cards (src/ui/data.ts WEAPON_INFO).
+## The demo's cards (v0.1-web-mvp:src/ui/data.ts WEAPON_INFO).
 func test_the_cards_keep_the_demos_words_and_bars() -> void:
 	var k: MenuData.WeaponInfo = MenuData.weapon(&"katana")
 	assert_eq([k.kanji, k.weapon_class, k.ultimate], ["刀", "Medium", "Moonsplitter"])
@@ -68,7 +68,7 @@ func test_an_unknown_ability_shows_its_id_and_no_description() -> void:
 	assert_eq(MenuData.ability_desc(&"x_nothing"), "")
 
 
-## The demo's descriptions (src/ui/data.ts ABILITY_INFO), one per ability.
+## The demo's descriptions (v0.1-web-mvp:src/ui/data.ts ABILITY_INFO), one per ability.
 func test_the_descriptions_keep_the_demos_words() -> void:
 	assert_eq(MenuData.ability_desc(&"k_flash"), "Parry stance with a wide window. Stuns the attacker.")
 	assert_eq(MenuData.ability_desc(&"g_crush"), "Shoulder bash that crushes posture through a block.")

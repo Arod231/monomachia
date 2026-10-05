@@ -136,7 +136,7 @@ export function parseScriptSummary(gd) {
   const paragraphs = doc.split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
   let port = '';
   let para = paragraphs[0] ?? '';
-  // "Port of src/sim/fighter.ts." alone says nothing; "Port of the X interface in …: …" does, so it stays.
+  // "Port of v0.1-web-mvp:src/sim/fighter.ts." alone says nothing; "Port of the X interface in …: …" does, so it stays.
   const p = /^Port of (\S+\.(?:ts|js))\.(\s|$)/.exec(para);
   if (p) {
     port = p[1];

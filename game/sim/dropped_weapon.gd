@@ -1,6 +1,6 @@
 class_name DroppedWeapon
 extends RefCounted
-## Port of the DroppedWeapon class in src/sim/world.ts (and DroppedWeaponLike in
+## Port of the DroppedWeapon class in v0.1-web-mvp:src/sim/world.ts (and DroppedWeaponLike in
 ## worldTypes.ts): a weapon knocked out of a fighter's hands, flying or lying on
 ## the ground.
 ##

@@ -3,7 +3,7 @@ extends RefCounted
 ## The white "damage just taken" band under an HP bar: it holds where the HP
 ## was for HOLD seconds after a loss, then drains at DRAIN of the bar a second
 ## until it meets the HP. A heal moves it up at once. On the wall clock, as
-## the demo's (src/ui/hud.ts).
+## the demo's (v0.1-web-mvp:src/ui/hud.ts).
 
 const HOLD: float = 0.45
 const DRAIN: float = 0.6
