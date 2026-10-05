@@ -168,6 +168,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 4):
     - the preview serves this lane's branch (`lane/pm-7-8-9-10`) as soon as task 9's code is in, and moves to `tools/project-manager-remote` once the lane's pull request merges;
     - while the owner tries Away from the phone, task 10 is built; task 9 is ticked once the owner confirms it worked.
+  - The install (Oct 4): both hooks were copied to `~/.claude/hooks/` and the preview runs this lane on 5197. `~/.claude/settings.json` refuses every write on this PC, even from Notepad or an administrator's PowerShell, though its permissions are normal, so the relay hook's timeouts stay at 1500 s. Holds give up after 25 minutes until that's found. The owner chose to try Away now and leave the 24-hour timeouts as a follow-up (`npm run board:hooks` finishes the install once the file can be written).
 
 ### Phase C: notifications
 
