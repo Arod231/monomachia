@@ -7,7 +7,10 @@ extends GutTest
 ## their own. Since milestone-1 task 17 the Greatsword's and the Daggers'
 ## moves play their clips at 1.0x with no band test until milestone 2
 ## re-keys them (the spec's P10): what they get wrong is printed, not failed
-## (test_duel_reach.gd's MILESTONE_2).
+## (test_duel_reach.gd's MILESTONE_2). Since milestone-1 task 18 a Katana or
+## bare-hands move off the band tables' waiting list is held by the
+## distance-band test (test_move_bands.gd) instead, so this guards today's
+## reach only for the moves still waiting (DuelReach.still_waits()).
 
 const RT := preload("res://tests/sim/reach_table.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
@@ -27,7 +30,7 @@ static func _weapon_problems(w: WeaponDef) -> Array[String]:
 	var out: Array[String] = []
 	for id: StringName in w.moves:
 		var m: AttackDef = w.moves[id]
-		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) != &"string_light":
+		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) != &"string_light" and DuelReach.still_waits(w, id):
 			out.append_array(_problems(w, id))
 	return out
 

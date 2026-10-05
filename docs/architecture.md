@@ -79,7 +79,7 @@ flowchart TD
 | Folder | What it holds |
 | --- | --- |
 | `game/sim` | The rules: fighters, world, match, moves, AI. Pure `RefCounted` objects, stepped 60 times per second, no nodes or rendering. |
-| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry; the baked swings (`swings/<weapon>.json`) and the frame-data table (`frame_data.json`, read by `FrameDataTable`), both written by `godot.mjs bake`. |
+| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry; the baked swings (`swings/<weapon>.json`) and the frame-data table (`frame_data.json`, read by `FrameDataTable`), both written by `godot.mjs bake`; the band tables (`bands.json`, read by `MoveBands`), written by hand from the spec. |
 | `game/sim/ai` | `AIBrain` (the computer opponent) and `TrainingBrain` (the training dummy). |
 | `game/input` | Reading keyboards, mice and controllers into a `RawInput` per player; bindings, profiles, rebinding, button labels. |
 | `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
@@ -265,6 +265,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `v2.gd`, `v3.gd` | `V2`, `V3` | 64-bit vectors (Godot's `Vector3` is 32-bit). |
 | `moves/attack_def.gd` | `AttackDef` | One move's frame data and flags; `finalize_moves()` fills defaults. |
 | `moves/frame_data_table.gd` | `FrameDataTable` | The committed frame-data table (milestone-1 task 16): each move's band kind, chain, generated frame data and per-frame travel, each gait clip's measured speed, each rules-length clip's length, the clips not keyed yet, and per row the source clips' checksum and a digest of the row with its swing (`digest()`), which CI recomputes. |
+| `moves/move_bands.gd` | `MoveBands` | The band tables (milestone-1 task 18): the spec's timing bands and distance bands per weapon and move kind, and the moves waiting for their family's re-key; `timing_problems()` holds a table row to its timing band, `distance_check()` plays a move from standing (`SwingReach`) at each distance its band names. Read by `test_move_bands.gd` and the Studio, never by the rules. |
 | `moves/weapon_def.gd` | `WeaponDef` | One weapon: class, speed, parry window, block mitigation, its moves and which move starts each context. |
 | `moves/moves.gd` | `Moves` | The registry: `WEAPONS`, `PLAYABLE_WEAPONS`, `COUNTER_LUNGE`, `ULT_HITS`, `get_move()`. |
 | `moves/katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd` | `KatanaMoves` and so on | Each weapon's `MOVES` table and `build()`: what design sets (damage, posture, kind, type, follow-ups, lunges and the like). Since milestone-1 task 17 the frames (startup, active, recovery, the dodge cancel, the travel) come from the frame-data table (`AttackDef.finalize_moves()` given the weapon, `TABLE_FIELDS`). Fists is the bare-hands moveset. |
