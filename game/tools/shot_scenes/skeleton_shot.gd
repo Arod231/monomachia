@@ -23,6 +23,9 @@ extends Node
 ## halfway through the draw), the horizontal from her front right so its
 ## wind-up at the right shoulder shows.
 ##
+## --reduce-flashes plays any shot with Reduce flashes and shaking on (18.11):
+## the parry's glow and the fighters' body flashes dimmed.
+##
 ## --no-packs plays any shot as a fresh clone without the Iglesias clip
 ## libraries does: the CC0 fallback clips and the HUD's "animation packs
 ## missing" note (authored-animation task 8).
@@ -44,6 +47,22 @@ extends Node
 ## against the idle dummy at 2.2 m, up to its frame --frame= (default 18,
 ## just after the burst): the aura, the burst's flare and shockwave, the dummy
 ## blasted down.
+##
+## "toasts" shows three toasts (24.3) in their hold, by --toasts=: "player"
+## (gold Parry, the jade Evade counter with its advice, the opponent's red
+## Ultimate), "training" (the dim Dummy behaviour and Evaded, the jade Behind
+## them) or "watch" (named in the sides' red and blue).
+##
+## "prompts" shows the prompts (24.4) by --prompts=: "keyboard" (the
+## disarmed Rogue 1.5 m from her Katana with the ultimate ready: the urgent
+## pick-up over Ultimate ready, in keyboard and mouse names), "pad" (the same
+## after a PlayStation controller was used) or "tilt" (the Moonsplitter's
+## wind-up on that controller, naming the stick, over the counter lunge).
+##
+## "marker" shows the marker on the disarmed Rogue's Katana (24.5) by
+## --marker=: "on" (on the floor ahead, between her and the dummy, the arrow
+## down at it), "edge" (8 m off to her right, clamped to the right edge) or
+## "behind" (7 m behind her, behind the camera, clamped to the bottom).
 
 const SEED: int = 7
 
@@ -51,7 +70,7 @@ const SEED: int = 7
 	"round_start", "exchange", "parry", "watch", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
 	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
-	"recall_burst",
+	"recall_burst", "toasts", "prompts", "marker",
 ) var shot: String = "round_start"
 ## The fighters' distance apart for the "spacing" shot (m).
 @export var spacing: float = 2.5
@@ -62,6 +81,13 @@ const SEED: int = 7
 ## The "call" shot's announcement (24.2), from the player's side: final_round,
 ## fight, double_ko, round_won (Perfect) or disarmed (--call= sets it too).
 @export var call: String = "final_round"
+## The "toasts" shot's form: player, training or watch (--toasts= sets it too).
+@export var toasts_form: String = "player"
+## The "prompts" shot's form: keyboard, pad or tilt (--prompts= sets it too).
+@export var prompts_form: String = "keyboard"
+## Where the "marker" shot's weapon lies: on, edge or behind (--marker= sets
+## it too).
+@export var marker_place: String = "on"
 ## The "ko" shot's steps after the K.O. (--frame= sets it too).
 @export var steps_after: int = 16
 ## The "hud_states" shot with the two sides' states swapped.
@@ -100,8 +126,17 @@ func _ready() -> void:
 			steps_after = iai_frame
 		elif a.begins_with("--call="):
 			call = a.trim_prefix("--call=")
+		elif a.begins_with("--toasts="):
+			toasts_form = a.trim_prefix("--toasts=")
+		elif a.begins_with("--prompts="):
+			prompts_form = a.trim_prefix("--prompts=")
+		elif a.begins_with("--marker="):
+			marker_place = a.trim_prefix("--marker=")
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
+		elif a == "--reduce-flashes":
+			# the run's own settings (shot runs use the defaults, never saved)
+			GameServices.settings.reduce_flashes = true
 	match shot:
 		"round_start":
 			_gameplay(MatchConfig.DUEL)
@@ -196,6 +231,16 @@ func _ready() -> void:
 			host.step(40)
 		"recall_burst":
 			_recall_burst()
+		"toasts":
+			_toasts_shot()
+		"prompts":
+			_prompts_shot()
+		"marker":
+			_marker_shot()
+			# the Training panel settles its size over a frame or two; the
+			# marker keeps off it by its rect
+			for k: int in 2:
+				await get_tree().process_frame
 	var view: MatchView = host.get_node("View")
 	view.snap_camera()
 	if shot == "dropped":
@@ -262,6 +307,117 @@ func _call_shot() -> void:
 		"disarmed":
 			hud._on_sim_event({"t": &"disarm", "victim": 0})
 	host.step(20)
+
+
+## Three toasts of toasts_form, made a few steps apart and held 20 steps on
+## (all in their hold): a Duel with the player on side 0, Training against an
+## idle dummy, or Watch. The match's own events are cut off from the HUD
+## after the intro, so a live parry can't push one of them out.
+func _toasts_shot() -> void:
+	var events: Array[Dictionary] = []
+	match toasts_form:
+		"training":
+			var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
+			dummy.controller = MatchSide.DUMMY
+			var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
+			_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(FakeDeviceState.new()))
+			events = [{"t": &"evade", "f": 0, "attacker": 1}, {"t": &"backstabReady", "f": 0}]
+		"watch":
+			_gameplay(MatchConfig.WATCH)
+			events = [
+				{"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 3, "window": 6},
+				{"t": &"counter", "kind": &"stomp", "by": 1, "on": 0},
+				{"t": &"ultStart", "f": 1, "ult": &"impaler"},
+			]
+		_:
+			var cfg: MatchConfig = MatchConfig.make(
+				MatchConfig.DUEL,
+				MatchSide.human(&"rogue", &"katana", 0),
+				MatchSide.computer(&"hunter", &"greatsword", 1, &"hard"),
+				SEED,
+			)
+			_gameplay(MatchConfig.DUEL, cfg, InputDevices.new(FakeDeviceState.new()))
+			events = [
+				{"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 3, "window": 6},
+				{"t": &"counter", "kind": &"evade", "by": 0, "on": 1},
+				{"t": &"ultStart", "f": 1, "ult": &"impaler"},
+			]
+	host.step(Match.INTRO_FRAMES + 10)
+	var hud: MatchHud = host.get_node("Hud")
+	# only the shot's own toasts: the live duel's events no longer reach the HUD
+	host.sim_event.disconnect(hud._on_sim_event)
+	if toasts_form == "training":
+		host.set_training_behaviour(&"lights")
+		host.step(4)
+	for e: Dictionary in events:
+		hud._on_sim_event(e)
+		host.step(4)
+	host.step(20)
+	hud._process(0.0)
+
+
+## The player's Rogue 2.6 m from an idle training dummy at 20 HP (the
+## ultimate ready), by prompts_form: disarmed with her Katana on the ground
+## 1.5 m away, on the keyboard or after a PlayStation controller was used;
+## or ("tilt") in the Moonsplitter's wind-up on that controller with a
+## counter lunge open.
+func _prompts_shot() -> void:
+	var devices: FakeDeviceState = FakeDeviceState.new()
+	var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
+	dummy.controller = MatchSide.DUMMY
+	var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
+	_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(devices))
+	host.step(Match.INTRO_FRAMES + 20)
+	_place_apart(2.6)
+	if prompts_form != "keyboard":
+		devices.plug_pad(0, "PS5 Controller")
+		var press := InputEventJoypadButton.new()
+		press.button_index = JOY_BUTTON_A
+		press.pressed = true
+		host.input.note_event(press)
+	var a: Fighter = host.fighter(0)
+	a.hp = 20.0
+	if prompts_form == "tilt":
+		a.start_ult()
+		a.counter_lunge_until = host.world.frame + 30
+		host.step(4)
+		return
+	a.armed = false
+	var b: Fighter = host.fighter(1)
+	var away: Vector3 = Vector3(a.pos.x - b.pos.x, 0.0, a.pos.z - b.pos.z).normalized()
+	var w := DroppedWeapon.new(0, &"katana", V3.make(a.pos.x + away.x * 1.5, 0.0, a.pos.z + away.z * 1.5), V3.make(), Rng.new(SEED))
+	w.grounded = true
+	host.world.weapons.append(w)
+	host.step(2)
+
+
+## The player's Rogue, disarmed, 2.6 m from an idle training dummy, her
+## Katana lying where marker_place puts it (relative to her and the dummy,
+## so to the follow camera behind her).
+func _marker_shot() -> void:
+	var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
+	dummy.controller = MatchSide.DUMMY
+	var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
+	_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(FakeDeviceState.new()))
+	host.step(Match.INTRO_FRAMES + 20)
+	_place_apart(2.6)
+	var a: Fighter = host.fighter(0)
+	var b: Fighter = host.fighter(1)
+	var ahead: Vector3 = Vector3(b.pos.x - a.pos.x, 0.0, b.pos.z - a.pos.z).normalized()
+	var right: Vector3 = ahead.cross(Vector3.UP)
+	var at: Vector3 = Vector3(a.pos.x, 0.0, a.pos.z)
+	match marker_place:
+		"edge":
+			at += right * 8.0 + ahead * 1.0
+		"behind":
+			at -= ahead * 7.0
+		_:
+			at += ahead * 1.2 + right * 0.9
+	a.armed = false
+	var w := DroppedWeapon.new(0, &"katana", V3.make(at.x, 0.0, at.z), V3.make(), Rng.new(SEED))
+	w.grounded = true
+	host.world.weapons.append(w)
+	host.step(2)
 
 
 func _config(mode: StringName) -> MatchConfig:

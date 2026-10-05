@@ -52,7 +52,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 4. [ ] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer.
 5. [x] As a player, I want to pick the computer's fighter, weapon and difficulty (Easy, Normal, Hard), or leave its weapon random, so that I control the challenge.
 6. [x] As a player, I want the match to be first to three rounds with a clear round call and "Fight", so that I always know where the match stands.
-7. [ ] As a player, I want health bars with the posture bar underneath, round pips and an ultimate badge, so that I can read the state of the fight at a glance.
+7. [x] As a player, I want health bars with the posture bar underneath, round pips and an ultimate badge, so that I can read the state of the fight at a glance. (Task 24: the top bar, the announcements, toasts, prompts and the dropped-weapon marker, in the ink-wash theme; milestone 1 restyles them for the realistic look.)
 8. [x] As a player, I want a results screen with rounds won and match stats, and options to rematch, change fighters or go to the main menu, so that I can play again quickly.
 9. [x] As a player, I want to pause at any time and reach the move list, controls and settings from the pause menu, so that I can check things mid-match. (22.15: `PauseScreen`, with Restart and Quit to menu; the move list opens on the weapon in hand.)
 10. [x] As a player, I want the game to pause itself when the window loses focus, so that I don't lose a round while tabbed out.
@@ -133,7 +133,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 54. [ ] As a player, I want Watch mode with a side-on cinematic camera, so that I can learn the moves by watching the computer duel.
 55. [ ] As two players on one PC, I want Versus in a vertical split screen, each with our own camera and device (keyboard and mouse, the arrow-key layout, or a controller), so that we can play head to head.
 56. [x] As a player, I want to remap every action for keyboard, mouse and controller, save named profiles, and see PlayStation or Xbox button names, so that the controls suit me. (22.10–22.12: the Controls screen's binding table, rebinding capture and profiles, played with in a match through the active profile; a profile picked in the pause menu's Controls is taken up on resume (22.15); Versus picks profiles with 22.16.)
-57. [ ] As a player, I want graphics presets, a reduce-flashes-and-shaking option and a button-hints option, so that the game runs and reads well for me.
+57. [x] As a player, I want graphics presets, a reduce-flashes-and-shaking option and a button-hints option, so that the game runs and reads well for me. (The presets (16.5), the Settings rows (22.9), Button hints hiding the prompts (24.4), and Reduce flashes and shaking applied to the shake, the field-of-view kicks and the flashes, body flashes included (18.11). 18.12 moved to milestone 1, where the push-in and every new effect follow Reduce flashes as they land.)
 58. [x] As a player, I want a move list generated from the actual move data, so that it's always correct. (22.13 and 22.14: `MoveList` walks the move data, and How to play shows it as a tab per weapon and bare hands; the pause menu opens it with 22.15.)
 
 ### Building and maintaining

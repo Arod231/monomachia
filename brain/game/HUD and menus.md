@@ -10,9 +10,10 @@ On Oct 4, 2026 a realistic look replaced the toon and ink-wash look, so the menu
 
 A minimalist fighting-game HUD: HP bars in classic style with the posture bar underneath.
 
-- **Built:** the top bar ([[Task 24]]: plates with the 赤 and 青 seals, HP with a lag band and a low-HP pulse, posture, and round pips) and the announcements in kanji on the rules' frames (round calls, Fight, K.O.).
-- **Built in Training:** the panel at the bottom left with the dummy's behaviour chips and refill.
-- **To come:** toasts for parries, counters and ultimates, button prompts with the last device's key names, and the dropped-weapon marker.
+- **Built:** the top bar ([[Task 24]]: plates with the 赤 and 青 seals, HP with a lag band and a low-HP pulse, posture, and round pips), the announcements in kanji on the rules' frames (round calls, Fight, K.O.), and the toasts under the centre for parries, counters, ultimates, backstabs and dazes: gold or jade for what you did, red for what was done to you, and in Watch the fighter's name in the side's colour.
+- **Built in Training:** the panel at the bottom left with the dummy's behaviour chips and refill, and toasts for an evade and for a new dummy behaviour.
+- **Built:** the prompts at the bottom, at most two, urgent first, naming each key as a key cap from the device used last (on a controller the Moonsplitter's tilt names the stick); the Button hints setting hides them.
+- **Built:** the marker on your dropped weapon, "Your weapon" over it from the disarm until it is back in hand, clamped to the screen's edge with an arrow pointing the way when it is off screen or behind the camera.
 - The ultimate is shown by a glowing aura around a fighter at 25% HP or less. Since Oct 4 the aura is a smouldering glow of embers and heat haze in the side's colour.
 - **KO call (Oct 4):** every KO that ends a round, finishers included, is to be called Warrior Slain (討死) instead of 一本 K.O.; a double KO keeps its own call.
 

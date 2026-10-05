@@ -177,19 +177,25 @@ func rearm_pause() -> void:
 func label(action: String, player: int = 0) -> String:
 	var device: String = device_of(player)
 	var profile: ControlProfile = profile_of(player)
-	var on_pad: bool = device == PAD0 or device == PAD1 or (
-		device == ALL and last_used == LastUsed.PAD and first_pad() >= 0
-	)
+	var pad: bool = on_pad(player)
 	var bindings: Dictionary
 	if device == KB_ARROWS:
 		bindings = Bindings.arrows_set()
-	elif on_pad:
+	elif pad:
 		bindings = profile.pad
 	else:
 		bindings = profile.kb
 	var tokens: Array = bindings.get(action, [])
-	var style: int = pad_style_for(device) if on_pad else PadStyle.GENERIC
+	var style: int = pad_style_for(device) if pad else PadStyle.GENERIC
 	return BindingLabels.first_label(tokens, style, excluded_tokens(player))
+
+
+## Whether a player's prompts name controller buttons: they play on a
+## controller of their own, or on every device (single player) and used a
+## connected controller last.
+func on_pad(player: int = 0) -> bool:
+	var device: String = device_of(player)
+	return device == PAD0 or device == PAD1 or (device == ALL and last_used == LastUsed.PAD and first_pad() >= 0)
 
 
 ## Sees every input event: tracks the last device used (for labels in single

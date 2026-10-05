@@ -166,17 +166,22 @@ func test_the_hud_calls_the_ko_and_the_round_winner() -> void:
 		assert_eq(hud.announcement_text(), "Draw")
 
 
+## The HUD's prompts (24.4) as one text, keys in brackets.
+func _prompt_text() -> String:
+	return "\n".join(hud.prompts.lines())
+
+
 func test_the_hud_offers_the_ultimate_to_a_human_player() -> void:
 	var cfg: MatchConfig = _with_standin(MatchConfig.default_duel())
 	host.start(cfg)
 	host.step(Match.INTRO_FRAMES + 1)
 	host.fighter(0).hp = 20.0
 	hud._process(1.0 / 60.0)
-	assert_string_contains(hud.hint_text(), "Ultimate ready")
-	assert_string_contains(hud.hint_text(), "Left Click + Right Click")
+	assert_string_contains(_prompt_text(), "Ultimate ready")
+	assert_string_contains(_prompt_text(), "[Left Click] + [Right Click]")
 	host.fighter(0).hp = 100.0
 	hud._process(1.0 / 60.0)
-	assert_eq(hud.hint_text(), "")
+	assert_eq(_prompt_text(), "")
 
 
 func test_a_whole_match_renders_without_errors() -> void:
@@ -230,16 +235,16 @@ func test_the_ultimate_hint_shows_only_while_the_round_is_fought() -> void:
 	host.start(_with_standin(MatchConfig.default_duel()))
 	host.fighter(0).hp = 20.0
 	hud._process(1.0 / 60.0)
-	assert_eq(hud.hint_text(), "", "not during the round's intro")
+	assert_eq(_prompt_text(), "", "not during the round's intro")
 	host.step(Match.INTRO_FRAMES + 1)
 	hud._process(1.0 / 60.0)
-	assert_string_contains(hud.hint_text(), "Ultimate ready")
+	assert_string_contains(_prompt_text(), "Ultimate ready")
 	# the player wins the round on 20 HP with the ultimate unused
 	host.fighter(1).hp = 0.0
 	host.step(2)
 	assert_eq(host.sim_match.phase, &"roundEnd")
 	hud._process(1.0 / 60.0)
-	assert_eq(hud.hint_text(), "", "gone once the round is over")
+	assert_eq(_prompt_text(), "", "gone once the round is over")
 
 
 func test_the_hud_clears_and_hides_when_the_results_open() -> void:
@@ -249,7 +254,7 @@ func test_the_hud_clears_and_hides_when_the_results_open() -> void:
 	assert_true(hud.visible)
 	host.match_finished.emit(host.results())
 	assert_eq(hud.announcement_text(), "")
-	assert_eq(hud.hint_text(), "")
+	assert_eq(_prompt_text(), "")
 	assert_false(hud.visible, "the results take the screen")
 	host.start(_with_standin(MatchConfig.default_duel()))
 	assert_true(hud.visible, "back for the rematch")

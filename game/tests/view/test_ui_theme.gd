@@ -317,7 +317,14 @@ func test_the_hud_is_set_in_the_theme() -> void:
 	_assert_themed(hud)
 	assert_eq(_font_of(hud.find_child("Announce", true, false) as Control), DISPLAY_FONT)
 	assert_eq(_font_of(hud.find_child("Plate0", true, false) as Control), DISPLAY_FONT)
-	assert_eq(_font_of(hud.find_child("Hint", true, false) as Control), UI_FONT)
+	# a toast in the display font (24.3), a prompt and its key cap in the UI
+	# font (24.4)
+	hud.toasts.push("Parry", HudToasts.Tone.GOLD)
+	assert_eq(_font_of(hud.toasts.get_child(0).get_node("Text") as Control), DISPLAY_FONT)
+	hud.prompts.show_prompts([{"parts": ["Pick up your weapon ", HudPrompts.key("E")], "urgent": true}] as Array[Dictionary])
+	var row: Node = hud.prompts.get_child(0).get_node("Row")
+	assert_eq(_font_of(row.get_child(0) as Control), UI_FONT, "a prompt's text")
+	assert_eq(_font_of(row.get_child(1).get_node("Name") as Control), UI_FONT, "a key cap")
 
 
 ## The HUD's tags (the demo's .plate .tag): spaced capitals in --danger in a

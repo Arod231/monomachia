@@ -218,16 +218,16 @@ sequenceDiagram
         Host->>Host: snapshot positions for interpolation
         loop each event, in order
             Host->>View: sim_event(e): shake, FOV kick, flashes
-            Host->>Hud: sim_event(e): announcements
+            Host->>Hud: sim_event(e): announcements, toasts
             Host->>Audio: sim_event(e): sound cues
             Host->>Main: sim_event(e): music director
         end
         Host->>Host: _after_step(): results after 140 frames of matchEnd
-        Host->>Hud: stepped
+        Host->>Hud: stepped: queued calls, toasts expire
         Host->>Audio: stepped: footstep cadence
     end
     Note over View: MatchView._process: pose fighters at interpolated<br/>position and yaw, dropped weapons, flashes, camera
-    Note over Hud: MatchHud._process: bars, pips, ult badge, hints
+    Note over Hud: MatchHud._process: bars, pips, ult badge, toasts, hints
     Note over Audio: MatchAudio._process: listener follows camera,<br/>delayed cues start
 ```
 
@@ -644,14 +644,14 @@ flowchart LR
 - An **InputToken** is one binding written as a string: `k:<keycode>` (with an optional L or R for modifiers), `m:<button>`, `b:<joy button>`, `a:<axis><+|->`.
 - A **ControlProfile** maps each of the 13 actions (`Bindings.ACTIONS`) to up to two tokens, for keyboard and for controller. Defaults come from `Bindings.default_kb()` and `default_pad()`; there is also a fight-stick layout and a fixed arrow-key layout for Versus player 2.
 - **InputDevices** owns the per-player device and profile (`set_single_player`, `set_versus`), binds controller seats so unplugging a pad doesn't shift players, and samples a `RawInput`: sticks through a dead-zone curve, triggers past 30/255, buttons on above 0.5.
-- **PadStyle** and **BindingLabels** turn tokens into PlayStation, Xbox or generic button names for the HUD and menus.
+- **PadStyle** and **BindingLabels** turn tokens into PlayStation, Xbox or generic button names for the HUD and menus. `InputDevices.label(action, player)` names an action's input for the device the player last used, and `on_pad(player)` says whether that is a controller (the HUD's prompts name the stick then).
 
 ## 8. Shared services (`game/core`)
 
 | File | What it holds | Used by |
 | --- | --- | --- |
 | `game_services.gd` (autoload `GameServices`) | The shared `GameSettings`, `ControlProfiles`, `InputDevices`, `InputFeed`, music director and player, UI sounds, and the match being played. `begin_match`/`end_match`, `play_menu_music`, `play_match_music`, `music_event`, `play_ui`. | Nearly everything outside `sim` |
-| `game_settings.gd` | Graphics preset and volumes, saved to `user://settings.cfg`. With `MONOMACHIA_DEFAULT_SETTINGS=1` (tests, screenshots) the saved file is ignored. | GameServices, graphics applier |
+| `game_settings.gd` | Graphics preset, volumes, Reduce flashes and shaking, and Button hints, saved to `user://settings.cfg`. Its `changed` signal (emitted by the Settings screen after each change) lets a match follow a change made in the pause menu. With `MONOMACHIA_DEFAULT_SETTINGS=1` (tests, screenshots) the saved file is ignored. | GameServices, graphics applier, `MatchView` (Reduce flashes), `MatchHud` (Button hints) |
 | `match_config.gd` | Everything a match is built from: mode (Duel, Training, Watch, Versus), two `MatchSide`s, arena id, world seed. `default_duel`, `default_watch`, `attract`, `next_seed`, `problem()` (validation). | `MatchHost.start()`, main.gd, views, HUD |
 | `match_side.gd` | One side: fighter, palette, weapon, abilities, controller (human, computer, dummy), device, profile, difficulty. | MatchHost turns it into a `FighterConfig` plus a brain or a device |
 | `match_results.gd` | Winner, wins, names, weapons and stats for the results screen. | ResultsScreen, smoke run |
@@ -663,7 +663,7 @@ flowchart LR
 | File | Class | What it does |
 | --- | --- | --- |
 | `match_host.gd` | `MatchHost` | The fixed-step loop (section 5). Signals: `match_started`, `sim_event`, `stepped`, `match_finished`, `pause_changed`, `stopped`, `loadout_changed` (the training dummy swapped weapons; the view and the HUD's plate follow), `training_changed` (the dummy's behaviour or the refill changed). |
-| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. |
+| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
 | `camera_rig.gd` | `CameraRig` | FOLLOW (over the shoulder), WATCH (side-on) and MENU (orbit) cameras with damping, arena clamp, shake and FOV kick. |
 | `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera. |
 | `stick_pose.gd` | `StickPose` | Stand-in posing: hand positions and blade directions from the rules' state. Task 14.10 replaces it with authored swings. |
@@ -844,7 +844,10 @@ stateDiagram-v2
 | `ui/menus/title_screen.gd` | `TitleScreen` | "Press any key". |
 | `ui/menus/pause_screen.gd` | `PauseScreen` | 休止 Paused: Resume, Move list, Controls, Settings, Restart, Quit to menu; in Training, Dummy and Refill health rows above them. |
 | `ui/menus/results_screen.gd` | `ResultsScreen` | Winner, rounds, seven stats, Rematch and Main menu. |
-| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements timed on rules steps, button hints, and in Training the `TrainingPanel`. Hidden in the attract duel. |
+| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, the prompts (shown by the Button hints setting), and in Training the `TrainingPanel`. Hidden in the attract duel. |
+| `ui/hud/hud_toasts.gd` | `HudToasts` | The toasts under the centre: `for_event()` says what a rules event toasts from the player's side or Watch's (no nodes); up to three on screen, 69 rules steps each, held by a pause. |
+| `ui/hud/hud_prompts.gd`, `key_cap.gd` | `HudPrompts`, `KeyCap` | The prompts at the bottom: `for_fighter()` says what the player can press now (no nodes), at most two, urgent first; each key a `KeyCap` named for the device used last. |
+| `ui/hud/weapon_marker.gd` | `WeaponMarker` | "Your weapon" over your dropped weapon as the gameplay camera sees it; `place()` (no nodes) clamps it whole to the screen's edge, pointing the way, when the weapon is off screen or behind the camera. |
 | `ui/hud/training_panel.gd` | `TrainingPanel` | Training's panel at the bottom left: "Dummy · <weapon>", the nine behaviour chips (keys 1–9) and refill (key 0), clicks too; a digit bound in the player's profile is left to its action. Follows `MatchHost.training_changed` and `loadout_changed`; hidden while paused. |
 | `ui/hud/hud_bar.gd` | `HudBar` | A meter with a lagging band. |
 
