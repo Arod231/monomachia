@@ -245,7 +245,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 172. As a player, I want the final hit to ring out as the slow motion drains the arena's sound and the music, then a deep drum under Warrior Slain, so that a round's end is felt.
 173. As a player, I want the 危's warning sound distinct from everything else, so that I hear an unblockable coming.
 174. As a player, I want placeholder effort vocals (breaths, kiai shouts on heavies, pain on hits, death cries), so that the fighters aren't silent until a vocals pack is bought after this milestone.
-175. As the owner, I want the code-generated score extended with the shakuhachi, the biwa and a low choir beside its taiko, with electronic and metal layers rising at match point, while the menus keep the groovier fusion, so that the sign-off build sounds like the design.
+175. [x] As the owner, I want the code-generated score extended with the shakuhachi, the biwa and a low choir beside its taiko, with electronic and metal layers rising at match point, while the menus keep the groovier fusion, so that the sign-off build sounds like the design. (Ticked with task 113.)
 176. As the owner, I want a listening pass on each family's sounds as part of its review, the roll's sound included, so that sound reaches final quality with the moves.
 
 ### HUD, menus and settings
