@@ -370,6 +370,15 @@ export function visualsHtml(visuals) {
   return `<div class="sh"><h2>Visuals</h2><span class="m">${visuals.length}</span></div><div class="vgrid">${items.join('')}</div>`;
 }
 
+// Images of the work (d.workImages, work-images.mjs): renders it opened from
+// its shots folder and viewport shots, newest first, in the same viewer.
+export function workImagesHtml(images) {
+  if (!images?.length) return '';
+  const items = images.map((v, i) => `<figure class="vis" data-work="${i}"><img src="${esc(v.url)}" alt="${esc(v.caption)}" loading="lazy">`
+    + `<figcaption>${esc(v.caption)}<span class="k"> · ${esc(ago(v.time))}</span></figcaption></figure>`);
+  return `<div class="sh"><h2>Images of the work</h2><span class="m">${images.length}</span></div><div class="vgrid">${items.join('')}</div>`;
+}
+
 // One visual full screen: list[i], with its place in the list.
 export function viewerHtml(list, i) {
   const v = list[i];

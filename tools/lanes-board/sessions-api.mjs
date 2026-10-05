@@ -5,12 +5,15 @@
 // (relay-hook.mjs, installed in user settings), which hands their prompts over
 // as files in the relay folder while Away is on.
 //   GET  /sessions (with older: sessions past the list's 3 days known by their
-//        posted media), /session?id=&limit= (with its visuals), /questions
+//        posted media), /session?id=&limit= (with its visuals and images of the
+//        work), /questions, /work/<session>/<line>-<n> (an image of the work,
+//        served from its transcript: workImage)
 //   POST /relay/away, /relay/answer, /relay/reply, /relay/unqueue,
 //        /session/command { session, command: approve | show | stop | end }
 import { readFile, readdir, stat, open, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { inboxDir, postToInbox, writeJsonAtomic } from './inbox.mjs';
+import { workImageAt, workImagesOf } from './work-images.mjs';
 import {
   PENDING_ID, SESSION_ID, STOP_NOW, awayOf, awaySwitch, deliveryOf, endedAtOf, heldAnsweredElsewhere, heldOrphaned, ownerMessage, parseTranscript, relayAnswer,
   sessionState, turnSummary,
@@ -165,6 +168,24 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     return null;
   }
   const mediaOf = (id) => media?.of(id) ?? { visuals: [], cwd: null, branch: null };
+  // Its images of the work (work-images.mjs), newest first, as the viewer shows them.
+  async function workList(id, file) {
+    let found = [];
+    try { found = await workImagesOf(file); } catch { /* being written */ }
+    return [...found].reverse().map((w) => ({ id: `${w.line}-${w.n}`, kind: 'still', url: `/work/${id}/${w.line}-${w.n}`, poster: null, task: null,
+      caption: w.tool === 'Read' ? w.source.split(/[\\/]/).pop() : w.source, source: w.source, time: w.time }));
+  }
+  const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+  // GET /work/<session>/<line>-<n>: { type, bytes }, null when it isn't one of
+  // the session's images of the work, or undefined for another route.
+  async function workImage(url) {
+    if (!url.pathname.startsWith('/work/')) return undefined;
+    const m = /^\/work\/([^/]+)\/(\d+)-(\d+)$/.exec(url.pathname);
+    if (!m || !SESSION_ID.test(m[1])) return null;
+    const f = (await findTranscripts()).find((x) => x.id === m[1]) ?? await findTranscript(m[1]);
+    const img = f && await workImageAt(f.file, Number(m[2]), Number(m[3]));
+    return img && IMAGE_TYPES.has(img.type) ? img : null;
+  }
 
   // ---------- what a session's card and page say about it ----------
   async function readStops() {
@@ -223,7 +244,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       return { id, gone: true, app: a?.id ?? null, remote: a?.remote ?? null, title: a?.title || (posted.cwd ? `A session in ${path.basename(posted.cwd)}` : '(untitled)'),
         cwd: posted.cwd, branch: posted.branch, activity: posted.visuals[0].time, active: false, entries: [], more: 0, open: null, away: null, queued: [], pending: [],
         asking: null, context: null, state: 'ended', endedAt: null, stopping: false, summary: null, task: posted.cwd ? taskOf(posted.cwd) : null,
-        pr: posted.branch ? prOf(posted.branch) : null, visuals: posted.visuals };
+        pr: posted.branch ? prOf(posted.branch) : null, visuals: posted.visuals, workImages: [] };
     }
     const [t, state, app, context, stops] = await Promise.all([transcript(f.file, limit), relayState(), appSessions(), contextOf(f.file), readStops()]);
     const a = app.find((x) => x.cli === id);
@@ -233,7 +254,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       open: t.open, away: state.away, queued: state.inbox[id] ?? [],
       pending: state.pending.filter((p) => p.session === id).sort((x, y) => x.time - y.time),
       asking: t.open?.name === 'AskUserQuestion' ? t.open.questions.map((q) => q.question) : null,
-      context, visuals: posted.visuals,
+      context, visuals: posted.visuals, workImages: await workList(id, f.file),
     };
     return { ...d, ...await facts(d, t, a, stops) };
   }
@@ -388,6 +409,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     post(route, body, ctx = {}) {
       return POSTS[route]?.(body, ctx);
     },
+    workImage,
     // For the bell (bell-api.mjs): the items held now, and sessions' titles.
     held: async () => (await relayState()).pending,
     // For Merge (merge-api.mjs): a worded message to a session, delivered as a

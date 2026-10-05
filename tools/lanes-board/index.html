@@ -1468,9 +1468,9 @@ function renderSessionDetail() {
   }
   if (!window.S) return;
   renderPending(d);
-  // What it posted (npm run post), newest first; a click opens the viewer.
-  const vis = JSON.stringify([d.id, (d.visuals ?? []).map((v) => v.id)]);
-  if (vis !== sSigs.vis) { sSigs.vis = vis; $('sVis').innerHTML = S.visualsHtml(d.visuals); }
+  // What it posted (npm run post) and its images of the work, newest first; a click opens the viewer.
+  const vis = JSON.stringify([d.id, (d.visuals ?? []).map((v) => v.id), (d.workImages ?? []).map((v) => v.id)]);
+  if (vis !== sSigs.vis) { sSigs.vis = vis; $('sVis').innerHTML = S.visualsHtml(d.visuals) + S.workImagesHtml(d.workImages); }
   renderLog(d);
   // The reply box (none for a deleted session).
   $('sComp').hidden = !!d.gone;
@@ -1505,6 +1505,8 @@ $('qList').addEventListener('click', answerClick);
 $('sDetail').addEventListener('click', async (e) => {
   const fig = e.target.closest('[data-vis]');
   if (fig && sessions.detail?.visuals) { viewer?.open(sessions.detail.visuals, Number(fig.dataset.vis)); return; }
+  const work = e.target.closest('[data-work]');
+  if (work && sessions.detail?.workImages) { viewer?.open(sessions.detail.workImages, Number(work.dataset.work)); return; }
   if (await answerClick(e)) return;
   const b = e.target.closest('button');
   if (!b) return;

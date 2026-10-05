@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  STATE_LABELS, APP_SESSIONS_URL, olderCardHtml, viewerHtml, visualsHtml, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
+  STATE_LABELS, APP_SESSIONS_URL, olderCardHtml, viewerHtml, visualsHtml, workImagesHtml, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -507,5 +507,15 @@ describe('the bell and new visuals', () => {
     const h = bellListHtml({ unread: 1, records: [{ id: 'visuals:s:1-0', kind: 'visuals', session: 's', text: 'Lane posted a shot', detail: 'x', time: 1, read: false,
       target: { tab: 'sessions', session: 's', visuals: true } }] });
     assert.match(h, /data-tab="sessions"[^>]*data-visuals="1"/);
+  });
+});
+
+describe('Images of the work', () => {
+  it('lists the images of the work under Visuals, each opening the viewer, and nothing when there are none', () => {
+    const h = workImagesHtml([{ id: '9-0', kind: 'still', url: '/work/s/9-0', caption: 'arena <1>.png', source: 'C:\w\shots\arena <1>.png', time: Date.now() }]);
+    assert.match(h, /<h2>Images of the work<\/h2>/);
+    assert.match(h, /data-work="0"[^]*<img [^>]*src="\/work\/s\/9-0"[^>]*loading="lazy"/);
+    assert.match(h, /arena &lt;1&gt;\.png/);
+    assert.equal(workImagesHtml([]), '');
   });
 });

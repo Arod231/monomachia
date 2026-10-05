@@ -822,6 +822,13 @@ async function handle(req, res) {
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
     if (await mediaRoutes.serve(req, res, url)) return;
+    const work = await sessionRoutes.workImage(url);
+    if (work !== undefined) {
+      if (!work) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('No such image'); return; }
+      res.writeHead(200, { 'content-type': work.type, 'content-length': work.bytes.length, 'cache-control': 'private, max-age=86400' });
+      res.end(work.bytes);
+      return;
+    }
     const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);

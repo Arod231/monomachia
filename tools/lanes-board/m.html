@@ -747,9 +747,9 @@ function renderSession() {
     $('sPend').innerHTML = d.pending.map((p) => S.pendingCard(p)).join('');
     S.restoreCards($('sPend'), kept);
   } else S.refreshTimes($('sPend'));
-  // What it posted (npm run post), newest first; a tap opens the viewer.
-  const vis = JSON.stringify([d.id, (d.visuals ?? []).map((v) => v.id)]);
-  if (vis !== sSig.vis) { sSig.vis = vis; $('sVis').innerHTML = S.visualsHtml(d.visuals); }
+  // What it posted (npm run post) and its images of the work, newest first; a tap opens the viewer.
+  const vis = JSON.stringify([d.id, (d.visuals ?? []).map((v) => v.id), (d.workImages ?? []).map((v) => v.id)]);
+  if (vis !== sSig.vis) { sSig.vis = vis; $('sVis').innerHTML = S.visualsHtml(d.visuals) + S.workImagesHtml(d.workImages); }
   $('sComp').hidden = !!d.gone;
   const log = JSON.stringify([d.id, d.entries.length, d.entries.at(-1)?.time, d.more, detailLimit]);
   if (log !== sSig.log) { sSig.log = log; $('sLog').innerHTML = S.logHtml(d, openTools); }
@@ -786,6 +786,8 @@ $('sPend').addEventListener('click', (e) => answerIn(e, () => { sSig.pend = null
 $('sVis').addEventListener('click', (e) => {
   const fig = e.target.closest('[data-vis]');
   if (fig && detail?.visuals) viewer?.open(detail.visuals, Number(fig.dataset.vis));
+  const work = e.target.closest('[data-work]');
+  if (work && detail?.workImages) viewer?.open(detail.workImages, Number(work.dataset.work));
 });
 async function sendReply() {
   const text = $('sText').value.trim();
