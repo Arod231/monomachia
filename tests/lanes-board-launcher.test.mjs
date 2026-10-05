@@ -15,7 +15,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { assertMatches } from './assert-matches.mjs';
 import {
-  LOCK_CHECK_MS, LOST_MS, createStarter, firstPrompt, launchLink, linkLaunches, pressResult, startView,
+  LAUNCH_FRESH_MS, LOCK_CHECK_MS, LOST_MS, REASONS, createStarter, firstPrompt, launchLink, linkCandidates, linkLaunches, pressResult, startView,
 } from '../tools/lanes-board/launcher.mjs';
 import { launchStartText } from '../tools/lanes-board/ui.mjs';
 
@@ -96,6 +96,16 @@ describe('createStarter', () => {
     await starter.tick(); // too soon after the last look at the lock
     assert.deepEqual(acts(log), []);
     clock.t += LOCK_CHECK_MS;
+    await starter.tick(); // just unlocked: a session started by hand gets to show up first
+    assert.deepEqual(acts(log), []);
+    lock.on = true;
+    clock.t += LOCK_CHECK_MS;
+    await starter.tick(); // locked again before it pressed: start over
+    lock.on = false;
+    clock.t += LOCK_CHECK_MS;
+    await starter.tick();
+    assert.deepEqual(acts(log), []);
+    clock.t += LOCK_CHECK_MS;
     await starter.tick();
     assert.deepEqual(acts(log), ['open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.']);
     assertMatches(l.start, { state: 'pressed', attempts: 1 });
@@ -172,7 +182,7 @@ describe('createStarter', () => {
     const old = launch('1.1', 0, { start: { state: 'waiting', reason: 'locked', at: 0, attempts: 0 } });
     const queued = launch('1.2', 0);
     const { starter, log, clock } = harness([old, queued]);
-    clock.t = 2 * 24 * 3600_000 + 1;
+    clock.t = LAUNCH_FRESH_MS + 1;
     await starter.kick();
     await starter.tick();
     assert.deepEqual(acts(log), []);
@@ -189,9 +199,10 @@ describe('createStarter', () => {
 
 describe('startView', () => {
   const now = 100_000;
-  it('says nothing for launches made before launches started themselves, or ended ones', () => {
+  it('says nothing for launches made before launches started themselves, ended ones, or ones over two days old', () => {
     assert.equal(startView({ id: 'x', time: 1, tasks: [] }, now), null);
     assert.equal(startView(launch('1.1', 1, { endedAt: 5 }), now), null);
+    assert.equal(startView(launch('1.1', 1, { start: { state: 'waiting', reason: 'locked', at: 1 } }), 1 + LAUNCH_FRESH_MS), null);
   });
   it('is started once a session is linked, whatever the queue said', () => {
     assert.deepEqual(startView(launch('1.1', 1, { session: { id: 'local_a' }, start: { state: 'waiting', reason: 'no-draft', at: 1 } }), now), { state: 'started' });
@@ -203,13 +214,13 @@ describe('startView', () => {
   });
   it('is waiting, lost, when Send was pressed a while ago and no session appeared', () => {
     assert.deepEqual(startView(launch('1.1', 1, { start: { state: 'pressed', at: 1, pressedAt: now - LOST_MS } }), now),
-      { state: 'waiting', reason: 'lost', retry: true, since: 1 });
+      { state: 'waiting', reason: 'lost', retry: true });
   });
   it('is waiting with its reason, and offers a retry except while the PC is locked', () => {
     assert.deepEqual(startView(launch('1.1', 1, { start: { state: 'waiting', reason: 'no-send', at: 7 } }), now),
-      { state: 'waiting', reason: 'no-send', retry: true, since: 7 });
+      { state: 'waiting', reason: 'no-send', retry: true });
     assert.deepEqual(startView(launch('1.1', 1, { start: { state: 'waiting', reason: 'locked', at: 7 } }), now),
-      { state: 'waiting', reason: 'locked', retry: false, since: 7 });
+      { state: 'waiting', reason: 'locked', retry: false });
   });
 });
 
@@ -254,23 +265,32 @@ describe('linkLaunches', () => {
       ['cli-local_a', 'Finish 1.1 on lane/gr-1.1.'],
       ['cli-local_a2', 'Finish 1.1 on lane/gr-1.1.'],
     ]);
-    assert.equal(linkLaunches([a, b], sessions, prompts), true);
+    assert.equal(linkLaunches([a, b], sessions, prompts, 5000), true);
     assert.deepEqual(a.session, { id: 'local_a', cli: 'cli-local_a' });
     assert.deepEqual(b.session, { id: 'local_b', cli: 'cli-local_b' });
-    assert.equal(linkLaunches([a, b], sessions, prompts), false);
+    assert.equal(linkLaunches([a, b], sessions, prompts, 5000), false);
   });
 
   it('links a session started by hand from the draft hours later, but none made before the launch', () => {
     const l = launch('1.1', 1_000_000);
-    assert.equal(linkLaunches([l], [sess('local_early', 900_000)], new Map([['cli-local_early', 'lane/gr-1.1']])), false);
-    assert.equal(linkLaunches([l], [sess('local_late', 1_000_000 + 5 * 3600_000)], new Map([['cli-local_late', 'lane/gr-1.1']])), true);
+    assert.equal(linkLaunches([l], [sess('local_early', 900_000)], new Map([['cli-local_early', 'lane/gr-1.1']]), 1_000_000), false);
+    assert.equal(linkLaunches([l], [sess('local_late', 1_000_000 + 5 * 3600_000)], new Map([['cli-local_late', 'lane/gr-1.1']]), 1_000_000 + 6 * 3600_000), true);
     assert.equal(l.session.id, 'local_late');
   });
 
   it('waits for a session whose first prompt isn\'t known yet, and doesn\'t mistake lane/gr-1.1 for lane/gr-1.10', () => {
     const l = launch('1.1', 1000);
-    assert.equal(linkLaunches([l], [sess('local_new', 2000, null), sess('local_x', 2000)], new Map([['cli-local_x', 'Finish lane/gr-1.10 now']])), false);
+    assert.equal(linkLaunches([l], [sess('local_new', 2000, null), sess('local_x', 2000)], new Map([['cli-local_x', 'Finish lane/gr-1.10 now']]), 3000), false);
     assert.equal(l.session, undefined);
+  });
+
+  it('gives a relaunch of the same tasks its own session, not to an old launch that never started', () => {
+    const old = launch('1.1', 1000);
+    const again = launch('1.1', 1000 + LAUNCH_FRESH_MS, { id: 'again' });
+    const prompts = new Map([['cli-local_new', 'Finish 1.1 on lane/gr-1.1.']]);
+    assert.equal(linkLaunches([old, again], [sess('local_new', 1000 + LAUNCH_FRESH_MS + 5000)], prompts, 1000 + LAUNCH_FRESH_MS + 6000), true);
+    assert.equal(again.session.id, 'local_new');
+    assert.equal(old.session, undefined);
   });
 
   it('leaves ended launches and sessions another launch took alone', () => {
@@ -278,9 +298,20 @@ describe('linkLaunches', () => {
     const b = launch('1.1', 1000, { id: 'again' });
     const ended = launch('1.2', 1000, { endedAt: 3000 });
     const prompts = new Map([['cli-local_a', 'lane/gr-1.1'], ['cli-local_c', 'lane/gr-1.2']]);
-    assert.equal(linkLaunches([a, b, ended], [sess('local_a', 2000), sess('local_c', 2500)], prompts), false);
+    assert.equal(linkLaunches([a, b, ended], [sess('local_a', 2000), sess('local_c', 2500)], prompts, 3000), false);
     assert.equal(b.session, undefined);
     assert.equal(ended.session, undefined);
+  });
+});
+
+describe('linkCandidates', () => {
+  it('reads only sessions with a transcript, made since the oldest launch still waiting for one', () => {
+    const waiting = launch('1.1', 100_000);
+    const linked = launch('2.1', 10_000, { session: { id: 'local_s' } });
+    const lapsed = launch('3.1', 50_000);
+    const sessions = [{ id: 'a', cli: 'ca', created: 95_000 }, { id: 'b', cli: null, created: 120_000 }, { id: 'c', cli: 'cc', created: 60_000 }];
+    assert.deepEqual(linkCandidates([waiting, linked, lapsed], sessions, 50_000 + LAUNCH_FRESH_MS).map((x) => x.id), ['a']);
+    assert.deepEqual(linkCandidates([linked], sessions, 200_000), []);
   });
 });
 
@@ -299,10 +330,18 @@ describe('launchStartText', () => {
   it('says how a launch is getting on, and why it waits', () => {
     assert.equal(launchStartText(null), null);
     assert.equal(launchStartText({ state: 'started' }), 'Started on the PC');
-    assert.equal(launchStartText({ state: 'starting' }), 'Starting on the PC: the board presses Send in the Claude app');
+    assert.equal(launchStartText({ state: 'starting' }), 'Starting on the PC: the Project Manager presses Send in the Claude app');
     assert.equal(launchStartText({ state: 'waiting', reason: 'locked' }), 'Waiting: the PC is locked. It starts when the PC is unlocked.');
     assert.match(launchStartText({ state: 'waiting', reason: 'no-draft' }), /^Couldn't start: .*prompt.*\. Try again, or send it from the Claude app on the PC\.$/);
     assert.match(launchStartText({ state: 'waiting', reason: 'surprise' }), /^Couldn't start: .*\. Try again/);
+  });
+  it('has a line of its own for every reason a launch waits', () => {
+    const fallback = launchStartText({ state: 'waiting', reason: 'surprise' });
+    for (const reason of [...REASONS, 'lost']) assert.notEqual(launchStartText({ state: 'waiting', reason }), fallback, reason);
+  });
+  it('names the Project Manager, as the pages do, never "the board"', () => {
+    for (const reason of [...REASONS, 'lost', 'surprise']) assert.doesNotMatch(launchStartText({ state: 'waiting', reason }), /\bboard\b/);
+    assert.doesNotMatch(launchStartText({ state: 'starting' }), /\bboard\b/);
   });
 });
 
@@ -329,23 +368,43 @@ describe('press-send.ps1', { skip: process.platform !== 'win32' && 'needs Window
   // A stand-in for the app: a see-through, off-screen window with the prompt in a
   // box and, unless told otherwise, a Send button that empties the box and notes
   // the press. WPF, because like the app it exposes its controls to UI Automation
-  // itself (WinForms controls show up as plain panes).
-  const FAKE = `param([switch]$NoSend)
+  // itself (WinForms controls show up as plain panes). -Trust <folder> opens a
+  // "Trust this workspace?" dialog naming that folder first; like the app, the
+  // box shows the prompt only once it's answered, unless -BoxBehind.
+  const FAKE = String.raw`param([switch]$NoSend, [string]$Trust = '', [switch]$BoxBehind)
 Add-Type -AssemblyName PresentationFramework
+function Note($s) { Add-Content -Path $env:FAKE_LOG -Value $s }
+function Hidden($win, $top) {
+  $win.WindowStartupLocation = 'Manual'; $win.Left = -4000; $win.Top = $top; $win.ShowInTaskbar = $false; $win.ShowActivated = $false
+  $win.WindowStyle = 'None'; $win.AllowsTransparency = $true; $win.Opacity = 0.01
+}
 $w = New-Object System.Windows.Window
-$w.Title = 'Lanes press test'; $w.WindowStartupLocation = 'Manual'; $w.Left = -4000; $w.Top = -4000
-$w.Width = 420; $w.Height = 120; $w.ShowInTaskbar = $false; $w.ShowActivated = $false
-$w.WindowStyle = 'None'; $w.AllowsTransparency = $true; $w.Opacity = 0.01
+$w.Title = 'Lanes press test'; $w.Width = 420; $w.Height = 120; Hidden $w -4000
 $panel = New-Object System.Windows.Controls.StackPanel
-$box = New-Object System.Windows.Controls.TextBox; $box.Text = $env:LANES_PROMPT
+$script:box = New-Object System.Windows.Controls.TextBox
+$box.Text = if ($Trust -and -not $BoxBehind) { '' } else { $env:LANES_PROMPT }
 $panel.Children.Add($box) | Out-Null
 if (-not $NoSend) {
   $b = New-Object System.Windows.Controls.Button; $b.Content = 'Send'
-  $b.Add_Click({ $box.Text = ''; Add-Content -Path $env:FAKE_LOG -Value 'sent' })
+  $b.Add_Click({ $script:box.Text = ''; Note 'sent' })
   $panel.Children.Add($b) | Out-Null
 }
 $w.Content = $panel
-$w.Add_ContentRendered({ Add-Content -Path $env:FAKE_LOG -Value 'shown' })
+$w.Add_ContentRendered({
+  if ($Trust) {
+    $script:d = New-Object System.Windows.Window
+    $d.Title = 'Trust this workspace?'; $d.Owner = $w; $d.Width = 300; $d.Height = 120; Hidden $d -3800
+    $p = New-Object System.Windows.Controls.StackPanel
+    $tb = New-Object System.Windows.Controls.TextBlock; $tb.Text = $Trust; $p.Children.Add($tb) | Out-Null
+    $c = New-Object System.Windows.Controls.Button; $c.Content = 'Cancel'
+    $c.Add_Click({ Note 'cancelled'; $script:d.Close() }); $p.Children.Add($c) | Out-Null
+    $ok = New-Object System.Windows.Controls.Button; $ok.Content = 'Trust workspace'
+    $ok.Add_Click({ Note 'trusted'; $script:box.Text = $env:LANES_PROMPT; $script:d.Close() }); $p.Children.Add($ok) | Out-Null
+    $d.Content = $p
+    $d.Show()
+  }
+  Note 'shown'
+})
 $t = New-Object System.Windows.Threading.DispatcherTimer; $t.Interval = [TimeSpan]::FromSeconds(30); $t.Add_Tick({ $w.Close() }); $t.Start()
 $w.ShowDialog() | Out-Null
 `;
@@ -355,9 +414,10 @@ $w.ShowDialog() | Out-Null
     writeFileSync(path.join(dir, 'fake.ps1'), FAKE);
     const env = { ...process.env, LANES_PROMPT: `Press test ${Math.random()}: lane/gr-0.0`, FAKE_LOG: log };
     const app = spawn('powershell.exe', ['-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(dir, 'fake.ps1'), ...args], { env, windowsHide: true });
+    const noted = (word) => existsSync(log) && readFileSync(log, 'utf8').split(/\r?\n/).includes(word);
     try {
-      for (let i = 0; i < 100 && !(existsSync(log) && readFileSync(log, 'utf8').includes('shown')); i++) await new Promise((r) => setTimeout(r, 100));
-      return await fn({ env, sent: () => existsSync(log) && readFileSync(log, 'utf8').includes('sent') });
+      for (let i = 0; i < 100 && !noted('shown'); i++) await new Promise((r) => setTimeout(r, 100));
+      return await fn({ env, noted });
     } finally {
       app.kill();
       rmSync(dir, { recursive: true, force: true });
@@ -366,16 +426,32 @@ $w.ShowDialog() | Out-Null
   const press = async (env, extra) => pressResult((await run('powershell.exe', [...POWERSHELL, '-App', 'powershell', ...extra],
     { windowsHide: true, timeout: 60_000, env })).stdout);
 
-  it('presses the Send button beside the box holding the prompt, once the box has settled', () => withFakeApp([], async ({ env, sent }) => {
+  it('presses the Send button beside the box holding the prompt, once the box has settled', () => withFakeApp([], async ({ env, noted }) => {
     const r = await press(env, ['-WaitMs', '20000', '-SettleMs', '1200', '-TakeMs', '5000']);
     assert.equal(r.result, 'pressed');
     assert.ok(r.ms >= 1200, `pressed after ${r.ms} ms`);
-    assert.equal(sent(), true);
+    assert.equal(noted('sent'), true);
   }));
 
-  it('says no-send for a box with no Send button, and presses nothing', () => withFakeApp(['-NoSend'], async ({ env, sent }) => {
+  it('says no-send for a box with no Send button, and presses nothing', () => withFakeApp(['-NoSend'], async ({ env, noted }) => {
     const r = await press(env, ['-WaitMs', '3000', '-SettleMs', '200']);
     assert.equal(r.result, 'no-send');
-    assert.equal(sent(), false);
+    assert.equal(noted('sent'), false);
+  }));
+
+  it('confirms "Trust this workspace?" when it names the launch\'s folder, then presses Send', () => withFakeApp(['-Trust', 'C:\\Repo\\Mono'], async ({ env, noted }) => {
+    const r = await press({ ...env, LANES_FOLDER: 'c:/repo/mono/' }, ['-WaitMs', '20000', '-SettleMs', '500', '-TakeMs', '5000']);
+    assert.equal(r.result, 'pressed');
+    assert.equal(r.trusted, true);
+    assert.equal(noted('trusted'), true);
+    assert.equal(noted('sent'), true);
+  }));
+
+  it('leaves a trust dialog for another folder alone, and presses nothing behind it', () => withFakeApp(['-Trust', 'C:\\Elsewhere', '-BoxBehind'], async ({ env, noted }) => {
+    const r = await press({ ...env, LANES_FOLDER: 'C:\\Repo\\Mono' }, ['-WaitMs', '4000', '-SettleMs', '200']);
+    assert.equal(r.result, 'trust');
+    assert.equal(r.trusted, false);
+    assert.equal(noted('trusted') || noted('cancelled'), false);
+    assert.equal(noted('sent'), false);
   }));
 });
