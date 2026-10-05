@@ -116,6 +116,63 @@ describe('the round trip: Away and the Questions tab', () => {
     assert.equal((await board.post('/relay/on', { session: SESSION, on: true })).status, 404);
   });
 
+  // Task 7: permission prompts and plans.
+  const RULE = [{ type: 'addRules', rules: [{ toolName: 'Bash', ruleContent: 'npm test:*' }], behavior: 'allow', destination: 'localSettings' }];
+  const PERMIT = { hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'npm test', description: 'Run the tests' },
+    permission_suggestions: RULE };
+  const MODES = [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }, { type: 'setMode', mode: 'default', destination: 'session' }];
+  const PLAN = { hook_event_name: 'PermissionRequest', tool_name: 'ExitPlanMode', tool_input: { plan: '# Plan\n- Build it' },
+    permission_suggestions: MODES, permission_mode: 'plan' };
+  const decision = async (done) => (await done).hookSpecificOutput.decision;
+
+  it('holds a permission prompt showing the command, and allows it once', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(PERMIT);
+    const item = (await held()).groups[0].items[0];
+    assertMatches(item, { kind: 'permission', tool: 'Bash', input: { command: 'npm test' }, suggestions: RULE });
+    await board.post('/relay/answer', { id: item.id, behavior: 'allow' });
+    assert.deepEqual(await decision(done), { behavior: 'allow' });
+  });
+
+  it('allows a permission always, passing the suggested rule back', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(PERMIT);
+    const item = (await held()).groups[0].items[0];
+    await board.post('/relay/answer', { id: item.id, behavior: 'allow', always: true });
+    assert.deepEqual(await decision(done), { behavior: 'allow', updatedPermissions: RULE });
+  });
+
+  it('denies a permission with the owner\'s reason', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(PERMIT);
+    const item = (await held()).groups[0].items[0];
+    await board.post('/relay/answer', { id: item.id, behavior: 'deny', message: 'Run only the board tests' });
+    assert.deepEqual(await decision(done), { behavior: 'deny', message: 'The owner declined from the Project Manager: Run only the board tests' });
+  });
+
+  it('holds a plan for approval and approves it, plainly or into a mode the prompt offered', async () => {
+    await board.post('/relay/away', { on: true });
+    let { done } = board.hook(PLAN);
+    let item = (await held()).groups[0].items[0];
+    assertMatches(item, { kind: 'plan', tool: 'ExitPlanMode', input: { plan: '# Plan\n- Build it' }, suggestions: MODES });
+    await board.post('/relay/answer', { id: item.id, behavior: 'allow' });
+    assert.deepEqual(await decision(done), { behavior: 'allow' });
+
+    ({ done } = board.hook(PLAN));
+    item = (await held()).groups[0].items[0];
+    await board.post('/relay/answer', { id: item.id, behavior: 'allow', suggestion: 0 });
+    assert.deepEqual(await decision(done), { behavior: 'allow', updatedPermissions: [MODES[0]] });
+  });
+
+  it('rejects a plan with the owner\'s reason, so the session keeps planning', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(PLAN);
+    const item = (await held()).groups[0].items[0];
+    await board.post('/relay/answer', { id: item.id, behavior: 'deny', message: 'Do the tests first' });
+    assert.deepEqual(await decision(done), { behavior: 'deny',
+      message: 'The owner rejected this plan from the Project Manager. Keep planning: Do the tests first' });
+  });
+
   it('only takes actions from its own pages', async () => {
     const r = await board.post('/relay/away', { on: true }, { origin: 'http://evil.example' });
     assert.equal(r.status, 403);

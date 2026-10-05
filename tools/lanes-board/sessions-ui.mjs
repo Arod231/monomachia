@@ -27,28 +27,57 @@ export const needsLabel = (s) => (s.pending.length ? 'Waiting on you' : s.asking
 export function sessionPills(s) {
   const pills = [];
   for (const p of s.pending) {
-    pills.push(`<span class="pill need">${p.kind === 'permission' ? `Approve ${esc(p.tool)}` : p.kind === 'question' ? 'Asking you' : 'Waiting for your reply'}</span>`);
+    const what = { permission: `Approve ${esc(p.tool)}`, plan: 'Approve its plan', question: 'Asking you' }[p.kind] ?? 'Waiting for your reply';
+    pills.push(`<span class="pill need">${what}</span>`);
   }
   if (s.asking && !s.pending.some((p) => p.kind === 'question')) pills.push('<span class="pill need">Asking you (in the app)</span>');
   if (s.queued) pills.push('<span class="pill">Reply queued</span>');
   return pills.length ? `<div class="pills">${pills.join('')}</div>` : '';
 }
 
-// A little Markdown: code blocks, inline code, bold, links.
+// A little Markdown, escaped first: code blocks, headings, lists, rules,
+// inline code, bold and https links. Other lines keep their line breaks.
+const inline = (s) => esc(s)
+  .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+  .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+  .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+function mdBlocks(part) {
+  const out = [];
+  let lines = [];
+  let list = null;
+  const endLines = () => { if (lines.length) out.push(lines.join('<br>')); lines = []; };
+  const endList = () => { if (list) out.push(`<${list.tag}>${list.items.map((x) => `<li>${x}</li>`).join('')}</${list.tag}>`); list = null; };
+  for (const line of part.split('\n')) {
+    const h = line.match(/^#{1,6}\s+(.*)$/);
+    const li = line.match(/^\s*([-*]|\d+[.)])\s+(.*)$/);
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { endLines(); endList(); out.push('<hr>'); }
+    else if (h) { endLines(); endList(); out.push(`<h4 class="mdh">${inline(h[1])}</h4>`); }
+    else if (li) {
+      endLines();
+      const tag = /\d/.test(li[1]) ? 'ol' : 'ul';
+      if (list?.tag !== tag) { endList(); list = { tag, items: [] }; }
+      list.items.push(inline(li[2]));
+    } else { endList(); lines.push(inline(line)); }
+  }
+  endLines();
+  endList();
+  return out.join('');
+}
+
 export function md(text) {
-  return String(text).split(/```[^\n]*\n?/).map((part, i) => {
-    if (i % 2) return `<pre>${esc(part.replace(/\n$/, ''))}</pre>`;
-    return esc(part)
-      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
-      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-      .replace(/\n/g, '<br>');
-  }).join('');
+  return String(text).split(/```[^\n]*\n?/).map((part, i) => (i % 2 ? `<pre>${esc(part.replace(/\n$/, ''))}</pre>` : mdBlocks(part))).join('');
 }
 
 // ---------- what a session waits on ----------
 // p is a held item from the relay folder: { id, kind: question | permission |
-// stop, tool, input, suggestions, time }.
+// plan | stop, tool, input, suggestions, time }.
+
+// What a held item waits for, after the session's name.
+export function waitingText(p) {
+  return { permission: `wants to use ${p.tool}`, plan: 'asks you to approve its plan', question: 'asks you a question' }[p.kind]
+    ?? 'finished its turn and waits for your reply';
+}
 
 export function inputPreview(tool, input) {
   if (!input || typeof input !== 'object') return String(input ?? '');
@@ -67,6 +96,13 @@ export function ruleText(sug) {
     const rules = (s.rules ?? []).map((r) => `${r.toolName}${r.ruleContent ? `(${r.ruleContent})` : ''}`).join(', ');
     return `${rules || 'this'}${s.directories ? ` ${s.directories.join(', ')}` : ''}`;
   }).join('; ');
+}
+
+// The button for one of a plan prompt's own choices: a mode to go on in, or a
+// rule to add.
+const MODES = { acceptEdits: 'auto-accept edits', default: 'ask before edits', bypassPermissions: 'bypass permissions', auto: 'auto mode', dontAsk: "don't ask" };
+export function approveLabel(sug) {
+  return sug?.type === 'setMode' ? `Approve, ${MODES[sug.mode] ?? sug.mode}` : `Approve, and allow ${ruleText([sug])}`;
 }
 
 // AskUserQuestion's questions; live: answerable here (else read-only). An
@@ -88,6 +124,15 @@ export function pendingCard(p) {
       <div class="row"><button class="btn primary" data-allow="${esc(p.id)}">Allow</button>
         ${always ? `<button class="btn" data-always="${esc(p.id)}" title="Adds a permission rule">Allow, and don't ask again for ${esc(ruleText(p.suggestions))}</button>` : ''}
         <button class="btn" data-deny="${esc(p.id)}">Deny</button><input class="text why" placeholder="Why (optional): sent to Claude with a deny"></div>
+      <div class="row">${back}</div></div>`;
+  }
+  if (p.kind === 'plan') {
+    const plan = typeof p.input?.plan === 'string' ? md(p.input.plan) : `<pre class="code">${esc(inputPreview(p.tool, p.input))}</pre>`;
+    return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Asks you to approve its plan</b>${when}</div>
+      <div class="plan">${plan}</div>
+      <div class="row"><button class="btn primary" data-approve="${esc(p.id)}">Approve</button>${(Array.isArray(p.suggestions) ? p.suggestions : [])
+        .map((s, i) => `<button class="btn" data-approve="${esc(p.id)}" data-sug="${i}">${esc(approveLabel(s))}</button>`).join('')}</div>
+      <div class="row"><button class="btn" data-reject="${esc(p.id)}">Reject</button><input class="text why" placeholder="Why, and what to change (optional): sent to Claude"></div>
       <div class="row">${back}</div></div>`;
   }
   if (p.kind === 'question') {
@@ -142,6 +187,8 @@ export function answerFor(b, card) {
   if (d.allow) return { id: d.allow, behavior: 'allow' };
   if (d.always) return { id: d.always, behavior: 'allow', always: true };
   if (d.deny) return { id: d.deny, behavior: 'deny', message: card?.querySelector('.why')?.value ?? '' };
+  if (d.approve) return d.sug == null || d.sug === '' ? { id: d.approve, behavior: 'allow' } : { id: d.approve, behavior: 'allow', suggestion: Number(d.sug) };
+  if (d.reject) return { id: d.reject, behavior: 'deny', message: card?.querySelector('.why')?.value ?? '' };
   if (d.release) return { id: d.release, release: true };
   if (!d.answer) return null;
   const reply = card?.querySelector('.freeform')?.value.trim();

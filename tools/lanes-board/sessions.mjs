@@ -258,7 +258,9 @@ export const QUESTION_ANSWER = 'allow';
 
 // The board's answer to a pending item, checked, in the shape the hook reads.
 // body: { picks: [label | [labels]] } for a question (an Other's free text is a
-// label like any other), or { reply } to answer it in the owner's own words.
+// label like any other), or { reply } to answer it in the owner's own words;
+// { behavior, always?, message? } for a permission; { behavior, suggestion?,
+// message? } for a plan.
 export function relayAnswer(pending, body, { questionAnswer = QUESTION_ANSWER } = {}) {
   if (pending.kind === 'stop') {
     const text = String(body.reply ?? '').trim();
@@ -280,6 +282,7 @@ export function relayAnswer(pending, body, { questionAnswer = QUESTION_ANSWER } 
     }
     return { behavior: 'allow', updatedInput: { ...pending.input, answers } };
   }
+  if (pending.kind === 'plan') return planAnswer(pending, body);
   if (body.behavior === 'allow') {
     const out = { behavior: 'allow' };
     if (body.always && Array.isArray(pending.suggestions) && pending.suggestions.length) out.updatedPermissions = pending.suggestions;
@@ -290,6 +293,24 @@ export function relayAnswer(pending, body, { questionAnswer = QUESTION_ANSWER } 
     return { behavior: 'deny', message: why ? `The owner declined from the Project Manager: ${why.slice(0, 4000)}` : 'The owner declined this from the Project Manager.' };
   }
   throw new Error('Allow or deny?');
+}
+
+// A plan (ExitPlanMode): approved, plainly or with one of the prompt's own
+// choices (body.suggestion, an index into its suggestions, such as switching to
+// auto-accept edits), or rejected with the owner's reason, so Claude keeps planning.
+function planAnswer(pending, body) {
+  if (body.behavior === 'allow') {
+    if (body.suggestion == null) return { behavior: 'allow' };
+    const s = Number.isInteger(body.suggestion) ? pending.suggestions?.[body.suggestion] : null;
+    if (!s) throw new Error('No such choice');
+    return { behavior: 'allow', updatedPermissions: [s] };
+  }
+  if (body.behavior === 'deny') {
+    const why = String(body.message ?? '').trim();
+    return { behavior: 'deny', message: why ? `The owner rejected this plan from the Project Manager. Keep planning: ${why.slice(0, 4000)}`
+      : 'The owner rejected this plan from the Project Manager. Keep planning, and ask what to change.' };
+  }
+  throw new Error('Approve or reject?');
 }
 
 // ---------- the Away switch ----------

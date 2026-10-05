@@ -352,6 +352,20 @@ describe('relay answers', () => {
     assert.throws(() => relayAnswer(pending, {}));
   });
 
+  it('approves a plan, with one of the prompt\'s own choices when picked, or rejects it with a reason', () => {
+    const sug = [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }, { type: 'setMode', mode: 'default', destination: 'session' }];
+    const pending = { kind: 'plan', suggestions: sug };
+    assert.deepEqual(relayAnswer(pending, { behavior: 'allow' }), { behavior: 'allow' });
+    assert.deepEqual(relayAnswer(pending, { behavior: 'allow', suggestion: 1 }), { behavior: 'allow', updatedPermissions: [sug[1]] });
+    assert.throws(() => relayAnswer(pending, { behavior: 'allow', suggestion: 2 }), /No such choice/);
+    assert.throws(() => relayAnswer(pending, { behavior: 'allow', suggestion: '0' }), /No such choice/);
+    assert.deepEqual(relayAnswer(pending, { behavior: 'deny', message: ' Split task 3 in two ' }), { behavior: 'deny',
+      message: 'The owner rejected this plan from the Project Manager. Keep planning: Split task 3 in two' });
+    assert.match(relayAnswer(pending, { behavior: 'deny' }).message, /rejected this plan.*Keep planning/);
+    assert.deepEqual(relayAnswer(pending, { release: true }), { release: true });
+    assert.throws(() => relayAnswer(pending, {}), /Approve or reject/);
+  });
+
   it('takes a reply at a turn\'s end, but not an empty one', () => {
     assert.deepEqual(relayAnswer({ kind: 'stop' }, { reply: ' Go on ' }), { reply: 'Go on' });
     assert.throws(() => relayAnswer({ kind: 'stop' }, { reply: ' ' }));

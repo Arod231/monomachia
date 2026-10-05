@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
-  ago, answerFor, awayHtml, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
+  ago, answerFor, approveLabel, awayHtml, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
   sessionPills,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
@@ -20,6 +20,11 @@ describe('md', () => {
     assert.equal(md('```js\n<i>\n```'), '<pre>&lt;i&gt;</pre>');
     assert.match(md('[a](https://e.com)'), /<a href="https:\/\/e.com" target="_blank" rel="noopener">a<\/a>/);
     assert.doesNotMatch(md('[a](javascript:alert(1))'), /<a /);
+  });
+  it('renders a plan\'s headings, lists and rules, escaped, keeping plain lines as they were', () => {
+    assert.equal(md('a\nb'), 'a<br>b');
+    assert.equal(md('# Plan <x>\nIntro:\n- one **1**\n- two\n1. first\n2) second\n---\nEnd'),
+      '<h4 class="mdh">Plan &lt;x&gt;</h4>Intro:<ul><li>one <b>1</b></li><li>two</li></ul><ol><li>first</li><li>second</li></ol><hr>End');
   });
 });
 
@@ -67,6 +72,23 @@ describe('pendingCard', () => {
     assert.match(html, /Send answers/);
     assert.match(html, /data-answer="ab12-cd34"/);
   });
+  it('draws a plan rendered, with Approve, the prompt\'s own choices, Reject with a reason and Hand back', () => {
+    const html = pendingCard({ id: 'ab12-cd34', kind: 'plan', tool: 'ExitPlanMode', time: 1, input: { plan: '## Steps\n- Build <it>' },
+      suggestions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }, { type: 'addRules', rules: [{ toolName: 'Bash', ruleContent: 'npm test' }] }] });
+    assert.match(html, /approve its plan/);
+    assert.match(html, /<h4 class="mdh">Steps<\/h4><ul><li>Build &lt;it&gt;<\/li><\/ul>/);
+    assert.match(html, /<button class="btn primary" data-approve="ab12-cd34">Approve<\/button>/);
+    assert.match(html, /data-approve="ab12-cd34" data-sug="0">Approve, auto-accept edits</);
+    assert.match(html, /data-approve="ab12-cd34" data-sug="1">Approve, and allow Bash\(npm test\)</);
+    assert.match(html, /data-reject="ab12-cd34"/);
+    assert.match(html, /class="text why"/);
+    assert.match(html, /data-release="ab12-cd34"/);
+  });
+  it('names the modes a plan can be approved into', () => {
+    assert.equal(approveLabel({ type: 'setMode', mode: 'acceptEdits' }), 'Approve, auto-accept edits');
+    assert.equal(approveLabel({ type: 'setMode', mode: 'default' }), 'Approve, ask before edits');
+    assert.equal(approveLabel({ type: 'setMode', mode: 'somethingNew' }), 'Approve, somethingNew');
+  });
   it('draws a turn end waiting for a reply', () => {
     assert.match(pendingCard({ id: 'ab12-cd34', kind: 'stop', time: Date.now() }), /waiting for your reply/);
   });
@@ -85,7 +107,14 @@ describe('session list helpers', () => {
     const html = sessionPills(s);
     assert.match(html, /Approve Bash/);
     assert.match(html, /Reply queued/);
+    assert.match(sessionPills({ pending: [{ kind: 'plan', tool: 'ExitPlanMode' }], asking: null }), /Approve its plan/);
     assert.equal(sessionPills({ pending: [], asking: null }), '');
+  });
+  it('says what each held item waits for', () => {
+    assert.equal(waitingText({ kind: 'permission', tool: 'Bash' }), 'wants to use Bash');
+    assert.equal(waitingText({ kind: 'plan', tool: 'ExitPlanMode' }), 'asks you to approve its plan');
+    assert.equal(waitingText({ kind: 'question' }), 'asks you a question');
+    assert.equal(waitingText({ kind: 'stop' }), 'finished its turn and waits for your reply');
   });
   it('names a folder and a time', () => {
     assert.equal(folderOf('C:\\a\\b\\lane-x'), 'lane-x');
@@ -163,6 +192,11 @@ describe('answerFor', () => {
     assert.deepEqual(answerFor(button({ deny: 'p' }), card()), { id: 'p', behavior: 'deny', message: 'no' });
     assert.deepEqual(answerFor(button({ release: 'p' }), card()), { id: 'p', release: true });
     assert.equal(answerFor(button({}), card()), null);
+  });
+  it('turns plan buttons into their answers', () => {
+    assert.deepEqual(answerFor(button({ approve: 'p' }), card()), { id: 'p', behavior: 'allow' });
+    assert.deepEqual(answerFor(button({ approve: 'p', sug: '1' }), card()), { id: 'p', behavior: 'allow', suggestion: 1 });
+    assert.deepEqual(answerFor(button({ reject: 'p' }), card()), { id: 'p', behavior: 'deny', message: 'no' });
   });
   it('collects one pick per question, several on a multi-select, plus Other', () => {
     const c = card({ picked: [['A'], ['B', 'C']], other: [null, 'D'], multi: [false, true] });

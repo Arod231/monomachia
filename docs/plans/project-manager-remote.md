@@ -131,7 +131,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - built ahead of task 3 on the spec's shape (allow, with the input passed back plus an `answers` map), with the fallback (decline, carrying the answers as the reason) one switch away in the rule module; the spike decides which one ships before task 9 installs the hooks;
     - a free-form reply reaches the session as a decline carrying the owner's words ("The owner answered from the Project Manager: …"), which hooks already deliver, rather than the spec's `response`;
     - turn ends are held while Away is on from this task, as switched-on sessions' are today (20 minutes, a reply continues them); task 8 adds the inbox, release, the 24 hours and the Questions-tab cards.
-- [ ] **7. Permission prompts and plan approvals.** With Away on, a session's permission prompts and plans wait in the Questions tab too.
+- [x] **7. Permission prompts and plan approvals.** With Away on, a session's permission prompts and plans wait in the Questions tab too.
   - Delivers: on both pages,
     - held permissions showing the command or edit, with Allow, Always allow (naming the rule it adds) and Deny with a reason;
     - held plans rendered as Markdown, with Approve, and Reject with a reason.

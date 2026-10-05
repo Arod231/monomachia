@@ -79,7 +79,7 @@ async function main(hook) {
       return null;
     }
     const answer = await ask(hook, {
-      kind: question ? 'question' : 'permission', tool: hook.tool_name, input: hook.tool_input ?? {},
+      kind: question ? 'question' : hook.tool_name === 'ExitPlanMode' ? 'plan' : 'permission', tool: hook.tool_name, input: hook.tool_input ?? {},
       suggestions: hook.permission_suggestions ?? null, mode: hook.permission_mode ?? null,
     });
     if (!answer || answer.release || !answer.behavior) return null;

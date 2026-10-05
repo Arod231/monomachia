@@ -327,6 +327,12 @@ textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px
 .pcard .ch .k { margin-left: auto; font-size: 12px; color: var(--muted); }
 .pcard .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
 .pcard .row input.text { flex: 1; min-width: 160px; }
+.pcard .plan { max-height: 420px; overflow-y: auto; font-size: 13px; line-height: 1.5; padding: 2px 10px; background: var(--surface); border-radius: 8px; overflow-wrap: anywhere; }
+.plan .mdh { margin: 10px 0 4px; font-size: 14px; }
+.plan ul, .plan ol { margin: 4px 0; padding-left: 20px; }
+.plan hr { border: 0; border-top: 1px solid var(--border-strong); margin: 8px 0; }
+.plan pre { margin: 6px 0; padding: 8px 10px; background: var(--card); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-x: auto; }
+.plan code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; }
 pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 .q { margin-top: 8px; }
 .q .qh { font-size: 13px; margin-bottom: 6px; }
@@ -687,7 +693,7 @@ function waitingItems() {
   // What sessions hold for the owner while Away is on: answered in the Questions tab.
   for (const s of sessions.list) {
     for (const p of s.pending) {
-      const what = p.kind === 'permission' ? `wants to use ${p.tool}` : p.kind === 'question' ? 'asks you a question' : 'finished its turn and waits for your reply';
+      const what = window.S ? S.waitingText(p) : 'needs you';
       items.push({ sw: 'owner', text: `${s.title} ${what}`, k: ago(p.time), answer: true });
     }
   }
