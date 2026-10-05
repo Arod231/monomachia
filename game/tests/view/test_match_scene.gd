@@ -316,6 +316,35 @@ func test_a_dropped_weapon_is_in_the_toon_look() -> void:
 				assert_true(ToonMaterials.is_outlined(m), "weapons are outlined on every preset")
 
 
+## A dropped weapon's beam is drawn with a material and mesh the view built
+## before the match, never new ones at the disarm: a new StandardMaterial3D
+## compiled its shader on the main thread, some 40 ms at every disarm (the
+## frame-time harness's worst frame), since freeing the last beam had freed
+## the shader too.
+func test_a_dropped_weapon_s_beam_needs_nothing_new_at_the_disarm() -> void:
+	host.start(_cpu())
+	host.step(Match.INTRO_FRAMES + 5)
+	var mats: Array[Material] = []
+	for side: int in 2:
+		mats.append(view.beam_material(side))
+		assert_not_null(mats[side], "side %d's beam material is built before any disarm" % side)
+		assert_eq(Color(mats[side].albedo_color, 1.0), LookPalette.side_color(host.config.sides[side].palette), "in side %d's colour" % side)
+	assert_ne(mats[0], mats[1], "one for each side")
+	var mesh: Mesh = view.beam_mesh()
+	assert_not_null(mesh, "the beam's mesh is built before any disarm")
+	for k: int in 2:
+		host.world.weapons.append(DroppedWeapon.new(1, &"katana", V3.make(1.0, 0.0, 1.0), V3.make(), Rng.new(k + 1)))
+		view.render(1.0 / 60.0)
+		var beam: MeshInstance3D = view.get_node("Dropped1/Beam")
+		assert_same(beam.material_override, mats[1], "drop %d: the view's own material" % k)
+		assert_same(beam.mesh, mesh, "drop %d: the view's own mesh" % k)
+		host.world.weapons.clear() # picked up: the stand-in is freed
+		view.render(1.0 / 60.0)
+		await get_tree().process_frame
+		assert_null(view.get_node_or_null("Dropped1"), "drop %d: picked up" % k)
+	assert_same(view.beam_material(1), mats[1], "kept across the pickups")
+
+
 func test_the_view_and_hud_follow_the_dummy_s_weapon_swap() -> void:
 	# a Greatsword dummy, with the whole roster so the Slam can bring it back
 	Roster.full = true
