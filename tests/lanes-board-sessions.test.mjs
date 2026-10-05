@@ -14,8 +14,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
-  PENDING_ID, SESSION_ID, autoCompactAt, contextTracker, contextWindowFor, downsample, parseTranscript, questionAnswers,
-  relayAnswer, toolSummary,
+  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldOrphaned,
+  deliveryOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, toolSummary, turnSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 
@@ -137,6 +137,18 @@ describe('parseTranscript', () => {
 
   it('falls back to the first prompt for a title', () => {
     assert.equal(parseTranscript(TRANSCRIPT.slice(2)).title, 'Build the graph');
+  });
+
+  it('names the newest main-chain reply\'s line, which the app\'s turn summary points at', () => {
+    const line = (o) => JSON.stringify(o);
+    const lines = [
+      line({ type: 'assistant', uuid: 'u1', message: { content: [{ type: 'text', text: 'One' }] } }),
+      line({ type: 'assistant', uuid: 'u2', message: { content: [{ type: 'text', text: 'Two' }] } }),
+      line({ type: 'assistant', uuid: 'side', isSidechain: true, message: { content: [{ type: 'text', text: 'Agent' }] } }),
+      line({ type: 'system', uuid: 'sys', subtype: 'stop_hook_summary' }),
+    ];
+    assert.equal(parseTranscript(lines).lastReply, 'u2');
+    assert.equal(parseTranscript([]).lastReply, null);
   });
 });
 
@@ -314,9 +326,31 @@ describe('relay answers', () => {
 
   it('passes the question back with its answers, as the tool takes them', () => {
     const pending = { kind: 'question', input: { questions } };
+    assert.equal(QUESTION_ANSWER, 'allow');
     assert.deepEqual(relayAnswer(pending, { picks: ['A', ['B']] }), {
       behavior: 'allow', updatedInput: { questions, answers: { 'One?': 'A', 'Many?': 'B' } },
     });
+  });
+
+  it('takes "Other" as the free text it is', () => {
+    const pending = { kind: 'question', input: { questions } };
+    assert.deepEqual(relayAnswer(pending, { picks: ['My own words', ['B', 'Also this']] }).updatedInput.answers,
+      { 'One?': 'My own words', 'Many?': 'B, Also this' });
+  });
+
+  it('can answer by declining instead, carrying the answers as the reason (the fallback)', () => {
+    const pending = { kind: 'question', input: { questions } };
+    const out = relayAnswer(pending, { picks: ['A', ['B', 'C']] }, { questionAnswer: 'decline' });
+    assert.equal(out.behavior, 'deny');
+    assert.match(out.message, /^The owner answered from the Project Manager:/);
+    assert.match(out.message, /One\? → A/);
+    assert.match(out.message, /Many\? → B, C/);
+  });
+
+  it('sends a free-form reply to a question as a decline with the owner\'s words', () => {
+    const out = relayAnswer({ kind: 'question', input: { questions } }, { reply: '  Ask me about the camera instead ' });
+    assert.deepEqual(out, { behavior: 'deny',
+      message: 'The owner answered from the Project Manager instead of picking an option:\n\nAsk me about the camera instead' });
   });
 
   it('allows (adding the suggested rule only when asked), denies with a reason, or hands back', () => {
@@ -326,12 +360,54 @@ describe('relay answers', () => {
     assert.deepEqual(relayAnswer(pending, { behavior: 'allow', always: true }), { behavior: 'allow', updatedPermissions: sug });
     assert.match(relayAnswer(pending, { behavior: 'deny', message: 'not now' }).message, /not now$/);
     assert.deepEqual(relayAnswer(pending, { release: true }), { release: true });
+    assert.deepEqual(relayAnswer({ kind: 'question', input: { questions } }, { release: true }), { release: true });
     assert.throws(() => relayAnswer(pending, {}));
   });
 
-  it('takes a reply at a turn\'s end, but not an empty one', () => {
-    assert.deepEqual(relayAnswer({ kind: 'stop' }, { reply: ' Go on ' }), { reply: 'Go on' });
-    assert.throws(() => relayAnswer({ kind: 'stop' }, { reply: ' ' }));
+  it('approves a plan, with one of the prompt\'s own choices when picked, or rejects it with a reason', () => {
+    const sug = [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }, { type: 'setMode', mode: 'default', destination: 'session' }];
+    const pending = { kind: 'plan', suggestions: sug };
+    assert.deepEqual(relayAnswer(pending, { behavior: 'allow' }), { behavior: 'allow' });
+    assert.deepEqual(relayAnswer(pending, { behavior: 'allow', suggestion: 1 }), { behavior: 'allow', updatedPermissions: [sug[1]] });
+    assert.throws(() => relayAnswer(pending, { behavior: 'allow', suggestion: 2 }), /No such choice/);
+    assert.throws(() => relayAnswer(pending, { behavior: 'allow', suggestion: '0' }), /No such choice/);
+    assert.deepEqual(relayAnswer(pending, { behavior: 'deny', message: ' Split task 3 in two ' }), { behavior: 'deny',
+      message: 'The owner rejected this plan from the Project Manager. Keep planning: Split task 3 in two' });
+    assert.match(relayAnswer(pending, { behavior: 'deny' }).message, /rejected this plan.*Keep planning/);
+    assert.deepEqual(relayAnswer(pending, { release: true }), { release: true });
+    assert.throws(() => relayAnswer(pending, {}), /Approve or reject/);
+  });
+
+  it('continues a turn end with the owner\'s reply, Approve & continue or Show me, but not with nothing', () => {
+    assert.deepEqual(relayAnswer({ kind: 'stop' }, { reply: ' Go on ' }), { reply: 'The owner replied from the Project Manager:\n\nGo on' });
+    assert.deepEqual(relayAnswer({ kind: 'stop' }, { command: 'approve' }), { reply: 'Approved from the Project Manager: go on with the next task.' });
+    assert.match(relayAnswer({ kind: 'stop' }, { command: 'show' }).reply, /^The owner asks from the Project Manager: show me what you're working on\. .*path.*nothing to show yet\.$/);
+    assert.throws(() => relayAnswer({ kind: 'stop' }, { reply: ' ' }), /Type a reply first/);
+    assert.throws(() => relayAnswer({ kind: 'stop' }, { command: 'merge' }), /No such command/);
+    assert.deepEqual(relayAnswer({ kind: 'stop' }, { release: true }), { release: true });
+  });
+
+  it('words what the owner sends a session, ready to deliver', () => {
+    assert.equal(ownerMessage({ text: ' Rename it ' }), 'The owner replied from the Project Manager:\n\nRename it');
+    assert.equal(ownerMessage({ command: 'approve' }), 'Approved from the Project Manager: go on with the next task.');
+    assert.equal(ownerMessage({ text: 'x'.repeat(30000) }).length, 'The owner replied from the Project Manager:\n\n'.length + 20000);
+    assert.throws(() => ownerMessage({}), /Type a reply first/);
+  });
+
+  it('says when a message reaches its session: now, before its next step, or at its next turn end', () => {
+    assert.equal(deliveryOf({ held: true, active: false }), 'now');
+    assert.equal(deliveryOf({ held: false, active: true }), 'next-step');
+    assert.equal(deliveryOf({ held: false, active: false }), 'turn-end');
+  });
+
+  it('reads the app\'s turn summary only when it is about the turn that just ended', () => {
+    const raw = { status_category: 'needs_input', status_detail: 'Asked about the camera', needs_action: 'pick one', summarizes_uuid: 'u2' };
+    assert.deepEqual(turnSummary(raw, 'u2'), { status: 'needs_input', label: 'Needs input', detail: 'Asked about the camera', action: 'pick one' });
+    assert.equal(turnSummary(raw, 'u1'), null);
+    assert.equal(turnSummary(null, 'u2'), null);
+    assert.equal(turnSummary({ ...raw, status_category: 'odd_new_kind', needs_action: '' }, 'u2').label, 'odd new kind');
+    assert.deepEqual(['completed', 'review_ready', 'blocked', 'failed'].map((c) => turnSummary({ ...raw, status_category: c }, 'u2').label),
+      ['Done', 'Ready for review', 'Blocked', 'Failed']);
   });
 
   it('checks ids before they name a file', () => {
@@ -339,6 +415,34 @@ describe('relay answers', () => {
     assert.equal(SESSION_ID.test('../../etc'), false);
     assert.equal(PENDING_ID.test('muteg88c-076glmmy'), true);
     assert.equal(PENDING_ID.test('../x'), false);
+  });
+});
+
+describe('heldOrphaned', () => {
+  const p = { id: 'ab12-cd34', session: 's', transcript: 'C:/t/s.jsonl' };
+  it('drops an item whose transcript was deleted', () => {
+    assert.equal(heldOrphaned(p, { transcriptExists: false, hasRecord: true, sawRecord: true }), true);
+    assert.equal(heldOrphaned(p, { transcriptExists: true, hasRecord: true, sawRecord: true }), false);
+  });
+  it('drops an item whose app record was deleted, once the board had seen it', () => {
+    assert.equal(heldOrphaned(p, { transcriptExists: true, hasRecord: false, sawRecord: true }), true);
+    assert.equal(heldOrphaned(p, { transcriptExists: true, hasRecord: false, sawRecord: false }), false);
+  });
+  it('keeps an item that names no transcript', () => {
+    assert.equal(heldOrphaned({ ...p, transcript: null }, { transcriptExists: false, hasRecord: false, sawRecord: false }), false);
+  });
+});
+
+describe('the Away switch', () => {
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1';
+  it('records on or off, since when and from which device', () => {
+    assert.deepEqual(awaySwitch({ on: true }, IPHONE, 5), { on: true, since: 5, from: 'phone' });
+    assert.deepEqual(awaySwitch({ on: false }, 'Mozilla/5.0 (Windows NT 10.0)', 6), { on: false, since: 6, from: 'PC' });
+  });
+  it('reads a missing or broken Away file as off', () => {
+    assert.deepEqual(awayOf(null), { on: false, since: null, from: null });
+    assert.deepEqual(awayOf({ on: 'yes' }), { on: false, since: null, from: null });
+    assert.deepEqual(awayOf({ on: true, since: 3, from: 'phone' }), { on: true, since: 3, from: 'phone' });
   });
 });
 
@@ -351,10 +455,10 @@ describe('relay hook', () => {
   beforeEach(() => { dir = mkdtempSync(path.join(os.tmpdir(), 'lanes-relay-')); });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  const switchOn = (on = true) => writeFileSync(path.join(dir, 'on.json'), JSON.stringify({ sessions: on ? { [ID]: { since: 1 } } : {} }));
+  const setAway = (on = true) => writeFileSync(path.join(dir, 'away.json'), JSON.stringify({ on, since: 1, from: 'PC' }));
   // Runs the hook; when it writes a pending item, `answer` decides what the board does.
-  const run = (input, answer = null, waitMs = 8000) => new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [HOOK], { env: { ...process.env, LANES_RELAY: dir, LANES_RELAY_WAIT_MS: String(waitMs) } });
+  const run = (input, answer = null, waitMs = 8000, relay = dir) => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [HOOK], { env: { ...process.env, LANES_RELAY: relay, LANES_RELAY_WAIT_MS: String(waitMs) } });
     let out = '';
     child.stdout.on('data', (c) => { out += c; });
     child.on('error', reject);
@@ -374,15 +478,32 @@ describe('relay hook', () => {
     mkdirSync(path.join(dir, 'answers'), { recursive: true });
     writeFileSync(path.join(dir, 'answers', `${p.id}.json`), JSON.stringify(body));
   };
+  const events = () => (existsSync(path.join(dir, 'events.jsonl'))
+    ? readFileSync(path.join(dir, 'events.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []);
+  const ASK = { hook_event_name: 'PermissionRequest', tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'Which?', options: [{ label: 'A' }] }] } };
 
-  it('does nothing for a session that isn\'t switched on, or with no relay at all', async () => {
-    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' })).out, '');
-    switchOn(false);
-    assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
+  it('does nothing with no relay folder at all', async () => {
+    const r = await run(ASK, null, 8000, path.join(dir, 'missing'));
+    assert.equal(r.out, '');
+    assert.equal(existsSync(path.join(dir, 'missing')), false);
   });
 
-  it('hands a permission prompt to the board and returns its decision', async () => {
-    switchOn();
+  it('leaves everything to the app while Away is off, noting a question asked in the app', async () => {
+    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' })).out, '');
+    setAway(false);
+    const asked = await run(ASK);
+    assert.equal(asked.out, '');
+    assert.equal(asked.pending, null);
+    assert.equal((await run({ hook_event_name: 'Stop', last_assistant_message: 'Done.' })).out, '');
+    const ev = events();
+    assert.equal(ev.length, 2);
+    assertMatches(ev[0], { kind: 'asked-in-app', session: ID, cwd: 'C:/repo', questions: ['Which?'] });
+    assert.equal(typeof ev[0].time, 'number');
+    assertMatches(ev[1], { kind: 'turn-finished', session: ID, cwd: 'C:/repo', last: 'Done.' });
+  });
+
+  it('hands a permission prompt to the board while Away is on and returns its decision', async () => {
+    setAway();
     const { out, pending } = await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'ls' } },
       (p) => reply(p, { behavior: 'deny', message: 'no' }));
     assertMatches(pending, { kind: 'permission', tool: 'Bash', session: ID, input: { command: 'ls' } });
@@ -391,48 +512,58 @@ describe('relay hook', () => {
     assert.deepEqual(readdirSync(path.join(dir, 'pending')), []);
   });
 
-  it('answers a question with the board\'s picks', async () => {
-    switchOn();
-    const input = { questions: [{ question: 'Which?', options: [{ label: 'A' }] }] };
-    const { out, pending } = await run({ hook_event_name: 'PermissionRequest', tool_name: 'AskUserQuestion', tool_input: input },
-      (p) => reply(p, relayAnswer(p, { picks: ['A'] })));
-    assert.equal(pending.kind, 'question');
-    assert.deepEqual(JSON.parse(out).hookSpecificOutput.decision, { behavior: 'allow', updatedInput: { ...input, answers: { 'Which?': 'A' } } });
+  it('leaves a question to the app while Away is on too, only noting that it waits', async () => {
+    setAway();
+    const asked = await run(ASK);
+    assert.equal(asked.out, '');
+    assert.equal(asked.pending, null);
+    assertMatches(events().at(-1), { kind: 'asked-in-app', session: ID, cwd: 'C:/repo', questions: ['Which?'] });
   });
 
-  it('falls back to the app\'s dialog when handed back, switched off, or out of time', async () => {
-    switchOn();
+  it('falls back to the app\'s dialog when handed back, when Away goes off, or out of time', async () => {
+    setAway();
     assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, (p) => reply(p, { release: true }))).out, '');
-    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, () => switchOn(false))).out, '');
-    switchOn();
+    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, () => setAway(false))).out, '');
+    setAway();
     const late = await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, null, 300);
     assert.equal(late.out, '');
     assert.notEqual(late.pending, null);
     assert.deepEqual(readdirSync(path.join(dir, 'pending')), []);
   });
 
-  it('carries on with the owner\'s reply when a turn ends', async () => {
-    switchOn();
-    const { out, pending } = await run({ hook_event_name: 'Stop', last_assistant_message: 'Done.' }, (p) => reply(p, { reply: 'Now test it' }));
+  it('carries on with the owner\'s reply when a turn ends while Away is on', async () => {
+    setAway();
+    const { out, pending } = await run({ hook_event_name: 'Stop', last_assistant_message: 'Done.' }, (p) => reply(p, relayAnswer(p, { reply: 'Now test it' })));
     assertMatches(pending, { kind: 'stop', last: 'Done.' });
-    const decision = JSON.parse(out);
-    assert.deepEqual(Object.keys(decision).sort(), ['decision', 'reason']);
-    assert.equal(decision.decision, 'block');
-    assert.match(decision.reason, /Now test it$/);
+    assert.deepEqual(JSON.parse(out), { decision: 'block', reason: 'The owner replied from the Project Manager:\n\nNow test it' });
   });
 
-  it('hands over a reply queued while the session was idle, without waiting', async () => {
-    switchOn();
-    mkdirSync(path.join(dir, 'replies'));
-    writeFileSync(path.join(dir, 'replies', `${ID}.json`), JSON.stringify({ text: 'Queued words' }));
-    const { out, pending } = await run({ hook_event_name: 'Stop' });
-    assert.equal(pending, null);
-    assert.match(JSON.parse(out).reason, /Queued words$/);
-    assert.equal(existsSync(path.join(dir, 'replies', `${ID}.json`)), false);
+  it('hands over everything in its inbox when a turn ends, oldest first, without waiting, Away on or off', async () => {
+    for (const on of [true, false]) {
+      setAway(on);
+      const inbox = path.join(dir, 'inbox', ID);
+      mkdirSync(inbox, { recursive: true });
+      writeFileSync(path.join(inbox, '000000000000002-000001.json'), JSON.stringify({ text: 'Newer words' }));
+      writeFileSync(path.join(inbox, '000000000000001-000000.json'), JSON.stringify({ text: 'Queued words' }));
+      const { out, pending } = await run({ hook_event_name: 'Stop' });
+      assert.equal(pending, null);
+      assert.deepEqual(JSON.parse(out), { decision: 'block', reason: 'Queued words\n\nNewer words' });
+      assert.deepEqual(readdirSync(inbox), []);
+    }
   });
 
-  it('never blocks on a broken on.json', async () => {
-    writeFileSync(path.join(dir, 'on.json'), '{not json');
+  it('takes a message that arrives while a turn end is held', async () => {
+    setAway();
+    const { out } = await run({ hook_event_name: 'Stop' }, () => {
+      mkdirSync(path.join(dir, 'inbox', ID), { recursive: true });
+      writeFileSync(path.join(dir, 'inbox', ID, '000000000000001-000000.json'), JSON.stringify({ text: 'Sent meanwhile' }));
+    });
+    assert.deepEqual(JSON.parse(out), { decision: 'block', reason: 'Sent meanwhile' });
+  });
+
+  it('never blocks on a broken Away file', async () => {
+    writeFileSync(path.join(dir, 'away.json'), '{not json');
     assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
+    assert.equal((await run(ASK)).out, '');
   });
 });

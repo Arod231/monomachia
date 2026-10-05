@@ -27,7 +27,8 @@
     "audio:music": "node scripts/audio/music.mjs",
     "brain": "node tools/second-brain/build.mjs",
     "brain:serve": "node tools/second-brain/serve.mjs",
-    "board": "node tools/lanes-board/server.mjs"
+    "board": "node tools/lanes-board/server.mjs",
+    "board:hooks": "node tools/lanes-board/install-hooks.mjs"
   },
   "engines": {
     "node": ">=22.12"
