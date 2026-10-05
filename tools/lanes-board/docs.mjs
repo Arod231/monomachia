@@ -79,8 +79,8 @@ const inside = (p, root) => p === root || p.startsWith(`${root}/`);
 // named(), or any paths); roots: the main checkout, then each live worktree;
 // cwd: the folder the session wrote it from. A file in a live root is read
 // from there (live), relative to the deepest root. One in a worktree since
-// removed (the session's folder, inside the main checkout but no live
-// worktree) is read from git by its place in that folder.
+// removed (the session's folder, under the main checkout's .claude/worktrees/
+// but no live worktree) is read from git by its place in that folder.
 export function docPlace(file, { named, roots, cwd }) {
   const want = key(file);
   if (![...named].some((n) => key(n) === want)) return null;
@@ -90,7 +90,8 @@ export function docPlace(file, { named, roots, cwd }) {
   if (!live.length) return null;
   const main = cleanPath(roots[0]).toLowerCase();
   const c = cwd ? cleanPath(cwd) : null;
-  const gone = c && live[0].toLowerCase() === main && c.toLowerCase() !== main && inside(c.toLowerCase(), main) && inside(lower, c.toLowerCase())
+  // A removed worktree sat where the app and lanes make them, in .claude/worktrees/.
+  const gone = c && live[0].toLowerCase() === main && inside(c.toLowerCase(), `${main}/.claude/worktrees`) && inside(lower, c.toLowerCase())
     && !roots.slice(1).some((r) => inside(c.toLowerCase(), cleanPath(r).toLowerCase()));
   const root = gone ? c : live[0];
   return { root, rel: p.slice(root.length + 1), live: !gone };

@@ -462,6 +462,8 @@ export function mountViewer() {
       show();
     },
     close,
+    // Hides it at once, leaving history alone (another session was opened).
+    dismiss() { box.hidden = true; box.innerHTML = ''; },
   };
 }
 
@@ -564,6 +566,8 @@ export function mountReader({ marked = () => window.marked } = {}) {
       } catch (err) { body.innerHTML = `<p>Couldn't load it: ${esc(err.message)}</p>`; }
     },
     close,
+    // Hides it at once, leaving history alone (another session was opened).
+    dismiss: hide,
   };
 }
 

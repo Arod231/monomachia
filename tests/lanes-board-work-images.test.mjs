@@ -35,11 +35,13 @@ describe('workImageScanner', () => {
 
   it('keeps Blender and Godot viewport shots, numbering the images in one result', () => {
     const lines = [call('b1', 'mcp__blender__look', {}), result('b1', [{ type: 'text', text: 'Viewport' }, img('a'), img('b')]),
-      call('g1', 'mcp__godot__get_screenshot', {}), result('g1', [img('c')])];
+      call('g1', 'mcp__godot__get_screenshot', {}), result('g1', [img('c')]),
+      call('g2', 'mcp__godot_mcp__screenshot', {}), result('g2', [img('d')])];
     assert.deepEqual(scan(lines).map((f) => [f.line, f.n, f.tool, f.source]), [
       [1, 0, 'mcp__blender__look', 'Blender viewport'],
       [1, 1, 'mcp__blender__look', 'Blender viewport'],
       [3, 0, 'mcp__godot__get_screenshot', 'Godot viewport'],
+      [5, 0, 'mcp__godot_mcp__screenshot', 'Godot viewport'],
     ]);
   });
 
@@ -48,6 +50,8 @@ describe('workImageScanner', () => {
       call('c1', 'mcp__Claude_Browser__computer', { action: 'screenshot' }), result('c1', [img()]),
       call('r1', 'Read', { file_path: 'C:\\Users\\o\\Desktop\\reference.png' }), result('r1', [img()]),
       call('r2', 'Read', { file_path: `${CWD}\\docs\\diagram.png` }), result('r2', [img()]),
+      call('r4', 'Read', { file_path: `${CWD}\\shots\\..\\docs\\diagram.png` }), result('r4', [img()]),
+      call('x1', 'mcp__Claude_Browser__computer', { note: 'mcp__blender__look' }), call('x2', 'mcp__Claude_Browser__computer', {}), result('x2', [img()]),
       call('r3', 'Read', { file_path: 'C:\\Users\\o\\Desktop\\Monomachia\\.claude\\worktrees\\lane-y\\shots\\a.png' }), result('r3', [img()]),
       JSON.stringify({ type: 'user', message: { role: 'user', content: [img()] } }),
       result('unseen', [img()]),

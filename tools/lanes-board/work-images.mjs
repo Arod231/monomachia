@@ -7,10 +7,13 @@
 // screenshots, pasted images, images from anywhere else, its subagents' images
 // and any result whose call wasn't seen are left out.
 // tests/lanes-board-work-images.test.mjs checks the rule.
+import path from 'node:path';
 import { lineAt, scanned } from './transcript-index.mjs';
 
-const VIEWPORT = /^mcp__([^_]*?(blender|godot)[^_]*)__/i;
-const norm = (p) => String(p ?? '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+// An MCP server named for Blender or Godot (mcp__<server>__<tool>; the server's
+// name may hold underscores, as in godot_mcp).
+const VIEWPORT = /^mcp__(.*?(blender|godot).*?)__/i;
+const norm = (p) => path.posix.normalize(String(p ?? '').replace(/\\/g, '/')).replace(/\/+$/, '').toLowerCase();
 
 // What a call's images show, or null when they don't count.
 function sourceOf(call) {
@@ -41,7 +44,7 @@ export function workImageScanner() {
   const found = [];
   return {
     feed(text, line, offset) {
-      if (text.includes('"tool_use"') && (text.includes('"Read"') || VIEWPORT.test(text.match(/"name":"(mcp__[^"]+)"/)?.[1] ?? ''))) {
+      if (text.includes('"tool_use"') && (text.includes('"Read"') || [...text.matchAll(/"name":"(mcp__[^"]+)"/g)].some((m) => VIEWPORT.test(m[1])))) {
         let o;
         try { o = JSON.parse(text); } catch { return; }
         for (const c of Array.isArray(o?.message?.content) ? o.message.content : []) {

@@ -117,8 +117,9 @@ export function docsApi({ repoDir, worktrees, gh, prOf = () => null, fileOf }) {
       return true;
     }
     res.writeHead(200, { 'content-type': TYPES[d.kind], 'content-length': d.bytes.length, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff',
-      // An opaque origin: a page's scripts run but can't act as the Project Manager.
-      'content-security-policy': 'sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox', 'x-doc-from': d.from });
+      // An opaque origin: a page's scripts run but can't act as the Project
+      // Manager. A PDF goes without, as a sandbox can stop the browser's viewer.
+      ...(d.kind === 'pdf' ? {} : { 'content-security-policy': 'sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox' }), 'x-doc-from': d.from });
     res.end(d.bytes);
     return true;
   }

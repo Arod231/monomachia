@@ -49,6 +49,7 @@ describe('the round trip: docs, the pull request and artifacts', () => {
     mkdirSync(path.join(board.repo, 'notes'));
     writeFileSync(path.join(board.repo, 'docs', 'plan.md'), '# Plan\n\nStep <one>.');
     writeFileSync(path.join(board.repo, 'notes', 'page.html'), '<h1>Page</h1>');
+    writeFileSync(path.join(board.repo, 'docs', 'spec.pdf'), '%PDF-1.4 fixture');
     writeFileSync(path.join(board.root, 'outside.md'), '# Outside');
     writeFileSync(fixture, JSON.stringify({ repo: 'o/r',
       prs: [{ number: 7, title: 'Lane x', headRefName: 'lane/x', baseRefName: 'main', isDraft: false, url: 'https://github.com/o/r/pull/7' }],
@@ -56,7 +57,7 @@ describe('the round trip: docs, the pull request and artifacts', () => {
         baseRefName: 'main', headRefName: 'lane/x', headRefOid: mergedOid, additions: 12, deletions: 3,
         statusCheckRollup: [{ __typename: 'CheckRun', name: 'test', status: 'COMPLETED', conclusion: 'SUCCESS' }],
         files: [{ path: 'docs/plan.md', additions: 12, deletions: 3 }] } } }));
-    for (const f of ['docs/plan.md', 'notes/page.html', 'docs/gone.md', 'docs/merged.md', 'docs/never.md']) wrote(path.join(board.repo, f));
+    for (const f of ['docs/spec.pdf', 'docs/plan.md', 'notes/page.html', 'docs/gone.md', 'docs/merged.md', 'docs/never.md']) wrote(path.join(board.repo, f));
     wrote(path.join(board.root, 'outside.md'));
     add({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', id: 'art', name: 'Artifact', input: { file_path: 'r.html', title: 'Report' } }] } });
     add({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'art', content: 'Published https://claude.ai/artifact/Rep0rt' }] } });
@@ -66,10 +67,18 @@ describe('the round trip: docs, the pull request and artifacts', () => {
   it('lists what it wrote inside the repo, newest first, its artifacts and its pull request', async () => {
     const d = await waitFor(async () => { const b = (await board.get(`/docs?session=${SESSION}`)).body; return b?.pr && b; }, 20000, 'the pull request');
     assert.deepEqual(d.docs.map((x) => [x.name, x.kind, x.dir]), [
-      ['never.md', 'md', 'docs'], ['merged.md', 'md', 'docs'], ['gone.md', 'md', 'docs'], ['page.html', 'html', 'notes'], ['plan.md', 'md', 'docs']]);
+      ['never.md', 'md', 'docs'], ['merged.md', 'md', 'docs'], ['gone.md', 'md', 'docs'], ['page.html', 'html', 'notes'], ['plan.md', 'md', 'docs'], ['spec.pdf', 'pdf', 'docs']]);
     assert.deepEqual(d.artifacts.map((a) => [a.title, a.url]), [['Report', 'https://claude.ai/artifact/Rep0rt']]);
     assertMatches(d.pr, { number: 7, title: 'Lane x', url: 'https://github.com/o/r/pull/7', state: 'OPEN', base: 'main', head: 'lane/x', body: '## Summary\n\nDocs.',
       additions: 12, deletions: 3, checks: [{ name: 'test', state: 'SUCCESS' }], files: [{ path: 'docs/plan.md', additions: 12, deletions: 3 }] });
+  });
+
+  it("serves a PDF as it is, unsandboxed so the browser's viewer can show it", async () => {
+    const pdf = await doc(path.join(board.repo, 'docs', 'spec.pdf'));
+    assert.equal(pdf.status, 200);
+    assert.equal(pdf.headers.get('content-type'), 'application/pdf');
+    assert.equal(pdf.headers.get('content-security-policy'), null);
+    assert.equal(await pdf.text(), '%PDF-1.4 fixture');
   });
 
   it('serves a document from the worktree, an HTML page sandboxed', async () => {

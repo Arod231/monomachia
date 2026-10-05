@@ -7,6 +7,7 @@
 // An hourly sweep keeps the store to 30 days and 5 GB.
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
+import { pipeline } from 'node:stream';
 import path from 'node:path';
 import { MEDIA_FILE, mediaRoot, readIndex, storeSessions, sweepStore } from './media.mjs';
 import { SESSION_ID } from './sessions.mjs';
@@ -47,7 +48,9 @@ export function mediaApi({ state, sweepMs = 0 }) {
     const { start, end } = range ?? { start: 0, end: size - 1 };
     res.writeHead(range ? 206 : 200, { ...headers, 'content-length': end - start + 1, ...(range ? { 'content-range': `bytes ${start}-${end}/${size}` } : {}) });
     if (req.method === 'HEAD' || size === 0) { res.end(); return true; }
-    createReadStream(path.join(root, session, file), { start, end }).pipe(res);
+    // pipeline closes the file when the phone stops reading part-way, and
+    // keeps a file the sweep removed mid-read from taking the server down.
+    pipeline(createReadStream(path.join(root, session, file), { start, end }), res, () => {});
     return true;
   }
 

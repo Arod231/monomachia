@@ -639,14 +639,17 @@ function renderSessions() {
   const order = (a, b) => (rank(a) - rank(b)) || ((b.session ?? b.last.time * 1000) - (a.session ?? a.last.time * 1000));
   const used = new Set((sessionList ?? []).map((x) => laneOf(x.cwd)?.path).filter(Boolean));
   const trees = data.lanes.filter((l) => !used.has(l.path)).sort(order);
-  if (laneFilter === 'older' && !olderList?.length) laneFilter = 'sessions';
+  if (laneFilter === 'older' && olderList && !olderList.length) laneFilter = 'sessions'; // kept until /sessions answers
   if (laneFilter !== 'worktrees' && laneFilter !== 'older') laneFilter = 'sessions';
   $('laneSeg').innerHTML = `<button data-lanes="sessions" aria-pressed="${laneFilter === 'sessions'}">Sessions${sessionList ? ` · ${sessionList.length}` : ''}</button>`
     + `<button data-lanes="worktrees" aria-pressed="${laneFilter === 'worktrees'}">Worktrees · ${trees.length}</button>`
     + (olderList?.length ? `<button data-lanes="older" aria-pressed="${laneFilter === 'older'}">Older · ${olderList.length}</button>` : '');
   if (laneFilter === 'sessions') { $('lanes').innerHTML = sessionsHtml(); return; }
   // Sessions past the 3 days, kept for what they posted (30 days).
-  if (laneFilter === 'older') { $('lanes').innerHTML = `<ul class="list sess">${olderList.map(S.olderCardHtml).join('')}</ul>`; return; }
+  if (laneFilter === 'older') {
+    $('lanes').innerHTML = olderList && window.S ? `<ul class="list sess">${olderList.map(S.olderCardHtml).join('')}</ul>` : '<div class="empty">Loading sessions…</div>';
+    return;
+  }
   $('lanes').innerHTML = trees.map(laneCard).join('') || '<div class="empty">Every worktree has a session.</div>';
 }
 
@@ -698,6 +701,7 @@ function openSession(id, push = true) {
   if (openId !== id) {
     detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; merge?.hide(); remote?.hide();
     docs = null; $('sDocs').innerHTML = '';
+    viewer?.dismiss(); reader?.dismiss();
   }
   if (tab !== 'sessions') { tab = 'sessions'; store.set('m-tab', tab); }
   openId = id;
@@ -738,7 +742,8 @@ function closeSession() {
   if (history.state?.session) history.back(); else setTab('sessions');
 }
 window.addEventListener('popstate', (e) => {
-  if (e.state?.session) openSession(e.state.session, false);
+  // Closing the viewer or reader comes back to the page already open: stay where it was.
+  if (e.state?.session) { if (e.state.session !== openId) openSession(e.state.session, false); }
   else if (openId) setTab('sessions');
 });
 async function pollDetail() {

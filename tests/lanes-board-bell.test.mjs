@@ -80,16 +80,27 @@ describe('bellUpdate', () => {
   it('tells of new visuals once per session per minute, counting what each minute brought', () => {
     const p = (id, time, extra = {}) => ({ session: S1, id, time, kind: 'still', caption: `Shot ${id}`, ...extra });
     let s = update(null, { posts: [p('a', 1000)], now: 2000 });
-    assert.deepEqual(s.records.map((r) => [r.id, r.kind, r.text, r.detail]), [['visuals:' + S1 + ':a', 'visuals', 'Lane <one> posted a shot', 'Shot a']]);
+    assert.deepEqual(s.records.map((r) => [r.id, r.kind, r.text, r.detail]), [['visuals:' + S1 + ':0', 'visuals', 'Lane <one> posted a shot', 'Shot a']]);
     assert.deepEqual(s.records[0].target, { tab: 'sessions', session: S1, visuals: true });
     s = markRead(s, 'all');
     s = update(s, { posts: [p('a', 1000), p('b', 30_000, { kind: 'clip' }), p('c', 61_500), p('d', 1500, { session: S2 })], now: 70_000 });
     assert.deepEqual(s.records.map((r) => [r.id.split(':').at(-1), r.session, r.text, r.detail, r.read]), [
-      ['a', S1, 'Lane <one> posted 2 visuals', 'Shot b', true],
-      ['d', S2, 'Lane two posted a shot', 'Shot d', false],
-      ['c', S1, 'Lane <one> posted a shot', 'Shot c', false],
+      ['0', S1, 'Lane <one> posted 2 visuals', 'Shot b', true],
+      ['0', S2, 'Lane two posted a shot', 'Shot d', false],
+      ['1', S1, 'Lane <one> posted a shot', 'Shot c', false],
     ]);
     assert.equal(update(s, { posts: [p('a', 1000), p('b', 30_000, { kind: 'clip' }), p('c', 61_500), p('d', 1500, { session: S2 })], now: 70_000 }), s);
+  });
+
+  it('never tells of the same visuals twice, as older posts age out or the list drops their record', () => {
+    const p = (id, time) => ({ session: S1, id, time, kind: 'still', caption: id });
+    const posts = [p('a', 0), p('b', 30_000), p('c', 70_000)];
+    let s = markRead(update(null, { posts, now: 80_000 }), 'all');
+    const later = BELL_KEEP_MS + 10_000; // a is past the 7 days; b and c are not
+    s = update(s, { posts: posts.slice(1), now: later });
+    assert.deepEqual(s.records.filter((r) => !r.read).map((r) => r.id), []);
+    const dropped = { ...s, records: s.records.filter((r) => !r.id.endsWith(':1')) };
+    assert.equal(update(dropped, { posts: posts.slice(1), now: later }).records.some((r) => r.id.endsWith(':1')), false);
   });
 
   it('drops records older than 7 days', () => {

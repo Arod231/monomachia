@@ -72,6 +72,10 @@ describe('docPlace', () => {
     const gone = 'C:\\repo\\.claude\\worktrees\\gone';
     assert.deepEqual(docPlace(`${gone}\\docs\\old.md`, { named, roots, cwd: gone }), { root: gone.replace(/\\/g, '/'), rel: 'docs/old.md', live: false });
   });
+  it('places a file written from a subfolder of the main checkout relative to the checkout, on disk', () => {
+    const file = 'C:\\repo\\tools\\lanes-board\\notes.md';
+    assert.deepEqual(docPlace(file, { named: new Set([file]), roots, cwd: 'C:\\repo\\tools\\lanes-board' }), { root: 'C:/repo', rel: 'tools/lanes-board/notes.md', live: true });
+  });
   it('refuses a file the transcript never named, one outside the repo and its worktrees, and a way out', () => {
     assert.equal(docPlace(`${W}\\README.md`, { named, roots, cwd: W }), null);
     assert.equal(docPlace('C:\\outside\\notes.md', { named, roots, cwd: 'C:\\outside' }), null);
