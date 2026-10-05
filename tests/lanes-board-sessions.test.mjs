@@ -15,7 +15,7 @@ import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
   PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldOrphaned,
-  deliveryOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, toolSummary, turnSummary,
+  STOP_NOW, deliveryOf, endedAtOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, sessionState, toolSummary, turnSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 
@@ -564,5 +564,48 @@ describe('relay hook', () => {
     writeFileSync(path.join(dir, 'away.json'), '{not json');
     assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
     assert.equal((await run(ASK)).out, '');
+  });
+});
+
+describe('the session page\'s rules', () => {
+  it('reads the branch the session is on from its newest line', () => {
+    const line = (o) => JSON.stringify(o);
+    const lines = [
+      line({ type: 'user', gitBranch: 'lane/pm-1', message: { content: 'Go' } }),
+      line({ type: 'assistant', gitBranch: 'lane/pm-11-12', message: { content: [{ type: 'text', text: 'On it.' }] } }),
+      line({ type: 'assistant', isSidechain: true, gitBranch: 'other', message: { content: [{ type: 'text', text: 'Agent' }] } }),
+    ];
+    assert.equal(parseTranscript(lines).branch, 'lane/pm-11-12');
+    assert.equal(parseTranscript([]).branch, null);
+    assert.equal(parseTranscript([line({ type: 'user', gitBranch: 'HEAD', message: { content: 'x' } })]).branch, null, 'a detached head names no branch');
+  });
+
+  it('gives a session one state: waiting on you, asked in the app, ended, at work or idle', () => {
+    const base = { pending: [], asking: null, active: false, activity: 1000, endedAt: null };
+    assert.equal(sessionState({ ...base, pending: [{ kind: 'stop' }], active: true }), 'waiting');
+    assert.equal(sessionState({ ...base, asking: ['Which?'], active: true }), 'asked');
+    assert.equal(sessionState({ ...base, active: true }), 'working');
+    assert.equal(sessionState(base), 'idle');
+    assert.equal(sessionState({ ...base, endedAt: 900 }), 'ended');
+    assert.equal(sessionState({ ...base, active: true, activity: 1000, endedAt: 900 }), 'ended', 'still finishing its last step');
+    assert.equal(sessionState({ ...base, active: true, activity: 900 + 3 * 60 * 1000, endedAt: 900 }), 'working', 'woken again since');
+  });
+
+  it('finds when a session\'s work was last ended: by its id, or inside an ended lane\'s worktree', () => {
+    const stops = [
+      { requestedAt: 100, sessions: ['s1'], worktree: null },
+      { requestedAt: 200, sessions: [], worktree: 'C:\\repo\\.claude\\worktrees\\lane-a' },
+      { requestedAt: 300, sessions: ['s1'], cancelledAt: 310 },
+    ];
+    assert.equal(endedAtOf(stops, { id: 's1', cwd: 'C:\\other' }), 100);
+    assert.equal(endedAtOf(stops, { id: 's2', cwd: 'c:\\repo\\.claude\\worktrees\\lane-a\\tools' }), 200);
+    assert.equal(endedAtOf(stops, { id: 's2', cwd: 'C:/repo/.claude/worktrees/lane-a' }), 200);
+    assert.equal(endedAtOf(stops, { id: 's2', cwd: 'C:\\repo\\.claude\\worktrees\\lane-ab' }), null);
+    assert.equal(endedAtOf([], { id: 's1', cwd: null }), null);
+  });
+
+  it('words Stop now for the session: stop at once and end the turn', () => {
+    assert.match(STOP_NOW, /Stop now/);
+    assert.match(STOP_NOW, /end your turn/);
   });
 });

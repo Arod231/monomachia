@@ -16,17 +16,23 @@
 // Before a session's next tool, it also hands over the oldest message the owner
 // sent it from the Project Manager (the relay folder's inbox/<session>/, see
 // relay-hook.mjs; LANES_RELAY overrides the folder), as context the session reads
-// with that tool call. With neither the stop file nor an inbox it exits at once.
+// with that tool call. After the owner pressed Stop now (the relay folder's
+// stopnow/<session>.json, cleared by relay-hook.mjs when the turn ends), it
+// refuses each tool call with the board's words instead, so the session ends
+// its turn. With none of these it exits at once.
 import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
 const FILE = process.env.LANES_STOP_FILE ?? path.join(os.homedir(), '.claude', 'lanes-stop.json');
-const INBOX = path.join(process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay'), 'inbox');
+const RELAY = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
+const INBOX = path.join(RELAY, 'inbox');
+const STOP_NOW = path.join(RELAY, 'stopnow');
 const GRACE_MS = 2 * 60 * 1000;
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+const STOP_NOW_MS = 6 * 60 * 60 * 1000;
 
-if (!existsSync(FILE) && !existsSync(INBOX)) process.exit(0);
+if (!existsSync(FILE) && !existsSync(INBOX) && !existsSync(STOP_NOW)) process.exit(0);
 
 let input = '';
 process.stdin.setEncoding('utf8');
@@ -36,10 +42,19 @@ process.stdin.on('end', () => {
   try { hook = JSON.parse(input || '{}'); } catch { /* never get in a session's way */ }
   let out = null;
   try { out = stopOf(hook); } catch { /* never get in a session's way */ }
-  if (!out && hook.hook_event_name === 'PreToolUse') { try { out = messageFor(hook); } catch { /* likewise */ } }
+  if (!out && hook.hook_event_name === 'PreToolUse') { try { out = stopNowFor(hook) ?? messageFor(hook); } catch { /* likewise */ } }
   if (out) process.stdout.write(JSON.stringify(out));
   process.exit(0);
 });
+
+// The refusal of this tool call after the owner pressed Stop now, or null.
+function stopNowFor(hook) {
+  if (!/^[\w-]+$/.test(hook.session_id ?? '')) return null;
+  let m = null;
+  try { m = JSON.parse(readFileSync(path.join(STOP_NOW, `${hook.session_id}.json`), 'utf8')); } catch { return null; }
+  if (!m?.text || Date.now() - (m.time ?? 0) > STOP_NOW_MS) return null;
+  return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: String(m.text) } };
+}
 
 // The oldest message in the session's inbox, taken, as context for this tool call.
 function messageFor(hook) {

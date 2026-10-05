@@ -695,8 +695,13 @@ async function hooksState() {
   try { settings = JSON.parse(await readFile(path.join(CLAUDE_DIR, 'settings.json'), 'utf8')); } catch { /* none, or being written */ }
   return hooksStatus({ tracked, installed, settings, home: CLAUDE_DIR });
 }
+// A branch's open pull request, from the list refreshed each minute (refreshPrs).
+function prOfBranch(branch) {
+  const p = prs.find((x) => x.headRefName === branch);
+  return p ? { number: p.number, title: p.title, url: p.url, base: p.baseRefName, draft: !!p.isDraft } : null;
+}
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
-  hooks: hooksState, sweepMs: 5000 });
+  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch });
 // Lock-screen notifications (push-api.mjs): the bell's new records, pushed while
 // Away is on to every phone that turned them on. LANES_PUSH_INSECURE=1 lets a
 // test's stand-in push service on http through.

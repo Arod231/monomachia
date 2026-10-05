@@ -33,7 +33,8 @@ function userText(raw) {
 // was read). Returns the turns, newest last, plus the session's title and folder
 // when the transcript names them, the tool call still waiting on a result, and
 // lastReply: the uuid of the newest main-chain reply's line, which the app's
-// turn summary names when it is about that turn (turnSummary).
+// turn summary names when it is about that turn (turnSummary), and branch: the
+// git branch its newest line was written on (null when detached).
 export function parseTranscript(lines, { limit = 400 } = {}) {
   const entries = [];
   const results = new Map(); // tool_use id -> result entry
@@ -41,12 +42,14 @@ export function parseTranscript(lines, { limit = 400 } = {}) {
   let cwd = null;
   let firstPrompt = null;
   let lastReply = null;
+  let branch = null;
   for (const line of lines) {
     let o;
     try { o = JSON.parse(line); } catch { continue; }
     if (o.type === 'custom-title' && o.customTitle) title = o.customTitle;
     if (o.cwd) cwd = o.cwd;
     if (o.isSidechain || o.isMeta) continue;
+    if (typeof o.gitBranch === 'string') branch = o.gitBranch && o.gitBranch !== 'HEAD' ? o.gitBranch : null;
     if (o.type === 'assistant' && o.uuid) lastReply = o.uuid;
     const time = o.timestamp ? Date.parse(o.timestamp) : null;
     if (o.type === 'user' && o.message) {
@@ -82,6 +85,7 @@ export function parseTranscript(lines, { limit = 400 } = {}) {
     title: title ?? (firstPrompt ? firstPrompt.split(/\r?\n/)[0].slice(0, 80) : null),
     cwd,
     lastReply,
+    branch,
     open: open && { id: open.id, name: open.name, summary: open.summary, time: open.time,
       questions: open.name === 'AskUserQuestion' ? open.input.questions ?? [] : null },
   };
@@ -384,3 +388,40 @@ export function heldOrphaned(p, { transcriptExists, hasRecord, sawRecord }) {
   if (p.transcript && !transcriptExists) return true;
   return !!sawRecord && !hasRecord;
 }
+
+// ---------- the session page ----------
+
+// What a session is doing, for its card and page: waiting on you (something
+// held for the Project Manager), asked in the app (a question in the app's own
+// dialog), ended (End work, until it is woken again: at work more than two
+// minutes after), at work, or idle. s: { pending, asking, active, activity, endedAt }.
+// The pages word them (sessions-ui.mjs STATE_LABELS).
+const ENDED_GRACE_MS = 2 * 60 * 1000;
+export function sessionState(s) {
+  if (s.pending?.length) return 'waiting';
+  if (s.asking) return 'asked';
+  if (s.endedAt && !(s.active && s.activity > s.endedAt + ENDED_GRACE_MS)) return 'ended';
+  return s.active ? 'working' : 'idle';
+}
+
+// When the session's work was last ended (the stop list's entries, as End work
+// writes them): an entry naming it, or one whose lane worktree it works in.
+// A relaunch cancels an entry. Null when never.
+export function endedAtOf(entries, { id, cwd }) {
+  const norm = (p) => String(p ?? '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  const dir = norm(cwd);
+  let at = null;
+  for (const e of entries ?? []) {
+    if (e.cancelledAt) continue;
+    const named = (e.sessions ?? []).includes(id);
+    const tree = e.worktree ? norm(e.worktree) : null;
+    const inside = !!tree && !!dir && (dir === tree || dir.startsWith(`${tree}/`));
+    if ((named || inside) && (at === null || e.requestedAt > at)) at = e.requestedAt;
+  }
+  return at;
+}
+
+// What the stop hook tells a session after the owner pressed Stop now: each tool
+// call it tries is refused with this, until its turn ends.
+export const STOP_NOW = 'The owner pressed Stop now in the Project Manager. Stop here: run nothing more, '
+  + 'and end your turn with one line saying where you stopped. The owner will tell you what to do next.';

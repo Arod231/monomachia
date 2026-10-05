@@ -204,7 +204,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ### Phase D: sessions and commands
 
-- [ ] **12. The Sessions tab, the session page and its first commands.** Each session gets a page with its lane and conversation, and four commands.
+- [x] **12. The Sessions tab, the session page and its first commands.** Each session gets a page with its lane and conversation, and four commands.
   - Delivers:
     - **On the phone,** Sessions replaces Lanes: state, the app's turn summary and the context gauge, with worktrees that have no session under a Worktrees filter.
     - **A session page** with title, state, summary, gauge, branch, task and pull request, the conversation with tools folded, and a reply box. On the PC, the Sessions tab's detail gains the same header.

@@ -159,6 +159,84 @@ export function deliveredNote(when) {
     ?? 'Queued: it gets this when its turn next ends.';
 }
 
+// ---------- the session page ----------
+// d is a session from /sessions or /session (sessions-api.mjs), with its state
+// (sessions.mjs sessionState), turn summary, branch, task and pull request.
+
+export const STATE_LABELS = { waiting: 'Waiting on you', asked: 'Asked in the app', ended: 'Ended', working: 'At work', idle: 'Idle' };
+
+export function stateHtml(d) {
+  const state = STATE_LABELS[d.state] ? d.state : 'idle';
+  const label = d.stopping && state !== 'waiting' ? 'Stopping' : STATE_LABELS[state];
+  return `<span class="state ${state}${d.stopping ? ' stopping' : ''}">${label}</span>`;
+}
+
+// The app's turn summary, then the branch, plan task and pull request.
+export function sessionFactsHtml(d) {
+  const rows = [];
+  if (d.summary) rows.push(`<div class="fact sum"><b>${esc(d.summary.label)}</b>${d.summary.detail ? ` ${esc(d.summary.detail)}` : ''}</div>`);
+  rows.push(`<div class="fact"><span class="fk">Branch</span> ${d.branch ? `<code>${esc(d.branch)}</code>` : 'No branch (detached, or not a git folder)'}</div>`);
+  if (d.task) rows.push(`<div class="fact"><span class="fk">Task</span> ${esc(d.task.label)} ${esc(d.task.title)}</div>`);
+  if (d.pr) {
+    rows.push(`<div class="fact"><span class="fk">Pull request</span> <a href="${esc(d.pr.url)}" target="_blank" rel="noopener">PR #${Number(d.pr.number)}</a>`
+      + ` ${esc(d.pr.title)}, into ${esc(d.pr.base)}${d.pr.draft ? ' (draft)' : ''}</div>`);
+  }
+  return rows.join('');
+}
+
+// Approve & continue, Show me, Stop now and End work (End work asks first).
+export function commandBarHtml(d) {
+  const off = (yes) => (yes ? ' disabled' : '');
+  return `<div class="cmds" data-session="${esc(d.id)}">`
+    + `<button class="btn small primary" data-cmd="approve">Approve &amp; continue</button>`
+    + `<button class="btn small" data-cmd="show">Show me</button>`
+    + `<button class="btn small" data-cmd="stop"${off(d.stopping)}>Stop now</button>`
+    + `<button class="btn small danger" data-cmd="end"${off(d.state === 'ended')}>End work</button></div>`;
+}
+
+// What the page says once a command is sent (`when` from the server).
+export function commandNote(command, when) {
+  if (command === 'stop') {
+    return { 'next-step': 'Stop now sent: it stops before its next step and ends its turn; with Away on, it then waits for you.',
+      stopped: 'It has already stopped: it is waiting for you.', idle: "It isn't working: there's nothing to stop." }[when] ?? 'Stop now sent.';
+  }
+  if (command === 'end') {
+    return when === 'next-step' ? 'Work ended: it stops at its next step. Its branch and pull request stay as they are.'
+      : 'Work ended: it is idle, and stops at once if it wakes. Its branch and pull request stay as they are.';
+  }
+  return deliveredNote(when);
+}
+
+// One session in the phone's Sessions list; gauge(context, active) draws its gauge.
+export function sessionCardHtml(s, { gauge = () => '' } = {}) {
+  return `<li class="scard" data-session="${esc(s.id)}"><div class="t1"><b>${esc(s.title)}</b>${gauge(s.context, s.active)}</div>`
+    + `<div class="t2">${stateHtml(s)}<span class="k">${esc(folderOf(s.cwd))} · ${s.active ? 'now' : esc(ago(s.activity))}</span></div>`
+    + `${s.summary ? `<div class="k sum"><b>${esc(s.summary.label)}</b> ${esc(s.summary.detail)}</div>` : ''}`
+    + `${s.task ? `<div class="k">${esc(s.task.label)} ${esc(s.task.title)}</div>` : ''}${sessionPills(s)}</li>`;
+}
+
+// The conversation: the owner's and the session's words, each tool call folded
+// with its result (openTools: the ids unfolded).
+export function logHtml(d, openTools = new Set()) {
+  const results = new Map(d.entries.filter((e) => e.kind === 'result').map((e) => [e.tool, e]));
+  const toolIds = new Set(d.entries.filter((e) => e.kind === 'tool').map((e) => e.id));
+  const time = (t) => (t ? ` · ${esc(new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}` : '');
+  const parts = d.entries.map((e) => {
+    if (e.kind === 'user') return `<div class="msg u"><div class="who">You${time(e.time)}</div><div class="tx">${md(e.text)}</div></div>`;
+    if (e.kind === 'assistant') return `<div class="msg a"><div class="tx">${md(e.text)}</div></div>`;
+    if (e.kind === 'system') return `<div class="sys">${esc(e.text)}</div>`;
+    if (e.kind === 'tool') {
+      const r = results.get(e.id);
+      const input = typeof e.input === 'string' ? e.input : JSON.stringify(e.input, null, 2);
+      return `<details class="tl${r?.error ? ' err' : ''}" data-tool="${esc(e.id)}" ${openTools.has(e.id) ? 'open' : ''}><summary><span class="tn">${esc(e.name)}</span> ${esc(e.summary)}${r ? '' : ' <span class="run">· no result yet</span>'}</summary>`
+        + `<pre class="code">${esc(input)}</pre>${r ? `<pre class="code">${esc(r.text || '(no output)')}</pre>` : ''}</details>`;
+    }
+    if (e.kind === 'result' && !toolIds.has(e.tool)) return `<details class="tl${e.error ? ' err' : ''}"><summary><span class="tn">Result</span></summary><pre class="code">${esc(e.text)}</pre></details>`;
+    return '';
+  });
+  return (d.more ? '<div class="more"><button class="btn small" data-more>Show earlier turns</button></div>' : '') + parts.join('');
+}
+
 // ---------- the Away switch and the Questions tab ----------
 // q is /questions (sessions-api.mjs): { away: { on, since, from }, count,
 // groups: [{ session, app, title, cwd, task, since, items }], asked: [...] }.

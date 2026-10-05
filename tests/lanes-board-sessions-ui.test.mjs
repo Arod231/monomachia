@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  pushBoxHtml, pushState, sessionPills,
+  STATE_LABELS, commandBarHtml, commandNote, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -298,5 +298,87 @@ describe('pushBoxHtml', () => {
   });
   it('escapes the address', () => {
     assert.doesNotMatch(pushBoxHtml({ ...home, https: false, httpsUrl: 'https://<x>' }), /<x>/);
+  });
+});
+
+describe('the session page', () => {
+  const S1 = '11111111-2222-4333-8444-555555555555';
+  const base = {
+    id: S1, app: 'local_x', title: 'Lane <7>', cwd: 'C:\\repo\\.claude\\worktrees\\lane-pm-12', active: true, activity: Date.now(),
+    state: 'working', summary: null, branch: 'lane/pm-12', task: { ref: 'pm:12', label: 'PM 12', title: 'The Sessions tab' },
+    pr: { number: 51, title: 'PM <tasks>', url: 'https://github.com/o/r/pull/51', base: 'tools/pm', draft: true },
+    pending: [], asking: null, queued: 0, context: null, stopping: false,
+  };
+
+  it('words every state', () => {
+    assert.deepEqual(Object.keys(STATE_LABELS).sort(), ['asked', 'ended', 'idle', 'waiting', 'working']);
+    assert.match(stateHtml(base), /class="state working"[^>]*>At work</);
+    assert.match(stateHtml({ ...base, state: 'waiting' }), /Waiting on you/);
+    assert.match(stateHtml({ ...base, stopping: true }), /Stopping/);
+  });
+
+  it('shows the branch, task and pull request, escaped', () => {
+    const h = sessionFactsHtml(base);
+    assert.match(h, /lane\/pm-12/);
+    assert.match(h, /PM 12 The Sessions tab/);
+    assert.match(h, /href="https:\/\/github.com\/o\/r\/pull\/51"[^>]*>PR #51</);
+    assert.match(h, /into tools\/pm \(draft\)/);
+    assert.doesNotMatch(h, /<tasks>/);
+    assert.match(sessionFactsHtml({ ...base, branch: null, task: null, pr: null }), /No branch/);
+  });
+
+  it('shows the app\'s turn summary when it has one', () => {
+    const h = sessionFactsHtml({ ...base, summary: { status: 'needs_input', label: 'Needs input', detail: 'Asked <which>', action: null } });
+    assert.match(h, /Needs input/);
+    assert.match(h, /Asked &lt;which&gt;/);
+  });
+
+  it('offers the four commands, End work asking first', () => {
+    const h = commandBarHtml(base);
+    for (const c of ['approve', 'show', 'stop', 'end']) assert.match(h, new RegExp(`data-cmd="${c}"`));
+    assert.match(h, />Approve &amp; continue</);
+    assert.match(h, />Show me</);
+    assert.match(h, />Stop now</);
+    assert.match(h, />End work</);
+    assert.match(commandBarHtml({ ...base, stopping: true }), /data-cmd="stop" disabled/);
+    assert.match(commandBarHtml({ ...base, state: 'ended' }), /data-cmd="end" disabled/);
+  });
+
+  it('says what happens to each command', () => {
+    assert.equal(commandNote('approve', 'now'), 'Sent: it carries on with it now.');
+    assert.equal(commandNote('show', 'next-step'), 'Sent: it gets this before its next step.');
+    assert.equal(commandNote('approve', 'turn-end'), 'Queued: it gets this when its turn next ends.');
+    assert.match(commandNote('stop', 'next-step'), /stops before its next step/);
+    assert.match(commandNote('stop', 'stopped'), /already stopped/);
+    assert.match(commandNote('stop', 'idle'), /nothing to stop/);
+    assert.match(commandNote('end', 'next-step'), /stops at its next step/);
+    assert.match(commandNote('end', 'turn-end'), /idle/);
+  });
+
+  it('lists a session on the phone with its state, summary and task, opening its page', () => {
+    const h = sessionCardHtml({ ...base, summary: { label: 'Done', detail: 'Built it' } }, { gauge: () => '<i class="g"></i>' });
+    assert.match(h, /data-session="11111111-2222-4333-8444-555555555555"/);
+    assert.match(h, /Lane &lt;7&gt;/);
+    assert.match(h, /At work/);
+    assert.match(h, /Done/);
+    assert.match(h, /PM 12/);
+    assert.match(h, /<i class="g"><\/i>/);
+  });
+
+  it('folds tool calls in the conversation, and escapes everything', () => {
+    const entries = [
+      { kind: 'user', time: 1, text: 'Build <it>' },
+      { kind: 'assistant', time: 2, text: 'On **it**.' },
+      { kind: 'tool', time: 3, id: 't1', name: 'Bash', summary: 'npm test', input: '{"command":"npm test"}' },
+      { kind: 'result', time: 4, tool: 't1', error: false, text: '<ok>' },
+      { kind: 'tool', time: 5, id: 't2', name: 'Read', summary: 'a.md', input: '{}' },
+    ];
+    const h = logHtml({ entries, more: 3 }, new Set(['t1']));
+    assert.match(h, /data-more/);
+    assert.match(h, /Build &lt;it&gt;/);
+    assert.match(h, /On <b>it<\/b>/);
+    assert.match(h, /<details class="tl" data-tool="t1" open><summary><span class="tn">Bash<\/span> npm test/);
+    assert.match(h, /&lt;ok&gt;/);
+    assert.match(h, /data-tool="t2" ><summary><span class="tn">Read<\/span> a.md <span class="run">· no result yet/);
   });
 });
