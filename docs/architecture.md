@@ -718,7 +718,7 @@ flowchart TD
 | `body_layer.gd` | `BodyLayer` | Procedural pelvis, spine and head over the clip. |
 | `locomotion.gd` | `Locomotion` | The packs' directional walk, run and sprint clips blended by the rules' velocity on one shared step phase stepped per rules frame; tap steps, a backwards sprint turned away, the turn on the spot, footfalls at the clips' foot contacts (authored-animation task 29). |
 | `foot_phase.gd` | `FootPhase` | Measures each locomotion clip's way, stride, mid-stances and foot contacts once. |
-| `pose_check.gd` | `PoseCheck` | Pose quality checks for tools and tests (wrist bend, knee over toes, blade clearance). |
+| `pose_check.gd` | `PoseCheck` | Pose quality checks for tools and tests (wrist bend, knee over toes, blade clearance, and with a `FootTrack` over a move's frames, planted feet sliding over 1 cm, milestone-1 task 9). `MoveBench` (`game/tools`) measures every rules frame of a move and names its worst frames. |
 | `rig_callback.gd` | `RigCallback` | Lets the rig insert a function into the modifier stack. |
 
 ## 10. Fighters, weapons and arenas (content)
@@ -913,7 +913,7 @@ flowchart LR
 | `game/tests/view` | 24 | Arenas, camera, fighter rig and view, stick pose, locomotion, toon and ink look, presets, MatchHost, main flow, the `--smoke` run, tool scenes. **Superseded by ADR 0001 (Oct 4):** The toon and ink look tests will be replaced as the slice lands. |
 | `game/tests/audio` | 10 | Bus layout and ducking, FadedLoop, footsteps, music director and player, sound bank, sound player, headless playback of a match |
 | `game/tests/input` | 7 | Device state, InputFeed, labels, profiles, rebinding, sampling, seats and pause |
-| `game/tests/content` | 5 | Animation library, asset size budgets, fighter scenes, palettes, weapon models. **Superseded by ADR 0001 (Oct 4):** Size budgets per place (public repository, asset repository, shipped game) replace the asset budget test's 110 MB art cap, and the test will be replaced as the slice lands. |
+| `game/tests/content` | 5 | Animation library, asset hygiene (no art file over 25 MB, textures scaled down, every referenced texture there), fighter scenes, palettes, weapon models. The art's 110 MB cap went in milestone-1 task 8: `check:sizes` holds the size budgets per place. |
 | `game/tests/core` | 3 | GameServices, GameSettings, MatchConfig and MatchSide |
 | `game/tests/fixtures` | data | JSON from the TypeScript (`rng`, `moves`, `math`, `port`) and a hand-made arena scene |
 
@@ -928,7 +928,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | Command | What it runs |
 | --- | --- |
 | `npm test`, `npm run typecheck` | `node --test` and GUT (`test:node`, `test:godot`); the GDScript type check (`tools/typecheck.gd`) |
-| `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300) |
+| `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300): Hunter-against-Hunter Katana mirrors with random block abilities, the finisher share and the appear-list (milestone-1 task 7); `-- --full-roster` plays random weapon pairs with their win rates |
 | `npm run counterlab` | How often the computer lands each unblockable's counter (`tools/counterlab.gd`) |
 | `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
@@ -936,7 +936,8 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…) |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
-| `npm run check:sizes` | Fail on any tracked file over 10 MB |
+| `npm run checklist` | Write the last test run's move-by-move results (`build/checklist-results.json`, recorded through `ChecklistResults`) into the per-move checklist, `docs/reviews/milestone-1-checklist.md`; the owner's columns are never touched (milestone-1 task 10) |
+| `npm run check:sizes` | Fail on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB (the spec's size budget table; the asset repository's own budgets are its `tools/check-budgets.mjs`) |
 | `npm run brain`, `npm run brain:serve`, `npm run board` | The second brain's generated notes and its viewer; the Project Manager (lanes board) |
 
 ### 16.2 The Godot runner (`scripts/godot.mjs`)
@@ -966,7 +967,7 @@ flowchart TD
     end
 ```
 
-Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
+Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `checklist_results.gd` (where tests record per-move checklist results), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
 
 ## 17. CI and releases
 
@@ -1030,6 +1031,6 @@ Major features follow `CLAUDE.md`: a spec in `docs/specs/`, a plan in `docs/plan
 - **Godot's JSON and float literals round differently from V8**, which is why the parity fixtures store floats as hex bit patterns and `JsMath` builds its constants from bits.
 - **GUT skips a test file that doesn't parse**, silently. `godot.mjs test` fails on parse errors for that reason; keep it that way.
 - **Saved settings leak into tests.** Tests and screenshots set `MONOMACHIA_DEFAULT_SETTINGS=1`, so they start from the default settings and one fresh controls profile, and never write the player's files. Do the same in any new runner.
-- **Big files.** `check:sizes` fails CI on any tracked file over 10 MB. Never commit the raw Sonniss recordings.
+- **Big files.** `check:sizes` fails CI on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB. Never commit the raw Sonniss recordings.
 - **`docs/adr/` doesn't exist yet**, although `docs/agents/domain.md` mentions it. Create it with the first ADR.
   > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** `docs/adr/` now exists, and ADR 0001 is its first record.
