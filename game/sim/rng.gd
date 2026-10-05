@@ -19,6 +19,11 @@ func _init(seed_value: int = 1234567) -> void:
 	_s = seed_value & _MASK32
 
 
+## The generator's state (milestone-1 task 5).
+func snapshot() -> Dictionary:
+	return {&"_s": _s}
+
+
 func next() -> float:
 	_s = (_s + 0x6D2B79F5) & _MASK32
 	var t: int = _s

@@ -62,9 +62,22 @@ var _drill: StringName = &""
 var me: Fighter
 
 
+## Not copied field by field: the fighter (a link the restore keeps) and the
+## sparring brain, which snapshots itself.
+const SNAPSHOT_SKIP: Array[StringName] = [&"me", &"_spar"]
+
+
 func _init(p_me: Fighter) -> void:
 	me = p_me
 	_spar = AIBrain.new(me, AIBrain.DIFFICULTY[&"normal"], 5)
+
+
+## A copy of the dummy's state (milestone-1 task 5), its sparring brain's
+## included.
+func snapshot() -> Dictionary:
+	var s: Dictionary = SimState.capture(self, SNAPSHOT_SKIP)
+	s[&"_spar"] = _spar.snapshot()
+	return s
 
 
 ## Breaks the references to the fighter. The brain can't think afterwards.

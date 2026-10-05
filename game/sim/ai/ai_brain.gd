@@ -138,6 +138,22 @@ func _init(p_me: Fighter, p_params: AIParams, seed_value: int = 99) -> void:
 	rng = Rng.new(seed_value)
 
 
+## Not copied field by field: the fighter (a link the restore keeps), and the
+## attack and wave last seen, which the brain compares with the world's by
+## identity: the snapshot holds whether the seen attack is the opponent's
+## current one, and the seen wave's index among the world's waves (-1 for
+## none).
+const SNAPSHOT_SKIP: Array[StringName] = [&"me", &"_seen_atk", &"_seen_wave"]
+
+
+## A copy of the brain's state (milestone-1 task 5), its generator included.
+func snapshot() -> Dictionary:
+	var s: Dictionary = SimState.capture(self, SNAPSHOT_SKIP)
+	s[&"_seen_atk"] = me != null and _seen_atk != null and me.opp.atk == _seen_atk
+	s[&"_seen_wave"] = _w().waves.find(_seen_wave) if me != null and _seen_wave != null else -1
+	return s
+
+
 func _w() -> World:
 	return me.world
 

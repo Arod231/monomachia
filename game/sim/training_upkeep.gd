@@ -52,12 +52,21 @@ var _prev_hp: Array[float] = [SimConst.HP_MAX, SimConst.HP_MAX]
 var _disarmed_at: int = -1
 
 
+## Not in the snapshot: the world, a link the restore keeps.
+const SNAPSHOT_SKIP: Array[StringName] = [&"world"]
+
+
 func _init(p_world: World, p_dummy: int = 1) -> void:
 	world = p_world
 	dummy = p_dummy
 	picked = world.fighters[dummy].weapon
 	for i: int in 2:
 		_prev_hp[i] = world.fighters[i].hp
+
+
+## A copy of the upkeep's state (milestone-1 task 5).
+func snapshot() -> Dictionary:
+	return SimState.capture(self, SNAPSHOT_SKIP)
 
 
 ## Runs one step's upkeep, after the rules' step.

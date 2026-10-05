@@ -28,6 +28,11 @@ var _neutral: Array[RawInput] = [RawInput.empty(), RawInput.empty()]
 var world: World
 
 
+## Not in the snapshot: the world (it snapshots itself) and the neutral
+## inputs the intro and round end feed it (constant).
+const SNAPSHOT_SKIP: Array[StringName] = [&"world", &"_neutral"]
+
+
 func _init(p_world: World) -> void:
 	world = p_world
 	start_round()
@@ -39,6 +44,11 @@ func start_round() -> void:
 	phase_frames = 0
 	round_winner = -1
 	world.emit({"t": &"roundStart", "round": round})
+
+
+## A copy of the round and match flow (milestone-1 task 5).
+func snapshot() -> Dictionary:
+	return SimState.capture(self, SNAPSHOT_SKIP)
 
 
 func fighting() -> bool:

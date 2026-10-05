@@ -18,6 +18,17 @@ var dx: float
 var dz: float
 
 
+## Not copied: the owner, which the snapshot holds as a fighter id.
+const SNAPSHOT_SKIP: Array[StringName] = [&"owner"]
+
+
+## A copy of the wave's fields (milestone-1 task 5), its owner as an id.
+func snapshot() -> Dictionary:
+	var s: Dictionary = SimState.capture(self, SNAPSHOT_SKIP)
+	s[&"owner"] = owner.id
+	return s
+
+
 func _init(p_owner: Fighter, p_kind: StringName, p_ox: float, p_oz: float, p_dx: float, p_dz: float) -> void:
 	owner = p_owner
 	kind = p_kind

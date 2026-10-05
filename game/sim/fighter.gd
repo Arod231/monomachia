@@ -156,12 +156,27 @@ var script_to: V3 = V3.make()
 var stats: FighterStats = FighterStats.new()
 
 
+## Not in the snapshot: the links to the world and the opponent, which a
+## restore keeps, and impaled_by, which the snapshot holds as a fighter id.
+const SNAPSHOT_SKIP: Array[StringName] = [&"opp", &"world", &"impaled_by"]
+
+
 func _init(p_id: int, cfg: FighterConfig) -> void:
 	id = p_id
 	weapon = cfg.weapon
 	abilities = cfg.abilities if not cfg.abilities.is_empty() else cfg.weapon.default_abilities
 	name = cfg.name if cfg.name != "" else cfg.weapon.name
 	body = FighterBody.of(cfg.fighter_id)
+
+
+# ------------------------------------------------------------------ snapshot
+
+## A copy of everything the fighter owns (milestone-1 task 5, SimState):
+## impaled_by as its fighter id, or -1.
+func snapshot() -> Dictionary:
+	var s: Dictionary = SimState.capture(self, SNAPSHOT_SKIP)
+	s[&"impaled_by"] = impaled_by.id if impaled_by != null else -1
+	return s
 
 
 # ------------------------------------------------------------------ queries

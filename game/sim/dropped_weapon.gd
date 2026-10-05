@@ -18,6 +18,11 @@ var pos: V3
 var vel: V3
 
 
+## A copy of the dropped weapon's fields (milestone-1 task 5).
+func snapshot() -> Dictionary:
+	return SimState.capture(self)
+
+
 func _init(p_owner: int, p_weapon_id: StringName, p_pos: V3, p_vel: V3, rng: Rng) -> void:
 	owner = p_owner
 	weapon_id = p_weapon_id

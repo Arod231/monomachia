@@ -416,6 +416,32 @@ func set_refill(on: bool) -> void:
 		training_changed.emit()
 
 
+## Training's upkeep, or null outside Training.
+func upkeep() -> TrainingUpkeep:
+	return _upkeep
+
+
+## A copy of everything the rules own at the match seam (milestone-1 task 5):
+## the world, the match, each side's brain (null for a human side) and
+## Training's upkeep (null outside Training). Taken between steps.
+func snapshot() -> Dictionary:
+	var brains: Array = []
+	for b: RefCounted in _brains:
+		brains.append(b.call(&"snapshot") if b != null else null)
+	return {
+		&"world": world.snapshot(),
+		&"match": sim_match.snapshot(),
+		&"brains": brains,
+		&"upkeep": _upkeep.snapshot() if _upkeep != null else null,
+	}
+
+
+## SHA-256 over snapshot(): the replay test's hash, equal on every step of
+## two runs of the same seeded match.
+func state_hash() -> String:
+	return SimState.state_hash(snapshot())
+
+
 func results() -> MatchResults:
 	return MatchResults.from_match(sim_match, config, config.first_human_side())
 
