@@ -69,6 +69,11 @@ func snapshot() -> Dictionary:
 	return SimState.capture(self, SNAPSHOT_SKIP)
 
 
+## Puts a snapshot() back (milestone-1 task 6).
+func restore(s: Dictionary) -> void:
+	SimState.apply(self, s)
+
+
 ## Runs one step's upkeep, after the rules' step.
 func step() -> void:
 	for i: int in 2:

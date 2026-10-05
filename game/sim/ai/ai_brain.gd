@@ -154,6 +154,18 @@ func snapshot() -> Dictionary:
 	return s
 
 
+## Puts a snapshot() back (milestone-1 task 6), after the world has been
+## restored: the seen attack and wave become the restored world's objects.
+func restore(s: Dictionary) -> void:
+	var fields: Dictionary = s.duplicate()
+	for n: StringName in SNAPSHOT_SKIP:
+		fields.erase(n)
+	SimState.apply(self, fields)
+	_seen_atk = me.opp.atk if bool(s[&"_seen_atk"]) else null
+	var wave: int = s[&"_seen_wave"]
+	_seen_wave = _w().waves[wave] if wave >= 0 else null
+
+
 func _w() -> World:
 	return me.world
 

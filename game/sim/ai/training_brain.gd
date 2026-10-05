@@ -80,6 +80,14 @@ func snapshot() -> Dictionary:
 	return s
 
 
+## Puts a snapshot() back (milestone-1 task 6), after the world.
+func restore(s: Dictionary) -> void:
+	var fields: Dictionary = s.duplicate()
+	fields.erase(&"_spar")
+	SimState.apply(self, fields)
+	_spar.restore(s[&"_spar"])
+
+
 ## Breaks the references to the fighter. The brain can't think afterwards.
 func dispose() -> void:
 	_spar.dispose()

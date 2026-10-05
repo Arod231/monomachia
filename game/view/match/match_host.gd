@@ -69,6 +69,10 @@ signal loadout_changed(side: int)
 ## Training's dummy behaviour or refill changed (set_training_behaviour,
 ## set_refill).
 signal training_changed
+## A replay reached the end of its log: whether it matched the log (no
+## checkpoint missed, the same winner and hash at the same step), and the
+## line printed about it.
+signal replay_checked(ok: bool, report: String)
 
 const DT: float = SimConst.DT
 const MAX_STEPS_PER_FRAME: int = 6
@@ -106,11 +110,24 @@ var seed_source: Callable = Callable()
 ## Whether the pause binding, Esc or Start resumes a paused match. main.gd
 ## turns it off while a screen is open over the pause menu.
 var pause_press_resumes: bool = true
+## Where each match played (not the attract duel or a replay) saves its input
+## log when it ends (InputLog.save_recent(), keeping the newest ten); "" saves
+## none. main.gd sets InputLog.DIR outside test and shot runs.
+var record_dir: String = ""
+## The match being played, as it is recorded (milestone-1 task 6): every
+## step's inputs, Training's panel actions and the rules' hash every
+## InputLog.CHECKPOINT_EVERY steps. Null for the attract duel and a replay.
+var input_log: InputLog = null
 
 ## Per side: an AIBrain, a TrainingBrain, or null for a human.
 var _brains: Array[RefCounted] = [null, null]
 ## Training's upkeep, or null outside Training.
 var _upkeep: TrainingUpkeep = null
+## The log a replay plays (start_replay()), or null; the step at which it
+## first missed a checkpoint, or -1; and whether its end has been checked.
+var _replay: InputLog = null
+var _replay_drift: int = -1
+var _replay_done: bool = false
 ## Per side: the InputDevices player index, or -1 for a computer side.
 var _player_of_side: Array[int] = [-1, -1]
 var _acc: float = 0.0
@@ -174,6 +191,10 @@ func start(cfg: MatchConfig, p_attract: bool = false) -> bool:
 	_last_buttons = [0, 0]
 	_suppress_new_presses()
 	_started = true
+	input_log = null if attract else InputLog.make(cfg)
+	_replay = null
+	_replay_drift = -1
+	_replay_done = false
 	_snapshot(true)
 	var services: Node = _services()
 	if services != null:
@@ -184,6 +205,24 @@ func start(cfg: MatchConfig, p_attract: bool = false) -> bool:
 	match_started.emit(cfg)
 	_dispatch(world.drain_events())
 	return true
+
+
+## Plays a recorded match (milestone-1 task 6, `--replay=<log>`): the log's
+## config, every side fed the log's inputs and Training's panel actions at
+## their steps, nobody in control. Each checkpoint is compared as it passes;
+## when the log runs out the match holds still and replay_checked reports.
+## Returns false when the log's config can't start a match.
+func start_replay(log_in: InputLog) -> bool:
+	if not start(log_in.config):
+		return false
+	input_log = null
+	_replay = log_in
+	return true
+
+
+## Whether a replay is playing.
+func is_replaying() -> bool:
+	return _replay != null
 
 
 ## Stops the match and frees the rules (quit to menu). The view keeps its last
@@ -388,12 +427,19 @@ func training_behaviour() -> StringName:
 ## behaviour no such weapon can perform (the Slam while the Greatsword is
 ## hidden) is refused. Nothing happens outside Training.
 func set_training_behaviour(behaviour: StringName) -> void:
+	if _replay == null:
+		_set_training_behaviour(behaviour)
+
+
+func _set_training_behaviour(behaviour: StringName) -> void:
 	var b: TrainingBrain = _dummy_brain()
 	if b == null or not TrainingBrain.BEHAVIOURS.has(behaviour):
 		return
 	var w: WeaponDef = _upkeep.weapon_for(behaviour)
 	if not TrainingUpkeep.can_perform(w, behaviour):
 		return
+	if input_log != null:
+		input_log.actions.append({"step": step_count, "behaviour": String(behaviour)})
 	var swapped: bool = w != world.fighters[_upkeep.dummy].weapon
 	if swapped:
 		_upkeep.swap_dummy_weapon(w)
@@ -411,7 +457,14 @@ func _dummy_brain() -> TrainingBrain:
 
 ## Turns Training's refill off or on (key 0 on the Training panel).
 func set_refill(on: bool) -> void:
+	if _replay == null:
+		_set_refill(on)
+
+
+func _set_refill(on: bool) -> void:
 	if _upkeep != null:
+		if input_log != null:
+			input_log.actions.append({"step": step_count, "refill": on})
 		_upkeep.refill = on
 		training_changed.emit()
 
@@ -436,6 +489,33 @@ func snapshot() -> Dictionary:
 	}
 
 
+## Puts a snapshot() back (milestone-1 tasks 134 and 6): the world, the
+## match, each brain and Training's upkeep, so the match steps on exactly as
+## it did from there, the computer's sides included. The fighters are placed,
+## not blended.
+func restore(s: Dictionary) -> void:
+	world.restore(s[&"world"])
+	sim_match.restore(s[&"match"])
+	var brains: Array = s[&"brains"]
+	for i: int in 2:
+		if _brains[i] != null and brains[i] != null:
+			_brains[i].call(&"restore", brains[i])
+	if _upkeep != null and s[&"upkeep"] != null:
+		_upkeep.restore(s[&"upkeep"])
+	_snapshot(true)
+
+
+## SHA-256 over the rules alone (the world, the match and Training's upkeep):
+## what an input log checks, since a replay feeds the log's inputs where the
+## brains' were.
+func rules_hash() -> String:
+	return SimState.state_hash({
+		&"world": world.snapshot(),
+		&"match": sim_match.snapshot(),
+		&"upkeep": _upkeep.snapshot() if _upkeep != null else null,
+	})
+
+
 ## SHA-256 over snapshot(): the replay test's hash, equal on every step of
 ## two runs of the same seeded match.
 func state_hash() -> String:
@@ -449,7 +529,18 @@ func results() -> MatchResults:
 # ------------------------------------------------------------------ stepping
 
 func _step_once() -> void:
+	if _replay != null:
+		if step_count >= _replay.step_count():
+			_finish_replay()
+			return
+		for a: Dictionary in _replay.actions_at(step_count):
+			if a.has("behaviour"):
+				_set_training_behaviour(StringName(a["behaviour"]))
+			elif a.has("refill"):
+				_set_refill(bool(a["refill"]))
 	var inputs: Array[RawInput] = [_input_for(0), _input_for(1)]
+	if input_log != null:
+		input_log.record(inputs)
 	for i: int in 2:
 		_prev_pos[i] = _cur_pos[i]
 		_prev_yaw[i] = _cur_yaw[i]
@@ -461,7 +552,44 @@ func _step_once() -> void:
 	_snapshot(_has_round_start(events))
 	_dispatch(events)
 	_after_step()
+	if step_count % InputLog.CHECKPOINT_EVERY == 0:
+		_checkpoint()
 	stepped.emit(step_count)
+
+
+## The rules' hash every InputLog.CHECKPOINT_EVERY steps: recorded into the
+## match's log, or compared with the replayed log's.
+func _checkpoint() -> void:
+	if input_log == null and _replay == null:
+		return
+	var h: String = rules_hash()
+	if input_log != null:
+		input_log.checkpoints[step_count] = h
+	if _replay != null and _replay_drift < 0 and _replay.checkpoints.has(step_count) and _replay.checkpoints[step_count] != h:
+		_replay_drift = step_count
+
+
+## Checks a replay that ran out of log against the log's end, once.
+func _finish_replay() -> void:
+	if _replay_done:
+		return
+	_replay_done = true
+	var h: String = rules_hash()
+	var winner: int = sim_match.match_winner
+	var report: String
+	var ok: bool
+	if _replay_drift >= 0:
+		ok = false
+		report = "replay: drifted from the log by step %d (%.1f s in)" % [_replay_drift, _replay_drift * DT]
+	elif _replay.end_steps < 0:
+		ok = true
+		report = "replay: every checkpoint matched (the log has no end)"
+	else:
+		ok = step_count == _replay.end_steps and winner == _replay.end_winner and h == _replay.end_hash
+		report = "replay: %s the log after %d steps: winner %d (log %d), hash %s (log %s)" % [
+			"matches" if ok else "differs from", step_count, winner, _replay.end_winner, h.left(12), _replay.end_hash.left(12)]
+	print(report)
+	replay_checked.emit(ok, report)
 
 
 static func _has_round_start(events: Array[Dictionary]) -> bool:
@@ -472,6 +600,8 @@ static func _has_round_start(events: Array[Dictionary]) -> bool:
 
 
 func _input_for(i: int) -> RawInput:
+	if _replay != null:
+		return _replay.input(step_count, i)
 	var b: RefCounted = _brains[i]
 	if b is AIBrain:
 		return (b as AIBrain).think()
@@ -539,7 +669,20 @@ func _snapshot(reset: bool) -> void:
 		_cur_yaw[i] = f.yaw
 
 
+## Ends the match's log: its step count, winner and hash, then saved to
+## record_dir (when set). Once per match.
+func _close_log() -> void:
+	if input_log == null or input_log.end_steps >= 0 or world == null or not _started:
+		return
+	input_log.end_steps = step_count
+	input_log.end_winner = sim_match.match_winner
+	input_log.end_hash = rules_hash()
+	if record_dir != "" and input_log.step_count() > 0:
+		input_log.save_recent(record_dir)
+
+
 func _teardown() -> void:
+	_close_log()
 	for i: int in 2:
 		var b: RefCounted = _brains[i]
 		if b is AIBrain:

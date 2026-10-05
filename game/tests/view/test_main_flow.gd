@@ -530,3 +530,23 @@ func test_the_input_feed_sees_the_presses_the_menus_take() -> void:
 	input.last_used = before
 	assert_eq(_screen(), MainScript.Screen.TITLE, "the menu took B")
 	assert_eq(seen, InputDevices.LastUsed.PAD, "and the feed saw it: labels follow the controller")
+
+
+func test_a_replay_file_plays_from_the_title() -> void:
+	# milestone-1 task 6: --replay=<log> plays a recorded match, nobody in control
+	assert_eq(host.record_dir, "", "test runs save no logs")
+	main.call("start_watch")
+	host.step(Match.INTRO_FRAMES + 120)
+	var log_a: InputLog = host.input_log
+	main.call("quit_to_menu")
+	var path: String = "user://test_main_flow_replay.json"
+	assert_eq(log_a.save(path), OK)
+	assert_true(main.call("start_replay", path))
+	assert_eq(_screen(), MainScript.Screen.PLAYING)
+	assert_true(host.is_replaying())
+	watch_signals(host)
+	host.step(log_a.step_count() + 1)
+	assert_true(get_signal_parameters(host, "replay_checked")[0])
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	assert_false(main.call("start_replay", "user://no_such_log.json"), "a missing log stays put")
+	assert_push_error("no file")
