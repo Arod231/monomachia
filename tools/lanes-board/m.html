@@ -57,8 +57,10 @@ a { color: inherit; }
 header { position: sticky; top: 0; z-index: 20; background: var(--bar); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
   border-bottom: 0.5px solid var(--border); padding: calc(var(--top) + 8px) var(--side) 10px; }
 .hrow { display: flex; align-items: center; gap: 10px; }
-h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
-.stamp { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; flex: none; }
+/* On a narrow phone with Away showing, the stamp gives way first, so the bell stays on screen. */
+.stamp { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; flex: 0 100 auto; }
+#stampText { overflow: hidden; text-overflow: ellipsis; }
 .stamp.err { color: var(--critical); }
 .live { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite; flex: none; }
 .stamp.err .live { background: var(--critical); animation: none; }
@@ -80,7 +82,7 @@ h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .pcard .ch { display: flex; gap: 8px; align-items: center; font-size: 15px; margin-bottom: 6px; }
 .pcard .ch .k { margin-left: auto; font-size: 13px; color: var(--muted); }
 .pcard .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
-.pcard .btn { white-space: normal; text-align: left; max-width: 100%; }
+.pcard .btn, .mergep .btn { white-space: normal; text-align: left; max-width: 100%; }
 .pcard .m { font-size: 13px; color: var(--muted); }
 .pcard input.text, .pcard textarea.text { width: 100%; font: inherit; font-size: 16px; border: 0.5px solid var(--border-strong); border-radius: 10px; padding: 9px 11px; background: var(--page); color: var(--text); }
 .pcard textarea.freeform { margin-top: 10px; }
@@ -279,7 +281,7 @@ details.legend span { display: inline-flex; align-items: center; gap: 7px; }
 .cmds .btn.danger { background: transparent; color: var(--critical); }
 #sPend { display: grid; gap: 10px; margin-top: 12px; }
 .mergebox { margin-top: 10px; background: var(--card); border: 0.5px solid var(--border-strong); border-radius: 12px; padding: 12px 14px; font-size: 15px; }
-.mergebox.ready, .mergebox:has(.ready) { border-color: var(--good); }
+.mergebox:has(.merge-ready) { border-color: var(--good); }
 .mergebox p { margin: 0 0 8px; }
 .mergebox ul { margin: 0 0 10px; padding-left: 20px; color: var(--text-2); }
 .cmds a.btn, .mergebox a.btn { text-decoration: none; display: inline-flex; align-items: center; }

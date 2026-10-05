@@ -210,7 +210,7 @@ export function mergePanelHtml(m, { error = null } = {}) {
   const n = Number(m.pr.number);
   const head = `<p><a href="${esc(m.pr.url)}" target="_blank" rel="noopener">PR #${n}</a> ${esc(m.pr.title)}, into <code>${esc(m.pr.base)}</code></p>`;
   if (m.ready) {
-    return `<div class="mergep ready">${head}<p>Ready: out of draft, every check passed, no conflicts, up to date with its base.</p>`
+    return `<div class="mergep merge-ready">${head}<p>Ready: out of draft, every check passed, no conflicts, up to date with its base.</p>`
       + `<button class="btn primary" data-merge-go="${n}">Merge #${n} into ${esc(m.pr.base)}</button></div>`;
   }
   return `<div class="mergep">${head}<p>Not ready to merge yet:</p><ul>${m.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`

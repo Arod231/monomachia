@@ -409,6 +409,12 @@ describe('the Merge panel', () => {
     assert.doesNotMatch(h, /data-merge-update/);
   });
 
+  it('marks a ready panel without the pages\' "ready" status-colour class, which would fill it green', () => {
+    const h = mergePanelHtml(m);
+    assert.match(h, /class="mergep merge-ready"/);
+    assert.doesNotMatch(h, /class="(?:[^"]*\s)?ready[\s"]/);
+  });
+
   it('gives every reason it isn\'t ready, with Update branch when behind', () => {
     const h = mergePanelHtml({ ...m, ready: false, behind: true, reasons: ['It is behind tools/pm.', 'Checks failed: <x>.'] });
     assert.doesNotMatch(h, /data-merge-go/);
