@@ -244,6 +244,7 @@ static func bake_weapon(wid: StringName, table: MoveClips, manifest: ClipManifes
 			drift * 100.0, off_path * 100.0, ": she plays HumanM" if r.rogue_humanm else ""]
 		r.clips = e.clips
 		r.fallback = e.fallback
+		r.loop = e.loop
 		if e.sheathed.size() == 2:
 			r.sheathed = SwingBake.sheathed_frames(r, e.sheathed[0], e.sheathed[1])
 			if r.sheathed.size() == 2:

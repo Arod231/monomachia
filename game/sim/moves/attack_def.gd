@@ -56,9 +56,10 @@ extends RefCounted
 ## - Since milestone-1 task 17 a weapon's moves take their frame data from
 ##   the frame-data table (FrameDataTable, generated from their clips):
 ##   finalize_moves() given the weapon fills startup, active, recovery, the
-##   dodge-cancel window and the travel (TABLE_FIELDS) from each move's row,
-##   and a record with a row must set none of them. A record without a row
-##   (the ultimates' scripted hits, test moves) keeps its own.
+##   dodge-cancel window, the travel and whether its markers are real
+##   (TABLE_FIELDS) from each move's row, and a record with a row must set
+##   none of them. A record without a row (the ultimates' scripted hits, test
+##   moves) keeps its own.
 
 const ATTACK_TYPES: Array[StringName] = [
 	&"slash", &"overhead", &"thrust", &"sweep", &"slam", &"spin", &"bash", &"stab", &"punch", &"kick",
@@ -154,6 +155,11 @@ var lunge_along_dodge: bool = false
 ## (FrameDataTable); empty without a row. The rules move by it from
 ## milestone-1 task 21
 var travel: PackedFloat64Array = PackedFloat64Array()
+## whether the move's markers are its clip's own, from the frame-data table
+## (its row not a stand-in): its clip then plays at 1.0x from its wind-up
+## start (milestone-1 task 19). false for a stand-in, waiting for its family
+## to re-key it, and for a record without a row
+var real_markers: bool = false
 ## the path the weapon travels through the move (task 7, the rebuild's), put
 ## on it from the weapon's swing file when the weapon is built
 ## (WeaponDef.from_dict); null until the move has one. A record may also
@@ -168,10 +174,10 @@ const KEYS: Array[String] = [
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
 	"sound", "trail", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "travel", "swing",
+	"release_variant", "lunge_along_dodge", "travel", "real_markers", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
-const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel"]
+const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers"]
 
 
 ## Builds an AttackDef from a move record (snake_case keys). Missing keys keep
@@ -229,6 +235,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	m.release_variant = StringName(d.get("release_variant", &""))
 	m.lunge_along_dodge = bool(d.get("lunge_along_dodge", false))
 	m.travel = PackedFloat64Array(d.get("travel", PackedFloat64Array()))
+	m.real_markers = bool(d.get("real_markers", false))
 	m.swing = d.get("swing", null)
 	return m
 
@@ -297,6 +304,7 @@ static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName) -> vo
 		travel.append(float(step[1]))
 		travel.append(float(step[2]))
 	m["travel"] = travel
+	m["real_markers"] = not bool(row.get("stand_in", false))
 
 
 ## totalFrames(m)

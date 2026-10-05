@@ -364,6 +364,16 @@ func test_a_baked_swing_carries_its_sheathed_frames_and_hold() -> void:
 	assert_false(plain.is_sheathed(1.0), "never sheathed by default")
 
 
+func test_a_baked_swing_carries_its_charges_loop() -> void:
+	var d: Dictionary = _baked()
+	d["swings"]["t_cut"]["clips"] = ["Cut"]
+	d["swings"]["t_cut"]["loop"] = "Stance@0-20"
+	assert_eq((SwingFile.parse(JSON.stringify(d), _moves(), "baked.json")[&"t_cut"] as Swing).loop, &"Stance@0-20", "the loop a charge holds on")
+	assert_eq((SwingFile.parse(JSON.stringify(_baked()), _moves(), "baked.json")[&"t_cut"] as Swing).loop, &"", "none by default")
+	d["swings"]["t_cut"]["loop"] = 3
+	_assert_refused(d, "t_cut: loop must be a clip name", "a number for the loop")
+
+
 func test_sheathed_mistakes_are_refused() -> void:
 	var d: Dictionary = _baked()
 	d["swings"]["t_cut"]["sheathed"] = [2, 4]

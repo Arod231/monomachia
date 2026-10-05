@@ -27,6 +27,7 @@ func test_every_move_takes_its_frames_from_the_table() -> void:
 				assert_eq([m.dodge_cancel_from, m.dodge_cancel_to], [int(cancel[0]), int(cancel[1])], "%s.%s's dodge cancel" % [wid, id])
 			elif m.kind != &"heavy":
 				assert_eq(m.dodge_cancel_from, AttackDef.UNSET, "%s.%s has no dodge cancel" % [wid, id])
+			assert_eq(m.real_markers, not bool(row.get("stand_in", false)), "%s.%s: real markers unless its row is a stand-in" % [wid, id])
 			assert_eq(m.travel.size(), 3 * (m.total_frames() + 1), "%s.%s: travel on every frame" % [wid, id])
 			var last: Array = (row["travel"] as Array)[-1]
 			assert_eq([m.travel[-3], m.travel[-2], m.travel[-1]], [float(last[0]), float(last[1]), float(last[2])], "%s.%s's travel" % [wid, id])
@@ -47,6 +48,7 @@ func test_a_record_without_a_row_keeps_its_own_frames() -> void:
 	assert_eq([m.startup, m.active, m.recovery], [10, 3, 12], "a test move's frames are its own")
 	assert_eq(m.dodge_cancel_from, 19, "a heavy's cancel from the middle of its recovery")
 	assert_true(m.travel.is_empty(), "and no travel")
+	assert_false(m.real_markers, "nor markers of a clip")
 
 
 func test_a_record_setting_frames_beside_its_row_is_refused() -> void:

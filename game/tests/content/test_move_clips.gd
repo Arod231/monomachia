@@ -76,6 +76,52 @@ func test_a_chain_of_parts_and_its_sheathed_frames_read() -> void:
 	assert_eq(markers["contact"], 9.0 + float(last.markers["contact"]) - 2.0, "the cut's contact, after the sheathe's 9 frames, from its frame 2")
 
 
+func test_a_re_keyed_move_has_no_speed() -> void:
+	# milestone-1 task 19: a Katana or bare-hands move with real markers plays
+	# at 1.0x, so a speed of its own would be a retime; its marks may record
+	# where the clip's events fall
+	var markers: Dictionary = {"windup": 0, "active_start": 8, "active_end": 10, "settle": 22}
+	var t: MoveClips = _read({
+		"katana": {"guard": "CombatIdle1H01", "moves": {
+			"k_l1": {"clips": ["Attack1H01_R"], "markers": markers},
+			"k_l2": {"clips": ["Attack1H01_R"], "speed": 1.4, "markers": markers},
+			"k_l3": {"clips": ["Attack1H01_R"], "marks": {"windup": 0, "contact": 8, "contact_end": 10, "settle": 22}, "markers": markers},
+			"k_l4": {"clips": ["Attack1H01_R"], "speed": 1.4, "markers": markers, "markers_stand_in": true},
+			"k_lunge": {"clips": ["Attack1H04_R@6"], "speed": 1.65, "markers": markers},
+		}},
+		"fists": {"guard": "CombatIdle01", "moves": {
+			"f_l1": {"clips": ["AttackPunch02_L"], "speed": 1.4, "markers": markers},
+		}},
+		"greatsword": {"guard": "CombatIdle2H01", "moves": {
+			"g_l1": {"clips": ["Attack2H01"], "speed": 1.15, "markers": markers},
+		}},
+	})
+	assert_eq(t.errors, PackedStringArray([
+		"fists.f_l1: a move with real markers plays at 1.0x, so it has no speed",
+		"katana.k_l2: a move with real markers plays at 1.0x, so it has no speed",
+	]), "the stand-in keeps its retime; the Counter Lunge and the Greatsword wait for milestone 2")
+	assert_true(is_nan((t.of(&"katana")[&"k_l1"] as MoveClips.Entry).speed))
+
+
+func test_a_charge_may_hold_on_a_loop() -> void:
+	var t: MoveClips = _read({
+		"katana": {"guard": "CombatIdle1H01", "moves": {
+			"k_iai": {"clips": ["SheatheHips01_R@3-12", "Attack1H04_R@2"], "loop": "CombatIdle1H01@0-20"},
+			"k_l1": {"clips": ["Attack1H01_R"], "loop": "CombatIdle1H01"},
+			"k_l2": {"clips": ["Attack1H01_R"]},
+		}},
+		"fists": {"guard": "CombatIdle01", "moves": {
+			"f_h1": {"clips": ["AttackKick01_R"], "loop": "Nope01"},
+		}},
+	})
+	assert_eq(t.errors, PackedStringArray([
+		"fists.f_h1: the loop: Nope01 is not in the clip manifest",
+		"katana.k_l1: only a chargeable move has a loop",
+	]))
+	assert_eq((t.of(&"katana")[&"k_iai"] as MoveClips.Entry).loop, &"CombatIdle1H01@0-20", "the charge's loop")
+	assert_eq((t.of(&"katana")[&"k_l2"] as MoveClips.Entry).loop, &"", "none")
+
+
 func test_mistakes_are_named() -> void:
 	var t: MoveClips = _read({
 		"spear": {"guard": "CombatIdle1H01", "moves": {}},
