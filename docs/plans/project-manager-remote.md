@@ -196,6 +196,11 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - the owner gets a lock-screen notification for a held question and taps through to it.
   - Blocked by: 5, 10 · Stories: 34, 35, 36, 38, 39, 40, 85
   - **Owner:** adds the Home Screen icon from https://desktop-jk5bn8g.tailec6188.ts.net, taps "Turn on notifications", allows them, and confirms one arrives.
+  - Owner's answers (Oct 5, lane `lane/pm-11-12-13-14`, with tasks 12, 13 and 14; side-lane rule as in task 4):
+    - the lane builds on `tools/project-manager-remote` after pull requests #45 and #50 merged;
+    - a session's newest lock-screen notification replaces its older one (the tag is the session), since a tap opens the Questions tab or the session page, which list everything;
+    - "Turn on notifications", or why it isn't possible here, sits at the top of the bell's list; once on, a short line says so, with Turn off;
+    - once task 11 is pushed, the preview on port 5197 moves to `lane/pm-11-12-13-14`, and tasks 12 and 13 are built while the owner tries the notifications; task 11 is ticked once the owner confirms one arrived.
 
 ### Phase D: sessions and commands
 
@@ -206,6 +211,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - **A command bar:** Approve & continue, Show me, Stop now (stops before the next tool, then held while Away is on) and End work (for any session). Each command says whether it was delivered now, comes before the next step, or is queued.
   - Check: unit tests of the session-state rules; round-trip cases for each command's delivery; both pages by hand.
   - Blocked by: 4, 8 · Stories: 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 62
+  - Owner's answer (Oct 5): Stop now refuses every tool call the session tries, telling it the owner pressed Stop now and to end its turn, until its turn ends; with Away on that turn end is then held like any other. A hard stop (as End work does) was turned down, since it leaves the session idle where only the Claude app can wake it.
 - [ ] **13. Merge.** A session's pull request is merged from its page once it's ready.
   - Delivers:
     - **A readiness rule** over `gh pr view`'s fields (draft, mergeable, checks, behind its base), giving the reasons when the pull request isn't ready. Update branch is offered when it's behind.
@@ -217,6 +223,9 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - round trip against a stub `gh`: update, merge, and a mismatched pull request refused;
     - the tidy-up message reaches the session.
   - Blocked by: 10, 12 · Stories: 52, 53, 54, 55, 56, 57, 58
+  - Owner's answers (Oct 5):
+    - Merge is offered whatever the pull request's base, `master` included; the confirmation names the pull request and its base, and the tap is the approval;
+    - ready needs every check on the pull request passed, skipped or neutral; a pending or failing check makes it not ready, named in the reasons.
 - [ ] **14. Compact and Open in the Claude app.** A session opens in the Claude app on the phone, where `/compact` and any message work.
   - Delivers:
     - the Remote Control link, read from the app's session record where task 3 found it;
