@@ -13,10 +13,7 @@ import { SESSION, startBoard, waitFor } from './lanes-board-harness.mjs';
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1';
 const ASK = (questions) => ({ hook_event_name: 'PermissionRequest', tool_name: 'AskUserQuestion', tool_input: { questions } });
 const ONE = [{ header: 'Camera', question: 'Which camera?', options: [{ label: 'Close', description: 'Over the shoulder' }, { label: 'Far' }] }];
-const TWO = [
-  { question: 'Which weapons?', multiSelect: true, options: [{ label: 'Katana' }, { label: 'Spear' }, { label: 'Fists' }] },
-  { question: 'Which arena?', options: [{ label: 'Shrine', preview: '+--+\n|<>|\n+--+' }, { label: 'Bridge' }] },
-];
+const BASH = { hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'ls' } };
 
 describe('the round trip: Away and the Questions tab', () => {
   let board;
@@ -38,75 +35,34 @@ describe('the round trip: Away and the Questions tab', () => {
     assertMatches((await board.post('/relay/away', { on: false })).body, { on: false, from: 'PC' });
   });
 
-  it('leaves a question to the app while Away is off, and notes it', async () => {
-    const { done } = board.hook(ASK(ONE));
-    assert.equal(await done, null);
-    const events = readFileSync(path.join(board.relay, 'events.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
-    assertMatches(events.at(-1), { kind: 'asked-in-app', session: SESSION, questions: ['Which camera?'] });
-    assertMatches((await board.get('/questions')).body, { away: { on: false }, groups: [] });
-  });
-
-  it('holds a question while Away is on and answers it with one pick', async () => {
-    await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
-    const q = await held();
-    assert.equal(q.count, 1);
-    assertMatches(q.groups[0], { session: SESSION, title: 'Fixture session', cwd: board.repo });
-    const item = q.groups[0].items[0];
-    assertMatches(item, { kind: 'question', tool: 'AskUserQuestion', input: { questions: ONE } });
-    assert.equal(typeof q.groups[0].since, 'number');
-    assertMatches(await board.post('/relay/answer', { id: item.id, picks: ['Close'] }), { status: 200, body: { ok: true } });
-    assert.deepEqual(await done, { hookSpecificOutput: { hookEventName: 'PermissionRequest',
-      decision: { behavior: 'allow', updatedInput: { questions: ONE, answers: { 'Which camera?': 'Close' } } } } });
-    assert.deepEqual((await board.get('/questions')).body.groups, []);
-  });
-
-  it('answers several questions at once: a multi-select with Other, and a single pick', async () => {
-    await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(TWO));
-    const item = (await held()).groups[0].items[0];
-    await board.post('/relay/answer', { id: item.id, picks: [['Katana', 'Spear', 'A whip'], ['Shrine']] });
-    assert.deepEqual((await done).hookSpecificOutput.decision.updatedInput.answers,
-      { 'Which weapons?': 'Katana, Spear, A whip', 'Which arena?': 'Shrine' });
-  });
-
-  it('takes a free-form reply instead of picks, as a decline with the owner\'s words', async () => {
-    await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
-    const item = (await held()).groups[0].items[0];
-    await board.post('/relay/answer', { id: item.id, reply: 'Neither: try a low angle' });
-    assert.deepEqual((await done).hookSpecificOutput.decision, { behavior: 'deny',
-      message: 'The owner answered from the Project Manager instead of picking an option:\n\nNeither: try a low angle' });
+  it('leaves a question to the app, Away on or off, and only notes that it waits', async () => {
+    const events = () => readFileSync(path.join(board.relay, 'events.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    for (const on of [false, true]) {
+      await board.post('/relay/away', { on });
+      const { done } = board.hook(ASK(ONE));
+      assert.equal(await done, null);
+      assertMatches(events().at(-1), { kind: 'asked-in-app', session: SESSION, questions: ['Which camera?'] });
+      assertMatches((await board.get('/questions')).body, { away: { on }, groups: [] });
+    }
   });
 
   it('refuses a late answer, and a second one', async () => {
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
+    const { done } = board.hook(BASH);
     const item = (await held()).groups[0].items[0];
-    assert.equal((await board.post('/relay/answer', { id: item.id, picks: ['Far'] })).status, 200);
-    const again = await board.post('/relay/answer', { id: item.id, picks: ['Close'] });
+    assert.equal((await board.post('/relay/answer', { id: item.id, behavior: 'allow' })).status, 200);
+    const again = await board.post('/relay/answer', { id: item.id, behavior: 'deny' });
     assert.equal(again.status, 400);
     assert.match(again.body.error, /already answered, handed back or timed out/);
     await done;
-    const late = await board.post('/relay/answer', { id: item.id, picks: ['Close'] });
+    const late = await board.post('/relay/answer', { id: item.id, behavior: 'deny' });
     assert.equal(late.status, 400);
     assert.match(late.body.error, /already answered, handed back or timed out/);
   });
 
-  it('refuses an answer that doesn\'t fit the question', async () => {
+  it('hands every held prompt back to the app when Away goes off', async () => {
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
-    const item = (await held()).groups[0].items[0];
-    const bad = await board.post('/relay/answer', { id: item.id, picks: [['Close', 'Far']] });
-    assert.equal(bad.status, 400);
-    assert.match(bad.body.error, /takes one answer/);
-    await board.post('/relay/answer', { id: item.id, release: true });
-    assert.equal(await done, null);
-  });
-
-  it('hands every held question back to the app when Away goes off', async () => {
-    await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
+    const { done } = board.hook(BASH);
     await held();
     await board.post('/relay/away', { on: false });
     assert.equal(await done, null);
@@ -122,7 +78,7 @@ describe('the round trip: Away and the Questions tab', () => {
     const id = '22222222-2222-4333-8444-555555555555';
     const transcript = board.addSession(id, 'Deleted by transcript');
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE), { session: id, waitMs: 120000 });
+    const { done } = board.hook(BASH, { session: id, waitMs: 120000 });
     assert.equal((await held()).groups[0].session, id);
     rmSync(transcript);
     assert.equal(await released(done), null);
@@ -134,7 +90,7 @@ describe('the round trip: Away and the Questions tab', () => {
     board.addSession(id, 'Deleted in the app');
     const record = board.appRecord(id, 'Deleted in the app');
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE), { session: id, waitMs: 120000 });
+    const { done } = board.hook(BASH, { session: id, waitMs: 120000 });
     assertMatches((await held()).groups[0], { session: id, app: `local_${id}` });
     rmSync(record);
     assert.equal(await released(done), null);
@@ -143,7 +99,7 @@ describe('the round trip: Away and the Questions tab', () => {
 
   it('keeps an item whose session never had an app record (a CLI session)', async () => {
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
+    const { done } = board.hook(BASH);
     const item = (await held()).groups[0].items[0];
     await new Promise((r) => setTimeout(r, 300));
     assert.equal((await board.get('/questions')).body.groups[0].items[0].id, item.id);
@@ -312,13 +268,13 @@ describe('the round trip: turn ends, replies and the inbox', () => {
     assertMatches((await board.get('/sessions')).body.sessions.find((s) => s.id === SESSION), { queued: 0 });
   });
 
-  it('hands every held item back when Away goes off: questions to the app, turn ends simply end', async () => {
+  it('hands every held item back when Away goes off: prompts to the app, turn ends simply end', async () => {
     await board.post('/relay/away', { on: true });
-    const question = board.hook(ASK(ONE));
+    const prompt = board.hook(BASH);
     const turn = board.hook(STOP());
     await waitFor(async () => (await board.get('/questions')).body.count === 2, 8000, 'both items held');
     await board.post('/relay/away', { on: false });
-    assert.equal(await question.done, null);
+    assert.equal(await prompt.done, null);
     assert.equal(await turn.done, null);
     assert.deepEqual(readdirSync(path.join(board.relay, 'pending')), []);
   });
@@ -359,11 +315,11 @@ describe('the round trip: the bell', () => {
   });
   const unread = async () => (await board.get('/bell')).body.records.filter((r) => !r.read);
 
-  it('makes one notification for a held question, read on every device once one marks it', async () => {
+  it('makes one notification for a held prompt, read on every device once one marks it', async () => {
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
+    const { done } = board.hook(BASH);
     const [rec] = await waitFor(async () => { const u = await unread(); return u.length ? u : null; }, 8000, 'a notification');
-    assertMatches(rec, { kind: 'question', session: SESSION, text: 'Fixture session asks you a question', detail: 'Which camera?',
+    assertMatches(rec, { kind: 'permission', session: SESSION, text: 'Fixture session wants to use Bash', detail: 'ls',
       target: { tab: 'questions', session: SESSION } });
     assert.equal((await board.get('/bell')).body.unread, 1);
     assert.equal((await unread()).length, 1, 'one record, however often the bell is read');
@@ -379,11 +335,20 @@ describe('the round trip: the bell', () => {
 
   it('marks a held item\'s notification read once it is answered', async () => {
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK(ONE));
+    const { done } = board.hook(BASH);
     const [rec] = await waitFor(async () => { const u = await unread(); return u.length ? u : null; }, 8000, 'a notification');
-    await board.post('/relay/answer', { id: rec.target.item, picks: ['Close'] });
+    await board.post('/relay/answer', { id: rec.target.item, behavior: 'allow' });
     await done;
     assert.equal((await board.get('/bell')).body.records.find((r) => r.id === rec.id).read, true);
+  });
+
+  it('tells that a session waits on questions in the app while Away is on, holding nothing', async () => {
+    await board.post('/relay/away', { on: true });
+    assert.equal(await board.hook(ASK(ONE)).done, null);
+    const [rec] = await waitFor(async () => { const u = await unread(); return u.length ? u : null; }, 8000, 'a notification');
+    assertMatches(rec, { kind: 'asked', session: SESSION, text: 'Fixture session is waiting on you to answer questions in the app',
+      detail: 'Which camera?', target: { tab: 'questions', session: SESSION } });
+    assert.deepEqual((await board.get('/questions')).body.groups, []);
   });
 
   it('tells of a turn that finished while Away was off, pointing at its session', async () => {

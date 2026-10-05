@@ -219,7 +219,7 @@ describe('questionsTabHtml', () => {
     assert.doesNotMatch(questionsTabHtml({ away, count: 0, groups: [], asked: [] }), /hookwarn/);
   });
   it('says what Away means when nothing waits', () => {
-    assert.match(questionsTabHtml({ away, count: 0, groups: [], asked: [] }), /Nothing waiting\. Questions/);
+    assert.match(questionsTabHtml({ away, count: 0, groups: [], asked: [] }), /Nothing waiting\. Permission prompts.*questions stay in the app/);
     assert.match(questionsTabHtml({ away: { on: false }, count: 0, groups: [], asked: [] }), /Away is off/);
   });
 });
