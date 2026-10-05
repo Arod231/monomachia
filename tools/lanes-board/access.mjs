@@ -19,11 +19,14 @@ export const knownHost = (host, names) => names.has(hostOf(host));
 
 // Only the board's own pages may launch or end work: the Origin must be the
 // board itself, under a name it answers to (so no DNS-rebinding page can), and
-// the body JSON (which a plain form can't send).
+// the body JSON (which a plain form can't send). Over https only the PC's
+// tailnet name (pc.<tailnet>.ts.net) counts: Tailscale Serve answers it with
+// the tailnet's certificate and hands the request on from loopback, Host unchanged.
 export function sameOrigin({ origin, host, contentType }, names) {
   let o;
   try { o = new URL(origin); } catch { return false; }
-  return o.protocol === 'http:' && o.host === host && knownHost(host, names)
+  const secure = o.protocol === 'https:' && hostOf(host).endsWith('.ts.net');
+  return (o.protocol === 'http:' || secure) && o.host === host && knownHost(host, names)
     && String(contentType ?? '').startsWith('application/json');
 }
 

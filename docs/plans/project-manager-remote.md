@@ -94,7 +94,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: every board test passes unchanged; both pages behave as before in the Browser pane.
   - Blocked by: 1 · Stories: 83
   - Owner's answers (Oct 4, lane `lane/pm-4-5-6`, with tasks 5 and 6): the lane follows the side-lane rule, so it ticks its tasks and leaves Progress to this plan's own branch.
-- [ ] **5. Actions from the HTTPS address.** The Project Manager accepts its own pages' actions from `https://<pc>.<tailnet>.ts.net` through Tailscale Serve.
+- [x] **5. Actions from the HTTPS address.** The Project Manager accepts its own pages' actions from `https://<pc>.<tailnet>.ts.net` through Tailscale Serve.
   - Delivers: the same-origin rule accepts an https origin whose host is one of the PC's tailnet names (requests through Serve arrive from loopback); everything else is refused as today.
   - Check:
     - access tests: the tailnet name over https is allowed; another https site, a plain form post and a wrong host are refused;
