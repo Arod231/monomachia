@@ -6,8 +6,9 @@
 // as files in the relay folder while Away is on.
 //   GET  /sessions, /session?id=&limit=, /questions
 //   POST /relay/away, /relay/answer, /relay/reply, /relay/unqueue
-import { readFile, readdir, stat, open, writeFile, mkdir, rm } from 'node:fs/promises';
+import { readFile, readdir, stat, open, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { inboxDir, postToInbox, writeJsonAtomic } from './inbox.mjs';
 import {
   PENDING_ID, SESSION_ID, awayOf, awaySwitch, deliveryOf, heldOrphaned, ownerMessage, parseTranscript, relayAnswer, turnSummary,
 } from './sessions.mjs';
@@ -31,10 +32,8 @@ async function readTail(file, bytes) {
 
 const readJsonFile = async (file) => { try { return JSON.parse(await readFile(file, 'utf8')); } catch { return null; } };
 const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (err) { return err.code === 'EPERM'; } };
-async function writeJsonFile(file, value) {
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, JSON.stringify(value, null, 2));
-}
+// Whole files only, so a hook polling for one never reads it half written.
+const writeJsonFile = async (file, value) => writeJsonAtomic(file, value);
 
 // relay: the relay folder; projects: ~/.claude/projects; activeMs: how recently a
 // transcript was written for its session to count as at work. The server lends
@@ -96,15 +95,13 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
   // What the owner sent sessions that no held turn end took: inbox/<session>/,
   // one file per message, named so they sort oldest first. The stop hook takes
   // the oldest before the session's next tool, the relay hook the rest when its
-  // turn ends (both in relay-hook.mjs's notes).
-  let sent = 0;
-  const inboxDir = (session) => path.join(relay, 'inbox', session);
+  // turn ends (inbox.mjs, shared with both hooks).
   async function inboxOf(session) {
     let names = [];
-    try { names = (await readdir(inboxDir(session))).filter((n) => n.endsWith('.json')).sort(); } catch { return []; }
+    try { names = (await readdir(inboxDir(relay, session))).filter((n) => n.endsWith('.json')).sort(); } catch { return []; }
     const out = [];
     for (const n of names) {
-      const m = await readJsonFile(path.join(inboxDir(session), n));
+      const m = await readJsonFile(path.join(inboxDir(relay, session), n));
       if (m?.text) out.push({ id: n.slice(0, -5), text: m.text, time: m.time ?? null });
     }
     return out;
@@ -118,10 +115,6 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       if (list.length) all[id] = list;
     }
     return all;
-  }
-  async function toInbox(session, text) {
-    const name = `${String(Date.now()).padStart(15, '0')}-${String(sent++ % 1e6).padStart(6, '0')}`;
-    await writeJsonFile(path.join(inboxDir(session), `${name}.json`), { text, time: Date.now() });
   }
 
   async function findTranscripts() {
@@ -211,14 +204,14 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       await writeJsonFile(path.join(relay, 'answers', `${waiting.id}.json`), { reply: text });
       return { delivered: true, when: deliveryOf({ held: true }) };
     }
-    await toInbox(body.session, text);
+    postToInbox(relay, body.session, text);
     const f = (await findTranscripts()).find((x) => x.id === body.session);
     return { delivered: false, when: deliveryOf({ held: false, active: !!f && Date.now() - f.mtime < activeMs }) };
   }
 
   async function relayUnqueue(body) {
     if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-    await rm(inboxDir(body.session), { recursive: true, force: true });
+    await rm(inboxDir(relay, body.session), { recursive: true, force: true });
     return { ok: true };
   }
 

@@ -1,29 +1,39 @@
 // The hooks the Project Manager runs in every Claude Code session, as user
-// settings install them: what they are, how ~/.claude/settings.json registers
-// them, and whether the installed copies are this checkout's. Pure, no I/O:
-// install-hooks.mjs does the install (only with the owner's OK), the server
-// reports the status on both pages, and tests/lanes-board-hooks.test.mjs checks
-// both.
+// settings install them: what they are, where their files go, how
+// ~/.claude/settings.json registers them, and whether the installed copies are
+// this checkout's. Pure, no I/O: install-hooks.mjs does the install (only with
+// the owner's OK), the server reports the status on both pages, and
+// tests/lanes-board-hooks.test.mjs checks both.
 
 const DAY_S = 24 * 60 * 60;
 
-// Each hook: its folder under ~/.claude/hooks/, its tracked file here, and the
-// events it is registered for. `hold` events wait for the owner, so their
-// timeout must last as long as the hook holds (24 hours, LANES_RELAY_WAIT_MS).
+// Each hook: its folder under ~/.claude/hooks/, its tracked file here, the
+// modules installed beside it, and the events it is registered for. `hold`
+// events wait for the owner, so their timeout must last as long as the hook
+// holds (24 hours, LANES_RELAY_WAIT_MS).
 export const HOOKS = [
-  { name: 'lanes-relay', label: 'relay hook', file: 'relay-hook.mjs', events: [
+  { name: 'lanes-relay', label: 'relay hook', file: 'relay-hook.mjs', shared: ['inbox.mjs'], events: [
     { event: 'PermissionRequest', matcher: '*', timeout: DAY_S, hold: true },
     { event: 'Stop', timeout: DAY_S, hold: true },
   ] },
-  { name: 'lanes-stop', label: 'stop hook', file: 'stop-hook.mjs', events: [
+  { name: 'lanes-stop', label: 'stop hook', file: 'stop-hook.mjs', shared: ['inbox.mjs'], events: [
     { event: 'PreToolUse', matcher: '*', timeout: 10 },
     { event: 'Stop', timeout: 10 },
   ] },
 ];
 
-// The command a setting runs for a hook; claudeDir is ~/.claude.
+const slash = (p) => String(p).replace(/\\/g, '/');
+
+// Every file a hook installs: { from: its file in tools/lanes-board/, to: its
+// path under claudeDir (~/.claude) }. The hook itself becomes hook.mjs.
+export function hookFiles(claudeDir, h) {
+  const dir = `${slash(claudeDir)}/hooks/${h.name}`;
+  return [{ from: h.file, to: `${dir}/hook.mjs` }, ...(h.shared ?? []).map((f) => ({ from: f, to: `${dir}/${f}` }))];
+}
+
+// The command a setting runs for a hook.
 export function hookCommand(claudeDir, name) {
-  return `node "${String(claudeDir).replace(/\\/g, '/')}/hooks/${name}/hook.mjs"`;
+  return `node "${slash(claudeDir)}/hooks/${name}/hook.mjs"`;
 }
 
 const findHook = (groups, command) => (groups ?? []).flatMap((g) => g.hooks ?? []).find((h) => h.command === command) ?? null;
@@ -52,19 +62,32 @@ export function withHooks(settings, claudeDir) {
   return out;
 }
 
+// The status of the hooks under claudeDir against the tracked files in
+// boardDir, read with read(path) -> text, or null when missing (synchronous;
+// the caller's I/O).
+export function hooksStatusOf({ claudeDir, boardDir, read }) {
+  const files = HOOKS.flatMap((h) => hookFiles(claudeDir, h));
+  const tracked = Object.fromEntries(files.map((f) => [f.from, read(`${slash(boardDir)}/${f.from}`)]));
+  const installed = Object.fromEntries(files.map((f) => [f.to, read(f.to)]));
+  let settings = {};
+  try { settings = JSON.parse(read(`${slash(claudeDir)}/settings.json`) ?? '{}'); } catch { /* broken: every registration reads as missing */ }
+  return hooksStatus({ tracked, installed, settings, claudeDir });
+}
+
 // Whether the installed hooks are this checkout's and registered as they must
-// be. tracked and installed map a hook's name to its file's text (installed:
-// null when missing); settings is ~/.claude/settings.json's contents.
-export function hooksStatus({ tracked, installed, settings, home }) {
+// be. tracked maps a file in tools/lanes-board/ to its text; installed maps an
+// installed path (hookFiles' `to`) to its text, or null when missing; settings
+// is ~/.claude/settings.json's contents; claudeDir is ~/.claude.
+export function hooksStatus({ tracked, installed, settings, claudeDir }) {
   const problems = [];
   const norm = (s) => String(s).replace(/\r\n/g, '\n');
   for (const h of HOOKS) {
-    const have = installed?.[h.name];
-    if (have == null) problems.push(`The ${h.label} isn't installed.`);
-    else if (norm(have) !== norm(tracked[h.name])) problems.push(`The installed ${h.label} differs from this version's.`);
+    const files = hookFiles(claudeDir, h);
+    if (files.some((f) => installed?.[f.to] == null)) problems.push(`The ${h.label} isn't installed.`);
+    else if (files.some((f) => norm(installed[f.to]) !== norm(tracked[f.from]))) problems.push(`The installed ${h.label} differs from this version's.`);
   }
   for (const h of HOOKS) {
-    const command = hookCommand(home, h.name);
+    const command = hookCommand(claudeDir, h.name);
     for (const e of h.events) {
       const found = findHook(settings?.hooks?.[e.event], command);
       if (!found) problems.push(`The ${h.label} isn't registered for ${e.event}.`);

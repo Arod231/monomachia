@@ -11,6 +11,15 @@
 // replaces its older unread one.
 
 export const BELL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+// events.jsonl only grows, so once its oldest line is older than this the
+// board moves it aside (to events.jsonl.old, replacing the last one) and the
+// hook starts a new one: at most about two months are kept.
+export const EVENTS_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Whether events.jsonl, whose oldest line is from firstTime, is due to start afresh.
+export function eventsDue(firstTime, now = Date.now()) {
+  return Number.isFinite(firstTime) && firstTime > 0 && now - firstTime > EVENTS_KEEP_MS;
+}
 const MAX_RECORDS = 500;
 
 const oneLine = (s, n = 200) => String(s ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join(' ').slice(0, n);
@@ -30,7 +39,10 @@ function heldRecord(p, title) {
 
 // An event the relay hook noted (events.jsonl) as a record, or null.
 function eventRecord(e, n, title) {
-  const base = { id: `event:${Number(e.time) || 0}-${n}`, session: e.session, time: Number(e.time) || 0, read: false };
+  // Named by where the line sits in events.jsonl (bell-api.mjs gives its offset),
+  // with its time, since the file starts afresh every 30 days.
+  const where = e.offset ?? `n${n}`;
+  const base = { id: `event:${Number(e.time) || 0}:${where}`, session: e.session, time: Number(e.time) || 0, read: false };
   if (e.kind === 'asked-in-app') {
     return { ...base, kind: 'asked', text: `${title} asks you a question in the app`, detail: oneLine(e.questions?.[0]),
       target: { tab: 'questions', session: e.session } };

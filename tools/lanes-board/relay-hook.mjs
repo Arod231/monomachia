@@ -5,7 +5,8 @@
 // it's off, every session keeps the app's own dialogs, and a question asked in
 // the app or a finished turn is noted for the Project Manager.
 //
-// Install: copy this file to ~/.claude/hooks/lanes-relay/hook.mjs and add, to
+// Install: npm run board:hooks copies this file to ~/.claude/hooks/lanes-relay/hook.mjs
+// (with inbox.mjs beside it) and adds, to
 // ~/.claude/settings.json (beside the lanes stop hook), with timeouts of 24 hours
 // so a hold lasts as long as this file lets it:
 //   "hooks": {
@@ -32,10 +33,11 @@
 // and "Hand back to the app" on the board ends the wait.
 // The board shapes every answer and words every message (sessions.mjs
 // relayAnswer, ownerMessage); this file only carries them, so it stays free of
-// dependencies.
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+// dependencies but inbox.mjs, which is installed beside it.
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { takeFromInbox } from './inbox.mjs';
 
 const DIR = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
 const WAIT_MS = Number(process.env.LANES_RELAY_WAIT_MS) || 24 * 60 * 60 * 1000;
@@ -112,17 +114,8 @@ function continueWith(text) {
 }
 
 // Everything in a session's inbox, oldest first, joined; null when it's empty.
-// Each message is removed as it's taken.
 function takeInbox(session) {
-  const dir = path.join(DIR, 'inbox', session);
-  let names = [];
-  try { names = readdirSync(dir).filter((n) => n.endsWith('.json')).sort(); } catch { return null; }
-  const texts = [];
-  for (const n of names) {
-    const m = readJson(path.join(dir, n));
-    try { rmSync(path.join(dir, n)); } catch { continue; } // taken already
-    if (m?.text) texts.push(String(m.text));
-  }
+  const texts = takeFromInbox(DIR, session, { all: true });
   return texts.length ? texts.join('\n\n') : null;
 }
 

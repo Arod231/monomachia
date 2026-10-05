@@ -168,8 +168,16 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 4):
     - the preview serves this lane's branch (`lane/pm-7-8-9-10`) as soon as task 9's code is in, and moves to `tools/project-manager-remote` once the lane's pull request merges;
     - while the owner tries Away from the phone, task 10 is built; task 9 is ticked once the owner confirms it worked.
+  - The owner OK'd both (Oct 4): the install in user settings (copying both hooks to `~/.claude/hooks/` and raising the relay hook's two timeouts to 24 hours, with `settings.json` backed up), and port 5197 serving this lane from `~/.claude/all-lanes-server/preview.cmd` in place of `run.cmd` until the merge.
   - The install (Oct 4): both hooks were copied to `~/.claude/hooks/` and the preview runs this lane on 5197. `~/.claude/settings.json` refuses every write on this PC, even from Notepad or an administrator's PowerShell, though its permissions are normal, so the relay hook's timeouts stay at 1500 s. Holds give up after 25 minutes until that's found. The owner chose to try Away now and leave the 24-hour timeouts as a follow-up (`npm run board:hooks` finishes the install once the file can be written).
   - Done Oct 4: the owner switched Away on from the phone, answered a real session's question and replied to a finished turn, and both sessions carried on.
+  - The spike's checks left to this task's first real use, and where they stand:
+    - a hold longer than 25 minutes: not tried, since the timeouts are still 1500 s; it comes with the settings follow-up (fallback: holds that end and re-arm);
+    - a permission hook killed at its timeout giving the dialog back to the app: not yet seen; a question left unanswered past 25 minutes on today's timeouts shows it;
+    - a free-form `response` answer: not needed, since a free-form reply goes as a decline carrying the owner's words (task 6's answers), which the spike proved;
+    - Stop now: built and checked with task 12.
+  - Since this task, "Withdraw" (`/relay/unqueue`) clears everything waiting in a session's inbox, not just one queued reply, as the inbox can hold several messages.
+  - Review fixes after the merge (Oct 4): the inbox is written whole (temp file, then rename) and never loses or reorders a message (`inbox.mjs`, installed beside both hooks); the stop hook lets a session go at once unless it has an inbox of its own; bell records from `events.jsonl` are named by their place in the file, which starts afresh once its oldest line is over 30 days old; the stop-hook tests use a throwaway relay folder; a failed `settings.json` write leaves no backup behind.
 
 ### Phase C: notifications
 
