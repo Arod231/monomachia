@@ -24,9 +24,9 @@ build and will be replaced when the new look lands.
 ## Play
 
 Download `Monomachia-<version>-windows.zip` from the
-[Releases](../../releases) page, unzip it and run `Monomachia.exe`. The first
-release follows the merge of the Godot rebuild into `master`; until then,
-build it yourself (see [Build and develop](#build-and-develop)).
+[Releases](../../releases) page, unzip it and run `Monomachia.exe`. To play
+work newer than the latest release, build it yourself (see
+[Build and develop](#build-and-develop)).
 
 | Mode | What it is |
 | --- | --- |
