@@ -153,6 +153,43 @@ static func set_arena(d: Draft, arena: StringName) -> void:
 	d.arena = arena
 
 
+## Versus: the device a player plays with (InputDevices.KBM, KB_ARROWS, PAD0
+## or PAD1).
+static func set_device(d: Draft, side: int, device: String) -> void:
+	d.sides[side].device = device
+
+
+## Versus: the Controls profile a player plays with (an index into the
+## ControlProfiles).
+static func set_profile(d: Draft, side: int, index: int) -> void:
+	d.sides[side].profile = index
+
+
+## Versus's default devices, keyboard and mouse against the first
+## controller, become keyboard and mouse against the arrow layout when no
+## controller is connected (the demo's defaults). Any other pick is kept.
+static func fit_devices(d: Draft, input: InputDevices) -> void:
+	if d.mode != MatchConfig.VERSUS:
+		return
+	if d.sides[0].device == InputDevices.KBM and d.sides[1].device == InputDevices.PAD0 and not input.pad_connected(0):
+		d.sides[1].device = InputDevices.KB_ARROWS
+
+
+## Versus: why the players' devices can't start a match now, or "": both on
+## one device, or a controller that isn't connected (the owner's choice, Oct
+## 5, 2026: nobody starts unable to move).
+static func device_problem(d: Draft, input: InputDevices) -> String:
+	if d.mode != MatchConfig.VERSUS:
+		return ""
+	if d.sides[0].device == d.sides[1].device:
+		return "Both players are set to the same device. Pick a different one for Player 2."
+	for i: int in 2:
+		var seat: int = [InputDevices.PAD0, InputDevices.PAD1].find(d.sides[i].device)
+		if seat >= 0 and not input.pad_connected(seat):
+			return "Controller %d is not connected. Connect it, or pick another device for %s." % [seat + 1, MatchResults.PLAYERS[i]]
+	return ""
+
+
 # ------------------------------------------------------------------ lock in
 
 ## The match a draft makes, with the mode's controllers: Duel a human against

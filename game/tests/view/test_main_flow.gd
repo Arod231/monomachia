@@ -83,11 +83,11 @@ func test_the_title_leads_to_the_main_menu() -> void:
 	var labels: Array[String] = []
 	for b: Button in menu.buttons:
 		labels.append(b.text.get_slice("\n", 0))
-	assert_eq(labels, ["Duel", "Training", "Watch", "How to play", "Controls", "Settings", "Quit"] as Array[String])
+	assert_eq(labels, ["Duel", "Training", "Versus", "Watch", "How to play", "Controls", "Settings", "Quit"] as Array[String])
 	var subs: Array[String] = []
 	for b: Button in menu.buttons:
 		subs.append((b.get_node("Sub") as Label).text)
-	assert_eq(subs, ["vs computer", "parries and counters", "computer vs computer", "rules and move lists", "keys and buttons", "picture and sound", "to the desktop"] as Array[String], "each entry's sublabel")
+	assert_eq(subs, ["vs computer", "parries and counters", "two players, one screen", "computer vs computer", "rules and move lists", "keys and buttons", "picture and sound", "to the desktop"] as Array[String], "each entry's sublabel")
 
 
 func test_the_main_menu_hides_the_title_and_stays_open_while_the_duel_plays() -> void:
@@ -165,6 +165,7 @@ func test_watch_opens_the_select_for_watch() -> void:
 	main.call("show_main_menu")
 	await get_tree().process_frame
 	_press_key(KEY_DOWN) # Training
+	_press_key(KEY_DOWN) # Versus
 	_press_key(KEY_DOWN) # Watch
 	_press_key(KEY_ENTER)
 	assert_eq(_screen(), MainScript.Screen.SELECT)

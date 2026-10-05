@@ -1,6 +1,6 @@
 extends Node
 ## Screenshot scenes for the How to play screen (22.14), over the duel behind
-## the menus. Each how_to_play_*.tscn picks a tab; render one with
+## the menus. Each menu_how_to_play_*.tscn picks a tab; render one with
 ##   node scripts/godot.mjs shots res://tools/shot_scenes/<name>.tscn <out.png>
 ## --scroll=<px> scrolls the page first (a weapon's lower sections).
 

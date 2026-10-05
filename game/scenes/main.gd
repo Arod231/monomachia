@@ -1,8 +1,8 @@
 extends Node
-## The game's flow for the playable skeleton (task 22 replaces the menus):
-## title -> main menu (Duel, Training, Watch, How to play, Controls, Settings,
-## Quit)
-## -> the fighter select (Duel and Watch) -> a match -> results (Rematch,
+## The game's flow (task 22's menus, walked whole by test_navigation_walk.gd):
+## title -> main menu (Duel, Training, Versus, Watch, How to play, Controls,
+## Settings, Quit)
+## -> the fighter select (each mode) -> a match -> results (Rematch,
 ## Change fighters, Main menu), with a pause menu during play (PauseScreen:
 ## Resume, Move list, Controls, Settings, Restart, Quit to menu), which Back,
 ## Start or the pause binding also closes. The pages sit on a ScreenStack:
@@ -71,6 +71,7 @@ func _ready() -> void:
 	main_menu.name = "MainMenu"
 	main_menu.add_button("Duel", "vs computer", open_select.bind(MatchConfig.DUEL))
 	main_menu.add_button("Training", "parries and counters", open_select.bind(MatchConfig.TRAINING))
+	main_menu.add_button("Versus", "two players, one screen", open_select.bind(MatchConfig.VERSUS))
 	main_menu.add_button("Watch", "computer vs computer", open_select.bind(MatchConfig.WATCH))
 	main_menu.add_button("How to play", "rules and move lists", show_how_to_play)
 	main_menu.add_button("Controls", "keys and buttons", show_controls)
@@ -203,10 +204,13 @@ func show_settings() -> void:
 
 ## The pause's Move list: How to play over the pause, on the tab of the
 ## weapon the player holds (bare hands while disarmed); Watch, with no
-## player, opens it on the Rules.
+## player, and Versus, with two (either may have paused), open it on the
+## Rules.
 func show_move_list() -> void:
 	stack.push(how_to_play)
 	var me: int = host.config.first_human_side() if host.config != null else -1
+	if host.config != null and host.config.mode == MatchConfig.VERSUS:
+		me = -1
 	if me >= 0:
 		how_to_play.show_weapon(host.fighter(me).moveset().id)
 
