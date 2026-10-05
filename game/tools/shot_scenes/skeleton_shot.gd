@@ -439,8 +439,7 @@ func _prompts_shot() -> void:
 	a.armed = false
 	var b: Fighter = host.fighter(1)
 	var away: Vector3 = Vector3(a.pos.x - b.pos.x, 0.0, a.pos.z - b.pos.z).normalized()
-	var w := DroppedWeapon.new(0, &"katana", V3.make(a.pos.x + away.x * 1.5, 0.0, a.pos.z + away.z * 1.5), V3.make(), Rng.new(SEED))
-	w.grounded = true
+	var w := DroppedWeapon.stuck_at(0, &"katana", V3.make(a.pos.x + away.x * 1.5, 0.0, a.pos.z + away.z * 1.5), 0.0)
 	host.world.weapons.append(w)
 	host.step(2)
 
@@ -468,8 +467,7 @@ func _marker_shot() -> void:
 		_:
 			at += ahead * 1.2 + right * 0.9
 	a.armed = false
-	var w := DroppedWeapon.new(0, &"katana", V3.make(at.x, 0.0, at.z), V3.make(), Rng.new(SEED))
-	w.grounded = true
+	var w := DroppedWeapon.stuck_at(0, &"katana", V3.make(at.x, 0.0, at.z), 0.0)
 	host.world.weapons.append(w)
 	host.step(2)
 

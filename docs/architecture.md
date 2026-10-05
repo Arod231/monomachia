@@ -251,7 +251,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `ult_state.gd` | `UltState` | The ultimate in progress: kind, phase, frames in phase. |
 | `fighter_config.gd` | `FighterConfig` | What a fighter is built from: weapon, abilities, name. |
 | `fighter_stats.gd` | `FighterStats` | Per-match counters for the results screen. |
-| `dropped_weapon.gd` | `DroppedWeapon` | A weapon knocked out of a fighter's hands, tumbling then lying on the floor. |
+| `dropped_weapon.gd` | `DroppedWeapon` | A weapon knocked out of a fighter's hands. Since milestone-1 task 86 it draws nothing from the world's generator: `heading()` follows the blade's motion at contact (the blow's for a knock, the attacker's reversed for a deflect, else straight away), `landing()` shortens the 3.5 m flight to land inside the walls, and it flies a fixed arc to stick blade-first 25° from vertical (`pitch`, rules state), with a `weaponStuck` event. |
 | `slash_wave.gd` | `SlashWave` | A Moonsplitter wave travelling across the arena. |
 | `events.gd` | `SimEvents` | The list of event types and their payloads (documented in its header). |
 | `input_tracker.gd` | `InputTracker` | Turns each frame's `RawInput` into presses, releases, an 8-frame buffer, steps and sprint. |
@@ -371,7 +371,11 @@ classDiagram
     class DroppedWeapon {
         owner
         weapon_id
+        from
+        to
         pos
+        yaw
+        pitch
         grounded
     }
     class SlashWave {
@@ -577,7 +581,7 @@ Every rules event is a `Dictionary` with a `"t"` key, emitted in order and drain
 | Combat | `swing`, `telegraph`, `hit`, `block`, `parry`, `counter`, `evade`, `disarm`, `stagger`, `whiff` | Fighter and World |
 | Movement | `dodge`, `jump`, `land`, `step` | Fighter |
 | Ultimates | `ultReady`, `ultStart`, `ultChoice`, `ultWave`, `ultDash`, `ultImpale`, `ultBurst`, `ultLightning` | Fighter and World |
-| Weapon | `pickup`, `recall`, `weaponBounce` | Fighter and World |
+| Weapon | `pickup`, `recall`, `weaponStuck` | Fighter and World |
 | Follow-up cues | `counterReady`, `backstabReady` | Fighter and World |
 | Flow | `roundStart`, `fight`, `ko`, `roundOver`, `matchOver` | Match and World |
 

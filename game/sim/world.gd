@@ -664,22 +664,25 @@ func _update_waves() -> void:
 
 # ------------------------------------------------------------------ dropped weapons
 
-func spawn_dropped_weapon(victim: Fighter, by: Fighter) -> void:
-	var away: V2 = SimMath.norm2(victim.pos.x - by.pos.x, victim.pos.z - by.pos.z)
-	var ang: float = JsMath.atan2(away.x, away.z) + rng.range(-0.7, 0.7)
-	var sp: float = rng.range(5.0, 7.0)
+## Knocks victim's weapon out of the hands, flying along `dir`
+## (DroppedWeapon.heading()) to stick inside the walls (milestone-1 task 86).
+func spawn_dropped_weapon(victim: Fighter, dir: V2) -> void:
 	var kept: Array[DroppedWeapon] = []
 	for w: DroppedWeapon in weapons:
 		if w.owner != victim.id:
 			kept.append(w)
 	weapons = kept
+	var at: V2 = DroppedWeapon.landing(victim.pos.x, victim.pos.z, dir)
+	# it leaves the hands no further out than the ring it lands inside, so its
+	# whole flight stays inside the walls
+	var hands: V2 = DroppedWeapon.inside_ring(victim.pos.x, victim.pos.z)
 	weapons.append(
 		DroppedWeapon.new(
 			victim.id,
 			victim.weapon.id,
-			V3.make(victim.pos.x, 1.3, victim.pos.z),
-			V3.make(JsMath.sin(ang) * sp, 5.5, JsMath.cos(ang) * sp),
-			rng,
+			V3.make(hands.x, 1.3, hands.z),
+			V3.make(at.x, 0.0, at.z),
+			JsMath.atan2(dir.x, dir.z),
 		)
 	)
 
@@ -700,44 +703,9 @@ func remove_dropped_weapon(owner: int) -> void:
 
 
 func _update_weapons() -> void:
-	var max_r: float = SimConst.ARENA_RADIUS - SimConst.WEAPON_BOUNCE_MARGIN
 	for w: DroppedWeapon in weapons:
-		if w.grounded:
-			continue
-		w.vel.y -= 20.0 * SimConst.DT
-		w.pos.x += w.vel.x * SimConst.DT
-		w.pos.y += w.vel.y * SimConst.DT
-		w.pos.z += w.vel.z * SimConst.DT
-		w.tumble += w.spin * SimConst.DT
-		var r: float = JsMath.hypot(w.pos.x, w.pos.z)
-		if r > max_r:
-			var nx: float = w.pos.x / r
-			var nz: float = w.pos.z / r
-			var vn: float = w.vel.x * nx + w.vel.z * nz
-			if vn > 0.0:
-				w.vel.x -= 1.6 * vn * nx
-				w.vel.z -= 1.6 * vn * nz
-			w.pos.x = nx * max_r
-			w.pos.z = nz * max_r
-		if w.pos.y <= 0.06:
-			w.pos.y = 0.06
-			if w.vel.y < -2.5:
-				emit({
-					"t": &"weaponBounce",
-					"owner": w.owner,
-					"pos": SimEvents.vec3(V3.make(w.pos.x, 0.1, w.pos.z)),
-					"speed": -w.vel.y,
-				})
-				w.vel.y = -w.vel.y * 0.3
-				w.spin *= 0.5
-			else:
-				w.vel.y = 0.0
-			w.vel.x *= 0.86
-			w.vel.z *= 0.86
-			w.spin *= 0.8
-			if JsMath.hypot(w.vel.x, w.vel.z) < 0.25 and absf(w.vel.y) < 0.01:
-				w.grounded = true
-				w.tumble = float(SimMath.js_round(w.tumble / PI)) * PI # lie flat
+		if w.step():
+			emit({"t": &"weaponStuck", "owner": w.owner, "pos": SimEvents.vec3(w.pos)})
 
 
 # ------------------------------------------------------------------ round end

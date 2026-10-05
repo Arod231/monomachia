@@ -6,7 +6,7 @@ tags: [combat]
 
 A fighter whose [[Posture]] is full is [[Disarm|disarmed]] when they're parried, or when they block a power attack, an [[Unblockable]] or an [[Ultimate]]. A [[Redirect]] also disarms an armed attacker whose posture is full.
 
-- The weapon flies off and lands in the arena, marked on screen. It bounces off the walls, landing 0.8 m inside them, so it never leaves the stage. **Since Oct 4** it is to fly off the way the disarming blow knocked it and land stuck blade-first in the ground at an angle instead of bouncing; picking it up will mean pulling it out.
+- The weapon flies off and sticks in the arena, marked on screen. **Since milestone-1 task 86** it no longer bounces or lands at random: it flies 3.5 m along the blade's motion at contact (the blow's for a blocked power attack, the attacker's own reversed for a parry or redirect, straight away from the disarmer when the blade barely moves), shortened to land at least 0.8 m inside the walls, and sticks blade-first 25° from vertical, leaning back the way it came, the same way every run. Picking it up will mean pulling it out (task 87).
 - The disarmed fighter's posture resets to empty, and they fight [[Hand-to-hand]] with their [[Bare hands]].
 - **Re-arming:** stand on the weapon and press Pick up. It takes about 0.4 s, and the fighter is open meanwhile. The disarmed fighter's ultimate can be Recall instead, which brings the weapon flying back.
 - The armed fighter tries to stand between them and the weapon; the [[Computer opponent]] does this too.

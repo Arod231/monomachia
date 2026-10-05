@@ -21,8 +21,9 @@ const ROUNDS_TO_WIN: int = 3
 const ARENA_RADIUS: float = 15.0 # inner wall radius (m); the demo's was 11.5
 ## The Impaler's dash ends this far inside the wall (the demo's 10.8 m stop).
 const IMPALER_WALL_MARGIN: float = 0.7
-## Dropped weapons bounce off a ring this far inside the wall.
-const WEAPON_BOUNCE_MARGIN: float = 0.8
+## A disarmed weapon sticks no nearer the wall than this (milestone-1 task
+## 86): its flight is shortened to land on a ring this far inside it.
+const STUCK_WEAPON_MARGIN: float = 0.8
 const FIGHTER_RADIUS: float = 0.42
 const GRAVITY: float = 30.0 # m/s^2 (snappy, game-like)
 const JUMP_CLEAR: float = 0.3 # feet height above which low attacks miss
@@ -109,6 +110,16 @@ const KNOCKDOWN_MOVES: Array[StringName] = [&"g_slam", &"g_jh", &"g_sh"]
 
 # --- Disarm ----------------------------------------------------------------
 const DISARM_STAGGER: int = 26 # the disarmed fighter reels back
+# The disarmed weapon's flight (milestone-1 task 86, the owner's numbers of
+# Oct 5): it follows the blade's motion at contact, unless the blade moves
+# slower than DISARM_BLADE_MIN_SPEED across the ground; it flies
+# DISARM_FLIGHT metres at DISARM_FLIGHT_SPEED, rising DISARM_FLIGHT_PEAK above
+# the straight line, and sticks STUCK_WEAPON_LEAN from vertical.
+const DISARM_BLADE_MIN_SPEED: float = 0.5 # m/s
+const DISARM_FLIGHT: float = 3.5 # m
+const DISARM_FLIGHT_SPEED: float = 6.4 # m/s across the ground: 3.5 m in 33 frames
+const DISARM_FLIGHT_PEAK: float = 1.0 # m
+const STUCK_WEAPON_LEAN: float = 25.0 * PI / 180.0
 const PICKUP_RANGE: float = 1.25
 const PICKUP_FRAMES: int = 24
 const PICKUP_ATTACH_FRAME: int = 14

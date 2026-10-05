@@ -115,8 +115,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### The disarm and bare hands
 
-66. As a player, I want a disarm to send the weapon flying the way the blow knocked it (on a parry, the way the deflect sends it) and stick blade-first in the ground at an angle, always inside the walls, so that a disarm reads as a real moment.
-67. As a developer, I want the weapon's flight deterministic, along the knock or deflect direction and inside the walls, with its landing angle as rules state, so that a replay or a rollback lands it in the same place. **(P16, confirmed Oct 4)**
+66. [x] As a player, I want a disarm to send the weapon flying the way the blow knocked it (on a parry, the way the deflect sends it) and stick blade-first in the ground at an angle, always inside the walls, so that a disarm reads as a real moment. (Ticked with task 86.)
+67. [x] As a developer, I want the weapon's flight deterministic, along the knock or deflect direction and inside the walls, with its landing angle as rules state, so that a replay or a rollback lands it in the same place. **(P16, confirmed Oct 4)** (Ticked with task 86.)
 68. As a disarmed player, I want to pick my weapon up by pulling it out of the ground, taking as long as its clip, so that the pick-up looks and plays as it should. **(P16, confirmed Oct 4)**
 69. As a player whose opponent is disarmed, I want to stand in their way to keep the advantage, so that the disarm game stays live.
 70. As a disarmed player, I want to move faster, dodge farther and jump higher than when armed, so that bare hands keep their agility.

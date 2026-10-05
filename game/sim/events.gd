@@ -48,7 +48,7 @@ extends RefCounted
 ##   ultLightning:  f: int, from: Vec3, to: Vec3
 ##   recall:        f: int
 ##   pickup:        f: int
-##   weaponBounce:  owner: int, pos: Vec3, speed: float
+##   weaponStuck:   owner: int, pos: Vec3 (a disarmed weapon sticks in the ground, milestone-1 task 86)
 ##   counterReady:  f: int
 ##   backstabReady: f: int
 ##   whiff:         f: int, attack: StringName
@@ -88,7 +88,7 @@ const TYPES: Array[StringName] = [
 	&"ultLightning",
 	&"recall",
 	&"pickup",
-	&"weaponBounce",
+	&"weaponStuck",
 	&"counterReady",
 	&"backstabReady",
 	&"whiff",
