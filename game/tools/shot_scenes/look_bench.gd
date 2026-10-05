@@ -13,7 +13,7 @@ extends Node3D
 ## - --ink-strength=<x> and --ink-width=<px> set the ink lines' strength and
 ##   width (the shader's defaults otherwise);
 ## - --no-grade leaves the colour grade off;
-## - --preset=low|medium|high applies that graphics preset to the whole bench
+## - --preset=low|medium|high|ultra applies that graphics preset to the whole bench
 ##   (the left half's outlines and their width, the pass, the shadows and the
 ##   anti-aliasing). The bench then puts back what its own arguments say: the
 ##   right half's outlines go off again, and an explicit --ink and --no-grade
@@ -47,7 +47,7 @@ func _ready() -> void:
 	if not preset_id.is_empty():
 		preset = GraphicsPreset.load_id(StringName(preset_id))
 		if preset == null:
-			push_error("look_bench.gd: --preset must be low, medium or high, not '%s'" % preset_id)
+			push_error("look_bench.gd: --preset must be low, medium, high or ultra, not '%s'" % preset_id)
 	var width_scale: float = preset.outline_width_scale if preset != null else _arg(&"width-scale", "1").to_float()
 	_add_label(_ink_label(preset), Vector3(0, 2.95, 0))
 	var plain: Array[ShaderMaterial] = []

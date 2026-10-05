@@ -120,7 +120,8 @@ npm run build        # exports build/windows/Monomachia.exe
 
 `npm run shots -- res://tools/shot_scenes/<scene>.tscn shots/<name>.png`
 renders a scene to a PNG; `npm run counterlab` measures how often the computer
-lands each unblockable's counter; `npm run studio` opens the Animation Studio,
+lands each unblockable's counter; `npm run bench` times every frame of the
+worst-case replay at 4K against the 60 fps gate; `npm run studio` opens the Animation Studio,
 a gallery and editor for the clips; `npm run godot -- help` lists the
 runner's other commands.
 

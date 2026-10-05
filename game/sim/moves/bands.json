@@ -1,0 +1,87 @@
+{
+	"about": "The band tables (milestone-1 task 18): the spec's timing band table and distance band table (docs/specs/milestone-1.md, P26 and P27, approved by the owner at task 1), one row per move kind per weapon, read by MoveBands (move_bands.gd), held to by test_move_bands.gd and shown by the Studio. Kinds are the frame-data table's (FrameDataRows.kind_of). Timing ranges are rules frames [low, high]: startup to the first active frame; from_stance, an Iai draw's startup from the stance's release (its startup less the charge check); landing, a jump attack's recovery after it lands; to_wave, Moonsplitter's frames to its wave; total, the recall's whole length. Distances are metres centre to centre, played from standing: a move touches from touches (and from the weapon's duel and preferred distances where those are closer), a string light puts inside (m of blade, or of fist past the surface) into the defender at the duelling distance, and nothing touches from misses. waiting lists the moves still waiting for their family's re-key, which the band tests skip; each keying task takes its moves off.",
+	"timing": {
+		"katana": {
+			"string_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
+			"string_heavy": {"startup": [42, 54], "active": [4, 8], "recovery": [36, 48]},
+			"iai_draw": {"startup": [36, 48], "from_stance": [15, 21], "active": [4, 6], "recovery": [36, 48]},
+			"iai_follow_up": {"startup": [36, 45], "active": [4, 6], "recovery": [30, 42]},
+			"unblockable": {"startup": [48, 60], "active": [4, 6], "recovery": [36, 48]},
+			"sprint_light": {"startup": [27, 33], "active": [4, 6], "recovery": [30, 42]},
+			"sprint_heavy": {"startup": [42, 54], "active": [4, 8], "recovery": [36, 48]},
+			"dodge_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
+			"dodge_heavy": {"startup": [36, 48], "active": [5, 8], "recovery": [36, 48]},
+			"backstep_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
+			"backstep_heavy": {"startup": [36, 48], "active": [4, 6], "recovery": [36, 48]},
+			"jump_light": {"startup": [12, 18], "active": [4, 6], "landing": [12, 18]},
+			"jump_heavy": {"startup": [18, 22], "active": [4, 6], "landing": [18, 24]},
+			"block_ability": {"startup": [2, 4], "active": [18, 18], "recovery": [18, 30]},
+			"ultimate": {"to_wave": [54, 66], "recovery": [36, 48]}
+		},
+		"fists": {
+			"string_light": {"startup": [18, 24], "active": [2, 4], "recovery": [15, 24]},
+			"string_heavy": {"startup": [33, 42], "active": [3, 6], "recovery": [30, 42]},
+			"sprint_light": {"startup": [21, 27], "active": [3, 6], "recovery": [24, 36]},
+			"sprint_heavy": {"startup": [33, 42], "active": [4, 6], "recovery": [30, 42]},
+			"dodge_light": {"startup": [18, 24], "active": [2, 4], "recovery": [15, 24]},
+			"dodge_heavy": {"startup": [27, 36], "active": [3, 5], "recovery": [24, 36]},
+			"backstep_light": {"startup": [18, 24], "active": [3, 5], "recovery": [18, 27]},
+			"backstep_heavy": {"startup": [33, 42], "active": [3, 6], "recovery": [24, 36]},
+			"jump_light": {"startup": [12, 18], "active": [3, 5], "landing": [9, 15]},
+			"jump_heavy": {"startup": [18, 27], "active": [4, 6], "landing": [15, 21]},
+			"ultimate": {"startup": [30, 42], "active": [3, 5], "recovery": [30, 42]},
+			"recall": {"startup": [16, 24], "total": [26, 36]}
+		}
+	},
+	"distance": {
+		"katana": {
+			"duel": 2.5,
+			"preferred": 2.1,
+			"kinds": {
+				"string_light": {"touches": 2.5, "misses": 3.25, "inside": [0.15, 0.2]},
+				"string_heavy": {"touches": 3.0, "misses": 3.75},
+				"iai_follow_up": {"touches": 3.0, "misses": 3.75},
+				"iai_draw": {"touches": 3.6, "misses": 4.2},
+				"sprint_light": {"touches": 4.0, "misses": 4.75},
+				"sprint_heavy": {"touches": 5.0, "misses": 5.75},
+				"dodge_light": {"touches": 2.5, "misses": 3.25},
+				"dodge_heavy": {"touches": 2.5, "misses": 3.25},
+				"backstep_light": {"touches": 3.0, "misses": 3.75},
+				"backstep_heavy": {"touches": 4.5, "misses": 5.25},
+				"jump_light": {"touches": 2.0, "misses": 2.75},
+				"jump_heavy": {"touches": 2.0, "misses": 2.75},
+				"unblockable": {"touches": 3.5, "misses": 4.25},
+				"ultimate": {"wave": 33.0}
+			}
+		},
+		"fists": {
+			"duel": 1.6,
+			"preferred": 1.2,
+			"misses_all": 6.0,
+			"kinds": {
+				"string_light": {"touches": 1.6, "misses": 2.1, "inside": [0.15, 0.2]},
+				"string_heavy": {"touches": 2.1, "misses": 2.6},
+				"sprint_light": {"touches": 3.1, "misses": 3.6},
+				"sprint_heavy": {"touches": 4.1, "misses": 4.6},
+				"dodge_light": {"touches": 1.6, "misses": 2.1},
+				"dodge_heavy": {"touches": 1.6, "misses": 2.1},
+				"backstep_light": {"touches": 2.1, "misses": 2.6},
+				"backstep_heavy": {"touches": 3.6, "misses": 4.1},
+				"jump_light": {"touches": 1.1, "misses": 1.6},
+				"jump_heavy": {"touches": 1.1, "misses": 1.6},
+				"ultimate": {"touches": 4.1, "misses": 4.6}
+			}
+		}
+	},
+	"waiting": {
+		"katana": [
+			"k_l1", "k_l2", "k_l3", "k_l4", "k_iai", "k_iai_h", "k_h1f", "k_rdraw", "k_h2",
+			"k_sl", "k_sh", "k_dl", "k_dh", "k_bl", "k_bh", "k_jl", "k_jh",
+			"k_flash", "k_thrust", "k_sweep"
+		],
+		"fists": [
+			"f_l1", "f_l2", "f_l3", "f_h1", "f_h2", "f_sl", "f_sh", "f_dl", "f_dh",
+			"f_bl", "f_bh", "f_jl", "f_jh", "f_breaker"
+		]
+	}
+}

@@ -13,7 +13,7 @@ extends MenuScreen
 signal settings_changed
 
 ## The presets in the row's order, best first, as the demo's High and Fast.
-const PRESETS: Array[StringName] = [&"high", &"medium", &"low"]
+const PRESETS: Array[StringName] = [&"ultra", &"high", &"medium", &"low"]
 ## The rows' label column (px): wide enough for "Reduce flashes and shaking".
 const LABEL_WIDTH: float = 340.0
 

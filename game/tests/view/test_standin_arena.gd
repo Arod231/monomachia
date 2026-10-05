@@ -113,7 +113,7 @@ func test_the_ink_wash_pass_draws_at_the_presets_quality() -> void:
 	var passes: Array[Node] = _arena().find_children("*", "InkWashPass", true, false)
 	assert_eq(passes.size(), 1)
 	var ink: InkWashPass = passes[0]
-	assert_eq(ink.quality, InkWashPass.Quality.FULL, "High draws the full pass")
+	assert_eq(ink.quality, InkWashPass.Quality.FULL, "Ultra draws the full pass")
 	assert_true(ink.visible)
 
 
@@ -121,15 +121,19 @@ func test_the_chosen_preset_is_applied_when_the_arena_loads() -> void:
 	_settings().graphics_preset_id = &"low"
 	var low: GraphicsPreset = GraphicsPreset.load_id(&"low")
 	var arena: Node3D = _arena()
+	# Low drops only atmosphere (milestone-1 task 29): the pass, the outlines,
+	# the lanterns and the height fog stay as on Ultra
 	var ink: InkWashPass = arena.find_children("*", "InkWashPass", true, false)[0]
-	assert_eq(ink.quality, InkWashPass.Quality.OFF)
-	assert_false(ink.visible, "no ink-wash pass on Low")
-	assert_false(ToonMaterials.is_outlined((arena.get_node("Lacquer") as MeshInstance3D).material_override), "no prop outlines on Low")
+	assert_eq(ink.quality, low.post_quality)
+	assert_true(ink.visible, "the ink-wash pass on Low")
+	assert_true(ToonMaterials.is_outlined((arena.get_node("Lacquer") as MeshInstance3D).material_override), "prop outlines on Low")
 	for lamp: Light3D in _lights(arena, "OmniLight3D"):
-		assert_false(lamp.visible, "no lantern lights on Low")
+		assert_true(lamp.visible, "lantern lights on Low")
 	assert_eq((arena.get_node("Moon") as DirectionalLight3D).directional_shadow_max_distance, low.shadow_max_distance)
 	var env: Environment = (arena.get_node("Environment") as WorldEnvironment).environment
-	assert_eq(env.fog_height_density, 0.0, "no height fog on Low")
+	assert_gt(env.fog_height_density, 0.0, "height fog on Low")
+	assert_true(env.has_meta(GraphicsApplier.META_BASE_VOLUMETRIC), "the preset reached the environment")
+	assert_false(env.volumetric_fog_enabled, "no volumetric fog on Low")
 
 
 func test_the_arena_follows_the_rules_radius() -> void:

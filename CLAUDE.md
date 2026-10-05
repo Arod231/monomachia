@@ -75,6 +75,7 @@ Rules:
 - `npm test`: the Node tools' tests (`npm run test:node`, on `node --test`), then the GUT tests headless (`npm run test:godot`, about 5 minutes)
 - `npm run typecheck`: loads every GDScript file; fails on parse or type errors
 - `npm run soak -- 40`: 40 computer-vs-computer matches, prints balance numbers (`npm run soak:tune` runs 300); `npm run counterlab` measures how often the computer lands each unblockable's counter
+- `npm run bench`: the frame-time harness: plays the committed worst-case replay (`game/tools/bench/worst_case.json`) at 4K after a warm-up pass and prints the 99th percentile frame time against the 16.7 ms gate (`-- --preset=<id> --res=<w>x<h>`); `npm run bench:record` re-records the replay when a rules change makes it drift (a test says so)
 - `npm run play`: plays the game (`-- --swing-debug` draws the blade sweeps and hurt capsules); `npm run dev` opens the editor; `npm run studio` opens the Animation Studio
 - `npm run shots -- res://tools/shot_scenes/<scene>.tscn shots/<name>.png`: renders a scene to a PNG in an off-screen window, failing on shader or script errors
 - `npm run build`: exports `build/windows/Monomachia.exe` with the licence, credits and notices beside it; the exe's `--smoke` flag plays a Watch match to the results and exits 0

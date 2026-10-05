@@ -79,13 +79,13 @@ flowchart TD
 | Folder | What it holds |
 | --- | --- |
 | `game/sim` | The rules: fighters, world, match, moves, AI. Pure `RefCounted` objects, stepped 60 times per second, no nodes or rendering. |
-| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry; the baked swings (`swings/<weapon>.json`) and the frame-data table (`frame_data.json`, read by `FrameDataTable`), both written by `godot.mjs bake`. |
+| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry; the baked swings (`swings/<weapon>.json`) and the frame-data table (`frame_data.json`, read by `FrameDataTable`), both written by `godot.mjs bake`; the band tables (`bands.json`, read by `MoveBands`), written by hand from the spec. |
 | `game/sim/ai` | `AIBrain` (the computer opponent) and `TrainingBrain` (the training dummy). |
 | `game/input` | Reading keyboards, mice and controllers into a `RawInput` per player; bindings, profiles, rebinding, button labels. |
 | `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
 | `game/view/match` | `MatchHost` (the fixed-step loop), `MatchView`, `CameraRig`, `MatchAudio`, `StickPose`, the arena registry. |
 | `game/view/fighter` | Animating a rigged fighter from the rules' state: the clip director, locomotion, foot locking, IK rig. |
-| `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replace today's three. |
+| `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replaced today's three in milestone-1 task 29. |
 | `game/view/mesh_kit*.gd` | Procedural mesh building for props and stand-ins. |
 | `game/fighters`, `game/weapons`, `game/arenas` | Content: fighter models and palettes, weapon models, the Moonlit Shrine. |
 | `game/shaders` | Every `.gdshader` and shared include. |
@@ -265,6 +265,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `v2.gd`, `v3.gd` | `V2`, `V3` | 64-bit vectors (Godot's `Vector3` is 32-bit). |
 | `moves/attack_def.gd` | `AttackDef` | One move's frame data and flags; `finalize_moves()` fills defaults. |
 | `moves/frame_data_table.gd` | `FrameDataTable` | The committed frame-data table (milestone-1 task 16): each move's band kind, chain, generated frame data and per-frame travel, each gait clip's measured speed, each rules-length clip's length, the clips not keyed yet, and per row the source clips' checksum and a digest of the row with its swing (`digest()`), which CI recomputes. |
+| `moves/move_bands.gd` | `MoveBands` | The band tables (milestone-1 task 18): the spec's timing bands and distance bands per weapon and move kind, and the moves waiting for their family's re-key; `timing_problems()` holds a table row to its timing band, `distance_check()` plays a move from standing (`SwingReach`) at each distance its band names. Read by `test_move_bands.gd` and the Studio, never by the rules. |
 | `moves/weapon_def.gd` | `WeaponDef` | One weapon: class, speed, parry window, block mitigation, its moves and which move starts each context. |
 | `moves/moves.gd` | `Moves` | The registry: `WEAPONS`, `PLAYABLE_WEAPONS`, `COUNTER_LUNGE`, `ULT_HITS`, `get_move()`. |
 | `moves/katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd` | `KatanaMoves` and so on | Each weapon's `MOVES` table and `build()`: what design sets (damage, posture, kind, type, follow-ups, lunges and the like). Since milestone-1 task 17 the frames (startup, active, recovery, the dodge cancel, the travel) come from the frame-data table (`AttackDef.finalize_moves()` given the weapon, `TABLE_FIELDS`). Fists is the bare-hands moveset. |
@@ -666,7 +667,7 @@ flowchart LR
 | File | Class | What it does |
 | --- | --- | --- |
 | `match_host.gd` | `MatchHost` | The fixed-step loop (section 5). Signals: `match_started`, `sim_event`, `stepped`, `match_finished`, `pause_changed`, `stopped`, `loadout_changed` (the training dummy swapped weapons; the view and the HUD's plate follow), `training_changed` (the dummy's behaviour or the refill changed), `replay_checked`. Milestone 1: `snapshot()`/`restore()`/`state_hash()` over the world, the match, the brains and Training's upkeep, and `rules_hash()` without the brains; every match played records an `InputLog` (`input_log`, saved to `record_dir`), and `start_replay()` plays one back, comparing its checkpoints. |
-| `input_log.gd` | `InputLog` | A match as its inputs (milestone-1 task 6): the config, each step's `RawInput` per side (saved as the doubles' bytes in base64: Godot's text-to-float parsing isn't exact), Training's panel actions, the rules' hash every 60 steps and the end. JSON, format 1; `save_recent()` keeps the newest ten in `user://replays`; `--replay=<log>` (main.gd) plays one. |
+| `input_log.gd` | `InputLog` | A match as its inputs (milestone-1 task 6): the config, each step's `RawInput` per side (saved as the doubles' bytes, gzipped, in base64: Godot's text-to-float parsing isn't exact, and a match's inputs repeat a lot), Training's panel actions, the rules' hash every 60 steps and the end. JSON, format 2 (task 28; format 1, the bytes unpacked, still loads); `save_recent()` keeps the newest ten in `user://replays`; `--replay=<log>` (main.gd) plays one. |
 | `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
 | `camera_rig.gd` | `CameraRig` | FOLLOW (over the shoulder), WATCH (side-on) and MENU (orbit) cameras with damping, arena clamp, shake and FOV kick. |
 | `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera. |
@@ -751,16 +752,17 @@ flowchart LR
 
 ## 11. The look: shaders and graphics presets
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This section describes the code today. As the slice lands, a realistic look (physically based materials, dark lighting and volumetric fog under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass. Four presets replace these three: Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
+> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This section describes the code today. As the slice lands, a realistic look (physically based materials, dark lighting and volumetric fog under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass. Four presets replaced the three in milestone-1 task 29: Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
 
 ```mermaid
 flowchart TD
-    GSET["GameSettings.graphics_preset_id"] --> PRESET["GraphicsPreset<br/>view/look/presets/low, medium, high .tres"]
+    CARD["the graphics card's name<br/>presets/cards.json (first launch)"] --> GSET
+    GSET["GameSettings.graphics_preset_id"] --> PRESET["GraphicsPreset<br/>view/look/presets/low, medium, high, ultra .tres"]
     PRESET --> APP["GraphicsApplier.apply / apply_to_tree"]
-    APP --> VP["Viewport: AA, render scale, shadows"]
-    APP --> GROUPS["Node groups: look_shadow_light,<br/>look_minor_light, look_particles,<br/>look_scenery_detail"]
+    APP --> VP["Viewport: AA, render scale, upscaler (FSR 2.2, FSR 1), shadows"]
+    APP --> GROUPS["Node groups: look_shadow_light,<br/>look_minor_light, look_particles,<br/>look_scenery_detail, look_petal_light,<br/>look_minor_decal"]
     APP --> OUTL["Outline on or off per kind<br/>(fighter, weapon, prop)"]
-    APP --> ENV["Environment: fog, InkGrade colour LUT"]
+    APP --> ENV["Environment: fog, volumetric fog, ambient occlusion,<br/>InkGrade colour LUT"]
     APP --> INK["InkWashPass quality<br/>OFF / LINES / FULL"]
 
     TM["ToonMaterials"] --> TOON["toon.gdshader<br/>toon_two_sided.gdshader"]
@@ -779,7 +781,7 @@ flowchart TD
 
 > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** Outlines and ink-wash quality leave the presets with the toon look. High, Medium and Low scale the realistic look down from Ultra.
 
-Presets differ in shadow quality, prop outlines, ink-wash quality, height fog, particle count, minor lights and scenery detail. Fighter and weapon outlines are always on. Anything a preset should be able to turn off joins one of the `look_*` node groups.
+Milestone-1 task 29: four presets, Low, Medium, High and Ultra. Ultra (`GraphicsPreset.REFERENCE_ID`, also `DEFAULT_ID`, so tests and shots render at it) is the reference: it renders at 67% of the output and upscales with FSR 2.2, with every atmosphere feature on. The others follow it in every setting but `GraphicsPreset.CUTS`, the resolution and upscaler and the atmosphere (a test holds them to it): High upscales from 59% with FSR 2.2; Medium also drops ambient occlusion and the minor decals; Low renders at 67% with FSR 1 and FXAA (until the laptop bench picks its upscaler) and drops volumetric fog (the height fog stays), the petals' lights, ambient occlusion and the minor decals. Volumetric fog and ambient occlusion come on only where the arena's environment brings them. The first launch (no preset saved) picks a preset from the graphics card's name with `GraphicsPreset.for_card()`, the first matching rule of `presets/cards.json`, and Medium for a card it doesn't know. Fighter and weapon outlines are always on. Anything a preset should be able to turn off joins one of the `look_*` node groups.
 
 ## 12. Sound and music (`game/audio`)
 
@@ -931,6 +933,8 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm test`, `npm run typecheck` | `node --test` and GUT (`test:node`, `test:godot`); the GDScript type check (`tools/typecheck.gd`) |
 | `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300): Hunter-against-Hunter Katana mirrors with random block abilities, the finisher share and the appear-list (milestone-1 task 7); `-- --full-roster` plays random weapon pairs with their win rates |
 | `npm run counterlab` | How often the computer lands each unblockable's counter (`tools/counterlab.gd`) |
+| `npm run bench` | The frame-time harness (milestone-1 task 28, `tools/bench/frame_time_bench.tscn`): plays the committed worst-case replay in a window at 4K (`--res=`, `--preset=`), after a warm-up pass of the whole log, times every frame of its last 90 s, writes them to `build/bench/` and prints the 99th percentile against the 16.7 ms gate. Owner-run: CI has no GPU |
+| `npm run bench:record` | Re-records the worst-case replay (`tools/bench/record_worst_case.gd`): seeded Hard Katana mirrors until one has a 90 s window with Moonsplitter, Breaker Palm and a stretch at the wall; run it when a rules change makes the committed log drift |
 | `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
 | `npm run build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
@@ -975,7 +979,7 @@ flowchart TD
     end
 ```
 
-Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
+Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `bench/` (the frame-time harness: `FrameTimes`, the percentile maths and the frames file; `WorstCase`, the worst-case replay's search and its committed log `worst_case.json`; `frame_time_bench.tscn`; `record_worst_case.gd`), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `anim_studio/` is the Animation Studio (`npm run studio`): the gallery of live tiles (`gallery/`, `AnimTile`, `StudioCatalogue`) and, since milestone-1 task 25, the editor (`anim_studio/editor/`): `StudioEditor` (a viewport under an `OrbitCamera`, the side panel and the foot-locking toggle), `StudioPlayback` (the playhead over source frames), `StudioTimeline` (the source ruler, the markers, the rules ruler and the feet) and `FramesAndBands` (a move's frame-data table row against its `MoveBands` timing band and distance check); since task 26 `MarkerEdits` (a marker put on a frame, checked as `MoveClips` or `ClipManifest` would check it, into pending edits) and `EditSession` (`anim_studio/edit_session.gd`: the pending edits with undo and redo, and the text a file would be saved as through `SourceEdit`); since task 27 `ChainEdits` (a move's chain as parts and ranges, with no speed or new holds) and `StudioSaver` (`anim_studio/studio_saver.gd`: the clobber check, the atomic write, the frame-data table regenerated by `bake_swings.gd`'s static `bake()` in-process, undone byte for byte if the generator refuses, and the report of changed and out-of-band moves). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
 
 ## 17. CI and releases
 
@@ -1022,7 +1026,7 @@ Major features follow `CLAUDE.md`: a spec in `docs/specs/`, a plan in `docs/plan
 | Add a fighter | `fighters/<id>/` (scene, `FighterLook`, palettes), `FighterLook.IDS`, and the asset tools |
 | Add a weapon's look | `weapons/<id>/` (`WeaponLook`, scene with markers), `WeaponLook.IDS`, holds in each `FighterLook` |
 | Add an arena | An `ArenaDef` resource and scene in `arenas/<id>/`, registered in `ArenaScenes.DEFS`; radius must match the rules |
-| Add a graphics option | A field on `GraphicsPreset`, the three preset files, and `GraphicsApplier`. **Superseded by ADR 0001 (Oct 4):** Four presets (Ultra, High, Medium, Low) replace the three as the slice lands, with Ultra the reference preset. |
+| Add a graphics option | A field on `GraphicsPreset`, the four preset files, and `GraphicsApplier`; a setting the other presets may change from Ultra's joins `GraphicsPreset.CUTS`. |
 | Add a binding or action | `Bindings.ACTIONS`, `ACTION_BUTTON`, the default sets, `Btn` if it is a new rules button |
 | Add a screen | Build it in `ui/menus`, switch to it from `scenes/main.gd` (task 22 reworks this) |
 | Check the balance after a change | `npm run soak -- 40` |
