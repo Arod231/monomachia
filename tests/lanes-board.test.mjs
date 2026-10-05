@@ -621,7 +621,7 @@ describe('stop hook', () => {
   const file = path.join(dir, 'lanes-stop.json');
   const worktree = path.join(dir, 'worktrees', 'lane-gr-1');
   const run = (input) => execFileSync(process.execPath, [HOOK], {
-    input: JSON.stringify(input), env: { ...process.env, LANES_STOP_FILE: file },
+    input: JSON.stringify(input), env: { ...process.env, LANES_STOP_FILE: file, LANES_RELAY: path.join(dir, 'relay') },
   }).toString();
   const stopList = (entry) => writeFileSync(file, JSON.stringify({ entries: [{
     id: 't', label: 'GR 1.1', worktree, sessions: ['listed'], requestedAt: Date.now(), firedAt: null, ...entry,

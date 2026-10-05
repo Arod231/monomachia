@@ -1,13 +1,13 @@
 // The hooks the Project Manager installs in user settings, and whether the
 // installed ones are current (tools/lanes-board/hooks.mjs, install-hooks.mjs).
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { HOOKS, hookCommand, hooksStatus, withHooks } from '../tools/lanes-board/hooks.mjs';
+import { HOOKS, hookCommand, hookFiles, hooksStatus, hooksStatusOf, withHooks } from '../tools/lanes-board/hooks.mjs';
 
 const HOME = 'C:/Users/owner/.claude';
 const relay = hookCommand(HOME, 'lanes-relay');
@@ -24,11 +24,23 @@ const before = (home = HOME, relayTimeout = 600) => ({
     PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: hookCommand(home, 'lanes-relay'), timeout: relayTimeout }] }],
   },
 });
-const tracked = { 'lanes-relay': 'relay v2\n', 'lanes-stop': 'stop v2\n' };
+const tracked = { 'relay-hook.mjs': 'relay v2\n', 'stop-hook.mjs': 'stop v2\n', 'inbox.mjs': 'inbox v2\n' };
+// The installed files, by path, as hookFiles names them.
+const installedAs = ({ relayHook = 'relay v2\n', stopHook = 'stop v2\n', inbox = 'inbox v2\n' } = {}) => ({
+  [`${HOME}/hooks/lanes-relay/hook.mjs`]: relayHook, [`${HOME}/hooks/lanes-relay/inbox.mjs`]: inbox,
+  [`${HOME}/hooks/lanes-stop/hook.mjs`]: stopHook, [`${HOME}/hooks/lanes-stop/inbox.mjs`]: inbox,
+});
 
-describe('hookCommand', () => {
+describe('hookCommand and hookFiles', () => {
   it('runs the installed copy with node, by a forward-slash path', () => {
     assert.equal(hookCommand('C:\\Users\\owner\\.claude', 'lanes-relay'), 'node "C:/Users/owner/.claude/hooks/lanes-relay/hook.mjs"');
+  });
+  it('installs each hook as hook.mjs with the module it shares beside it', () => {
+    assert.deepEqual(HOOKS.map((h) => [h.name, h.file]), [['lanes-relay', 'relay-hook.mjs'], ['lanes-stop', 'stop-hook.mjs']]);
+    assert.deepEqual(hookFiles('C:\\Users\\owner\\.claude', HOOKS[0]), [
+      { from: 'relay-hook.mjs', to: 'C:/Users/owner/.claude/hooks/lanes-relay/hook.mjs' },
+      { from: 'inbox.mjs', to: 'C:/Users/owner/.claude/hooks/lanes-relay/inbox.mjs' },
+    ]);
   });
 });
 
@@ -53,34 +65,40 @@ describe('withHooks', () => {
     assert.deepEqual(withHooks(s, HOME), s);
     assert.deepEqual(withHooks({}, HOME), withHooks(withHooks({}, HOME), HOME));
   });
-  it('lists every hook it installs, with where it comes from', () => {
-    assert.deepEqual(HOOKS.map((h) => [h.name, h.file]), [['lanes-relay', 'relay-hook.mjs'], ['lanes-stop', 'stop-hook.mjs']]);
-  });
 });
 
 describe('hooksStatus', () => {
-  const status = (installed, settings) => hooksStatus({ tracked, installed, settings, home: HOME });
+  const status = (installed, settings) => hooksStatus({ tracked, installed, settings, claudeDir: HOME });
 
   it('is current when the copies match (whatever their line endings) and every registration is in place', () => {
-    assert.deepEqual(status({ 'lanes-relay': 'relay v2\r\n', 'lanes-stop': 'stop v2\n' }, withHooks(before(), HOME)), { current: true, problems: [] });
+    assert.deepEqual(status(installedAs({ relayHook: 'relay v2\r\n' }), withHooks(before(), HOME)), { current: true, problems: [] });
   });
-  it('says which installed copy is older, or missing', () => {
-    const s = status({ 'lanes-relay': 'relay v1\n', 'lanes-stop': null }, withHooks(before(), HOME));
+  it('says which installed copy is older, or missing, counting the module beside it', () => {
+    const s = status(installedAs({ relayHook: 'relay v1\n', stopHook: null }), withHooks(before(), HOME));
     assert.equal(s.current, false);
     assert.deepEqual(s.problems, [
       'The installed relay hook differs from this version\'s.',
       'The stop hook isn\'t installed.',
     ]);
+    assert.deepEqual(status(installedAs({ inbox: 'inbox v1\n' }), withHooks(before(), HOME)).problems, [
+      'The installed relay hook differs from this version\'s.',
+      'The installed stop hook differs from this version\'s.',
+    ]);
   });
   it('says when a registration is missing or its timeout is too short for a 24-minute hold', () => {
-    const s = status(tracked, before());
+    const s = status(installedAs(), before());
     assert.deepEqual(s.problems, [
       'The relay hook\'s PermissionRequest timeout is 600 s, not 25 minutes.',
       'The relay hook\'s Stop timeout is 600 s, not 25 minutes.',
     ]);
-    const bare = status(tracked, {});
+    const bare = status(installedAs(), {});
     assert.equal(bare.problems.length, 4);
     assert.match(bare.problems[0], /isn't registered for PermissionRequest/);
+  });
+  it('reads the files and settings it compares through the caller\'s reader', () => {
+    const files = { ...installedAs(), 'board/relay-hook.mjs': 'relay v2\n', 'board/stop-hook.mjs': 'stop v2\n', 'board/inbox.mjs': 'inbox v2\n',
+      [`${HOME}/settings.json`]: JSON.stringify(withHooks(before(), HOME)) };
+    assert.deepEqual(hooksStatusOf({ claudeDir: HOME, boardDir: 'board', read: (p) => files[p] ?? null }), { current: true, problems: [] });
   });
 });
 
@@ -99,19 +117,32 @@ describe('install-hooks.mjs', () => {
     assert.deepEqual(JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8')), before(dir));
     assert.deepEqual(readdirSync(dir), ['settings.json']);
   });
-  it('copies the hooks, registers them, backs the old settings up, and is then current', () => {
+  it('copies the hooks and the module beside them, registers them, backs the old settings up, and is then current', () => {
     writeFileSync(path.join(dir, 'settings.json'), JSON.stringify(before(dir)));
     const r = run();
     assert.equal(r.status, 0, r.stderr);
     const board = fileURLToPath(new URL('../tools/lanes-board/', import.meta.url));
     for (const h of HOOKS) {
       assert.equal(readFileSync(path.join(dir, 'hooks', h.name, 'hook.mjs'), 'utf8'), readFileSync(path.join(board, h.file), 'utf8'));
+      assert.equal(readFileSync(path.join(dir, 'hooks', h.name, 'inbox.mjs'), 'utf8'), readFileSync(path.join(board, 'inbox.mjs'), 'utf8'));
     }
     const settings = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8'));
     assert.equal(settings.hooks.PermissionRequest[0].hooks.length, 1);
     assert.equal(settings.hooks.PermissionRequest[0].hooks[0].timeout, HOLD);
     assert.ok(readdirSync(dir).some((n) => n.startsWith('settings.json.bak-')));
     assert.match(run('--check').stdout, /current/i);
+  });
+  it('leaves the settings and no backup behind when settings.json can\'t be written', { skip: process.platform !== 'win32' && 'a read-only file blocks the rename on Windows only' }, () => {
+    const file = path.join(dir, 'settings.json');
+    writeFileSync(file, JSON.stringify(before(dir, 600)));
+    chmodSync(file, 0o444);
+    try {
+      const r = run();
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /Couldn't write .*settings\.json.*unchanged/);
+      assert.deepEqual(readdirSync(dir).sort(), ['hooks', 'settings.json']);
+      assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')), before(dir, 600));
+    } finally { chmodSync(file, 0o666); }
   });
   it('copies the hooks without touching settings that already register them', () => {
     writeFileSync(path.join(dir, 'settings.json'), JSON.stringify(before(dir, HOLD)));

@@ -1,9 +1,13 @@
 // How both Project Manager pages draw sessions and what they wait on: a
 // session's pills, the Away switch, the Questions tab with the questions,
-// permission prompts and turn ends the relay hands over, and a little Markdown. index.html and m.html load it from
-// /sessions-ui.mjs; tests/lanes-board-sessions-ui.test.mjs checks it. Everything
-// returns data or HTML, with every value from a session escaped; the last
-// section works on cards the page hands it, so both pages answer alike.
+// plans, permission prompts and turn ends the relay hands over, the bell, and a
+// little Markdown. index.html and m.html load it from /sessions-ui.mjs;
+// tests/lanes-board-sessions-ui.test.mjs checks it. Most of it returns data or
+// HTML, with every value from a session escaped; answerFor and the card
+// helpers read cards the page hands them, so both pages answer alike. Two
+// functions act on the page itself: mountBell (fetches /bell, posts reads,
+// runs its own timer and listeners) and revealQuestion (scrolls and flashes a
+// card); the pages check those by hand.
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 

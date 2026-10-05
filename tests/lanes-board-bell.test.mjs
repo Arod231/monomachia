@@ -1,8 +1,12 @@
 // The bell's rules (tools/lanes-board/bell.mjs): what makes a notification,
 // when it's read, and how long it's kept.
-import { describe, it } from 'node:test';
+import { appendFileSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { BELL_KEEP_MS, bellUpdate, bellView, markRead } from '../tools/lanes-board/bell.mjs';
+import { BELL_KEEP_MS, EVENTS_KEEP_MS, bellUpdate, bellView, eventsDue, markRead } from '../tools/lanes-board/bell.mjs';
+import { bellApi } from '../tools/lanes-board/bell-api.mjs';
 
 const S1 = '11111111-2222-4333-8444-555555555555';
 const S2 = '22222222-2222-4333-8444-555555555555';
@@ -51,6 +55,13 @@ describe('bellUpdate', () => {
     assert.deepEqual(s.records[1].target, { tab: 'sessions', session: S2 });
   });
 
+  it('tells apart events from the same millisecond read in different looks, by where each sits in the file', () => {
+    let s = update(null, { events: [{ time: 2000, kind: 'asked-in-app', session: S1, questions: ['A?'], offset: 0 }] });
+    s = update(s, { events: [{ time: 2000, kind: 'asked-in-app', session: S2, questions: ['B?'], offset: 120 }] });
+    assert.deepEqual(s.records.map((r) => r.detail), ['A?', 'B?']);
+    assert.notEqual(s.records[0].id, s.records[1].id);
+  });
+
   it('keeps one unread finished turn per session: a newer one replaces the older unread one', () => {
     let s = update(null, { events: [{ time: 2000, kind: 'turn-finished', session: S1, last: 'First.' }] });
     s = update(s, { events: [{ time: 3000, kind: 'turn-finished', session: S1, last: 'Second.' }, { time: 3100, kind: 'turn-finished', session: S2, last: 'Other.' }] });
@@ -70,6 +81,46 @@ describe('bellUpdate', () => {
   it('says when nothing changed, so the file is left alone', () => {
     const s = update(null, { pending: [held('q-1', 'question')] });
     assert.equal(update(s, { pending: [held('q-1', 'question')] }), s);
+  });
+});
+
+describe('eventsDue', () => {
+  it('starts events.jsonl afresh once its oldest line is over 30 days old', () => {
+    const now = 100 * 24 * 60 * 60 * 1000;
+    assert.equal(eventsDue(null, now), false);
+    assert.equal(eventsDue(now - EVENTS_KEEP_MS + 1000, now), false);
+    assert.equal(eventsDue(now - EVENTS_KEEP_MS - 1000, now), true);
+    assert.equal(EVENTS_KEEP_MS, 30 * 24 * 60 * 60 * 1000);
+  });
+});
+
+describe('bellApi', () => {
+  let dir;
+  beforeEach(() => { dir = mkdtempSync(path.join(os.tmpdir(), 'pm-bell-')); });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+  const api = () => bellApi({ file: path.join(dir, 'notifications.json'), relay: dir, held: async () => [], titlesOf: async () => new Map() });
+  const line = (o) => `${JSON.stringify(o)}\n`;
+  const look = (a) => a.get(new URL('http://board/bell'));
+
+  it('reads each event once, however many looks, and two in the same millisecond both count', async () => {
+    const a = api();
+    const t = Date.now();
+    writeFileSync(path.join(dir, 'events.jsonl'), line({ time: t, kind: 'asked-in-app', session: S1, questions: ['A?'] }));
+    assert.equal((await look(a)).records.length, 1);
+    appendFileSync(path.join(dir, 'events.jsonl'), line({ time: t, kind: 'asked-in-app', session: S2, questions: ['B?'] }));
+    assert.equal((await look(a)).records.length, 2);
+    assert.equal((await look(a)).records.length, 2);
+  });
+
+  it('moves an events.jsonl whose oldest line is over 30 days old aside, once it has read it', async () => {
+    const old = Date.now() - EVENTS_KEEP_MS - 60000;
+    writeFileSync(path.join(dir, 'events.jsonl'), line({ time: old, kind: 'turn-finished', session: S1, last: 'Old.' })
+      + line({ time: Date.now(), kind: 'turn-finished', session: S2, last: 'New.' }));
+    const a = api();
+    assert.deepEqual((await look(a)).records.map((r) => r.detail), ['New.']);
+    assert.deepEqual(readdirSync(dir).sort(), ['events.jsonl.old', 'notifications.json']);
+    appendFileSync(path.join(dir, 'events.jsonl'), line({ time: Date.now() + 1, kind: 'asked-in-app', session: S1, questions: ['After?'] }));
+    assert.deepEqual((await look(a)).records.map((r) => r.detail), ['After?', 'New.']);
   });
 });
 
