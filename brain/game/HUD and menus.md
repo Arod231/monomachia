@@ -4,7 +4,7 @@ tags: [game, ui]
 
 # HUD and menus
 
-On Oct 4, 2026 a realistic look replaced the toon and ink-wash look, so the menus and HUD are to be redesigned for it. The layout below stays, ink survives only as calligraphy (brushed kanji and titles), and the style is picked from a UI page of the mood board. See [[Art direction]] and `docs/adr/0001-animation-leads-realistic-look.md`.
+On Oct 4, 2026 a realistic look replaced the toon and ink-wash look, so the menus and HUD are to be redesigned for it. The layout below stays, ink survives only as calligraphy (brushed kanji and titles), and the style is picked from a UI page of the mood board: on Oct 4 the owner chose lacquer and gold (black lacquer panels, gold hairlines, lacquer-disc round pips, brushed kanji in ivory). See [[Art direction]] and `docs/adr/0001-animation-leads-realistic-look.md`.
 
 ## HUD
 
