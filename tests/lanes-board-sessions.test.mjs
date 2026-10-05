@@ -14,7 +14,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
-  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample,
+  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldOrphaned,
   parseTranscript, questionAnswers, relayAnswer, toolSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
@@ -376,6 +376,21 @@ describe('relay answers', () => {
     assert.equal(SESSION_ID.test('../../etc'), false);
     assert.equal(PENDING_ID.test('muteg88c-076glmmy'), true);
     assert.equal(PENDING_ID.test('../x'), false);
+  });
+});
+
+describe('heldOrphaned', () => {
+  const p = { id: 'ab12-cd34', session: 's', transcript: 'C:/t/s.jsonl' };
+  it('drops an item whose transcript was deleted', () => {
+    assert.equal(heldOrphaned(p, { transcriptExists: false, hasRecord: true, sawRecord: true }), true);
+    assert.equal(heldOrphaned(p, { transcriptExists: true, hasRecord: true, sawRecord: true }), false);
+  });
+  it('drops an item whose app record was deleted, once the board had seen it', () => {
+    assert.equal(heldOrphaned(p, { transcriptExists: true, hasRecord: false, sawRecord: true }), true);
+    assert.equal(heldOrphaned(p, { transcriptExists: true, hasRecord: false, sawRecord: false }), false);
+  });
+  it('keeps an item that names no transcript', () => {
+    assert.equal(heldOrphaned({ ...p, transcript: null }, { transcriptExists: false, hasRecord: false, sawRecord: false }), false);
   });
 });
 

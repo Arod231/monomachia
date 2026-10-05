@@ -8,7 +8,7 @@
 //   POST /relay/away, /relay/answer, /relay/reply, /relay/unqueue
 import { readFile, readdir, stat, open, writeFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { PENDING_ID, SESSION_ID, awayOf, awaySwitch, parseTranscript, relayAnswer } from './sessions.mjs';
+import { PENDING_ID, SESSION_ID, awayOf, awaySwitch, heldOrphaned, parseTranscript, relayAnswer } from './sessions.mjs';
 
 const SESSION_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 const TAIL_BYTES = 768 * 1024;
@@ -38,8 +38,9 @@ async function writeJsonFile(file, value) {
 // transcript was written for its session to count as at work. The server lends
 // its context gauges (contextOf), the app's session records (appSessions), the
 // plan task a folder's lane is on (taskOf: dir -> { ref, label, title } | null)
-// and its worker pool.
-export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool, taskOf = () => null }) {
+// and its worker pool. Every sweepMs it also looks over the held items, so a
+// deleted session's hook is released with no page open.
+export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool, taskOf = () => null, sweepMs = 0 }) {
   const transcriptCache = new Map(); // file -> { key, parsed }
   async function transcript(file, limit) {
     const { size, mtimeMs } = await stat(file);
@@ -52,8 +53,13 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     return parsed;
   }
 
+  // Sessions held items belong to whose app record the board has seen; an item
+  // goes when that record is deleted (heldOrphaned in sessions.mjs).
+  const sawRecord = new Set();
+
   async function relayState() {
     const away = awayOf(await readJsonFile(path.join(relay, 'away.json')));
+    const records = new Set((await appSessions()).map((a) => a.cli).filter(Boolean));
     const pending = [];
     let names = [];
     try { names = (await readdir(path.join(relay, 'pending'))).filter((n) => n.endsWith('.json')); } catch { /* none yet */ }
@@ -62,8 +68,18 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       if (!p) continue;
       // A hook that was killed (its session closed, or it timed out) leaves its file.
       if (p.pid && !alive(p.pid)) { await rm(path.join(relay, 'pending', n), { force: true }); continue; }
+      // A deleted session's hook still holds: hand it back, which ends the hook.
+      const hasRecord = records.has(p.session);
+      if (hasRecord) sawRecord.add(p.session);
+      const transcriptExists = !!p.transcript && await stat(p.transcript).then(() => true, () => false);
+      if (heldOrphaned(p, { transcriptExists, hasRecord, sawRecord: sawRecord.has(p.session) })) {
+        const answer = path.join(relay, 'answers', `${p.id}.json`);
+        if (PENDING_ID.test(p.id ?? '') && !await stat(answer).then(() => true, () => false)) await writeJsonFile(answer, { release: true });
+        continue;
+      }
       pending.push(p);
     }
+    for (const id of sawRecord) if (!pending.some((p) => p.session === id)) sawRecord.delete(id);
     const replies = {};
     try {
       for (const n of await readdir(path.join(relay, 'replies'))) {
@@ -205,6 +221,8 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     asked.sort((x, y) => (x.time ?? 0) - (y.time ?? 0));
     return { updated: Date.now(), away: state.away, count: state.pending.length + asked.length, groups, asked };
   }
+
+  if (sweepMs > 0) setInterval(() => { relayState().catch(() => {}); }, sweepMs).unref();
 
   const POSTS = { '/relay/away': awaySet, '/relay/answer': relayAnswerTo, '/relay/reply': relayReply, '/relay/unqueue': relayUnqueue };
   return {

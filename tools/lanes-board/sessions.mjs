@@ -328,3 +328,12 @@ export function awayOf(raw) {
   if (raw?.on !== true) return { on: false, since: Number(raw?.since) || null, from: raw?.from ?? null };
   return { on: true, since: Number(raw.since) || null, from: raw.from ?? null };
 }
+
+// A held item whose session is gone. The spike (plan task 3) found that a
+// deleted session's hook keeps holding, so a live hook doesn't mean a live
+// session: the item goes once its transcript is deleted, or its app record is
+// deleted after the board had seen one (sessions run outside the app have none).
+export function heldOrphaned(p, { transcriptExists, hasRecord, sawRecord }) {
+  if (p.transcript && !transcriptExists) return true;
+  return !!sawRecord && !hasRecord;
+}

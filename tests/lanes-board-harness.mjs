@@ -40,14 +40,27 @@ export async function startBoard() {
   git('init', '-q', '-b', 'main');
   git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-q', '--allow-empty', '-m', 'Start');
 
-  // A transcript for the fixture session, so the board knows its title and folder.
+  // A session's transcript, so the board knows its title and folder.
   const folder = path.join(dirs.projects, dirs.repo.replace(/[^A-Za-z0-9]/g, '-'));
   mkdirSync(folder, { recursive: true });
-  const line = (o) => JSON.stringify({ sessionId: SESSION, timestamp: new Date().toISOString(), ...o });
-  writeFileSync(path.join(folder, `${SESSION}.jsonl`), [
-    line({ type: 'custom-title', customTitle: 'Fixture session' }),
-    line({ type: 'user', cwd: dirs.repo, message: { content: 'Build the fixture' } }),
-  ].join('\n') + '\n');
+  const transcriptOf = (id) => path.join(folder, `${id}.jsonl`);
+  const addSession = (id, title) => {
+    const line = (o) => JSON.stringify({ sessionId: id, timestamp: new Date().toISOString(), ...o });
+    writeFileSync(transcriptOf(id), [
+      line({ type: 'custom-title', customTitle: title }),
+      line({ type: 'user', cwd: dirs.repo, message: { content: 'Build the fixture' } }),
+    ].join('\n') + '\n');
+    return transcriptOf(id);
+  };
+  addSession(SESSION, 'Fixture session');
+  // The desktop app's record of a session, as it keeps one per Code session.
+  const appRecord = (id, title) => {
+    const dir = path.join(dirs.appdata, 'Claude', 'claude-code-sessions', 'fixture');
+    mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, `local_${id}.json`);
+    writeFileSync(file, JSON.stringify({ sessionId: `local_${id}`, cliSessionId: id, title, cwd: dirs.repo, createdAt: Date.now(), lastActivityAt: Date.now() }));
+    return file;
+  };
 
   const port = await freePort();
   const env = {
@@ -63,7 +76,7 @@ export async function startBoard() {
 
   const base = `http://localhost:${port}`;
   const board = {
-    port, root, ...dirs, log: () => log,
+    port, root, ...dirs, log: () => log, addSession, appRecord, transcriptOf,
     async get(p) {
       const r = await fetch(base + p, { headers: { 'accept-encoding': 'identity' } });
       return { status: r.status, body: await r.json().catch(() => null) };
@@ -85,7 +98,7 @@ export async function startBoard() {
         child.on('error', reject);
         child.on('close', () => resolve(out ? JSON.parse(out) : null));
       });
-      child.stdin.end(JSON.stringify({ session_id: session, cwd: dirs.repo, transcript_path: path.join(folder, `${SESSION}.jsonl`), ...event }));
+      child.stdin.end(JSON.stringify({ session_id: session, cwd: dirs.repo, transcript_path: transcriptOf(session), ...event }));
       return { done, child };
     },
     async stop() {
