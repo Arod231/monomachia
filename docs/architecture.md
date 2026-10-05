@@ -928,7 +928,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | Command | What it runs |
 | --- | --- |
 | `npm test`, `npm run typecheck` | `node --test` and GUT (`test:node`, `test:godot`); the GDScript type check (`tools/typecheck.gd`) |
-| `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300) |
+| `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300): Hunter-against-Hunter Katana mirrors with random block abilities, the finisher share and the appear-list (milestone-1 task 7); `-- --full-roster` plays random weapon pairs with their win rates |
 | `npm run counterlab` | How often the computer lands each unblockable's counter (`tools/counterlab.gd`) |
 | `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
