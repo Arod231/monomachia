@@ -26,8 +26,10 @@ extends Control
 ## - in Training your parry's subline says how many frames before impact
 ##   you pressed and the window (23.4; Too early and Too late come from
 ##   ParryFeedback);
-## - Evaded only in Training. Versus takes the Watch form until 23.7 gives
-##   it the demo's "Player 2: Parry".
+## - Evaded only in Training;
+## - Versus (for_versus(), 23.7) takes Watch's form, naming the player
+##   ("Player 2: Parry"), and adds the demo's dim "Player 1: Behind them"
+##   (the owner's choice, Oct 5, 2026).
 
 enum Tone { GOLD, JADE, RED, DIM, BLUE }
 
@@ -110,6 +112,14 @@ static func for_event(e: Dictionary, me: int, training: bool, names: Array[Strin
 			if training and int(e["f"]) == me:
 				out.append(_toast("Evaded", Tone.DIM))
 	return out
+
+
+## What an event toasts in Versus: Watch's form with the players' names,
+## and a player getting behind the other, dim, as the demo's Versus did.
+static func for_versus(e: Dictionary, names: Array[String]) -> Array[Dictionary]:
+	if e["t"] == &"backstabReady":
+		return [_toast("%s: Behind them" % names[int(e["f"])], Tone.DIM)]
+	return _for_watch(e, names)
 
 
 ## Watch's form: "<fighter>: <what>" in the side's tone, no subline.

@@ -13,7 +13,11 @@ extends Node
 ## Rogue with the Katana on the keyboard, the Hunter with the Greatsword on a
 ## controller) standing still, by --versus=: "centre" (2.5 m apart about
 ## the middle) or "wall" (the Rogue with her back to the wall at +X, the
-## Hunter 2.5 m in from her), for the underside rule in both halves.
+## Hunter 2.5 m in from her), for the underside rule in both halves; and
+## for its HUD (23.7) "hud" (both at 20 HP, the Hunter disarmed with his
+## Greatsword on the ground ahead of him: each player's prompts in their
+## half, named for their device, the marker in player 2's half, and the
+## toast "Player 1: Parry") or "call" (the disarm call naming player 2).
 ##
 ## "watch_start" is Watch's first round call (23.5). --mirror makes the
 ## computer duels (Watch's among them) a Rogue against a Rogue.
@@ -290,6 +294,11 @@ func _ready() -> void:
 			# marker keeps off it by its rect
 			for k: int in 2:
 				await get_tree().process_frame
+	if shot == "versus":
+		# the split's halves are laid out over a frame or two; the markers
+		# keep to them
+		for k: int in 2:
+			await get_tree().process_frame
 	var view: MatchView = host.get_node("View")
 	view.snap_camera()
 	if shot == "dropped":
@@ -700,6 +709,30 @@ func _select_preview() -> void:
 	p.advance(preview_turn / 360.0 * FighterPreview.TURN_SECONDS)
 
 
+## The Versus HUD (23.7): "hud" puts both players at 20 HP (Ultimate ready)
+## with the Hunter disarmed, his Greatsword 1.5 m ahead of him (Pick up),
+## and toasts Player 1's parry; "call" disarms him for the call naming him.
+func _versus_hud() -> void:
+	var a: Fighter = host.fighter(0)
+	var b: Fighter = host.fighter(1)
+	var hud: MatchHud = host.get_node("Hud")
+	if versus_place == "call":
+		hud._on_sim_event({"t": &"disarm", "victim": 1, "by": 0})
+		host.step(30)
+		return
+	for f: Fighter in [a, b]:
+		f.hp = 20.0
+	b.armed = false
+	var ahead: Vector3 = Vector3(a.pos.x - b.pos.x, 0.0, a.pos.z - b.pos.z).normalized()
+	var side: Vector3 = ahead.cross(Vector3.UP)
+	var at: Vector3 = Vector3(b.pos.x, 0.0, b.pos.z) + ahead * 0.6 + side * 1.4
+	var w := DroppedWeapon.new(1, &"greatsword", V3.make(at.x, 0.0, at.z), V3.make(), Rng.new(SEED))
+	w.grounded = true
+	host.world.weapons.append(w)
+	hud._on_sim_event({"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 3, "window": 9})
+	host.step(20)
+
+
 ## Versus on the shrine with both players standing, placed by versus_place.
 func _versus_shot() -> void:
 	var cfg: MatchConfig = MatchConfig.make(
@@ -708,9 +741,14 @@ func _versus_shot() -> void:
 		MatchSide.human(&"hunter", &"greatsword", 1, InputDevices.PAD0),
 		SEED,
 	)
-	_gameplay(MatchConfig.VERSUS, cfg, InputDevices.new(FakeDeviceState.new()))
+	var devices: FakeDeviceState = FakeDeviceState.new()
+	devices.plug_pad(0, "PS5 Controller")
+	_gameplay(MatchConfig.VERSUS, cfg, InputDevices.new(devices))
 	host.step(Match.INTRO_FRAMES + 20)
-	if versus_place == "wall":
+	if versus_place == "hud" or versus_place == "call":
+		_place_apart(2.5)
+		_versus_hud()
+	elif versus_place == "wall":
 		var a: Fighter = host.fighter(0)
 		var b: Fighter = host.fighter(1)
 		var edge: float = SimConst.ARENA_RADIUS - 0.6

@@ -6,7 +6,8 @@ extends CanvasLayer
 ## CameraRig in each half; the root viewport then has no camera and draws no
 ## 3D under the halves. Each half keeps the single view's vertical field of
 ## view at half the width (the demo's split did the same), and the HUD, on
-## a higher layer, stays one overlay over both until 23.7.
+## a higher layer, stays one overlay over both, with each player's prompts
+## and weapon marker kept to their own half (23.7).
 ##
 ## Neither half listens: MatchAudio's one listener, in the root viewport,
 ## hears the 3D sound (two listeners on one world would play every sound
