@@ -36,12 +36,22 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - stops only at the gates.
 - Before this plan: Tailscale HTTPS certificates on, and `tailscale serve --bg 5197` set up (Oct 4).
 - Out of this plan: launched sessions that wait for Enter on the PC are a separate follow-up.
+- **Spike results (task 3, Oct 4)**, from a throwaway session in auto mode whose project settings carried a logging test hook:
+  - **Proven: answering a question.** AskUserQuestion fires a PermissionRequest hook; allow with `updatedInput` = the tool input plus `answers` (question text to label, several joined with ", ") reaches the session as its answer, and the app never shows the question.
+  - **Proven: delivery before the next step.** `additionalContext` from a PreToolUse hook reaches the session with that tool call (it quoted the message).
+  - **Proven: holding a turn end.** A Stop hook held one for 18 minutes with the session alive (the hook's timeout was 3600 s; the default is 600).
+  - **Proven: the turn summary.** The app writes its turn summary (`postTurnSummary`: status category and detail) in the session record while the turn end is still held.
+  - **Proven: the Remote Control link.** The session record's `bridgeSessionIds` give https://claude.ai/code/<id>, which opened the session in the Claude app on the owner's iPhone.
+  - **Found: holds outlive deleted sessions.** The session was deleted mid-hold and its hook kept waiting, so a live hook process doesn't mean a live session. The Project Manager drops a held item when its session record or transcript is gone (task 6).
+  - **Found: hooks load at session start.** A hook added to a running session's settings never runs, and the app ignores a launch link's folder (it uses the sidebar's folder group), so tests that need hooks start their session from the app on a folder that has them.
+  - **Left to task 9's first real use** (the owner's call): a hold past 25 minutes (fallback: holds that end and re-arm), a free-form `response` answer, and Stop now.
 
 ## Progress
 
 - Oct 4, 2026: spec approved; plan drafted.
 - Oct 4, 2026: the owner approved this plan (task 1). Next: task 2 in its own small pull request, then the spike (task 3).
 - Oct 4, 2026: task 2 done: pull request #37 merged (38f43fa) and the live Project Manager follows PM. Next: the spike (task 3), with task 4 alongside while its long holds run.
+- Oct 4, 2026: task 3 done (the spike; findings under Decisions so far). Next: task 4.
 
 ## Build order
 
@@ -74,7 +84,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a test board on a spare port shows PM on Progress and Graph in the Browser pane;
     - the small pull request merges on the owner's approval.
   - Blocked by: 1 · Stories: 86
-- [ ] **3. Spike: the hook paths on a live session.** Before anything is built on them, prove on the desktop app what the spec rests on but nobody has tried.
+- [x] **3. Spike: the hook paths on a live session.** Before anything is built on them, prove on the desktop app what the spec rests on but nobody has tried.
   - Delivers: findings under Decisions so far, from a throwaway session in a scratch folder. That folder's own project settings carry test hooks, so user settings stay untouched. The findings:
     - a PermissionRequest hook answers AskUserQuestion (`answers`, several labels, an "Other" text, and `response`);
     - a held question and a held turn end both outlast 25 minutes (hook timeout raised in the scratch settings);
@@ -87,6 +97,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: each item recorded as proven or replaced; the throwaway scripts stay in the scratchpad, never committed.
   - Blocked by: 1 · Stories: 12, 87
   - **Owner:** presses Enter to start the throwaway session in the app (a new session's first prompt never sends itself), types `/rc` in it, and opens its link on the phone.
+  - Done Oct 4: findings under Decisions so far; the owner counted it done with three checks left to task 9.
 - [x] **4. Room for the new parts.** The board's session and relay code gets a module of its own, and the two pages share their session and question rendering, with no change in behaviour.
   - Delivers:
     - the Sessions and relay routes and helpers moved out of the server into a module it mounts;
