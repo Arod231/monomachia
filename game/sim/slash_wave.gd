@@ -1,6 +1,6 @@
 class_name SlashWave
 extends RefCounted
-## Port of the SlashWave class in src/sim/world.ts: a Moonsplitter wave in
+## Port of the SlashWave class in v0.1-web-mvp:src/sim/world.ts: a Moonsplitter wave in
 ## flight. s is the distance travelled from (ox, oz) along (dx, dz).
 ##
 ## Port note: owner points back at a Fighter, a reference cycle that

@@ -9,7 +9,7 @@ extends RefCounted
 ## weapon; an attack sweeps the stick through three keys picked by the move's
 ## anim (falling back on its type): wind-up during startup, strike into the
 ## impact key on the first active frame, follow-through, then back to guard
-## over recovery. The keys are the demo's attack archetypes (src/render/
+## over recovery. The keys are the demo's attack archetypes (v0.1-web-mvp:src/render/
 ## pose.ts ARCH, wind-up / impact / follow-through), and the hand travels
 ## between them on an arc around the body, not in a straight line.
 ##

@@ -1,6 +1,6 @@
 class_name SettingsScreen
 extends MenuScreen
-## The Settings screen (port of showSettings() in src/ui/menus.ts): the
+## The Settings screen (port of showSettings() in v0.1-web-mvp:src/ui/menus.ts): the
 ## graphics preset, reduce flashes and shaking, button hints, and the master,
 ## effects and music volumes. Each row applies and saves its change at once;
 ## Back returns to the page that opened it (the main menu or the pause menu).

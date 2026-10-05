@@ -4,7 +4,7 @@ tags: [architecture]
 
 # Architecture
 
-A Godot 4.7 project in `game/`, written in typed GDScript, beside the original three.js web demo in `src/` (kept as the reference until the Godot build matches it; tag `v0.1-web-mvp` keeps it after that).
+A Godot 4.7 project in `game/`, written in typed GDScript. The original three.js web demo was the reference for the port; it was deleted once the Godot build matched it, and tag `v0.1-web-mvp` keeps it.
 
 ## Two layers
 

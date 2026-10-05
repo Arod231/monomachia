@@ -1,6 +1,6 @@
 class_name AIBrain
 extends RefCounted
-## Port of src/sim/ai/brain.ts.
+## Port of v0.1-web-mvp:src/sim/ai/brain.ts.
 ##
 ## Computer opponent. It plays through a virtual controller (RawInput), so it is
 ## bound by exactly the same rules, timings and cooldowns as a human player.

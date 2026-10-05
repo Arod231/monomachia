@@ -1,6 +1,6 @@
 class_name UltState
 extends RefCounted
-## Port of the UltKind type and the UltState interface in src/sim/fighter.ts:
+## Port of the UltKind type and the UltState interface in v0.1-web-mvp:src/sim/fighter.ts:
 ## an armed ultimate in progress.
 ##
 ## Port notes: kind, phase and variant are StringNames equal to the TS

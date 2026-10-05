@@ -1,7 +1,7 @@
 class_name TrainingUpkeep
 extends RefCounted
 ## Training's upkeep, in the rules: port of Game.trainingUpkeep() in
-## src/game.ts. The match host steps it after every rules step of a Training
+## v0.1-web-mvp:src/game.ts. The match host steps it after every rules step of a Training
 ## match, inside the fixed step, so it stays deterministic; the soak and the
 ## duel behind the menus never run it.
 ##

@@ -4,7 +4,7 @@
 // metal pings and the round-call drums. They are written to
 // game/assets/audio/sfx/gen_*.wav (mono, 16-bit, 44.1 kHz).
 //
-// The recipes are ports of the web demo's Web Audio sounds (src/audio/audio.ts),
+// The recipes are ports of the web demo's Web Audio sounds (v0.1-web-mvp:src/audio/audio.ts),
 // kept in character and given more body: modal resonances, beating partials,
 // several seeded variations. Every sound has its own seed, so the output is the
 // same on every run. Each is high-passed at 25 Hz to remove DC, normalized,

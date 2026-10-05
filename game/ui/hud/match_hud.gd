@@ -17,7 +17,7 @@ extends CanvasLayer
 ## Announcements, their entrance included, are timed on the host's rules
 ## steps, not the wall clock, so they slow down with slow motion and freeze
 ## with pause. Port of the
-## announcement and bar logic of src/ui/hud.ts (its milliseconds become
+## announcement and bar logic of v0.1-web-mvp:src/ui/hud.ts (its milliseconds become
 ## frames at 60 per second). Its text takes the UI theme's fonts
 ## (ui/theme/ink_wash.tres) and its colours are UiPalette's.
 

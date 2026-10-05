@@ -4,7 +4,7 @@ tags: [project]
 
 # Godot rebuild
 
-The original Monomachia was a browser demo in three.js and TypeScript (see [[MVP spec]]). The design update of Sep 30, 2026 moved the game to Godot for PC: eight fighters, per-weapon movesets, floating arenas, character select, match intros and music ([[Design doc]]). The rebuild's first destination is parity with the demo on the new foundation; the rest of the design update comes later.
+The original Monomachia was a browser demo in three.js and TypeScript (see [[MVP spec]]), kept in tag `v0.1-web-mvp` since its code was deleted. The design update of Sep 30, 2026 moved the game to Godot for PC: eight fighters, per-weapon movesets, floating arenas, character select, match intros and music ([[Design doc]]). The rebuild's first destination is parity with the demo on the new foundation; the rest of the design update comes later.
 
 ## The plan
 

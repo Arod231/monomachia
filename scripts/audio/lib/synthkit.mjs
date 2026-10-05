@@ -1,6 +1,6 @@
 // Offline synthesis building blocks shared by synth.mjs (sound effects) and
 // music.mjs. They follow the Web Audio recipes of the web demo
-// (src/audio/audio.ts): oscillators and filtered noise with exponential
+// (v0.1-web-mvp:src/audio/audio.ts): oscillators and filtered noise with exponential
 // envelopes and pitch ramps, metallic partials and Karplus-Strong plucks, but
 // render sample by sample into Float32Arrays so the result is repeatable.
 // Everything random takes a seeded generator.

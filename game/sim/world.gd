@@ -1,6 +1,6 @@
 class_name World
 extends RefCounted
-## Port of src/sim/world.ts (DroppedWeapon and SlashWave are in
+## Port of v0.1-web-mvp:src/sim/world.ts (DroppedWeapon and SlashWave are in
 ## dropped_weapon.gd and slash_wave.gd).
 ##
 ## The World owns both fighters, dropped weapons and projectiles, and resolves

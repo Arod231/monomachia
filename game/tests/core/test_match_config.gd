@@ -115,6 +115,6 @@ func test_problems_are_reported() -> void:
 
 
 func test_seeds_follow_the_demo_sequence() -> void:
-	# (seed * 1103515245 + 12345) % 2147483647, as src/game.ts buildWorld()
+	# (seed * 1103515245 + 12345) % 2147483647, as v0.1-web-mvp:src/game.ts buildWorld()
 	assert_eq(MatchConfig.next_seed(1), 1103527590)
 	assert_eq(MatchConfig.next_seed(1103527590), (1103527590 * 1103515245 + 12345) % 2147483647)

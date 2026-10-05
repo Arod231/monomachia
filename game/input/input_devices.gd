@@ -3,8 +3,8 @@ extends RefCounted
 ## Per-player input: turns the keyboard, mouse and controllers into one
 ## RawInput per player per tick through each player's controls profile.
 ## Port of the sampling, controller seats and pause edges of
-## src/input/devices.ts, plus the device, profile, exclusion and label choices
-## of src/game.ts. Menu navigation is not here: menus use Godot's ui_* actions.
+## v0.1-web-mvp:src/input/devices.ts, plus the device, profile, exclusion and label choices
+## of v0.1-web-mvp:src/game.ts. Menu navigation is not here: menus use Godot's ui_* actions.
 ##
 ## Devices report held state only: the rules layer's InputTracker turns taps
 ## into steps and double-tap-and-hold into a sprint.

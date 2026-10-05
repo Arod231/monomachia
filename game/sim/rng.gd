@@ -1,6 +1,6 @@
 class_name Rng
 extends RefCounted
-## Port of src/sim/rng.ts.
+## Port of v0.1-web-mvp:src/sim/rng.ts.
 ##
 ## Deterministic pseudo-random numbers (mulberry32) so matches can be replayed in tests.
 ##

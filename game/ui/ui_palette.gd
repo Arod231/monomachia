@@ -1,5 +1,5 @@
 class_name UiPalette
-## The UI's colours: the demo's palette (src/ui/style.css's :root), for the
+## The UI's colours: the demo's palette (v0.1-web-mvp:src/ui/style.css's :root), for the
 ## UI theme (ui/theme/ink_wash.tres holds the same values) and for UI code
 ## that colours things as they change (the HUD's bars, the results' winner).
 ## The 3D look's colours are LookPalette's.

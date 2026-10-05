@@ -1,6 +1,6 @@
 class_name DaggersMoves
 extends RefCounted
-## Port of src/sim/moves/daggers.ts.
+## Port of v0.1-web-mvp:src/sim/moves/daggers.ts.
 ##
 ## Twin Daggers — small class. Fast, slippery, strong HP damage over many hits,
 ## weak posture damage, short parry window.
