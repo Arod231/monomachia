@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
-  ago, answerFor, approveLabel, awayHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
+  ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
   sessionPills,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
@@ -159,6 +159,33 @@ describe('the Away switch in the header', () => {
     const off = awayHtml({ away: { on: false }, count: 0 });
     assert.doesNotMatch(off, /checked|awayn/);
     assert.match(off, /Away is off/);
+  });
+});
+
+describe('the bell', () => {
+  const rec = (id, read, extra = {}) => ({ id, kind: 'question', session: 's1', text: 'Lane <one> asks you a question', detail: 'Which <camera>?',
+    target: { tab: 'questions', item: 'ab12-cd34', session: 's1' }, time: Date.now() - 120000, read, ...extra });
+
+  it('shows its unread count, or none', () => {
+    const on = bellButtonHtml({ unread: 3, records: [] });
+    assert.match(on, /data-bell-open/);
+    assert.match(on, /<b class="belln"[^>]*>3<\/b>/);
+    assert.match(on, /aria-label="Notifications, 3 unread"/);
+    assert.doesNotMatch(bellButtonHtml({ unread: 0, records: [] }), /belln/);
+  });
+  it('lists records newest first, escaped, unread ones marked, with Mark all read', () => {
+    const html = bellListHtml({ unread: 1, records: [rec('held:a', false), rec('event:b', true, { kind: 'turn', text: 'Lane two finished its turn', detail: '' })] });
+    assert.match(html, /data-bell-all/);
+    assert.match(html, /<li class="brec unread" data-bell="held:a" data-tab="questions" data-item="ab12-cd34" data-session="s1">/);
+    assert.match(html, /Lane &lt;one&gt; asks you a question/);
+    assert.match(html, /Which &lt;camera&gt;\?/);
+    assert.match(html, /2 min ago/);
+    assert.ok(html.indexOf('held:a') < html.indexOf('event:b'));
+    assert.match(html, /<li class="brec" data-bell="event:b"/);
+  });
+  it('says when there is nothing', () => {
+    assert.match(bellListHtml({ unread: 0, records: [] }), /Nothing yet/);
+    assert.doesNotMatch(bellListHtml({ unread: 0, records: [] }), /data-bell-all/);
   });
 });
 

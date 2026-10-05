@@ -34,6 +34,7 @@ import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tails
 import { contextTracker } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
 import { HOOKS, hooksStatus } from './hooks.mjs';
+import { bellApi } from './bell-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
@@ -695,6 +696,9 @@ async function hooksState() {
 }
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
   hooks: hooksState, sweepMs: 5000 });
+// The bell: notifications from held items and the relay hook's events (bell-api.mjs).
+const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
+  titlesOf: sessionRoutes.titlesOf, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
@@ -787,7 +791,7 @@ async function handle(req, res) {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if ((result = await sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] })) === undefined) { res.writeHead(404); res.end('{}'); return; }
+      } else if ((result = await (bellRoutes.post(req.url, body) ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
       return;
@@ -795,7 +799,7 @@ async function handle(req, res) {
     if (req.url === '/brain') { res.writeHead(302, { location: '/brain/' }); res.end(); return; }
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
-    const routed = url.pathname === '/data' ? data() : sessionRoutes.get(url);
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.

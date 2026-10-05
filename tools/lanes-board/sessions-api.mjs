@@ -273,5 +273,19 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     post(route, body, ctx = {}) {
       return POSTS[route]?.(body, ctx);
     },
+    // For the bell (bell-api.mjs): the items held now, and sessions' titles.
+    held: async () => (await relayState()).pending,
+    async titlesOf(ids) {
+      const [found, app] = await Promise.all([findTranscripts(), appSessions()]);
+      const titles = new Map();
+      for (const id of ids) {
+        const a = app.find((x) => x.cli === id);
+        const f = found.find((x) => x.id === id);
+        let t = null;
+        if (f && !a?.title) { try { t = await transcript(f.file, 1); } catch { /* being written */ } }
+        titles.set(id, a?.title || t?.title || '(untitled)');
+      }
+      return titles;
+    },
   };
 }

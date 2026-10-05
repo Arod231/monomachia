@@ -338,6 +338,20 @@ textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px
 .pcard textarea.turnreply { width: 100%; margin-top: 8px; }
 .hookwarn { border: 1px solid var(--owner); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; background: var(--card); }
 .hookwarn ul { margin: 6px 0; padding-left: 20px; }
+/* The bell */
+.bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; border: 0; border-radius: 8px; background: var(--surface); color: var(--text); cursor: pointer; }
+.bell svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+.belln { position: absolute; top: -5px; right: -6px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--owner); color: #fff; font-size: 11px; line-height: 17px; text-align: center; }
+#bellPanel { position: fixed; top: 52px; right: 16px; width: 380px; max-width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto; z-index: 50; background: var(--card); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.bhead { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border-strong); font-size: 13px; }
+.blist { list-style: none; margin: 0; padding: 0; }
+.brec { padding: 9px 12px; border-bottom: 1px solid var(--surface); cursor: pointer; font-size: 13px; color: var(--muted); }
+.brec:hover { background: var(--surface); }
+.brec.unread { color: var(--text); box-shadow: inset 3px 0 0 var(--owner); }
+.brec .bd { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brec .k { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.bempty { padding: 14px; font-size: 13px; color: var(--muted); }
+.pcard.flash, .qgroup.flash { outline: 3px solid var(--owner); outline-offset: 2px; }
 pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 .q { margin-top: 8px; }
 .q .qh { font-size: 13px; margin-bottom: 6px; }
@@ -389,6 +403,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
       <button role="tab" data-view="sessions">Sessions <span class="count" id="sessCount"></span></button>
     </nav>
     <span id="awayBox"></span>
+    <span id="bellBox"></span>
     <button class="btn small" id="brainBtn" title="The project's knowledge as linked notes: weapons, systems, plans, docs and code (opens in a popup window)">Second brain</button>
     <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
   </header>
@@ -478,6 +493,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
     </div>
   </div>
 </main>
+<div id="bellPanel" hidden></div>
 <div id="tip"></div>
 <div id="menu" role="menu"></div>
 <div id="queue" aria-live="polite"><div class="in" id="queueIn"></div></div>
@@ -1539,6 +1555,19 @@ document.addEventListener('change', async (e) => {
   pollQuestions(true); pollSession(true);
 });
 window.addEventListener('modules-ready', () => { qSig = null; renderQuestions(); });
+
+// ---------- the bell ----------
+// Shared with the phone page (sessions-ui.mjs mountBell): a tap on a record
+// opens its question or its session here.
+window.addEventListener('modules-ready', () => {
+  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session }) => {
+    if (tab === 'sessions' && session) { setView('sessions'); selectSession(session); return; }
+    setView('questions');
+    qSig = null;
+    pollQuestions(true);
+    S.revealQuestion($('qList'), { item, session });
+  } });
+}, { once: true });
 
 function tick() {
   const el = $('stamp');

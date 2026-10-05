@@ -171,7 +171,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ### Phase C: notifications
 
-- [ ] **10. The bell.** Every page has a bell listing what happened while the owner was elsewhere.
+- [x] **10. The bell.** Every page has a bell listing what happened while the owner was elsewhere.
   - Delivers:
     - notification records from held questions, permissions and plans, questions asked in the app, and finished turns (tasks 13 and 15 add pull requests ready to merge and new visuals);
     - records kept in the state folder with a read flag shared by every device, and trimmed after 7 days;

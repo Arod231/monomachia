@@ -261,6 +261,85 @@ export function restoreCards(root, state) {
   }
 }
 
+// ---------- the bell ----------
+// b is /bell (bell-api.mjs): { unread, records } newest first. A record's
+// target says where a tap goes; the page marks it read and goes there.
+
+export function bellButtonHtml(b) {
+  const n = b?.unread ?? 0;
+  return `<button class="bell" data-bell-open aria-label="Notifications${n ? `, ${n} unread` : ''}" title="Notifications">`
+    + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg>'
+    + `${n ? `<b class="belln" aria-hidden="true">${n > 99 ? '99+' : n}</b>` : ''}</button>`;
+}
+
+export function bellListHtml(b) {
+  const records = b?.records ?? [];
+  if (!records.length) return '<div class="bempty">Nothing yet. Questions, plans, permission prompts and finished turns from every session show here.</div>';
+  return `<div class="bhead"><b>Notifications</b>${b.unread ? '<button class="btn small ghost" data-bell-all>Mark all read</button>' : ''}</div>
+    <ul class="blist">${records.map((r) => `<li class="brec${r.read ? '' : ' unread'}" data-bell="${esc(r.id)}" data-tab="${esc(r.target?.tab)}"`
+      + `${r.target?.item ? ` data-item="${esc(r.target.item)}"` : ''} data-session="${esc(r.target?.session)}">`
+      + `<div class="bt">${esc(r.text)}</div>${r.detail ? `<div class="bd">${esc(r.detail)}</div>` : ''}`
+      + `<div class="k" data-t="${Number(r.time) || ''}">${esc(ago(r.time))}</div></li>`).join('')}</ul>`;
+}
+
+// Runs the bell on a page: box holds its button, panel its list (hidden until
+// opened); post(url, body) is the page's JSON post; go({ tab, item, session })
+// takes the page to a record's target. Polls /bell every few seconds.
+export function mountBell({ box, panel, post, go, everyMs = 5000 }) {
+  let view = null;
+  let timer = null;
+  let shown = '';
+  const draw = () => {
+    const button = bellButtonHtml(view);
+    if (button !== shown) { shown = button; box.innerHTML = button; }
+    if (!panel.hidden) panel.innerHTML = bellListHtml(view);
+  };
+  async function poll() {
+    try {
+      const d = await (await fetch('/bell', { cache: 'no-store' })).json();
+      if (Array.isArray(d.records)) { view = d; draw(); }
+    } catch { /* the page's stamp shows the server's state */ }
+    clearTimeout(timer);
+    timer = setTimeout(poll, document.hidden ? 30000 : everyMs);
+  }
+  box.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-bell-open]')) return;
+    panel.hidden = !panel.hidden;
+    draw();
+    if (!panel.hidden) poll();
+  });
+  panel.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-bell-all]')) {
+      try { view = await post('/bell/read', { all: true }); } catch { /* next poll */ }
+      draw();
+      return;
+    }
+    const rec = e.target.closest('[data-bell]');
+    if (!rec) return;
+    panel.hidden = true;
+    try { view = await post('/bell/read', { ids: [rec.dataset.bell] }); } catch { /* next poll */ }
+    draw();
+    go({ tab: rec.dataset.tab, item: rec.dataset.item ?? null, session: rec.dataset.session || null });
+  });
+  document.addEventListener('click', (e) => {
+    if (!panel.hidden && !panel.contains(e.target) && !box.contains(e.target)) panel.hidden = true;
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+  poll();
+  return { poll };
+}
+
+// Brings a held item's card (or its session's group) into view in the
+// Questions tab once it is drawn, and flashes it.
+export function revealQuestion(root, { item, session }, tries = 20) {
+  const el = (item && root.querySelector(`.pcard[data-pid="${CSS.escape(item)}"]`))
+    || (session && root.querySelector(`.qgroup[data-session="${CSS.escape(session)}"]`));
+  if (!el) { if (tries > 0) setTimeout(() => revealQuestion(root, { item, session }, tries - 1), 150); return; }
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1600);
+}
+
 // Refreshes every "5 min ago" under root from its data-t.
 export function refreshTimes(root) {
   for (const el of root.querySelectorAll('[data-t]')) if (el.dataset.t) el.textContent = ago(Number(el.dataset.t));

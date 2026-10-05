@@ -348,3 +348,51 @@ describe('the round trip: turn ends, replies and the inbox', () => {
     assertMatches(events.at(-1), { kind: 'turn-finished', session: SESSION, last: 'All done.' });
   });
 });
+
+describe('the round trip: the bell', () => {
+  let board;
+  before(async () => { board = await startBoard(); });
+  after(async () => { await board?.stop(); });
+  beforeEach(async () => {
+    await board.post('/relay/away', { on: false });
+    await board.post('/bell/read', { all: true });
+  });
+  const unread = async () => (await board.get('/bell')).body.records.filter((r) => !r.read);
+
+  it('makes one notification for a held question, read on every device once one marks it', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(ASK(ONE));
+    const [rec] = await waitFor(async () => { const u = await unread(); return u.length ? u : null; }, 8000, 'a notification');
+    assertMatches(rec, { kind: 'question', session: SESSION, text: 'Fixture session asks you a question', detail: 'Which camera?',
+      target: { tab: 'questions', session: SESSION } });
+    assert.equal((await board.get('/bell')).body.unread, 1);
+    assert.equal((await unread()).length, 1, 'one record, however often the bell is read');
+    const marked = await board.post('/bell/read', { ids: [rec.id] }, { 'user-agent': IPHONE });
+    assertMatches(marked, { status: 200, body: { unread: 0 } });
+    const onPc = (await board.get('/bell')).body;
+    assert.equal(onPc.unread, 0);
+    assert.equal(onPc.records.find((r) => r.id === rec.id).read, true);
+    assert.match(readFileSync(path.join(board.state, 'notifications.json'), 'utf8'), new RegExp(rec.id));
+    await board.post('/relay/answer', { id: rec.target.item, release: true });
+    await done;
+  });
+
+  it('marks a held item\'s notification read once it is answered', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(ASK(ONE));
+    const [rec] = await waitFor(async () => { const u = await unread(); return u.length ? u : null; }, 8000, 'a notification');
+    await board.post('/relay/answer', { id: rec.target.item, picks: ['Close'] });
+    await done;
+    assert.equal((await board.get('/bell')).body.records.find((r) => r.id === rec.id).read, true);
+  });
+
+  it('tells of a turn that finished while Away was off, pointing at its session', async () => {
+    await board.hook({ hook_event_name: 'Stop', last_assistant_message: 'Task 9 is built.' }).done;
+    const [rec] = await waitFor(async () => { const u = await unread(); return u.length ? u : null; }, 8000, 'a notification');
+    assertMatches(rec, { kind: 'turn', text: 'Fixture session finished its turn', detail: 'Task 9 is built.', target: { tab: 'sessions', session: SESSION } });
+  });
+
+  it('refuses a mark with nothing named', async () => {
+    assert.equal((await board.post('/bell/read', {})).status, 400);
+  });
+});
