@@ -15,6 +15,9 @@ extends Node
 ##   --tab and start measuring (the libraries are loaded by then, so the
 ##   opening measured is a later one, not the first)
 ## - --budget=<n>: AnimTile.builds_per_frame (a huge number is the old build-all-at-once)
+## - --open=<move id>: open that move in the editor (milestone-1 task 25),
+##   its playhead at --frame=<source frame> (default its first active frame),
+##   the camera at --camera=front|side|top|match (default front)
 ##
 ## It also prints how the frames went: how long opening the tab took until
 ## every tile in view had its fighter (frames, ms and the worst frame, the
@@ -37,6 +40,11 @@ var _built_at: int = -1
 var _warm: StringName = &""
 var _last_usec: int = 0
 var _frame_msec: PackedFloat32Array = PackedFloat32Array()
+## The move to open in the editor (--open), or empty for the gallery.
+var _open: StringName = &""
+var _open_frame: float = NAN
+var _camera: StringName = &"front"
+var _editor_frames: int = 0
 
 
 func _ready() -> void:
@@ -57,6 +65,12 @@ func _ready() -> void:
 		elif a.begins_with("--badges="):
 			for b: String in a.substr(9).split(",", false):
 				badges.append(StringName(b))
+		elif a.begins_with("--open="):
+			_open = StringName(a.substr(7))
+		elif a.begins_with("--frame="):
+			_open_frame = float(a.substr(8))
+		elif a.begins_with("--camera="):
+			_camera = StringName(a.substr(9))
 	studio = (load("res://tools/anim_studio/studio.tscn") as PackedScene).instantiate() as AnimStudio
 	add_child(studio)
 	studio.set_fighter(body)
@@ -65,9 +79,20 @@ func _ready() -> void:
 	if not search.is_empty() or not badges.is_empty():
 		gallery.set_filter(search, badges)
 	_last_usec = Time.get_ticks_usec()
+	if _open != &"":
+		studio.open_editor(studio.catalogue.find(StudioCatalogue.KIND_MOVE, _open))
+		studio.editor.camera.use_preset(_camera)
+		var at: float = _open_frame
+		if is_nan(at):
+			var markers: Dictionary = studio.editor.timeline.markers
+			at = markers.get("active_start", 0.0)
+		studio.editor.seek(at)
 
 
 func _process(_delta: float) -> void:
+	if _open != &"":
+		_editor_frames += 1
+		return
 	var now: int = Time.get_ticks_usec()
 	if _warm != &"" and _all_in_view_built(_warm):
 		(studio.get_node("%Gallery") as Gallery).show_group(_tab)
@@ -93,6 +118,8 @@ func shot_frames() -> int:
 ## True once the tiles in view are built and have had SETTLE_FRAMES to draw;
 ## then reports the frame times.
 func shot_ready() -> bool:
+	if _open != &"":
+		return _editor_frames >= SETTLE_FRAMES
 	if _frames_since_ready < SETTLE_FRAMES:
 		return false
 	var gallery: Gallery = studio.get_node("%Gallery") as Gallery
