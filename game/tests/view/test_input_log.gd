@@ -244,6 +244,33 @@ func test_a_log_of_another_format_is_refused() -> void:
 	assert_push_error("format 99", "the reason is reported")
 
 
+## Format 2 (milestone-1 task 28) packs the inputs' bytes with gzip before
+## base64: a match's inputs repeat a lot, so the worst-case replay's log went
+## from 955 KB to a few dozen.
+func test_the_inputs_are_saved_compressed_and_format_1_still_reads() -> void:
+	var log_a: InputLog = InputLog.make(_config(MatchConfig.WATCH, 1))
+	for i: int in 3000:
+		log_a.record([RawInput.make(0.25, -1.0, 4), RawInput.make(0.0, 0.0, 0)] as Array[RawInput])
+	var d: Dictionary = log_a.to_dict()
+	assert_eq(d["format"], 2)
+	assert_eq(d["inputs_bytes"], 3000 * InputLog.PER_STEP * 8)
+	assert_lt(str(d["inputs"]).length(), 3000, "packed")
+	var back: InputLog = InputLog.from_dict(d)
+	assert_not_null(back)
+	assert_eq(back.inputs, log_a.inputs)
+	var old: Dictionary = d.duplicate()
+	old["format"] = 1
+	old["inputs"] = Marshalls.raw_to_base64(log_a.inputs.to_byte_array())
+	old.erase("inputs_bytes")
+	var from_old: InputLog = InputLog.from_dict(old)
+	assert_not_null(from_old, "a log saved before task 28 still loads")
+	assert_eq(from_old.inputs, log_a.inputs)
+	var broken: Dictionary = d.duplicate()
+	broken["inputs_bytes"] = int(d["inputs_bytes"]) + 8
+	assert_null(InputLog.from_dict(broken), "a size that doesn't match is refused")
+	assert_push_error("unpack", "the reason is reported")
+
+
 ## Godot's text-to-float parsing isn't exact: about one in six of the
 ## computer's stick values came back from JSON numbers one unit in the last
 ## place off, which drifted a replayed smoke run by step 1380. The inputs are

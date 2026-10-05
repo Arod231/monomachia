@@ -18,6 +18,8 @@
     "studio": "node scripts/godot.mjs studio",
     "shots": "node scripts/godot.mjs shots",
     "counterlab": "node scripts/godot.mjs script res://tools/counterlab.gd",
+    "bench": "node scripts/godot.mjs bench",
+    "bench:record": "node scripts/godot.mjs script res://tools/bench/record_worst_case.gd --",
     "godot": "node scripts/godot.mjs",
     "check:sizes": "node scripts/check-sizes.mjs",
     "checklist": "node scripts/checklist.mjs",

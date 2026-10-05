@@ -543,11 +543,7 @@ static func average(values: PackedFloat64Array) -> float:
 
 ## The nearest-rank 95th percentile: 95% of the values are at most this.
 static func percentile_95(values: PackedFloat64Array) -> float:
-	if values.is_empty():
-		return 0.0
-	var sorted: PackedFloat64Array = values.duplicate()
-	sorted.sort()
-	return sorted[ceili(0.95 * sorted.size()) - 1]
+	return FrameTimes.percentile(values, 95.0)
 
 
 ## The entries' shots side by side, in order, each scaled by scale; null

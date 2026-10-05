@@ -26,6 +26,8 @@ describe('package.json', () => {
       'audio:music',
       'audio:sonniss',
       'audio:synth',
+      'bench',
+      'bench:record',
       'board',
       'brain',
       'brain:serve',
@@ -49,7 +51,7 @@ describe('package.json', () => {
   });
 
   it('runs every Godot command through the runner', () => {
-    for (const name of ['build', 'counterlab', 'dev', 'play', 'shots', 'soak', 'soak:tune', 'studio', 'test:godot', 'typecheck', 'release']) {
+    for (const name of ['bench', 'bench:record', 'build', 'counterlab', 'dev', 'play', 'shots', 'soak', 'soak:tune', 'studio', 'test:godot', 'typecheck', 'release']) {
       assert.match(pkg.scripts[name], /^node scripts\/godot\.mjs /, name);
     }
   });
