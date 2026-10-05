@@ -14,7 +14,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
-  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldOrphaned,
+  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldAnsweredElsewhere, heldOrphaned,
   STOP_NOW, deliveryOf, remoteLinkOf, endedAtOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, sessionState, toolSummary, turnSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
@@ -620,5 +620,28 @@ describe('remoteLinkOf', () => {
     assert.equal(remoteLinkOf({}), null);
     assert.equal(remoteLinkOf(null), null);
     assert.equal(remoteLinkOf({ bridgeSessionIds: ['../../evil?x=1'] }), null);
+  });
+});
+
+describe('heldAnsweredElsewhere', () => {
+  // A held item, and the transcript's entries as parseTranscript gives them.
+  const p = { kind: 'permission', tool: 'Bash', input: { command: 'npm test' }, time: 10_000 };
+  const call = (id, time, input = { command: 'npm test' }, name = 'Bash') => ({ kind: 'tool', id, name, time, summary: toolSummary(name, input) });
+  const result = (tool, time) => ({ kind: 'result', tool, time, text: 'ok' });
+
+  it('is answered elsewhere once that same call got its result after the hold began (the app or Remote Control let it run, or refused it)', () => {
+    assert.equal(heldAnsweredElsewhere(p, [call('t1', 9_000), result('t1', 12_000)]), true);
+  });
+  it('is still held while the call has no result', () => {
+    assert.equal(heldAnsweredElsewhere(p, [call('t1', 9_000)]), false);
+  });
+  it('ignores an earlier run of the same command, and other calls finishing meanwhile', () => {
+    assert.equal(heldAnsweredElsewhere(p, [call('t0', 1_000), result('t0', 2_000), call('t1', 9_000)]), false);
+    assert.equal(heldAnsweredElsewhere(p, [call('t1', 9_000), call('t2', 9_000, { command: 'ls' }), result('t2', 11_000)]), false);
+  });
+  it('covers questions and plans too, but never a held turn end', () => {
+    const ask = { kind: 'question', tool: 'AskUserQuestion', input: { questions: [{ question: 'Which?' }] }, time: 10_000 };
+    assert.equal(heldAnsweredElsewhere(ask, [call('q1', 9_000, ask.input, 'AskUserQuestion'), result('q1', 15_000)]), true);
+    assert.equal(heldAnsweredElsewhere({ kind: 'stop', time: 10_000 }, [call('t1', 9_000), result('t1', 12_000)]), false);
   });
 });

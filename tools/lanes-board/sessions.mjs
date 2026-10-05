@@ -389,6 +389,18 @@ export function heldOrphaned(p, { transcriptExists, hasRecord, sawRecord }) {
   return !!sawRecord && !hasRecord;
 }
 
+// A held question, permission or plan answered somewhere else: in the app on
+// the PC, or over Remote Control, which answer the prompt while the hook still
+// waits. That same call (its tool and what it does) then has a result written
+// after the hold began. entries: the session's turns (parseTranscript).
+export function heldAnsweredElsewhere(p, entries) {
+  if (!['question', 'permission', 'plan'].includes(p.kind) || !p.tool) return false;
+  const summary = toolSummary(p.tool, p.input ?? {});
+  const done = new Map(entries.filter((e) => e.kind === 'result').map((e) => [e.tool, e]));
+  return entries.some((e) => e.kind === 'tool' && e.name === p.tool && e.summary === summary
+    && (done.get(e.id)?.time ?? 0) > (Number(p.time) || Infinity));
+}
+
 // ---------- the session page ----------
 
 // What a session is doing, for its card and page: waiting on you (something

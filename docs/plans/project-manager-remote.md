@@ -191,7 +191,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 4):
     - answering, handing back or a timeout marks a held item's record read, so the bell counts only what still needs the owner;
     - a session's newer finished-turn record replaces its older unread one, so each session shows at most one unread finished turn.
-- [ ] **11. Lock-screen notifications.** While Away is on, the iPhone shows each new notification on its lock screen.
+- [x] **11. Lock-screen notifications.** While Away is on, the iPhone shows each new notification on its lock screen.
   - Delivers:
     - **On the phone:** a service worker at the site root that shows a push and opens its target on tap, and the manifest set up as a standalone Home Screen app. "Turn on notifications" is offered only in the Home Screen app over HTTPS, with an explanation anywhere else.
     - **Keys and subscriptions:** a VAPID key pair and the subscriptions in the state folder, never committed. Subscriptions the push service reports gone are dropped.
@@ -209,7 +209,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a session's newest lock-screen notification replaces its older one (the tag is the session), since a tap opens the Questions tab or the session page, which list everything;
     - "Turn on notifications", or why it isn't possible here, sits at the top of the bell's list; once on, a short line says so, with Turn off;
     - once task 11 is pushed, the preview on port 5197 moves to `lane/pm-11-12-13-14`, and tasks 12 and 13 are built while the owner tries the notifications; task 11 is ticked once the owner confirms one arrived.
-  - Built (Oct 5, 84664b7): `push.mjs` (RFC 8291 encryption, checked against its worked example; VAPID; the rules), `push-api.mjs` (keys and subscriptions in `~/.claude/lanes-board/push-keys.json` and `push-subscriptions.json`; the bell's new records pushed while Away is on), `/sw.js`. The preview on 5197 serves it, at https://desktop-jk5bn8g.tailec6188.ts.net too. Waits on the owner's try from the phone.
+  - Built (Oct 5, 84664b7): `push.mjs` (RFC 8291 encryption, checked against its worked example; VAPID; the rules), `push-api.mjs` (keys and subscriptions in `~/.claude/lanes-board/push-keys.json` and `push-subscriptions.json`; the bell's new records pushed while Away is on), `/sw.js`. The preview on 5197 serves it, at https://desktop-jk5bn8g.tailec6188.ts.net too. Done Oct 5: the owner tried it from the phone and it worked.
 
 ### Phase D: sessions and commands
 
@@ -221,6 +221,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: unit tests of the session-state rules; round-trip cases for each command's delivery; both pages by hand.
   - Blocked by: 4, 8 · Stories: 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 62
   - Owner's answer (Oct 5): Stop now refuses every tool call the session tries, telling it the owner pressed Stop now and to end its turn, until its turn ends; with Away on that turn end is then held like any other. A hard stop (as End work does) was turned down, since it leaves the session idle where only the Claude app can wake it.
+  - After the gates (Oct 5, the owner's call): a held question, permission or plan answered in the app or over Remote Control is dropped and its hook released once its call has a result in the transcript, so the session no longer shows "waiting on you" for up to 24 minutes.
 - [x] **13. Merge.** A session's pull request is merged from its page once it's ready.
   - Delivers:
     - **A readiness rule** over `gh pr view`'s fields (draft, mergeable, checks, behind its base), giving the reasons when the pull request isn't ready. Update branch is offered when it's behind.
@@ -235,7 +236,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 5):
     - Merge is offered whatever the pull request's base, `master` included; the confirmation names the pull request and its base, and the tap is the approval;
     - ready needs every check on the pull request passed, skipped or neutral; a pending or failing check makes it not ready, named in the reasons.
-- [ ] **14. Compact and Open in the Claude app.** A session opens in the Claude app on the phone, where `/compact` and any message work.
+- [x] **14. Compact and Open in the Claude app.** A session opens in the Claude app on the phone, where `/compact` and any message work.
   - Delivers:
     - the Remote Control link, read from the app's session record where task 3 found it;
     - Open in the Claude app on session pages and on questions asked in the app;
@@ -244,7 +245,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: a unit test of reading the link from a record; the owner opens a session from the phone and compacts it.
   - Blocked by: 3, 12 · Stories: 10, 59, 60, 61
   - **Owner:** turns on "Connect new sessions to Remote Control" in the Claude app (Settings > Claude Code), and tries Compact from the phone.
-  - Built (Oct 5): the link is the record's newest `bridgeSessionIds` entry at `https://claude.ai/code/<id>` (19 of the PC's 34 session records had one on Oct 5). Compact opens a panel saying to type `/compact` in the Claude app, with Copy /compact and Open in the Claude app; with no link, it says to turn on Remote Control (or type `/rc` once) and offers the app's session list. Questions asked in the app get Open in the Claude app too. Waits on the owner's try from the phone.
+  - Built (Oct 5): the link is the record's newest `bridgeSessionIds` entry at `https://claude.ai/code/<id>` (19 of the PC's 34 session records had one on Oct 5). Compact opens a panel saying to type `/compact` in the Claude app, with Copy /compact and Open in the Claude app; with no link, it says to turn on Remote Control (or type `/rc` once) and offers the app's session list. Questions asked in the app get Open in the Claude app too. Done Oct 5: the owner tried it from the phone and it worked.
 
 ### Phase E: visuals and docs
 

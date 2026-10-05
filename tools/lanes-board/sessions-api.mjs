@@ -11,7 +11,7 @@ import { readFile, readdir, stat, open, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { inboxDir, postToInbox, writeJsonAtomic } from './inbox.mjs';
 import {
-  PENDING_ID, SESSION_ID, STOP_NOW, awayOf, awaySwitch, deliveryOf, endedAtOf, heldOrphaned, ownerMessage, parseTranscript, relayAnswer,
+  PENDING_ID, SESSION_ID, STOP_NOW, awayOf, awaySwitch, deliveryOf, endedAtOf, heldAnsweredElsewhere, heldOrphaned, ownerMessage, parseTranscript, relayAnswer,
   sessionState, turnSummary,
 } from './sessions.mjs';
 
@@ -84,6 +84,17 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
         const answer = path.join(relay, 'answers', `${p.id}.json`);
         if (PENDING_ID.test(p.id ?? '') && !await stat(answer).then(() => true, () => false)) await writeJsonFile(answer, { release: true });
         continue;
+      }
+      // A prompt answered in the app or over Remote Control: its hook still
+      // waits, so hand it back, which ends the hook with no answer of its own.
+      if (p.kind !== 'stop' && transcriptExists) {
+        let entries = [];
+        try { ({ entries } = await transcript(p.transcript, 60)); } catch { /* being written */ }
+        if (heldAnsweredElsewhere(p, entries)) {
+          const answer = path.join(relay, 'answers', `${p.id}.json`);
+          if (PENDING_ID.test(p.id ?? '') && !await stat(answer).then(() => true, () => false)) await writeJsonFile(answer, { release: true });
+          continue;
+        }
       }
       // A held turn end shows the app's summary of it, once the app has written it.
       if (p.kind === 'stop') {
