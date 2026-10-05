@@ -35,7 +35,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - a preview of this branch on port 5197 from task 9;
   - stops only at the gates.
 - Before this plan: Tailscale HTTPS certificates on, and `tailscale serve --bg 5197` set up (Oct 4).
-- Out of this plan: launched sessions that wait for Enter on the PC are a separate follow-up.
+- Out of this plan: launched sessions that waited for Enter on the PC, fixed separately in pull requests #39 and #43.
 - **Spike results (task 3, Oct 4)**, from a throwaway session in auto mode whose project settings carried a logging test hook:
   - **Proven: answering a question.** AskUserQuestion fires a PermissionRequest hook; allow with `updatedInput` = the tool input plus `answers` (question text to label, several joined with ", ") reaches the session as its answer, and the app never shows the question.
   - **Proven: delivery before the next step.** `additionalContext` from a PreToolUse hook reaches the session with that tool call (it quoted the message).
@@ -157,7 +157,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 4):
     - until task 15 brings `npm run post`, Show me asks the session to capture a shot or short clip of what it's working on and give its path with a one-line caption, or to say in one line that there's nothing to show yet; task 15 switches the text to `npm run post`;
     - a turn-end card shows the session's last message at once, and the app's turn summary once the app has written it.
-- [ ] **9. The hooks installed, and the first real Away.** The tracked hooks go live in user settings, and the owner uses Away from the phone.
+- [x] **9. The hooks installed, and the first real Away.** The tracked hooks go live in user settings, and the owner uses Away from the phone.
   - Delivers:
     - with the owner's OK, the relay and stop hooks copied to `~/.claude/hooks/`, and the PermissionRequest and Stop timeouts in `~/.claude/settings.json` at least 25 minutes (24 hours until the owner, Oct 4, found 25 minutes enough; the hold gives up at 24);
     - the page saying when the installed copies differ from the tracked ones;
@@ -169,6 +169,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - the preview serves this lane's branch (`lane/pm-7-8-9-10`) as soon as task 9's code is in, and moves to `tools/project-manager-remote` once the lane's pull request merges;
     - while the owner tries Away from the phone, task 10 is built; task 9 is ticked once the owner confirms it worked.
   - The install (Oct 4): both hooks were copied to `~/.claude/hooks/` and the preview runs this lane on 5197. `~/.claude/settings.json` refuses every write on this PC, even from Notepad or an administrator's PowerShell, though its permissions are normal, so the relay hook's timeouts stay at 1500 s. Holds give up after 25 minutes until that's found. The owner chose to try Away now and leave the 24-hour timeouts as a follow-up (`npm run board:hooks` finishes the install once the file can be written).
+  - Done Oct 4: the owner switched Away on from the phone, answered a real session's question and replied to a finished turn, and both sessions carried on.
 
 ### Phase C: notifications
 
