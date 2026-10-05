@@ -69,7 +69,7 @@ static func build(w: WeaponDef, id: StringName, p_row: Dictionary, markers: Dict
 		at += int(p_row.get(name, 0))
 		bar.to = at
 		v.bars.append(bar)
-	if MoveBands.MILESTONE_2_KINDS.has(v.kind):
+	if MoveBands.MILESTONE_2_KINDS.has(v.kind) or not bands.timing.has(w.id):
 		v.no_band = "no band test until milestone 2"
 		return v
 	var band: Dictionary = bands.timing_band(w.id, v.kind)

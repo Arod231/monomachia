@@ -11,10 +11,15 @@ extends Control
 ##   should fall;
 ## - each foot's contacts (planted spans), shown, never edited;
 ## - the playhead across all of them.
-## Click or drag anywhere to scrub (`seeked`). The editor owns the keys.
+## Click or drag anywhere to scrub (`seeked`). With `markers_editable`, a
+## marker dragged in the markers row moves (`marker_moved` on release),
+## snapped to whole source frames, or halves with Alt held (milestone-1 task
+## 26). The editor owns the keys.
 
 ## The playhead was put at source frame `frame` by a click or a drag.
 signal seeked(frame: float)
+## Marker `name` was dragged to source frame `frame`.
+signal marker_moved(name: String, frame: float)
 
 const PAD: float = 14.0
 const RULER_H: float = 22.0
@@ -45,8 +50,15 @@ var markers: Dictionary = {}
 var feet: Dictionary = {}
 ## The move's frames and bands, or null for a clip or state.
 var view: FramesAndBands = null
+## Whether markers can be dragged.
+var markers_editable: bool = false
+## How near (px) a press must be to a marker to take it.
+const GRAB: float = 6.0
 
 var _dragging: bool = false
+## The marker being dragged ("" for none) and where it is so far.
+var _drag_marker: String = ""
+var _drag_frame: float = 0.0
 
 
 func _ready() -> void:
@@ -104,15 +116,51 @@ func _height() -> float:
 	return RULER_H + MARKERS_H + (RULES_H if view != null else 0.0) + FEET_H + 8.0
 
 
+## The marker within GRAB px of x `x` (the nearest), or "".
+func marker_at(x: float) -> String:
+	var best: String = ""
+	var best_d: float = GRAB
+	for name: Variant in markers:
+		var d: float = absf(x_of(markers[name]) - x)
+		if d <= best_d:
+			best = str(name)
+			best_d = d
+	return best
+
+
+## Source frame `f` snapped as a marker drag snaps it: to whole frames, or to
+## halves with `halves`.
+static func snap(f: float, halves: bool) -> float:
+	return roundf(f * 2.0) / 2.0 if halves else roundf(f)
+
+
 func _gui_input(event: InputEvent) -> void:
 	var button: InputEventMouseButton = event as InputEventMouseButton
 	if button != null and button.button_index == MOUSE_BUTTON_LEFT:
+		if button.pressed and markers_editable and button.position.y >= RULER_H and button.position.y < RULER_H + MARKERS_H:
+			_drag_marker = marker_at(button.position.x)
+			if _drag_marker != "":
+				_drag_frame = markers[_drag_marker]
+				accept_event()
+				return
+		if not button.pressed and _drag_marker != "":
+			var name: String = _drag_marker
+			_drag_marker = ""
+			queue_redraw()
+			marker_moved.emit(name, _drag_frame)
+			accept_event()
+			return
 		_dragging = button.pressed
 		if button.pressed:
 			_scrub(button.position.x)
 		accept_event()
 		return
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
+	if motion != null and _drag_marker != "":
+		_drag_frame = snap(frame_at(motion.position.x), motion.alt_pressed)
+		queue_redraw()
+		accept_event()
+		return
 	if motion != null and _dragging:
 		_scrub(motion.position.x)
 		accept_event()
@@ -149,6 +197,10 @@ func _draw() -> void:
 		draw_line(Vector2(x, y), Vector2(x, y + MARKERS_H), color, 1.5)
 		draw_string(font, Vector2(x + 3.0, y + 12.0 + 13.0 * row), str(name), HORIZONTAL_ALIGNMENT_LEFT, -1, fs - 1, color)
 		row = (row + 1) % 2
+	if _drag_marker != "":
+		var dx: float = x_of(_drag_frame)
+		draw_line(Vector2(dx, y), Vector2(dx, y + MARKERS_H), PLAYHEAD_COLOR, 2.0)
+		draw_string(font, Vector2(dx + 3.0, y + MARKERS_H - 3.0), "%s %s" % [_drag_marker, _drag_frame], HORIZONTAL_ALIGNMENT_LEFT, -1, fs - 1, PLAYHEAD_COLOR)
 	y += MARKERS_H
 	# the rules ruler: the bars and the startup's band
 	if view != null:

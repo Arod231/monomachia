@@ -24,6 +24,8 @@ var catalogue: StudioCatalogue = null
 var current_entry: StudioCatalogue.Entry = null
 ## The editor, in the editor's panel.
 var editor: StudioEditor = null
+## The pending edits, shared by the editor and the gallery's "unsaved" badges.
+var session: EditSession = EditSession.new()
 
 @onready var _gallery: Gallery = %Gallery
 @onready var _editor: Control = %Editor
@@ -46,6 +48,8 @@ func _ready() -> void:
 	editor.name = "StudioEditor"
 	_editor.add_child(editor)
 	editor.back_requested.connect(show_gallery)
+	editor.session = session
+	session.changed.connect(_on_session_changed)
 	body_changed.connect(_on_body_changed)
 	show_gallery()
 
@@ -76,6 +80,23 @@ func set_fighter(id: StringName) -> void:
 	_hunter_button.set_pressed_no_signal(id == &"hunter")
 	_rogue_button.set_pressed_no_signal(id == &"rogue")
 	body_changed.emit(id)
+
+
+## Marks each entry with pending edits "unsaved" (a move's entry in the
+## move-clip table, a clip's in the manifest) and shows the tiles' badges
+## again.
+func _on_session_changed() -> void:
+	for e: StudioCatalogue.Entry in catalogue.entries:
+		var dirty: bool = false
+		if e.kind == StudioCatalogue.KIND_MOVE:
+			dirty = session.touches(editor.moves_file, [String(e.group), "moves", String(e.id)] as Array[String])
+		for c: String in e.clips:
+			dirty = dirty or session.touches(editor.manifest_file, ["clips", c] as Array[String])
+		e.badges[&"unsaved"] = dirty
+	for g: StringName in _gallery.groups():
+		for t: AnimTile in _gallery.tiles_in(g):
+			t.refresh_badges()
+	_gallery.refresh_filter()
 
 
 ## The editor shows its entry on the new body.

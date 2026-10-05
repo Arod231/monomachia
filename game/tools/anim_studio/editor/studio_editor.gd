@@ -10,8 +10,16 @@ extends VBoxContainer
 ## Left and Right step a frame, L loops.
 ##
 ## Only foot locking has a toggle: task 23 adds inertial blending's, and the
-## reaction layer's task its own. Marker editing comes with task 26, the
-## chain panel and save with task 27.
+## reaction layer's task its own.
+##
+## Markers (milestone-1 task 26) are edited in the Markers panel's boxes or by
+## dragging them on the timeline: a move's (MoveClips: wind-up, active start
+## and end, settle, dodge-cancel window, branch points) or, for an entry
+## playing one whole clip, that clip's (ClipManifest). Each edit is held in
+## the Studio's EditSession (MarkerEdits), with undo and redo (the buttons,
+## Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y); a move with stand-in markers asks first
+## whether to replace them with real ones. Foot contacts are shown, never
+## edited. The chain panel and save come with task 27.
 
 ## The Back button was pressed: return to the gallery.
 signal back_requested()
@@ -32,6 +40,17 @@ var playback: StudioPlayback = StudioPlayback.new()
 var view: FramesAndBands = null
 ## Whether planted feet are held (the foot-locking layer).
 var foot_lock_on: bool = true
+## The Studio's pending edits (shared with the gallery's badges).
+var session: EditSession = EditSession.new()
+## The data files marker edits go to (fixture copies in tests).
+var moves_file: String = MoveClips.PATH
+var manifest_file: String = ClipManifest.PATH
+## The move as read, when the entry is a move; null otherwise.
+var move_entry: MoveClips.Entry = null
+## The clip whose markers the entry edits, when it plays one whole clip.
+var clip_id: StringName = &""
+## The last marker edit refused, or "".
+var last_error: String = ""
 
 var viewport: SubViewport = null
 var camera: OrbitCamera = null
@@ -48,6 +67,15 @@ var _loop: CheckBox = null
 var _rate: HSlider = null
 var _frame_label: Label = null
 var _note: Label = null
+var _markers_box: GridContainer = null
+var _status: Label = null
+var _undo: Button = null
+var _redo: Button = null
+var _confirm: ConfirmationDialog = null
+## The marker edit waiting on the stand-in question: [name, frame].
+var _asked: Array = []
+## The manifest, read once per open.
+var _manifest: ClipManifest = null
 ## The rules frame last posed, so a jump (a scrub, a wrap) starts a fresh
 ## foot lock rather than easing over the gap.
 var _last_rules: int = -1000
@@ -62,13 +90,22 @@ func open(e: StudioCatalogue.Entry, fid: StringName = fighter_id) -> void:
 	entry = e
 	fighter_id = fid
 	playback.playing = false
+	_manifest = ClipManifest.read()
+	move_entry = null
+	clip_id = &""
+	if e != null and e.kind == StudioCatalogue.KIND_MOVE:
+		move_entry = MoveClips.read(_manifest).of(e.group).get(e.id)
+	elif e != null and e.clips.size() == 1 and _manifest.clips.has(StringName(e.clips[0])):
+		clip_id = StringName(e.clips[0])
 	_build_fighter()
 	_build_view()
 	var length: float = poser.length * float(ClipManifest.SOURCE_FPS) if poser != null else 0.0
 	playback.length = length
 	playback.frame = 0.0
 	timeline.set_data(length, _markers(), _feet(), view)
+	timeline.markers_editable = move_entry != null or clip_id != &""
 	_show_panel()
+	_show_markers()
 	seek(0.0)
 
 
@@ -124,6 +161,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_L:
 			playback.loop = not playback.loop
 			_loop.set_pressed_no_signal(playback.loop)
+		KEY_Z when key.ctrl_pressed and key.shift_pressed:
+			redo()
+		KEY_Z when key.ctrl_pressed:
+			undo()
+		KEY_Y when key.ctrl_pressed:
+			redo()
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -186,24 +229,119 @@ func _build_view() -> void:
 
 ## The move's markers (MoveClips), or an empty Dictionary.
 func _move_markers() -> Dictionary:
-	if entry == null or entry.kind != StudioCatalogue.KIND_MOVE:
-		return {}
-	var e: MoveClips.Entry = MoveClips.read(ClipManifest.read()).of(entry.group).get(entry.id)
-	return e.markers if e != null else {}
+	return move_entry.markers if move_entry != null else {}
 
 
-## The markers the timeline shows: a move's, else its clip's own (a single
-## clip played whole).
+## The markers the timeline shows, with the pending edits made: a move's,
+## else its clip's own (a single clip played whole).
 func _markers() -> Dictionary:
-	if entry == null:
-		return {}
-	if entry.kind == StudioCatalogue.KIND_MOVE:
-		return StudioTimeline.flat_markers(_move_markers())
-	if entry.clips.size() == 1:
-		var clip: ClipManifest.Clip = ClipManifest.read().clips.get(StringName(entry.clips[0]))
-		if clip != null:
-			return StudioTimeline.flat_markers(clip.markers)
+	if move_entry != null:
+		return StudioTimeline.flat_markers(MarkerEdits.move_markers(session, moves_file, entry.group, entry.id, move_entry.markers))
+	if clip_id != &"":
+		return StudioTimeline.flat_markers(MarkerEdits.clip_markers(session, manifest_file, clip_id, _clip_base()))
 	return {}
+
+
+func _clip_base() -> Dictionary:
+	return (_manifest.clips[clip_id] as ClipManifest.Clip).markers
+
+
+## Puts marker `name` at source frame `frame` as a pending edit. A move with
+## stand-in markers asks first (unless `confirmed`); a refusal shows in the
+## status line (`last_error`).
+func set_marker(name: String, frame: float, confirmed: bool = false) -> MarkerEdits.Result:
+	var r: MarkerEdits.Result = MarkerEdits.Result.new()
+	if move_entry != null:
+		r = MarkerEdits.set_move_marker(session, moves_file, entry.group, move_entry, name, frame, confirmed)
+	elif clip_id != &"":
+		r = MarkerEdits.set_clip_marker(session, manifest_file, clip_id, _clip_base(), name, frame)
+	else:
+		r.error = "nothing here has markers to edit"
+	last_error = r.error
+	if r.question != "":
+		_asked = [name, frame]
+		_confirm.dialog_text = r.question
+		_confirm.popup_centered()
+	elif r.error == "":
+		session.apply(r.edits, r.label)
+	_status.text = r.error
+	_show_markers()
+	return r
+
+
+## Answers the stand-in question with yes: the waiting edit is made.
+func confirm_stand_ins() -> void:
+	if _asked.is_empty():
+		return
+	var asked: Array = _asked
+	_asked = []
+	set_marker(asked[0], asked[1], true)
+
+
+func undo() -> void:
+	session.undo()
+	_show_markers()
+
+
+func redo() -> void:
+	session.redo()
+	_show_markers()
+
+
+## Whether the entry has pending edits.
+func is_unsaved() -> bool:
+	if move_entry != null:
+		return session.touches(moves_file, [String(entry.group), "moves", String(entry.id)] as Array[String])
+	if clip_id != &"":
+		return session.touches(manifest_file, ["clips", String(clip_id)] as Array[String])
+	return false
+
+
+## The Markers panel, the timeline's markers, the title's "unsaved" and the
+## undo and redo buttons, from the session.
+func _show_markers() -> void:
+	if timeline == null:
+		return
+	var flat: Dictionary = _markers()
+	timeline.markers = flat
+	timeline.queue_redraw()
+	for c: Node in _markers_box.get_children():
+		_markers_box.remove_child(c)
+		c.queue_free()
+	var names: Array = flat.keys()
+	names.sort_custom(func(a: Variant, b: Variant) -> bool: return flat[a] < flat[b])
+	for name: Variant in names:
+		var label: Label = Label.new()
+		label.text = str(name)
+		_markers_box.add_child(label)
+		var box: SpinBox = SpinBox.new()
+		box.name = "Marker_" + str(name).replace(" ", "_")
+		box.step = 0.5 if move_entry != null else 1.0
+		box.min_value = 0.0
+		box.max_value = maxf(playback.length, float(flat[name])) + 200.0
+		box.set_value_no_signal(flat[name])
+		box.value_changed.connect(_on_marker_box.bind(str(name)))
+		_markers_box.add_child(box)
+	if move_entry != null and MarkerEdits.is_stand_in(session, moves_file, entry.group, entry.id, move_entry.markers_stand_in):
+		var stand: Label = Label.new()
+		stand.text = "stand-ins"
+		stand.tooltip_text = "Today's frame data; editing one asks to replace them with real markers."
+		_markers_box.add_child(stand)
+		_markers_box.add_child(Control.new())
+	_undo.disabled = session.undo_label() == ""
+	_undo.tooltip_text = "Undo " + session.undo_label()
+	_redo.disabled = session.redo_label() == ""
+	_redo.tooltip_text = "Redo " + session.redo_label()
+	if entry != null:
+		_title.text = "%s · %s%s" % [entry.name, entry.id, " · unsaved" if is_unsaved() else ""]
+
+
+func _on_marker_box(value: float, name: String) -> void:
+	set_marker(name, value)
+
+
+func _on_marker_moved(name: String, frame: float) -> void:
+	set_marker(name, frame)
 
 
 ## Each foot's contacts along the chain, from the manifest (measured, never
@@ -228,7 +366,10 @@ func _show_panel() -> void:
 		_verdict.text = "Frames and bands are shown for moves."
 		return
 	_verdict.text = "%s · %s" % [String(view.kind).replace("_", " "), view.verdict()]
-	_verdict.modulate = Color(0.55, 0.9, 0.6) if view.in_band() else (Color(0.95, 0.75, 0.4) if view.waiting else Color(1.0, 0.5, 0.45))
+	if view.no_band != "":
+		_verdict.modulate = Color(0.75, 0.77, 0.82)
+	else:
+		_verdict.modulate = Color(0.55, 0.9, 0.6) if view.in_band() else (Color(0.95, 0.75, 0.4) if view.waiting else Color(1.0, 0.5, 0.45))
 	for f: FramesAndBands.Field in view.fields:
 		_fields.add_child(_line("%s %s" % [OK_MARK if f.ok else BAD_MARK, f.text()], f.ok))
 	for l: MoveBands.DistanceLine in view.distance:
@@ -293,6 +434,30 @@ func _build_ui() -> void:
 	side.add_child(_heading("Distance band"))
 	_distance = _named(VBoxContainer.new(), "DistanceLines")
 	side.add_child(_distance)
+	side.add_child(_heading("Markers"))
+	_markers_box = _named(GridContainer.new(), "MarkersPanel")
+	_markers_box.columns = 2
+	side.add_child(_markers_box)
+	var history: HBoxContainer = HBoxContainer.new()
+	side.add_child(history)
+	_undo = _named(Button.new(), "UndoButton")
+	_undo.text = "Undo"
+	_undo.pressed.connect(undo)
+	history.add_child(_undo)
+	_redo = _named(Button.new(), "RedoButton")
+	_redo.text = "Redo"
+	_redo.pressed.connect(redo)
+	history.add_child(_redo)
+	_status = _named(Label.new(), "MarkerStatus")
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status.add_theme_color_override(&"font_color", Color(1.0, 0.6, 0.55))
+	side.add_child(_status)
+	_confirm = ConfirmationDialog.new()
+	_confirm.name = "StandInQuestion"
+	_confirm.ok_button_text = "Replace"
+	_confirm.confirmed.connect(confirm_stand_ins)
+	_confirm.canceled.connect(_on_stand_in_refused)
+	add_child(_confirm)
 	side.add_child(_heading("Layers"))
 	_foot_lock = _named(CheckBox.new(), "FootLock")
 	_foot_lock.text = "Foot locking"
@@ -327,8 +492,15 @@ func _build_ui() -> void:
 
 	timeline = _named(StudioTimeline.new(), "Timeline")
 	timeline.seeked.connect(seek)
+	timeline.marker_moved.connect(_on_marker_moved)
 	add_child(timeline)
 	_own(self)
+
+
+## The stand-in question answered no: the edit is dropped.
+func _on_stand_in_refused() -> void:
+	_asked = []
+	_show_markers()
 
 
 ## The camera takes the viewport's drags and wheel.

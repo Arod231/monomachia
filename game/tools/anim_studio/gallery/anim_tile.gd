@@ -454,6 +454,12 @@ static func still_clip(m: FighterModel) -> String:
 	return "%s/%s" % [FighterModel.LIBRARY, m.idle_clip()]
 
 
+## Shows the entry's badges again (after the Studio's edits change one).
+func refresh_badges() -> void:
+	if is_node_ready():
+		_set_chips()
+
+
 func _set_chips() -> void:
 	for c: Node in _badges.get_children():
 		_badges.remove_child(c)

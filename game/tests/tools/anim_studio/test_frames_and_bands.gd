@@ -75,3 +75,8 @@ func test_the_rules_ruler_starts_at_the_wind_up_two_rules_frames_to_a_source_fra
 	assert_eq(v.to_source(0.0), 3.5)
 	assert_eq(v.to_source(26.0), 16.5)
 	assert_eq(v.to_rules(16.5), 26.0)
+
+
+func test_a_hidden_weapon_s_move_has_no_band_test_until_milestone_2() -> void:
+	var v: FramesAndBands = FramesAndBands.build(Moves.GREATSWORD, &"g_l1", FrameDataTable.shared().row(&"greatsword", &"g_l1"), {}, MoveBands.shared())
+	assert_eq(v.verdict(), "no band test until milestone 2")
