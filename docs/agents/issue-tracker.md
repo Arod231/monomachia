@@ -8,6 +8,18 @@ Specs, plans and decision maps for this repo live as Markdown files in `docs/`, 
 - **Plan:** `docs/plans/<feature>.md`, a list of small tasks with checkboxes, ticked off as they are done. Each task says what it delivers, what blocks it and how it is checked.
 - **Decision records:** architecture decisions that are hard to reverse go in `docs/adr/NNNN-<slug>.md`.
 
+## Blockers
+
+The owner launches sessions that each take a batch of tasks in order (x, then y, then z) from the Project Manager board, and runs several at once. A batch can only start if its first task's blockers are done, so a false blocker idles a whole session. A task's "Blocked by" line is therefore exact:
+
+- **Real needs only.** Name every task whose result this task uses (code, data, a test, a clip, an event it listens for), even when another blocker implies it, and no other. Ask of each blocker: "what does this task use from it?" If there's no answer, drop it.
+- **Order isn't a need.** Coming later in the build order, the same stage or the same family is not a reason to block. The stages are a reading order; the board runs on the Blocked by lines.
+- **Gates are written as gates.** An owner's decision to hold work back (a review, an approval, a "one family at a time" order) is written `N (and the owner's OK)` and gates only the work the decision is about, never unrelated systems that happen to sit near it in the plan.
+- **Shared files aren't blockers.** Two tasks that edit the same files without using each other's result go to one lane, in order (say so in the plan's Notes), rather than blocking one on the other.
+- **Dropping a blocker.** A later task that reached a gate only through the dropped blocker names that gate itself.
+
+After drafting or changing a plan, check every Blocked by line against these rules, then list the frontier (the tasks that can start now) and the batches that could run side by side, each starting on a frontier task.
+
 ## When a skill says "publish to the issue tracker"
 
 Write or update the matching file under `docs/specs/` or `docs/plans/` on the current feature branch.

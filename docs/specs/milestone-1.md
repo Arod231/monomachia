@@ -654,7 +654,7 @@ A move must pass every item that applies before the milestone ends. Built from `
 
 ### Move families and their order (P33, confirmed Oct 4)
 
-Each family goes to final quality, with every checklist item, before the next starts; the owner reviews each. "Reached in a milestone-1 match" assumes the Hunter-against-Hunter Katana mirror, with bare hands when disarmed; a block ability is reached when the loadout picks it.
+Each family goes to final quality, with every checklist item, before the next starts; the owner reviews each. The order holds the families' clip work (re-keys, reactions, deflect pairs, paired and transition clips, and their sound and effects); systems with no clip of their own (rules, the camera, the computer, Training) run ahead as soon as what they use is built, and the owner also released the draw at the round intro from the order (Oct 5; see the plan's Notes). "Reached in a milestone-1 match" assumes the Hunter-against-Hunter Katana mirror, with bare hands when disarmed; a block ability is reached when the loadout picks it.
 
 | Order | Family | Moves and clips | Reached in a milestone-1 match |
 |---|---|---|---|
