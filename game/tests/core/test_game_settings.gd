@@ -1,6 +1,7 @@
 extends GutTest
 ## GameSettings: the player's settings, saved to a ConfigFile: the graphics
-## preset (High by default; anything unknown falls back to High) and the
+## preset (Ultra, the reference, by default; without a known one saved, the
+## first launch picks it from the graphics card, milestone-1 task 29) and the
 ## master, effects and music volumes (80, 90 and 100 by default, 0-100 in steps
 ## of 5), applied to the buses on top of the bus layout's own levels. Test and
 ## shot runs ask for the defaults. These tests save to a test path, never the
@@ -22,15 +23,24 @@ func _saved_low() -> void:
 	settings.save(PATH)
 
 
-func test_the_graphics_preset_is_high_by_default() -> void:
+func test_the_graphics_preset_is_ultra_by_default() -> void:
 	var settings := GameSettings.new()
-	assert_eq(settings.graphics_preset_id, &"high")
-	assert_eq(settings.graphics_preset().id, &"high")
+	assert_eq(settings.graphics_preset_id, &"ultra")
+	assert_eq(settings.graphics_preset().id, &"ultra")
 	assert_eq(GameSettings.PATH, "user://settings.cfg")
 
 
-func test_a_missing_file_gives_the_defaults() -> void:
-	assert_eq(GameSettings.load_from(PATH).graphics_preset_id, &"high")
+func test_the_first_launch_picks_the_preset_from_the_graphics_card() -> void:
+	assert_eq(GameSettings.load_from(PATH, "NVIDIA GeForce RTX 3080").graphics_preset_id, &"ultra")
+	assert_eq(GameSettings.load_from(PATH, "AMD Radeon(TM) Graphics").graphics_preset_id, &"low", "the laptop")
+	assert_eq(GameSettings.load_from(PATH, "A card from the future").graphics_preset_id, &"medium")
+	assert_eq(GameSettings.load_from(PATH).graphics_preset_id, GraphicsPreset.for_card(RenderingServer.get_video_adapter_name()),
+		"this machine's card by default")
+
+
+func test_a_saved_preset_wins_over_the_card() -> void:
+	_saved_low()
+	assert_eq(GameSettings.load_from(PATH, "NVIDIA GeForce RTX 4090").graphics_preset_id, &"low")
 
 
 func test_the_preset_saves_and_loads() -> void:
@@ -44,34 +54,34 @@ func test_the_preset_saves_and_loads() -> void:
 func test_an_unknown_preset_is_refused_however_it_is_set() -> void:
 	var settings := GameSettings.new()
 	settings.set_graphics_preset(&"medium")
-	assert_false(settings.set_graphics_preset(&"ultra"))
+	assert_false(settings.set_graphics_preset(&"extreme"))
 	assert_eq(settings.graphics_preset_id, &"medium", "unchanged")
-	settings.graphics_preset_id = &"ultra"
+	settings.graphics_preset_id = &"extreme"
 	assert_eq(settings.graphics_preset_id, &"medium", "assigning it directly changes nothing either")
 	assert_eq(settings.graphics_preset().id, &"medium")
 
 
-func test_an_unknown_saved_preset_falls_back_to_high() -> void:
+func test_an_unknown_saved_preset_picks_from_the_card() -> void:
 	var cfg := ConfigFile.new()
-	cfg.set_value(GameSettings.SECTION_GRAPHICS, "preset", "ultra")
+	cfg.set_value(GameSettings.SECTION_GRAPHICS, "preset", "extreme")
 	cfg.save(PATH)
-	assert_eq(GameSettings.load_from(PATH).graphics_preset_id, &"high")
+	assert_eq(GameSettings.load_from(PATH, "NVIDIA GeForce RTX 3070").graphics_preset_id, &"high")
 	cfg.set_value(GameSettings.SECTION_GRAPHICS, "preset", 3)
 	cfg.save(PATH)
-	assert_eq(GameSettings.load_from(PATH).graphics_preset_id, &"high", "not even a string")
+	assert_eq(GameSettings.load_from(PATH, "NVIDIA GeForce RTX 3070").graphics_preset_id, &"high", "not even a string")
 
 
 func test_an_unreadable_file_gives_the_defaults() -> void:
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
 	f.store_string("[graphics\npreset = = \n")
 	f.close()
-	assert_eq(GameSettings.load_from(PATH).graphics_preset_id, &"high")
+	assert_eq(GameSettings.load_from(PATH, "Intel(R) UHD Graphics 620").graphics_preset_id, &"low", "picked from the card")
 	assert_engine_error("ConfigFile parse error")
 
 
 func test_a_run_asking_for_the_defaults_ignores_the_saved_file() -> void:
 	_saved_low()
-	assert_eq(GameSettings.load_for_run(true, PATH).graphics_preset_id, &"high")
+	assert_eq(GameSettings.load_for_run(true, PATH).graphics_preset_id, &"ultra", "the reference")
 	assert_eq(GameSettings.load_for_run(false, PATH).graphics_preset_id, &"low")
 	assert_true(OS.has_environment(GameSettings.DEFAULTS_ENV), "godot.mjs runs the tests with the defaults")
 

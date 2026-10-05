@@ -85,7 +85,7 @@ flowchart TD
 | `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
 | `game/view/match` | `MatchHost` (the fixed-step loop), `MatchView`, `CameraRig`, `MatchAudio`, `StickPose`, the arena registry. |
 | `game/view/fighter` | Animating a rigged fighter from the rules' state: the clip director, locomotion, foot locking, IK rig. |
-| `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replace today's three. |
+| `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replaced today's three in milestone-1 task 29. |
 | `game/view/mesh_kit*.gd` | Procedural mesh building for props and stand-ins. |
 | `game/fighters`, `game/weapons`, `game/arenas` | Content: fighter models and palettes, weapon models, the Moonlit Shrine. |
 | `game/shaders` | Every `.gdshader` and shared include. |
@@ -750,16 +750,17 @@ flowchart LR
 
 ## 11. The look: shaders and graphics presets
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This section describes the code today. As the slice lands, a realistic look (physically based materials, dark lighting and volumetric fog under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass. Four presets replace these three: Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
+> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This section describes the code today. As the slice lands, a realistic look (physically based materials, dark lighting and volumetric fog under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass. Four presets replaced the three in milestone-1 task 29: Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
 
 ```mermaid
 flowchart TD
-    GSET["GameSettings.graphics_preset_id"] --> PRESET["GraphicsPreset<br/>view/look/presets/low, medium, high .tres"]
+    CARD["the graphics card's name<br/>presets/cards.json (first launch)"] --> GSET
+    GSET["GameSettings.graphics_preset_id"] --> PRESET["GraphicsPreset<br/>view/look/presets/low, medium, high, ultra .tres"]
     PRESET --> APP["GraphicsApplier.apply / apply_to_tree"]
-    APP --> VP["Viewport: AA, render scale, shadows"]
-    APP --> GROUPS["Node groups: look_shadow_light,<br/>look_minor_light, look_particles,<br/>look_scenery_detail"]
+    APP --> VP["Viewport: AA, render scale, upscaler (FSR 2.2, FSR 1), shadows"]
+    APP --> GROUPS["Node groups: look_shadow_light,<br/>look_minor_light, look_particles,<br/>look_scenery_detail, look_petal_light,<br/>look_minor_decal"]
     APP --> OUTL["Outline on or off per kind<br/>(fighter, weapon, prop)"]
-    APP --> ENV["Environment: fog, InkGrade colour LUT"]
+    APP --> ENV["Environment: fog, volumetric fog, ambient occlusion,<br/>InkGrade colour LUT"]
     APP --> INK["InkWashPass quality<br/>OFF / LINES / FULL"]
 
     TM["ToonMaterials"] --> TOON["toon.gdshader<br/>toon_two_sided.gdshader"]
@@ -778,7 +779,7 @@ flowchart TD
 
 > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** Outlines and ink-wash quality leave the presets with the toon look. High, Medium and Low scale the realistic look down from Ultra.
 
-Presets differ in shadow quality, prop outlines, ink-wash quality, height fog, particle count, minor lights and scenery detail. Fighter and weapon outlines are always on. Anything a preset should be able to turn off joins one of the `look_*` node groups.
+Milestone-1 task 29: four presets, Low, Medium, High and Ultra. Ultra (`GraphicsPreset.REFERENCE_ID`, also `DEFAULT_ID`, so tests and shots render at it) is the reference: it renders at 67% of the output and upscales with FSR 2.2, with every atmosphere feature on. The others follow it in every setting but `GraphicsPreset.CUTS`, the resolution and upscaler and the atmosphere (a test holds them to it): High upscales from 59% with FSR 2.2; Medium also drops ambient occlusion and the minor decals; Low renders at 67% with FSR 1 and FXAA (until the laptop bench picks its upscaler) and drops volumetric fog (the height fog stays), the petals' lights, ambient occlusion and the minor decals. Volumetric fog and ambient occlusion come on only where the arena's environment brings them. The first launch (no preset saved) picks a preset from the graphics card's name with `GraphicsPreset.for_card()`, the first matching rule of `presets/cards.json`, and Medium for a card it doesn't know. Fighter and weapon outlines are always on. Anything a preset should be able to turn off joins one of the `look_*` node groups.
 
 ## 12. Sound and music (`game/audio`)
 
@@ -930,9 +931,9 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm test`, `npm run typecheck` | `node --test` and GUT (`test:node`, `test:godot`); the GDScript type check (`tools/typecheck.gd`) |
 | `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300): Hunter-against-Hunter Katana mirrors with random block abilities, the finisher share and the appear-list (milestone-1 task 7); `-- --full-roster` plays random weapon pairs with their win rates |
 | `npm run counterlab` | How often the computer lands each unblockable's counter (`tools/counterlab.gd`) |
-| `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run bench` | The frame-time harness (milestone-1 task 28, `tools/bench/frame_time_bench.tscn`): plays the committed worst-case replay in a window at 4K (`--res=`, `--preset=`), after a warm-up pass of the whole log, times every frame of its last 90 s, writes them to `build/bench/` and prints the 99th percentile against the 16.7 ms gate. Owner-run: CI has no GPU |
 | `npm run bench:record` | Re-records the worst-case replay (`tools/bench/record_worst_case.gd`): seeded Hard Katana mirrors until one has a 90 s window with Moonsplitter, Breaker Palm and a stretch at the wall; run it when a rules change makes the committed log drift |
+| `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
 | `npm run build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
@@ -1022,7 +1023,7 @@ Major features follow `CLAUDE.md`: a spec in `docs/specs/`, a plan in `docs/plan
 | Add a fighter | `fighters/<id>/` (scene, `FighterLook`, palettes), `FighterLook.IDS`, and the asset tools |
 | Add a weapon's look | `weapons/<id>/` (`WeaponLook`, scene with markers), `WeaponLook.IDS`, holds in each `FighterLook` |
 | Add an arena | An `ArenaDef` resource and scene in `arenas/<id>/`, registered in `ArenaScenes.DEFS`; radius must match the rules |
-| Add a graphics option | A field on `GraphicsPreset`, the three preset files, and `GraphicsApplier`. **Superseded by ADR 0001 (Oct 4):** Four presets (Ultra, High, Medium, Low) replace the three as the slice lands, with Ultra the reference preset. |
+| Add a graphics option | A field on `GraphicsPreset`, the four preset files, and `GraphicsApplier`; a setting the other presets may change from Ultra's joins `GraphicsPreset.CUTS`. |
 | Add a binding or action | `Bindings.ACTIONS`, `ACTION_BUTTON`, the default sets, `Btn` if it is a new rules button |
 | Add a screen | Build it in `ui/menus`, switch to it from `scenes/main.gd` (task 22 reworks this) |
 | Check the balance after a change | `npm run soak -- 40` |

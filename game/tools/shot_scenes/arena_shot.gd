@@ -33,7 +33,7 @@ extends Node3D
 ## where the camera goes when a fighter is cornered (arena_wall.tscn).
 ##
 ## Bench: with entries in bench, the rig times frames instead of taking one
-## shot (arena_bench.tscn times Low, Medium and High from the gameplay view):
+## shot (arena_bench.tscn times Low, Medium, High and Ultra from the gameplay view):
 ##   node scripts/godot.mjs shots res://tools/shot_scenes/arena_bench.tscn <sheet.png>
 ## The window goes to bench_resolution with vsync off, and the match plays
 ## from the view's camera with its HUD, one rules step a frame. Each entry is
@@ -81,7 +81,7 @@ const GATE_MARK_LIFT: float = 8.0
 
 @export var arena_id: StringName = ArenaScenes.MOONLIT_SHRINE
 @export var view: View = View.GAMEPLAY
-## A preset id (low, medium or high); empty shoots the saved preset.
+## A preset id (low, medium, high or ultra); empty shoots the saved preset.
 @export var preset_id: StringName = &""
 ## Frames to let the renderer settle before the capture.
 @export var settle_frames: int = 20

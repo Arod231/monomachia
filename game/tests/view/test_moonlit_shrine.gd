@@ -17,14 +17,15 @@ const SKY_SHADER: Shader = preload("res://shaders/sky_moonlit.gdshader")
 const BACKDROP_SHADERS: Array[Shader] = [
 	ShrineBackdrop.CLOUD_SEA, ShrineBackdrop.MOUNTAIN, ShrineBackdrop.WATERFALL, ShrineBackdrop.LAKE, ShrineBackdrop.MIST,
 ]
-## What each preset draws of the backdrop (World's parts): Low keeps the sea
-## of clouds, the mountains and the lake; Medium adds the veil of cloud over
-## the sea, the cliffs with their buildings and waterfalls, and the lanterns
-## on the lake; High adds the mist, round the crag's tip too.
-const SCENERY: Dictionary[StringName, Array] = {
-	&"low": ["CloudSea", "Mountains", "Lake"],
-	&"medium": ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns"],
-	&"high": ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns", "Mist", "CragMist"],
+## What each level of scenery detail draws of the backdrop (World's parts):
+## 0 keeps the sea of clouds, the mountains and the lake; 1 adds the veil of
+## cloud over the sea, the cliffs with their buildings and waterfalls, and the
+## lanterns on the lake; 2 adds the mist, round the crag's tip too. Every
+## preset draws at 2 since milestone-1 task 29 (Low drops only atmosphere).
+const SCENERY: Dictionary[int, Array] = {
+	0: ["CloudSea", "Mountains", "Lake"],
+	1: ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns"],
+	2: ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns", "Mist", "CragMist"],
 }
 ## How far past the moon's disc (radians) nothing may stand.
 const MOON_MARGIN := 0.015
@@ -580,18 +581,22 @@ func test_the_far_clip_reaches_the_farthest_ring_and_the_camera_takes_it() -> vo
 	assert_eq(MatchView.arena_camera_data(arena)["far"], arena.def.camera_far, "handed to the match's camera")
 
 
-func test_each_preset_draws_its_share_of_the_backdrop() -> void:
+func test_each_level_of_scenery_detail_draws_its_share_of_the_backdrop() -> void:
 	var world: Node = arena.get_node("World")
-	for id: StringName in GraphicsPreset.IDS:
-		GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(id), arena)
+	for level: int in SCENERY:
+		var preset: GraphicsPreset = GraphicsPreset.ultra().duplicate() as GraphicsPreset
+		preset.scenery_detail = level
+		GraphicsApplier.apply_to_tree(preset, arena)
 		var drawn: Array = []
 		for part: Node in world.get_children():
 			if (part as Node3D).visible:
 				drawn.append(String(part.name))
 		drawn.sort()
-		var expected: Array = SCENERY[id].duplicate()
+		var expected: Array = SCENERY[level].duplicate()
 		expected.sort()
-		assert_eq(drawn, expected, "%s draws its share" % id)
+		assert_eq(drawn, expected, "detail %d draws its share" % level)
+	for id: StringName in GraphicsPreset.IDS:
+		assert_eq(GraphicsPreset.load_id(id).scenery_detail, 2, "%s draws the whole backdrop" % id)
 
 
 ## The ranges dip toward the moon, so its disc clears everything in the
@@ -787,10 +792,12 @@ func test_the_saved_preset_is_applied_when_it_loads() -> void:
 	_settings().graphics_preset_id = &"low"
 	var low_shrine: MoonlitShrine = (load(SCENE) as PackedScene).instantiate()
 	add_child_autofree(low_shrine)
-	var ink := low_shrine.get_node("InkWash") as InkWashPass
-	assert_eq(ink.quality, InkWashPass.Quality.OFF, "no ink-wash pass on Low")
+	var env: Environment = _environment(low_shrine)
+	assert_true(env.has_meta(GraphicsApplier.META_BASE_VOLUMETRIC), "the preset reached the environment")
+	assert_false(env.volumetric_fog_enabled, "no volumetric fog on Low")
+	assert_false(env.ssao_enabled, "no ambient occlusion on Low")
 	var parapet := low_shrine.get_node("Platform/Props/Parapet") as MeshInstance3D
-	assert_false(ToonMaterials.is_outlined(parapet.material_override), "no prop outlines on Low")
+	assert_true(ToonMaterials.is_outlined(parapet.material_override), "Low keeps Ultra's prop outlines")
 
 
 func test_every_preset_applies_to_the_courtyard_and_its_props() -> void:

@@ -1,18 +1,41 @@
 class_name GraphicsPreset
 extends Resource
-## One graphics preset (Low, Medium or High). GraphicsApplier applies it to the
-## renderer, a viewport and a scene tree; GameSettings remembers which one the
-## player chose. The three presets live in res://view/look/presets/, and High
-## is the default.
+## One graphics preset (Low, Medium, High or Ultra). GraphicsApplier applies it
+## to the renderer, a viewport and a scene tree; GameSettings remembers which
+## one the player chose. The four presets live in res://view/look/presets/.
 ##
-## The costs quoted below were measured at 1080p on the target laptop (Ryzen 7
-## 4700U with Radeon Vega graphics) while the arena was first built, with
-## capsule stand-ins. Benchmarked there since with the real fighters fighting
-## on the Moonlit Shrine (tools/shot_scenes/arena_bench.tscn), High runs
-## about 69 fps, Medium 79 and Low 102.
+## Ultra is the reference (milestone-1 task 29, stories 182-184): the look is
+## judged at it, tests and shots render at it (DEFAULT_ID), and every other
+## preset follows it in every setting but CUTS, the resolution and upscaler
+## and the atmosphere, as the owner chose (Oct 5): Ultra renders at 67% of the
+## output (1440p at 4K) and upscales with FSR 2.2; High upscales from 59%
+## (FSR 2.2's Balanced mode); Medium also drops ambient occlusion and the minor
+## decals; Low renders at 67% with FSR 1 (until the laptop bench picks its
+## upscaler) and drops all four atmosphere items, keeping the palettes, the
+## rim lights, blood, the 危 and the cinematic shots.
+##
+## The first launch picks a preset from the graphics card's name (for_card(),
+## the rules in CARDS); a card no rule names gets UNKNOWN_CARD_ID.
+##
+## The toon look's costs quoted below were measured at 1080p on the target
+## laptop (Ryzen 7 4700U with Radeon Vega graphics) while the arena was first
+## built, with capsule stand-ins.
 
-const IDS: Array[StringName] = [&"low", &"medium", &"high"]
-const DEFAULT_ID: StringName = &"high"
+const IDS: Array[StringName] = [&"low", &"medium", &"high", &"ultra"]
+## The preset the look is judged at.
+const REFERENCE_ID: StringName = &"ultra"
+## The preset when nothing chose one: what tests and shots render at.
+const DEFAULT_ID: StringName = REFERENCE_ID
+## The first launch's preset for a card the table doesn't name.
+const UNKNOWN_CARD_ID: StringName = &"medium"
+## The first launch's table: res://view/look/presets/cards.json.
+const CARDS: String = "res://view/look/presets/cards.json"
+## The settings a preset may set apart from Ultra's: the resolution and
+## upscaler, and the atmosphere. A test holds every other setting to Ultra's.
+const CUTS: Array[StringName] = [
+	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
+	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
+]
 
 @export var id: StringName = &"high"
 @export var display_name: String = "High"
@@ -29,11 +52,14 @@ const DEFAULT_ID: StringName = &"high"
 
 @export_group("Anti-aliasing and resolution")
 @export var msaa_3d: Viewport.MSAA = Viewport.MSAA_DISABLED
-## FXAA rather than MSAA on every preset: MSAA 2x cost about 5 ms per frame,
-## and FXAA softens the ink lines pleasantly.
+## FXAA rather than MSAA: MSAA 2x cost about 5 ms per frame, and FXAA softens
+## the ink lines pleasantly. Off under FSR 2.2, which anti-aliases itself.
 @export var screen_space_aa: Viewport.ScreenSpaceAA = Viewport.SCREEN_SPACE_AA_FXAA
-## 3D render scale (1.0 = native); below 1 uses FSR 1.
+## 3D render scale: the share of the output's width and height the 3D view
+## renders at (1.0 = native).
 @export_range(0.5, 1.0) var render_scale: float = 1.0
+## How the 3D view is scaled up to the output: bilinear, FSR 1 or FSR 2.2.
+@export var scaling_3d_mode: Viewport.Scaling3DMode = Viewport.SCALING_3D_MODE_BILINEAR
 
 @export_group("Outlines")
 @export var outline_fighters: bool = true
@@ -55,6 +81,18 @@ const DEFAULT_ID: StringName = &"high"
 ## moon's sky haze carry the glow instead; turn it on for faster GPUs.
 @export var glow_enabled: bool = false
 
+@export_group("Atmosphere")
+## The arena's volumetric fog, where its environment has it; off, its height
+## fog carries the night alone.
+@export var volumetric_fog: bool = true
+## The arena's ambient occlusion (SSAO), where its environment has it.
+@export var ambient_occlusion: bool = true
+## The falling petals' lights: Light3D nodes in group look_petal_light.
+@export var petal_lights: bool = true
+## The decals that only dress the arena: Decal nodes in group
+## look_minor_decal.
+@export var minor_decals: bool = true
+
 @export_group("Effects")
 ## Fraction of each ambient particle emitter's amount that is drawn.
 @export_range(0.0, 1.0) var particle_ratio: float = 1.0
@@ -64,7 +102,7 @@ const DEFAULT_ID: StringName = &"high"
 @export_range(0, 2) var scenery_detail: int = 2
 
 
-## Loads a preset by id (low, medium or high); null for any other id.
+## Loads a preset by id (low, medium, high or ultra); null for any other id.
 static func load_id(preset_id: StringName) -> GraphicsPreset:
 	if not IDS.has(preset_id):
 		return null
@@ -85,3 +123,36 @@ func outlines_on(kind: ToonMaterials.OutlineKind) -> bool:
 
 static func default_preset() -> GraphicsPreset:
 	return load_id(DEFAULT_ID)
+
+
+## Ultra, the preset the others follow.
+static func ultra() -> GraphicsPreset:
+	return load_id(REFERENCE_ID)
+
+
+## The card table's rules, in order: { "pattern": a regular expression,
+## "preset": an id }.
+static func card_rules() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(CARDS))
+	if not data is Dictionary:
+		push_error("GraphicsPreset: %s isn't a card table" % CARDS)
+		return out
+	for r: Variant in (data as Dictionary).get("rules", []):
+		if r is Dictionary:
+			out.append(r)
+	return out
+
+
+## The preset for a graphics card's name (RenderingServer's video adapter
+## name): the first rule whose pattern is found in it, ignoring case, or
+## UNKNOWN_CARD_ID.
+static func for_card(card_name: String) -> StringName:
+	var lower: String = card_name.to_lower()
+	for r: Dictionary in card_rules():
+		var re := RegEx.new()
+		if re.compile(str(r["pattern"])) != OK:
+			continue
+		if re.search(lower) != null and IDS.has(StringName(r["preset"])):
+			return StringName(r["preset"])
+	return UNKNOWN_CARD_ID
