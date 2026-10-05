@@ -15,10 +15,26 @@ extends RefCounted
 ## import tool builds it from two other clips, one on the upper body over
 ## the other's hips and legs (ImportClips.compose()), each from a source frame
 ## of its own ("compose": {"upper", "upper_from", "legs", "legs_from"}).
+##
+## Milestone-1 task 14 added the markers frame data and travel are generated
+## from: each foot's contacts ("foot_contacts": {"left": [[plant, lift], ...],
+## "right": [...]}, measured by tools/measure_feet.gd with FootLock's plant
+## rule, FootContacts), and on a clip that sets a rules length its ready,
+## in-hand, strike or kill frame (RULES_LENGTH_MARKERS, beside the four). A
+## move's active frames, dodge-cancel window and branch points live on its
+## entry in the move-clip table (MoveClips), since one clip serves moves of
+## different timings.
 
 const PATH: String = "res://assets/kevin_iglesias/clip_manifest.json"
 ## The markers, in the order they fall.
 const MARKERS: Array[String] = ["windup", "contact", "contact_end", "settle"]
+## The markers a clip that sets a rules length may add (milestone-1 task 14):
+## the draw's ready frame (when "Fight!" is called), the pull-out's frame the
+## weapon is in hand, the paired stomp's and leap's strike, a finisher's
+## kill. No clip of today's sets one; the tasks that add those clips set them.
+const RULES_LENGTH_MARKERS: Array[String] = ["ready", "in_hand", "strike", "kill"]
+## The feet a clip's foot contacts are given for.
+const FEET: Array[String] = ["left", "right"]
 ## Source clips are keyed at 30 frames a second.
 const SOURCE_FPS: float = 30.0
 ## The catalogue's pages a clip can be on: a weapon's moves, bare hands,
@@ -38,8 +54,11 @@ class Clip:
 	var loop: bool = false
 	## Its files for every set sit in one folder, not the set's (file()).
 	var shared: bool = false
-	## Source frame of each marker, by MARKERS name.
+	## Source frame of each marker, by MARKERS (and RULES_LENGTH_MARKERS) name.
 	var markers: Dictionary[String, int] = {}
+	## Each foot's contacts with the ground, [plant, lift] in source frames,
+	## by "left" and "right" (FEET; tools/foot_contacts.gd measures them); empty when not measured.
+	var foot_contacts: Dictionary = {}
 	var provisional: bool = false
 	## The catalogue pages it is a candidate on (GROUPS).
 	var groups: Array[StringName] = []
@@ -184,6 +203,41 @@ func _clip(id: StringName, d: Variant) -> Clip:
 			errors.append("%s: marker %s comes before the one ahead of it" % [id, name])
 		last = int(v)
 	for name: Variant in marks:
-		if not MARKERS.has(str(name)):
+		if RULES_LENGTH_MARKERS.has(str(name)):
+			var v: Variant = marks[name]
+			if not (v is float or v is int) or float(v) != floorf(float(v)) or float(v) < 0.0:
+				errors.append("%s: marker %s is not a whole frame" % [id, name])
+			else:
+				c.markers[str(name)] = int(v)
+		elif not MARKERS.has(str(name)):
 			errors.append("%s: unknown marker %s" % [id, name])
+	if (d as Dictionary).has("foot_contacts"):
+		c.foot_contacts = _foot_contacts(id, d["foot_contacts"])
 	return c
+
+
+## A clip's foot contacts read from `d`, each mistake added to errors.
+func _foot_contacts(id: StringName, d: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if not d is Dictionary or (d as Dictionary).size() != FEET.size():
+		errors.append("%s: foot_contacts gives left and right" % id)
+		return out
+	for side: String in FEET:
+		var spans: Variant = (d as Dictionary).get(side)
+		var ok: bool = spans is Array
+		var last: int = -1
+		var read: Array = []
+		if ok:
+			for s: Variant in spans:
+				var pair: bool = s is Array and (s as Array).size() == 2 \
+						and (s as Array).all(func(x: Variant) -> bool: return (x is float or x is int) and float(x) == floorf(float(x)))
+				if not pair or int(s[0]) <= last or int(s[1]) < int(s[0]):
+					ok = false
+					break
+				read.append([int(s[0]), int(s[1])])
+				last = int(s[1])
+		if not ok:
+			errors.append("%s: foot_contacts %s must be [plant, lift] source frames, in order, each lift at or after its plant" % [id, side])
+			continue
+		out[side] = read
+	return out
