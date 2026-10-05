@@ -512,11 +512,12 @@ describe('relay hook', () => {
     assert.deepEqual(readdirSync(path.join(dir, 'pending')), []);
   });
 
-  it('answers a question with the board\'s picks', async () => {
+  it('leaves a question to the app while Away is on too, only noting that it waits', async () => {
     setAway();
-    const { out, pending } = await run(ASK, (p) => reply(p, relayAnswer(p, { picks: ['A'] })));
-    assert.equal(pending.kind, 'question');
-    assert.deepEqual(JSON.parse(out).hookSpecificOutput.decision, { behavior: 'allow', updatedInput: { ...ASK.tool_input, answers: { 'Which?': 'A' } } });
+    const asked = await run(ASK);
+    assert.equal(asked.out, '');
+    assert.equal(asked.pending, null);
+    assertMatches(events().at(-1), { kind: 'asked-in-app', session: ID, cwd: 'C:/repo', questions: ['Which?'] });
   });
 
   it('falls back to the app\'s dialog when handed back, when Away goes off, or out of time', async () => {

@@ -468,7 +468,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
   </div>
 
   <div id="v-questions" class="view" hidden>
-    <p class="m" style="margin:0 0 12px">While Away is on, every session's questions, permission prompts and finished turns wait here, oldest first. Switching Away off hands them all back to the app.</p>
+    <p class="m" style="margin:0 0 12px">While Away is on, every session's permission prompts, plans and finished turns wait here, oldest first. Switching Away off hands them all back to the app. Questions always stay in the app; the bell tells you when a session waits on one.</p>
     <div id="qList"><div class="empty">Loading…</div></div>
   </div>
 
@@ -1315,8 +1315,9 @@ window.addEventListener('resize', () => { if (view === 'graph' && !gView[gOpt.pl
 
 // ---------- sessions ----------
 // Every Claude session active in the last three days. While Away is on, each
-// hands its permission prompts, its questions and the end of each turn to the
-// Project Manager (relay-hook.mjs), answered here or in the Questions tab.
+// hands its permission prompts, its plans and the end of each turn to the
+// Project Manager (relay-hook.mjs), answered here or in the Questions tab; its
+// questions stay in the app, and the bell says when one waits.
 
 const sessions = { list: [], detail: null, limit: 300, drafts: {} };
 let sSel = store.get('al-session', null);
@@ -1367,7 +1368,7 @@ function renderPending(d) {
   if (d.open?.name === 'AskUserQuestion' && !d.pending.some((p) => p.kind === 'question')) {
     cards.push(`<div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b><span class="k">${esc(ago(d.open.time))}</span></div>
       ${S.questionsHtml(d.open.questions ?? [], false)}
-      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Answer in the app</button>` : ''}<span class="m">${away ? 'It asked before Away was on.' : 'Switch Away on to answer its next questions here.'}</span></div></div>`);
+      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Answer in the app</button>` : ''}<span class="m">Questions are answered in the app.</span></div></div>`);
   } else if (d.open && !d.pending.length && !d.active && Date.now() - (d.open.time ?? 0) > 30000) {
     cards.push(`<div class="pcard info"><div class="ch"><b>Its last step hasn't finished: ${esc(d.open.name)}</b><span class="k">${esc(ago(d.open.time))}</span></div>
       <pre class="code">${esc(d.open.summary ?? '')}</pre>
@@ -1432,7 +1433,7 @@ function renderSessionDetail() {
         ${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open in app</button>` : ''}</div>
       <div class="m" title="${esc(d.cwd ?? '')}"><i class="dot ${d.active ? 'active' : 'recent'}"></i> ${d.active ? 'At work' : `Last active ${esc(ago(d.activity))}`} · ${esc(d.cwd ?? '')}</div>
       ${ctxHtml}
-      <div class="m">${d.away?.on ? 'Away is on: its permission prompts, plans and questions wait here (for up to 24 minutes each), and when a turn ends it waits for your reply.'
+      <div class="m">${d.away?.on ? 'Away is on: its permission prompts and plans wait here (for up to 24 minutes each), and when a turn ends it waits for your reply. Its questions stay in the app.'
         : "Away is off: it asks in the app's own dialogs. A reply sent from here reaches it before its next step, or when its turn next ends."}</div>`;
   }
   if (!window.S) return;
