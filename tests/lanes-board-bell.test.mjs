@@ -13,7 +13,7 @@ const S2 = '22222222-2222-4333-8444-555555555555';
 const titles = { [S1]: 'Lane <one>', [S2]: 'Lane two' };
 const titleOf = (id) => titles[id] ?? '(untitled)';
 const held = (id, kind, extra = {}) => ({ id, kind, session: S1, time: 1000, ...extra });
-const update = (state, { pending = [], events = [], now = 5000 } = {}) => bellUpdate(state, { pending, events, now, titleOf });
+const update = (state, { pending = [], events = [], posts = [], now = 5000 } = {}) => bellUpdate(state, { pending, events, posts, now, titleOf });
 
 describe('bellUpdate', () => {
   it('makes one record per held item, saying who needs what, and none twice', () => {
@@ -75,6 +75,21 @@ describe('bellUpdate', () => {
     s = markRead(s, [s.records[0].id]);
     s = update(s, { pending: [held('t-9', 'stop', { time: 4000, last: 'Third.' })] });
     assert.deepEqual(s.records.filter((r) => r.session === S1).map((r) => [r.detail, r.read]), [['Second.', true], ['Third.', false]]);
+  });
+
+  it('tells of new visuals once per session per minute, counting what each minute brought', () => {
+    const p = (id, time, extra = {}) => ({ session: S1, id, time, kind: 'still', caption: `Shot ${id}`, ...extra });
+    let s = update(null, { posts: [p('a', 1000)], now: 2000 });
+    assert.deepEqual(s.records.map((r) => [r.id, r.kind, r.text, r.detail]), [['visuals:' + S1 + ':a', 'visuals', 'Lane <one> posted a shot', 'Shot a']]);
+    assert.deepEqual(s.records[0].target, { tab: 'sessions', session: S1, visuals: true });
+    s = markRead(s, 'all');
+    s = update(s, { posts: [p('a', 1000), p('b', 30_000, { kind: 'clip' }), p('c', 61_500), p('d', 1500, { session: S2 })], now: 70_000 });
+    assert.deepEqual(s.records.map((r) => [r.id.split(':').at(-1), r.session, r.text, r.detail, r.read]), [
+      ['a', S1, 'Lane <one> posted 2 visuals', 'Shot b', true],
+      ['d', S2, 'Lane two posted a shot', 'Shot d', false],
+      ['c', S1, 'Lane <one> posted a shot', 'Shot c', false],
+    ]);
+    assert.equal(update(s, { posts: [p('a', 1000), p('b', 30_000, { kind: 'clip' }), p('c', 61_500), p('d', 1500, { session: S2 })], now: 70_000 }), s);
   });
 
   it('drops records older than 7 days', () => {

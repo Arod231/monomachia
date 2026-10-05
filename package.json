@@ -26,7 +26,8 @@
     "brain": "node tools/second-brain/build.mjs",
     "brain:serve": "node tools/second-brain/serve.mjs",
     "board": "node tools/lanes-board/server.mjs",
-    "board:hooks": "node tools/lanes-board/install-hooks.mjs"
+    "board:hooks": "node tools/lanes-board/install-hooks.mjs",
+    "post": "node tools/lanes-board/post.mjs"
   },
   "engines": {
     "node": ">=22.12"

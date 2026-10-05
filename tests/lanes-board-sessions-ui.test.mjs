@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  STATE_LABELS, APP_SESSIONS_URL, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
+  STATE_LABELS, APP_SESSIONS_URL, olderCardHtml, viewerHtml, visualsHtml, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -457,5 +457,55 @@ describe('Compact and Open in the Claude app', () => {
       remote: 'https://claude.ai/code/session_01X', questions: [{ question: 'Which?', options: [{ label: 'A' }] }] }] };
     assert.match(qTab(q), /href="https:\/\/claude.ai\/code\/session_01X"[^>]*>Open in the Claude app</);
     assert.doesNotMatch(qTab({ ...q, asked: [{ ...q.asked[0], remote: null }] }), /claude.ai\/code\/session/);
+  });
+});
+
+describe('Visuals', () => {
+  const v = (extra = {}) => ({ id: '1700000000000-0', kind: 'still', caption: 'The <shrine>', task: 'M1 7', time: Date.now() - 60_000,
+    url: '/media/s/1700000000000-0.png', poster: null, ...extra });
+
+  it('lists posted shots and clips, newest first as given, each opening the viewer', () => {
+    const h = visualsHtml([v({ kind: 'clip', url: '/media/s/a.mp4', poster: '/media/s/a.poster.jpg', caption: 'A run' }), v()]);
+    assert.match(h, /<h2>Visuals<\/h2>/);
+    assert.match(h, /data-vis="0"[^]*<video [^>]*src="\/media\/s\/a.mp4"[^>]*>/);
+    for (const attr of ['autoplay', 'loop', 'muted', 'playsinline', 'poster="/media/s/a.poster.jpg"']) assert.match(h, new RegExp(`<video [^>]*${attr}`));
+    assert.match(h, /data-vis="1"[^]*<img [^>]*src="\/media\/s\/1700000000000-0.png"[^>]*loading="lazy"/);
+    assert.match(h, /The &lt;shrine&gt;/);
+    assert.match(h, /M1 7/);
+    assert.doesNotMatch(h, /<shrine>/);
+  });
+
+  it('shows nothing when the session posted nothing', () => {
+    assert.equal(visualsHtml([]), '');
+    assert.equal(visualsHtml(undefined), '');
+  });
+
+  it('shows one visual full screen, with its caption, task, time and place in the list', () => {
+    const list = [v({ kind: 'clip', url: '/media/s/a.mp4', caption: 'A run' }), v()];
+    const clip = viewerHtml(list, 0);
+    assert.match(clip, /<video [^>]*src="\/media\/s\/a.mp4"[^>]*autoplay[^>]*loop[^>]*muted[^>]*playsinline[^>]*controls/);
+    assert.match(clip, /1 of 2/);
+    assert.match(clip, /A run/);
+    const still = viewerHtml(list, 1);
+    assert.match(still, /<img [^>]*src="\/media\/s\/1700000000000-0.png"/);
+    assert.match(still, /2 of 2/);
+    assert.match(still, /The &lt;shrine&gt; · M1 7/);
+    assert.match(still, /data-viewer-close/);
+  });
+
+  it('lists older sessions known by their media, each opening its page', () => {
+    const h = olderCardHtml({ id: '11111111-2222-4333-8444-555555555555', title: 'Lane <x>', cwd: 'C:\w\lane-x', count: 3, latest: Date.now() - 5 * 86_400_000 });
+    assert.match(h, /data-session="11111111-2222-4333-8444-555555555555"/);
+    assert.match(h, /Lane &lt;x&gt;/);
+    assert.match(h, /3 visuals/);
+    assert.match(h, /lane-x/);
+  });
+});
+
+describe('the bell and new visuals', () => {
+  it("opens a new-visuals record at the session's visuals", () => {
+    const h = bellListHtml({ unread: 1, records: [{ id: 'visuals:s:1-0', kind: 'visuals', session: 's', text: 'Lane posted a shot', detail: 'x', time: 1, read: false,
+      target: { tab: 'sessions', session: 's', visuals: true } }] });
+    assert.match(h, /data-tab="sessions"[^>]*data-visuals="1"/);
   });
 });

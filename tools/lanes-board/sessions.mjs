@@ -330,9 +330,9 @@ function planAnswer(pending, body) {
 
 export const COMMANDS = {
   approve: 'Approved from the Project Manager: go on with the next task.',
-  // Until task 15 brings `npm run post`, the session gives the shot's path.
-  show: "The owner asks from the Project Manager: show me what you're working on. Capture a shot or a short clip of it and give its path "
-    + "with a one-line caption, or say in one line that there's nothing to show yet.",
+  // The shot lands on the session's page through `npm run post` (post.mjs).
+  show: "The owner asks from the Project Manager: show me what you're working on. Capture a shot or a short clip of it and post it to your page "
+    + 'with `npm run post -- <file> --caption "<one line>"`, or say in one line that there\'s nothing to show yet.',
 };
 
 // { text } (the owner's own words) or { command } (a key of COMMANDS), worded for the session.

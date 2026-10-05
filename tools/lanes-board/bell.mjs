@@ -3,7 +3,7 @@
 // noted, and keeps its state in ~/.claude/lanes-board/notifications.json, so
 // every device shares one read flag. tests/lanes-board-bell.test.mjs checks it.
 //
-// A record: { id, kind: question | permission | plan | turn | asked | merge, session,
+// A record: { id, kind: question | permission | plan | turn | asked | merge | visuals, session,
 // text (who needs what, one line), detail (one line more), target (where a tap
 // goes: { tab: 'questions', item?, session } or { tab: 'sessions', session, merge? }),
 // time, read }. Owner's rules (PM task 10, Oct 4): answering, handing back or a
@@ -59,10 +59,33 @@ function eventRecord(e, n, title) {
   return null;
 }
 
+// New visuals (media.mjs entries, { session, id, time, kind, caption }) as
+// records: one per session per minute, from its first post in that minute,
+// counting every post the minute brought.
+export const VISUALS_BATCH_MS = 60 * 1000;
+function visualsRecords(posts, titleOf) {
+  const out = [];
+  const bySession = new Map();
+  for (const p of [...posts].sort((a, b) => a.time - b.time)) bySession.set(p.session, [...(bySession.get(p.session) ?? []), p]);
+  for (const [session, list] of bySession) {
+    let batch = null;
+    for (const p of list) {
+      if (!batch || p.time - batch.time >= VISUALS_BATCH_MS) { batch = { session, first: p, time: p.time, posts: [] }; out.push(batch); }
+      batch.posts.push(p);
+    }
+  }
+  return out.sort((a, b) => a.time - b.time).map(({ session, first, time, posts: ps }) => {
+    const what = ps.length > 1 ? `${ps.length} visuals` : ps[0].kind === 'clip' ? 'a clip' : 'a shot';
+    return { id: `visuals:${session}:${first.id}`, kind: 'visuals', session, time, count: ps.length, read: false,
+      text: `${titleOf(session)} posted ${what}`, detail: oneLine(ps.at(-1).caption), target: { tab: 'sessions', session, visuals: true } };
+  });
+}
+
 // The bell's state after a look at the relay: { records }. pending: the items
-// held now; events: those noted since the last look; titleOf(session): its
-// title. Returns state itself when nothing changed.
-export function bellUpdate(state, { pending = [], events = [], now = Date.now(), titleOf = () => '(untitled)' }) {
+// held now; events: those noted since the last look; posts: the media posted
+// in the last 7 days; titleOf(session): its title. Returns state itself when
+// nothing changed.
+export function bellUpdate(state, { pending = [], events = [], posts = [], now = Date.now(), titleOf = () => '(untitled)' }) {
   let records = state?.records ?? [];
   let changed = !state;
   const add = (r) => {
@@ -78,6 +101,12 @@ export function bellUpdate(state, { pending = [], events = [], now = Date.now(),
   };
   events.forEach((e, i) => add(eventRecord(e, i, titleOf(e.session))));
   for (const p of [...pending].sort((a, b) => (a.time ?? 0) - (b.time ?? 0))) add(heldRecord(p, titleOf(p.session)));
+  // A minute's batch that grew since the last look is told again, read or not as it was.
+  for (const r of visualsRecords(posts.filter((p) => now - p.time <= BELL_KEEP_MS), titleOf)) {
+    const i = records.findIndex((x) => x.id === r.id);
+    if (i < 0) add(r);
+    else if (records[i].count !== r.count) { records = records.map((x, k) => (k === i ? { ...r, read: x.read } : x)); changed = true; }
+  }
   // Held items no longer held were answered, handed back or timed out.
   const still = new Set(pending.map((p) => p.id));
   records = records.map((r) => {

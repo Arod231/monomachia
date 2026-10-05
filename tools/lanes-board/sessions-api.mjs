@@ -4,7 +4,8 @@
 // and the answers the owner sends sessions through the relay hook
 // (relay-hook.mjs, installed in user settings), which hands their prompts over
 // as files in the relay folder while Away is on.
-//   GET  /sessions, /session?id=&limit=, /questions
+//   GET  /sessions (with older: sessions past the list's 3 days known by their
+//        posted media), /session?id=&limit= (with its visuals), /questions
 //   POST /relay/away, /relay/answer, /relay/reply, /relay/unqueue,
 //        /session/command { session, command: approve | show | stop | end }
 import { readFile, readdir, stat, open, rm } from 'node:fs/promises';
@@ -46,9 +47,10 @@ const writeJsonFile = async (file, value) => writeJsonAtomic(file, value);
 // () => { current, problems }). Every sweepMs it also looks over the held items, so a
 // deleted session's hook is released with no page open. stopFile: the stop list
 // End work writes (stop-hook.mjs reads it); prOf(branch): the open pull request
-// of a branch ({ number, title, url, base, draft }) or null.
+// of a branch ({ number, title, url, base, draft }) or null. media: the posted
+// shots and clips (media-api.mjs: of(session), sessions()), or null.
 export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool, taskOf = () => null, hooks = async () => null, sweepMs = 0,
-  stopFile = null, prOf = () => null }) {
+  stopFile = null, prOf = () => null, media = null }) {
   const transcriptCache = new Map(); // file -> { key, parsed }
   async function transcript(file, limit) {
     const { size, mtimeMs } = await stat(file);
@@ -151,6 +153,19 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     return out;
   }
 
+  // A session's transcript however old, for a page opened from its media.
+  async function findTranscript(id) {
+    let dirs = [];
+    try { dirs = await readdir(projects, { withFileTypes: true }); } catch { return null; }
+    for (const d of dirs.filter((x) => x.isDirectory())) {
+      const file = path.join(projects, d.name, `${id}.jsonl`);
+      const s = await stat(file).catch(() => null);
+      if (s) return { id, file, mtime: s.mtimeMs };
+    }
+    return null;
+  }
+  const mediaOf = (id) => media?.of(id) ?? { visuals: [], cwd: null, branch: null };
+
   // ---------- what a session's card and page say about it ----------
   async function readStops() {
     if (!stopFile) return [];
@@ -199,8 +214,17 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
 
   async function sessionDetail(id, limit) {
     if (!SESSION_ID.test(id ?? '')) throw new Error('Bad session id');
-    const f = (await findTranscripts()).find((x) => x.id === id);
-    if (!f) throw new Error('No recent session with that id');
+    const f = (await findTranscripts()).find((x) => x.id === id) ?? await findTranscript(id);
+    const posted = mediaOf(id);
+    if (!f) {
+      // Its transcript is gone (the session was deleted) but what it posted stays.
+      if (!posted.visuals.length) throw new Error('No recent session with that id');
+      const a = (await appSessions()).find((x) => x.cli === id);
+      return { id, gone: true, app: a?.id ?? null, remote: a?.remote ?? null, title: a?.title || (posted.cwd ? `A session in ${path.basename(posted.cwd)}` : '(untitled)'),
+        cwd: posted.cwd, branch: posted.branch, activity: posted.visuals[0].time, active: false, entries: [], more: 0, open: null, away: null, queued: [], pending: [],
+        asking: null, context: null, state: 'ended', endedAt: null, stopping: false, summary: null, task: posted.cwd ? taskOf(posted.cwd) : null,
+        pr: posted.branch ? prOf(posted.branch) : null, visuals: posted.visuals };
+    }
     const [t, state, app, context, stops] = await Promise.all([transcript(f.file, limit), relayState(), appSessions(), contextOf(f.file), readStops()]);
     const a = app.find((x) => x.cli === id);
     const d = {
@@ -209,9 +233,24 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       open: t.open, away: state.away, queued: state.inbox[id] ?? [],
       pending: state.pending.filter((p) => p.session === id).sort((x, y) => x.time - y.time),
       asking: t.open?.name === 'AskUserQuestion' ? t.open.questions.map((q) => q.question) : null,
-      context,
+      context, visuals: posted.visuals,
     };
     return { ...d, ...await facts(d, t, a, stops) };
+  }
+
+  // The Sessions list's Older filter: sessions with posted media that the
+  // list's 3 days leave out, newest post first.
+  async function older(sessions) {
+    if (!media) return [];
+    const listed = new Set(sessions.map((s) => s.id));
+    const rest = media.sessions().filter((m) => !listed.has(m.id));
+    if (!rest.length) return [];
+    const app = await appSessions();
+    return rest.map((m) => {
+      const a = app.find((x) => x.cli === m.id);
+      if (a?.archived) return null;
+      return { ...m, app: a?.id ?? null, title: a?.title || (m.cwd ? `A session in ${path.basename(m.cwd)}` : '(untitled)') };
+    }).filter(Boolean).sort((x, y) => y.latest - x.latest);
   }
 
   async function awaySet(body, { ua } = {}) {
@@ -340,7 +379,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     // The JSON a GET route answers (url: a URL), or undefined when the route isn't one of these.
     get(url) {
       if (url.pathname === '/questions') return questions();
-      if (url.pathname === '/sessions') return sessionList().then((sessions) => ({ updated: Date.now(), sessions }));
+      if (url.pathname === '/sessions') return sessionList().then(async (sessions) => ({ updated: Date.now(), sessions, older: await older(sessions) }));
       if (url.pathname === '/session') return sessionDetail(url.searchParams.get('id'), Math.min(2000, Number(url.searchParams.get('limit')) || 300));
       return undefined;
     },

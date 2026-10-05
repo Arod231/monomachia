@@ -383,9 +383,10 @@ nav.tabs .count:empty { display: none; }
     <div class="mergebox" id="sMerge" hidden></div>
     <div class="mergebox" id="sRemote" hidden></div>
     <div id="sPend"></div>
+    <div id="sVis"></div>
     <div class="sh"><h2>Conversation</h2></div>
     <div class="slog" id="sLog"></div>
-    <div class="scomp"><textarea id="sText" rows="2" placeholder="Reply to this session"></textarea>
+    <div class="scomp" id="sComp"><textarea id="sText" rows="2" placeholder="Reply to this session"></textarea>
       <div class="row"><span class="k" id="sNote"></span><button class="btn primary" id="sSend">Send</button></div></div>
   </section>
   <section class="page" id="p-questions" hidden>
@@ -635,10 +636,14 @@ function renderSessions() {
   const order = (a, b) => (rank(a) - rank(b)) || ((b.session ?? b.last.time * 1000) - (a.session ?? a.last.time * 1000));
   const used = new Set((sessionList ?? []).map((x) => laneOf(x.cwd)?.path).filter(Boolean));
   const trees = data.lanes.filter((l) => !used.has(l.path)).sort(order);
-  if (laneFilter !== 'worktrees') laneFilter = 'sessions';
+  if (laneFilter === 'older' && !olderList?.length) laneFilter = 'sessions';
+  if (laneFilter !== 'worktrees' && laneFilter !== 'older') laneFilter = 'sessions';
   $('laneSeg').innerHTML = `<button data-lanes="sessions" aria-pressed="${laneFilter === 'sessions'}">Sessions${sessionList ? ` · ${sessionList.length}` : ''}</button>`
-    + `<button data-lanes="worktrees" aria-pressed="${laneFilter === 'worktrees'}">Worktrees · ${trees.length}</button>`;
+    + `<button data-lanes="worktrees" aria-pressed="${laneFilter === 'worktrees'}">Worktrees · ${trees.length}</button>`
+    + (olderList?.length ? `<button data-lanes="older" aria-pressed="${laneFilter === 'older'}">Older · ${olderList.length}</button>` : '');
   if (laneFilter === 'sessions') { $('lanes').innerHTML = sessionsHtml(); return; }
+  // Sessions past the 3 days, kept for what they posted (30 days).
+  if (laneFilter === 'older') { $('lanes').innerHTML = `<ul class="list sess">${olderList.map(S.olderCardHtml).join('')}</ul>`; return; }
   $('lanes').innerHTML = trees.map(laneCard).join('') || '<div class="empty">Every worktree has a session.</div>';
 }
 
@@ -646,6 +651,7 @@ function renderSessions() {
 // Every Claude session of the last three days (/sessions), with its context
 // gauge; their questions are answered in the app.
 let sessionList = null;
+let olderList = null; // sessions past the 3 days with posted media (the Older filter)
 let sessionsTimer = 0;
 // Each session's card: its state, the app's turn summary, its gauge and task.
 // A tap opens its page.
@@ -659,7 +665,7 @@ async function pollSessions() {
   if (document.hidden) return;
   try {
     const d = await (await fetch('/sessions', { cache: 'no-store' })).json();
-    if (d.sessions) { sessionList = d.sessions; render(); }
+    if (d.sessions) { sessionList = d.sessions; olderList = d.older ?? []; render(); }
   } catch { /* the stamp shows the server's state */ }
   sessionsTimer = setTimeout(pollSessions, tab === 'sessions' && !openId ? 6000 : 15000);
 }
@@ -676,6 +682,7 @@ $('laneSeg').addEventListener('click', (e) => {
 let openId = null;
 let merge = null; // the Merge panel (sessions-ui.mjs mountMerge)
 let remote = null; // Compact and Open in the Claude app (sessions-ui.mjs mountRemote)
+let viewer = null; // the full-screen viewer of its visuals (sessions-ui.mjs mountViewer)
 let detail = null;
 let detailLimit = 150;
 let detailTimer = 0;
@@ -725,6 +732,7 @@ function renderSession() {
   }
   const lane = laneOf(d.cwd);
   const head = `<h2>${esc(d.title)}</h2>
+    ${d.gone ? '<div class="k">This session was deleted; what it posted stays here for 30 days.</div>' : ''}
     <div class="t2">${S.stateHtml(d)}<span>${d.active ? 'at work now' : `last active ${esc(ago(d.activity))}`} · ${esc(S.folderOf(d.cwd))}</span></div>
     ${d.context ? `<div class="ctx">Context ${U.gaugeHtml(d.context, { live: d.active })}</div>` : ''}
     <div class="facts">${S.sessionFactsHtml(d)}${lane ? `<div class="fact"><span class="fk">Worktree</span> ${esc(laneGit(lane))}</div>
@@ -739,6 +747,10 @@ function renderSession() {
     $('sPend').innerHTML = d.pending.map((p) => S.pendingCard(p)).join('');
     S.restoreCards($('sPend'), kept);
   } else S.refreshTimes($('sPend'));
+  // What it posted (npm run post), newest first; a tap opens the viewer.
+  const vis = JSON.stringify([d.id, (d.visuals ?? []).map((v) => v.id)]);
+  if (vis !== sSig.vis) { sSig.vis = vis; $('sVis').innerHTML = S.visualsHtml(d.visuals); }
+  $('sComp').hidden = !!d.gone;
   const log = JSON.stringify([d.id, d.entries.length, d.entries.at(-1)?.time, d.more, detailLimit]);
   if (log !== sSig.log) { sSig.log = log; $('sLog').innerHTML = S.logHtml(d, openTools); }
   const waiting = d.pending.some((p) => p.kind === 'stop');
@@ -771,6 +783,10 @@ $('p-session').addEventListener('click', async (e) => {
   pollDetail(); pollQuestions();
 });
 $('sPend').addEventListener('click', (e) => answerIn(e, () => { sSig.pend = null; pollDetail(); }));
+$('sVis').addEventListener('click', (e) => {
+  const fig = e.target.closest('[data-vis]');
+  if (fig && detail?.visuals) viewer?.open(detail.visuals, Number(fig.dataset.vis));
+});
 async function sendReply() {
   const text = $('sText').value.trim();
   if (!text || !openId) return;
@@ -1123,8 +1139,19 @@ window.addEventListener('modules-ready', render);
 // Lock-screen notifications (mountPush) are turned on at the top of its list,
 // and a tap on one comes here as /m?bell=<record>&go=<tab>&item=&session=,
 // in the address the app opens or in a message from the service worker (sw.js).
-function goTo({ tab, item, session, merge: pr }) {
-  if (tab === 'sessions') { if (session) { openSession(session); if (pr) merge?.show(); } else setTab('sessions'); return; }
+// Runs then() once ready() holds, checking for a few seconds.
+function waitThen(ready, then, tries = 40) {
+  if (ready()) then(); else if (tries > 0) setTimeout(() => waitThen(ready, then, tries - 1), 150);
+}
+function goTo({ tab, item, session, merge: pr, visuals }) {
+  if (tab === 'sessions') {
+    if (!session) { setTab('sessions'); return; }
+    openSession(session);
+    if (pr) merge?.show();
+    // New visuals: once the page has them, bring them into view.
+    if (visuals) waitThen(() => detail?.id === session && $('sVis').firstChild, () => $('sVis').scrollIntoView({ block: 'start' }));
+    return;
+  }
   setTab('questions');
   S.revealQuestion($('qList'), { item, session });
 }
@@ -1138,10 +1165,12 @@ function openFrom(href) {
   history.replaceState(null, '', '/m');
   const id = u.searchParams.get('bell');
   if (id) post('/bell/read', { ids: [id] }).then(() => bell?.poll(), () => {});
-  goTo({ tab: go, item: u.searchParams.get('item'), session: u.searchParams.get('session'), merge: Number(u.searchParams.get('merge')) || null });
+  goTo({ tab: go, item: u.searchParams.get('item'), session: u.searchParams.get('session'), merge: Number(u.searchParams.get('merge')) || null,
+    visuals: u.searchParams.get('visuals') === '1' });
 }
 window.addEventListener('modules-ready', () => {
   merge = S.mountMerge({ panel: $('sMerge'), post, session: () => openId, say: (t, err) => toast(t, err) });
+  viewer = S.mountViewer();
   remote = S.mountRemote({ panel: $('sRemote'), detail: () => (detail?.id === openId ? detail : null), say: (t, err) => toast(t, err) });
   bell = S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: goTo, push: S.mountPush({ post }) });
   navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'open') openFrom(e.data.url); });

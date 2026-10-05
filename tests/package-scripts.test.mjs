@@ -36,6 +36,7 @@ describe('package.json', () => {
       'dev',
       'godot',
       'play',
+      'post',
       'release',
       'shots',
       'soak',

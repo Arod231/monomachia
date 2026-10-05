@@ -381,7 +381,7 @@ describe('relay answers', () => {
   it('continues a turn end with the owner\'s reply, Approve & continue or Show me, but not with nothing', () => {
     assert.deepEqual(relayAnswer({ kind: 'stop' }, { reply: ' Go on ' }), { reply: 'The owner replied from the Project Manager:\n\nGo on' });
     assert.deepEqual(relayAnswer({ kind: 'stop' }, { command: 'approve' }), { reply: 'Approved from the Project Manager: go on with the next task.' });
-    assert.match(relayAnswer({ kind: 'stop' }, { command: 'show' }).reply, /^The owner asks from the Project Manager: show me what you're working on\. .*path.*nothing to show yet\.$/);
+    assert.match(relayAnswer({ kind: 'stop' }, { command: 'show' }).reply, /^The owner asks from the Project Manager: show me what you're working on\. .*`npm run post -- <file> --caption .*nothing to show yet\.$/);
     assert.throws(() => relayAnswer({ kind: 'stop' }, { reply: ' ' }), /Type a reply first/);
     assert.throws(() => relayAnswer({ kind: 'stop' }, { command: 'merge' }), /No such command/);
     assert.deepEqual(relayAnswer({ kind: 'stop' }, { release: true }), { release: true });

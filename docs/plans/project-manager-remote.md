@@ -249,7 +249,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ### Phase E: visuals and docs
 
-- [ ] **15. Posted visuals.** Sessions publish shots and clips to their page, and the owner views them full screen.
+- [x] **15. Posted visuals.** Sessions publish shots and clips to their page, and the owner views them full screen.
   - Delivers:
     - **`npm run post -- <files> [--caption …] [--task …]`:** it finds the session from the shell's ids, or `--session`. Stills are copied; other video is converted to H.264 MP4 with ffmpeg, with a poster still.
     - **The media store and its index,** with a sweep that removes media older than 30 days, then the oldest beyond 5 GB.
@@ -266,6 +266,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - the checks "by hand on the phone" in tasks 15, 17 and 18 are skipped: each task is ticked once its automated checks pass;
     - a session page opens from its posted media alone (for a session older than the Sessions list's 3 days, or whose transcript was deleted), and the Sessions list gains an "Older" filter of sessions with media from the last 30 days;
     - the owner wants a session's page to show shots and media of the game or feature being worked on, as progress updates, and its documents and artifacts.
+  - Built (Oct 5): `post.mjs` (`npm run post`) and `media.mjs` (the store in `~/.claude/lanes-board/media/<session>/` with its `index.json`, and the 30-day, 5 GB sweep, run at each post and hourly by the board); `media-api.mjs` serves `/media/<session>/<file>` (store files only, clips in byte ranges); the session page's Visuals and the full-screen viewer (`sessions-ui.mjs` `visualsHtml`, `mountViewer`) on both pages; the bell's "posted N visuals" record per session per minute, opening the page at its Visuals; Show me now asks for `npm run post`.
 - [ ] **16. Everything it looked at.** The images a session got back from its tools show on its page without it posting them.
   - Delivers: images found in the results of the session's tool calls (browser screenshots, images it opened, viewport shots), listed under Visuals and served by reference to their transcript line. Images the owner pasted are left out. The viewer is shared with task 15.
   - Check: unit tests on fixture transcript lines (an image read from a file, a browser screenshot, an MCP tool's image, a pasted image left out); the page shows them.

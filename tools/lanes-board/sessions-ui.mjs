@@ -356,6 +356,106 @@ export function logHtml(d, openTools = new Set()) {
   return (d.more ? '<div class="more"><button class="btn small" data-more>Show earlier turns</button></div>' : '') + parts.join('');
 }
 
+// ---------- Visuals ----------
+// What a session posted with `npm run post` (d.visuals from /session, newest
+// first): stills, and clips playing inline, looping and silent like GIFs. A
+// tap opens the viewer (mountViewer) at that one.
+const visLine = (v) => [v.caption, v.task].filter(Boolean).map(esc).join(' · ');
+const clipTag = (v, extra = '') => `<video src="${esc(v.url)}"${v.poster ? ` poster="${esc(v.poster)}"` : ''} autoplay loop muted playsinline preload="metadata"${extra}></video>`;
+export function visualsHtml(visuals) {
+  if (!visuals?.length) return '';
+  const items = visuals.map((v, i) => `<figure class="vis" data-vis="${i}">`
+    + (v.kind === 'clip' ? clipTag(v) : `<img src="${esc(v.url)}" alt="${esc(v.caption ?? '')}" loading="lazy">`)
+    + `<figcaption>${visLine(v) || '<span class="k">No caption</span>'}<span class="k"> · ${esc(ago(v.time))}</span></figcaption></figure>`);
+  return `<div class="sh"><h2>Visuals</h2><span class="m">${visuals.length}</span></div><div class="vgrid">${items.join('')}</div>`;
+}
+
+// One visual full screen: list[i], with its place in the list.
+export function viewerHtml(list, i) {
+  const v = list[i];
+  const media = v.kind === 'clip' ? clipTag(v, ' controls') : `<img src="${esc(v.url)}" alt="${esc(v.caption ?? '')}">`;
+  return `<div class="vbar"><button class="vbtn" data-viewer-close aria-label="Back">‹ Back</button><span>${i + 1} of ${list.length}</span></div>`
+    + `<div class="vstage">${media}</div>`
+    + `<div class="vcap">${visLine(v) || 'No caption'}<span class="k"> · ${esc(new Date(v.time).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }))}</span></div>`
+    + (list.length > 1 ? `<button class="vbtn vprev" data-viewer-step="-1" aria-label="Previous"${i === 0 ? ' disabled' : ''}>‹</button>`
+      + `<button class="vbtn vnext" data-viewer-step="1" aria-label="Next"${i === list.length - 1 ? ' disabled' : ''}>›</button>` : '');
+}
+
+// A session past the Sessions list's 3 days, known by what it posted.
+export function olderCardHtml(o) {
+  return `<li class="scard" data-session="${esc(o.id)}"><div class="t1"><b>${esc(o.title)}</b></div>`
+    + `<div class="t2"><span class="k">${esc(folderOf(o.cwd))} · ${o.count} visual${o.count === 1 ? '' : 's'}, the last ${esc(ago(o.latest))}</span></div></li>`;
+}
+
+const VIEWER_CSS = `
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:6px 0 14px}
+.vis{margin:0;cursor:pointer;border-radius:8px;overflow:hidden;background:#0003}
+.vis img,.vis video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#000}
+.vis figcaption{font-size:12px;padding:5px 7px;line-height:1.3}
+.viewer{position:fixed;inset:0;z-index:1000;background:#000;color:#eee;display:flex;flex-direction:column;touch-action:pan-y}
+.viewer[hidden]{display:none}
+.viewer .vbar{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 6px) 10px 6px;font-size:14px}
+.viewer .vstage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.viewer .vstage img,.viewer .vstage video{max-width:100%;max-height:100%;object-fit:contain}
+.viewer .vcap{padding:8px 12px calc(env(safe-area-inset-bottom) + 10px);font-size:14px}
+.viewer .vbtn{background:#fff2;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:16px;cursor:pointer}
+.viewer .vbtn[disabled]{opacity:.3}
+.viewer .vprev,.viewer .vnext{position:absolute;top:50%;transform:translateY(-50%);font-size:28px;padding:6px 14px}
+.viewer .vprev{left:8px}.viewer .vnext{right:8px}`;
+
+// The full-screen viewer, shared by both pages: open(list, i) shows list[i];
+// a swipe or the arrow keys step through, and Back (or the phone's own back
+// gesture, through a history entry of its own) closes it.
+export function mountViewer() {
+  const style = document.createElement('style');
+  style.textContent = VIEWER_CSS;
+  document.head.append(style);
+  const box = document.createElement('div');
+  box.className = 'viewer';
+  box.hidden = true;
+  document.body.append(box);
+  let list = [];
+  let at = 0;
+  const show = () => { box.innerHTML = viewerHtml(list, at); };
+  const step = (d) => { const n = at + d; if (n >= 0 && n < list.length) { at = n; show(); } };
+  function close() {
+    if (box.hidden) return;
+    if (history.state?.viewer) history.back(); else { box.hidden = true; box.innerHTML = ''; }
+  }
+  window.addEventListener('popstate', (e) => { if (!e.state?.viewer && !box.hidden) { box.hidden = true; box.innerHTML = ''; } });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.viewerClose !== undefined) close();
+    else if (b.dataset.viewerStep) step(Number(b.dataset.viewerStep));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (box.hidden) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') step(-1);
+    else if (e.key === 'ArrowRight') step(1);
+  });
+  let x0 = null;
+  box.addEventListener('touchstart', (e) => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  box.addEventListener('touchend', (e) => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+  });
+  return {
+    open(items, i) {
+      list = items;
+      at = Math.max(0, Math.min(i, items.length - 1));
+      if (!list.length) return;
+      if (box.hidden) history.pushState({ ...(history.state ?? {}), viewer: true }, '', location.href);
+      box.hidden = false;
+      show();
+    },
+    close,
+  };
+}
+
 // ---------- the Away switch and the Questions tab ----------
 // q is /questions (sessions-api.mjs): { away: { on, since, from }, count,
 // groups: [{ session, app, title, cwd, task, since, items }], asked: [...] }.
@@ -471,10 +571,10 @@ export function bellButtonHtml(b) {
 
 export function bellListHtml(b) {
   const records = b?.records ?? [];
-  if (!records.length) return '<div class="bempty">Nothing yet. Questions, plans, permission prompts and finished turns from every session show here.</div>';
+  if (!records.length) return '<div class="bempty">Nothing yet. Questions asked in the app, plans, permission prompts, finished turns, pull requests ready to merge and new visuals from every session show here.</div>';
   return `<div class="bhead"><b>Notifications</b>${b.unread ? '<button class="btn small ghost" data-bell-all>Mark all read</button>' : ''}</div>
     <ul class="blist">${records.map((r) => `<li class="brec${r.read ? '' : ' unread'}" data-bell="${esc(r.id)}" data-tab="${esc(r.target?.tab)}"`
-      + `${r.target?.item ? ` data-item="${esc(r.target.item)}"` : ''}${r.target?.merge ? ` data-merge="${Number(r.target.merge)}"` : ''} data-session="${esc(r.target?.session)}">`
+      + `${r.target?.item ? ` data-item="${esc(r.target.item)}"` : ''}${r.target?.merge ? ` data-merge="${Number(r.target.merge)}"` : ''}${r.target?.visuals ? ' data-visuals="1"' : ''} data-session="${esc(r.target?.session)}">`
       + `<div class="bt">${esc(r.text)}</div>${r.detail ? `<div class="bd">${esc(r.detail)}</div>` : ''}`
       + `<div class="k" data-t="${Number(r.time) || ''}">${esc(ago(r.time))}</div></li>`).join('')}</ul>`;
 }
@@ -520,7 +620,8 @@ export function mountBell({ box, panel, post, go, push = null, everyMs = 5000 })
     panel.hidden = true;
     try { view = await post('/bell/read', { ids: [rec.dataset.bell] }); } catch { /* next poll */ }
     draw();
-    go({ tab: rec.dataset.tab, item: rec.dataset.item ?? null, session: rec.dataset.session || null, merge: Number(rec.dataset.merge) || null });
+    go({ tab: rec.dataset.tab, item: rec.dataset.item ?? null, session: rec.dataset.session || null, merge: Number(rec.dataset.merge) || null,
+      visuals: rec.dataset.visuals === '1' });
   });
   document.addEventListener('click', (e) => {
     if (!panel.hidden && !panel.contains(e.target) && !box.contains(e.target)) panel.hidden = true;
