@@ -40,7 +40,7 @@ describe('bellUpdate', () => {
     assert.deepEqual(after.records.map((r) => [r.id, r.read]), [['held:q-1', true], ['held:p-1', false]]);
   });
 
-  it('records what the hook noted while Away was off: questions asked in the app and finished turns', () => {
+  it('records what the hook noted: questions asked in the app and turns finished while Away was off', () => {
     const events = [
       { time: 2000, kind: 'asked-in-app', session: S1, questions: ['Which arena?'] },
       { time: 3000, kind: 'turn-finished', session: S2, last: 'All done.' },
@@ -48,7 +48,7 @@ describe('bellUpdate', () => {
     ];
     const s = update(null, { events });
     assert.deepEqual(s.records.map((r) => [r.kind, r.text, r.detail, r.time]), [
-      ['asked', 'Lane <one> asks you a question in the app', 'Which arena?', 2000],
+      ['asked', 'Lane <one> is waiting on you to answer questions in the app', 'Which arena?', 2000],
       ['turn', 'Lane two finished its turn', 'All done.', 3000],
     ]);
     assert.deepEqual(s.records[0].target, { tab: 'questions', session: S1 });

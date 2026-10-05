@@ -4,7 +4,7 @@ Spec: `docs/specs/project-manager-remote.md` · branch `tools/project-manager-re
 
 ## Destination
 
-The owner runs the project's sessions from the iPhone. With Away on, every session's questions, permission prompts, plan approvals and turn ends wait in the Project Manager's Questions tab and are answered in a tap or two, and the session carries on. A bell, and lock-screen notifications while Away is on, say when something needs the owner. Each session has a page with its lane, its posted shots and looping clips, every image it got back from its tools, the documents it wrote, its pull request and its artifacts. The commands Approve & continue, Show me, Merge, Compact (through the Claude app), Stop now and End work all work from the phone. The plan ends when the owner has run real work this way from the phone and approved the pull request.
+The owner runs the project's sessions from the iPhone. With Away on, every session's permission prompts, plan approvals and turn ends wait in the Project Manager's Questions tab and are answered in a tap or two, and the session carries on. (Questions did too until Oct 5; since then they stay in the app and the bell says a session waits on them: see the spec's status note.) A bell, and lock-screen notifications while Away is on, say when something needs the owner. Each session has a page with its lane, its posted shots and looping clips, every image it got back from its tools, the documents it wrote, its pull request and its artifacts. The commands Approve & continue, Show me, Merge, Compact (through the Claude app), Stop now and End work all work from the phone. The plan ends when the owner has run real work this way from the phone and approved the pull request.
 
 ## Notes
 

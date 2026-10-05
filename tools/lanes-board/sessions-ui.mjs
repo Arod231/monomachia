@@ -171,7 +171,7 @@ export function deliveredNote(when) {
 export function awayHtml(q) {
   const on = !!q?.away?.on;
   const n = q?.count ?? 0;
-  const title = on ? `Away since ${new Date(q.away.since).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}${q.away.from ? `, switched on from the ${q.away.from}` : ''}: sessions' questions, prompts and turn ends wait in the Questions tab`
+  const title = on ? `Away since ${new Date(q.away.since).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}${q.away.from ? `, switched on from the ${q.away.from}` : ''}: sessions' permission prompts, plans and turn ends wait in the Questions tab (questions stay in the app)`
     : "Away is off: sessions ask in the app's own dialogs. Switch it on before you leave the PC.";
   return `<label class="away${on ? ' on' : ''}" title="${esc(title)}"><input type="checkbox" data-away ${on ? 'checked' : ''}><span>Away</span>`
     + `${n ? `<b class="awayn" aria-label="${n} waiting">${n}</b>` : ''}</label>`;
@@ -202,10 +202,10 @@ function questionsList(q, openLabel) {
   const asked = q.asked.map((a) => `<section class="qgroup" data-session="${esc(a.session)}">${groupHead(a, a.time)}
     <div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b></div>
     ${questionsHtml(a.questions, false)}
-    <div class="row">${a.app ? `<button class="btn small" data-open="${esc(a.app)}">${esc(openLabel)}</button>` : ''}<span class="m">${q.away.on ? 'It asked before Away was on, so it waits in the app.' : 'Away is off, so it waits in the app.'}</span></div></div></section>`);
+    <div class="row">${a.app ? `<button class="btn small" data-open="${esc(a.app)}">${esc(openLabel)}</button>` : ''}<span class="m">Questions are answered in the app.</span></div></div></section>`);
   if (!held.length && !asked.length) {
-    return `<div class="empty">${q.away.on ? 'Nothing waiting. Questions, permission prompts and finished turns from every session land here while Away is on.'
-      : "Nothing waiting. Away is off, so sessions ask in the app's own dialogs; switch Away on before you leave the PC and they wait here instead."}</div>`;
+    return `<div class="empty">${q.away.on ? 'Nothing waiting. Permission prompts, plans and finished turns from every session land here while Away is on; questions stay in the app, and the bell tells you when one waits.'
+      : "Nothing waiting. Away is off, so sessions ask in the app's own dialogs; switch Away on before you leave the PC and their permission prompts and finished turns wait here instead."}</div>`;
   }
   return held.join('') + (asked.length ? `<div class="qsub">Asked in the app</div>` + asked.join('') : '');
 }

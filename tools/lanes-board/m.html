@@ -575,7 +575,7 @@ function renderLanes() {
 
 // ---------- sessions ----------
 // Every Claude session of the last three days (/sessions), with its context
-// gauge; their questions are answered in the Questions tab.
+// gauge; their questions are answered in the app.
 let sessionList = null;
 let sessionsTimer = 0;
 function sessionsHtml() {
@@ -884,7 +884,7 @@ document.addEventListener('change', async (e) => {
   if (!on && n && !confirm(`Switch Away off? The ${n} item${n === 1 ? '' : 's'} waiting go back to the app's own dialogs.`)) { e.target.checked = true; return; }
   try {
     await post('/relay/away', { on });
-    toast(on ? "Away is on: sessions' questions now wait in the Questions tab." : "Away is off: sessions ask in the app's own dialogs.");
+    toast(on ? "Away is on: sessions' permission prompts and turn ends now wait in the Questions tab." : "Away is off: sessions ask in the app's own dialogs.");
   } catch (err) { toast(`Couldn't switch Away: ${err.message}`, true); e.target.checked = !on; }
   pollQuestions();
 });
