@@ -9,6 +9,12 @@ extends Node
 ## view and the HUD stop processing once snapped, so the wall clock (idle bob,
 ## shake decay, the menu orbit) can't change the picture between runs.
 ##
+## "versus" is Versus split screen (23.6) on the shrine, two players (the
+## Rogue with the Katana on the keyboard, the Hunter with the Greatsword on a
+## controller) standing still, by --versus=: "centre" (2.5 m apart about
+## the middle) or "wall" (the Rogue with her back to the wall at +X, the
+## Hunter 2.5 m in from her), for the underside rule in both halves.
+##
 ## "watch_start" is Watch's first round call (23.5). --mirror makes the
 ## computer duels (Watch's among them) a Rogue against a Rogue.
 ##
@@ -77,7 +83,7 @@ extends Node
 const SEED: int = 7
 
 @export_enum(
-	"round_start", "exchange", "parry", "watch", "watch_start", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
+	"round_start", "exchange", "parry", "watch", "watch_start", "versus", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
 	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch", "select_preview",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
 	"recall_burst", "toasts", "prompts", "marker",
@@ -114,6 +120,8 @@ const SEED: int = 7
 @export var preview_weapon: StringName = &"katana"
 @export var preview_palette: int = 0
 @export var preview_turn: float = 20.0
+## The "versus" shot's placing: centre or wall (--versus= sets it too).
+@export var versus_place: String = "centre"
 ## The computer duels with a Rogue on both sides (--mirror).
 @export var mirror: bool = false
 ## Frames to let the renderer settle before the capture.
@@ -159,6 +167,8 @@ func _ready() -> void:
 			preview_palette = int(a.trim_prefix("--palette="))
 		elif a.begins_with("--turn="):
 			preview_turn = float(a.trim_prefix("--turn="))
+		elif a.begins_with("--versus="):
+			versus_place = a.trim_prefix("--versus=")
 		elif a == "--mirror":
 			mirror = true
 		elif a == "--no-packs":
@@ -167,6 +177,8 @@ func _ready() -> void:
 			# the run's own settings (shot runs use the defaults, never saved)
 			GameServices.settings.reduce_flashes = true
 	match shot:
+		"versus":
+			_versus_shot()
 		"watch_start":
 			# Watch's first round call over the side-on camera (23.5)
 			_gameplay(MatchConfig.WATCH)
@@ -686,3 +698,28 @@ func _select_preview() -> void:
 	var p: FighterPreview = select.preview
 	p.set_process(false)
 	p.advance(preview_turn / 360.0 * FighterPreview.TURN_SECONDS)
+
+
+## Versus on the shrine with both players standing, placed by versus_place.
+func _versus_shot() -> void:
+	var cfg: MatchConfig = MatchConfig.make(
+		MatchConfig.VERSUS,
+		MatchSide.human(&"rogue", &"katana", 0, InputDevices.KBM),
+		MatchSide.human(&"hunter", &"greatsword", 1, InputDevices.PAD0),
+		SEED,
+	)
+	_gameplay(MatchConfig.VERSUS, cfg, InputDevices.new(FakeDeviceState.new()))
+	host.step(Match.INTRO_FRAMES + 20)
+	if versus_place == "wall":
+		var a: Fighter = host.fighter(0)
+		var b: Fighter = host.fighter(1)
+		var edge: float = SimConst.ARENA_RADIUS - 0.6
+		a.pos = V3.make(edge, 0.0, 0.0)
+		b.pos = V3.make(edge - 2.5, 0.0, 0.0)
+		a.yaw = -PI / 2.0
+		b.yaw = PI / 2.0
+		for f: Fighter in [a, b]:
+			f.vel = V3.make()
+		host.step(2)
+	else:
+		_place_apart(2.5)

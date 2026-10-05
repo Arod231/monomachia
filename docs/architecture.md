@@ -169,7 +169,8 @@ flowchart TD
         HOST --> VIEW["View (Node3D)<br/>match_view.gd"]
         HOST --> HUD["Hud (CanvasLayer)<br/>ui/hud/match_hud.tscn"]
         HOST --> AUD["Audio (Node3D)<br/>match_audio.gd"]
-        VIEW --> CAM["CameraRig (Camera3D)"]
+        VIEW --> CAM["CameraRig (Camera3D)<br/>in Versus moved into SplitView's left half"]
+        VIEW --> SPLIT["SplitView (CanvasLayer 1)<br/>Versus only: two halves, CameraRig2 on the right"]
         VIEW --> ARENA["Arena<br/>added at runtime"]
         VIEW --> F0["Fighter0, Fighter1 (FighterView)<br/>added at runtime"]
         VIEW --> DROP["Dropped weapons, flashes<br/>added at runtime"]
@@ -663,9 +664,10 @@ flowchart LR
 | File | Class | What it does |
 | --- | --- | --- |
 | `match_host.gd` | `MatchHost` | The fixed-step loop (section 5). Signals: `match_started`, `sim_event`, `stepped`, `match_finished`, `pause_changed`, `stopped`, `loadout_changed` (the training dummy swapped weapons; the view and the HUD's plate follow), `training_changed` (the dummy's behaviour or the refill changed). |
-| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
+| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera (in Versus both halves' cameras, `cameras`). Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
 | `camera_rig.gd` | `CameraRig` | FOLLOW (over the shoulder), WATCH (side-on) and MENU (orbit) cameras with damping, arena clamp, shake and FOV kick. |
-| `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera. |
+| `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera, or in Versus stands between the fighters facing side-on (`versus_listener()`). |
+| `split_view.gd` | `SplitView` | Versus split screen (23.6): two `SubViewport` halves sharing the match's world, a divider, neither listening for 3D sound, both in `GraphicsApplier.VIEWPORTS_GROUP`. |
 | `stick_pose.gd` | `StickPose` | Stand-in posing: hand positions and blade directions from the rules' state. Task 14.10 replaces it with authored swings. |
 | `arena_scenes.gd` | `ArenaScenes` | Arena id → `ArenaDef` → scene, falling back to the stand-in arena if the radius doesn't match the rules. |
 | `standin_arena.gd/.tscn` | | A simple code-built arena, used by tests and as the fallback. |
