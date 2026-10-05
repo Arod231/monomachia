@@ -7,7 +7,7 @@
 // screenshots, pasted images, images from anywhere else, its subagents' images
 // and any result whose call wasn't seen are left out.
 // tests/lanes-board-work-images.test.mjs checks the rule.
-import { open, stat } from 'node:fs/promises';
+import { lineAt, scanned } from './transcript-index.mjs';
 
 const VIEWPORT = /^mcp__([^_]*?(blender|godot)[^_]*)__/i;
 const norm = (p) => String(p ?? '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
@@ -63,61 +63,16 @@ export function workImageScanner() {
 }
 
 // ---------- a transcript's images, kept up to date as it grows ----------
-const CHUNK = 8 << 20;
-const indexes = new Map(); // file -> { offset, line, scanner, busy }
-
-async function catchUp(file, ix) {
-  const { size } = await stat(file);
-  if (size < ix.offset) { Object.assign(ix, { offset: 0, line: 0, scanner: workImageScanner() }); } // started again
-  if (size === ix.offset) return;
-  const fh = await open(file, 'r');
-  try {
-    let rest = Buffer.alloc(0);
-    let at = ix.offset;
-    while (at < size) {
-      const buf = Buffer.alloc(Math.min(CHUNK, size - at));
-      const { bytesRead } = await fh.read(buf, 0, buf.length, at);
-      if (!bytesRead) break;
-      at += bytesRead;
-      let data = Buffer.concat([rest, buf.subarray(0, bytesRead)]);
-      let start = 0;
-      for (let nl = data.indexOf(10); nl >= 0; start = nl + 1, nl = data.indexOf(10, start)) {
-        ix.scanner.feed(data.toString('utf8', start, nl), ix.line++, ix.offset);
-        ix.offset += nl + 1 - start;
-      }
-      rest = data.subarray(start); // a half-written last line waits for the next look
-      data = null;
-    }
-  } finally { await fh.close(); }
-}
-
 // The images of the work in a transcript, oldest first.
-export function workImagesOf(file) {
-  let ix = indexes.get(file);
-  if (!ix) { ix = { offset: 0, line: 0, scanner: workImageScanner(), busy: Promise.resolve() }; indexes.set(file, ix); }
-  const run = ix.busy.then(() => catchUp(file, ix)).then(() => ix.scanner.found());
-  ix.busy = run.catch(() => {});
-  return run;
-}
+export const workImagesOf = async (file) => (await scanned(file, 'work-images', workImageScanner)).found();
 
 // One image of the work, by its reference (line and n): { type, bytes }, or
 // null when the reference isn't one of them.
 export async function workImageAt(file, line, n) {
   const f = (await workImagesOf(file)).find((x) => x.line === line && x.n === n);
   if (!f) return null;
-  const fh = await open(file, 'r');
   try {
-    const parts = [];
-    for (let at = f.offset; ;) {
-      const buf = Buffer.alloc(1 << 20);
-      const { bytesRead } = await fh.read(buf, 0, buf.length, at);
-      if (!bytesRead) break;
-      const nl = buf.subarray(0, bytesRead).indexOf(10);
-      parts.push(buf.subarray(0, nl < 0 ? bytesRead : nl));
-      if (nl >= 0) break;
-      at += bytesRead;
-    }
-    const image = resultImages(JSON.parse(Buffer.concat(parts).toString('utf8')))[n]?.image;
+    const image = resultImages(await lineAt(file, f.offset))[n]?.image;
     return image ? { type: f.type, bytes: Buffer.from(image.source.data, 'base64') } : null;
-  } catch { return null; } finally { await fh.close(); }
+  } catch { return null; }
 }

@@ -465,6 +465,108 @@ export function mountViewer() {
   };
 }
 
+// ---------- Docs ----------
+// /docs (docs-api.mjs): the documents a session wrote, its pull request and
+// the artifacts it published. Markdown is rendered with the second brain's
+// library (marked, served at /marked.js), with any HTML in it shown as text
+// and only web links kept, so a document can't act as the Project Manager.
+
+export function docHtml(text, marked) {
+  const m = new marked.Marked({ gfm: true });
+  m.use({ renderer: {
+    html: ({ text: t }) => esc(t),
+    link({ href, title, tokens }) {
+      const inner = this.parser.parseInline(tokens);
+      return /^(https?:|mailto:|#)/i.test(href ?? '')
+        ? `<a href="${esc(href)}"${title ? ` title="${esc(title)}"` : ''} target="_blank" rel="noopener">${inner}</a>` : inner;
+    },
+    image: ({ href, text: alt }) => (/^https:/i.test(href ?? '') ? `<img src="${esc(href)}" alt="${esc(alt)}" loading="lazy">` : esc(alt)),
+  } });
+  return m.parse(String(text ?? ''));
+}
+
+const KIND_LABEL = { md: 'Markdown', html: 'HTML page', pdf: 'PDF' };
+export const docUrl = (session, file) => `/doc?session=${session}&path=${encodeURIComponent(file)}`;
+
+function prHtml(pr, marked) {
+  const state = pr.draft ? 'draft' : String(pr.state ?? '').toLowerCase();
+  const checks = pr.checks.length ? `<ul class="checks">${pr.checks.map((c) => {
+    const s = String(c.state).toUpperCase();
+    const cls = ['SUCCESS', 'NEUTRAL', 'SKIPPED'].includes(s) ? 'ok' : ['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED'].includes(s) ? 'bad' : 'wait';
+    return `<li class="${cls}">${esc(c.name)} <span class="k">${esc(s.toLowerCase().replace(/_/g, ' '))}</span></li>`;
+  }).join('')}</ul>` : '<div class="k">No checks.</div>';
+  const shown = pr.files.slice(0, 40);
+  const files = `<ul class="pfiles">${shown.map((f) => `<li><code>${esc(f.path)}</code> <span class="k">+${Number(f.additions)} −${Number(f.deletions)}</span></li>`).join('')}`
+    + `${pr.files.length > shown.length ? `<li class="k">and ${pr.files.length - shown.length} more</li>` : ''}</ul>`;
+  const body = pr.body?.trim() ? (marked ? `<div class="mdoc">${docHtml(pr.body, marked)}</div>` : `<pre class="code">${esc(pr.body)}</pre>`) : '<div class="k">No description.</div>';
+  return `<details class="prbox"><summary><a href="${esc(pr.url)}" target="_blank" rel="noopener">PR #${Number(pr.number)}</a> ${esc(pr.title)}`
+    + ` <span class="k">${esc(state)} · ${esc(pr.head)} into ${esc(pr.base)} · +${Number(pr.additions)} −${Number(pr.deletions)}</span></summary>`
+    + `<h4 class="mdh">Checks</h4>${checks}<h4 class="mdh">Changed files (${pr.files.length})</h4>${files}<h4 class="mdh">Description</h4>${body}</details>`;
+}
+
+// d: /docs; session: its id; marked: the library, when loaded.
+export function docsHtml(d, session, { marked = null } = {}) {
+  if (!d || (!d.docs?.length && !d.artifacts?.length && !d.pr)) return '';
+  const docs = d.docs.map((x, i) => {
+    const where = `<span class="k">${esc([KIND_LABEL[x.kind], x.dir, ago(x.time)].filter(Boolean).join(' · '))}</span>`;
+    return x.kind === 'md' ? `<li><button class="dlink" data-doc="${i}">${esc(x.name)}</button> ${where}</li>`
+      : `<li><a class="dlink" href="${esc(docUrl(session, x.path))}" target="_blank" rel="noopener">${esc(x.name)}</a> ${where}</li>`;
+  });
+  const arts = d.artifacts.map((a) => `<li><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a> <span class="k">artifact · ${esc(ago(a.time))}</span></li>`);
+  return `<div class="sh"><h2>Docs</h2></div>${d.pr ? prHtml(d.pr, marked) : ''}`
+    + `${docs.length || arts.length ? `<ul class="dlist">${docs.join('')}${arts.join('')}</ul>` : ''}`;
+}
+
+const READER_CSS = `
+.dlist{list-style:none;padding:0;margin:6px 0 14px}.dlist li{padding:6px 0;border-bottom:1px solid #8882}
+.dlink{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer;text-align:left}
+.prbox{margin:6px 0 10px}.prbox summary{cursor:pointer}.prbox .checks,.prbox .pfiles{list-style:none;padding:0;margin:4px 0}
+.prbox .checks li::before{content:'● '}.prbox .checks .ok::before{color:#2a8a3e}.prbox .checks .bad::before{color:#c4302b}.prbox .checks .wait::before{color:#c58a00}
+.mdoc{overflow-wrap:anywhere;line-height:1.5}.mdoc pre{overflow:auto;padding:8px;background:#8881;border-radius:6px}.mdoc table{border-collapse:collapse;display:block;overflow:auto}
+.mdoc td,.mdoc th{border:1px solid #8884;padding:3px 6px}.mdoc img{max-width:100%}
+.reader{position:fixed;inset:0;z-index:1000;background:var(--page,#fff);color:var(--text,#111);display:flex;flex-direction:column}
+.reader[hidden]{display:none}
+.reader .rbar{display:flex;gap:10px;align-items:center;padding:calc(env(safe-area-inset-top) + 6px) 12px 6px;border-bottom:1px solid #8883}
+.reader .rbar b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reader .rbody{flex:1;overflow:auto;padding:12px 16px calc(env(safe-area-inset-bottom) + 16px);-webkit-overflow-scrolling:touch}
+.reader .rbtn{background:#8882;color:inherit;border:0;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer}`;
+
+// The full-screen reader of a session's Markdown documents, shared by both
+// pages: open(session, doc) fetches it and renders it; Back (or the phone's
+// back gesture) closes it.
+export function mountReader({ marked = () => window.marked } = {}) {
+  const style = document.createElement('style');
+  style.textContent = READER_CSS;
+  document.head.append(style);
+  const box = document.createElement('div');
+  box.className = 'reader';
+  box.hidden = true;
+  document.body.append(box);
+  const hide = () => { box.hidden = true; box.innerHTML = ''; };
+  function close() { if (box.hidden) return; if (history.state?.reader) history.back(); else hide(); }
+  window.addEventListener('popstate', (e) => { if (!e.state?.reader && !box.hidden) hide(); });
+  box.addEventListener('click', (e) => { if (e.target.closest('[data-reader-close]')) close(); });
+  document.addEventListener('keydown', (e) => { if (!box.hidden && e.key === 'Escape') close(); });
+  return {
+    async open(session, doc) {
+      if (box.hidden) history.pushState({ ...(history.state ?? {}), reader: true }, '', location.href);
+      box.hidden = false;
+      box.innerHTML = `<div class="rbar"><button class="rbtn" data-reader-close>‹ Back</button><b>${esc(doc.name)}</b></div>`
+        + '<div class="rbody"><div class="k">Loading…</div></div>';
+      const body = box.querySelector('.rbody');
+      try {
+        const r = await fetch(docUrl(session, doc.path), { cache: 'no-store' });
+        const text = await r.text();
+        const from = r.headers.get('x-doc-from');
+        body.innerHTML = r.ok
+          ? `${from ? `<div class="k">From ${esc(from)}</div>` : ''}<div class="mdoc">${marked() ? docHtml(text, marked()) : `<pre class="code">${esc(text)}</pre>`}</div>`
+          : `<p>${esc(text)}</p>`;
+      } catch (err) { body.innerHTML = `<p>Couldn't load it: ${esc(err.message)}</p>`; }
+    },
+    close,
+  };
+}
+
 // ---------- the Away switch and the Questions tab ----------
 // q is /questions (sessions-api.mjs): { away: { on, since, from }, count,
 // groups: [{ session, app, title, cwd, task, since, items }], asked: [...] }.

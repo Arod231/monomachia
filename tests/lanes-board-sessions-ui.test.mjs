@@ -1,11 +1,12 @@
 // The session, question and permission rendering both Project Manager pages
 // share (tools/lanes-board/sessions-ui.mjs).
+import { createRequire } from 'node:module';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  STATE_LABELS, APP_SESSIONS_URL, olderCardHtml, viewerHtml, visualsHtml, workImagesHtml, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
+  STATE_LABELS, APP_SESSIONS_URL, docHtml, docsHtml, olderCardHtml, viewerHtml, visualsHtml, workImagesHtml, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -494,7 +495,7 @@ describe('Visuals', () => {
   });
 
   it('lists older sessions known by their media, each opening its page', () => {
-    const h = olderCardHtml({ id: '11111111-2222-4333-8444-555555555555', title: 'Lane <x>', cwd: 'C:\w\lane-x', count: 3, latest: Date.now() - 5 * 86_400_000 });
+    const h = olderCardHtml({ id: '11111111-2222-4333-8444-555555555555', title: 'Lane <x>', cwd: 'C:\\w\\lane-x', count: 3, latest: Date.now() - 5 * 86_400_000 });
     assert.match(h, /data-session="11111111-2222-4333-8444-555555555555"/);
     assert.match(h, /Lane &lt;x&gt;/);
     assert.match(h, /3 visuals/);
@@ -512,10 +513,53 @@ describe('the bell and new visuals', () => {
 
 describe('Images of the work', () => {
   it('lists the images of the work under Visuals, each opening the viewer, and nothing when there are none', () => {
-    const h = workImagesHtml([{ id: '9-0', kind: 'still', url: '/work/s/9-0', caption: 'arena <1>.png', source: 'C:\w\shots\arena <1>.png', time: Date.now() }]);
+    const h = workImagesHtml([{ id: '9-0', kind: 'still', url: '/work/s/9-0', caption: 'arena <1>.png', source: 'C:\\w\\shots\\arena <1>.png', time: Date.now() }]);
     assert.match(h, /<h2>Images of the work<\/h2>/);
     assert.match(h, /data-work="0"[^]*<img [^>]*src="\/work\/s\/9-0"[^>]*loading="lazy"/);
     assert.match(h, /arena &lt;1&gt;\.png/);
     assert.equal(workImagesHtml([]), '');
+  });
+});
+
+describe('Docs', () => {
+  // The UMD build sets globalThis.marked, as it sets window.marked on the pages.
+  const marked = (createRequire(import.meta.url)('../tools/second-brain/vendor/marked.umd.js'), globalThis.marked);
+  const S1 = '11111111-2222-4333-8444-555555555555';
+  const pr = { number: 7, title: 'Lane <x>', url: 'https://github.com/o/r/pull/7', state: 'OPEN', draft: false, base: 'main', head: 'lane/x', body: '## Summary\n\n<img src=x onerror=alert(1)>',
+    additions: 12, deletions: 3, checks: [{ name: 'test', state: 'SUCCESS' }, { name: 'lint', state: 'FAILURE' }], files: [{ path: 'docs/plan.md', additions: 12, deletions: 3 }] };
+
+  it('serves the second brain\'s Markdown library to the pages', () => {
+    assert.deepEqual(pageFor('/marked.js', ''), { file: '../second-brain/vendor/marked.umd.js', type: 'text/javascript; charset=utf-8' });
+  });
+
+  it('renders Markdown with any HTML in it shown as text, and only web links', () => {
+    const h = docHtml('# Title\n\n<script>alert(1)</script>\n\n[a](javascript:alert(1)) [b](https://e.com) ![i](data:image/png;base64,AA)', marked);
+    assert.match(h, /<h1[^>]*>Title<\/h1>/);
+    assert.doesNotMatch(h, /<script/);
+    assert.match(h, /&lt;script&gt;/);
+    assert.doesNotMatch(h, /javascript:|data:image/);
+    assert.match(h, /<a href="https:\/\/e.com" target="_blank" rel="noopener">b<\/a>/);
+  });
+
+  it('lists its documents (Markdown opens in the reader, HTML and PDF in a new tab), its pull request and its artifacts', () => {
+    const h = docsHtml({ docs: [{ path: 'C:\\w\\docs\\plan.md', name: 'plan.md', dir: 'docs', kind: 'md', time: 1 },
+      { path: 'C:\\w\\r <1>.html', name: 'r <1>.html', dir: '', kind: 'html', time: 1 }],
+    artifacts: [{ url: 'https://claude.ai/artifact/Rep0rt', title: 'Report <x>', time: 1 }], pr }, S1, { marked });
+    assert.match(h, /<h2>Docs<\/h2>/);
+    assert.match(h, /<button [^>]*data-doc="0"[^>]*>[^]*plan.md/);
+    assert.match(h, new RegExp(`<a [^>]*href="/doc\\?session=${S1}&amp;path=C%3A%5Cw%5Cr%20%3C1%3E.html"[^>]*target="_blank"`));
+    assert.match(h, /r &lt;1&gt;\.html/);
+    assert.match(h, /<a href="https:\/\/claude.ai\/artifact\/Rep0rt" target="_blank" rel="noopener">Report &lt;x&gt;<\/a>/);
+    assert.match(h, /<a href="https:\/\/github.com\/o\/r\/pull\/7"[^>]*>PR #7<\/a> Lane &lt;x&gt;/);
+    assert.match(h, /\+12 −3/);
+    assert.match(h, /test[^]*lint/);
+    assert.match(h, /docs\/plan.md/);
+    assert.match(h, /<h2[^>]*>Summary<\/h2>/);
+    assert.doesNotMatch(h, /<img src=x/);
+  });
+
+  it('shows nothing when it wrote and published nothing and has no pull request', () => {
+    assert.equal(docsHtml({ docs: [], artifacts: [], pr: null }, S1, { marked }), '');
+    assert.equal(docsHtml(null, S1, { marked }), '');
   });
 });

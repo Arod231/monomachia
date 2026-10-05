@@ -39,6 +39,7 @@ import { bellApi } from './bell-api.mjs';
 import { pushApi } from './push-api.mjs';
 import { ghRunner, mergeApi } from './merge-api.mjs';
 import { mediaApi } from './media-api.mjs';
+import { docsApi } from './docs-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
@@ -710,6 +711,8 @@ const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: 
 // bell, looked for every minute (LANES_MERGE_POLL_MS overrides it, for tests).
 const mergeRoutes = mergeApi({ repoDir: REPO, relay: RELAY, gh, prOf: prOfBranch, sessions: sessionRoutes,
   stateFile: path.join(STATE, 'merge-ready.json'), pollMs: Number(process.env.LANES_MERGE_POLL_MS) || 60_000 });
+// A session's Docs: what it wrote, its pull request and its artifacts (docs-api.mjs).
+const docsRoutes = docsApi({ repoDir: REPO, worktrees, gh, prOf: prOfBranch, fileOf: sessionRoutes.fileOf });
 // Lock-screen notifications (push-api.mjs): the bell's new records, pushed while
 // Away is on to every phone that turned them on. LANES_PUSH_INSECURE=1 lets a
 // test's stand-in push service on http through.
@@ -822,6 +825,7 @@ async function handle(req, res) {
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
     if (await mediaRoutes.serve(req, res, url)) return;
+    if (await docsRoutes.serve(req, res, url)) return;
     const work = await sessionRoutes.workImage(url);
     if (work !== undefined) {
       if (!work) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('No such image'); return; }
@@ -829,7 +833,7 @@ async function handle(req, res) {
       res.end(work.bytes);
       return;
     }
-    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? sessionRoutes.get(url);
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? docsRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.

@@ -410,6 +410,8 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       return POSTS[route]?.(body, ctx);
     },
     workImage,
+    // For Docs (docs-api.mjs): a session's transcript, however old, or null.
+    fileOf: async (id) => (SESSION_ID.test(id ?? '') ? ((await findTranscripts()).find((x) => x.id === id) ?? await findTranscript(id))?.file ?? null : null),
     // For the bell (bell-api.mjs): the items held now, and sessions' titles.
     held: async () => (await relayState()).pending,
     // For Merge (merge-api.mjs): a worded message to a session, delivered as a

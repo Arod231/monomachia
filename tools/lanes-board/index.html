@@ -507,6 +507,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
         <div class="mergebox" id="sRemote" hidden></div>
         <div id="sPend"></div>
         <div id="sVis"></div>
+        <div id="sDocs"></div>
         <div id="sLog"></div>
         <div class="comp" id="sComp" hidden>
           <textarea id="sText" rows="3" placeholder="Reply to this session (Ctrl+Enter sends)"></textarea>
@@ -520,6 +521,8 @@ details.tl pre { margin: 4px 0 4px 14px; }
 <div id="tip"></div>
 <div id="menu" role="menu"></div>
 <div id="queue" aria-live="polite"><div class="in" id="queueIn"></div></div>
+<!-- The second brain's Markdown library (window.marked), for a session's Docs. -->
+<script src="/marked.js" defer></script>
 <script type="module">
 // The graph layout (graph.mjs) for the Graph tab, and the context gauge and
 // roadmap summary (ui.mjs), and how sessions and their prompts are drawn
@@ -1345,6 +1348,8 @@ window.addEventListener('resize', () => { if (view === 'graph' && !gView[gOpt.pl
 const sessions = { list: [], older: [], detail: null, limit: 300, drafts: {} };
 let merge = null;
 let viewer = null; // the full-screen viewer of a session's visuals (sessions-ui.mjs mountViewer)
+let reader = null; // the full-screen reader of its Markdown documents (sessions-ui.mjs mountReader)
+let docsTimer = null;
 let remote = null; // Compact and Open in the Claude app (sessions-ui.mjs mountRemote)
 let sSel = store.get('al-session', null);
 let sSigs = {};
@@ -1361,9 +1366,36 @@ function selectSession(id) {
   remote?.hide();
   sOpenTools.clear();
   $('sText').value = sessions.drafts[id] ?? '';
+  sessions.docs = null;
+  $('sDocs').innerHTML = '';
   renderSessionList();
   renderSessionDetail();
   pollSession(true);
+  pollDocs();
+}
+
+// Its Docs (docs-api.mjs): asked for when it's picked and every 30 s while
+// the Sessions tab shows it (GitHub's side is asked at most once a minute).
+let docsFor = null; // the session whose Docs are being kept up to date
+async function pollDocs() {
+  clearTimeout(docsTimer);
+  const id = sSel;
+  docsFor = id;
+  if (!id) return;
+  if (view === 'sessions') {
+    try {
+      const d = await (await fetch(`/docs?session=${encodeURIComponent(id)}`, { cache: 'no-store' })).json();
+      if (id === sSel && !d.error) { sessions.docs = d; renderDocs(); }
+    } catch { /* try again */ }
+  }
+  if (id === sSel) docsTimer = setTimeout(pollDocs, sessions.docs ? 30000 : 3000);
+}
+function renderDocs() {
+  if (!sessions.docs || !window.S) return;
+  const sig = JSON.stringify([sSel, sessions.docs, !!window.marked]);
+  if (sig === sSigs.docs) return;
+  sSigs.docs = sig;
+  $('sDocs').innerHTML = S.docsHtml(sessions.docs, sSel, { marked: window.marked ?? null });
 }
 
 function renderSessionCount() {
@@ -1507,6 +1539,8 @@ $('sDetail').addEventListener('click', async (e) => {
   if (fig && sessions.detail?.visuals) { viewer?.open(sessions.detail.visuals, Number(fig.dataset.vis)); return; }
   const work = e.target.closest('[data-work]');
   if (work && sessions.detail?.workImages) { viewer?.open(sessions.detail.workImages, Number(work.dataset.work)); return; }
+  const docb = e.target.closest('[data-doc]');
+  if (docb && sessions.docs) { reader?.open(sSel, sessions.docs.docs[Number(docb.dataset.doc)]); return; }
   if (await answerClick(e)) return;
   const b = e.target.closest('button');
   if (!b) return;
@@ -1567,7 +1601,7 @@ async function pollSession(once) {
     try {
       const r = await fetch(`/session?id=${encodeURIComponent(sSel)}&limit=${sessions.limit}`, { cache: 'no-store' });
       const d = await r.json();
-      if (d.id === sSel) { sessions.detail = d; renderSessionDetail(); }
+      if (d.id === sSel) { sessions.detail = d; renderSessionDetail(); if (docsFor !== sSel) pollDocs(); }
       else if (d.error) { $('sHead').innerHTML = `<div class="empty">${esc(d.error)}</div>`; }
     } catch { /* try again */ }
   }
@@ -1621,6 +1655,8 @@ window.addEventListener('modules-ready', () => {
   merge = S.mountMerge({ panel: $('sMerge'), post, session: () => sSel, say: (t) => { $('sCmdNote').textContent = t; } });
   remote = S.mountRemote({ panel: $('sRemote'), detail: () => (sessions.detail?.id === sSel ? sessions.detail : null), say: (t) => { $('sCmdNote').textContent = t; } });
   viewer = S.mountViewer();
+  reader = S.mountReader();
+  renderDocs();
   S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session, merge: pr, visuals }) => {
     if (tab === 'sessions' && session) {
       setView('sessions'); selectSession(session); if (pr) merge.show();

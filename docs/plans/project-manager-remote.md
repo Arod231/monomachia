@@ -272,8 +272,8 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: unit tests on fixture transcript lines (an image read from a file, a browser screenshot, an MCP tool's image, a pasted image left out); the page shows them.
   - Blocked by: 15 · Stories: 66
   - Owner's answers (Oct 5): only images of the work are listed: images the session opened from its own worktree's `shots/` (renders of the game it made) and Godot or Blender viewport shots. Browser-pane screenshots, pasted images, images from outside its worktree and its subagents' images are left out.
-  - Built (Oct 5): `work-images.mjs` finds them (a Read of a file under the folder the session was in when it made the call, plus `/shots/`; any tool of an MCP server named for Blender or Godot), indexing each transcript as it grows; the session page lists them as "Images of the work" under Visuals, in the same viewer, served from the transcript line at `/work/<session>/<line>-<n>`.
-- [ ] **17. Docs, the pull request and artifacts.** A session's page lists what it wrote and what it published.
+  - Built (Oct 5): `work-images.mjs` finds them (a Read of a file in `shots/` under the folder the session was in when it made the call; any tool of an MCP server named for Blender or Godot), indexing each transcript as it grows; the session page lists them as "Images of the work" under Visuals, in the same viewer, served from the transcript line at `/work/<session>/<line>-<n>`.
+- [x] **17. Docs, the pull request and artifacts.** A session's page lists what it wrote and what it published.
   - Delivers:
     - the Markdown files its Write and Edit calls name, newest first, read from the worktree or, once that's gone, from its branch in git, and rendered with the Markdown library the second brain vendors;
     - its pull request's description, checks and changed files, with a GitHub link, cached for a minute;
@@ -284,6 +284,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 5):
     - the documents listed are the Markdown files it wrote (rendered), plus HTML pages and PDFs it wrote (opened as they are; HTML in a sandbox, so a page can't act as the Project Manager), all inside the repo or its worktrees;
     - a document whose worktree is gone is read from its branch (local, then remote), else from its merged pull request's head commit; only if all fail does it show "no longer available".
+  - Built (Oct 5): `docs.mjs` (what its Write, Edit and MultiEdit calls name, the artifacts its publishes returned, its branch, and the path rule) and `docs-api.mjs` (`/docs`, and `/doc` serving Markdown as text, HTML in a sandbox with no access to the Project Manager, and PDF; the pull request from `gh`, cached a minute); both pages' session view shows Docs with the pull request (checks, changed files, description), the documents (Markdown opens in a full-screen reader, rendered with `marked` from `tools/second-brain/vendor/`, served at `/marked.js`, any HTML in it shown as text) and the artifacts. A PDF shows only when a Write or Edit call names it; one made by a script isn't found.
 - [ ] **18. Clips, and sessions told to post.** Sessions can record a scene as a looping clip, and CLAUDE.md tells them when to post.
   - Delivers:
     - **`npm run clip -- <scene> [--seconds N] [scene args]`:** it records a scene the shots tool runs, with Godot's Movie Maker at 30 fps and 1280×720, as a looping MP4 (H.264, no audio, 6 seconds by default and 20 at most) plus a still, written into the worktree's `shots/`.

@@ -384,6 +384,7 @@ nav.tabs .count:empty { display: none; }
     <div class="mergebox" id="sRemote" hidden></div>
     <div id="sPend"></div>
     <div id="sVis"></div>
+    <div id="sDocs"></div>
     <div class="sh"><h2>Conversation</h2></div>
     <div class="slog" id="sLog"></div>
     <div class="scomp" id="sComp"><textarea id="sText" rows="2" placeholder="Reply to this session"></textarea>
@@ -413,6 +414,8 @@ nav.tabs .count:empty { display: none; }
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="bellPanel" hidden></div>
 
+<!-- The second brain's Markdown library (window.marked), for a session's Docs. -->
+<script src="/marked.js" defer></script>
 <script type="module">
 // The context gauge, the roadmap summary and how sessions are drawn, shared
 // with the desktop page.
@@ -683,13 +686,19 @@ let openId = null;
 let merge = null; // the Merge panel (sessions-ui.mjs mountMerge)
 let remote = null; // Compact and Open in the Claude app (sessions-ui.mjs mountRemote)
 let viewer = null; // the full-screen viewer of its visuals (sessions-ui.mjs mountViewer)
+let reader = null; // the full-screen reader of its Markdown documents (sessions-ui.mjs mountReader)
+let docs = null; // /docs: what it wrote, its pull request and its artifacts
+let docsTimer = 0;
 let detail = null;
 let detailLimit = 150;
 let detailTimer = 0;
 let sSig = {};
 const openTools = new Set();
 function openSession(id, push = true) {
-  if (openId !== id) { detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; merge?.hide(); remote?.hide(); }
+  if (openId !== id) {
+    detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; merge?.hide(); remote?.hide();
+    docs = null; $('sDocs').innerHTML = '';
+  }
   if (tab !== 'sessions') { tab = 'sessions'; store.set('m-tab', tab); }
   openId = id;
   if (push && history.state?.session !== id) history.pushState({ session: id }, '', `/m#session=${encodeURIComponent(id)}`);
@@ -700,7 +709,31 @@ function openSession(id, push = true) {
   window.scrollTo(0, 0);
   renderSession();
   pollDetail();
+  pollDocs();
 }
+// Its Docs (docs-api.mjs), asked for when the page opens and every 30 s
+// (GitHub's side is asked at most once a minute).
+async function pollDocs() {
+  clearTimeout(docsTimer);
+  const id = openId;
+  if (!id) return;
+  try {
+    const d = await (await fetch(`/docs?session=${encodeURIComponent(id)}`, { cache: 'no-store' })).json();
+    if (id === openId && !d.error) { docs = d; renderDocs(); }
+  } catch { /* try again */ }
+  if (id === openId && !document.hidden) docsTimer = setTimeout(pollDocs, 30000);
+}
+function renderDocs() {
+  if (!docs || !window.S) return;
+  const sig = JSON.stringify([openId, docs, !!window.marked]);
+  if (sig === sSig.docs) return;
+  sSig.docs = sig;
+  $('sDocs').innerHTML = S.docsHtml(docs, openId, { marked: window.marked ?? null });
+}
+$('sDocs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-doc]');
+  if (b && docs) reader?.open(openId, docs.docs[Number(b.dataset.doc)]);
+});
 function closeSession() {
   if (history.state?.session) history.back(); else setTab('sessions');
 }
@@ -1132,7 +1165,7 @@ async function poll(once) {
   if (once !== true) { clearTimeout(pollTimer); if (!document.hidden) pollTimer = setTimeout(poll, 4000); }
 }
 // No polling while the phone is locked or the tab is in the background.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); pollQuestions(); pollDetail(); } else { clearTimeout(pollTimer); clearTimeout(questionsTimer); clearTimeout(detailTimer); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); pollQuestions(); pollDetail(); pollDocs(); } else { clearTimeout(pollTimer); clearTimeout(questionsTimer); clearTimeout(detailTimer); clearTimeout(docsTimer); } });
 window.addEventListener('modules-ready', render);
 
 // ---------- the bell ----------
@@ -1173,6 +1206,8 @@ function openFrom(href) {
 window.addEventListener('modules-ready', () => {
   merge = S.mountMerge({ panel: $('sMerge'), post, session: () => openId, say: (t, err) => toast(t, err) });
   viewer = S.mountViewer();
+  reader = S.mountReader();
+  renderDocs();
   remote = S.mountRemote({ panel: $('sRemote'), detail: () => (detail?.id === openId ? detail : null), say: (t, err) => toast(t, err) });
   bell = S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: goTo, push: S.mountPush({ post }) });
   navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'open') openFrom(e.data.url); });
