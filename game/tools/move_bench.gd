@@ -11,8 +11,11 @@ extends RefCounted
 ## poses and measures the view once per attack frame (steps the rules spend
 ## in hit-stop don't advance the move, so they are skipped). Reach is
 ## measured against the defender standing where it stood when the move
-## began. begin() and next_frame() step through a move a frame at a time,
-## for a caller that shows each frame (the contact sheets).
+## began. Every frame is measured, so the foot slide (a FootTrack over the
+## move's frames) and the blade clearance skip none, and worst() names the
+## worst frame of each (milestone-1 task 9). begin() and next_frame() step
+## through a move a frame at a time, for a caller that shows each frame (the
+## contact sheets).
 ##
 ## Benches made in a test are freed together by free_all().
 
@@ -32,6 +35,21 @@ class Step:
 	var report: PoseCheck.Report
 
 
+## A move's worst frames: the blade nearest the body and the planted foot
+## furthest from where it landed.
+class Worst:
+	## The nearest the blade came to the body (m; INF with no blade), the
+	## capsule, and the frame.
+	var blade_gap: float = INF
+	var blade_near: String = ""
+	var blade_frame: int = 0
+	## The furthest a planted foot slid (m), its side, and the frame; 0 and
+	## "" when no foot slid.
+	var slide: float = 0.0
+	var slide_side: String = ""
+	var slide_frame: int = 0
+
+
 var weapon: WeaponDef
 ## The defender's weapon (the Katana unless given; a parry's sheets pair
 ## every weapon, task 27).
@@ -49,6 +67,8 @@ var move: AttackDef
 ## stepped to.
 var _start_feet: Vector3 = Vector3.ZERO
 var _last: int = 0
+## The feet over the move begin() started.
+var _track: PoseCheck.FootTrack
 
 
 ## A bench for fighter `fighter_id` (a FighterLook id) with `weapon`, its
@@ -141,6 +161,7 @@ func begin(move_id: StringName) -> bool:
 	move = attacker.atk.def
 	_start_feet = _feet(defender)
 	_last = 0
+	_track = PoseCheck.FootTrack.new(check)
 	return true
 
 
@@ -161,7 +182,7 @@ func next_frame() -> Step:
 		s.frame = _last
 		s.phase = &"startup" if _last <= move.startup else (&"active" if _last <= move.startup + move.active else &"recovery")
 		s.contact = _last == move.startup + 1
-		s.report = check.measure(await _frame(_start_feet), s.contact)
+		s.report = check.measure(await _frame(_start_feet), s.contact, _track)
 		return s
 	move = null
 	return null
@@ -210,9 +231,29 @@ static func summary(move_id: StringName, steps: Array[Step]) -> String:
 	var counts: PackedStringArray = []
 	for kind: String in kinds:
 		counts.append("%s %d" % [kind, kinds[kind]])
-	return "%-9s %3d fr  wrist %+4.0f/%+4.0f  elbow at contact %-11s most %3.0f  blade %5.1f cm (%s)  knee %+5.1f cm  reach %4.1f cm  fails %d/%d%s" % [
+	var w: Worst = worst(steps)
+	return "%-9s %3d fr  wrist %+4.0f/%+4.0f  elbow at contact %-11s most %3.0f  blade %5.1f cm (%s)  knee %+5.1f cm  reach %4.1f cm  fails %d/%d%s  worst blade fr %d, slide %.1f cm (%s fr %d)" % [
 		move_id, steps.size(), bend, deviation, contact, straightest, gap * 100.0, near, knee * 100.0, reach * 100.0,
-		failing, steps.size(), ": " + ", ".join(counts) if not counts.is_empty() else ""]
+		failing, steps.size(), ": " + ", ".join(counts) if not counts.is_empty() else "",
+		w.blade_frame, w.slide * 100.0, w.slide_side.to_lower() if w.slide_side != "" else "-", w.slide_frame]
+
+
+## The worst frames of a move's steps: the blade's nearest the body and the
+## furthest slide of a planted foot (the first frame of each, on a tie).
+static func worst(steps: Array[Step]) -> Worst:
+	var w: Worst = Worst.new()
+	for s: Step in steps:
+		var r: PoseCheck.Report = s.report
+		if r.blade_gap < w.blade_gap:
+			w.blade_gap = r.blade_gap
+			w.blade_near = r.blade_near
+			w.blade_frame = s.frame
+		for side: String in r.feet:
+			if r.feet[side] > w.slide:
+				w.slide = r.feet[side]
+				w.slide_side = side
+				w.slide_frame = s.frame
+	return w
 
 
 ## Shows the fighter where the rules have it, at the end of the step.

@@ -10,6 +10,11 @@ extends RefCounted
 ## - each knee over its toes: on or outside the plane of its hip, ankle and
 ##   toes, never caved in past KNEE_INSIDE;
 ## - every held blade at least BLADE_CLEARANCE from its own fighter's body;
+## - each planted foot within FOOT_SLIDE_MAX of where it landed (milestone-1
+##   task 9), measured over a run of frames by a FootTrack: a foot is planted
+##   by FootLock's rule (its ankle within PLANT_HEIGHT of its rest height,
+##   let go above LIFT_HEIGHT), and its slide is how far it has moved along
+##   the ground, in the world, since it came down;
 ## - and, not a check but a measure, how much blade is inside a defender's
 ##   capsule (the rules' hurt capsule, DEFENDER_RADIUS round from the feet to
 ##   DEFENDER_HEIGHT).
@@ -20,7 +25,8 @@ extends RefCounted
 ## of the modifier stack, in skeleton space (frame_of() steps a fighter's
 ## skeleton once to take one). Tests and tools can edit a frame to make up
 ## poses. Skeleton space is the fighter's own frame: +Z forward, +X to the
-## fighter's left, +Y up, metres from the ground.
+## fighter's left, +Y up, metres from the ground; a frame's root carries
+## it into the world.
 
 const SIDES: Array[String] = ["Right", "Left"]
 
@@ -39,6 +45,12 @@ const KNEE_INSIDE: float = 0.01
 ## blade's base sits about a hand's width from its own wrist, clear of the
 ## forearm's capsule, which stops where the forearm does.
 const BLADE_CLEARANCE: float = 0.05
+## The most a planted foot may slide from where it landed (m), the per-move
+## checklist's item 8; and when a foot is planted, FootLock's heights above
+## its ankle's rest height (m).
+const FOOT_SLIDE_MAX: float = 0.01
+const PLANT_HEIGHT: float = FootLock.PLANT_HEIGHT
+const LIFT_HEIGHT: float = FootLock.LIFT_HEIGHT
 ## The defender's hurt capsule (m): the rules' 0.35 m round, from the feet
 ## to 1.75 m. Task 7 puts it in the rules' fighter data.
 const DEFENDER_RADIUS: float = 0.35
@@ -75,9 +87,12 @@ class Frame:
 	var blades: Array[PackedVector3Array] = []
 	## Where the defender's feet are, in skeleton space; Vector3.INF for none.
 	var defender: Vector3 = Vector3.INF
+	## Skeleton space to the world (the skeleton's global transform).
+	var root: Transform3D = Transform3D.IDENTITY
 
 	func copy() -> Frame:
 		var f: Frame = Frame.new()
+		f.root = root
 		f.bones = bones.duplicate()
 		f.driven = driven.duplicate()
 		for b: PackedVector3Array in blades:
@@ -122,6 +137,9 @@ class Report:
 	## How much blade is inside the defender's capsule (m); -1 with no
 	## defender.
 	var reach: float = -1.0
+	## Each planted foot's slide from where it landed (m), by side; only
+	## with a FootTrack, and only the feet planted on this frame.
+	var feet: Dictionary[String, float] = {}
 
 	func failures() -> PackedStringArray:
 		var out: PackedStringArray = []
@@ -142,6 +160,9 @@ class Report:
 				out.append("%s knee %.1f cm inside the foot line" % [side.to_lower(), -knees[side] * 100.0])
 		if blade_gap < BLADE_CLEARANCE:
 			out.append("blade %.1f cm from the %s" % [blade_gap * 100.0, blade_near])
+		for side: String in feet:
+			if feet[side] > FOOT_SLIDE_MAX:
+				out.append("%s foot slid %.1f cm" % [side.to_lower(), feet[side] * 100.0])
 		return out
 
 	func passed() -> bool:
@@ -168,11 +189,45 @@ class Report:
 			parts.append("blade %.1f cm (%s)" % [blade_gap * 100.0, blade_near])
 		if reach >= 0.0:
 			parts.append("reach %.1f cm" % (reach * 100.0))
+		var slid: PackedStringArray = []
+		for side: String in feet:
+			slid.append("%s %.1f" % [side.left(1), feet[side] * 100.0])
+		if not slid.is_empty():
+			parts.append("slide %s cm" % " ".join(slid))
 		return " · ".join(parts)
+
+
+## Follows the feet over a run of frames: where each planted foot came down,
+## so a frame's slide is measured from there. One track per run (a move);
+## frames go in order.
+class FootTrack:
+	var check: PoseCheck
+	## Where each planted foot came down (world), by side.
+	var landed: Dictionary[String, Vector3] = {}
+
+	func _init(p_check: PoseCheck) -> void:
+		check = p_check
+
+	## Each foot planted on `frame`, by side: how far it has slid along the
+	## ground since it came down (m).
+	func step(frame: Frame) -> Dictionary[String, float]:
+		var out: Dictionary[String, float] = {}
+		for side: String in SIDES:
+			var at: Vector3 = frame.root * frame.bones[check.bone(side + "Foot")].origin
+			var limit: float = LIFT_HEIGHT if landed.has(side) else PLANT_HEIGHT
+			if at.y > check.ankle_rest[side] + limit:
+				landed.erase(side)
+				continue
+			if not landed.has(side):
+				landed[side] = at
+			out[side] = Vector2(at.x - landed[side].x, at.z - landed[side].z).length()
+		return out
 
 
 ## The body's capsules.
 var capsules: Array[Capsule] = []
+## Each ankle's height in the rest pose (m above the ground), by side.
+var ankle_rest: Dictionary[String, float] = {}
 
 var _ids: Dictionary[String, int] = {}
 
@@ -183,6 +238,8 @@ func _init(model: FighterModel) -> void:
 	for i: int in sk.get_bone_count():
 		_ids[sk.get_bone_name(i)] = i
 	capsules = _measure_capsules(sk)
+	for side: String in SIDES:
+		ankle_rest[side] = sk.get_bone_global_rest(_ids[side + "Foot"]).origin.y
 
 
 ## Steps `model`'s skeleton once and takes the frame at the end of its
@@ -213,6 +270,7 @@ static func frame_of(model: FighterModel) -> Frame:
 		last.modification_processed.disconnect(grab)
 		push_error("PoseCheck.frame_of: the skeleton didn't update")
 		return frame
+	frame.root = sk.global_transform
 	for side: String in SIDES:
 		if model.rig.drives(side):
 			frame.driven.append(side)
@@ -225,9 +283,13 @@ static func frame_of(model: FighterModel) -> Frame:
 
 
 ## Measures a frame; `contact` when it is the first active frame of a move.
-func measure(frame: Frame, contact: bool = false) -> Report:
+## With `track`, the frame is the next of its run and the planted feet's
+## slides are measured too.
+func measure(frame: Frame, contact: bool = false, track: FootTrack = null) -> Report:
 	var r: Report = Report.new()
 	r.contact = contact
+	if track != null:
+		r.feet = track.step(frame)
 	var b: Array[Transform3D] = frame.bones
 	for side: String in SIDES:
 		if not frame.driven.has(side):
@@ -254,6 +316,11 @@ func measure(frame: Frame, contact: bool = false) -> Report:
 		for blade: PackedVector3Array in frame.blades:
 			r.reach = maxf(r.reach, blade_inside(blade[0], blade[1], frame.defender))
 	return r
+
+
+## The index of the bone with this name.
+func bone(bone_name: String) -> int:
+	return _ids[bone_name]
 
 
 ## The capsule with this name, or null.

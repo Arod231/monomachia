@@ -1,5 +1,7 @@
 // Tests for scripts/check-sizes.mjs, the guard that keeps large files out of
-// the repo (no tracked file over 10 MB unless it is allow-listed).
+// the repo (no tracked file over 10 MB unless it is allow-listed) and holds
+// the public repository to its budgets (milestone-1 task 8): the committed
+// game art under 150 MB, the committed audio under 40 MB.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -7,7 +9,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { ALLOWED, LIMIT_BYTES, findOversize, repoPath, totalBytes } from '../scripts/check-sizes.mjs';
+import {
+  ALLOWED, ART_BUDGET_BYTES, AUDIO_BUDGET_BYTES, LIMIT_BYTES, budgets, findOverBudget, findOversize, isArt, isAudio, repoPath, totalBytes,
+} from '../scripts/check-sizes.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const MB = 1024 * 1024;
@@ -56,6 +60,61 @@ describe('totalBytes', () => {
   });
 });
 
+describe('the budgets', () => {
+  it("are the spec's size budget table: 150 MB of art and 40 MB of audio", () => {
+    assert.equal(ART_BUDGET_BYTES, 150 * MB);
+    assert.equal(AUDIO_BUDGET_BYTES, 40 * MB);
+  });
+
+  it('count as art what game/assets holds but the audio, and the baked art beside it', () => {
+    for (const path of [
+      'game/assets/quaternius/characters/body.gltf',
+      'game/assets/weapons/katana.glb',
+      'game/assets/authored/keys/stomp.json',
+      'game/fighters/hunter/palette_0.png',
+      'game/weapons/katana/blade.res',
+      'game/fighters/rogue/skin.exr',
+    ]) assert.equal(isArt(path), true, path);
+    for (const path of [
+      'game/assets/audio/sfx/hit.wav',
+      'game/fighters/hunter/hunter.tscn',
+      'game/weapons/katana/katana.gd',
+      'game/sim/moves/katana.gd',
+      'docs/screenshots/select.png',
+      'C:/elsewhere/game/assets/x.png',
+    ]) assert.equal(isArt(path), false, path);
+  });
+
+  it('count as audio everything under game/assets/audio', () => {
+    assert.equal(isAudio('game/assets/audio/music/shrine.wav'), true);
+    assert.equal(isAudio('game/assets/audio/SOURCES.md'), true);
+    assert.equal(isAudio('game/assets/audiobook.png'), false);
+  });
+
+  it('add up each place', () => {
+    const files = [
+      { path: 'game/assets/a.png', bytes: 3 },
+      { path: 'game/fighters/h/p.png', bytes: 4 },
+      { path: 'game/fighters/h/h.tscn', bytes: 100 },
+      { path: 'game/assets/audio/sfx/b.wav', bytes: 5 },
+      { path: 'README.md', bytes: 1000 },
+    ];
+    assert.deepEqual(budgets(files), [
+      { name: 'committed game art', bytes: 7, limit: ART_BUDGET_BYTES },
+      { name: 'committed audio', bytes: 5, limit: AUDIO_BUDGET_BYTES },
+    ]);
+  });
+
+  it('pass a place up to its budget and fail it one byte over', () => {
+    const at = [{ path: 'game/assets/art.bin', bytes: 150 * MB }, { path: 'game/assets/audio/a.wav', bytes: 40 * MB }];
+    assert.deepEqual(findOverBudget(at), []);
+    const artOver = [{ path: 'game/assets/art.bin', bytes: 150 * MB }, { path: 'game/weapons/k/m.res', bytes: 1 }];
+    assert.deepEqual(findOverBudget(artOver).map((b) => b.name), ['committed game art']);
+    const audioOver = [{ path: 'game/assets/audio/a.wav', bytes: 40 * MB + 1 }];
+    assert.deepEqual(findOverBudget(audioOver).map((b) => b.name), ['committed audio']);
+  });
+});
+
 describe('repoPath', () => {
   it('writes paths inside the repo relative, with forward slashes', () => {
     assert.equal(repoPath(join(ROOT, 'game', 'assets', 'x.wav'), ROOT), 'game/assets/x.wav');
@@ -70,6 +129,8 @@ describe('the command', () => {
       assert.match(r.stdout, new RegExp(`${folder}: \\d+\\.\\d MB`));
     }
     assert.match(r.stdout, /all tracked files: \d+\.\d MB/);
+    assert.match(r.stdout, /committed game art: \d+\.\d MB of a 150\.0 MB budget/);
+    assert.match(r.stdout, /committed audio: \d+\.\d MB of a 40\.0 MB budget/);
     assert.ok(!r.stdout.includes(AMBIENCE));
   });
 

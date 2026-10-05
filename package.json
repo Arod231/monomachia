@@ -20,6 +20,7 @@
     "counterlab": "node scripts/godot.mjs script res://tools/counterlab.gd",
     "godot": "node scripts/godot.mjs",
     "check:sizes": "node scripts/check-sizes.mjs",
+    "checklist": "node scripts/checklist.mjs",
     "audio:sonniss": "node scripts/audio/extract-sonniss.mjs",
     "audio:synth": "node scripts/audio/synth.mjs",
     "audio:music": "node scripts/audio/music.mjs",
