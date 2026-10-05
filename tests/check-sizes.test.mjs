@@ -1,7 +1,8 @@
 // Tests for scripts/check-sizes.mjs, the guard that keeps large files out of
 // the repo (no tracked file over 10 MB unless it is allow-listed).
 
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -29,17 +30,17 @@ function withScratchFile(bytes, body) {
 
 describe('findOversize', () => {
   it('passes files up to the 10 MB limit', () => {
-    expect(LIMIT_BYTES).toBe(10 * MB);
-    expect(findOversize([{ path: 'a.png', bytes: 10 * MB }, { path: 'b.wav', bytes: 1 }])).toEqual([]);
+    assert.equal(LIMIT_BYTES, 10 * MB);
+    assert.deepEqual(findOversize([{ path: 'a.png', bytes: 10 * MB }, { path: 'b.wav', bytes: 1 }]), []);
   });
 
   it('reports a file over the limit', () => {
     const files = [{ path: 'game/assets/big.wav', bytes: 11 * MB }, { path: 'small.png', bytes: 5 }];
-    expect(findOversize(files)).toEqual([{ path: 'game/assets/big.wav', bytes: 11 * MB }]);
+    assert.deepEqual(findOversize(files), [{ path: 'game/assets/big.wav', bytes: 11 * MB }]);
   });
 
   it('lets every allow-listed file through', () => {
-    for (const path of ALLOWED) expect(findOversize([{ path, bytes: 11 * MB }])).toEqual([]);
+    for (const path of ALLOWED) assert.deepEqual(findOversize([{ path, bytes: 11 * MB }]), []);
   });
 });
 
@@ -50,47 +51,47 @@ describe('totalBytes', () => {
       { path: 'game/assets/audio/b.wav', bytes: 4 },
       { path: 'game/fighters/c.png', bytes: 5 },
     ];
-    expect(totalBytes(files, 'game/assets')).toBe(7);
-    expect(totalBytes(files)).toBe(12);
+    assert.equal(totalBytes(files, 'game/assets'), 7);
+    assert.equal(totalBytes(files), 12);
   });
 });
 
 describe('repoPath', () => {
   it('writes paths inside the repo relative, with forward slashes', () => {
-    expect(repoPath(join(ROOT, 'game', 'assets', 'x.wav'), ROOT)).toBe('game/assets/x.wav');
+    assert.equal(repoPath(join(ROOT, 'game', 'assets', 'x.wav'), ROOT), 'game/assets/x.wav');
   });
 });
 
 describe('the command', () => {
   it('passes on the repo, allowing the ambience loop, and prints the sizes', () => {
     const r = runCli();
-    expect(r.status, r.stderr).toBe(0);
+    assert.equal(r.status, 0, r.stderr);
     for (const folder of ['game/assets', 'game/assets/audio', 'game/fighters', 'game/weapons']) {
-      expect(r.stdout).toMatch(new RegExp(`${folder}: \\d+\\.\\d MB`));
+      assert.match(r.stdout, new RegExp(`${folder}: \\d+\\.\\d MB`));
     }
-    expect(r.stdout).toMatch(/all tracked files: \d+\.\d MB/);
-    expect(r.stdout).not.toContain(AMBIENCE);
+    assert.match(r.stdout, /all tracked files: \d+\.\d MB/);
+    assert.ok(!r.stdout.includes(AMBIENCE));
   });
 
   it('fails on an 11 MB file passed with --include', () => {
     withScratchFile(11 * MB, (file) => {
       const r = runCli(['--include', file]);
-      expect(r.status).toBe(1);
-      expect(r.stderr).toContain('scratch.bin');
+      assert.equal(r.status, 1);
+      assert.ok(r.stderr.includes('scratch.bin'));
     });
   });
 
   it('matches an included tracked file to its tracked path, however it is written', () => {
     const before = runCli();
     const r = runCli(['--include', join(ROOT, ...AMBIENCE.split('/'))]);
-    expect(r.status, r.stderr).toBe(0);
+    assert.equal(r.status, 0, r.stderr);
     const count = (out) => out.match(/in (\d+) files/)[1];
-    expect(count(r.stdout)).toBe(count(before.stdout));
+    assert.equal(count(r.stdout), count(before.stdout));
   });
 
   it('explains a bad argument', () => {
-    expect(runCli(['--include']).stderr).toContain('--include needs a file');
-    expect(runCli(['--include', 'no/such/file.bin']).stderr).toContain('no such file');
-    expect(runCli(['--bogus']).status).toBe(2);
+    assert.ok(runCli(['--include']).stderr.includes('--include needs a file'));
+    assert.ok(runCli(['--include', 'no/such/file.bin']).stderr.includes('no such file'));
+    assert.equal(runCli(['--bogus']).status, 2);
   });
 });

@@ -1,7 +1,7 @@
 class_name PauseScreen
 extends MenuScreen
 ## The pause menu over the frozen match (port of showPause() in
-## src/ui/menus.ts): 休止 over "Paused", then Resume, Move list, Controls,
+## v0.1-web-mvp:src/ui/menus.ts): 休止 over "Paused", then Resume, Move list, Controls,
 ## Settings, Restart and Quit to menu. main.gd answers each entry: the three
 ## middle ones open their screens over this one (Back returns here), Restart
 ## and Quit to menu act at once. Back resumes, as the pause binding, Esc and

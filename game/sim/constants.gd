@@ -1,6 +1,6 @@
 class_name SimConst
 extends RefCounted
-## Port of src/sim/constants.ts.
+## Port of v0.1-web-mvp:src/sim/constants.ts.
 ##
 ## Global tuning for the Monomachia simulation.
 ## All time values are in simulation frames (60 per second) unless noted.

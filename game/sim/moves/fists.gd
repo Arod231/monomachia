@@ -1,6 +1,6 @@
 class_name FistsMoves
 extends RefCounted
-## Port of src/sim/moves/fists.ts.
+## Port of v0.1-web-mvp:src/sim/moves/fists.ts.
 ##
 ## Bare hands — used by any fighter after being disarmed.
 ## Low HP damage, high posture damage, extra knockback.

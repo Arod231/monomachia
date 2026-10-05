@@ -1,6 +1,6 @@
 class_name GreatswordMoves
 extends RefCounted
-## Port of src/sim/moves/greatsword.ts.
+## Port of v0.1-web-mvp:src/sim/moves/greatsword.ts.
 ##
 ## Greatsword — colossal class. Slow and crushing, big knockback, sweeps and slams.
 

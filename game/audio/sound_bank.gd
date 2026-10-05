@@ -8,7 +8,7 @@ extends RefCounted
 ## [constant CUES]. Replacing a sound means replacing its file and, if the
 ## name changes, its entry here.
 ##
-## Events are dictionaries shaped like the web demo's (src/sim/events.ts):
+## Events are dictionaries shaped like the web demo's (v0.1-web-mvp:src/sim/events.ts):
 ## [code]{"t": "hit", "heavy": true, "sound": "colossal", ...}[/code].
 
 const SFX_DIR := "res://assets/audio/sfx/"

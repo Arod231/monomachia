@@ -1,6 +1,6 @@
 class_name Btn
 extends RefCounted
-## Port of `enum B`, NUM_BUTTONS and bit() from src/sim/input.ts.
+## Port of `enum B`, NUM_BUTTONS and bit() from v0.1-web-mvp:src/sim/input.ts.
 ##
 ## Button indices into RawInput.buttons (bit 1 << index).
 

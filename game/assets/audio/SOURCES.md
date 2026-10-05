@@ -139,7 +139,7 @@ The sound bank (`game/audio/sound_bank.gd`) plays one variation of a pool at ran
 
 ## Generated sound effects
 
-Synthesized in `scripts/audio/synth.mjs` from seeded noise, oscillators, modal resonators and filters; the design follows the web demo's `src/audio/audio.ts`. Every sound is high-passed at 25 Hz (12 dB per octave) so it carries no DC, normalized, matched to its pool (above), trimmed where its tail falls under -60 dBFS and faded.
+Synthesized in `scripts/audio/synth.mjs` from seeded noise, oscillators, modal resonators and filters; the design follows the web demo's `v0.1-web-mvp:src/audio/audio.ts`. Every sound is high-passed at 25 Hz (12 dB per octave) so it carries no DC, normalized, matched to its pool (above), trimmed where its tail falls under -60 dBFS and faded.
 
 | File | Used for | How it is made |
 |---|---|---|

@@ -1,6 +1,6 @@
 class_name V3
 extends RefCounted
-## Port of the Vec3 interface in src/sim/math.ts: a position or velocity in
+## Port of the Vec3 interface in v0.1-web-mvp:src/sim/math.ts: a position or velocity in
 ## metres, y up.
 ##
 ## Port note: 64-bit floats instead of Godot's Vector3, which is float32 and

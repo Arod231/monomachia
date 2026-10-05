@@ -2,6 +2,7 @@
 // object per line, ~/.claude/projects/<folder>/<session id>.jsonl) into the
 // turns the board shows, and finds what the session is waiting on. Pure, no
 // I/O: server.mjs reads the files, tests/lanes-board.test.mjs checks this.
+import { isPhone } from './access.mjs';
 
 const CLIP = 4000;
 const clip = (s, n = CLIP) => (s.length > n ? `${s.slice(0, n)}\n… (${s.length - n} more characters)` : s);
@@ -249,8 +250,16 @@ export function questionAnswers(questions, picks) {
   return answers;
 }
 
+// How a question is answered: 'allow' passes the tool its input back with an
+// `answers` map, as Claude Code's own hosts answer it; 'decline' (the spec's
+// fallback, should the spike show a hook can't answer that way) refuses the
+// tool with the answers as the reason, which Claude reads and follows.
+export const QUESTION_ANSWER = 'allow';
+
 // The board's answer to a pending item, checked, in the shape the hook reads.
-export function relayAnswer(pending, body) {
+// body: { picks: [label | [labels]] } for a question (an Other's free text is a
+// label like any other), or { reply } to answer it in the owner's own words.
+export function relayAnswer(pending, body, { questionAnswer = QUESTION_ANSWER } = {}) {
   if (pending.kind === 'stop') {
     const text = String(body.reply ?? '').trim();
     if (body.release) return { release: true };
@@ -259,8 +268,17 @@ export function relayAnswer(pending, body) {
   }
   if (body.release) return { release: true };
   if (pending.kind === 'question') {
+    const reply = String(body.reply ?? '').trim();
+    if (reply) {
+      return { behavior: 'deny', message: `The owner answered from the Project Manager instead of picking an option:\n\n${reply.slice(0, 20000)}` };
+    }
     const questions = pending.input?.questions ?? [];
-    return { behavior: 'allow', updatedInput: { ...pending.input, answers: questionAnswers(questions, body.picks) } };
+    const answers = questionAnswers(questions, body.picks);
+    if (questionAnswer === 'decline') {
+      const lines = Object.entries(answers).map(([q, a]) => `- ${q} → ${a}`);
+      return { behavior: 'deny', message: `The owner answered from the Project Manager:\n${lines.join('\n')}` };
+    }
+    return { behavior: 'allow', updatedInput: { ...pending.input, answers } };
   }
   if (body.behavior === 'allow') {
     const out = { behavior: 'allow' };
@@ -272,4 +290,20 @@ export function relayAnswer(pending, body) {
     return { behavior: 'deny', message: why ? `The owner declined from the Project Manager: ${why.slice(0, 4000)}` : 'The owner declined this from the Project Manager.' };
   }
   throw new Error('Allow or deny?');
+}
+
+// ---------- the Away switch ----------
+// While Away is on, the relay hook holds every session's questions, permission
+// prompts and turn ends for the Project Manager; while it's off they stay in
+// the app. It lives in the relay folder's away.json: { on, since, from }.
+
+// The Away file as written when the owner flips the switch from a page.
+export function awaySwitch(body, ua, now = Date.now()) {
+  return { on: body?.on === true, since: now, from: isPhone(ua) ? 'phone' : 'PC' };
+}
+
+// The Away file as read: anything but a clear "on" is off.
+export function awayOf(raw) {
+  if (raw?.on !== true) return { on: false, since: Number(raw?.since) || null, from: raw?.from ?? null };
+  return { on: true, since: Number(raw.since) || null, from: raw.from ?? null };
 }

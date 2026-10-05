@@ -160,3 +160,23 @@ export function roadmapKpis(data) {
     onTask: lanes.filter((l) => l.working).length,
   };
 }
+
+// ---------- a launch's start ----------
+// How a launched session is getting on, from its launch's `start` in /data
+// (launcher.mjs startView): null for launches from before the board pressed
+// Send itself, else one line for the pages.
+const WHY_WAITING = {
+  'no-app': "the Claude app didn't open",
+  'no-draft': "the prompt didn't show up in the Claude app",
+  'no-send': "the Claude app's Send button couldn't be pressed",
+  'not-taken': "the Claude app didn't take the prompt",
+  trust: 'the Claude app is asking to trust a different folder',
+  lost: 'Send was pressed, but no session appeared',
+};
+export function launchStartText(start) {
+  if (!start) return null;
+  if (start.state === 'started') return 'Started on the PC';
+  if (start.state === 'starting') return 'Starting on the PC: the board presses Send in the Claude app';
+  if (start.reason === 'locked') return 'Waiting: the PC is locked. It starts when the PC is unlocked.';
+  return `Couldn't start: ${WHY_WAITING[start.reason] ?? "the board couldn't reach the Claude app"}. Try again, or send it from the Claude app on the PC.`;
+}

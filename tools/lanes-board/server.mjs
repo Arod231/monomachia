@@ -7,8 +7,10 @@
 // current one first; Progress has every plan's tasks (tasks the Oct 4 triage
 // moved show "moved → M1/M2" and no longer count as open), Graph what waits on
 // what, and Sessions every recent Claude session. From the page you can queue
-// tasks and launch a desktop-app session to build them, end a launched session's
-// work, answer a session (through relay-hook.mjs), see how full each session's
+// tasks and launch a desktop-app session to build them, which the board starts
+// itself so a launch from the phone needs nobody at the PC (rules in
+// launcher.mjs, the press in press-send.ps1), end a launched session's work,
+// answer a session (through relay-hook.mjs), see how full each session's
 // context is (a gauge and a turn-by-turn chart, rules in sessions.mjs), and open
 // the second brain. It never fetches or takes git locks.
 //   npm run board   ->   http://localhost:5197
@@ -21,7 +23,7 @@
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, readdir, stat, access, writeFile, open, mkdir, rm } from 'node:fs/promises';
+import { readFile, readdir, stat, access, writeFile, open, mkdir } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
@@ -29,7 +31,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
-import { PENDING_ID, SESSION_ID, contextTracker, parseTranscript, relayAnswer } from './sessions.mjs';
+import { contextTracker } from './sessions.mjs';
+import { sessionsApi } from './sessions-api.mjs';
+import { createStarter, firstPrompt, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -264,6 +268,43 @@ await mkdir(STATE, { recursive: true });
 let launches = [];
 try { launches = JSON.parse(await readFile(LAUNCHES, 'utf8')); } catch { launches = []; }
 const LAUNCH_FRESH_MS = 48 * 60 * 60 * 1000;
+const saveLaunches = () => writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+// The board starts each launch itself (launcher.mjs): it opens the launch's link
+// and press-send.ps1 presses Send in the app, one launch at a time. A launch made
+// while the PC is locked starts once it's unlocked (tick, on each pass).
+const starter = createStarter({ list: () => launches, folder: REPO, open: openInApp, press: pressSend, locked: pcLocked, save: saveLaunches });
+if (starter.recover()) await saveLaunches();
+starter.kick();
+
+// A launch's session is the app session whose first prompt names the launch's
+// lane branch (launcher.mjs linkLaunches). First prompts never change, so each
+// is read once, from the head of the session's transcript.
+const firstPrompts = new Map(); // cli session id -> its first prompt
+async function promptOfSession(cli, file) {
+  if (firstPrompts.has(cli)) return firstPrompts.get(cli);
+  let fh = null;
+  try {
+    fh = await open(file, 'r');
+    const buf = Buffer.alloc(1 << 20);
+    const { bytesRead } = await fh.read(buf, 0, buf.length, 0);
+    const p = firstPrompt(buf.toString('utf8', 0, bytesRead));
+    // A transcript with no prompt yet is read again next time, unless it's huge.
+    if (p !== null || bytesRead === buf.length) firstPrompts.set(cli, p ?? '');
+    return p;
+  } catch { return null; } finally { await fh?.close(); }
+}
+async function linkSessions(sessions, transcripts) {
+  const pending = launches.filter((l) => !l.session && !l.endedAt);
+  if (!pending.length) return false;
+  const since = Math.min(...pending.map((l) => l.time)) - 10_000;
+  const candidates = sessions.filter((s) => s.cli && s.created >= since && transcripts.has(s.cli));
+  const prompts = new Map();
+  await pool(candidates, 4, async (s) => {
+    const p = await promptOfSession(s.cli, transcripts.get(s.cli));
+    if (p) prompts.set(s.cli, p);
+  });
+  return linkLaunches(launches, candidates, prompts);
+}
 
 let prs = [];
 let prsAt = 0;
@@ -337,17 +378,8 @@ async function collect() {
   const transcripts = await transcriptIndex();
   forgetContexts();
 
-  // Each launch's session is the app session created just after it, wherever it
-  // opened (the app sometimes puts it in a scratch folder).
-  let linked = false;
-  for (const l of launches) {
-    if (l.session) continue;
-    const taken = new Set(launches.map((x) => x.session?.id).filter(Boolean));
-    const s = sessions.filter((x) => !taken.has(x.id) && x.created >= l.time - 10_000 && x.created <= l.time + 180_000)
-      .sort((a, b) => a.created - b.created)[0];
-    if (s) { l.session = { id: s.id, cli: s.cli }; linked = true; }
-  }
-  if (linked) await writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+  // Each launch's session: the app session its prompt started, wherever it opened.
+  if (await linkSessions(sessions, transcripts)) await saveLaunches();
   const stops = await readStops();
   const lanes = await pool(trees, 10, async (w, i) => {
     const st = (await tryGit(w.path, 'status', '--porcelain')) ?? '';
@@ -453,7 +485,7 @@ async function collect() {
   const launchView = (l) => {
     const stop = stops.find((s) => s.id === l.id);
     return { id: l.id, time: l.time, branch: l.branch, tasks: l.tasks, session: l.session?.id ?? null,
-      endedAt: l.endedAt ?? null, stoppedAt: stop?.firedAt ?? null };
+      endedAt: l.endedAt ?? null, stoppedAt: stop?.firedAt ?? null, start: startView(l, now) };
   };
 
   // Task statuses.
@@ -506,6 +538,7 @@ async function loop() {
   const started = Date.now();
   try { cached = { ...(await collect()), took: Date.now() - started }; lastError = null; }
   catch (err) { lastError = String(err?.stack ?? err); console.error(lastError); }
+  starter.tick().catch((err) => console.error(err));
   setTimeout(loop, Math.max(500, CACHE_MS - (Date.now() - started)));
 }
 const first = loop();
@@ -517,11 +550,31 @@ async function data() {
 // ---------- launching sessions ----------
 
 // The desktop app opens claude:// links: code/new starts a Code session in a
-// folder (the app makes its worktree) with the prompt in its box.
+// folder (the app makes its worktree) with the prompt in its box, and asks to
+// trust the folder; it never sends the prompt itself.
 function openInApp(url) {
   // LANES_DRY_RUN=1 prints the link instead, for testing the board.
   if (process.env.LANES_DRY_RUN) { console.log(`[dry run] ${url}`); return Promise.resolve(); }
   return run('rundll32.exe', ['url.dll,FileProtocolHandler', url], { windowsHide: true });
+}
+
+// press-send.ps1 (Windows UI Automation) confirms the app's trust dialog for the
+// repository and presses Send on the box holding the prompt; -LockOnly only
+// says whether the PC is locked. It answers in one line of JSON.
+function pressScript(args, env = {}) {
+  return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(HERE, 'press-send.ps1'), ...args],
+    { windowsHide: true, timeout: 150_000, env: { ...process.env, ...env } })
+    .then(({ stdout }) => pressResult(stdout), (err) => pressResult(err?.stdout));
+}
+async function pressSend({ prompt, folder }) {
+  if (process.env.LANES_DRY_RUN) { console.log('[dry run] would press Send'); return { result: 'pressed' }; }
+  const r = await pressScript([], { LANES_PROMPT: prompt, LANES_FOLDER: folder });
+  console.log(`[${new Date().toISOString()}] pressing Send for a launch: ${r.result}${r.trusted ? ', trusted the folder' : ''}${r.ms != null ? `, ${r.ms} ms` : ''}${r.error ? ` (${r.error})` : ''}`);
+  return r;
+}
+async function pcLocked() {
+  if (process.env.LANES_DRY_RUN) return false;
+  return (await pressScript(['-LockOnly'])).result === 'locked';
 }
 
 async function launch(body) {
@@ -545,11 +598,12 @@ async function launch(body) {
     const order = plan.stages.flatMap((s) => s.ids);
     ids.sort((a, b) => order.indexOf(a) - order.indexOf(b));
     const branch = `lane/${key}-${ids.join('-')}`.slice(0, 120);
+    // The session's first prompt, in plain words: a link can't run /goal.
     const goal = goalFor({ plan: { ...PLAN_BY_KEY[key], branch: plan.branch }, ids, tasks: plan.tasks, branch, repo: REPO,
       baseExists: refTips.has(`origin/${plan.branch}`) });
-    const url = `claude://code/new?folder=${encodeURIComponent(REPO)}&q=${encodeURIComponent(`/goal ${goal}`)}`;
-    await openInApp(url);
-    const record = { id: `${Date.now().toString(36)}-${key}`, time: Date.now(), plan: key, tasks: ids.map((id) => `${key}:${id}`), branch, goal };
+    const now = Date.now();
+    const record = { id: `${now.toString(36)}-${key}`, time: now, plan: key, tasks: ids.map((id) => `${key}:${id}`), branch, goal,
+      start: { state: 'queued', at: now, attempts: 0 } };
     launches.push(record);
     done.push(record);
     // Taking the lane back up: an earlier "End work" on it must not stop this one.
@@ -557,10 +611,21 @@ async function launch(body) {
     if (stops.cancelled) await writeFile(STOPS, JSON.stringify({ entries: stops.entries }, null, 2));
   }
   launches = launches.filter((l) => Date.now() - l.time < 14 * 24 * 60 * 60 * 1000);
-  await writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+  await saveLaunches();
+  // The starter opens each link and presses Send, one launch at a time; the
+  // pages follow each launch's start on /data.
+  starter.kick();
   // Mark them at once rather than on the next pass.
   try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
   return done;
+}
+
+// "Try again" for a launch that couldn't start: refused at once (started, ended,
+// starting or just sent), else the starter opens its link and presses Send again.
+async function retryLaunch(body) {
+  starter.retry(String(body?.launch ?? ''));
+  try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
+  return { retried: true };
 }
 
 // Ending a lane: the stop list that ~/.claude/hooks/lanes-stop/hook.mjs reads
@@ -592,168 +657,16 @@ async function endLaunch(body) {
 }
 
 // ---------- sessions (the Sessions tab) ----------
-// Every Claude Code session whose transcript was written in the last three days,
-// desktop-app or not, with its turns (rules in sessions.mjs). The owner answers a
-// session here through the relay hook (relay-hook.mjs, installed in user
-// settings), which hands its prompts over as files in RELAY; only sessions
-// switched on in on.json wait for the board.
+// Every recent Claude Code session, the Away switch and the relay's answers,
+// in sessions-api.mjs. A session's plan task is its folder's lane's.
 const RELAY = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
-const SESSION_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
-const TAIL_BYTES = 768 * 1024;
-
-async function readTail(file, bytes) {
-  const { size, mtimeMs } = await stat(file);
-  const fh = await open(file, 'r');
-  try {
-    const len = Math.min(size, bytes);
-    const buf = Buffer.alloc(len);
-    await fh.read(buf, 0, len, size - len);
-    const lines = buf.toString('utf8').split(/\r?\n/);
-    if (len < size) lines.shift(); // cut off mid-line
-    return { lines, size, mtimeMs, cut: len < size };
-  } finally { await fh.close(); }
+function taskOfDir(dir) {
+  const d = path.normalize(dir).toLowerCase();
+  const l = cached?.lanes?.find((x) => path.normalize(x.path).toLowerCase() === d);
+  if (!l?.plan || !l.task) return null;
+  return { ref: `${l.plan}:${l.task}`, label: `${PLAN_BY_KEY[l.plan]?.short ?? l.plan} ${l.task}`, title: l.taskTitle ?? '' };
 }
-
-const transcriptCache = new Map(); // file -> { key, parsed }
-async function transcript(file, limit) {
-  const { size, mtimeMs } = await stat(file);
-  const key = `${size}:${mtimeMs}:${limit}`;
-  const hit = transcriptCache.get(file);
-  if (hit?.key === key) return hit.parsed;
-  const { lines, cut } = await readTail(file, TAIL_BYTES);
-  const parsed = { ...parseTranscript(lines, { limit }), cut, size, mtimeMs };
-  transcriptCache.set(file, { key, parsed });
-  return parsed;
-}
-
-const readJsonFile = async (file) => { try { return JSON.parse(await readFile(file, 'utf8')); } catch { return null; } };
-const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (err) { return err.code === 'EPERM'; } };
-
-async function relayState() {
-  const on = (await readJsonFile(path.join(RELAY, 'on.json')))?.sessions ?? {};
-  const pending = [];
-  let names = [];
-  try { names = (await readdir(path.join(RELAY, 'pending'))).filter((n) => n.endsWith('.json')); } catch { /* none yet */ }
-  for (const n of names) {
-    const p = await readJsonFile(path.join(RELAY, 'pending', n));
-    if (!p) continue;
-    // A hook that was killed (its session closed, or it timed out) leaves its file.
-    if (p.pid && !alive(p.pid)) { await rm(path.join(RELAY, 'pending', n), { force: true }); continue; }
-    pending.push(p);
-  }
-  const replies = {};
-  try {
-    for (const n of await readdir(path.join(RELAY, 'replies'))) {
-      const r = await readJsonFile(path.join(RELAY, 'replies', n));
-      if (r?.text) replies[n.replace(/\.json$/, '')] = r;
-    }
-  } catch { /* none yet */ }
-  return { on, pending, replies };
-}
-
-async function findTranscripts() {
-  const out = [];
-  let dirs = [];
-  try { dirs = await readdir(PROJECTS, { withFileTypes: true }); } catch { return out; }
-  const cutoff = Date.now() - SESSION_WINDOW_MS;
-  for (const d of dirs.filter((x) => x.isDirectory())) {
-    let names = [];
-    try { names = (await readdir(path.join(PROJECTS, d.name))).filter((n) => n.endsWith('.jsonl')); } catch { continue; }
-    for (const n of names) {
-      const file = path.join(PROJECTS, d.name, n);
-      const s = await stat(file).catch(() => null);
-      if (s && s.mtimeMs >= cutoff) out.push({ id: n.slice(0, -6), file, mtime: s.mtimeMs });
-    }
-  }
-  return out;
-}
-
-async function sessionList() {
-  const [found, app, relay] = await Promise.all([findTranscripts(), appSessions(), relayState()]);
-  const byCli = new Map(app.filter((a) => a.cli).map((a) => [a.cli, a]));
-  const now = Date.now();
-  const list = await pool(found, 8, async (f) => {
-    const a = byCli.get(f.id);
-    if (a?.archived) return null;
-    let t;
-    try { t = await transcript(f.file, 1); } catch { return null; }
-    const context = await contextOf(f.file);
-    const pending = relay.pending.filter((p) => p.session === f.id).sort((x, y) => x.time - y.time);
-    const last = t.entries.at(-1);
-    return {
-      id: f.id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
-      activity: f.mtime, active: now - f.mtime < ACTIVE_MS, on: !!relay.on[f.id], queued: !!relay.replies[f.id],
-      pending: pending.map((p) => ({ id: p.id, kind: p.kind, tool: p.tool ?? null, time: p.time })),
-      asking: t.open?.name === 'AskUserQuestion' ? t.open.questions.map((q) => q.question) : null,
-      openTool: t.open && t.open.name !== 'AskUserQuestion' ? { name: t.open.name, summary: t.open.summary, time: t.open.time } : null,
-      lastText: last ? String(last.text ?? last.summary ?? '').slice(0, 200) : '',
-      context,
-    };
-  });
-  return list.filter(Boolean).sort((x, y) => (y.pending.length > 0) - (x.pending.length > 0) || y.activity - x.activity);
-}
-
-async function sessionDetail(id, limit) {
-  if (!SESSION_ID.test(id ?? '')) throw new Error('Bad session id');
-  const f = (await findTranscripts()).find((x) => x.id === id);
-  if (!f) throw new Error('No recent session with that id');
-  const [t, relay, app, context] = await Promise.all([transcript(f.file, limit), relayState(), appSessions(), contextOf(f.file)]);
-  const a = app.find((x) => x.cli === id);
-  return {
-    id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
-    activity: f.mtime, active: Date.now() - f.mtime < ACTIVE_MS, entries: t.entries, more: t.more || (t.cut ? 1 : 0),
-    open: t.open, on: !!relay.on[id], queued: relay.replies[id] ?? null,
-    pending: relay.pending.filter((p) => p.session === id).sort((x, y) => x.time - y.time),
-    context,
-  };
-}
-
-async function writeJsonFile(file, value) {
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, JSON.stringify(value, null, 2));
-}
-
-async function relaySwitch(body) {
-  if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-  const file = path.join(RELAY, 'on.json');
-  const cur = (await readJsonFile(file)) ?? { sessions: {} };
-  cur.sessions ??= {};
-  if (body.on) cur.sessions[body.session] = { since: Date.now() };
-  else delete cur.sessions[body.session];
-  await writeJsonFile(file, cur);
-  return { on: !!body.on };
-}
-
-async function relayAnswerTo(body) {
-  if (!PENDING_ID.test(body?.id ?? '')) throw new Error('Bad prompt id');
-  const pending = await readJsonFile(path.join(RELAY, 'pending', `${body.id}.json`));
-  if (!pending) throw new Error('That prompt is no longer waiting (answered, timed out, or handed back to the app)');
-  await writeJsonFile(path.join(RELAY, 'answers', `${body.id}.json`), relayAnswer(pending, body));
-  return { ok: true };
-}
-
-// A reply goes straight to a session waiting at its turn's end, else waits for
-// that turn's end in replies/.
-async function relayReply(body) {
-  if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-  const text = String(body.text ?? '').trim();
-  if (!text) throw new Error('Type a reply first');
-  const { on, pending } = await relayState();
-  if (!on[body.session]) throw new Error('Switch on "Answer from board" for this session first');
-  const waiting = pending.find((p) => p.session === body.session && p.kind === 'stop');
-  if (waiting) {
-    await writeJsonFile(path.join(RELAY, 'answers', `${waiting.id}.json`), { reply: text.slice(0, 20000) });
-    return { delivered: true };
-  }
-  await writeJsonFile(path.join(RELAY, 'replies', `${body.session}.json`), { text: text.slice(0, 20000), time: Date.now() });
-  return { delivered: false };
-}
-
-async function relayUnqueue(body) {
-  if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-  await rm(path.join(RELAY, 'replies', `${body.session}.json`), { force: true });
-  return { ok: true };
-}
+const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
@@ -840,16 +753,13 @@ async function handle(req, res) {
       const body = await readJson(req);
       let result;
       if (req.url === '/launch') result = { launched: await launch(body) };
+      else if (req.url === '/launch/retry') result = await retryLaunch(body);
       else if (req.url === '/end') result = { ended: await endLaunch(body) };
       else if (req.url === '/open') {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if (req.url === '/relay/on') result = await relaySwitch(body);
-      else if (req.url === '/relay/answer') result = await relayAnswerTo(body);
-      else if (req.url === '/relay/reply') result = await relayReply(body);
-      else if (req.url === '/relay/unqueue') result = await relayUnqueue(body);
-      else { res.writeHead(404); res.end('{}'); return; }
+      } else if ((result = await sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] })) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
       return;
@@ -857,10 +767,9 @@ async function handle(req, res) {
     if (req.url === '/brain') { res.writeHead(302, { location: '/brain/' }); res.end(); return; }
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
-    if (url.pathname === '/data' || url.pathname === '/sessions' || url.pathname === '/session') {
-      const body = JSON.stringify(url.pathname === '/data' ? await data()
-        : url.pathname === '/sessions' ? { updated: Date.now(), sessions: await sessionList() }
-        : await sessionDetail(url.searchParams.get('id'), Math.min(2000, Number(url.searchParams.get('limit')) || 300)));
+    const routed = url.pathname === '/data' ? data() : sessionRoutes.get(url);
+    if (routed) {
+      const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.
       if (wantsGzip(req.headers['accept-encoding'])) {
         res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'content-encoding': 'gzip', vary: 'accept-encoding' });

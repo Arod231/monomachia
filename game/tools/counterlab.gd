@@ -5,8 +5,8 @@ extends SceneTree
 ##
 ## usage: node scripts/godot.mjs script res://tools/counterlab.gd
 ##
-## Port notes: the output matched `npx tsx scripts/counterlab.ts` line for
-## line up to commit 4222167 (plan task 8.2, which records that baseline);
+## Port notes: the output matched the TypeScript counterlab
+## (v0.1-web-mvp:scripts/counterlab.ts) line for line up to commit 4222167 (plan task 8.2, which records that baseline);
 ## since then it reports on the Godot rules alone. The tally is printed like
 ## console.log, see JsFormat. If a script error aborts the run, _process()
 ## still quits, with exit code 1.

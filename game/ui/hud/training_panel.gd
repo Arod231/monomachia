@@ -1,7 +1,7 @@
 class_name TrainingPanel
 extends PanelContainer
 ## Training's panel at the bottom left of the HUD (port of
-## setupTrainingPanel() and trainingKeys() in src/game.ts): "Dummy ·
+## setupTrainingPanel() and trainingKeys() in v0.1-web-mvp:src/game.ts): "Dummy ·
 ## <weapon>", a hint, the nine behaviour chips numbered 1-9 and the refill
 ## chip numbered 0, the dummy's behaviour and the refill lit.
 ##

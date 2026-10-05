@@ -2,7 +2,7 @@ class_name BindingLabels
 extends RefCounted
 ## Display names for binding tokens: key names, mouse buttons, and PlayStation,
 ## Xbox or generic controller names. Port of bindingLabel() in
-## src/input/bindings.ts and the token choice of Game.label() in src/game.ts.
+## v0.1-web-mvp:src/input/bindings.ts and the token choice of Game.label() in src/game.ts.
 
 ## Indexed by JoyButton (SDL layout). Cross is "×", where the demo has "✕":
 ## the bundled UI fonts have no "✕" (task 22.1).

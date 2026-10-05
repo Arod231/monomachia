@@ -1,6 +1,6 @@
 class_name TrainingBrain
 extends RefCounted
-## Port of src/sim/ai/training.ts.
+## Port of v0.1-web-mvp:src/sim/ai/training.ts.
 ##
 ## Training dummy: repeats one chosen behaviour so the player can practise
 ## parry timing and the three unblockable counters.
