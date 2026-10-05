@@ -177,6 +177,113 @@ func test_staged_names_keep_only_safe_characters() -> void:
 	assert_eq(ImportClips.staged_path(&"HumanM", clip), "res://assets/kevin_iglesias/staging/HumanM@Roll01_RM.fbx")
 
 
+func _prop_tracks(anim: Animation) -> Array[String]:
+	var out: Array[String] = []
+	for t: int in anim.get_track_count():
+		if String(anim.track_get_path(t)).contains("Prop"):
+			out.append("%s/%d" % [anim.track_get_path(t), anim.track_get_type(t)])
+	return out
+
+
+func _with_props() -> Animation:
+	var anim: Animation = Animation.new()
+	for spec: Array in [
+		["%GeneralSkeleton:B-handProp.R", Animation.TYPE_ROTATION_3D, Quaternion(0.1, 0.2, 0.3, 0.9).normalized()],
+		["%GeneralSkeleton:B-handProp.R", Animation.TYPE_POSITION_3D, Vector3(0.05, 0.02, 0.1)],
+		["%GeneralSkeleton:B-handProp.R", Animation.TYPE_SCALE_3D, Vector3.ONE],
+		["%GeneralSkeleton:LeftHand", Animation.TYPE_ROTATION_3D, Quaternion.IDENTITY],
+	]:
+		var t: int = anim.add_track(spec[1])
+		anim.track_set_path(t, NodePath(spec[0]))
+		anim.track_insert_key(t, 0.0, spec[2])
+	return anim
+
+
+func test_strip_keeps_the_prop_bones_only_for_a_clip_that_asks() -> void:
+	var dropped: Animation = _with_props()
+	ImportClips.strip(dropped)
+	assert_eq(_prop_tracks(dropped), [] as Array[String], "dropped as today")
+	var kept: Animation = _with_props()
+	ImportClips.strip(kept, true)
+	assert_eq(_prop_tracks(kept), [
+		"%%GeneralSkeleton:B-handProp.R/%d" % Animation.TYPE_ROTATION_3D,
+		"%%GeneralSkeleton:B-handProp.R/%d" % Animation.TYPE_POSITION_3D,
+	] as Array[String], "the weapon's own motion: turn and travel, no scale")
+	assert_eq(kept.get_track_count(), 3, "the hand stays too")
+
+
+func test_mirroring_moves_a_prop_to_the_other_hand() -> void:
+	var anim: Animation = _with_props()
+	ImportClips.strip(anim, true)
+	ImportClips.mirror(anim)
+	assert_eq(_prop_tracks(anim), [
+		"%%GeneralSkeleton:B-handProp.L/%d" % Animation.TYPE_ROTATION_3D,
+		"%%GeneralSkeleton:B-handProp.L/%d" % Animation.TYPE_POSITION_3D,
+	] as Array[String])
+	var q: Quaternion = Quaternion(0.1, 0.2, 0.3, 0.9).normalized()
+	assert_eq(anim.track_get_key_value(0, 0), Quaternion(q.x, -q.y, -q.z, q.w), "turned as its reflection")
+	assert_eq(anim.track_get_key_value(1, 0), Vector3(-0.05, 0.02, 0.1), "moved to the other side")
+
+
+func test_an_exported_clip_stages_by_its_id_from_the_asset_repository() -> void:
+	var clip: ClipManifest.Clip = ClipManifest.Clip.new()
+	clip.id = &"Attack1H01_R"
+	clip.source = "Attack1H01_R"
+	clip.pack = "Human Melee Animations"
+	clip.export_path = "exports/clips/attack1h01_r.glb"
+	assert_eq(ImportClips.staged_path(&"HumanF", clip), "res://assets/kevin_iglesias/staging/HumanF@Attack1H01_R.glb",
+		"a GLB, by its id, the same file for every set")
+	assert_eq(ImportClips.staged_path(&"HumanM", clip, "res://elsewhere"), "res://elsewhere/HumanM@Attack1H01_R.glb")
+	var m: ClipManifest = ClipManifest.new()
+	m.sets[&"HumanF"] = "Female"
+	assert_eq(ImportClips.source_path(m, &"HumanF", clip), AssetSource.folder().path_join("exports/clips/attack1h01_r.glb"),
+		"read from the asset repository, not the packs")
+
+
+func test_the_import_settings_retarget_a_glb_at_its_armature() -> void:
+	var fbx: String = ImportClips.import_settings("res://a.fbx")
+	assert_string_contains(fbx, "\"PATH:Skeleton3D\": {")
+	assert_string_contains(fbx, "\"retarget/remove_tracks/unmapped_bones\": true")
+	assert_string_contains(fbx, "fbx/importer=0")
+	var glb: String = ImportClips.import_settings("res://a.glb", "Rig/Skeleton3D", true)
+	assert_string_contains(glb, "\"PATH:Rig/Skeleton3D\": {")
+	assert_string_contains(glb, ImportClips.BONE_MAP)
+	assert_string_contains(glb, "\"retarget/remove_tracks/unmapped_bones\": false", "props kept: the unmapped bones' tracks stay")
+	assert_string_contains(glb, "animation/fps=30")
+	assert_string_contains(glb, "gltf/naming_version")
+	assert_false(glb.contains("fbx/"), "no FBX settings")
+
+
+## A GLB holding only `json` as its JSON chunk.
+func _glb(json: Dictionary) -> String:
+	var path: String = "user://test_import_clips.glb"
+	var text: PackedByteArray = JSON.stringify(json).to_utf8_buffer()
+	while text.size() % 4 != 0:
+		text.append(0x20)
+	var out: StreamPeerBuffer = StreamPeerBuffer.new()
+	out.put_u32(0x46546C67)
+	out.put_u32(2)
+	out.put_u32(12 + 8 + text.size())
+	out.put_u32(text.size())
+	out.put_u32(0x4E4F534A)
+	out.put_data(text)
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	f.store_buffer(out.data_array)
+	f.close()
+	return path
+
+
+func test_the_skeleton_is_found_under_the_armature_a_glb_names() -> void:
+	var rig: String = _glb({"nodes": [{"name": "Hunter.Rig", "children": [1]}, {"name": "B-root", "children": [2]}, {"name": "B-hips"}],
+		"skins": [{"joints": [1, 2]}]})
+	assert_eq(ImportClips.glb_skeleton_path(rig), "Hunter_Rig/Skeleton3D", "the armature's name as Godot names its node")
+	var bare: String = _glb({"nodes": [{"name": "B-root", "children": [1]}, {"name": "B-hips"}], "skins": [{"joints": [0, 1]}]})
+	assert_eq(ImportClips.glb_skeleton_path(bare), "Skeleton3D", "joints at the top: the skeleton is at the top")
+	var none: String = _glb({"nodes": [{"name": "Box"}]})
+	assert_eq(ImportClips.glb_skeleton_path(none), "", "no skin, no skeleton")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(rig))
+
+
 # --- local-only ----------------------------------------------------------------
 
 func test_local_the_packs_hold_every_manifest_clip() -> void:

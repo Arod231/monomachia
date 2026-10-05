@@ -24,6 +24,16 @@ extends RefCounted
 ## move's active frames, dodge-cancel window and branch points live on its
 ## entry in the move-clip table (MoveClips), since one clip serves moves of
 ## different timings.
+##
+## Milestone-1 task 13 added exported clips: a clip keyed or edited in Blender
+## (or Cascadeur, through Blender) and exported by `npm run export` names its
+## GLB in the asset repository ("export": "exports/clips/<id>.glb", from the
+## repository's root) and is imported in place of a pack clip, through the
+## same retarget, mirroring and library build (ImportClips). One export
+## serves every set. A clip that replaces a pack clip keeps its pack, dir and
+## source as its recorded origin; one keyed from scratch has none. "props":
+## true keeps the rig's prop bones (B-handProp.L/R), for a clip that moves
+## the weapon itself.
 
 const PATH: String = "res://assets/kevin_iglesias/clip_manifest.json"
 ## The markers, in the order they fall.
@@ -37,6 +47,8 @@ const RULES_LENGTH_MARKERS: Array[String] = ["ready", "in_hand", "strike", "kill
 const FEET: Array[String] = ["left", "right"]
 ## Source clips are keyed at 30 frames a second.
 const SOURCE_FPS: float = 30.0
+## Where an exported clip's GLB may be, in the asset repository.
+const EXPORTS: String = "exports/"
 ## The catalogue's pages a clip can be on: a weapon's moves, bare hands,
 ## or the states shared by every weapon (tools/shot_scenes/clip_sheet.gd).
 const GROUPS: Array[StringName] = [&"katana", &"greatsword", &"daggers", &"bare", &"states"]
@@ -50,6 +62,11 @@ class Clip:
 	var dir: String
 	## The clip's name in its file, after the set's `@`.
 	var source: String
+	## An exported clip's GLB, from the asset repository's root; empty for a
+	## pack clip. A pack, dir and source beside it are its origin.
+	var export_path: String = ""
+	## Keep the prop bones' tracks (B-handProp.L/R).
+	var props: bool = false
 	var mirror: bool = false
 	var loop: bool = false
 	## Its files for every set sit in one folder, not the set's (file()).
@@ -72,6 +89,15 @@ class Clip:
 	## Whether the import tool builds it from two other clips.
 	func composed() -> bool:
 		return upper != &""
+
+	## Whether it is imported from an export in the asset repository.
+	func exported() -> bool:
+		return export_path != ""
+
+	## Whether it names the pack clip it comes from (every pack clip does;
+	## an exported one only when it replaces a pack clip).
+	func has_origin() -> bool:
+		return pack != ""
 
 	## The clip's file for a set, relative to the Iglesias packs' folder.
 	func file(set_name: StringName, set_folder: String) -> String:
@@ -166,8 +192,19 @@ func _clip(id: StringName, d: Variant) -> Clip:
 				c.set(field, int(v))
 		if d.get("mirror", false) == true:
 			errors.append("%s: a composed clip isn't mirrored" % id)
+		if (d as Dictionary).has("export"):
+			errors.append("%s: a composed clip has no export" % id)
 	elif compose != null:
 		errors.append("%s: compose is not an object" % id)
+	elif (d as Dictionary).has("export"):
+		var path: Variant = d["export"]
+		if not path is String or not str(path).begins_with(EXPORTS) or not str(path).ends_with(".glb") or str(path).contains(".."):
+			errors.append("%s: export must be a .glb under the asset repository's %s" % [id, EXPORTS])
+		else:
+			c.export_path = str(path)
+		var origin: int = ["pack", "dir", "source"].filter(func(f: String) -> bool: return (d as Dictionary).has(f)).size()
+		if origin != 0 and origin != 3:
+			errors.append("%s: an exported clip names all of pack, dir and source as its origin, or none" % id)
 	else:
 		for field: String in ["pack", "dir", "source"]:
 			if not (d as Dictionary).get(field) is String or str(d[field]) == "":
@@ -179,6 +216,11 @@ func _clip(id: StringName, d: Variant) -> Clip:
 	c.loop = d.get("loop", false) == true
 	c.shared = d.get("shared", false) == true
 	c.provisional = d.get("provisional", false) == true
+	var props: Variant = d.get("props", false)
+	if not props is bool:
+		errors.append("%s: props is true or false" % id)
+	else:
+		c.props = props
 	var groups: Variant = d.get("groups", [])
 	if not groups is Array or (groups as Array).is_empty():
 		errors.append("%s: no groups" % id)

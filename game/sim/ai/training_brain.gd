@@ -20,6 +20,10 @@ extends RefCounted
 ## - lights presses for each light follow-up once the attack can take it,
 ##   instead of at fixed times, so the whole light string comes out. The demo's
 ##   third press came a frame too late for the Katana's Crown Cut.
+## Since milestone-1 task 17 heavies presses its heavy follow-up the same
+## way, once the heavy can take it: at the demo's fixed 34 frames it came
+## before the startup of a heavy whose clip at 1.0x runs longer (the
+## Greatsword's Overhead Strike), and was lost.
 
 ## TrainingBehaviour
 const BEHAVIOURS: Array[StringName] = [
@@ -54,6 +58,8 @@ var _taps: Array[Tap] = []
 var _hold: int = 0
 ## Heavies turns so far: every other one gets its follow-up.
 var _heavy_turns: int = 0
+## Whether this heavies turn's follow-up is still to be pressed.
+var _heavy_follow_up: bool = false
 ## Picks random's next drill.
 var _pick: int = 0
 ## The drill the current cycle runs (&"" before the first).
@@ -102,6 +108,7 @@ func set_behaviour(b: StringName) -> void:
 	_drill = &""
 	_pick = 0
 	_heavy_turns = 0
+	_heavy_follow_up = false
 	# put the practised unblockable on the light slot
 	if b == &"thrust" or b == &"sweep" or b == &"slam":
 		var ab_id: StringName = ability_for(me, b)
@@ -179,8 +186,7 @@ func think() -> RawInput:
 					_tap(Btn.HEAVY, frame)
 					var p: int = _heavy_turns
 					_heavy_turns += 1
-					if p % 2 == 0:
-						_tap(Btn.HEAVY, frame + 34)
+					_heavy_follow_up = p % 2 == 0
 					_next = frame + 120
 				&"thrust", &"sweep", &"slam":
 					_tap(Btn.BLOCK, frame, 3)
@@ -188,6 +194,9 @@ func think() -> RawInput:
 					_next = frame + 130
 	if _drill == &"lights" and _light_follow_up_due(frame):
 		_tap(Btn.LIGHT, frame)
+	if _drill == &"heavies" and _heavy_follow_up and _heavy_follow_up_due():
+		_tap(Btn.HEAVY, frame)
+		_heavy_follow_up = false
 	for t: Tap in _taps:
 		if frame >= t.from and frame <= t.to:
 			buttons |= 1 << t.btn
@@ -211,6 +220,13 @@ func _light_follow_up_due(frame: int) -> bool:
 		if t.btn == Btn.LIGHT and t.to >= frame:
 			return false
 	return true
+
+
+## True when the dummy's heavy has a heavy follow-up it takes on the next
+## step.
+func _heavy_follow_up_due() -> bool:
+	var a: AttackState = me.atk
+	return a != null and me.takes_follow_up_at(a.frame + 1) and a.def.kind == &"heavy" and a.def.chain_heavy != &""
 
 
 ## kind: &"thrust" | &"sweep" | &"slam"
