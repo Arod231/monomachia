@@ -1,5 +1,5 @@
 extends Node
-## The game's flow for the playable skeleton (task 22 replaces the menus):
+## The game's flow (task 22's menus, walked whole by test_navigation_walk.gd):
 ## title -> main menu (Duel, Training, Versus, Watch, How to play, Controls,
 ## Settings, Quit)
 ## -> the fighter select (each mode) -> a match -> results (Rematch,

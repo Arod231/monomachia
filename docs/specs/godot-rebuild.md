@@ -48,7 +48,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 
 1. [ ] As a player, I want to start Monomachia as a Windows program, so that I can play without a browser.
 2. [x] As a player, I want a title screen with a live duel playing behind it, so that the game feels alive the moment it opens.
-3. [ ] As a player, I want to choose Duel, Training, Versus or Watch from the main menu, so that I can play the way I want. (Duel, Watch and, since 23.3, Training are on the menu, and Versus since 22.16; ticked when 22.17's walks pass.)
+3. [x] As a player, I want to choose Duel, Training, Versus or Watch from the main menu, so that I can play the way I want. (All four through the fighter select: Duel and Watch from 22.5, Training from 23.3, Versus from 22.16; 22.17 walks each from the menu to a started match with the keyboard alone and with a controller alone.)
 4. [x] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer. (Ticked with 22.7: the select picks each, with the fighter shown in its 3D preview.)
 5. [x] As a player, I want to pick the computer's fighter, weapon and difficulty (Easy, Normal, Hard), or leave its weapon random, so that I control the challenge.
 6. [x] As a player, I want the match to be first to three rounds with a clear round call and "Fight", so that I always know where the match stands.

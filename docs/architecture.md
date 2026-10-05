@@ -90,7 +90,7 @@ flowchart TD
 | `game/fighters`, `game/weapons`, `game/arenas` | Content: fighter models and palettes, weapon models, the Moonlit Shrine. |
 | `game/shaders` | Every `.gdshader` and shared include. |
 | `game/audio` | `SoundBank` (event to sound table), `SoundPlayer`, music director and player, footsteps. |
-| `game/ui` | `MatchHud`, `HudBar`, `MenuScreen`, `TitleScreen`, `ResultsScreen`. |
+| `game/ui` | The HUD (`MatchHud` and its pieces) and the menu screens on a `ScreenStack` (`TitleScreen`, `MainMenu`, `FighterSelect`, `PauseScreen`, `ResultsScreen`, `SettingsScreen`, `ControlsScreen`, `HowToPlayScreen`). |
 | `game/scenes` | `main.tscn` and `main.gd` (the screen flow) and `smoke_run.gd` (the `--smoke` check). |
 | `game/tools` | Headless scripts: soak, typecheck, screenshots, asset builders and bakers. |
 | `game/tests` | GUT tests, by area. |
@@ -817,16 +817,17 @@ flowchart LR
 
 ## 13. Screens and the HUD (`game/ui`, `game/scenes`)
 
-The menus are the playable skeleton's; plan task 22 replaces them with the full set (character select, Training, Versus, Settings, Controls).
+The menus are task 22's full set, in today's ink-wash theme (milestone 1 restyles them): every mode starts through the fighter select, and the main menu also opens How to play, Controls and Settings. Pages sit on a `ScreenStack`, so Back on a page returns to the page that opened it. `test_navigation_walk.gd` walks the whole flow with the keyboard alone and with a controller alone (22.17), and every screen has a `tools/shot_scenes/menu_*.tscn` shot.
 
 ```mermaid
 stateDiagram-v2
     [*] --> TITLE : launch (attract duel starts behind)
     TITLE --> MENU : any key
     MENU --> TITLE : back
-    MENU --> PLAYING : Duel (Rogue + Katana vs Hunter + Greatsword)
-    MENU --> PLAYING : Watch (Katana vs Daggers)
-    MENU --> PLAYING : Training (through the select)
+    MENU --> SELECT : Duel, Training, Versus, Watch
+    SELECT --> MENU : back from the first side
+    SELECT --> PLAYING : Lock in
+    MENU --> MENU : How to play, Controls, Settings (Back returns)
     MENU --> [*] : Quit
     PLAYING --> PAUSED : pause binding, Esc, Start, focus lost
     PAUSED --> PLAYING : Resume, Back
@@ -835,6 +836,7 @@ stateDiagram-v2
     PAUSED --> MENU : Quit to menu
     PLAYING --> RESULTS : match_finished
     RESULTS --> PLAYING : Rematch (next seed)
+    RESULTS --> SELECT : Change fighters
     RESULTS --> MENU : Main menu
 ```
 
@@ -844,12 +846,15 @@ stateDiagram-v2
 | `scenes/smoke_run.gd` | `SmokeRun` | `--smoke`: plays Watch to the results, exits 0 or 1. |
 | `ui/menus/menu_screen.gd` | `MenuScreen` | A generic menu panel with keyboard, mouse and controller navigation. |
 | `ui/menus/title_screen.gd` | `TitleScreen` | "Press any key". |
+| `ui/menus/main_menu.gd` | `MainMenu` | Duel, Training, Versus, Watch, How to play, Controls, Settings and Quit, each with its sublabel. |
+| `ui/menus/fighter_select.gd` | `FighterSelect` | The select for every mode: the sides one after the other, each with the fighter grid, the loadout panel and the 3D preview; a computer side's skill; in Versus each player's device and Controls profile, a clash or a missing controller refusing Lock in; the arena and Lock in on the last side. Picks go into a `MatchSelection` draft. |
+| `ui/menus/how_to_play_screen.gd`, `controls_screen.gd`, `settings_screen.gd` | `HowToPlayScreen`, `ControlsScreen`, `SettingsScreen` | The rules and a move list per weapon; rebinding with capture and profiles; picture and sound. Each also opens over the pause. |
 | `ui/menus/pause_screen.gd` | `PauseScreen` | 休止 Paused: Resume, Move list, Controls, Settings, Restart, Quit to menu; in Training, Dummy and Refill health rows above them. |
-| `ui/menus/results_screen.gd` | `ResultsScreen` | Winner, rounds, seven stats, Rematch and Main menu. |
+| `ui/menus/results_screen.gd` | `ResultsScreen` | Winner, rounds, seven stats, Rematch, Change fighters and Main menu. |
 | `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, the prompts (shown by the Button hints setting), the marker on a dropped weapon, and in Training the `TrainingPanel`. In Versus (23.7) the plates read Player 1 and Player 2, each player's prompts and marker keep to their own half of the split (`prompt_columns`, `weapon_markers`, through `MatchView.cameras`), and the toasts and calls name the player. Hidden in the attract duel. |
 | `ui/hud/hud_toasts.gd` | `HudToasts` | The toasts under the centre: `for_event()` says what a rules event toasts from the player's side or Watch's (no nodes); up to three on screen, 69 rules steps each, held by a pause. |
 | `ui/hud/hud_prompts.gd`, `key_cap.gd` | `HudPrompts`, `KeyCap` | The prompts at the bottom: `for_fighter()` says what the player can press now (no nodes), at most two, urgent first; each key a `KeyCap` named for the device used last. |
-| `ui/hud/weapon_marker.gd` | `WeaponMarker` | "Your weapon" over your dropped weapon as the gameplay camera sees it; `place()` (no nodes) clamps it whole to the screen's edge, pointing the way, when the weapon is off screen or behind the camera. |
+| `ui/hud/weapon_marker.gd` | `WeaponMarker` | "Your weapon" over your dropped weapon as the gameplay camera sees it; `place()` (no nodes) clamps it whole to the screen's edge, pointing the way, when the weapon is off screen or behind the camera. In Versus each player has one ("Player 2's weapon"), kept to their half (`show_in()`). |
 | `ui/hud/training_panel.gd` | `TrainingPanel` | Training's panel at the bottom left: "Dummy · <weapon>", the nine behaviour chips (keys 1–9) and refill (key 0), clicks too; a digit bound in the player's profile is left to its action. Follows `MatchHost.training_changed` and `loadout_changed`; hidden while paused. |
 | `ui/hud/hud_bar.gd` | `HudBar` | A meter with a lagging band. |
 

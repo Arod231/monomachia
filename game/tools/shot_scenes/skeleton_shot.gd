@@ -26,13 +26,8 @@ extends Node
 ## fighters --spacing= metres apart (2.5 by default), to check that the
 ## player never hides the opponent from the gameplay camera.
 ##
-## "select_duel" and "select_watch" show the fighter select (22.5): a Duel on
-## your side, and Watch on its second side.
-##
-## "select_preview" shows the fighter select's 3D preview (22.7) on your side
-## of a Duel: --fighter=rogue|hunter, --weapon=katana|greatsword|daggers and
-## --palette=0|1 (1 shows the opponent's side of a mirror match, in the second
-## palette), turned --turn= degrees (20 by default) and held still.
+## The menu screens' shots (the title, the main menu, the select and the
+## results among them) are menu_screen_shot.gd's, since 22.17.
 ##
 ## "iai_stance", "iai_vertical" and "iai_horizontal" show the player's Rogue
 ## with the Katana's Iai Slash against an idle training dummy: sheathed in the
@@ -87,8 +82,8 @@ extends Node
 const SEED: int = 7
 
 @export_enum(
-	"round_start", "exchange", "parry", "watch", "watch_start", "versus", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
-	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch", "select_preview",
+	"round_start", "exchange", "parry", "watch", "watch_start", "versus", "dropped", "mirror", "spacing", "hud_states", "ko", "call",
+	"iai_stance", "iai_vertical", "iai_horizontal",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
 	"recall_burst", "toasts", "prompts", "marker",
 ) var shot: String = "round_start"
@@ -118,12 +113,6 @@ const SEED: int = 7
 ## near its brightest with the bar lit; 0.1 on 0.2 s, the pulse lower with
 ## the bar dimmed.
 @export var blink_time: float = 0.25
-## The "select_preview" shot's fighter, weapon, palette (the side shown) and
-## turn in degrees (--fighter=, --weapon=, --palette=, --turn=).
-@export var preview_fighter: StringName = &"rogue"
-@export var preview_weapon: StringName = &"katana"
-@export var preview_palette: int = 0
-@export var preview_turn: float = 20.0
 ## The "versus" shot's placing: centre or wall (--versus= sets it too).
 @export var versus_place: String = "centre"
 ## The computer duels with a Rogue on both sides (--mirror).
@@ -132,7 +121,6 @@ const SEED: int = 7
 @export var settle_frames: int = 10
 
 var host: MatchHost
-var main: Node
 var _ready_flag: bool = false
 var _parried: bool = false
 var _katana_hit: bool = false
@@ -163,14 +151,6 @@ func _ready() -> void:
 			prompts_form = a.trim_prefix("--prompts=")
 		elif a.begins_with("--marker="):
 			marker_place = a.trim_prefix("--marker=")
-		elif a.begins_with("--fighter="):
-			preview_fighter = StringName(a.trim_prefix("--fighter="))
-		elif a.begins_with("--weapon="):
-			preview_weapon = StringName(a.trim_prefix("--weapon="))
-		elif a.begins_with("--palette="):
-			preview_palette = int(a.trim_prefix("--palette="))
-		elif a.begins_with("--turn="):
-			preview_turn = float(a.trim_prefix("--turn="))
 		elif a.begins_with("--versus="):
 			versus_place = a.trim_prefix("--versus=")
 		elif a == "--mirror":
@@ -210,34 +190,6 @@ func _ready() -> void:
 			# under its marker
 			_gameplay(MatchConfig.WATCH)
 			_step_until(_weapon_down, 200000, 0)
-		"results":
-			_main()
-			main.call("start_match", _config(MatchConfig.DUEL))
-			_step_until(func() -> bool: return host.is_finished(), 200000, 0)
-			host.step(30)
-		"main_menu":
-			_main()
-			main.call("show_main_menu")
-			host.step(420)
-		"title":
-			_main()
-			host.step(420)
-		"select_duel":
-			# the fighter select on your side, over the duel behind the menus
-			_main()
-			main.call("open_select", MatchConfig.DUEL)
-			host.step(420)
-		"select_preview":
-			_main()
-			main.call("open_select", MatchConfig.DUEL)
-			_select_preview()
-		"select_watch":
-			# the Watch select on its second side: the skill row, the arena
-			# slot and Lock in
-			_main()
-			main.call("open_select", MatchConfig.WATCH)
-			(main.get("select") as FighterSelect).show_side(1)
-			host.step(420)
 		"mirror":
 			_gameplay(MatchConfig.DUEL, MatchConfig.make(
 				MatchConfig.DUEL,
@@ -610,11 +562,6 @@ func _recall_burst() -> void:
 		view.render(1.0 / 60.0)
 
 
-func _main() -> void:
-	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
-	add_child(main)
-	host = main.get_node("MatchHost")
-	host.auto_run = false
 
 
 ## Steps until cond() holds (checked after at least min_steps), at most limit steps.
@@ -695,18 +642,6 @@ func _on_event(e: Dictionary) -> void:
 		_katana_hit = true
 
 
-## Sets the select's side for the "select_preview" shot and turns its
-## preview to --turn=, then holds it still.
-func _select_preview() -> void:
-	var select: FighterSelect = main.get("select")
-	for side: int in 2:
-		MatchSelection.set_fighter(select.draft, side, preview_fighter)
-		MatchSelection.set_weapon(select.draft, side, preview_weapon)
-	select.show_side(clampi(preview_palette, 0, 1))
-	host.step(420)
-	var p: FighterPreview = select.preview
-	p.set_process(false)
-	p.advance(preview_turn / 360.0 * FighterPreview.TURN_SECONDS)
 
 
 ## The Versus HUD (23.7): "hud" puts both players at 20 HP (Ultimate ready)
