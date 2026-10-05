@@ -1,7 +1,7 @@
 // The round trip: a session's hook, the real Project Manager server and the
 // owner's answer from a page, end to end (harness in lanes-board-harness.mjs).
 
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -110,6 +110,43 @@ describe('the round trip: Away and the Questions tab', () => {
     assert.equal(await done, null);
     assert.deepEqual((await board.get('/questions')).body.groups, []);
     assert.deepEqual(readdirSync(path.join(board.relay, 'pending')), []);
+  });
+
+  // The spike found that a hook keeps holding after its session is deleted. The
+  // holds here could wait two minutes, so ending within 15 s is the board's doing.
+  const released = (done) => Promise.race([done,
+    new Promise((_, no) => setTimeout(() => no(new Error('the hook was not released')), 15000))]);
+  it('drops an item whose session\'s transcript is gone, releasing its hook', async () => {
+    const id = '22222222-2222-4333-8444-555555555555';
+    const transcript = board.addSession(id, 'Deleted by transcript');
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(ASK(ONE), { session: id, waitMs: 120000 });
+    assert.equal((await held()).groups[0].session, id);
+    rmSync(transcript);
+    assert.equal(await released(done), null);
+    assertMatches((await board.get('/questions')).body, { count: 0, groups: [] });
+  });
+
+  it('drops an item whose session\'s app record is gone, releasing its hook', async () => {
+    const id = '33333333-2222-4333-8444-555555555555';
+    board.addSession(id, 'Deleted in the app');
+    const record = board.appRecord(id, 'Deleted in the app');
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(ASK(ONE), { session: id, waitMs: 120000 });
+    assertMatches((await held()).groups[0], { session: id, app: `local_${id}` });
+    rmSync(record);
+    assert.equal(await released(done), null);
+    assertMatches((await board.get('/questions')).body, { count: 0, groups: [] });
+  });
+
+  it('keeps an item whose session never had an app record (a CLI session)', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(ASK(ONE));
+    const item = (await held()).groups[0].items[0];
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal((await board.get('/questions')).body.groups[0].items[0].id, item.id);
+    await board.post('/relay/answer', { id: item.id, release: true });
+    assert.equal(await done, null);
   });
 
   it('refuses the old per-session switch', async () => {
