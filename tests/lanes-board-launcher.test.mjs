@@ -15,9 +15,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { assertMatches } from './assert-matches.mjs';
 import {
-  LAUNCH_FRESH_MS, LOCK_CHECK_MS, LOST_MS, REASONS, createStarter, firstPrompt, launchLink, linkCandidates, linkLaunches, pressResult, startView,
+  LAUNCH_FRESH_MS, LOCK_CHECK_MS, LOST_MS, REASONS, createStarter, firstPrompt, launchLink, linkCandidates, linkLaunches, newSessionLaunch, pressResult, startView,
 } from '../tools/lanes-board/launcher.mjs';
-import { launchStartText } from '../tools/lanes-board/ui.mjs';
+import { GOAL_LIMIT } from '../tools/lanes-board/plans.mjs';
+import { NEW_SESSION_SHOW_MS, launchStartText, newSessionStatus } from '../tools/lanes-board/ui.mjs';
 
 const REPO = 'C:\\Users\\me\\Monomachia';
 const launch = (id, time, extra = {}) => ({
@@ -342,6 +343,65 @@ describe('launchStartText', () => {
   it('names the Project Manager, as the pages do, never "the board"', () => {
     for (const reason of [...REASONS, 'lost', 'surprise']) assert.doesNotMatch(launchStartText({ state: 'waiting', reason }), /\bboard\b/);
     assert.doesNotMatch(launchStartText({ state: 'starting' }), /\bboard\b/);
+  });
+});
+
+describe('newSessionLaunch', () => {
+  it('queues a session with no tasks, tagged in its first prompt', () => {
+    const l = newSessionLaunch({ now: 1_700_000_000_000, repo: REPO });
+    assertMatches(l, { kind: 'session', time: 1_700_000_000_000, tasks: [], start: { state: 'queued', at: 1_700_000_000_000, attempts: 0 } });
+    assert.match(l.tag, /^pm-session-[a-z0-9]+$/);
+    assert.equal(l.id, l.tag);
+    assert.equal(l.branch, undefined);
+    assert.ok(l.goal.includes(`(${l.tag})`));
+  });
+
+  it('has the session start on the latest master in a worktree of the repository, then wait for its prompts', () => {
+    const { goal } = newSessionLaunch({ now: 1000, repo: REPO });
+    assert.ok(goal.includes(`git -C "${REPO}" worktree add "${REPO}\\.claude\\worktrees\\pm-session-rs" --detach origin/master`), goal);
+    assert.match(goal, /change_directory/);
+    assert.match(goal, /git switch --detach origin\/master/);
+    assert.match(goal, /new branch from origin\/master/);
+    assert.match(goal, /wait for my next message/);
+    assert.ok(goal.length <= GOAL_LIMIT);
+    assert.doesNotMatch(goal, /^\//, 'a link turns a leading slash into a full-width one');
+  });
+
+  it('tags each launch by the time it was made', () => {
+    assert.notEqual(newSessionLaunch({ now: 1000, repo: REPO }).tag, newSessionLaunch({ now: 1001, repo: REPO }).tag);
+  });
+});
+
+describe('linkLaunches for a new session', () => {
+  const sess = (id, created) => ({ id, cli: `cli-${id}`, created });
+  it('links it to the session whose first prompt carries its tag', () => {
+    const l = newSessionLaunch({ now: 1000, repo: REPO });
+    const prompts = new Map([['cli-local_x', `New session from the Project Manager (${l.tag}0), in the repository`],
+      ['cli-local_s', `New session from the Project Manager (${l.tag}), in the repository`]]);
+    assert.equal(linkLaunches([l], [sess('local_x', 2000), sess('local_s', 3000)], prompts, 4000), true);
+    assert.deepEqual(l.session, { id: 'local_s', cli: 'cli-local_s' });
+  });
+});
+
+describe('newSessionStatus', () => {
+  const view = (start, extra = {}) => ({ id: 'pm-session-a', kind: 'session', time: 1000, tasks: [], session: null, endedAt: null, start, ...extra });
+  it('follows the newest new session until it has started a while', () => {
+    assert.equal(newSessionStatus([], 1000), null);
+    assert.equal(newSessionStatus([{ ...view({ state: 'starting' }), kind: undefined, tasks: ['gr:1.1'] }], 1000), null);
+    assertMatches(newSessionStatus([view({ state: 'starting' })], 2000), { id: 'pm-session-a', state: 'starting', text: launchStartText({ state: 'starting' }), retry: false });
+    assertMatches(newSessionStatus([view({ state: 'waiting', reason: 'locked', retry: false })], 2000), { state: 'waiting', retry: false });
+    assertMatches(newSessionStatus([view({ state: 'waiting', reason: 'no-app', retry: true })], 2000), { state: 'waiting', retry: true });
+    const started = newSessionStatus([view({ state: 'started' }, { session: 'local_s' })], 2000);
+    assertMatches(started, { state: 'started', session: 'local_s', retry: false });
+    assert.match(started.text, /Claude app/);
+    assert.equal(newSessionStatus([view({ state: 'started' }, { session: 'local_s' })], 1000 + NEW_SESSION_SHOW_MS), null);
+  });
+  it('shows only the newest, and nothing once it has lapsed or ended', () => {
+    const older = view({ state: 'waiting', reason: 'error', retry: true });
+    const newer = view({ state: 'starting' }, { id: 'pm-session-b', time: 2000 });
+    assert.equal(newSessionStatus([older, newer], 3000).id, 'pm-session-b');
+    assert.equal(newSessionStatus([view(null)], 3000), null);
+    assert.equal(newSessionStatus([view({ state: 'starting' }, { endedAt: 2000 })], 3000), null);
   });
 });
 

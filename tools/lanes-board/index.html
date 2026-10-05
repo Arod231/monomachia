@@ -390,6 +390,9 @@ details.tl pre { margin: 4px 0 4px 14px; }
 .shd .fact code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; }
 .cmds { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .btn.danger { color: var(--critical); }
+/* The header's "New session" button and how its session is getting on. */
+.newsess { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+.newsess .err { color: var(--critical); }
 #sCmdNote:empty { display: none; }
 .mergebox { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; flex: none; }
 .mergebox p { margin: 0 0 6px; }
@@ -423,6 +426,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
     </nav>
     <span id="awayBox"></span>
     <span id="bellBox"></span>
+    <span class="newsess"><button class="btn small" id="newSessionBtn" title="Start a session in this repository on the latest master, with nothing to do yet: send it your prompts from the Claude app">New session</button><span id="newSessionNote"></span></span>
     <button class="btn small" id="brainBtn" title="The project's knowledge as linked notes: weapons, systems, plans, docs and code (opens in a popup window)">Second brain</button>
     <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
   </header>
@@ -880,6 +884,7 @@ function jumpTo(ref) {
 }
 
 function render() {
+  if (data && window.U) renderNewSession();
   if (!data?.plans || !window.U) return;
   // Drop queued tasks that started or finished since they were queued.
   const before = queue.length;
@@ -890,6 +895,32 @@ function render() {
   if (view === 'graph') renderGraph();
   renderQueue();
 }
+
+// ---------- a new session ----------
+// The header's "New session" button: a session with no tasks, which the
+// Project Manager starts like a launch; its line follows the newest one.
+let newSessionMsg = null; // { err, text } from the last click, until the next one
+function renderNewSession() {
+  const st = U.newSessionStatus(data.launches, Date.now());
+  const note = newSessionMsg?.err ? `<span class="err">${esc(newSessionMsg.text)}</span>`
+    : st ? `<span>${esc(st.text)}</span>${st.retry ? ` <button class="btn small" data-new-retry="${esc(st.id)}">Try again</button>` : ''}` : '';
+  if ($('newSessionNote').innerHTML !== note) $('newSessionNote').innerHTML = note;
+}
+$('newSessionBtn').addEventListener('click', async () => {
+  const b = $('newSessionBtn');
+  b.disabled = true;
+  try { await post('/session/new', {}); newSessionMsg = null; }
+  catch (err) { newSessionMsg = { err: true, text: `Couldn't start a new session: ${err.message}` }; }
+  b.disabled = false;
+  poll(true); render();
+});
+$('newSessionNote').addEventListener('click', async (e) => {
+  const id = e.target.closest('[data-new-retry]')?.dataset.newRetry;
+  if (!id) return;
+  try { await post('/launch/retry', { launch: id }); newSessionMsg = null; }
+  catch (err) { newSessionMsg = { err: true, text: `Couldn't try again: ${err.message}` }; }
+  poll(true); render();
+});
 
 // ---------- the launch queue ----------
 
