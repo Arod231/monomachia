@@ -143,7 +143,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Delivers:
     - **Held turn ends:** while Away is on, the relay hook holds each turn end with the session's last message, continued by a reply, Approve & continue or Show me. A reply already queued goes in at once. With Away off, it records "turn finished".
     - **The inbox:** a per-session inbox in the relay folder. The PreToolUse hook adds the oldest message as context before the session's next tool, and a turn end takes what's left. Replies to sessions no hook can reach are queued for their next turn end.
-    - **Release:** Away off releases every held item (dialogs back to the app, held turns ending). Hand back to the app works on any item, and every hold gives up after 24 hours (shortened in tests).
+    - **Release:** Away off releases every held item (dialogs back to the app, held turns ending). Hand back to the app works on any item, and every hold gives up after 24 minutes (shortened in tests; 24 hours until the owner settled on 25 minutes after task 9).
     - **On both pages,** turn ends appear in the Questions tab with quick replies and a reply box.
   - Check: round-trip cases:
     - a held turn continued by a reply;
@@ -159,7 +159,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a turn-end card shows the session's last message at once, and the app's turn summary once the app has written it.
 - [x] **9. The hooks installed, and the first real Away.** The tracked hooks go live in user settings, and the owner uses Away from the phone.
   - Delivers:
-    - with the owner's OK, the relay and stop hooks copied to `~/.claude/hooks/`, and the PermissionRequest and Stop timeouts in `~/.claude/settings.json` raised to 24 hours;
+    - with the owner's OK, the relay and stop hooks copied to `~/.claude/hooks/`, and the PermissionRequest and Stop timeouts in `~/.claude/settings.json` at least 25 minutes (24 hours until the owner, Oct 4, found 25 minutes enough; the hold gives up at 24);
     - the page saying when the installed copies differ from the tracked ones;
     - with the owner's OK, port 5197 served from this branch until the merge.
   - Check: a test of the installed-versus-tracked comparison; the owner switches Away on from the phone, answers a real session's question and replies to a finished turn, and both sessions carry on.
@@ -168,12 +168,12 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 4):
     - the preview serves this lane's branch (`lane/pm-7-8-9-10`) as soon as task 9's code is in, and moves to `tools/project-manager-remote` once the lane's pull request merges;
     - while the owner tries Away from the phone, task 10 is built; task 9 is ticked once the owner confirms it worked.
-  - The owner OK'd both (Oct 4): the install in user settings (copying both hooks to `~/.claude/hooks/` and raising the relay hook's two timeouts to 24 hours, with `settings.json` backed up), and port 5197 serving this lane from `~/.claude/all-lanes-server/preview.cmd` in place of `run.cmd` until the merge.
-  - The install (Oct 4): both hooks were copied to `~/.claude/hooks/` and the preview runs this lane on 5197. `~/.claude/settings.json` refuses every write on this PC, even from Notepad or an administrator's PowerShell, though its permissions are normal, so the relay hook's timeouts stay at 1500 s. Holds give up after 25 minutes until that's found. The owner chose to try Away now and leave the 24-hour timeouts as a follow-up (`npm run board:hooks` finishes the install once the file can be written).
+  - The owner OK'd both (Oct 4): the install in user settings (copying both hooks to `~/.claude/hooks/` and raising the relay hook's two timeouts, then planned at 24 hours, with `settings.json` backed up), and port 5197 serving this lane from `~/.claude/all-lanes-server/preview.cmd` in place of `run.cmd` until the merge.
+  - The install (Oct 4): both hooks were copied to `~/.claude/hooks/` and the preview runs this lane on 5197. `~/.claude/settings.json` refuses every write on this PC, even from Notepad or an administrator's PowerShell, though its permissions are normal, so the relay hook's timeouts stay at 1500 s. The owner chose to try Away now, then settled on 25 minutes (pull request #50): the hook holds for 24 minutes and gives up a minute before Claude Code's 1500 s timeout, so the settings already in place count as current and nothing has to write that file.
   - Done Oct 4: the owner switched Away on from the phone, answered a real session's question and replied to a finished turn, and both sessions carried on.
   - The spike's checks left to this task's first real use, and where they stand:
-    - a hold longer than 25 minutes: not tried, since the timeouts are still 1500 s; it comes with the settings follow-up (fallback: holds that end and re-arm);
-    - a permission hook killed at its timeout giving the dialog back to the app: not yet seen; a question left unanswered past 25 minutes on today's timeouts shows it;
+    - a hold longer than 25 minutes: no longer needed, since the owner settled on 25-minute holds (#50);
+    - a permission hook giving the dialog back to the app when it gives up: not yet seen on a live session; a question left unanswered for 24 minutes shows it;
     - a free-form `response` answer: not needed, since a free-form reply goes as a decline carrying the owner's words (task 6's answers), which the spike proved;
     - Stop now: built and checked with task 12.
   - Since this task, "Withdraw" (`/relay/unqueue`) clears everything waiting in a session's inbox, not just one queued reply, as the inbox can hold several messages.

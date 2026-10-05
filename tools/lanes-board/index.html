@@ -1432,7 +1432,7 @@ function renderSessionDetail() {
         ${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open in app</button>` : ''}</div>
       <div class="m" title="${esc(d.cwd ?? '')}"><i class="dot ${d.active ? 'active' : 'recent'}"></i> ${d.active ? 'At work' : `Last active ${esc(ago(d.activity))}`} · ${esc(d.cwd ?? '')}</div>
       ${ctxHtml}
-      <div class="m">${d.away?.on ? 'Away is on: its permission prompts, plans and questions wait here (for up to 24 hours each), and when a turn ends it waits for your reply.'
+      <div class="m">${d.away?.on ? 'Away is on: its permission prompts, plans and questions wait here (for up to 24 minutes each), and when a turn ends it waits for your reply.'
         : "Away is off: it asks in the app's own dialogs. A reply sent from here reaches it before its next step, or when its turn next ends."}</div>`;
   }
   if (!window.S) return;
