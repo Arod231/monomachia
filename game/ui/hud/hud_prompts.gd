@@ -19,7 +19,8 @@ extends VBoxContainer
 ##
 ## A prompt is { "parts": Array, "urgent": bool }, its parts plain text
 ## (String) or a key ({ "key": name }). MatchHud shows them only for the
-## player's own side, while the round is fought, and while the Button hints
+## player's own side (in Versus each player's, in the middle of their own
+## half, 23.7), while the round is fought, and while the Button hints
 ## setting is on.
 
 ## Prompts on screen at once.
