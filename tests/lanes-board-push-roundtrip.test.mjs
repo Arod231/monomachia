@@ -57,11 +57,11 @@ describe('the round trip: lock-screen notifications', () => {
     assert.equal((await board.post('/push/subscribe', { subscription: { endpoint: 'nope', keys: {} } })).status, 400);
   });
 
-  it('pushes a held question while Away is on, encrypted for the phone and signed', async () => {
+  it('pushes that a session waits on questions while Away is on, encrypted for the phone and signed', async () => {
     await subscribe();
     const { publicKey } = (await board.get('/push')).body;
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK);
+    assert.equal(await board.hook(ASK).done, null, 'the question stays in the app');
     const [push] = await waitFor(() => (received.length ? received : null), 12000, 'a push');
     assert.equal(push.path, '/push/phone-1');
     assert.equal(push.headers['content-encoding'], 'aes128gcm');
@@ -71,15 +71,12 @@ describe('the round trip: lock-screen notifications', () => {
     const key = createPublicKey({ format: 'jwk', key: { kty: 'EC', crv: 'P-256', x: pub.subarray(1, 33).toString('base64url'), y: pub.subarray(33).toString('base64url') } });
     assert.ok(verify('sha256', Buffer.from(`${m[1]}.${m[2]}`), { key, dsaEncoding: 'ieee-p1363' }, unb64u(m[3])), 'the VAPID signature checks out');
     const message = JSON.parse(decryptPayload(push.body, { uaPrivate: phone.getPrivateKey().toString('base64url'), auth }));
-    assertMatches(message, { title: 'Fixture session asks you a question', body: 'Which camera?', tag: `session:${SESSION}` });
+    assertMatches(message, { title: 'Fixture session is waiting on you to answer questions in the app', body: 'Which camera?', tag: `session:${SESSION}` });
     const url = new URL(message.url, 'https://pc');
     assert.equal(url.searchParams.get('go'), 'questions');
     assert.equal(url.searchParams.get('session'), SESSION);
-    const item = url.searchParams.get('item');
     await new Promise((r) => setTimeout(r, 6000));
     assert.equal(received.length, 1, 'one push per record');
-    await board.post('/relay/answer', { id: item, release: true });
-    await done;
   });
 
   it('pushes nothing while Away is off', async () => {
@@ -94,12 +91,9 @@ describe('the round trip: lock-screen notifications', () => {
     await subscribe();
     status = 410;
     await board.post('/relay/away', { on: true });
-    const { done } = board.hook(ASK);
+    await board.hook(ASK).done;
     await waitFor(() => (received.length ? received : null), 12000, 'a push');
     await waitFor(async () => (await board.get('/push')).body.subscriptions === 0, 8000, 'the subscription dropped');
-    const q = (await board.get('/questions')).body;
-    await board.post('/relay/answer', { id: q.groups[0].items[0].id, release: true });
-    await done;
   });
 
   it('forgets a subscription the phone turns off', async () => {

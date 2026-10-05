@@ -2,6 +2,8 @@
 
 Status: approved by the owner on Oct 4, 2026, with its plan, `docs/plans/project-manager-remote.md`.
 
+Changed Oct 5, 2026 (the owner's call): questions (AskUserQuestion) are no longer sent to the Project Manager. They always stay in the app's own dialog, Away or not, and the relay hook only notes them, so the bell (and a push, once push lands) says "<session> is waiting on you to answer questions in the app" and the Questions tab lists them under "Asked in the app". Permission prompts, plans and turn ends still wait in the Project Manager while Away is on. Where this spec says questions wait in or are answered from the Project Manager, this note wins.
+
 ## Problem Statement
 
 The owner runs several Claude sessions at once on the desktop PC, one per lane, and follows them from the Project Manager (`npm run board`, http://localhost:5197) on the PC and, through Tailscale, as a Home Screen web app on an iPhone. Away from the PC, three things stall:
@@ -14,7 +16,7 @@ The owner runs several Claude sessions at once on the desktop PC, one per lane, 
 
 The Project Manager becomes the place to run sessions from the phone:
 
-- **An Away switch.** While it's on, every session's questions, permission prompts, plan approvals and turn ends wait in the Project Manager instead of the app's dialogs. A session that finishes its turn waits there too, so a reply or command sent hours later still reaches it. Switching Away off hands everything back to the app.
+- **An Away switch.** While it's on, every session's permission prompts, plan approvals and turn ends wait in the Project Manager instead of the app's dialogs (questions stay in the app since Oct 5; the bell says when one waits). A session that finishes its turn waits there too, so a reply or command sent hours later still reaches it. Switching Away off hands everything back to the app.
 - **A Questions tab** lists everything waiting, from every session, answerable in a tap or two, with the same options, descriptions and previews the app shows. The session carries on as if the owner had answered in the app.
 - **A bell** on every page lists questions, finished turns, pull requests ready to merge and new visuals. While Away is on, the same events arrive as iPhone lock-screen notifications, end-to-end encrypted.
 - **A page per session** shows its state, its lane, the shots and looping clips it posted, every image it got back from its tools, the Markdown documents it wrote, its pull request and the artifacts it published, plus its conversation and a reply box.
@@ -175,7 +177,7 @@ The owner's answers from the Oct 4 interview.
 
 - **One switch, in a file.** The relay folder (`~/.claude/lanes-relay`, `LANES_RELAY` overrides it) gets an Away file (on or off, since when, from which device) in place of the per-session list. Both pages show the switch in their header with the number of items waiting.
 - **The relay hook decides per event:**
-  - *PermissionRequest, Away on:* it writes a held item (a question for AskUserQuestion, a plan for ExitPlanMode, a permission for anything else) and waits for an answer, a hand-back, Away going off, or 24 minutes. A question is answered as Claude Code's own hosts answer it: allow, with the tool's input passed back plus an `answers` map (question text to the chosen label, several labels joined with ", ", free text for "Other"), or a `response` for a free-form reply. A permission is allowed (optionally with the suggested rule), or denied with the owner's reason; a plan is approved, or rejected with the reason.
+  - *PermissionRequest, Away on:* (since Oct 5, AskUserQuestion is never held: Away on or off, it is noted as asked in the app and left to the app's dialog.) It writes a held item (a question for AskUserQuestion, a plan for ExitPlanMode, a permission for anything else) and waits for an answer, a hand-back, Away going off, or 24 minutes. A question is answered as Claude Code's own hosts answer it: allow, with the tool's input passed back plus an `answers` map (question text to the chosen label, several labels joined with ", ", free text for "Other"), or a `response` for a free-form reply. A permission is allowed (optionally with the suggested rule), or denied with the owner's reason; a plan is approved, or rejected with the reason.
   - *Stop, Away on:* a reply already queued for the session goes in at once. Otherwise it holds the turn end, with the session's last message, and waits the same way. The owner's reply, or a command's message, continues the session ("The owner replied from the Project Manager: …").
   - *Either event, Away off:* it records an event for the bell (asked in the app, turn finished) and exits at once, so the session runs as it does today. With no relay folder at all, it exits before reading anything, as now.
 - **Messages to a working session** (a reply, Approve & continue, Show me, the merge tidy-up) wait in a per-session inbox in the relay folder. The PreToolUse hook, which already runs before every tool call, adds the oldest as context before the next tool runs. No extra process per tool call. A turn end takes what's left.

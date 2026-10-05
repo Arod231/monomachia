@@ -1,9 +1,11 @@
 // Lets the owner answer Claude Code sessions from the Project Manager (npm run
-// board): their permission prompts, plans, AskUserQuestion questions, and a
-// reply when a turn ends. While the Away switch is on (the Questions tab, on
-// the phone or the PC), every session's prompts and turn ends wait there; while
-// it's off, every session keeps the app's own dialogs, and a question asked in
-// the app or a finished turn is noted for the Project Manager.
+// board): their permission prompts, plans, and a reply when a turn ends. While
+// the Away switch is on (the Questions tab, on the phone or the PC), every
+// session's prompts and turn ends wait there; while it's off, every session
+// keeps the app's own dialogs, and a finished turn is noted for the Project
+// Manager. AskUserQuestion questions always stay in the app (owner's choice,
+// Oct 5): the Project Manager is only told that the session waits on the owner,
+// Away or not.
 //
 // Install: npm run board:hooks copies this file to ~/.claude/hooks/lanes-relay/hook.mjs
 // (with inbox.mjs beside it) and adds, to ~/.claude/settings.json (beside the
@@ -27,7 +29,7 @@
 //   stopnow/<session>.json  the owner pressed Stop now: the stop hook refuses the
 //                        session's tools until its turn ends, when this removes it
 //   events.jsonl         what happened in the app meanwhile (a question asked
-//                        there, or a turn finished, while Away was off), one JSON
+//                        there, or a turn finished while Away was off), one JSON
 //                        object per line
 // A prompt waits up to 24 minutes for the board (LANES_RELAY_WAIT_MS), then falls
 // back to the app's dialog; so does switching Away off. A turn's end waits the
@@ -87,14 +89,15 @@ async function main(hook) {
   }
 
   if (event === 'PermissionRequest') {
-    const question = hook.tool_name === 'AskUserQuestion';
-    if (!away()) {
-      if (question) note({ kind: 'asked-in-app', session: id, cwd: hook.cwd ?? null,
+    // A question is answered in the app; the bell only says the session waits.
+    if (hook.tool_name === 'AskUserQuestion') {
+      note({ kind: 'asked-in-app', session: id, cwd: hook.cwd ?? null,
         questions: (hook.tool_input?.questions ?? []).map((q) => String(q.question ?? '')) });
       return null;
     }
+    if (!away()) return null;
     const answer = await ask(hook, {
-      kind: question ? 'question' : hook.tool_name === 'ExitPlanMode' ? 'plan' : 'permission', tool: hook.tool_name, input: hook.tool_input ?? {},
+      kind: hook.tool_name === 'ExitPlanMode' ? 'plan' : 'permission', tool: hook.tool_name, input: hook.tool_input ?? {},
       suggestions: hook.permission_suggestions ?? null, mode: hook.permission_mode ?? null,
     });
     if (!answer || answer.release || !answer.behavior) return null;

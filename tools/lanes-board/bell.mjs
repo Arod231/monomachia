@@ -25,7 +25,8 @@ const MAX_RECORDS = 500;
 const oneLine = (s, n = 200) => String(s ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join(' ').slice(0, n);
 const lastLine = (s) => oneLine(String(s ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).at(-1));
 
-// A held item (pending/<id>.json in the relay folder) as a record.
+// A held item (pending/<id>.json in the relay folder) as a record. Only a relay
+// hook installed before Oct 5 holds questions; since then they stay in the app.
 function heldRecord(p, title) {
   const base = { id: `held:${p.id}`, item: p.id, session: p.session, time: Number(p.time) || 0, read: false,
     target: { tab: 'questions', item: p.id, session: p.session } };
@@ -44,7 +45,7 @@ function eventRecord(e, n, title) {
   const where = e.offset ?? `n${n}`;
   const base = { id: `event:${Number(e.time) || 0}:${where}`, session: e.session, time: Number(e.time) || 0, read: false };
   if (e.kind === 'asked-in-app') {
-    return { ...base, kind: 'asked', text: `${title} asks you a question in the app`, detail: oneLine(e.questions?.[0]),
+    return { ...base, kind: 'asked', text: `${title} is waiting on you to answer questions in the app`, detail: oneLine(e.questions?.[0]),
       target: { tab: 'questions', session: e.session } };
   }
   if (e.kind === 'turn-finished') {
