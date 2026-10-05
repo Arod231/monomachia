@@ -98,6 +98,55 @@ func test_watch_names_the_round_s_winner_and_disarms_have_no_advice() -> void:
 	assert_eq(_length(), MatchHud.DISARM_FRAMES)
 
 
+
+## The announcement's words colour, or null when the theme's own.
+func _words_color() -> Variant:
+	var l: Label = hud.find_child("Announce", true, false)
+	return l.get_theme_color(&"font_color") if l.has_theme_color_override(&"font_color") else null
+
+
+func test_watch_names_the_round_s_winner_in_the_side_s_colour() -> void:
+	_start()
+	hud._on_sim_event({"t": &"roundOver", "winner": 1, "perfect": false})
+	host.step(MatchHud.ROUND_RESULT_DELAY)
+	assert_eq(hud.announcement_text(), "Hunter wins the round")
+	assert_eq(_words_color(), HudToasts.TONE_COLORS[HudToasts.Tone.BLUE], "青 blue, as its Watch toasts")
+	hud._on_sim_event({"t": &"roundOver", "winner": 0, "perfect": true})
+	host.step(MatchHud.ROUND_RESULT_DELAY)
+	assert_eq(_on_screen(), ["勝", "Rogue wins the round", "Perfect"] as Array[String])
+	assert_eq(_words_color(), HudToasts.TONE_COLORS[HudToasts.Tone.RED], "赤 red")
+	hud._on_sim_event({"t": &"disarm", "victim": 0})
+	assert_null(_words_color(), "the next call in the theme's colour")
+
+
+func test_a_mirror_match_in_watch_puts_the_seal_on_the_round_s_winner() -> void:
+	host = (load("res://view/match/match_host.tscn") as PackedScene).instantiate()
+	host.auto_run = false
+	host.use_services = false
+	host.input = InputDevices.new(FakeDeviceState.new())
+	host.profiles = ControlProfiles.new()
+	add_child_autofree(host)
+	hud = host.get_node("Hud")
+	host.start(MatchConfig.make(
+		MatchConfig.WATCH,
+		MatchSide.computer(&"rogue", &"katana", 0, &"hard"),
+		MatchSide.computer(&"rogue", &"daggers", 1, &"hard"),
+		7,
+		ArenaScenes.STANDIN,
+	))
+	hud._on_sim_event({"t": &"roundOver", "winner": 1, "perfect": false})
+	host.step(MatchHud.ROUND_RESULT_DELAY)
+	assert_eq(hud.announcement_text(), "Rogue 青 wins the round")
+	assert_eq(_words_color(), HudToasts.TONE_COLORS[HudToasts.Tone.BLUE])
+
+
+func test_your_own_round_results_keep_the_theme_s_colour() -> void:
+	_start(0)
+	hud._on_sim_event({"t": &"roundOver", "winner": 1, "perfect": false})
+	host.step(MatchHud.ROUND_RESULT_DELAY)
+	assert_eq(hud.announcement_text(), "You lose the round")
+	assert_null(_words_color())
+
 ## A draw is 敗 to the player and 勝 in Watch, as the demo's.
 func test_a_draw_is_called() -> void:
 	_start(0)

@@ -255,7 +255,8 @@ func test_the_entrance_rises_in_and_fades_out() -> void:
 ## The stack sits under the centre, newest at the bottom, each toast's text
 ## in its colour over its subline.
 func test_the_stack_draws_each_toast_in_its_colour() -> void:
-	_start(MatchConfig.TRAINING)
+	# a Duel: in Training your parry has its timing under it (23.4)
+	_start()
 	hud.toasts.clear()
 	hud._on_sim_event(_parry(0, &"parry"))
 	hud._on_sim_event(_parry(1, &"parry"))

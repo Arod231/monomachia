@@ -49,7 +49,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 1. [ ] As a player, I want to start Monomachia as a Windows program, so that I can play without a browser.
 2. [x] As a player, I want a title screen with a live duel playing behind it, so that the game feels alive the moment it opens.
 3. [ ] As a player, I want to choose Duel, Training, Versus or Watch from the main menu, so that I can play the way I want. (Duel, Watch and, since 23.3, Training are on the menu; Versus comes with 22.16.)
-4. [ ] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer.
+4. [x] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer. (Ticked with 22.7: the select picks each, with the fighter shown in its 3D preview.)
 5. [x] As a player, I want to pick the computer's fighter, weapon and difficulty (Easy, Normal, Hard), or leave its weapon random, so that I control the challenge.
 6. [x] As a player, I want the match to be first to three rounds with a clear round call and "Fight", so that I always know where the match stands.
 7. [x] As a player, I want health bars with the posture bar underneath, round pips and an ultimate badge, so that I can read the state of the fight at a glance. (Task 24: the top bar, the announcements, toasts, prompts and the dropped-weapon marker, in the ink-wash theme; milestone 1 restyles them for the realistic look.)
@@ -112,7 +112,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 ### Fighters and look
 
 43. [ ] As a player, I want real fighters with clothing, hair and a silhouette I can recognise, so that the game looks like the dark fantasy it's meant to be.
-44. [ ] As a player, I want to choose between at least two fighters (the Rogue and the Hunter), each able to wield any of the three weapons, so that fighter and weapon are separate choices.
+44. [x] As a player, I want to choose between at least two fighters (the Rogue and the Hunter), each able to wield any of the three weapons, so that fighter and weapon are separate choices. (Ticked with 22.7: the grid picks the fighter, the loadout panel the weapon, and the preview shows the pair.)
 45. [x] As a player in a mirror match, I want the second fighter in a different colour scheme, so that I can tell us apart.
 46. [ ] As a player, I want a toon look with ink outlines and a painted, ink-wash finish, so that the game has its own style.
     > **Superseded by [ADR 0001](../adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** A realistic look replaces it: physically based materials, dark lighting and volumetric fog under a painterly colour grade, after Ghost of Tsushima's darker side, with no toon shading, outlines or ink-wash pass. Ink survives only as calligraphy in the UI.
@@ -129,8 +129,8 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 
 ### Modes and controls
 
-53. [ ] As a player, I want Training against a dummy whose behaviour I choose (idle, block, lights, heavies, thrust, sweep, slam, random, spar), with optional health refill and early/late parry feedback, so that I can practise. (23.1–23.3: the upkeep, the behaviours with the weapon each needs, and the panel and pause rows; the parry feedback comes with 23.4.)
-54. [ ] As a player, I want Watch mode with a side-on cinematic camera, so that I can learn the moves by watching the computer duel.
+53. [x] As a player, I want Training against a dummy whose behaviour I choose (idle, block, lights, heavies, thrust, sweep, slam, random, spar), with optional health refill and early/late parry feedback, so that I can practise. (23.1–23.3: the upkeep, the behaviours with the weapon each needs, and the panel and pause rows; 23.4: the parry timing feedback.)
+54. [x] As a player, I want Watch mode with a side-on cinematic camera, so that I can learn the moves by watching the computer duel. (Ticked with 23.5: Watch through the select, two computer sides with their skills, the side-on camera, the HUD's Watch form and results naming the winner.)
 55. [ ] As two players on one PC, I want Versus in a vertical split screen, each with our own camera and device (keyboard and mouse, the arrow-key layout, or a controller), so that we can play head to head.
 56. [x] As a player, I want to remap every action for keyboard, mouse and controller, save named profiles, and see PlayStation or Xbox button names, so that the controls suit me. (22.10–22.12: the Controls screen's binding table, rebinding capture and profiles, played with in a match through the active profile; a profile picked in the pause menu's Controls is taken up on resume (22.15); Versus picks profiles with 22.16.)
 57. [x] As a player, I want graphics presets, a reduce-flashes-and-shaking option and a button-hints option, so that the game runs and reads well for me. (The presets (16.5), the Settings rows (22.9), Button hints hiding the prompts (24.4), and Reduce flashes and shaking applied to the shake, the field-of-view kicks and the flashes, body flashes included (18.11). 18.12 moved to milestone 1, where the push-in and every new effect follow Reduce flashes as they land.)

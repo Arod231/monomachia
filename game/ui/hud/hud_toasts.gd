@@ -23,6 +23,9 @@ extends Control
 ##   colour (赤 red, 青 blue), so a mirror match reads too, with no advice:
 ##   both sides' parries, counters, ultimates, backstabs and dazes (the
 ##   demo's Watch toasts named no one; the owner chose names on Oct 4, 2026);
+## - in Training your parry's subline says how many frames before impact
+##   you pressed and the window (23.4; Too early and Too late come from
+##   ParryFeedback);
 ## - Evaded only in Training. Versus takes the Watch form until 23.7 gives
 ##   it the demo's "Player 2: Parry".
 
@@ -76,7 +79,9 @@ static func for_event(e: Dictionary, me: int, training: bool, names: Array[Strin
 			var parrier: int = int(e["parrier"])
 			var kind: StringName = e["kind"]
 			if parrier == me:
-				out.append(_toast(PARRY_NAMES[kind], Tone.GOLD if kind == &"parry" else Tone.JADE))
+				# in Training, how early you pressed and the window you had (23.4)
+				var timing: String = ParryFeedback.timing_line(e) if training else ""
+				out.append(_toast(PARRY_NAMES[kind], Tone.GOLD if kind == &"parry" else Tone.JADE, timing))
 			elif int(e["attacker"]) == me:
 				out.append(_toast(PARRY_NAMES[kind], Tone.RED, "Your attack was deflected"))
 		&"counter":
