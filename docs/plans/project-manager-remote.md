@@ -311,3 +311,10 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a session compacted.
   - Blocked by: 9, 11, 13, 14, 16, 17, 18 · Stories: 1–87
   - **Owner:** runs the check and approves the pull request.
+  - Owner's answers (Oct 5, lane `lane/pm-19`, built on `tools/project-manager-remote` after #58 and #64 merged):
+    - "the pull request" is a new one from `tools/project-manager-remote` into `master` (#36, its predecessor, merged into `master`), opened as a draft and marked ready once the check passes;
+    - since questions stay in the app (Oct 5), "a question answered" becomes both a permission prompt or plan answered in the Questions tab and a question answered in the Claude app, reached by Open in the Claude app;
+    - a full close-out: a Progress line for each of tasks 4 to 19 (no main lane is left to write them since #36 merged), every story ticked, and the spec's status set to built;
+    - the check runs on this lane's own session: it posts a clip to its page, ends turns for the owner to approve, asks a question and a permission prompt, is compacted from the phone, and its pull request is merged from its page with Merge, last;
+    - the live Project Manager on port 5197 is restarted onto the branch's head first, so tasks 15 to 18 and New session are live;
+    - before the owner's check, Claude walks the six steps on a test board in the Browser pane at phone width and fixes what it finds.
