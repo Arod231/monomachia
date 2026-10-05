@@ -7,8 +7,10 @@
 // current one first; Progress has every plan's tasks (tasks the Oct 4 triage
 // moved show "moved → M1/M2" and no longer count as open), Graph what waits on
 // what, and Sessions every recent Claude session. From the page you can queue
-// tasks and launch a desktop-app session to build them, end a launched session's
-// work, answer a session (through relay-hook.mjs), see how full each session's
+// tasks and launch a desktop-app session to build them, which the board starts
+// itself so a launch from the phone needs nobody at the PC (rules in
+// launcher.mjs, the press in press-send.ps1), end a launched session's work,
+// answer a session (through relay-hook.mjs), see how full each session's
 // context is (a gauge and a turn-by-turn chart, rules in sessions.mjs), and open
 // the second brain. It never fetches or takes git locks.
 //   npm run board   ->   http://localhost:5197
@@ -21,7 +23,7 @@
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, readdir, stat, access, writeFile, open, mkdir, rm } from 'node:fs/promises';
+import { readFile, readdir, stat, access, writeFile, open, mkdir, rm, rename } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
@@ -30,6 +32,7 @@ import path from 'node:path';
 import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
 import { PENDING_ID, SESSION_ID, contextTracker, parseTranscript, relayAnswer } from './sessions.mjs';
+import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -262,8 +265,59 @@ async function waitingQuestion(dir, cli) {
 const LAUNCHES = path.join(STATE, 'launches.json');
 await mkdir(STATE, { recursive: true });
 let launches = [];
-try { launches = JSON.parse(await readFile(LAUNCHES, 'utf8')); } catch { launches = []; }
-const LAUNCH_FRESH_MS = 48 * 60 * 60 * 1000;
+try { launches = JSON.parse(await readFile(LAUNCHES, 'utf8')); } catch (err) {
+  launches = [];
+  // A file that won't read is kept aside for a look, not overwritten.
+  if (err.code !== 'ENOENT') await rename(LAUNCHES, `${LAUNCHES}.bad-${Date.now()}`).catch(() => {});
+}
+// The starter, the passes and the page's requests all save the launches: one
+// write at a time, each to a new file renamed over the old, so overlapping saves
+// can never leave half a file.
+let saving = Promise.resolve();
+function saveLaunches() {
+  const write = saving.then(async () => {
+    const tmp = `${LAUNCHES}.${process.pid}.tmp`;
+    await writeFile(tmp, JSON.stringify(launches, null, 2));
+    await rename(tmp, LAUNCHES);
+  });
+  saving = write.catch((err) => console.error(err));
+  return write;
+}
+// The board starts each launch itself (launcher.mjs): it opens the launch's link
+// and press-send.ps1 presses Send in the app, one launch at a time. A launch made
+// while the PC is locked starts once it's unlocked (tick, on each pass).
+const starter = createStarter({ list: () => launches, folder: REPO, open: openInApp, press: pressSend, locked: pcLocked, save: saveLaunches });
+if (starter.recover()) await saveLaunches();
+starter.kick();
+
+// A launch's session is the app session whose first prompt names the launch's
+// lane branch (launcher.mjs linkLaunches). First prompts never change, so each
+// is read once, from the head of the session's transcript.
+const firstPrompts = new Map(); // cli session id -> its first prompt
+async function promptOfSession(cli, file) {
+  if (firstPrompts.has(cli)) return firstPrompts.get(cli);
+  let fh = null;
+  try {
+    fh = await open(file, 'r');
+    const buf = Buffer.alloc(1 << 20);
+    const { bytesRead } = await fh.read(buf, 0, buf.length, 0);
+    const p = firstPrompt(buf.toString('utf8', 0, bytesRead));
+    // A transcript with no prompt yet is read again next time, unless it's huge.
+    if (p !== null || bytesRead === buf.length) firstPrompts.set(cli, p ?? '');
+    return p;
+  } catch { return null; } finally { await fh?.close(); }
+}
+async function linkSessions(sessions, transcripts) {
+  const now = Date.now();
+  const candidates = linkCandidates(launches, sessions, now).filter((s) => transcripts.has(s.cli));
+  if (!candidates.length) return false;
+  const prompts = new Map();
+  await pool(candidates, 4, async (s) => {
+    const p = await promptOfSession(s.cli, transcripts.get(s.cli));
+    if (p) prompts.set(s.cli, p);
+  });
+  return linkLaunches(launches, candidates, prompts, now);
+}
 
 let prs = [];
 let prsAt = 0;
@@ -337,17 +391,8 @@ async function collect() {
   const transcripts = await transcriptIndex();
   forgetContexts();
 
-  // Each launch's session is the app session created just after it, wherever it
-  // opened (the app sometimes puts it in a scratch folder).
-  let linked = false;
-  for (const l of launches) {
-    if (l.session) continue;
-    const taken = new Set(launches.map((x) => x.session?.id).filter(Boolean));
-    const s = sessions.filter((x) => !taken.has(x.id) && x.created >= l.time - 10_000 && x.created <= l.time + 180_000)
-      .sort((a, b) => a.created - b.created)[0];
-    if (s) { l.session = { id: s.id, cli: s.cli }; linked = true; }
-  }
-  if (linked) await writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+  // Each launch's session: the app session its prompt started, wherever it opened.
+  if (await linkSessions(sessions, transcripts)) await saveLaunches();
   const stops = await readStops();
   const lanes = await pool(trees, 10, async (w, i) => {
     const st = (await tryGit(w.path, 'status', '--porcelain')) ?? '';
@@ -453,7 +498,7 @@ async function collect() {
   const launchView = (l) => {
     const stop = stops.find((s) => s.id === l.id);
     return { id: l.id, time: l.time, branch: l.branch, tasks: l.tasks, session: l.session?.id ?? null,
-      endedAt: l.endedAt ?? null, stoppedAt: stop?.firedAt ?? null };
+      endedAt: l.endedAt ?? null, stoppedAt: stop?.firedAt ?? null, start: startView(l, now) };
   };
 
   // Task statuses.
@@ -506,6 +551,7 @@ async function loop() {
   const started = Date.now();
   try { cached = { ...(await collect()), took: Date.now() - started }; lastError = null; }
   catch (err) { lastError = String(err?.stack ?? err); console.error(lastError); }
+  starter.tick().catch((err) => console.error(err));
   setTimeout(loop, Math.max(500, CACHE_MS - (Date.now() - started)));
 }
 const first = loop();
@@ -517,11 +563,31 @@ async function data() {
 // ---------- launching sessions ----------
 
 // The desktop app opens claude:// links: code/new starts a Code session in a
-// folder (the app makes its worktree) with the prompt in its box.
+// folder (the app makes its worktree) with the prompt in its box, and asks to
+// trust the folder; it never sends the prompt itself.
 function openInApp(url) {
   // LANES_DRY_RUN=1 prints the link instead, for testing the board.
   if (process.env.LANES_DRY_RUN) { console.log(`[dry run] ${url}`); return Promise.resolve(); }
   return run('rundll32.exe', ['url.dll,FileProtocolHandler', url], { windowsHide: true });
+}
+
+// press-send.ps1 (Windows UI Automation) confirms the app's trust dialog for the
+// repository and presses Send on the box holding the prompt; -LockOnly only
+// says whether the PC is locked. It answers in one line of JSON.
+function pressScript(args, env = {}) {
+  return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(HERE, 'press-send.ps1'), ...args],
+    { windowsHide: true, timeout: 150_000, env: { ...process.env, ...env } })
+    .then(({ stdout }) => pressResult(stdout), (err) => pressResult(err?.stdout));
+}
+async function pressSend({ prompt, folder }) {
+  if (process.env.LANES_DRY_RUN) { console.log('[dry run] would press Send'); return { result: 'pressed' }; }
+  const r = await pressScript([], { LANES_PROMPT: prompt, LANES_FOLDER: folder });
+  console.log(`[${new Date().toISOString()}] pressing Send for a launch: ${r.result}${r.trusted ? ', trusted the folder' : ''}${r.ms != null ? `, ${r.ms} ms` : ''}${r.error ? ` (${r.error})` : ''}`);
+  return r;
+}
+async function pcLocked() {
+  if (process.env.LANES_DRY_RUN) return false;
+  return (await pressScript(['-LockOnly'])).result === 'locked';
 }
 
 async function launch(body) {
@@ -545,11 +611,12 @@ async function launch(body) {
     const order = plan.stages.flatMap((s) => s.ids);
     ids.sort((a, b) => order.indexOf(a) - order.indexOf(b));
     const branch = `lane/${key}-${ids.join('-')}`.slice(0, 120);
+    // The session's first prompt, in plain words: a link can't run /goal.
     const goal = goalFor({ plan: { ...PLAN_BY_KEY[key], branch: plan.branch }, ids, tasks: plan.tasks, branch, repo: REPO,
       baseExists: refTips.has(`origin/${plan.branch}`) });
-    const url = `claude://code/new?folder=${encodeURIComponent(REPO)}&q=${encodeURIComponent(`/goal ${goal}`)}`;
-    await openInApp(url);
-    const record = { id: `${Date.now().toString(36)}-${key}`, time: Date.now(), plan: key, tasks: ids.map((id) => `${key}:${id}`), branch, goal };
+    const now = Date.now();
+    const record = { id: `${now.toString(36)}-${key}`, time: now, plan: key, tasks: ids.map((id) => `${key}:${id}`), branch, goal,
+      start: { state: 'queued', at: now, attempts: 0 } };
     launches.push(record);
     done.push(record);
     // Taking the lane back up: an earlier "End work" on it must not stop this one.
@@ -557,10 +624,21 @@ async function launch(body) {
     if (stops.cancelled) await writeFile(STOPS, JSON.stringify({ entries: stops.entries }, null, 2));
   }
   launches = launches.filter((l) => Date.now() - l.time < 14 * 24 * 60 * 60 * 1000);
-  await writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+  await saveLaunches();
+  // The starter opens each link and presses Send, one launch at a time; the
+  // pages follow each launch's start on /data.
+  starter.kick();
   // Mark them at once rather than on the next pass.
   try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
   return done;
+}
+
+// "Try again" for a launch that couldn't start: refused at once (started, ended,
+// starting or just sent), else the starter opens its link and presses Send again.
+async function retryLaunch(body) {
+  starter.retry(String(body?.launch ?? ''));
+  try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
+  return { retried: true };
 }
 
 // Ending a lane: the stop list that ~/.claude/hooks/lanes-stop/hook.mjs reads
@@ -586,7 +664,7 @@ async function endLaunch(body) {
   entries.push({ id: l.id, label, branch: l.branch, worktree: tree?.path ?? null, sessions: [...ids], requestedAt: Date.now(), firedAt: null });
   await writeFile(STOPS, JSON.stringify({ entries }, null, 2));
   l.endedAt = Date.now();
-  await writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+  await saveLaunches();
   try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
   return { label, worktree: tree?.path ?? null, sessions: ids.size };
 }
@@ -840,6 +918,7 @@ async function handle(req, res) {
       const body = await readJson(req);
       let result;
       if (req.url === '/launch') result = { launched: await launch(body) };
+      else if (req.url === '/launch/retry') result = await retryLaunch(body);
       else if (req.url === '/end') result = { ended: await endLaunch(body) };
       else if (req.url === '/open') {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');

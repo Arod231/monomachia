@@ -378,6 +378,12 @@ function waitingItems() {
   for (const l of data.lanes) {
     if (l.question) items.push({ sw: 'owner', text: l.question, k: `${l.app?.title || laneName(l)} asks · answer in its session`, open: l.app?.id });
   }
+  // Launches that haven't started: the PC is locked, or the board couldn't press Send.
+  for (const l of data.launches ?? []) {
+    if (l.start?.state !== 'waiting') continue;
+    items.push({ sw: l.start.reason === 'locked' ? 'launched' : 'owner', text: `Launch of ${l.tasks.map((r) => taskName(...r.split(':'))).join(', ')}`,
+      k: U.launchStartText(l.start), task: l.tasks[0], retry: l.start.retry ? l.id : null });
+  }
   for (const pr of data.prs ?? []) {
     if (!pr.isDraft) items.push({ sw: 'ready', text: `PR #${pr.number} ${pr.title}`, k: `Ready for review · ${pr.headRefName} → ${pr.baseRefName}`, url: pr.url });
   }
@@ -431,7 +437,7 @@ function renderOverview() {
   $('road').innerHTML = roadHtml();
   $('waitMeta').textContent = waits.length ? `${waits.length}` : '';
   $('waiting').innerHTML = waits.length
-    ? `<ul class="list">${waits.map((i) => `<li ${i.task ? `data-task="${esc(i.task)}"` : ''}><i class="sw ${i.sw}"></i><span class="body">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}<span class="k">${esc(i.k)}</span></span>${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open on PC</button>` : ''}</li>`).join('')}</ul>`
+    ? `<ul class="list">${waits.map((i) => `<li ${i.task ? `data-task="${esc(i.task)}"` : ''}><i class="sw ${i.sw}"></i><span class="body">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}<span class="k">${esc(i.k)}</span></span>${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open on PC</button>` : ''}${i.retry ? `<button class="btn small" data-retry="${esc(i.retry)}">Try again</button>` : ''}</li>`).join('')}</ul>`
     : `<div class="empty">Nothing right now.</div>`;
   $('workMeta').textContent = active.length ? `${active.length} session${active.length === 1 ? '' : 's'}` : '';
   const working = data.lanes.filter((l) => l.working);
@@ -597,7 +603,7 @@ function renderQueue() {
   }).join('');
   $('queue').innerHTML = groups + `<div class="qlaunch"><button class="btn primary block" id="qLaunch">Launch ${sessions === 1 ? 'a session' : `${sessions} sessions`} on the PC</button>
     <button class="btn block" id="qClear">Clear the queue</button></div>
-    <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. It starts with /goal to finish these tasks, asks wayfinder's questions as clickable choices before writing code, then builds them in plan order. If its prompt waits in the box, press Enter there.</p>`;
+    <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app, so nobody needs to be at the PC (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</p>`;
 }
 function setQueued(refs, on) {
   queue = on ? [...new Set([...queue, ...refs])] : queue.filter((r) => !refs.includes(r));
@@ -619,11 +625,17 @@ async function launchQueue() {
   try {
     const d = await post('/launch', { tasks: queue });
     queue = []; saveQueue();
-    toast(d.launched.map((l) => `Opened a session on the PC for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')}.`).join(' '));
+    toast(d.launched.map((l) => `Starting a session on the PC for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')}.`).join(' '));
     poll(true);
   } catch (e) { toast(`Couldn't launch: ${e.message}`, true); }
   launching = false;
   render();
+}
+// The Project Manager opens the launch's link and presses Send again (refused once it started).
+async function retryLaunch(id) {
+  try { await post('/launch/retry', { launch: id }); toast('Trying again: the Project Manager opens the session and presses Send on the PC.'); }
+  catch (e) { toast(`Couldn't try again: ${e.message}`, true); }
+  poll(true);
 }
 
 // ---------- the task sheet ----------
@@ -639,8 +651,9 @@ function openTask(ref, confirmEnd) {
   sheetRef = ref;
   const lane = data.lanes.find((l) => l.working && l.plan === k && l.task === id);
   const bl = t.blockers.length ? `Blocked by ${t.blockers.map((b) => `<span class="${b.done ? 'ok' : ''}">${esc(b.label)}</span>`).join(', ')}` : 'No blockers';
-  const launch = (data.launches ?? []).find((l) => !l.endedAt && l.tasks.includes(ref));
-  const ended = (data.launches ?? []).find((l) => l.endedAt && l.tasks.includes(ref));
+  // The task's newest launch: an older one may have lapsed.
+  const launch = (data.launches ?? []).findLast((l) => !l.endedAt && l.tasks.includes(ref));
+  const ended = (data.launches ?? []).findLast((l) => l.endedAt && l.tasks.includes(ref));
   const launchTasks = launch ? launch.tasks.map((r) => taskName(...r.split(':'))).join(', ') : '';
   let acts = '';
   if (confirmEnd && launch) {
@@ -667,6 +680,7 @@ function openTask(ref, confirmEnd) {
       rows.push(`<button class="btn primary block" data-act="launch">${queue.includes(ref) ? `Launch the queue (${queue.length})` : queue.length ? `Add and launch the queue (${queue.length + 1})` : 'Launch this task now'}</button>`);
     }
     if (t.status === 'moved' && t.movedTo && taskOf(t.movedTo)) rows.push(`<button class="btn block" data-act="goto" data-to="${esc(t.movedTo)}">Open ${esc(refName(t.movedTo))}, which took it over</button>`);
+    if (launch?.start?.retry) rows.push(`<button class="btn primary block" data-act="retry" data-launch="${esc(launch.id)}">Try starting it again</button>`);
     if (launch) rows.push(`<button class="btn block" data-act="end" style="color:var(--critical)">End work on ${esc(launchTasks)}</button>`);
     else if (ended) rows.push(`<div class="d">Work ended ${ago(ended.endedAt)}${ended.stoppedAt ? ', session stopped' : ', stops at its next step'}.</div>`);
     const notes = STARTABLE.has(t.status) ? queueNotes(ref) : [];
@@ -675,6 +689,7 @@ function openTask(ref, confirmEnd) {
   sheet.innerHTML = `<div class="grab"></div><h3>${taskName(k, id)} ${esc(t.title)}</h3>
     <div class="st"><i class="sw ${t.status}"></i>${esc(statusLabel(t))}${t.gate ? ' · review gate' : ''}</div>
     ${lane ? `<div class="d">In ${esc(laneName(lane))}${lane.activity === 'active' ? ', session at work' : ''}</div>` : ''}
+    ${launch?.start && launch.start.state !== 'started' ? `<div class="d">${esc(U.launchStartText(launch.start))}</div>` : ''}
     <div class="d">${bl}</div>
     ${t.ownerOk.length ? `<div class="d">Also needs your OK of ${t.ownerOk.map((g) => taskName(k, g)).join(', ')}</div>` : ''}
     <div class="d" style="color:var(--muted)">${esc(p.name)} · ${esc(p.file)}</div>
@@ -694,6 +709,7 @@ sheet.addEventListener('click', async (e) => {
   else if (act === 'remove') setQueued([ref], false);
   else if (act === 'chain') { setQueued(b.dataset.chain.split(','), true); toast(`${queue.length} queued in the Launch tab.`); }
   else if (act === 'launch') { if (!queue.includes(ref)) setQueued([ref], true); launchQueue(); }
+  else if (act === 'retry') retryLaunch(b.dataset.launch);
   else if (act === 'end-yes') {
     try {
       const d = await post('/end', { launch: b.dataset.launch });
@@ -728,6 +744,7 @@ document.addEventListener('click', async (e) => {
     catch (err) { toast(`Couldn't open it: ${err.message}`, true); }
     return;
   }
+  if (b?.dataset.retry) { retryLaunch(b.dataset.retry); return; }
   if (b?.id === 'qLaunch') { launchQueue(); return; }
   if (b?.id === 'qClear') { queue = []; saveQueue(); render(); return; }
   if (b?.dataset.plan) { planKey = b.dataset.plan; store.set('m-plan', planKey); setTab('plans'); return; }

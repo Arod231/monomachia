@@ -1,6 +1,7 @@
 // Pure pieces both board pages draw with (index.html and m.html load it from
-// /ui.mjs; tests/lanes-board-ui.test.mjs checks it): the context gauge and its
-// chart, and the roadmap's summary. No DOM: everything returns data or HTML.
+// /ui.mjs): the context gauge and its chart, and the roadmap's summary
+// (tests/lanes-board-ui.test.mjs checks them), and how a launch is getting on
+// (tests/lanes-board-launcher.test.mjs). No DOM: everything returns data or HTML.
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const trim = (n) => String(Number(n.toFixed(1)));
@@ -159,4 +160,25 @@ export function roadmapKpis(data) {
     activeLanes: lanes.filter((l) => l.activity === 'active').length,
     onTask: lanes.filter((l) => l.working).length,
   };
+}
+
+// ---------- a launch's start ----------
+// How a launched session is getting on, from its launch's `start` in /data
+// (launcher.mjs startView): null when there's nothing to say, else one line for
+// the pages. Every reason launcher.mjs REASONS lists has its own wording.
+const WHY_WAITING = {
+  'no-app': "the Claude app didn't open",
+  'no-draft': "the prompt didn't show up in the Claude app",
+  'no-send': "the Claude app's Send button couldn't be pressed",
+  'not-taken': "the Claude app didn't take the prompt",
+  trust: 'the Claude app is asking to trust a different folder',
+  error: "pressing Send went wrong (the Project Manager's log says why)",
+  lost: 'Send was pressed, but no session appeared',
+};
+export function launchStartText(start) {
+  if (!start) return null;
+  if (start.state === 'started') return 'Started on the PC';
+  if (start.state === 'starting') return 'Starting on the PC: the Project Manager presses Send in the Claude app';
+  if (start.reason === 'locked') return 'Waiting: the PC is locked. It starts when the PC is unlocked.';
+  return `Couldn't start: ${WHY_WAITING[start.reason] ?? 'something unexpected happened'}. Try again, or send it from the Claude app on the PC.`;
 }
