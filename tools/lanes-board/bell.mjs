@@ -3,14 +3,18 @@
 // noted, and keeps its state in ~/.claude/lanes-board/notifications.json, so
 // every device shares one read flag. tests/lanes-board-bell.test.mjs checks it.
 //
-// A record: { id, kind: question | permission | plan | turn | asked, session,
+// A record: { id, kind: question | permission | plan | turn | asked | merge | visuals, session,
 // text (who needs what, one line), detail (one line more), target (where a tap
-// goes: { tab: 'questions', item?, session } or { tab: 'sessions', session }),
+// goes: { tab: 'questions', item?, session } or { tab: 'sessions', session, merge? }),
 // time, read }. Owner's rules (PM task 10, Oct 4): answering, handing back or a
 // timeout marks a held item's record read; a session's newer finished turn
-// replaces its older unread one.
+// replaces its older unread one. Since Oct 5 (PM task 19), a question asked in
+// the app is read once its session no longer has it open (answered in the app
+// or over Remote Control), after ASKED_GRACE_MS, since the hook can note it
+// before its call reaches the transcript.
 
 export const BELL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+export const ASKED_GRACE_MS = 20 * 1000;
 // events.jsonl only grows, so once its oldest line is older than this the
 // board moves it aside (to events.jsonl.old, replacing the last one) and the
 // hook starts a new one: at most about two months are kept.
@@ -51,13 +55,40 @@ function eventRecord(e, n, title) {
   if (e.kind === 'turn-finished') {
     return { ...base, kind: 'turn', text: `${title} finished its turn`, detail: lastLine(e.last), target: { tab: 'sessions', session: e.session } };
   }
+  // Noted by the board itself (merge-api.mjs) when a session's pull request turns ready.
+  if (e.kind === 'pr-ready' && Number.isInteger(e.pr?.number)) {
+    return { ...base, kind: 'merge', text: `${title}: pull request #${e.pr.number} is ready to merge`,
+      detail: oneLine(`${e.pr.title ?? ''} into ${e.pr.base ?? 'its base'}`), target: { tab: 'sessions', session: e.session, merge: e.pr.number } };
+  }
   return null;
 }
 
+// New visuals (media.mjs entries, { session, id, time, kind, caption }) as
+// records: one per session per clock minute, counting every post of that
+// minute. Each is named by its minute, so it stays the same however the
+// posts around it age out.
+export const VISUALS_BATCH_MS = 60 * 1000;
+const minuteOf = (time) => Math.floor(time / VISUALS_BATCH_MS);
+function visualsRecords(posts, titleOf) {
+  const batches = new Map(); // `${session}:${minute}` -> { session, minute, posts }
+  for (const p of [...posts].sort((a, b) => a.time - b.time)) {
+    const k = `${p.session}:${minuteOf(p.time)}`;
+    if (!batches.has(k)) batches.set(k, { session: p.session, minute: minuteOf(p.time), posts: [] });
+    batches.get(k).posts.push(p);
+  }
+  return [...batches.values()].sort((a, b) => a.posts[0].time - b.posts[0].time).map(({ session, minute, posts: ps }) => {
+    const what = ps.length > 1 ? `${ps.length} visuals` : ps[0].kind === 'clip' ? 'a clip' : 'a shot';
+    return { id: `visuals:${session}:${minute}`, kind: 'visuals', session, minute, time: ps[0].time, count: ps.length, read: false,
+      text: `${titleOf(session)} posted ${what}`, detail: oneLine(ps.at(-1).caption), target: { tab: 'sessions', session, visuals: true } };
+  });
+}
+
 // The bell's state after a look at the relay: { records }. pending: the items
-// held now; events: those noted since the last look; titleOf(session): its
-// title. Returns state itself when nothing changed.
-export function bellUpdate(state, { pending = [], events = [], now = Date.now(), titleOf = () => '(untitled)' }) {
+// held now; events: those noted since the last look; posts: the media posted
+// in the last 7 days; titleOf(session): its title; asking: the sessions with a
+// question open in the app now (a Set), or null when that isn't known. Returns
+// state itself when nothing changed.
+export function bellUpdate(state, { pending = [], events = [], posts = [], now = Date.now(), titleOf = () => '(untitled)', asking = null }) {
   let records = state?.records ?? [];
   let changed = !state;
   const add = (r) => {
@@ -73,6 +104,21 @@ export function bellUpdate(state, { pending = [], events = [], now = Date.now(),
   };
   events.forEach((e, i) => add(eventRecord(e, i, titleOf(e.session))));
   for (const p of [...pending].sort((a, b) => (a.time ?? 0) - (b.time ?? 0))) add(heldRecord(p, titleOf(p.session)));
+  // A minute's batch that grew since the last look is told again, read or not
+  // as it was. visualsAt keeps each session's latest minute told, so a minute
+  // already told is never told afresh (its record trimmed, say).
+  let visualsAt = state?.visualsAt ?? {};
+  for (const r of visualsRecords(posts.filter((p) => now - p.time <= BELL_KEEP_MS), titleOf)) {
+    const i = records.findIndex((x) => x.id === r.id);
+    const told = visualsAt[r.session] ?? -Infinity;
+    if (i < 0 && r.minute > told) add(r);
+    else if (i >= 0 && records[i].count !== r.count) { records = records.map((x, k) => (k === i ? { ...r, read: x.read } : x)); changed = true; }
+    if (r.minute > told) { visualsAt = { ...visualsAt, [r.session]: r.minute }; changed = true; }
+  }
+  // Sessions that posted nothing in the 7 days are forgotten.
+  for (const [session, minute] of Object.entries(visualsAt)) {
+    if (now - minute * VISUALS_BATCH_MS > BELL_KEEP_MS) { const { [session]: _, ...rest } = visualsAt; visualsAt = rest; changed = true; }
+  }
   // Held items no longer held were answered, handed back or timed out.
   const still = new Set(pending.map((p) => p.id));
   records = records.map((r) => {
@@ -80,9 +126,17 @@ export function bellUpdate(state, { pending = [], events = [], now = Date.now(),
     changed = true;
     return { ...r, read: true };
   });
+  // Questions asked in the app that are no longer open were answered there.
+  if (asking) {
+    records = records.map((r) => {
+      if (r.kind !== 'asked' || r.read || asking.has(r.session) || now - r.time < ASKED_GRACE_MS) return r;
+      changed = true;
+      return { ...r, read: true };
+    });
+  }
   const kept = records.filter((r) => now - r.time <= BELL_KEEP_MS).slice(-MAX_RECORDS);
   if (kept.length !== records.length) changed = true;
-  return changed ? { ...(state ?? {}), records: kept } : state;
+  return changed ? { ...(state ?? {}), records: kept, visualsAt } : state;
 }
 
 // Marks the records named by ids (or 'all') read. Returns state when nothing changed.

@@ -1,6 +1,6 @@
 # Spec: remote session control in the Project Manager
 
-Status: approved by the owner on Oct 4, 2026, with its plan, `docs/plans/project-manager-remote.md`.
+Status: built, after the owner's check from the phone on Oct 5, 2026 (approved Oct 4, with its plan, `docs/plans/project-manager-remote.md`).
 
 Changed Oct 5, 2026 (the owner's call): questions (AskUserQuestion) are no longer sent to the Project Manager. They always stay in the app's own dialog, Away or not, and the relay hook only notes them, so the bell (and a push, once push lands) says "<session> is waiting on you to answer questions in the app" and the Questions tab lists them under "Asked in the app". Permission prompts, plans and turn ends still wait in the Project Manager while Away is on. Where this spec says questions wait in or are answered from the Project Manager, this note wins.
 
@@ -27,117 +27,117 @@ The Project Manager becomes the place to run sessions from the phone:
 
 ### Away and routing
 
-1. As the owner, I want one Away switch on the phone and PC pages, so that I can send every session's questions to the Project Manager before I leave the PC.
-2. As the owner, I want to switch Away on from my phone as well, so that I can start managing sessions remotely after I've already left.
-3. As the owner, I want the Away switch to show how many items are waiting for me, so that I know at a glance whether anything is stuck.
-4. As the owner, I want switching Away off to hand every held question back to the app's own dialogs, so that I answer at the PC as usual when I'm back.
-5. As the owner, I want sessions that finish their turn while I'm away to wait for my reply instead of going idle, so that a reply or command I send hours later still reaches them.
-6. As the owner, I want a held item to give up after 24 minutes, so that a forgotten session doesn't wait forever.
-7. As the owner, I want "Hand back to the app" on any held item, so that I can leave one item for the PC.
-8. As the owner, I want a reply to a session in the middle of a turn to reach it before its next step, so that I can steer it without waiting for the turn to end.
-9. As the owner, I want a reply to a session the Project Manager can't reach right now to be queued for its next turn end, so that nothing I send is lost.
-10. As the owner, I want questions already showing in the app when I switch Away on to appear in the Questions tab, read-only, with "Open in the Claude app", so that I can still answer them remotely.
-11. As the owner, I want the per-session "Answer from Project Manager" switch replaced by Away, so that there's nothing per session to remember.
-12. As a session, I want to carry on exactly as if the owner had answered in the app, so that the Project Manager changes nothing about how I work.
+1. [x] As the owner, I want one Away switch on the phone and PC pages, so that I can send every session's questions to the Project Manager before I leave the PC.
+2. [x] As the owner, I want to switch Away on from my phone as well, so that I can start managing sessions remotely after I've already left.
+3. [x] As the owner, I want the Away switch to show how many items are waiting for me, so that I know at a glance whether anything is stuck.
+4. [x] As the owner, I want switching Away off to hand every held question back to the app's own dialogs, so that I answer at the PC as usual when I'm back.
+5. [x] As the owner, I want sessions that finish their turn while I'm away to wait for my reply instead of going idle, so that a reply or command I send hours later still reaches them.
+6. [x] As the owner, I want a held item to give up after 24 minutes, so that a forgotten session doesn't wait forever.
+7. [x] As the owner, I want "Hand back to the app" on any held item, so that I can leave one item for the PC.
+8. [x] As the owner, I want a reply to a session in the middle of a turn to reach it before its next step, so that I can steer it without waiting for the turn to end.
+9. [x] As the owner, I want a reply to a session the Project Manager can't reach right now to be queued for its next turn end, so that nothing I send is lost.
+10. [x] As the owner, I want questions already showing in the app when I switch Away on to appear in the Questions tab, read-only, with "Open in the Claude app", so that I can still answer them remotely.
+11. [x] As the owner, I want the per-session "Answer from Project Manager" switch replaced by Away, so that there's nothing per session to remember.
+12. [x] As a session, I want to carry on exactly as if the owner had answered in the app, so that the Project Manager changes nothing about how I work.
 
 ### The Questions tab
 
-13. As the owner, I want a Questions tab listing every question, permission prompt, plan approval and finished turn waiting on me, across all sessions, so that I can clear them in one place.
-14. As the owner, I want items grouped by session, with the session's name, its task and how long it has waited, so that I know the context before answering.
-15. As the owner, I want each question's header, text, options and option descriptions shown, so that I can answer as well as I could in the app.
-16. As the owner, I want option previews (mockups) shown in a readable monospace block, so that layout questions make sense on the phone.
-17. As the owner, I want to pick several options on a multi-select question, so that I can answer it fully.
-18. As the owner, I want an "Other" box under each question, so that I can give my own answer.
-19. As the owner, I want one Send for all the questions a session asked together, so that it gets a complete set of answers.
-20. As the owner, I want to reply in free text instead of picking options, so that I can redirect a session that asked the wrong question.
-21. As the owner, I want a permission prompt to show what the session wants to run, with Allow, Always allow (naming the rule it adds) and Deny with a reason, so that I can approve commands remotely.
-22. As the owner, I want a plan approval to show the plan rendered, with Approve and Reject with a reason, so that I can approve plans from my phone.
-23. As the owner, I want a finished turn to show the app's turn summary and the session's last message, with Approve & continue, Show me and a reply box, so that I can keep a session moving in one tap.
-24. As the owner, I want an answered item to leave the list at once while the session carries on, so that I can see my answer went through.
-25. As the owner, I want to be told when an item was already answered, handed back or timed out, so that I don't answer twice.
-26. As the owner, I want the Questions tab to show a count of what's waiting, so that I notice it from any tab.
-27. As the owner, I want the PC page to have the same Questions tab, so that I can answer from the PC's browser too.
+13. [x] As the owner, I want a Questions tab listing every question, permission prompt, plan approval and finished turn waiting on me, across all sessions, so that I can clear them in one place.
+14. [x] As the owner, I want items grouped by session, with the session's name, its task and how long it has waited, so that I know the context before answering.
+15. [x] As the owner, I want each question's header, text, options and option descriptions shown, so that I can answer as well as I could in the app.
+16. [x] As the owner, I want option previews (mockups) shown in a readable monospace block, so that layout questions make sense on the phone.
+17. [x] As the owner, I want to pick several options on a multi-select question, so that I can answer it fully.
+18. [x] As the owner, I want an "Other" box under each question, so that I can give my own answer.
+19. [x] As the owner, I want one Send for all the questions a session asked together, so that it gets a complete set of answers.
+20. [x] As the owner, I want to reply in free text instead of picking options, so that I can redirect a session that asked the wrong question.
+21. [x] As the owner, I want a permission prompt to show what the session wants to run, with Allow, Always allow (naming the rule it adds) and Deny with a reason, so that I can approve commands remotely.
+22. [x] As the owner, I want a plan approval to show the plan rendered, with Approve and Reject with a reason, so that I can approve plans from my phone.
+23. [x] As the owner, I want a finished turn to show the app's turn summary and the session's last message, with Approve & continue, Show me and a reply box, so that I can keep a session moving in one tap.
+24. [x] As the owner, I want an answered item to leave the list at once while the session carries on, so that I can see my answer went through.
+25. [x] As the owner, I want to be told when an item was already answered, handed back or timed out, so that I don't answer twice.
+26. [x] As the owner, I want the Questions tab to show a count of what's waiting, so that I notice it from any tab.
+27. [x] As the owner, I want the PC page to have the same Questions tab, so that I can answer from the PC's browser too.
 
 ### Notifications
 
-28. As the owner, I want a bell with an unread count at the top of every page, so that I see new events wherever I am in the Project Manager.
-29. As the owner, I want the bell to list questions and approvals, finished turns, pull requests ready to merge and new visuals, newest first, so that I can catch up after being away.
-30. As the owner, I want tapping a notification to open the exact question, session page or merge it's about, so that I get there in one tap.
-31. As the owner, I want read state shared between my phone and the PC, so that I don't clear the same notifications twice.
-32. As the owner, I want "Mark all read", so that I can clear the bell in one go.
-33. As the owner, I want notifications kept for 7 days, so that the list stays short.
-34. As the owner, I want lock-screen notifications on my iPhone while Away is on, so that I learn a session needs me without the page open.
-35. As the owner, I want no lock-screen notifications while Away is off, so that my phone stays quiet while I'm at the PC.
-36. As the owner, I want each lock-screen notification to say which session and what it needs in one line, so that I can decide whether to act now.
-37. As the owner, I want several visuals posted by one session within a minute to arrive as one notification, so that a busy session doesn't flood my phone.
-38. As the owner, I want notification content encrypted end to end with my phone's key, so that Apple's push service can't read what my sessions are doing.
-39. As the owner, I want a "Turn on notifications" button in the Home Screen app, so that I can grant permission the way iOS requires.
-40. As the owner, I want the page to tell me when lock-screen notifications aren't possible (opened in a Safari tab, or from the plain-HTTP address), so that I know how to fix it.
-41. As the owner, I want the Project Manager to accept my actions from its HTTPS address, so that a Home Screen app made from that address works fully.
+28. [x] As the owner, I want a bell with an unread count at the top of every page, so that I see new events wherever I am in the Project Manager.
+29. [x] As the owner, I want the bell to list questions and approvals, finished turns, pull requests ready to merge and new visuals, newest first, so that I can catch up after being away.
+30. [x] As the owner, I want tapping a notification to open the exact question, session page or merge it's about, so that I get there in one tap.
+31. [x] As the owner, I want read state shared between my phone and the PC, so that I don't clear the same notifications twice.
+32. [x] As the owner, I want "Mark all read", so that I can clear the bell in one go.
+33. [x] As the owner, I want notifications kept for 7 days, so that the list stays short.
+34. [x] As the owner, I want lock-screen notifications on my iPhone while Away is on, so that I learn a session needs me without the page open.
+35. [x] As the owner, I want no lock-screen notifications while Away is off, so that my phone stays quiet while I'm at the PC.
+36. [x] As the owner, I want each lock-screen notification to say which session and what it needs in one line, so that I can decide whether to act now.
+37. [x] As the owner, I want several visuals posted by one session within a minute to arrive as one notification, so that a busy session doesn't flood my phone.
+38. [x] As the owner, I want notification content encrypted end to end with my phone's key, so that Apple's push service can't read what my sessions are doing.
+39. [x] As the owner, I want a "Turn on notifications" button in the Home Screen app, so that I can grant permission the way iOS requires.
+40. [x] As the owner, I want the page to tell me when lock-screen notifications aren't possible (opened in a Safari tab, or from the plain-HTTP address), so that I know how to fix it.
+41. [x] As the owner, I want the Project Manager to accept my actions from its HTTPS address, so that a Home Screen app made from that address works fully.
 
 ### Sessions and the session page
 
-42. As the owner, I want the phone's Lanes tab replaced by a Sessions tab, so that each session is one place with its lane, visuals, docs and commands.
-43. As the owner, I want worktrees with no session listed under a Worktrees filter, so that I don't lose sight of parked lanes.
-44. As the owner, I want each session's card to show its state (at work, waiting on you, asked in the app, idle, ended) and the app's turn summary, so that I can scan all sessions quickly.
-45. As the owner, I want the session page to open with its title, state, context gauge, branch, task and pull request, so that I know where it stands.
-46. As the owner, I want the session's recent conversation with tool calls folded away, and a reply box, so that I can follow and steer it.
-47. As the owner, I want the PC page's Sessions tab to gain the same visuals, docs and commands, so that both pages work the same way.
+42. [x] As the owner, I want the phone's Lanes tab replaced by a Sessions tab, so that each session is one place with its lane, visuals, docs and commands.
+43. [x] As the owner, I want worktrees with no session listed under a Worktrees filter, so that I don't lose sight of parked lanes.
+44. [x] As the owner, I want each session's card to show its state (at work, waiting on you, asked in the app, idle, ended) and the app's turn summary, so that I can scan all sessions quickly.
+45. [x] As the owner, I want the session page to open with its title, state, context gauge, branch, task and pull request, so that I know where it stands.
+46. [x] As the owner, I want the session's recent conversation with tool calls folded away, and a reply box, so that I can follow and steer it.
+47. [x] As the owner, I want the PC page's Sessions tab to gain the same visuals, docs and commands, so that both pages work the same way.
 
 ### Commands
 
-48. As the owner, I want Approve & continue, so that I can pass a session's after-task approval in one tap.
-49. As the owner, I want Show me, so that a session captures and posts a fresh shot or clip of what it's working on.
-50. As the owner, I want Stop now, so that I can halt a session at its next step when it's going wrong and, with Away on, have it wait for my next instruction.
-51. As the owner, I want End work for any session, so that I can stop a session for good and leave its branch and pull request as they are.
-52. As the owner, I want Merge on a session whose branch has an open pull request, so that I can merge finished work from my phone.
-53. As the owner, I want Merge to show whether the pull request is ready (out of draft, checks passed, no conflicts, up to date with its base) and, if not, why, so that I don't merge broken work.
-54. As the owner, I want "Update branch" when the pull request is behind its base, so that it takes in the base's changes and its checks run again before I merge.
-55. As the owner, I want a confirmation naming the pull request and its base before the merge, so that I never merge by accident.
-56. As the owner, I want the merge to use a merge commit and delete the remote branch, so that history stays the way CLAUDE.md keeps it.
-57. As the owner, I want the session told its pull request was merged and asked to tidy up its local branch, so that its worktree doesn't drift.
-58. As the owner, I want my Merge tap to count as the approval CLAUDE.md asks for, so that no session waits for a second approval.
-59. As the owner, I want Compact to open the session in the Claude app, where `/compact` works, so that I can compact a session remotely.
-60. As the owner, I want "Open in the Claude app" on every session that has Remote Control, so that I can message a session the Project Manager can't reach.
-61. As the owner, I want to be told how to turn on Remote Control when a session has no link, so that I can fix it.
-62. As the owner, I want every command to say whether it was delivered now, will arrive before the session's next step, or is queued for its next turn end, so that I know what happens next.
+48. [x] As the owner, I want Approve & continue, so that I can pass a session's after-task approval in one tap.
+49. [x] As the owner, I want Show me, so that a session captures and posts a fresh shot or clip of what it's working on.
+50. [x] As the owner, I want Stop now, so that I can halt a session at its next step when it's going wrong and, with Away on, have it wait for my next instruction.
+51. [x] As the owner, I want End work for any session, so that I can stop a session for good and leave its branch and pull request as they are.
+52. [x] As the owner, I want Merge on a session whose branch has an open pull request, so that I can merge finished work from my phone.
+53. [x] As the owner, I want Merge to show whether the pull request is ready (out of draft, checks passed, no conflicts, up to date with its base) and, if not, why, so that I don't merge broken work.
+54. [x] As the owner, I want "Update branch" when the pull request is behind its base, so that it takes in the base's changes and its checks run again before I merge.
+55. [x] As the owner, I want a confirmation naming the pull request and its base before the merge, so that I never merge by accident.
+56. [x] As the owner, I want the merge to use a merge commit and delete the remote branch, so that history stays the way CLAUDE.md keeps it.
+57. [x] As the owner, I want the session told its pull request was merged and asked to tidy up its local branch, so that its worktree doesn't drift.
+58. [x] As the owner, I want my Merge tap to count as the approval CLAUDE.md asks for, so that no session waits for a second approval.
+59. [x] As the owner, I want Compact to open the session in the Claude app, where `/compact` works, so that I can compact a session remotely.
+60. [x] As the owner, I want "Open in the Claude app" on every session that has Remote Control, so that I can message a session the Project Manager can't reach.
+61. [x] As the owner, I want to be told how to turn on Remote Control when a session has no link, so that I can fix it.
+62. [x] As the owner, I want every command to say whether it was delivered now, will arrive before the session's next step, or is queued for its next turn end, so that I know what happens next.
 
 ### Visuals
 
-63. As the owner, I want each session's posted shots and clips on its page, with caption, time and task, so that I see visual progress without opening Godot.
-64. As the owner, I want to tap a shot or clip to see it full screen, swipe between them and go back to the session, so that I can review them comfortably on the phone.
-65. As the owner, I want clips to play inline, looping and silent like GIFs, so that animations are easy to judge.
-66. As the owner, I want every image the session got back from its tools (screenshots, images it opened) under "Everything it looked at", so that I see what it saw even when it didn't post.
-67. As the owner, I want media kept on the PC for 30 days with a 5 GB cap, oldest deleted first, so that it never fills the disk.
-68. As the owner, I want media kept after a lane's worktree is removed, so that I can look back at finished work.
-69. As the owner, I want media never committed, so that renders made from paid assets never reach the public repo.
-70. As a session, I want `npm run post -- <files> --caption "…"` to publish shots and clips to my page, so that the owner sees my visual work.
-71. As a session, I want `npm run clip -- <scene> --seconds N` to record a scene as a looping MP4 with a still, so that I can show animations.
-72. As a session, I want CLAUDE.md to tell me when to post (each finished visual step, and on Show me), so that the owner gets visuals without asking.
-73. As a session, I want `post` to convert AVI and other video to MP4 for me, so that the existing video tools' output plays on the phone.
+63. [x] As the owner, I want each session's posted shots and clips on its page, with caption, time and task, so that I see visual progress without opening Godot.
+64. [x] As the owner, I want to tap a shot or clip to see it full screen, swipe between them and go back to the session, so that I can review them comfortably on the phone.
+65. [x] As the owner, I want clips to play inline, looping and silent like GIFs, so that animations are easy to judge.
+66. [x] As the owner, I want every image the session got back from its tools (screenshots, images it opened) under "Everything it looked at", so that I see what it saw even when it didn't post.
+67. [x] As the owner, I want media kept on the PC for 30 days with a 5 GB cap, oldest deleted first, so that it never fills the disk.
+68. [x] As the owner, I want media kept after a lane's worktree is removed, so that I can look back at finished work.
+69. [x] As the owner, I want media never committed, so that renders made from paid assets never reach the public repo.
+70. [x] As a session, I want `npm run post -- <files> --caption "…"` to publish shots and clips to my page, so that the owner sees my visual work.
+71. [x] As a session, I want `npm run clip -- <scene> --seconds N` to record a scene as a looping MP4 with a still, so that I can show animations.
+72. [x] As a session, I want CLAUDE.md to tell me when to post (each finished visual step, and on Show me), so that the owner gets visuals without asking.
+73. [x] As a session, I want `post` to convert AVI and other video to MP4 for me, so that the existing video tools' output plays on the phone.
 
 ### Docs
 
-74. As the owner, I want each Markdown file a session created or changed, rendered for the phone, so that I can read its specs, plans and reviews remotely.
-75. As the owner, I want a document to still open after its worktree is gone (read from the branch in git), so that finished lanes stay readable.
-76. As the owner, I want the session's pull request with its description, checks and changed files, so that I can review it before merging.
-77. As the owner, I want the claude.ai artifacts a session published, as links, so that I can open its reports and guides.
+74. [x] As the owner, I want each Markdown file a session created or changed, rendered for the phone, so that I can read its specs, plans and reviews remotely.
+75. [x] As the owner, I want a document to still open after its worktree is gone (read from the branch in git), so that finished lanes stay readable.
+76. [x] As the owner, I want the session's pull request with its description, checks and changed files, so that I can review it before merging.
+77. [x] As the owner, I want the claude.ai artifacts a session published, as links, so that I can open its reports and guides.
 
 ### Setup and safety
 
-78. As the owner, I want the Project Manager reachable only from my tailnet, as now, so that nobody else can answer my sessions or merge.
-79. As the owner, I want actions accepted only from the Project Manager's own pages, so that no other site can trigger them.
-80. As the owner, I want the Project Manager to serve only media from its own store and Markdown files a session wrote inside its repo or worktree, so that it can't be used to read other files.
-81. As the owner, I want the page to tell me when the installed hooks are older than the ones in the repo, so that I know to reinstall them.
-82. As the owner, I want to be asked before the hooks in my user settings change, so that I stay in control of what runs in every session.
+78. [x] As the owner, I want the Project Manager reachable only from my tailnet, as now, so that nobody else can answer my sessions or merge.
+79. [x] As the owner, I want actions accepted only from the Project Manager's own pages, so that no other site can trigger them.
+80. [x] As the owner, I want the Project Manager to serve only media from its own store and Markdown files a session wrote inside its repo or worktree, so that it can't be used to read other files.
+81. [x] As the owner, I want the page to tell me when the installed hooks are older than the ones in the repo, so that I know to reinstall them.
+82. [x] As the owner, I want to be asked before the hooks in my user settings change, so that I stay in control of what runs in every session.
 
 ### Developer
 
-83. As a developer, I want the relay's rules (what a hook holds, when it lets go, how an answer is shaped) in pure modules with unit tests, so that they're easy to change safely.
-84. As a developer, I want round-trip tests that run the real hooks against a real Project Manager server with throwaway folders, so that the whole path from a session to the phone and back is covered.
-85. As a developer, I want the push encryption tested against the RFC's published example, so that pushes decrypt on the phone.
-86. As a developer, I want this feature's plan followed on the Project Manager as "PM", so that its tasks can be watched and launched like any other plan's.
-87. As a developer, I want a spike on a live session before the rest is built, so that the undocumented parts are proven first.
+83. [x] As a developer, I want the relay's rules (what a hook holds, when it lets go, how an answer is shaped) in pure modules with unit tests, so that they're easy to change safely.
+84. [x] As a developer, I want round-trip tests that run the real hooks against a real Project Manager server with throwaway folders, so that the whole path from a session to the phone and back is covered.
+85. [x] As a developer, I want the push encryption tested against the RFC's published example, so that pushes decrypt on the phone.
+86. [x] As a developer, I want this feature's plan followed on the Project Manager as "PM", so that its tasks can be watched and launched like any other plan's.
+87. [x] As a developer, I want a spike on a live session before the rest is built, so that the undocumented parts are proven first.
 
 ## Implementation Decisions
 

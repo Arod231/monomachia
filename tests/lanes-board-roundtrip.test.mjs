@@ -2,7 +2,7 @@
 // owner's answer from a page, end to end (harness in lanes-board-harness.mjs).
 
 import { spawnSync } from 'node:child_process';
-import { readdirSync, readFileSync, rmSync, utimesSync } from 'node:fs';
+import { appendFileSync, readdirSync, readFileSync, rmSync, utimesSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, beforeEach, describe, it } from 'node:test';
@@ -93,6 +93,20 @@ describe('the round trip: Away and the Questions tab', () => {
     const { done } = board.hook(BASH, { session: id, waitMs: 120000 });
     assertMatches((await held()).groups[0], { session: id, app: `local_${id}` });
     rmSync(record);
+    assert.equal(await released(done), null);
+    assertMatches((await board.get('/questions')).body, { count: 0, groups: [] });
+  });
+
+  it('drops a prompt answered in the app or over Remote Control once the call it held ran, releasing its hook', async () => {
+    const id = '44444444-2222-4333-8444-555555555555';
+    const transcript = board.addSession(id, 'Answered elsewhere');
+    const line = (o) => appendFileSync(transcript, `${JSON.stringify({ sessionId: id, timestamp: new Date().toISOString(), ...o })}\n`);
+    line({ type: 'assistant', uuid: 'a1', message: { content: [{ type: 'tool_use', id: 'toolu_held', name: 'Bash', input: { command: 'ls' } }] } });
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(BASH, { session: id, waitMs: 120000 });
+    assert.equal((await held()).groups[0].session, id);
+    await new Promise((r) => setTimeout(r, 50));
+    line({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'toolu_held', content: 'a b c' }] } });
     assert.equal(await released(done), null);
     assertMatches((await board.get('/questions')).body, { count: 0, groups: [] });
   });
@@ -196,8 +210,8 @@ describe('the round trip: turn ends, replies and the inbox', () => {
 
   const STOP = (last = 'Task 6 is done. Shall I go on to task 7?') => ({ hook_event_name: 'Stop', last_assistant_message: last, stop_hook_active: false });
   const TOOL = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'ls' } };
-  const SHOW = 'The owner asks from the Project Manager: show me what you\'re working on. Capture a shot or a short clip of it and give its path '
-    + 'with a one-line caption, or say in one line that there\'s nothing to show yet.';
+  const SHOW = 'The owner asks from the Project Manager: show me what you\'re working on. Capture a shot or a short clip of it and post it to your page '
+    + 'with `npm run post -- <file> --caption "<one line>"`, or say in one line that there\'s nothing to show yet.';
   const heldTurn = () => waitFor(async () => (await board.get('/questions')).body.groups[0]?.items.find((p) => p.kind === 'stop'), 8000, 'a held turn end');
   const inbox = () => { try { return readdirSync(path.join(board.relay, 'inbox', SESSION)); } catch { return []; } };
   // How long ago the session last wrote its transcript: recent means at work.
