@@ -17,6 +17,15 @@ extends MenuPage
 ##
 ## The page works on its own copy of a MatchSelection draft, so leaving
 ## without locking in changes nothing.
+##
+## In Versus (22.16) each player's step also picks what they play with
+## ("Plays with": keyboard and mouse, the arrow-key layout, controller 1 or
+## 2, a missing controller marked "not connected") and their Controls
+## profile, each one option between ‹ and ›. Both players on one device, or
+## a controller that isn't connected, shows a warning and refuses Lock in
+## (the owner's choice, Oct 5, 2026). The draft opens on the demo's
+## defaults, keyboard and mouse against the first controller, or against the
+## arrow layout with no controller connected (MatchSelection.fit_devices).
 
 ## The player locked in: the draft the match is made from.
 signal locked_in(draft: MatchSelection.Draft)
@@ -43,6 +52,12 @@ const MODE_LINES: Dictionary[StringName, String] = {
 const SIDE_LINES: Array[String] = ["Red · 赤", "Blue · 青"]
 const SKILLS: Array[StringName] = [&"easy", &"normal", &"hard"]
 const SKILL_NAMES: Array[String] = ["Easy", "Normal", "Hard"]
+## Versus's devices, in the "Plays with" row's order, and their names.
+const DEVICES: Array[String] = [InputDevices.KBM, InputDevices.KB_ARROWS, InputDevices.PAD0, InputDevices.PAD1]
+const DEVICE_NAMES: Array[String] = ["Keyboard and mouse", "Keyboard: arrows + J K L", "Controller 1", "Controller 2"]
+const NOT_CONNECTED: String = " (not connected)"
+## The device chips' width: "Controller 2 (not connected)" and a margin.
+const DEVICE_CHIP_WIDTH: float = 270.0
 
 ## The draft being picked (a copy until lock in).
 var draft: MatchSelection.Draft
@@ -57,6 +72,11 @@ var side_title: Label
 var step_label: Label
 var grid: OptionRow
 var skill_row: OptionRow
+## Versus: the player's device and Controls profile (22.16).
+var device_row: OptionRow
+var profile_row: OptionRow
+## Versus: why Lock in is refused (a clash, a missing controller).
+var warning: Label
 var arena_row: OptionRow
 var confirm: Button
 var back_entry: Button
@@ -68,10 +88,16 @@ var loadout_panel: LoadoutPanel
 var preview_slot: Control
 var preview_name: Label
 var preview: FighterPreview
+## The devices the "Plays with" row checks for controllers, and the profiles
+## its profile row lists: the game's (GameServices) unless given.
+var input: InputDevices
+var profiles: ControlProfiles
 
 
-func _init() -> void:
+func _init(p_input: InputDevices = null, p_profiles: ControlProfiles = null) -> void:
 	super()
+	input = p_input if p_input != null else GameServices.input
+	profiles = p_profiles if p_profiles != null else GameServices.profiles
 	for id: StringName in MatchSide.FIGHTER_NAMES:
 		fighter_ids.append(id)
 
@@ -152,6 +178,21 @@ func _init() -> void:
 	skill_row.changed.connect(_on_skill)
 	middle.add_child(skill_row)
 	add_item(skill_row)
+	device_row = OptionRow.new("Plays with", DEVICE_NAMES, 0)
+	device_row.name = "Device"
+	device_row.show_only_chosen()
+	# as wide as the longest name, so the column never shifts as it changes
+	for chip: Button in device_row.chips:
+		chip.custom_minimum_size.x = DEVICE_CHIP_WIDTH
+	device_row.changed.connect(_on_device)
+	middle.add_child(device_row)
+	add_item(device_row)
+	profile_row = OptionRow.new("Controls profile", [""] as Array[String], 0)
+	profile_row.name = "Profile"
+	profile_row.show_only_chosen()
+	profile_row.changed.connect(_on_profile)
+	middle.add_child(profile_row)
+	add_item(profile_row)
 	var arena_names: Array[String] = []
 	for id: StringName in ArenaScenes.SELECTABLE:
 		arena_names.append(ArenaScenes.def(id).display_name)
@@ -162,6 +203,16 @@ func _init() -> void:
 	middle.add_child(arena_row)
 	add_item(arena_row)
 
+	warning = UiTheme.label("", &"", 18)
+	warning.name = "Warning"
+	warning.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# the toasts' red, light enough to read over the veil
+	warning.add_theme_color_override("font_color", HudToasts.TONE_COLORS[HudToasts.Tone.RED])
+	# wrapped to the column, so a long warning never widens it
+	warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warning.custom_minimum_size = Vector2(1.0, 0.0)
+	warning.visible = false
+	middle.add_child(warning)
 	var actions: HBoxContainer = HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)
 	middle.add_child(actions)
@@ -210,6 +261,7 @@ static func _left_label(l: Label) -> Label:
 ## Opens the select on a copy of `p_draft`, on the first side.
 func start(p_draft: MatchSelection.Draft) -> void:
 	draft = p_draft.copy()
+	MatchSelection.fit_devices(draft, input)
 	mode_line.text = MODE_LINES.get(draft.mode, "")
 	show_side(0)
 
@@ -226,6 +278,11 @@ func show_side(i: int) -> void:
 	var computer: bool = MatchSelection.controller_for(draft.mode, side) == MatchSide.COMPUTER
 	skill_row.visible = computer
 	skill_row.set_index(maxi(SKILLS.find(s.difficulty), 0))
+	var versus: bool = draft.mode == MatchConfig.VERSUS
+	device_row.visible = versus
+	profile_row.visible = versus
+	if versus:
+		_show_profiles()
 	var last: bool = side == 1
 	arena_row.visible = last
 	var arena_i: int = ArenaScenes.SELECTABLE.find(draft.arena)
@@ -268,6 +325,9 @@ func _on_confirm() -> void:
 	if side == 0:
 		show_side(1)
 		return
+	# Versus refuses a clash or a missing controller (the warning says which)
+	if _device_problem() != "":
+		return
 	locked_in.emit(draft.copy())
 
 
@@ -280,16 +340,66 @@ func _on_skill(i: int) -> void:
 	MatchSelection.set_difficulty(draft, side, SKILLS[i])
 
 
+func _on_device(i: int) -> void:
+	MatchSelection.set_device(draft, side, DEVICES[i])
+	refresh()
+
+
+func _on_profile(i: int) -> void:
+	MatchSelection.set_profile(draft, side, i)
+
+
+## The profile row: every profile by name, on the side's own (the active
+## profile when it has none yet, which the draft then takes).
+func _show_profiles() -> void:
+	var names: Array[String] = []
+	for n: String in profiles.names():
+		names.append(n)
+	var s: MatchSide = draft.sides[side]
+	if s.profile < 0 or s.profile >= names.size():
+		MatchSelection.set_profile(draft, side, profiles.active)
+	if names != _chip_texts(profile_row):
+		profile_row.set_options(names, s.profile)
+	else:
+		profile_row.set_index(s.profile)
+
+
+## The "Plays with" row: each device's name, a controller marked when it
+## isn't connected, on the side's own.
+func _show_devices() -> void:
+	for i: int in DEVICES.size():
+		var seat: int = i - DEVICES.find(InputDevices.PAD0)
+		var missing: bool = seat >= 0 and not input.pad_connected(seat)
+		device_row.chips[i].text = DEVICE_NAMES[i] + (NOT_CONNECTED if missing else "")
+	device_row.set_index(maxi(DEVICES.find(draft.sides[side].device), 0))
+
+
+func _device_problem() -> String:
+	return MatchSelection.device_problem(draft, input)
+
+
+static func _chip_texts(row: OptionRow) -> Array[String]:
+	var out: Array[String] = []
+	for c: Button in row.chips:
+		out.append(c.text)
+	return out
+
+
 func _on_arena(i: int) -> void:
 	var id: StringName = ArenaScenes.SELECTABLE[i] if i < ArenaScenes.SELECTABLE.size() else MatchSelection.RANDOM
 	MatchSelection.set_arena(draft, id)
 
 
-## Brings the preview (the model and its name) up to the draft and tells
-## whoever follows it (draft_changed). Called after every pick (the loadout
+## Brings the preview (the model and its name), and in Versus the device row
+## and the warning, up to the draft and tells whoever follows it
+## (draft_changed). Called after every pick (the loadout
 ## panel applies its own and calls it too).
 func refresh() -> void:
 	var s: MatchSide = draft.sides[side]
+	if draft.mode == MatchConfig.VERSUS:
+		_show_devices()
+	warning.text = _device_problem()
+	warning.visible = warning.text != ""
 	preview_name.text = s.display_name()
 	preview_name.add_theme_color_override("font_color", LookPalette.side_color(side).lightened(0.35))
 	preview.show_draft(draft, side)

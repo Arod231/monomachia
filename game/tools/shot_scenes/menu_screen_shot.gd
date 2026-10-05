@@ -17,13 +17,18 @@ extends Node
 ## "pause_move_list", "pause_controls" and "pause_settings" its screens
 ## opened over it; "pause_training" the pause over Training, with its two
 ## rows (23.3), and "select_training" the select on the training dummy's
-## side, with its note. The screens save to throwaway paths, never the player's.
+## side, with its note; "select_versus" the Versus select on Player 2's step
+## (22.16), a PlayStation controller plugged in a fake device state, and
+## "select_versus_warning" the same with Player 2 set to a second controller
+## that isn't connected, its warning shown. The screens save to throwaway
+## paths, never the player's.
 
 @export_enum(
 	"settings", "controls_kb", "controls_pad", "controls_listening", "controls_profiles", "controls_rename",
 	"results_defeat", "results_watch",
 	"loadout_katana", "loadout_greatsword", "loadout_daggers", "loadout_random",
 	"pause", "pause_move_list", "pause_controls", "pause_settings", "pause_training", "select_training",
+	"select_versus", "select_versus_warning",
 ) var shot: String = "settings"
 ## Frames to let the renderer settle before the capture.
 @export var settle_frames: int = 10
@@ -117,6 +122,17 @@ func _ready() -> void:
 			_menus_behind()
 			main.call("open_select", MatchConfig.TRAINING)
 			(main.get("select") as FighterSelect).show_side(1)
+		"select_versus", "select_versus_warning":
+			_menus_behind()
+			var pads: FakeDeviceState = FakeDeviceState.new()
+			pads.plug_pad(0, "PS5 Controller")
+			var select: FighterSelect = main.get("select")
+			select.input = InputDevices.new(pads)
+			main.call("open_select", MatchConfig.VERSUS)
+			select.show_side(1)
+			if shot == "select_versus_warning":
+				MatchSelection.set_device(select.draft, 1, InputDevices.PAD1)
+				select.show_side(1)
 		"results_defeat", "results_watch":
 			var cfg: MatchConfig = MatchConfig.default_duel(7) if shot == "results_defeat" else MatchConfig.default_watch(7)
 			cfg.arena_id = main.get("arena_id")

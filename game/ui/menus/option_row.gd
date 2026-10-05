@@ -61,6 +61,10 @@ func set_options(options: Array[String], i: int = 0) -> void:
 		chip.pressed.connect(_on_chip.bind(n))
 		seg.add_child(chip)
 		chips.append(chip)
+	# show_only_chosen()'s › stays after the new chips
+	var next: Node = seg.get_node_or_null("Next")
+	if next != null:
+		seg.move_child(next, -1)
 	set_index(i)
 
 
