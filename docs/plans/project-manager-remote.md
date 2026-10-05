@@ -104,7 +104,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ### Phase B: Away and the Questions tab
 
-- [ ] **6. Away, and questions answered from the Questions tab.** The tracer bullet: with Away on, a session's AskUserQuestion waits in the Project Manager, and the owner's answer, from the phone or the PC, lets it carry on.
+- [x] **6. Away, and questions answered from the Questions tab.** The tracer bullet: with Away on, a session's AskUserQuestion waits in the Project Manager, and the owner's answer, from the phone or the PC, lets it carry on.
   - Delivers:
     - **The Away switch:** an Away file in the relay folder (on or off, since when, from which device), shown in both pages' headers with the number of items waiting. The per-session "Answer from Project Manager" switch is removed.
     - **The hook:** while Away is on, the relay hook holds AskUserQuestion and answers it in task 3's proven shape. With Away off, it records "asked in the app" and leaves the dialog to the app.

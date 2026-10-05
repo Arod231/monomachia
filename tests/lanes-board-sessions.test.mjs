@@ -14,8 +14,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
-  PENDING_ID, SESSION_ID, autoCompactAt, contextTracker, contextWindowFor, downsample, parseTranscript, questionAnswers,
-  relayAnswer, toolSummary,
+  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample,
+  parseTranscript, questionAnswers, relayAnswer, toolSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 
@@ -314,9 +314,31 @@ describe('relay answers', () => {
 
   it('passes the question back with its answers, as the tool takes them', () => {
     const pending = { kind: 'question', input: { questions } };
+    assert.equal(QUESTION_ANSWER, 'allow');
     assert.deepEqual(relayAnswer(pending, { picks: ['A', ['B']] }), {
       behavior: 'allow', updatedInput: { questions, answers: { 'One?': 'A', 'Many?': 'B' } },
     });
+  });
+
+  it('takes "Other" as the free text it is', () => {
+    const pending = { kind: 'question', input: { questions } };
+    assert.deepEqual(relayAnswer(pending, { picks: ['My own words', ['B', 'Also this']] }).updatedInput.answers,
+      { 'One?': 'My own words', 'Many?': 'B, Also this' });
+  });
+
+  it('can answer by declining instead, carrying the answers as the reason (the fallback)', () => {
+    const pending = { kind: 'question', input: { questions } };
+    const out = relayAnswer(pending, { picks: ['A', ['B', 'C']] }, { questionAnswer: 'decline' });
+    assert.equal(out.behavior, 'deny');
+    assert.match(out.message, /^The owner answered from the Project Manager:/);
+    assert.match(out.message, /One\? → A/);
+    assert.match(out.message, /Many\? → B, C/);
+  });
+
+  it('sends a free-form reply to a question as a decline with the owner\'s words', () => {
+    const out = relayAnswer({ kind: 'question', input: { questions } }, { reply: '  Ask me about the camera instead ' });
+    assert.deepEqual(out, { behavior: 'deny',
+      message: 'The owner answered from the Project Manager instead of picking an option:\n\nAsk me about the camera instead' });
   });
 
   it('allows (adding the suggested rule only when asked), denies with a reason, or hands back', () => {
@@ -326,6 +348,7 @@ describe('relay answers', () => {
     assert.deepEqual(relayAnswer(pending, { behavior: 'allow', always: true }), { behavior: 'allow', updatedPermissions: sug });
     assert.match(relayAnswer(pending, { behavior: 'deny', message: 'not now' }).message, /not now$/);
     assert.deepEqual(relayAnswer(pending, { release: true }), { release: true });
+    assert.deepEqual(relayAnswer({ kind: 'question', input: { questions } }, { release: true }), { release: true });
     assert.throws(() => relayAnswer(pending, {}));
   });
 
@@ -342,6 +365,19 @@ describe('relay answers', () => {
   });
 });
 
+describe('the Away switch', () => {
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1';
+  it('records on or off, since when and from which device', () => {
+    assert.deepEqual(awaySwitch({ on: true }, IPHONE, 5), { on: true, since: 5, from: 'phone' });
+    assert.deepEqual(awaySwitch({ on: false }, 'Mozilla/5.0 (Windows NT 10.0)', 6), { on: false, since: 6, from: 'PC' });
+  });
+  it('reads a missing or broken Away file as off', () => {
+    assert.deepEqual(awayOf(null), { on: false, since: null, from: null });
+    assert.deepEqual(awayOf({ on: 'yes' }), { on: false, since: null, from: null });
+    assert.deepEqual(awayOf({ on: true, since: 3, from: 'phone' }), { on: true, since: 3, from: 'phone' });
+  });
+});
+
 // ---------- the relay hook ----------
 
 describe('relay hook', () => {
@@ -351,10 +387,10 @@ describe('relay hook', () => {
   beforeEach(() => { dir = mkdtempSync(path.join(os.tmpdir(), 'lanes-relay-')); });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  const switchOn = (on = true) => writeFileSync(path.join(dir, 'on.json'), JSON.stringify({ sessions: on ? { [ID]: { since: 1 } } : {} }));
+  const setAway = (on = true) => writeFileSync(path.join(dir, 'away.json'), JSON.stringify({ on, since: 1, from: 'PC' }));
   // Runs the hook; when it writes a pending item, `answer` decides what the board does.
-  const run = (input, answer = null, waitMs = 8000) => new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [HOOK], { env: { ...process.env, LANES_RELAY: dir, LANES_RELAY_WAIT_MS: String(waitMs) } });
+  const run = (input, answer = null, waitMs = 8000, relay = dir) => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [HOOK], { env: { ...process.env, LANES_RELAY: relay, LANES_RELAY_WAIT_MS: String(waitMs) } });
     let out = '';
     child.stdout.on('data', (c) => { out += c; });
     child.on('error', reject);
@@ -374,15 +410,31 @@ describe('relay hook', () => {
     mkdirSync(path.join(dir, 'answers'), { recursive: true });
     writeFileSync(path.join(dir, 'answers', `${p.id}.json`), JSON.stringify(body));
   };
+  const events = () => (existsSync(path.join(dir, 'events.jsonl'))
+    ? readFileSync(path.join(dir, 'events.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []);
+  const ASK = { hook_event_name: 'PermissionRequest', tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'Which?', options: [{ label: 'A' }] }] } };
 
-  it('does nothing for a session that isn\'t switched on, or with no relay at all', async () => {
-    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' })).out, '');
-    switchOn(false);
-    assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
+  it('does nothing with no relay folder at all', async () => {
+    const r = await run(ASK, null, 8000, path.join(dir, 'missing'));
+    assert.equal(r.out, '');
+    assert.equal(existsSync(path.join(dir, 'missing')), false);
   });
 
-  it('hands a permission prompt to the board and returns its decision', async () => {
-    switchOn();
+  it('leaves everything to the app while Away is off, noting a question asked in the app', async () => {
+    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' })).out, '');
+    setAway(false);
+    const asked = await run(ASK);
+    assert.equal(asked.out, '');
+    assert.equal(asked.pending, null);
+    assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
+    const ev = events();
+    assert.equal(ev.length, 1);
+    assertMatches(ev[0], { kind: 'asked-in-app', session: ID, cwd: 'C:/repo', questions: ['Which?'] });
+    assert.equal(typeof ev[0].time, 'number');
+  });
+
+  it('hands a permission prompt to the board while Away is on and returns its decision', async () => {
+    setAway();
     const { out, pending } = await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'ls' } },
       (p) => reply(p, { behavior: 'deny', message: 'no' }));
     assertMatches(pending, { kind: 'permission', tool: 'Bash', session: ID, input: { command: 'ls' } });
@@ -392,27 +444,25 @@ describe('relay hook', () => {
   });
 
   it('answers a question with the board\'s picks', async () => {
-    switchOn();
-    const input = { questions: [{ question: 'Which?', options: [{ label: 'A' }] }] };
-    const { out, pending } = await run({ hook_event_name: 'PermissionRequest', tool_name: 'AskUserQuestion', tool_input: input },
-      (p) => reply(p, relayAnswer(p, { picks: ['A'] })));
+    setAway();
+    const { out, pending } = await run(ASK, (p) => reply(p, relayAnswer(p, { picks: ['A'] })));
     assert.equal(pending.kind, 'question');
-    assert.deepEqual(JSON.parse(out).hookSpecificOutput.decision, { behavior: 'allow', updatedInput: { ...input, answers: { 'Which?': 'A' } } });
+    assert.deepEqual(JSON.parse(out).hookSpecificOutput.decision, { behavior: 'allow', updatedInput: { ...ASK.tool_input, answers: { 'Which?': 'A' } } });
   });
 
-  it('falls back to the app\'s dialog when handed back, switched off, or out of time', async () => {
-    switchOn();
+  it('falls back to the app\'s dialog when handed back, when Away goes off, or out of time', async () => {
+    setAway();
     assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, (p) => reply(p, { release: true }))).out, '');
-    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, () => switchOn(false))).out, '');
-    switchOn();
+    assert.equal((await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, () => setAway(false))).out, '');
+    setAway();
     const late = await run({ hook_event_name: 'PermissionRequest', tool_name: 'Bash' }, null, 300);
     assert.equal(late.out, '');
     assert.notEqual(late.pending, null);
     assert.deepEqual(readdirSync(path.join(dir, 'pending')), []);
   });
 
-  it('carries on with the owner\'s reply when a turn ends', async () => {
-    switchOn();
+  it('carries on with the owner\'s reply when a turn ends while Away is on', async () => {
+    setAway();
     const { out, pending } = await run({ hook_event_name: 'Stop', last_assistant_message: 'Done.' }, (p) => reply(p, { reply: 'Now test it' }));
     assertMatches(pending, { kind: 'stop', last: 'Done.' });
     const decision = JSON.parse(out);
@@ -421,18 +471,21 @@ describe('relay hook', () => {
     assert.match(decision.reason, /Now test it$/);
   });
 
-  it('hands over a reply queued while the session was idle, without waiting', async () => {
-    switchOn();
-    mkdirSync(path.join(dir, 'replies'));
-    writeFileSync(path.join(dir, 'replies', `${ID}.json`), JSON.stringify({ text: 'Queued words' }));
-    const { out, pending } = await run({ hook_event_name: 'Stop' });
-    assert.equal(pending, null);
-    assert.match(JSON.parse(out).reason, /Queued words$/);
-    assert.equal(existsSync(path.join(dir, 'replies', `${ID}.json`)), false);
+  it('hands over a queued reply when a turn ends, without waiting, Away on or off', async () => {
+    for (const on of [true, false]) {
+      setAway(on);
+      mkdirSync(path.join(dir, 'replies'), { recursive: true });
+      writeFileSync(path.join(dir, 'replies', `${ID}.json`), JSON.stringify({ text: 'Queued words' }));
+      const { out, pending } = await run({ hook_event_name: 'Stop' });
+      assert.equal(pending, null);
+      assert.match(JSON.parse(out).reason, /Queued words$/);
+      assert.equal(existsSync(path.join(dir, 'replies', `${ID}.json`)), false);
+    }
   });
 
-  it('never blocks on a broken on.json', async () => {
-    writeFileSync(path.join(dir, 'on.json'), '{not json');
+  it('never blocks on a broken Away file', async () => {
+    writeFileSync(path.join(dir, 'away.json'), '{not json');
     assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
+    assert.equal((await run(ASK)).out, '');
   });
 });

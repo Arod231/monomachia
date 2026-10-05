@@ -33,7 +33,7 @@ describe('sessions api', () => {
   it('lists recent sessions and shows one', async () => {
     const { sessions } = await get('/sessions');
     assert.equal(sessions.length, 1);
-    assertMatches(sessions[0], { id: ID, title: 'Board work', cwd: 'C:/repo', on: false, queued: false, pending: [], lastText: 'Done.' });
+    assertMatches(sessions[0], { id: ID, title: 'Board work', cwd: 'C:/repo', queued: false, pending: [], lastText: 'Done.' });
     const d = await get(`/session?id=${ID}`);
     assertMatches(d, { id: ID, title: 'Board work', pending: [], queued: null });
     assert.deepEqual(d.entries.map((e) => e.kind), ['user', 'assistant']);
@@ -49,9 +49,8 @@ describe('sessions api', () => {
     assert.equal(api.post('/launch', {}), undefined);
   });
 
-  it('switches a session on, queues a reply for its turn end, and takes it back', async () => {
-    await assert.rejects(api.post('/relay/reply', { session: ID, text: 'Hi' }), /Switch on/);
-    assert.deepEqual(await api.post('/relay/on', { session: ID, on: true }), { on: true });
+  it('queues a reply for a session\'s turn end, and takes it back', async () => {
+    await assert.rejects(api.post('/relay/reply', { session: ID, text: ' ' }), /Type a reply/);
     assert.deepEqual(await api.post('/relay/reply', { session: ID, text: ' Go on ' }), { delivered: false });
     assertMatches(JSON.parse(readFileSync(path.join(relay, 'replies', `${ID}.json`), 'utf8')), { text: 'Go on' });
     assert.equal((await get('/sessions')).sessions[0].queued, true);
@@ -65,6 +64,7 @@ describe('sessions api', () => {
     assert.equal((await get('/sessions')).sessions[0].pending.length, 1);
     assert.deepEqual(await api.post('/relay/answer', { id: 'abcd-efgh', behavior: 'allow' }), { ok: true });
     assert.deepEqual(JSON.parse(readFileSync(path.join(relay, 'answers', 'abcd-efgh.json'), 'utf8')), { behavior: 'allow' });
-    await assert.rejects(api.post('/relay/answer', { id: 'gone-gone', behavior: 'allow' }), /no longer waiting/);
+    await assert.rejects(api.post('/relay/answer', { id: 'gone-gone', behavior: 'allow' }), /already answered, handed back or timed out/);
+    await assert.rejects(api.post('/relay/answer', { id: 'abcd-efgh', behavior: 'deny' }), /already answered/);
   });
 });

@@ -52,6 +52,9 @@ section { margin-top: 26px; }
 @keyframes pulse { 50% { opacity: .35; } }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .kpi { background: var(--surface); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+a.kpi { color: inherit; text-decoration: none; display: block; }
+a.kpi:hover { box-shadow: inset 0 0 0 1px var(--border-strong); }
+a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items: center; }
 .kpi .l { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kpi .v { font-size: 22px; font-weight: 600; }
 .kpi .v small { font-size: 13px; font-weight: 400; color: var(--muted); }
@@ -299,6 +302,23 @@ svg.focus .edge.rel.down { stroke-dasharray: 6 4; }
 .switch input:checked { background: var(--good); }
 .switch input:checked::after { left: 16px; }
 .switch input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.away { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; user-select: none; padding: 3px 10px 3px 6px; border-radius: 8px; background: var(--surface); }
+.away input { appearance: none; width: 32px; height: 18px; border-radius: 9px; background: var(--blocked); position: relative; cursor: pointer; margin: 0; transition: background .15s; }
+.away input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--card); transition: left .15s; }
+.away input:checked { background: var(--owner); }
+.away input:checked::after { left: 16px; }
+.away input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.away.on { font-weight: 600; }
+.awayn { min-width: 18px; height: 18px; border-radius: 9px; background: var(--owner); color: #0b0b0b; font-size: 11px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; }
+#qList { max-width: 860px; display: flex; flex-direction: column; gap: 14px; }
+.qgroup { display: flex; flex-direction: column; gap: 8px; }
+.qgh { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 13px; }
+.qgh b { font-size: 14px; }
+.qgh .k { color: var(--muted); font-size: 12px; }
+.qgh .k:last-child { margin-left: auto; }
+.qsub { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 6px; }
+pre.code.pv { margin-top: 6px; font-size: 11px; max-height: 200px; background: var(--page); }
+textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px; }
 #sPend:empty { display: none; }
 #sPend { padding: 10px 14px 0; display: flex; flex-direction: column; gap: 8px; max-height: 55%; overflow: auto; flex: none; }
 .pcard { border: 1px solid var(--owner); border-radius: 10px; padding: 10px 12px; background: var(--card); }
@@ -354,8 +374,10 @@ details.tl pre { margin: 4px 0 4px 14px; }
       <button role="tab" data-view="roadmap">Roadmap</button>
       <button role="tab" data-view="progress">Progress</button>
       <button role="tab" data-view="graph">Graph</button>
+      <button role="tab" data-view="questions">Questions <span class="count" id="qCount"></span></button>
       <button role="tab" data-view="sessions">Sessions <span class="count" id="sessCount"></span></button>
     </nav>
+    <span id="awayBox"></span>
     <button class="btn small" id="brainBtn" title="The project's knowledge as linked notes: weapons, systems, plans, docs and code (opens in a popup window)">Second brain</button>
     <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
   </header>
@@ -417,6 +439,11 @@ details.tl pre { margin: 4px 0 4px 14px; }
       </div>
       <aside id="gpanel"></aside>
     </div>
+  </div>
+
+  <div id="v-questions" class="view" hidden>
+    <p class="m" style="margin:0 0 12px">While Away is on, every session's questions, permission prompts and finished turns wait here, oldest first. Switching Away off hands them all back to the app.</p>
+    <div id="qList"><div class="empty">Loading…</div></div>
   </div>
 
   <div id="v-sessions" class="view" hidden>
@@ -518,7 +545,7 @@ const pct = (done, total) => (total ? Math.round((done / total) * 100) : 0);
 
 // ---------- views ----------
 
-const VIEWS = ['roadmap', 'progress', 'graph', 'sessions'];
+const VIEWS = ['roadmap', 'progress', 'graph', 'questions', 'sessions'];
 let view = 'roadmap';
 function setView(v, push = true) {
   if (!VIEWS.includes(v)) v = 'roadmap';
@@ -530,6 +557,7 @@ function setView(v, push = true) {
   closeMenu();
   if (v === 'graph') renderGraph(true);
   if (v === 'sessions') { renderSessionList(); pollSession(true); }
+  if (v === 'questions') { qSig = null; renderQuestions(); pollQuestions(true); }
   if (v === 'roadmap' || v === 'progress') render();
 }
 document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
@@ -554,7 +582,7 @@ function renderKpis() {
   const html = cur + m1
     + `<div class="kpi"><div class="l">Ready now</div><div class="v">${k.readyRefs.length}</div><div class="s">in the current phase${c.blocked ? ` · ${c.blocked} blocked` : ''}${c.owner ? ` · ${c.owner} wait on your OK` : ''}</div></div>
     <div class="kpi"><div class="l">Active lanes</div><div class="v">${k.activeLanes} <small>of ${data.lanes.filter(laneLive).length} with work</small></div><div class="s">${k.onTask} on a task · session in the last 3 min</div></div>
-    <div class="kpi"><div class="l">Waiting on you</div><div class="v">${waits}</div><div class="s">prompts, review gates and ready PRs</div></div>`;
+    <a class="kpi" href="#questions" title="Open the Questions tab"><div class="l">Waiting on you</div><div class="v">${waits}</div><div class="s">questions, review gates and ready PRs</div></a>`;
   setHtml(view === 'roadmap' ? 'kpisR' : 'kpis', html);
 }
 
@@ -656,11 +684,11 @@ $('track').addEventListener('click', (e) => {
 
 function waitingItems() {
   const items = [];
-  // Sessions switched to "Answer from Project Manager" that wait on the owner.
+  // What sessions hold for the owner while Away is on: answered in the Questions tab.
   for (const s of sessions.list) {
     for (const p of s.pending) {
       const what = p.kind === 'permission' ? `wants to use ${p.tool}` : p.kind === 'question' ? 'asks you a question' : 'finished its turn and waits for your reply';
-      items.push({ sw: 'owner', text: `${s.title} ${what}`, k: ago(p.time), view: s.id });
+      items.push({ sw: 'owner', text: `${s.title} ${what}`, k: ago(p.time), answer: true });
     }
   }
   for (const p of data.plans) {
@@ -681,8 +709,8 @@ function waitingItems() {
 }
 function renderWaiting() {
   const items = waitingItems();
-  $('waiting').innerHTML = `<div class="sh"><h2>Waiting on you</h2></div>` + (items.length
-    ? `<ul class="wait">${items.map((i) => `<li><i class="sw ${i.sw}"></i><span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}</span><span class="k">${esc(i.k)}</span>${i.view ? `<button class="btn small" data-view-session="${esc(i.view)}">View</button>` : ''}${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open</button>` : ''}</li>`).join('')}</ul>`
+  $('waiting').innerHTML = `<div class="sh"><h2>Waiting on you</h2><a class="m" href="#questions">Questions tab</a></div>` + (items.length
+    ? `<ul class="wait">${items.map((i) => `<li><i class="sw ${i.sw}"></i><span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}</span><span class="k">${esc(i.k)}</span>${i.answer ? '<a class="btn small" href="#questions">Answer</a>' : ''}${i.view ? `<button class="btn small" data-view-session="${esc(i.view)}">View</button>` : ''}${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open</button>` : ''}</li>`).join('')}</ul>`
     : `<div class="empty">Nothing right now.</div>`);
 }
 
@@ -1258,9 +1286,9 @@ window.addEventListener('resize', () => { if (view === 'graph' && !gView[gOpt.pl
 }
 
 // ---------- sessions ----------
-// Every Claude session active in the last three days. A session switched to
-// "Answer from Project Manager" hands its permission prompts, its questions and the end
-// of each turn to this page (relay-hook.mjs); the others are read-only here.
+// Every Claude session active in the last three days. While Away is on, each
+// hands its permission prompts, its questions and the end of each turn to the
+// Project Manager (relay-hook.mjs), answered here or in the Questions tab.
 
 const sessions = { list: [], detail: null, limit: 300, drafts: {} };
 let sSel = store.get('al-session', null);
@@ -1292,7 +1320,7 @@ function renderSessionList() {
   const q = $('sFind').value.trim().toLowerCase();
   const only = $('sWaiting').checked;
   const list = sessions.list.filter((s) => (!only || S.sessionNeeds(s)) && (!q || `${s.title} ${s.cwd}`.toLowerCase().includes(q)));
-  const sig = JSON.stringify([list.map((s) => [s.id, s.title, s.active, s.pending, s.asking, s.queued, s.on, Math.round((Date.now() - s.activity) / 60000), s.context?.tokens]), sSel, !!window.U]);
+  const sig = JSON.stringify([list.map((s) => [s.id, s.title, s.active, s.pending, s.asking, s.queued, Math.round((Date.now() - s.activity) / 60000), s.context?.tokens]), sSel, !!window.U]);
   if (sig === sSigs.list || !window.U || !window.S) return;
   sSigs.list = sig;
   $('sList').innerHTML = list.map((s) => `<li data-sess="${esc(s.id)}" class="${s.id === sSel ? 'on' : ''}" title="${esc(s.cwd ?? '')}">
@@ -1305,21 +1333,24 @@ $('sFind').addEventListener('input', renderSessionList);
 $('sWaiting').addEventListener('change', renderSessionList);
 
 function renderPending(d) {
+  const away = !!d.away?.on;
   const cards = d.pending.map((p) => S.pendingCard(p));
   // A question or a step waiting in the app, which this page can't answer.
   if (d.open?.name === 'AskUserQuestion' && !d.pending.some((p) => p.kind === 'question')) {
     cards.push(`<div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b><span class="k">${esc(ago(d.open.time))}</span></div>
       ${S.questionsHtml(d.open.questions ?? [], false)}
-      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Answer in the app</button>` : ''}<span class="m">${d.on ? 'It was asked before this session was switched on.' : 'Switch on "Answer from Project Manager" to answer its next questions here.'}</span></div></div>`);
+      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Answer in the app</button>` : ''}<span class="m">${away ? 'It asked before Away was on.' : 'Switch Away on to answer its next questions here.'}</span></div></div>`);
   } else if (d.open && !d.pending.length && !d.active && Date.now() - (d.open.time ?? 0) > 30000) {
     cards.push(`<div class="pcard info"><div class="ch"><b>Its last step hasn't finished: ${esc(d.open.name)}</b><span class="k">${esc(ago(d.open.time))}</span></div>
       <pre class="code">${esc(d.open.summary ?? '')}</pre>
-      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Open in the app</button>` : ''}<span class="m">If it's waiting for your approval, answer it in the app${d.on ? '' : ', or switch on "Answer from Project Manager" for the next one'}.</span></div></div>`);
+      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Open in the app</button>` : ''}<span class="m">If it's waiting for your approval, answer it in the app${away ? '' : ', or switch Away on for the next one'}.</span></div></div>`);
   }
-  const sig = JSON.stringify([d.pending.map((p) => p.id), d.open?.id, d.open && !d.active, d.on]);
-  if (sig === sSigs.pend) return;
+  const sig = JSON.stringify([d.pending.map((p) => p.id), d.open?.id, d.open && !d.active, away]);
+  if (sig === sSigs.pend) { S.refreshTimes($('sPend')); return; }
   sSigs.pend = sig;
+  const kept = S.captureCards($('sPend'));
   $('sPend').innerHTML = cards.join('');
+  S.restoreCards($('sPend'), kept);
 }
 function renderLog(d) {
   const log = $('sLog');
@@ -1358,7 +1389,7 @@ function renderSessionDetail() {
     $('sHead').innerHTML = `<div class="row1"><h2>${esc(s?.title ?? 'Loading…')}</h2></div>`;
     return;
   }
-  const headSig = JSON.stringify([d.id, d.title, d.cwd, d.active, d.on, d.app, Math.round((Date.now() - d.activity) / 60000),
+  const headSig = JSON.stringify([d.id, d.title, d.cwd, d.active, d.away?.on, d.app, Math.round((Date.now() - d.activity) / 60000),
     d.context?.tokens, d.context?.series.length, d.context?.compactions.length, !!window.U]);
   if (headSig !== sSigs.head && window.U) {
     // The context gauge and its chart, turn by turn, with compactions ticked.
@@ -1370,12 +1401,11 @@ function renderSessionDetail() {
       : '<div class="m">No context reading yet: it appears after the first reply.</div>';
     sSigs.head = headSig;
     $('sHead').innerHTML = `<div class="row1"><h2 title="${esc(d.title)}">${esc(d.title)}</h2>
-        <label class="switch" title="While on, this session's prompts, questions and turn ends wait for this page"><input type="checkbox" id="sOn" ${d.on ? 'checked' : ''}><span>Answer from Project Manager</span></label>
         ${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open in app</button>` : ''}</div>
       <div class="m" title="${esc(d.cwd ?? '')}"><i class="dot ${d.active ? 'active' : 'recent'}"></i> ${d.active ? 'At work' : `Last active ${esc(ago(d.activity))}`} · ${esc(d.cwd ?? '')}</div>
       ${ctxHtml}
-      <div class="m">${d.on ? 'On: its permission prompts and questions come here instead of the app (for up to 20 minutes each), and when a turn ends it waits for your reply here. Switch off to hand it back to the app.'
-        : 'Off: read-only here. Switch on to approve its commands, answer its questions and reply to it from this page.'}</div>`;
+      <div class="m">${d.away?.on ? 'Away is on: its permission prompts and questions wait here (for up to 20 minutes each), and when a turn ends it waits for your reply.'
+        : "Away is off: it asks in the app's own dialogs. A reply sent from here goes in when its turn next ends."}</div>`;
   }
   if (!window.S) return;
   renderPending(d);
@@ -1383,47 +1413,36 @@ function renderSessionDetail() {
   // The reply box.
   $('sComp').hidden = false;
   const waiting = d.pending.find((p) => p.kind === 'stop');
-  $('sSend').disabled = !d.on;
-  $('sSend').textContent = !d.on || waiting ? 'Send' : 'Queue reply';
+  $('sSend').textContent = waiting ? 'Send' : 'Queue reply';
   $('sUnqueue').hidden = !d.queued;
-  $('sNote').textContent = !d.on ? 'Switch on "Answer from Project Manager" to reply from here.'
-    : waiting ? 'It\'s waiting for you: your reply goes straight in.'
+  $('sNote').textContent = waiting ? 'It\'s waiting for you: your reply goes straight in.'
     : d.queued ? `Queued for when its turn next ends: "${shorten(d.queued.text, 60)}". Sending again replaces it.`
     : d.active ? 'It\'s working: your reply goes in when this turn ends.'
     : 'It\'s idle: your reply goes in when its turn next ends. To wake it now, type in the app.';
 }
 
-$('sDetail').addEventListener('change', async (e) => {
-  if (e.target.id !== 'sOn') return;
-  try { await post('/relay/on', { session: sSel, on: e.target.checked }); } catch (err) { alert(err.message); }
-  pollSession(true); pollSessions(true);
-});
-$('sDetail').addEventListener('click', async (e) => {
+// Answering a held item's card, here or in the Questions tab (sessions-ui.mjs
+// reads the card). An answered card leaves at once; a late one says why.
+async function answerClick(e) {
   const opt = e.target.closest('.opt:not([disabled])');
-  if (opt) {
-    const q = opt.closest('.q');
-    if (q.dataset.multi !== '1') for (const o of q.querySelectorAll('.opt')) if (o !== opt) o.classList.remove('on');
-    opt.classList.toggle('on');
-    return;
-  }
+  if (opt) { S.toggleOpt(opt); return true; }
+  const b = e.target.closest('button');
+  const card = b?.closest('.pcard');
+  const body = b && window.S ? S.answerFor(b, card) : null;
+  if (!body) return false;
+  if (body.error) { alert(body.error); return true; }
+  b.disabled = true;
+  try { await post('/relay/answer', body); card?.remove(); sSigs.pend = null; qSig = null; }
+  catch (err) { alert(`Couldn't answer: ${err.message}`); b.disabled = false; }
+  pollSession(true); pollSessions(true); pollQuestions(true);
+  return true;
+}
+$('qList').addEventListener('click', answerClick);
+$('sDetail').addEventListener('click', async (e) => {
+  if (await answerClick(e)) return;
   const b = e.target.closest('button');
   if (!b) return;
-  const card = b.closest('.pcard');
-  const send = async (body) => {
-    b.disabled = true;
-    try { await post('/relay/answer', body); card?.remove(); sSigs.pend = null; }
-    catch (err) { alert(`Couldn't answer: ${err.message}`); b.disabled = false; }
-    pollSession(true); pollSessions(true);
-  };
-  if (b.dataset.allow) send({ id: b.dataset.allow, behavior: 'allow' });
-  else if (b.dataset.always) send({ id: b.dataset.always, behavior: 'allow', always: true });
-  else if (b.dataset.deny) send({ id: b.dataset.deny, behavior: 'deny', message: card.querySelector('.why')?.value ?? '' });
-  else if (b.dataset.release) send({ id: b.dataset.release, release: true });
-  else if (b.dataset.answer) {
-    const picks = S.picksOf(card);
-    if (picks.some((p) => !p.length)) { alert('Pick an answer for each question (or type one under Other).'); return; }
-    send({ id: b.dataset.answer, picks });
-  } else if (b.id === 'sMore') { sessions.limit += 300; sSigs.log = null; pollSession(true); }
+  if (b.id === 'sMore') { sessions.limit += 300; sSigs.log = null; pollSession(true); }
   else if (b.id === 'sUnqueue') { try { await post('/relay/unqueue', { session: sSel }); } catch {} pollSession(true); pollSessions(true); }
   else if (b.id === 'sSend') sendReply();
 });
@@ -1468,6 +1487,45 @@ async function pollSession(once) {
   if (once !== true) { clearTimeout(sessionTimer); sessionTimer = setTimeout(pollSession, 2000); }
 }
 
+// ---------- the Questions tab and the Away switch ----------
+// /questions (sessions-api.mjs): what's held, grouped by session, and the
+// questions asked in the app. The header's switch shows on every tab.
+
+let questions = null;
+let qSig = null;
+let awaySeen = null; // the switch's HTML as last set (the DOM writes it back differently)
+function renderQuestions() {
+  if (!questions || !window.S) return;
+  $('qCount').textContent = questions.count ? String(questions.count) : '';
+  const away = S.awayHtml(questions);
+  if (awaySeen !== away) { awaySeen = away; $('awayBox').innerHTML = away; }
+  if (view !== 'questions') return;
+  const sig = JSON.stringify([questions.away.on, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => p.id)]),
+    questions.asked.map((a) => [a.session, a.time])]);
+  if (sig === qSig) { S.refreshTimes($('qList')); return; }
+  qSig = sig;
+  const kept = S.captureCards($('qList'));
+  $('qList').innerHTML = S.questionsTabHtml(questions, { openLabel: 'Open in the app' });
+  S.restoreCards($('qList'), kept);
+}
+let questionsTimer = null;
+async function pollQuestions(once) {
+  try {
+    const d = await (await fetch('/questions', { cache: 'no-store' })).json();
+    if (d.away) { questions = d; renderQuestions(); }
+  } catch { /* the stamp shows the server's state */ }
+  if (once !== true) { clearTimeout(questionsTimer); questionsTimer = setTimeout(pollQuestions, view === 'questions' ? 2500 : 5000); }
+}
+document.addEventListener('change', async (e) => {
+  if (!e.target.matches('[data-away]')) return;
+  const on = e.target.checked;
+  const n = questions?.groups.reduce((k, g) => k + g.items.length, 0) ?? 0;
+  if (!on && n && !confirm(`Switch Away off? The ${n} item${n === 1 ? '' : 's'} waiting go back to the app's own dialogs.`)) { e.target.checked = true; return; }
+  try { await post('/relay/away', { on }); } catch (err) { alert(`Couldn't switch Away: ${err.message}`); }
+  pollQuestions(true); pollSession(true);
+});
+window.addEventListener('modules-ready', () => { qSig = null; renderQuestions(); });
+
 function tick() {
   const el = $('stamp');
   const stale = Date.now() - lastOk > 20000;
@@ -1489,6 +1547,7 @@ setView(location.hash.slice(1), false);
 poll();
 pollSessions();
 pollSession();
+pollQuestions();
 
 const tip = $('tip');
 document.addEventListener('mouseover', (e) => {

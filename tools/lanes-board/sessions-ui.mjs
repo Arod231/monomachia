@@ -1,9 +1,9 @@
 // How both Project Manager pages draw sessions and what they wait on: a
-// session's pills, the questions, permission prompts and turn ends the relay
-// hands over, and a little Markdown. index.html and m.html load it from
+// session's pills, the Away switch, the Questions tab with the questions,
+// permission prompts and turn ends the relay hands over, and a little Markdown. index.html and m.html load it from
 // /sessions-ui.mjs; tests/lanes-board-sessions-ui.test.mjs checks it. Everything
-// returns data or HTML, with every value from a session escaped; only picksOf
-// reads the DOM, from a card the page hands it.
+// returns data or HTML, with every value from a session escaped; the last
+// section works on cards the page hands it, so both pages answer alike.
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -31,7 +31,6 @@ export function sessionPills(s) {
   }
   if (s.asking && !s.pending.some((p) => p.kind === 'question')) pills.push('<span class="pill need">Asking you (in the app)</span>');
   if (s.queued) pills.push('<span class="pill">Reply queued</span>');
-  if (s.on) pills.push('<span class="pill">Answers from Project Manager</span>');
   return pills.length ? `<div class="pills">${pills.join('')}</div>` : '';
 }
 
@@ -70,16 +69,17 @@ export function ruleText(sug) {
   }).join('; ');
 }
 
-// AskUserQuestion's questions; live: answerable here (else read-only).
+// AskUserQuestion's questions; live: answerable here (else read-only). An
+// option's preview (a mockup) is shown as monospace text, never as HTML.
 export function questionsHtml(questions, live) {
   return questions.map((q, i) => `<div class="q" data-qi="${i}" data-multi="${q.multiSelect ? 1 : 0}">
       <div class="qh">${q.header ? `<span class="chip">${esc(q.header)}</span>` : ''}${esc(q.question)}${q.multiSelect ? ' <span class="m">(pick any)</span>' : ''}</div>
-      <div class="opts">${(q.options ?? []).map((o) => `<button class="opt" data-label="${esc(o.label)}" ${live ? '' : 'disabled'}><b>${esc(o.label)}</b>${o.description ? `<span>${esc(o.description)}</span>` : ''}</button>`).join('')}
+      <div class="opts">${(q.options ?? []).map((o) => `<button class="opt" data-label="${esc(o.label)}" ${live ? '' : 'disabled'}><b>${esc(o.label)}</b>${o.description ? `<span>${esc(o.description)}</span>` : ''}${o.preview ? `<pre class="code pv">${esc(o.preview)}</pre>` : ''}</button>`).join('')}
       ${live ? `<input class="text other" placeholder="Other: type your own answer">` : ''}</div></div>`).join('');
 }
 
 export function pendingCard(p) {
-  const when = `<span class="k">${esc(ago(p.time))}</span>`;
+  const when = `<span class="k" data-t="${Number(p.time) || ''}">${esc(ago(p.time))}</span>`;
   const back = `<button class="btn small ghost" data-release="${esc(p.id)}" title="Stop waiting for the Project Manager: the app shows its own prompt">Hand back to the app</button>`;
   if (p.kind === 'permission') {
     const always = Array.isArray(p.suggestions) && p.suggestions.length;
@@ -93,6 +93,7 @@ export function pendingCard(p) {
   if (p.kind === 'question') {
     return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Asks you</b>${when}</div>
       ${questionsHtml(p.input?.questions ?? [], true)}
+      <textarea class="text freeform" rows="2" placeholder="Or reply in your own words instead of picking"></textarea>
       <div class="row"><button class="btn primary" data-answer="${esc(p.id)}">Send answer${(p.input?.questions ?? []).length > 1 ? 's' : ''}</button>${back}</div></div>`;
   }
   return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Finished its turn and is waiting for your reply</b>${when}</div>
@@ -100,13 +101,89 @@ export function pendingCard(p) {
     <div class="row">${back}</div></div>`;
 }
 
-// The picks of a question card's buttons and Other boxes, in relayAnswer's
-// shape (one list per question), read from the DOM by the page.
-export function picksOf(card) {
-  return [...card.querySelectorAll('.q')].map((q) => {
+// ---------- the Away switch and the Questions tab ----------
+// q is /questions (sessions-api.mjs): { away: { on, since, from }, count,
+// groups: [{ session, app, title, cwd, task, since, items }], asked: [...] }.
+
+// The switch both pages show in their header, with what's waiting.
+export function awayHtml(q) {
+  const on = !!q?.away?.on;
+  const n = q?.count ?? 0;
+  const title = on ? `Away since ${new Date(q.away.since).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}${q.away.from ? `, switched on from the ${q.away.from}` : ''}: sessions' questions, prompts and turn ends wait in the Questions tab`
+    : "Away is off: sessions ask in the app's own dialogs. Switch it on before you leave the PC.";
+  return `<label class="away${on ? ' on' : ''}" title="${esc(title)}"><input type="checkbox" data-away ${on ? 'checked' : ''}><span>Away</span>`
+    + `${n ? `<b class="awayn" aria-label="${n} waiting">${n}</b>` : ''}</label>`;
+}
+
+const groupHead = (g, when) => `<div class="qgh"><b>${esc(g.title)}</b><span class="k">${g.task ? `${esc(g.task.label)} ${esc(g.task.title)} · ` : ''}${esc(folderOf(g.cwd))}</span>`
+  + `<span class="k" data-t="${Number(when) || ''}">${esc(ago(when))}</span></div>`;
+
+// The Questions tab: held items grouped by session, then the questions asked
+// in the app (read-only, with a button to open the session: openLabel).
+export function questionsTabHtml(q, { openLabel = 'Open in the app' } = {}) {
+  if (!q) return '<div class="empty">Loading…</div>';
+  const held = q.groups.map((g) => `<section class="qgroup" data-session="${esc(g.session)}">${groupHead(g, g.since)}
+    ${g.items.map((p) => pendingCard(p)).join('')}</section>`);
+  const asked = q.asked.map((a) => `<section class="qgroup" data-session="${esc(a.session)}">${groupHead(a, a.time)}
+    <div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b></div>
+    ${questionsHtml(a.questions, false)}
+    <div class="row">${a.app ? `<button class="btn small" data-open="${esc(a.app)}">${esc(openLabel)}</button>` : ''}<span class="m">${q.away.on ? 'It asked before Away was on, so it waits in the app.' : 'Away is off, so it waits in the app.'}</span></div></div></section>`);
+  if (!held.length && !asked.length) {
+    return `<div class="empty">${q.away.on ? 'Nothing waiting. Questions, permission prompts and finished turns from every session land here while Away is on.'
+      : "Nothing waiting. Away is off, so sessions ask in the app's own dialogs; switch Away on before you leave the PC and they wait here instead."}</div>`;
+  }
+  return held.join('') + (asked.length ? `<div class="qsub">Asked in the app</div>` + asked.join('') : '');
+}
+
+// The body to post to /relay/answer for a click on a card's button, null for
+// a button that isn't an answer, or { error } when the card isn't filled in.
+export function answerFor(b, card) {
+  const d = b.dataset;
+  if (d.allow) return { id: d.allow, behavior: 'allow' };
+  if (d.always) return { id: d.always, behavior: 'allow', always: true };
+  if (d.deny) return { id: d.deny, behavior: 'deny', message: card?.querySelector('.why')?.value ?? '' };
+  if (d.release) return { id: d.release, release: true };
+  if (!d.answer) return null;
+  const reply = card?.querySelector('.freeform')?.value.trim();
+  if (reply) return { id: d.answer, reply };
+  const picks = [...card.querySelectorAll('.q')].map((q) => {
     const chosen = [...q.querySelectorAll('.opt.on')].map((o) => o.dataset.label);
     const other = q.querySelector('.other')?.value.trim();
     if (other) chosen.push(other);
     return q.dataset.multi === '1' ? chosen : chosen.slice(-1);
   });
+  if (picks.some((p) => !p.length)) return { error: 'Pick an answer for each question, type one under Other, or reply in your own words.' };
+  return { id: d.answer, picks };
+}
+
+// A tap on an option: one at a time, or any number on a multi-select question.
+export function toggleOpt(opt) {
+  const q = opt.closest('.q');
+  if (q?.dataset.multi !== '1') for (const o of q?.querySelectorAll('.opt') ?? []) if (o !== opt) o.classList.remove('on');
+  opt.classList.toggle('on');
+}
+
+// What the owner has picked and typed on each card, so a redraw keeps it.
+export function captureCards(root) {
+  const state = new Map();
+  for (const card of root.querySelectorAll('.pcard[data-pid]')) {
+    state.set(card.dataset.pid, {
+      on: [...card.querySelectorAll('.opt.on')].map((o) => `${o.closest('.q')?.dataset.qi}:${o.dataset.label}`),
+      text: [...card.querySelectorAll('input.text, textarea.text')].map((t) => t.value),
+    });
+  }
+  return state;
+}
+export function restoreCards(root, state) {
+  for (const card of root.querySelectorAll('.pcard[data-pid]')) {
+    const st = state.get(card.dataset.pid);
+    if (!st) continue;
+    for (const o of card.querySelectorAll('.opt')) if (st.on.includes(`${o.closest('.q')?.dataset.qi}:${o.dataset.label}`)) o.classList.add('on');
+    [...card.querySelectorAll('input.text, textarea.text')].forEach((t, i) => { t.value = st.text[i] ?? ''; });
+  }
+}
+
+// Refreshes every "5 min ago" under root from its data-t.
+export function refreshTimes(root) {
+  for (const el of root.querySelectorAll('[data-t]')) if (el.dataset.t) el.textContent = ago(Number(el.dataset.t));
 }

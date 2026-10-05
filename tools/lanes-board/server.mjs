@@ -657,9 +657,16 @@ async function endLaunch(body) {
 }
 
 // ---------- sessions (the Sessions tab) ----------
-// Every recent Claude Code session and the relay's answers, in sessions-api.mjs.
+// Every recent Claude Code session, the Away switch and the relay's answers,
+// in sessions-api.mjs. A session's plan task is its folder's lane's.
 const RELAY = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
-const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool });
+function taskOfDir(dir) {
+  const d = path.normalize(dir).toLowerCase();
+  const l = cached?.lanes?.find((x) => path.normalize(x.path).toLowerCase() === d);
+  if (!l?.plan || !l.task) return null;
+  return { ref: `${l.plan}:${l.task}`, label: `${PLAN_BY_KEY[l.plan]?.short ?? l.plan} ${l.task}`, title: l.taskTitle ?? '' };
+}
+const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
@@ -752,7 +759,7 @@ async function handle(req, res) {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if ((result = await sessionRoutes.post(req.url, body)) === undefined) { res.writeHead(404); res.end('{}'); return; }
+      } else if ((result = await sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] })) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
       return;

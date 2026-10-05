@@ -1,17 +1,18 @@
 // The Project Manager's Sessions and relay routes, mounted by server.mjs: every
 // Claude Code session whose transcript was written in the last three days,
-// desktop-app or not, with its turns (rules in sessions.mjs), and the answers the
-// owner sends a session through the relay hook (relay-hook.mjs, installed in
-// user settings), which hands its prompts over as files in the relay folder;
-// only sessions switched on in on.json wait for the board.
-//   GET  /sessions, /session?id=&limit=
-//   POST /relay/on, /relay/answer, /relay/reply, /relay/unqueue
+// desktop-app or not, with its turns (rules in sessions.mjs), the Away switch,
+// and the answers the owner sends sessions through the relay hook
+// (relay-hook.mjs, installed in user settings), which hands their prompts over
+// as files in the relay folder while Away is on.
+//   GET  /sessions, /session?id=&limit=, /questions
+//   POST /relay/away, /relay/answer, /relay/reply, /relay/unqueue
 import { readFile, readdir, stat, open, writeFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { PENDING_ID, SESSION_ID, parseTranscript, relayAnswer } from './sessions.mjs';
+import { PENDING_ID, SESSION_ID, awayOf, awaySwitch, parseTranscript, relayAnswer } from './sessions.mjs';
 
 const SESSION_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 const TAIL_BYTES = 768 * 1024;
+const GONE = 'That was already answered, handed back or timed out';
 
 async function readTail(file, bytes) {
   const { size, mtimeMs } = await stat(file);
@@ -35,9 +36,10 @@ async function writeJsonFile(file, value) {
 
 // relay: the relay folder; projects: ~/.claude/projects; activeMs: how recently a
 // transcript was written for its session to count as at work. The server lends
-// its context gauges (contextOf), the app's session records (appSessions) and
-// its worker pool.
-export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool }) {
+// its context gauges (contextOf), the app's session records (appSessions), the
+// plan task a folder's lane is on (taskOf: dir -> { ref, label, title } | null)
+// and its worker pool.
+export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool, taskOf = () => null }) {
   const transcriptCache = new Map(); // file -> { key, parsed }
   async function transcript(file, limit) {
     const { size, mtimeMs } = await stat(file);
@@ -51,7 +53,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
   }
 
   async function relayState() {
-    const on = (await readJsonFile(path.join(relay, 'on.json')))?.sessions ?? {};
+    const away = awayOf(await readJsonFile(path.join(relay, 'away.json')));
     const pending = [];
     let names = [];
     try { names = (await readdir(path.join(relay, 'pending'))).filter((n) => n.endsWith('.json')); } catch { /* none yet */ }
@@ -69,7 +71,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
         if (r?.text) replies[n.replace(/\.json$/, '')] = r;
       }
     } catch { /* none yet */ }
-    return { on, pending, replies };
+    return { away, pending, replies };
   }
 
   async function findTranscripts() {
@@ -103,7 +105,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       const last = t.entries.at(-1);
       return {
         id: f.id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
-        activity: f.mtime, active: now - f.mtime < activeMs, on: !!state.on[f.id], queued: !!state.replies[f.id],
+        activity: f.mtime, active: now - f.mtime < activeMs, queued: !!state.replies[f.id],
         pending: pending.map((p) => ({ id: p.id, kind: p.kind, tool: p.tool ?? null, time: p.time })),
         asking: t.open?.name === 'AskUserQuestion' ? t.open.questions.map((q) => q.question) : null,
         openTool: t.open && t.open.name !== 'AskUserQuestion' ? { name: t.open.name, summary: t.open.summary, time: t.open.time } : null,
@@ -123,27 +125,26 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     return {
       id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
       activity: f.mtime, active: Date.now() - f.mtime < activeMs, entries: t.entries, more: t.more || (t.cut ? 1 : 0),
-      open: t.open, on: !!state.on[id], queued: state.replies[id] ?? null,
+      open: t.open, away: state.away, queued: state.replies[id] ?? null,
       pending: state.pending.filter((p) => p.session === id).sort((x, y) => x.time - y.time),
       context,
     };
   }
 
-  async function relaySwitch(body) {
-    if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-    const file = path.join(relay, 'on.json');
-    const cur = (await readJsonFile(file)) ?? { sessions: {} };
-    cur.sessions ??= {};
-    if (body.on) cur.sessions[body.session] = { since: Date.now() };
-    else delete cur.sessions[body.session];
-    await writeJsonFile(file, cur);
-    return { on: !!body.on };
+  async function awaySet(body, { ua } = {}) {
+    if (typeof body?.on !== 'boolean') throw new Error('On or off?');
+    const away = awaySwitch(body, ua);
+    await writeJsonFile(path.join(relay, 'away.json'), away);
+    return away;
   }
 
+  // An answer reaches only an item still held: its hook still waiting, and no
+  // answer given yet.
   async function relayAnswerTo(body) {
     if (!PENDING_ID.test(body?.id ?? '')) throw new Error('Bad prompt id');
     const pending = await readJsonFile(path.join(relay, 'pending', `${body.id}.json`));
-    if (!pending) throw new Error('That prompt is no longer waiting (answered, timed out, or handed back to the app)');
+    const answered = await stat(path.join(relay, 'answers', `${body.id}.json`)).then(() => true, () => false);
+    if (!pending || answered || (pending.pid && !alive(pending.pid))) throw new Error(GONE);
     await writeJsonFile(path.join(relay, 'answers', `${body.id}.json`), relayAnswer(pending, body));
     return { ok: true };
   }
@@ -154,8 +155,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
     const text = String(body.text ?? '').trim();
     if (!text) throw new Error('Type a reply first');
-    const { on, pending } = await relayState();
-    if (!on[body.session]) throw new Error('Switch on "Answer from board" for this session first');
+    const { pending } = await relayState();
     const waiting = pending.find((p) => p.session === body.session && p.kind === 'stop');
     if (waiting) {
       await writeJsonFile(path.join(relay, 'answers', `${waiting.id}.json`), { reply: text.slice(0, 20000) });
@@ -171,17 +171,54 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     return { ok: true };
   }
 
-  const POSTS = { '/relay/on': relaySwitch, '/relay/answer': relayAnswerTo, '/relay/reply': relayReply, '/relay/unqueue': relayUnqueue };
+  // The Questions tab: every held item grouped by session, oldest first, with
+  // the session's title, folder and plan task, and the questions sessions are
+  // asking in the app's own dialogs (read-only here). count is everything waiting.
+  async function questions() {
+    const [found, app, state] = await Promise.all([findTranscripts(), appSessions(), relayState()]);
+    const byCli = new Map(app.filter((x) => x.cli).map((x) => [x.cli, x]));
+    const files = new Map(found.map((f) => [f.id, f.file]));
+    const about = async (id, cwd) => {
+      const a = byCli.get(id);
+      let t = null;
+      if (files.has(id)) { try { t = await transcript(files.get(id), 1); } catch { /* being written */ } }
+      const dir = t?.cwd ?? cwd ?? a?.dir ?? null;
+      return { session: id, app: a?.id ?? null, title: a?.title || t?.title || '(untitled)', cwd: dir, task: dir ? taskOf(dir) : null, t, archived: !!a?.archived };
+    };
+    const bySession = new Map();
+    for (const p of [...state.pending].sort((x, y) => x.time - y.time)) {
+      if (!bySession.has(p.session)) bySession.set(p.session, []);
+      bySession.get(p.session).push(p);
+    }
+    const groups = [];
+    for (const [id, items] of bySession) {
+      const { t, archived, ...who } = await about(id, items[0].cwd);
+      groups.push({ ...who, since: items[0].time, items });
+    }
+    const asked = [];
+    for (const f of found) {
+      if (bySession.get(f.id)?.some((p) => p.kind === 'question')) continue;
+      const { t, archived, ...who } = await about(f.id, null);
+      if (archived || t?.open?.name !== 'AskUserQuestion') continue;
+      asked.push({ ...who, time: t.open.time, questions: t.open.questions ?? [] });
+    }
+    asked.sort((x, y) => (x.time ?? 0) - (y.time ?? 0));
+    return { updated: Date.now(), away: state.away, count: state.pending.length + asked.length, groups, asked };
+  }
+
+  const POSTS = { '/relay/away': awaySet, '/relay/answer': relayAnswerTo, '/relay/reply': relayReply, '/relay/unqueue': relayUnqueue };
   return {
     // The JSON a GET route answers (url: a URL), or undefined when the route isn't one of these.
     get(url) {
+      if (url.pathname === '/questions') return questions();
       if (url.pathname === '/sessions') return sessionList().then((sessions) => ({ updated: Date.now(), sessions }));
       if (url.pathname === '/session') return sessionDetail(url.searchParams.get('id'), Math.min(2000, Number(url.searchParams.get('limit')) || 300));
       return undefined;
     },
     // The result of a POST route, or undefined when the route isn't one of these.
-    post(route, body) {
-      return POSTS[route]?.(body);
+    // ctx: { ua }, the page's user agent.
+    post(route, body, ctx = {}) {
+      return POSTS[route]?.(body, ctx);
     },
   };
 }
