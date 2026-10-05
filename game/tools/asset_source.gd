@@ -1,8 +1,9 @@
 class_name AssetSource
 extends RefCounted
-## Where the raw asset packs are unzipped: the folder holding `quaternius/`
-## and `kevin_iglesias/` (on the owner's PC, Desktop/Monomachia-assets). The
-## packs are never copied into the repo; the import tools read them from here.
+## Where the raw asset packs are: the folder holding `quaternius/` and
+## `kevin_iglesias/`, on the owner's PC a clone of the private asset
+## repository (github.com/Arod231/monomachia-assets). The packs are never
+## copied into this repo; the import tools read them from there.
 ##
 ## The folder is, in order:
 ## - the MONOMACHIA_ASSETS_SRC environment variable (scripts/godot.mjs sets it

@@ -40,7 +40,7 @@ The Katana (`game/weapons/katana`), the Hunter's tricorn and the worn-cloth text
 
 ## Not in the repo
 
-These packs are kept unzipped in the asset repository on the developer's PC (the folder `.assets-src-path` names; today `Desktop/Monomachia-assets/kevin_iglesias`). Their licence allows using them in the game but not redistributing them, so the raw files, and the clips converted from them, must never be committed to this public repo. `node scripts/godot.mjs clips` converts the clips `kevin_iglesias/clip_manifest.json` names into the gitignored `kevin_iglesias/library/`, and a build made with them packs them into the exe. The game uses Human Melee Animations, Human Basic Motions and Human Crafting Animations (two shoulder-carry clips); Human Dance Animations is unused.
+These packs live in `kevin_iglesias/` of the private asset repository, which the import tools read through the clone `.assets-src-path` names. Their licence allows using them in the game but not redistributing them, so the raw files, and the clips converted from them, must never be committed to this public repo. `node scripts/godot.mjs clips` converts the clips `kevin_iglesias/clip_manifest.json` names into the gitignored `kevin_iglesias/library/`, and a build made with them packs them into the exe. The game uses Human Melee Animations, Human Basic Motions and Human Crafting Animations (two shoulder-carry clips); Human Dance Animations is unused.
 
 | Pack | Version | Source | Licence |
 |---|---|---|---|
