@@ -1,6 +1,6 @@
 # Plan: Monomachia rebuilt in Godot
 
-Spec: `docs/specs/godot-rebuild.md` · branch `feature/godot-rebuild` · pull request #2
+Spec: `docs/specs/godot-rebuild.md` · branch `master` (built on `feature/godot-rebuild`, merged by pull requests #2 and #68)
 
 > **Superseded by [ADR 0001](../adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** The toon look, the laptop performance gates, the 110 MB art cap and the ink-styled effects in this plan are superseded. The open tasks were triaged on Oct 4, and the rebuild is consolidated onto `master` before milestone 1 starts: see [Triage and consolidation](#triage-and-consolidation-oct-4).
 

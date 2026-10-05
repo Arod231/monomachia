@@ -1,6 +1,6 @@
 # Roadmap: from the consolidation to online play
 
-Spec: `docs/design.md` (Order of work) and `docs/specs/milestone-1.md` · branch `feature/godot-rebuild`
+Spec: `docs/design.md` (Order of work) and `docs/specs/milestone-1.md` · branch `master`
 
 ## Destination
 

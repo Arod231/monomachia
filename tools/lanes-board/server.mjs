@@ -747,9 +747,9 @@ const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
 // tools/second-brain (docs/specs/second-brain.md), imported from this checkout.
-// The notes are built from git, never a working tree: the newest rebuild-branch
-// tip that has the vault (brain/Home.md), so plan ticks show once they're pushed.
-const BRAIN_REFS = ['origin/feature/godot-rebuild', 'feature/godot-rebuild'];
+// The notes are built from git, never a working tree: the newest master tip
+// that has the vault (brain/Home.md), so plan ticks show once they're pushed.
+const BRAIN_REFS = ['origin/master', 'master'];
 let brain = null; // { handle, gitSource, set }
 
 async function newestRef(refs, needs) {

@@ -6,18 +6,20 @@
 import path from 'node:path';
 
 // A plan's header may name another branch (``branch `master` ``); the board then
-// uses that one. Authored animation is closed: it shows as history.
+// uses that one. Authored animation is closed: it shows as history. The Godot
+// rebuild branch merged into master for good on Oct 5 (PR #68), so the roadmap
+// and the Godot rebuild plan follow master.
 export const PLANS = [
-  { key: 'rm', short: 'RM', name: 'Roadmap', file: 'docs/plans/roadmap.md', kind: 'roadmap', branch: 'feature/godot-rebuild' },
+  { key: 'rm', short: 'RM', name: 'Roadmap', file: 'docs/plans/roadmap.md', kind: 'roadmap', branch: 'master' },
   { key: 'm1', short: 'M1', name: 'Milestone 1', file: 'docs/plans/milestone-1.md', kind: 'flat', branch: 'feature/milestone-1' },
-  { key: 'gr', short: 'GR', name: 'Godot rebuild', file: 'docs/plans/godot-rebuild.md', kind: 'nested', branch: 'feature/godot-rebuild',
+  { key: 'gr', short: 'GR', name: 'Godot rebuild', file: 'docs/plans/godot-rebuild.md', kind: 'nested', branch: 'master',
     names: { 1: 'Resume and safety nets', 2: 'The look, real fighters', 3: 'The shrine', 4: 'Fluid rules', 5: 'Sound and music',
       6: 'The new strings', 7: 'Swing foundations', 8: 'Fighter animation core', 9: 'Katana swings, anim review',
       10: 'Editor, HUD, effects, menus', 11: "Other weapons' swings", 12: 'Computer and balance', 13: 'Full animation', 14: 'Consolidate and ship' } },
   { key: 'aa', short: 'AA', name: 'Authored animation', file: 'docs/plans/authored-animation.md', kind: 'flat', branch: 'feature/authored-animation',
-    into: 'feature/godot-rebuild', closed: true },
+    into: 'master', closed: true },
   { key: 'pm', short: 'PM', name: 'Project Manager remote control', file: 'docs/plans/project-manager-remote.md', kind: 'flat',
-    branch: 'tools/project-manager-remote', into: 'feature/godot-rebuild' },
+    branch: 'tools/project-manager-remote', into: 'master' },
 ];
 export const PLAN_BY_KEY = Object.fromEntries(PLANS.map((p) => [p.key, p]));
 
@@ -404,12 +406,13 @@ export function goalFor({ plan, ids, tasks, branch, repo, baseExists = true }) {
   const list = (n) => ids.map((id) => `${id} ${tasks[id].title.slice(0, n)}`).join('; ');
   const worktree = path.win32.join(repo, '.claude', 'worktrees', branch.replace(/[^A-Za-z0-9-]/g, '-'));
   const base = `origin/${plan.branch}`;
-  const target = plan.branch === 'feature/godot-rebuild' ? `the Godot rebuild branch, ${plan.branch}`
-    : plan.into ? `${plan.branch} (which merges into ${plan.into})` : plan.branch;
+  const target = plan.into ? `${plan.branch} (which merges into ${plan.into})` : plan.branch;
+  // A lane of a plan on master opens its pull request into master; any other stays off it.
+  const notMaster = plan.branch === 'master' ? '' : ', never master';
   const body = (n) => [
     ...(baseExists ? [] : [`First: ${base} does not exist yet (the board saw no such branch). Run git -C "${repo}" fetch origin; if ${base} is still missing, stop and tell me, and do not create it or build on another branch.`]),
     `Finish implementation of the queued ${plan.name} tasks: ${list(n)} (${plan.file}), in the Monomachia repository at ${repo}, with every change built on and merged into ${target}.`,
-    `Done when each queued task is built with its checks passing, ticked in ${plan.file}, committed and pushed on ${branch}, with a pull request into ${plan.branch}, never master${baseExists ? '' : `; or, if ${base} is still missing, when you have told me so and stopped`}.`,
+    `Done when each queued task is built with its checks passing, ticked in ${plan.file}, committed and pushed on ${branch}, with a pull request into ${plan.branch}${notMaster}${baseExists ? '' : `; or, if ${base} is still missing, when you have told me so and stopped`}.`,
     `Setup, before anything else: work only in a worktree of ${repo}, never in a scratch or other folder. If your working directory is not inside ${repo}, run git -C "${repo}" fetch origin, then git -C "${repo}" worktree add "${worktree}" -b ${branch} ${base} (or check out ${branch} there if it exists), and move this session into it with the change_directory tool (find it with ToolSearch). Otherwise run git fetch origin and git switch -c ${branch} ${base} in this worktree.`,
     `Then name this session: set this session's title to "${sessionTitle({ plan, ids })}" with the set_session_title tool (session_id "self"; find it with ToolSearch). As soon as ${branch} has a pull request (yours, or one already open), set it to "${sessionTitle({ plan, ids, pr: '<number>' })}" with the pull request's number in place of <number>.`,
     `Before any edit, check that git branch --show-current prints ${branch} and that git merge-base --is-ancestor ${base} HEAD succeeds. If missing, copy .godot-path and .assets-src-path from ${repo} and junction its node_modules.`,

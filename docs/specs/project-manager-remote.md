@@ -260,7 +260,7 @@ The tracked hooks stay dependency-free and exit at once when nothing concerns th
 
 ### The plan on the board
 
-The Project Manager follows `docs/plans/project-manager-remote.md` as plan "PM" (flat kind, branch `tools/project-manager-remote`, into `feature/godot-rebuild`) on the Progress and Graph tabs, outside the roadmap's phases. Launch branches are `lane/pm-<ids>`, and commit subjects name tasks as "(PM task N)".
+The Project Manager follows `docs/plans/project-manager-remote.md` as plan "PM" (flat kind, branch `tools/project-manager-remote`, into `master` since the Godot rebuild branch merged there on Oct 5) on the Progress and Graph tabs, outside the roadmap's phases. Launch branches are `lane/pm-<ids>`, and commit subjects name tasks as "(PM task N)".
 
 ## Testing Decisions
 
