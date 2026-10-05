@@ -108,6 +108,10 @@ h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .brec .bd { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brec .k { font-size: 12px; color: var(--muted); margin-top: 3px; }
 .bempty { padding: 16px; font-size: 15px; color: var(--muted); }
+.pushbox { padding: 12px 14px; border-bottom: 0.5px solid var(--border-strong); font-size: 14px; color: var(--muted); line-height: 1.5; }
+.pushbox b { color: var(--text); font-weight: 600; word-break: break-all; }
+.pushbox .btn { margin-right: 6px; }
+.pusherr { margin-top: 6px; color: var(--owner); }
 .pcard.flash, .qgroup.flash { outline: 3px solid var(--owner); outline-offset: 2px; }
 pre.code { margin: 0; padding: 9px 11px; background: var(--surface); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 pre.code.pv { margin-top: 6px; font-size: 12px; background: var(--page); text-align: left; }
@@ -930,12 +934,28 @@ window.addEventListener('modules-ready', render);
 // ---------- the bell ----------
 // Shared with the PC page (sessions-ui.mjs mountBell). A tap opens the
 // record's question; a finished turn opens Lanes until sessions get pages.
+// Lock-screen notifications (mountPush) are turned on at the top of its list,
+// and a tap on one comes here as /m?bell=<record>&go=<tab>&item=&session=,
+// in the address the app opens or in a message from the service worker (sw.js).
+function goTo({ tab, item, session }) {
+  if (tab === 'sessions') { setTab('lanes'); return; }
+  setTab('questions');
+  S.revealQuestion($('qList'), { item, session });
+}
+let bell = null;
+function openFrom(href) {
+  const u = new URL(href, location.origin);
+  const go = u.searchParams.get('go');
+  if (!go) return;
+  history.replaceState(null, '', '/m');
+  const id = u.searchParams.get('bell');
+  if (id) post('/bell/read', { ids: [id] }).then(() => bell?.poll(), () => {});
+  goTo({ tab: go, item: u.searchParams.get('item'), session: u.searchParams.get('session') });
+}
 window.addEventListener('modules-ready', () => {
-  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session }) => {
-    if (tab === 'sessions') { setTab('lanes'); return; }
-    setTab('questions');
-    S.revealQuestion($('qList'), { item, session });
-  } });
+  bell = S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: goTo, push: S.mountPush({ post }) });
+  navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'open') openFrom(e.data.url); });
+  openFrom(location.href);
 }, { once: true });
 setInterval(tick, 1000);
 setTab(TITLES[tab] ? tab : 'overview');

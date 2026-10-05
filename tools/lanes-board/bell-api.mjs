@@ -9,8 +9,9 @@ import path from 'node:path';
 import { bellUpdate, bellView, markRead } from './bell.mjs';
 
 // file: notifications.json; relay: the relay folder; held(): the items held
-// now; titlesOf(ids): Map of session id -> title.
-export function bellApi({ file, relay, held, titlesOf, sweepMs = 0 }) {
+// now; titlesOf(ids): Map of session id -> title; onNew(records): told of each
+// look's new records (lock-screen push, push-api.mjs), after they are saved.
+export function bellApi({ file, relay, held, titlesOf, onNew = () => {}, sweepMs = 0 }) {
   let state;
   let busy = Promise.resolve();
   // One look at a time: a sweep, a read and a mark never overlap.
@@ -59,6 +60,9 @@ export function bellApi({ file, relay, held, titlesOf, sweepMs = 0 }) {
     let next = bellUpdate(before, { pending, events, titleOf: (id) => titles.get(id) ?? '(untitled)' });
     if (at !== (before?.eventsAt ?? 0)) next = { ...next, eventsAt: at };
     await save(next);
+    const had = new Set((before?.records ?? []).map((r) => r.id));
+    const fresh = (state?.records ?? []).filter((r) => !had.has(r.id));
+    if (fresh.length) Promise.resolve().then(() => onNew(fresh)).catch((err) => console.error(err));
     return state;
   });
 

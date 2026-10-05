@@ -285,15 +285,17 @@ export function bellListHtml(b) {
 // Runs the bell on a page: box holds its button, panel its list (hidden until
 // opened); post(url, body) is the page's JSON post; go({ tab, item, session })
 // takes the page to a record's target. Polls /bell every few seconds.
-export function mountBell({ box, panel, post, go, everyMs = 5000 }) {
+// push (the phone page's mountPush) puts lock-screen notifications at the top of the list.
+export function mountBell({ box, panel, post, go, push = null, everyMs = 5000 }) {
   let view = null;
   let timer = null;
   let shown = '';
   const draw = () => {
     const button = bellButtonHtml(view);
     if (button !== shown) { shown = button; box.innerHTML = button; }
-    if (!panel.hidden) panel.innerHTML = bellListHtml(view);
+    if (!panel.hidden) panel.innerHTML = (push?.html() ?? '') + bellListHtml(view);
   };
+  push?.onChange(draw);
   async function poll() {
     try {
       const d = await (await fetch('/bell', { cache: 'no-store' })).json();
@@ -309,6 +311,8 @@ export function mountBell({ box, panel, post, go, everyMs = 5000 }) {
     if (!panel.hidden) poll();
   });
   panel.addEventListener('click', async (e) => {
+    const p = e.target.closest('[data-push]');
+    if (p && push) { push.act(p.dataset.push); return; }
     if (e.target.closest('[data-bell-all]')) {
       try { view = await post('/bell/read', { all: true }); } catch { /* next poll */ }
       draw();
@@ -327,6 +331,96 @@ export function mountBell({ box, panel, post, go, everyMs = 5000 }) {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
   poll();
   return { poll };
+}
+
+// ---------- lock-screen notifications ----------
+// Where this device stands (env: { supported, https, standalone, permission,
+// subscribed }): on, off (can be turned on), blocked, or why it can't be here.
+// iOS shows web notifications only from a Home Screen app, and only over HTTPS.
+export function pushState(env) {
+  if (!env?.https) return 'not-https';
+  if (!env.standalone) return 'not-home-screen';
+  if (!env.supported) return 'unsupported';
+  if (env.permission === 'denied') return 'blocked';
+  return env.subscribed ? 'on' : 'off';
+}
+
+// The box at the top of the phone's bell list: "Turn on notifications", or why not.
+export function pushBoxHtml(env) {
+  const at = env?.httpsUrl ? `<b>${esc(env.httpsUrl)}</b>` : "the Project Manager's HTTPS address (Tailscale Serve)";
+  const busy = env?.busy ? ' disabled' : '';
+  const err = env?.error ? `<div class="pusherr">${esc(env.error)}</div>` : '';
+  const body = {
+    'not-https': `Lock-screen notifications need the Home Screen app made from ${at}: open it in Safari, tap Share, then Add to Home Screen, and open the Project Manager from there.`,
+    'not-home-screen': 'Lock-screen notifications work only in the Home Screen app: tap Share, then Add to Home Screen, and open the Project Manager from there to turn them on.',
+    unsupported: "This browser can't show lock-screen notifications (an iPhone needs iOS 16.4 or later).",
+    blocked: 'Notifications are blocked for the Project Manager. Allow them in Settings, Notifications, Project Manager, then come back here.',
+    on: `Lock-screen notifications are on; they arrive while Away is on. <button class="btn small ghost" data-push="off"${busy}>Turn off</button>`,
+    off: `<button class="btn small primary" data-push="on"${busy}>Turn on notifications</button> They arrive on the lock screen only while Away is on.`,
+  }[pushState(env)];
+  return `<div class="pushbox">${body}${err}</div>`;
+}
+
+const fromB64u = (s) => {
+  const b = atob(String(s).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(b, (c) => c.charCodeAt(0));
+};
+
+// Lock-screen notifications on this device, for mountBell's push: registers
+// the service worker (/sw.js), keeps the board told of this device's
+// subscription, and turns them on or off (act('on' | 'off'), from a tap: iOS
+// asks for permission only then).
+export function mountPush({ post }) {
+  const env = {
+    supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+    https: location.protocol === 'https:',
+    standalone: navigator.standalone === true || matchMedia('(display-mode: standalone)').matches,
+    permission: window.Notification?.permission ?? 'default',
+    subscribed: false, httpsUrl: null, publicKey: null, busy: false, error: null,
+  };
+  let reg = null;
+  let changed = () => {};
+  async function refresh() {
+    try { const d = await (await fetch('/push', { cache: 'no-store' })).json(); env.httpsUrl = d.https; env.publicKey = d.publicKey; } catch { /* next time */ }
+    if (env.supported && env.https) {
+      try {
+        reg = await navigator.serviceWorker.register('/sw.js');
+        const sub = await reg.pushManager.getSubscription();
+        env.subscribed = !!sub;
+        if (sub) await post('/push/subscribe', { subscription: sub.toJSON() });
+      } catch { /* shown as off */ }
+    }
+    env.permission = window.Notification?.permission ?? 'default';
+    changed();
+  }
+  async function act(what) {
+    env.error = null;
+    try {
+      if (what === 'on') {
+        const permission = await Notification.requestPermission();
+        env.permission = permission;
+        if (permission === 'granted') {
+          env.busy = true; changed();
+          reg ??= await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.getSubscription()
+            ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64u(env.publicKey) });
+          await post('/push/subscribe', { subscription: sub.toJSON() });
+          env.subscribed = true;
+        }
+      } else if (what === 'off') {
+        env.busy = true; changed();
+        const sub = await reg?.pushManager.getSubscription();
+        if (sub) { await post('/push/unsubscribe', { endpoint: sub.endpoint }); await sub.unsubscribe(); }
+        env.subscribed = false;
+      }
+    } catch (err) { env.error = `Couldn't turn notifications ${what}: ${err.message}`; }
+    env.busy = false;
+    changed();
+  }
+  refresh();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  return { html: () => pushBoxHtml(env), act, onChange: (fn) => { changed = fn; } };
 }
 
 // Brings a held item's card (or its session's group) into view in the

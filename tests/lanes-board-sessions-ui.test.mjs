@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  sessionPills,
+  pushBoxHtml, pushState, sessionPills,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -269,5 +269,34 @@ describe('answerFor', () => {
   it('sends the owner\'s own words instead when typed, and asks for an answer otherwise', () => {
     assert.deepEqual(answerFor(button({ answer: 'q' }), card({ picked: [[]], reply: ' Something else ' })), { id: 'q', reply: 'Something else' });
     assert.match(answerFor(button({ answer: 'q' }), card({ picked: [['A'], []] })).error, /Pick an answer/);
+  });
+});
+
+describe('pushBoxHtml', () => {
+  const home = { supported: true, https: true, standalone: true, permission: 'default', subscribed: false, httpsUrl: 'https://pc.tail.ts.net' };
+  it('offers Turn on notifications only in the Home Screen app over HTTPS', () => {
+    assert.equal(pushState(home), 'off');
+    assert.match(pushBoxHtml(home), /data-push="on"[^>]*>Turn on notifications</);
+    assert.match(pushBoxHtml(home), /only while Away is on/);
+  });
+  it('says how to get there from a Safari tab or the plain-HTTP address', () => {
+    const tab = { ...home, standalone: false };
+    assert.equal(pushState(tab), 'not-home-screen');
+    assert.match(pushBoxHtml(tab), /Add to Home Screen/);
+    assert.doesNotMatch(pushBoxHtml(tab), /data-push="on"/);
+    const http = { ...home, https: false };
+    assert.equal(pushState(http), 'not-https');
+    assert.match(pushBoxHtml(http), /https:\/\/pc\.tail\.ts\.net/);
+    assert.doesNotMatch(pushBoxHtml(http), /data-push="on"/);
+  });
+  it('says when they are on (with Turn off), blocked or impossible here', () => {
+    assert.equal(pushState({ ...home, subscribed: true }), 'on');
+    assert.match(pushBoxHtml({ ...home, subscribed: true }), /data-push="off"/);
+    assert.equal(pushState({ ...home, permission: 'denied' }), 'blocked');
+    assert.match(pushBoxHtml({ ...home, permission: 'denied' }), /Settings/);
+    assert.equal(pushState({ ...home, supported: false }), 'unsupported');
+  });
+  it('escapes the address', () => {
+    assert.doesNotMatch(pushBoxHtml({ ...home, https: false, httpsUrl: 'https://<x>' }), /<x>/);
   });
 });
