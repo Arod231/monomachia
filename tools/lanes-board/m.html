@@ -94,6 +94,8 @@ h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .pcard .sum { font-size: 15px; margin-bottom: 8px; }
 .pcard .plan.last { max-height: 40vh; margin-bottom: 4px; }
 .pcard textarea.turnreply { margin-top: 10px; }
+.hookwarn { border: 1px solid var(--owner); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 15px; background: var(--card); }
+.hookwarn ul { margin: 6px 0; padding-left: 22px; }
 pre.code { margin: 0; padding: 9px 11px; background: var(--surface); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 pre.code.pv { margin-top: 6px; font-size: 12px; background: var(--page); text-align: left; }
 .q { margin-top: 10px; }
@@ -825,7 +827,7 @@ function renderQuestions() {
   const away = S.awayHtml(questions);
   if (awaySeen !== away) { awaySeen = away; $('awayBox').innerHTML = away; }
   if (tab !== 'questions') return;
-  const sig = JSON.stringify([questions.away.on, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => p.id)]),
+  const sig = JSON.stringify([questions.away.on, questions.hooks?.problems, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => [p.id, p.summary?.detail])]),
     questions.asked.map((a) => [a.session, a.time])]);
   if (sig === qSig) { S.refreshTimes($('qList')); return; }
   qSig = sig;

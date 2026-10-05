@@ -1,8 +1,10 @@
 // The round trip: a session's hook, the real Project Manager server and the
 // owner's answer from a page, end to end (harness in lanes-board-harness.mjs).
 
+import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, rmSync, utimesSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { assertMatches } from './assert-matches.mjs';
@@ -208,6 +210,16 @@ describe('the round trip: Away and the Questions tab', () => {
     await board.post('/relay/answer', { id: item.id, behavior: 'deny', message: 'Do the tests first' });
     assert.deepEqual(await decision(done), { behavior: 'deny',
       message: 'The owner rejected this plan from the Project Manager. Keep planning: Do the tests first' });
+  });
+
+  it('says whether the installed hooks are this version\'s, before and after an install', async () => {
+    const before = (await board.get('/questions')).body.hooks;
+    assert.equal(before.current, false);
+    assert.match(before.problems.join(' '), /relay hook isn't installed/);
+    const r = spawnSync(process.execPath, [fileURLToPath(new URL('../tools/lanes-board/install-hooks.mjs', import.meta.url))],
+      { env: { ...process.env, LANES_CLAUDE_DIR: board.claude }, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.deepEqual((await board.get('/questions')).body.hooks, { current: true, problems: [] });
   });
 
   it('only takes actions from its own pages', async () => {

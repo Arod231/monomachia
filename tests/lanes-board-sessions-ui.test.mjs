@@ -182,6 +182,15 @@ describe('questionsTabHtml', () => {
     assert.doesNotMatch(html, /data-answer/);
     assert.match(html, /data-open="local_y">Open on PC/);
   });
+  it('says when the installed hooks aren\'t this version\'s, and how to fix it', () => {
+    const hooks = { current: false, problems: ['The installed relay hook differs from this version\'s.'] };
+    const html = questionsTabHtml({ away, count: 0, groups: [], asked: [], hooks });
+    assert.match(html, /class="hookwarn"/);
+    assert.match(html, /The installed relay hook differs from this version&#39;s\.|The installed relay hook differs from this version's\./);
+    assert.match(html, /npm run board:hooks/);
+    assert.doesNotMatch(questionsTabHtml({ away, count: 0, groups: [], asked: [], hooks: { current: true, problems: [] } }), /hookwarn/);
+    assert.doesNotMatch(questionsTabHtml({ away, count: 0, groups: [], asked: [] }), /hookwarn/);
+  });
   it('says what Away means when nothing waits', () => {
     assert.match(questionsTabHtml({ away, count: 0, groups: [], asked: [] }), /Nothing waiting\. Questions/);
     assert.match(questionsTabHtml({ away: { on: false }, count: 0, groups: [], asked: [] }), /Away is off/);

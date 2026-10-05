@@ -180,6 +180,19 @@ const groupHead = (g, when) => `<div class="qgh"><b>${esc(g.title)}</b><span cla
 // in the app (read-only, with a button to open the session: openLabel).
 export function questionsTabHtml(q, { openLabel = 'Open in the app' } = {}) {
   if (!q) return '<div class="empty">Loading…</div>';
+  return hooksNotice(q.hooks) + questionsList(q, openLabel);
+}
+
+// When the hooks installed in user settings aren't this version's (hooks.mjs),
+// Away can't work as this page says: what's wrong, and the fix.
+function hooksNotice(hooks) {
+  if (!hooks || hooks.current) return '';
+  return `<div class="hookwarn"><b>The hooks in your user settings aren't this version's</b>, so Away may not work as shown here.
+    <ul>${hooks.problems.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>
+    To fix it, ask a session to run <code>npm run board:hooks</code> (it changes your user settings, so it asks you first).</div>`;
+}
+
+function questionsList(q, openLabel) {
   const held = q.groups.map((g) => `<section class="qgroup" data-session="${esc(g.session)}">${groupHead(g, g.since)}
     ${g.items.map((p) => pendingCard(p)).join('')}</section>`);
   const asked = q.asked.map((a) => `<section class="qgroup" data-session="${esc(a.session)}">${groupHead(a, a.time)}

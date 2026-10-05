@@ -40,9 +40,10 @@ async function writeJsonFile(file, value) {
 // transcript was written for its session to count as at work. The server lends
 // its context gauges (contextOf), the app's session records (appSessions), the
 // plan task a folder's lane is on (taskOf: dir -> { ref, label, title } | null)
-// and its worker pool. Every sweepMs it also looks over the held items, so a
+// and its worker pool, and says whether the installed hooks are current (hooks:
+// () => { current, problems }). Every sweepMs it also looks over the held items, so a
 // deleted session's hook is released with no page open.
-export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool, taskOf = () => null, sweepMs = 0 }) {
+export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool, taskOf = () => null, hooks = async () => null, sweepMs = 0 }) {
   const transcriptCache = new Map(); // file -> { key, parsed }
   async function transcript(file, limit) {
     const { size, mtimeMs } = await stat(file);
@@ -253,7 +254,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       asked.push({ ...who, time: t.open.time, questions: t.open.questions ?? [] });
     }
     asked.sort((x, y) => (x.time ?? 0) - (y.time ?? 0));
-    return { updated: Date.now(), away: state.away, count: state.pending.length + asked.length, groups, asked };
+    return { updated: Date.now(), away: state.away, count: state.pending.length + asked.length, groups, asked, hooks: await hooks().catch(() => null) };
   }
 
   if (sweepMs > 0) setInterval(() => { relayState().catch(() => {}); }, sweepMs).unref();

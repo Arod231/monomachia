@@ -336,6 +336,8 @@ textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px
 .pcard .sum { font-size: 13px; margin-bottom: 6px; }
 .pcard .plan.last { max-height: 220px; margin-bottom: 4px; }
 .pcard textarea.turnreply { width: 100%; margin-top: 8px; }
+.hookwarn { border: 1px solid var(--owner); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; background: var(--card); }
+.hookwarn ul { margin: 6px 0; padding-left: 20px; }
 pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 .q { margin-top: 8px; }
 .q .qh { font-size: 13px; margin-bottom: 6px; }
@@ -1355,7 +1357,7 @@ function renderPending(d) {
       <pre class="code">${esc(d.open.summary ?? '')}</pre>
       <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Open in the app</button>` : ''}<span class="m">If it's waiting for your approval, answer it in the app${away ? '' : ', or switch Away on for the next one'}.</span></div></div>`);
   }
-  const sig = JSON.stringify([d.pending.map((p) => p.id), d.open?.id, d.open && !d.active, away]);
+  const sig = JSON.stringify([d.pending.map((p) => [p.id, p.summary?.detail]), d.open?.id, d.open && !d.active, away]);
   if (sig === sSigs.pend) { S.refreshTimes($('sPend')); return; }
   sSigs.pend = sig;
   const kept = S.captureCards($('sPend'));
@@ -1512,7 +1514,7 @@ function renderQuestions() {
   const away = S.awayHtml(questions);
   if (awaySeen !== away) { awaySeen = away; $('awayBox').innerHTML = away; }
   if (view !== 'questions') return;
-  const sig = JSON.stringify([questions.away.on, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => p.id)]),
+  const sig = JSON.stringify([questions.away.on, questions.hooks?.problems, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => [p.id, p.summary?.detail])]),
     questions.asked.map((a) => [a.session, a.time])]);
   if (sig === qSig) { S.refreshTimes($('qList')); return; }
   qSig = sig;
