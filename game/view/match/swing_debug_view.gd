@@ -15,7 +15,7 @@ extends Node3D
 ##
 ## It only reads the rules. MatchView adds it when its swing_debug flag is
 ## on, with F3 in a debug build, or with --swing-debug on the command line
-## (npm run godot:run -- --swing-debug), and it follows the host's steps and
+## (npm run play -- --swing-debug), and it follows the host's steps and
 ## events. record() and on_event() take the World, so a test can drive it
 ## without a host.
 
