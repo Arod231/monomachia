@@ -264,8 +264,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### The computer opponent, Training, Watch and Versus
 
-187. As a player, I want the computer to read the generated frame-data table, so that its defence follows the clips as they're re-animated. **(P17, confirmed Oct 4)**
-188. As a player, I want the computer to time its defence from each swing's first touch and ignore moves that can't reach, so that it defends fairly at the new pace.
+187. [x] As a player, I want the computer to read the generated frame-data table, so that its defence follows the clips as they're re-animated. **(P17, confirmed Oct 4)** (Ticked with task 24.)
+188. [x] As a player, I want the computer to time its defence from each swing's first touch and ignore moves that can't reach, so that it defends fairly at the new pace. (Ticked with task 24.)
 189. As a Training player, I want the dummy to perform every milestone-1 unblockable (Piercing Thrust and Swallow Sweep) through one shared routes table, and the Katana dummy's heavies to alternate both Iai variants, so that I can drill every counter the milestone has.
 190. As a developer, I want counterlab to show the stomp and the leap reached, with the evade waiting for milestone 2, so that every reachable counter is proven.
 191. As a player, I want the computer to use and answer the Iai (quick draws, walking in sheathed, both variants, the follow-ups, dodging out when attacked; against a sheathed opponent, keeping out of range, punishing or parrying the release), landing it from the Iai's distance band, so that it plays the Katana well.

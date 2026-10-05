@@ -22,6 +22,10 @@ extends RefCounted
 ## - threatens() is the rebuild's (task 7.13): the reach test _respond_to()
 ##   made inline, now reading AttackDef.reach(), a swing's reach once a move
 ##   has one.
+## - Since milestone-1 task 24 the defence is timed from the swing's first
+##   touch (frames_to_touch(), on the table's frames) instead of the first
+##   active frame, and a move that can't touch the computer from where it
+##   stands, an unblockable's included, gets no answer.
 ## - Waiting out a knockdown (_think_neutral() and _output()) is authored
 ##   animation's (task 16).
 ## - The Greatsword's lift off the shoulder (authored-animation task 15) is
@@ -379,7 +383,7 @@ func _perceive(frame: int) -> void:
 	if _react_at < 0 or frame < _react_at or atk.charging:
 		return
 	_react_at = -1
-	_respond_to(atk.def, frame, frames_to_impact(atk))
+	_respond_to(atk.def, frame, frames_to_touch(opp, me))
 
 
 func _set_plan(p: StringName, until: int) -> void:
@@ -422,17 +426,38 @@ static func frames_to_impact(atk: AttackState) -> int:
 	return atk.def.startup + 1 - atk.frame + atk.lift_left
 
 
-## to_impact: frames_to_impact() of the attack.
+## The frames from now until `attacker`'s attack first touches `defender`
+## where they stand (milestone-1 task 24): its swing played on from its frame
+## on the table's frames (SwingReach.first_contact_from(), the lunge or the
+## travel still to come and the turn toward them included), and the rest of
+## any lift off the shoulder; -1 when it can't touch them, unblockables
+## included. A move without a swing (a scripted hit) is timed as before: its
+## first active frame, within threatens()' reach.
+static func frames_to_touch(attacker: Fighter, defender: Fighter) -> int:
+	var atk: AttackState = attacker.atk
+	var def: AttackDef = atk.def
+	var d: float = SimMath.dist2(attacker.pos, defender.pos)
+	if def.swing == null:
+		return frames_to_impact(atk) if threatens(def, d) else -1
+	var r: V2 = SimMath.right(attacker.yaw)
+	var ahead: V2 = SimMath.fwd(attacker.yaw)
+	var dx: float = defender.pos.x - attacker.pos.x
+	var dz: float = defender.pos.z - attacker.pos.z
+	var bearing: float = JsMath.atan2(dx * r.x + dz * r.z, dx * ahead.x + dz * ahead.z) / SimMath.DEG
+	var touch: SwingReach.Contact = SwingReach.first_contact_from(def, attacker.moveset(), d, bearing, defender.body,
+		atk.frame, atk.lunge_total)
+	return -1 if touch == null else touch.frame - atk.frame + atk.lift_left
+
+
+## to_impact: frames_to_touch() of the attack, -1 when it can't touch us.
 func _respond_to(def: AttackDef, frame: int, to_impact: int) -> void:
 	var opp: Fighter = me.opp
 	var P: AIParams = params
 	if def.damage <= 0.0:
 		return # stances
+	if to_impact < 0:
+		return # it can't reach us, an unblockable's included (milestone-1 task 24)
 	var impact: int = frame + to_impact
-	if impact < frame:
-		return # too late
-	if not threatens(def, SimMath.dist2(me.pos, opp.pos)):
-		return
 	if me.state == &"attack" or me.state == &"hitstun" or me.state == &"stunned":
 		return
 
