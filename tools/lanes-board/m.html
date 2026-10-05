@@ -335,6 +335,8 @@ nav.tabs .count:empty { display: none; }
 /* ---------- queue ---------- */
 .qnote { font-size: 13px; color: var(--muted); margin-top: 12px; }
 .qlaunch { margin-top: 14px; display: grid; gap: 10px; }
+.newsess { margin-bottom: 18px; }
+.newsess .qnote { margin-top: 8px; }
 #toast { position: fixed; left: var(--side); right: var(--side); bottom: calc(var(--tabbar) + var(--bottom) + 12px); z-index: 25; background: var(--text); color: var(--page);
   border-radius: 12px; padding: 12px 14px; font-size: 15px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
 #toast.on { opacity: 1; transform: none; pointer-events: auto; }
@@ -522,8 +524,9 @@ function waitingItems() {
   // Launches that haven't started: the PC is locked, or the board couldn't press Send.
   for (const l of data.launches ?? []) {
     if (l.start?.state !== 'waiting') continue;
-    items.push({ sw: l.start.reason === 'locked' ? 'launched' : 'owner', text: `Launch of ${l.tasks.map((r) => taskName(...r.split(':'))).join(', ')}`,
-      k: U.launchStartText(l.start), task: l.tasks[0], retry: l.start.retry ? l.id : null });
+    items.push({ sw: l.start.reason === 'locked' ? 'launched' : 'owner',
+      text: l.kind === 'session' ? 'New session' : `Launch of ${l.tasks.map((r) => taskName(...r.split(':'))).join(', ')}`,
+      k: U.launchStartText(l.start), task: l.tasks[0] ?? null, retry: l.start.retry ? l.id : null });
   }
   for (const pr of data.prs ?? []) {
     if (!pr.isDraft) items.push({ sw: 'ready', text: `PR #${pr.number} ${pr.title}`, k: `Ready for review · ${pr.headRefName} → ${pr.baseRefName}`, url: pr.url });
@@ -895,11 +898,28 @@ function queueNotes(ref) {
   if (t.ownerOk.length) notes.push(`launching it counts as your OK of ${t.ownerOk.map((g) => taskName(k, g)).join(', ')}`);
   return notes;
 }
+// The "New session" button above the queue: a session with no tasks, which the
+// Project Manager starts like a launch; its line follows the newest one.
+function newSessionBlock() {
+  const st = U.newSessionStatus(data.launches, Date.now());
+  const line = st ? esc(st.text) : 'Starts a session in this repository on the latest master, with nothing to do yet. Send it your prompts from the Claude app.';
+  return `<div class="newsess"><button class="btn block" id="newSession" ${startingNew ? 'disabled' : ''}>${startingNew ? 'Starting…' : 'New session'}</button>
+    <p class="qnote">${line}</p>${st?.retry ? `<button class="btn small" data-retry="${esc(st.id)}">Try again</button>` : ''}</div>`;
+}
+let startingNew = false;
+async function startNewSession() {
+  if (startingNew) return;
+  startingNew = true; renderQueue();
+  try { await post('/session/new', {}); toast('Starting a new session on the PC. Send it your prompts from the Claude app once it shows up there.'); }
+  catch (e) { toast(`Couldn't start a new session: ${e.message}`, true); }
+  startingNew = false;
+  poll(true);
+}
 function renderQueue() {
   $('cQueue').textContent = queue.length ? String(queue.length) : '';
   if (tab !== 'queue') return;
   if (!queue.length) {
-    $('queue').innerHTML = `<div class="empty">Nothing queued. Open Plans, tap a task that hasn't started, and add it here.</div>`;
+    $('queue').innerHTML = newSessionBlock() + `<div class="empty">Nothing queued. Open Plans, tap a task that hasn't started, and add it here.</div>`;
     return;
   }
   const byPlan = {};
@@ -916,7 +936,7 @@ function renderQueue() {
         <button class="btn small" data-unqueue="${esc(ref)}" aria-label="Remove ${taskName(k, id)}">Remove</button></li>`;
     }).join('')}</ul>`;
   }).join('');
-  $('queue').innerHTML = groups + `<div class="qlaunch"><button class="btn primary block" id="qLaunch">Launch ${sessions === 1 ? 'a session' : `${sessions} sessions`} on the PC</button>
+  $('queue').innerHTML = newSessionBlock() + groups + `<div class="qlaunch"><button class="btn primary block" id="qLaunch">Launch ${sessions === 1 ? 'a session' : `${sessions} sessions`} on the PC</button>
     <button class="btn block" id="qClear">Clear the queue</button></div>
     <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app, so nobody needs to be at the PC (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</p>`;
 }
@@ -1063,6 +1083,7 @@ document.addEventListener('click', async (e) => {
   }
   if (b?.dataset.retry) { retryLaunch(b.dataset.retry); return; }
   if (b?.id === 'qLaunch') { launchQueue(); return; }
+  if (b?.id === 'newSession') { startNewSession(); return; }
   if (b?.id === 'qClear') { queue = []; saveQueue(); render(); return; }
   if (b?.dataset.plan) { planKey = b.dataset.plan; store.set('m-plan', planKey); setTab('plans'); return; }
   if (b?.dataset.goto) { setTab(b.dataset.goto); return; }

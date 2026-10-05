@@ -9,10 +9,11 @@
 // what, and Sessions every recent Claude session. From the page you can queue
 // tasks and launch a desktop-app session to build them, which the board starts
 // itself so a launch from the phone needs nobody at the PC (rules in
-// launcher.mjs, the press in press-send.ps1), end a launched session's work,
-// answer a session (through relay-hook.mjs), see how full each session's
-// context is (a gauge and a turn-by-turn chart, rules in sessions.mjs), and open
-// the second brain. It never fetches or takes git locks.
+// launcher.mjs, the press in press-send.ps1), start a new session with no tasks
+// on the latest master for the owner to prompt from the Claude app ("New
+// session"), end a launched session's work, answer a session (through
+// relay-hook.mjs), see how full each session's context is (a gauge and a
+// turn-by-turn chart, rules in sessions.mjs), and open the second brain. It never fetches or takes git locks.
 //   npm run board   ->   http://localhost:5197
 // It also listens on this PC's Tailscale addresses, so the owner's phone can open
 // it (http://<tailscale ip>:5197 or http://<pc name>:5197); a phone gets the
@@ -40,7 +41,7 @@ import { pushApi } from './push-api.mjs';
 import { ghRunner, mergeApi } from './merge-api.mjs';
 import { mediaApi } from './media-api.mjs';
 import { docsApi } from './docs-api.mjs';
-import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
+import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, newSessionLaunch, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -444,7 +445,7 @@ async function collect() {
       .sort((x, y) => (x.archived - y.archived) || (y.activity - x.activity))[0] ?? null;
     // The context gauge follows the lane's app session (or its launch's), else
     // the newest transcript in the worktree's folder.
-    const cli = app?.cli ?? launches.find((l) => l.branch === w.branch && l.session?.cli)?.session.cli;
+    const cli = app?.cli ?? launches.find((l) => l.branch && l.branch === w.branch && l.session?.cli)?.session.cli;
     const gaugeFile = (cli && transcripts.get(cli)) ?? newest?.file ?? null;
     const question = app && !app.archived ? await waitingQuestion(w.path, app.cli) : null;
     const own = treeFiles[i];
@@ -499,7 +500,7 @@ async function collect() {
       && (lane.state === 'dirty' || lane.state === 'merging' || (lane.activity === 'active' && (lane.ahead > 0 || !!lane.scope))));
     // Launching a task is the owner's OK, so a launched lane doesn't wait on it.
     // A lane whose launch was ended from the board takes no task.
-    lane.ended = launches.find((l) => l.endedAt && l.branch === lane.branch) ? true : false;
+    lane.ended = launches.find((l) => l.endedAt && l.branch && l.branch === lane.branch) ? true : false;
     lane.working = !lane.ended && !!(pick && busy && ready(pick) && (!lane.taskWaits.length || lane.scope));
     if (lane.working) p.working.add(pick);
   }
@@ -509,7 +510,7 @@ async function collect() {
   // The launch a task belongs to, ended or not, for the board's End menu.
   const launchView = (l) => {
     const stop = stops.find((s) => s.id === l.id);
-    return { id: l.id, time: l.time, branch: l.branch, tasks: l.tasks, session: l.session?.id ?? null,
+    return { id: l.id, kind: l.kind ?? 'tasks', time: l.time, branch: l.branch ?? null, tasks: l.tasks, session: l.session?.id ?? null,
       endedAt: l.endedAt ?? null, stoppedAt: stop?.firedAt ?? null, start: startView(l, now) };
   };
 
@@ -645,6 +646,19 @@ async function launch(body) {
   return done;
 }
 
+// The pages' "New session" button: a session with no tasks, started like a
+// launch (the same queue, lock wait and Try again), which the owner then
+// prompts from the Claude app over Remote Control (launcher.mjs newSessionLaunch).
+async function newSession() {
+  const record = newSessionLaunch({ now: Date.now(), repo: REPO });
+  launches.push(record);
+  launches = launches.filter((l) => Date.now() - l.time < 14 * 24 * 60 * 60 * 1000);
+  await saveLaunches();
+  starter.kick();
+  try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
+  return record;
+}
+
 // "Try again" for a launch that couldn't start: refused at once (started, ended,
 // starting or just sent), else the starter opens its link and presses Send again.
 async function retryLaunch(body) {
@@ -664,6 +678,7 @@ async function endLaunch(body) {
   const l = launches.find((x) => x.id === body?.launch);
   if (!l) throw new Error('Unknown launch');
   if (l.endedAt) throw new Error('That lane was already ended');
+  if (!l.tasks.length) throw new Error('A new session has no tasks to end: stop it in the Claude app');
   const trees = await worktrees();
   const tree = trees.find((t) => t.branch === l.branch);
   const sessions = await appSessions();
@@ -809,6 +824,7 @@ async function handle(req, res) {
       let result;
       if (req.url === '/launch') result = { launched: await launch(body) };
       else if (req.url === '/launch/retry') result = await retryLaunch(body);
+      else if (req.url === '/session/new') result = { launched: await newSession() };
       else if (req.url === '/end') result = { ended: await endLaunch(body) };
       else if (req.url === '/open') {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
