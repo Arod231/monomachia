@@ -327,6 +327,31 @@ textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px
 .pcard .ch .k { margin-left: auto; font-size: 12px; color: var(--muted); }
 .pcard .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
 .pcard .row input.text { flex: 1; min-width: 160px; }
+.pcard .plan { max-height: 420px; overflow-y: auto; font-size: 13px; line-height: 1.5; padding: 2px 10px; background: var(--surface); border-radius: 8px; overflow-wrap: anywhere; }
+.plan .mdh { margin: 10px 0 4px; font-size: 14px; }
+.plan ul, .plan ol { margin: 4px 0; padding-left: 20px; }
+.plan hr { border: 0; border-top: 1px solid var(--border-strong); margin: 8px 0; }
+.plan pre { margin: 6px 0; padding: 8px 10px; background: var(--card); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-x: auto; }
+.plan code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.pcard .sum { font-size: 13px; margin-bottom: 6px; }
+.pcard .plan.last { max-height: 220px; margin-bottom: 4px; }
+.pcard textarea.turnreply { width: 100%; margin-top: 8px; }
+.hookwarn { border: 1px solid var(--owner); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; background: var(--card); }
+.hookwarn ul { margin: 6px 0; padding-left: 20px; }
+/* The bell */
+.bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; border: 0; border-radius: 8px; background: var(--surface); color: var(--text); cursor: pointer; }
+.bell svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+.belln { position: absolute; top: -5px; right: -6px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--owner); color: #fff; font-size: 11px; line-height: 17px; text-align: center; }
+#bellPanel { position: fixed; top: 52px; right: 16px; width: 380px; max-width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto; z-index: 50; background: var(--card); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.bhead { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border-strong); font-size: 13px; }
+.blist { list-style: none; margin: 0; padding: 0; }
+.brec { padding: 9px 12px; border-bottom: 1px solid var(--surface); cursor: pointer; font-size: 13px; color: var(--muted); }
+.brec:hover { background: var(--surface); }
+.brec.unread { color: var(--text); box-shadow: inset 3px 0 0 var(--owner); }
+.brec .bd { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brec .k { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.bempty { padding: 14px; font-size: 13px; color: var(--muted); }
+.pcard.flash, .qgroup.flash { outline: 3px solid var(--owner); outline-offset: 2px; }
 pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 .q { margin-top: 8px; }
 .q .qh { font-size: 13px; margin-bottom: 6px; }
@@ -378,6 +403,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
       <button role="tab" data-view="sessions">Sessions <span class="count" id="sessCount"></span></button>
     </nav>
     <span id="awayBox"></span>
+    <span id="bellBox"></span>
     <button class="btn small" id="brainBtn" title="The project's knowledge as linked notes: weapons, systems, plans, docs and code (opens in a popup window)">Second brain</button>
     <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
   </header>
@@ -467,6 +493,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
     </div>
   </div>
 </main>
+<div id="bellPanel" hidden></div>
 <div id="tip"></div>
 <div id="menu" role="menu"></div>
 <div id="queue" aria-live="polite"><div class="in" id="queueIn"></div></div>
@@ -687,7 +714,7 @@ function waitingItems() {
   // What sessions hold for the owner while Away is on: answered in the Questions tab.
   for (const s of sessions.list) {
     for (const p of s.pending) {
-      const what = p.kind === 'permission' ? `wants to use ${p.tool}` : p.kind === 'question' ? 'asks you a question' : 'finished its turn and waits for your reply';
+      const what = window.S ? S.waitingText(p) : 'needs you';
       items.push({ sw: 'owner', text: `${s.title} ${what}`, k: ago(p.time), answer: true });
     }
   }
@@ -873,7 +900,7 @@ function renderQueue() {
   const toggle = `<button class="btn icon" id="qToggle" aria-expanded="${!queueCollapsed}" aria-label="${queueCollapsed ? 'Expand the launch queue' : 'Collapse the launch queue to the bottom'}" title="${queueCollapsed ? 'Expand' : 'Collapse'}"><i></i></button>`;
   $('queueIn').innerHTML = `<div class="qh"><h2>${toggle}Launch queue · ${queue.length} task${queue.length === 1 ? '' : 's'}</h2>
       ${queue.length ? `${queueCollapsed ? '' : '<button class="btn" id="qClear">Clear</button>'}<button class="btn primary" id="qLaunch">Launch ${count === 1 ? 'a session' : `${count} sessions`}</button>` : `<button class="btn" id="qClose">Close</button>`}</div>
-    ${queue.length && !queueCollapsed ? `<ul>${rows}</ul><div class="note">Each plan gets its own new session in the Claude app, with its own worktree. The board starts it for you: it presses Send in the Claude app (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</div>` : ''}
+    ${queue.length && !queueCollapsed ? `<ul>${rows}</ul><div class="note">Each plan gets its own new session in the Claude app, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</div>` : ''}
     ${queueMsg ? `<div class="msg ${queueMsg.err ? 'err' : ''}">${esc(queueMsg.text)}</div>` : ''}`;
 }
 function toggleQueued(ref, on) {
@@ -887,7 +914,7 @@ async function launchQueue() {
   try {
     const d = await post('/launch', { tasks: queue });
     queue = []; saveQueue();
-    queueMsg = { text: d.launched.map((l) => `Starting a session for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')} on ${l.branch}.`).join(' ') + ' The board presses Send for it in the Claude app.' };
+    queueMsg = { text: d.launched.map((l) => `Starting a session for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')} on ${l.branch}.`).join(' ') + ' The Project Manager presses Send for it in the Claude app.' };
     poll(true);
   } catch (e) {
     queueMsg = { err: true, text: `Couldn't launch: ${e.message}` };
@@ -912,8 +939,9 @@ document.addEventListener('click', (e) => {
 
 // ---------- what can be done with a task (right-click menu and graph panel) ----------
 
-const liveLaunch = (ref) => (data.launches ?? []).find((l) => !l.endedAt && l.tasks.includes(ref)) ?? null;
-const endedLaunch = (ref) => (data.launches ?? []).find((l) => l.endedAt && l.tasks.includes(ref)) ?? null;
+// A task's newest launch, live or ended: an older one may have lapsed.
+const liveLaunch = (ref) => (data.launches ?? []).findLast((l) => !l.endedAt && l.tasks.includes(ref)) ?? null;
+const endedLaunch = (ref) => (data.launches ?? []).findLast((l) => l.endedAt && l.tasks.includes(ref)) ?? null;
 const launchLabel = (l) => l.tasks.map((r) => taskName(...r.split(':'))).join(', ');
 // The task and its unstarted blockers in the same plan, blockers first.
 function chainOf(ref) {
@@ -965,13 +993,13 @@ function runAction(act, ref) {
   else if (act === 'goto') jumpTo(taskOf(ref).movedTo);
   else if (act === 'retry') retryLaunch(ref);
 }
-// The board opens the launch's link and presses Send again (refused once it started).
+// The Project Manager opens the launch's link and presses Send again (refused once it started).
 async function retryLaunch(ref) {
   const l = liveLaunch(ref);
   if (!l) return;
   try {
     await post('/launch/retry', { launch: l.id });
-    queueMsg = { text: `Trying again for ${launchLabel(l)}: the board opens the session and presses Send.` };
+    queueMsg = { text: `Trying again for ${launchLabel(l)}: the Project Manager opens the session and presses Send.` };
   } catch (err) { queueMsg = { err: true, text: `Couldn't try again: ${err.message}` }; }
   poll(true); render();
 }
@@ -1345,7 +1373,7 @@ function renderPending(d) {
       <pre class="code">${esc(d.open.summary ?? '')}</pre>
       <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Open in the app</button>` : ''}<span class="m">If it's waiting for your approval, answer it in the app${away ? '' : ', or switch Away on for the next one'}.</span></div></div>`);
   }
-  const sig = JSON.stringify([d.pending.map((p) => p.id), d.open?.id, d.open && !d.active, away]);
+  const sig = JSON.stringify([d.pending.map((p) => [p.id, p.summary?.detail]), d.open?.id, d.open && !d.active, away]);
   if (sig === sSigs.pend) { S.refreshTimes($('sPend')); return; }
   sSigs.pend = sig;
   const kept = S.captureCards($('sPend'));
@@ -1404,8 +1432,8 @@ function renderSessionDetail() {
         ${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open in app</button>` : ''}</div>
       <div class="m" title="${esc(d.cwd ?? '')}"><i class="dot ${d.active ? 'active' : 'recent'}"></i> ${d.active ? 'At work' : `Last active ${esc(ago(d.activity))}`} · ${esc(d.cwd ?? '')}</div>
       ${ctxHtml}
-      <div class="m">${d.away?.on ? 'Away is on: its permission prompts and questions wait here (for up to 20 minutes each), and when a turn ends it waits for your reply.'
-        : "Away is off: it asks in the app's own dialogs. A reply sent from here goes in when its turn next ends."}</div>`;
+      <div class="m">${d.away?.on ? 'Away is on: its permission prompts, plans and questions wait here (for up to 24 hours each), and when a turn ends it waits for your reply.'
+        : "Away is off: it asks in the app's own dialogs. A reply sent from here reaches it before its next step, or when its turn next ends."}</div>`;
   }
   if (!window.S) return;
   renderPending(d);
@@ -1413,11 +1441,13 @@ function renderSessionDetail() {
   // The reply box.
   $('sComp').hidden = false;
   const waiting = d.pending.find((p) => p.kind === 'stop');
+  const queued = d.queued ?? [];
   $('sSend').textContent = waiting ? 'Send' : 'Queue reply';
-  $('sUnqueue').hidden = !d.queued;
+  $('sUnqueue').hidden = !queued.length;
+  $('sUnqueue').textContent = queued.length > 1 ? `Withdraw ${queued.length} queued messages` : 'Withdraw queued reply';
   $('sNote').textContent = waiting ? 'It\'s waiting for you: your reply goes straight in.'
-    : d.queued ? `Queued for when its turn next ends: "${shorten(d.queued.text, 60)}". Sending again replaces it.`
-    : d.active ? 'It\'s working: your reply goes in when this turn ends.'
+    : queued.length ? `Queued: "${shorten(queued[0].text.replace(/^The owner replied from the Project Manager:\s*/, ''), 60)}"${queued.length > 1 ? ` and ${queued.length - 1} more` : ''}. ${d.active ? 'It gets them before its next step.' : 'It gets them when its turn next ends.'}`
+    : d.active ? 'It\'s working: your reply reaches it before its next step.'
     : 'It\'s idle: your reply goes in when its turn next ends. To wake it now, type in the app.';
 }
 
@@ -1454,7 +1484,7 @@ async function sendReply() {
     const r = await post('/relay/reply', { session: sSel, text });
     $('sText').value = '';
     delete sessions.drafts[sSel];
-    $('sNote').textContent = r.delivered ? 'Sent: it carries on with your reply.' : 'Queued: it goes in when the turn ends.';
+    $('sNote').textContent = S.deliveredNote(r.when);
   } catch (err) { $('sNote').textContent = `Couldn't send: ${err.message}`; }
   $('sSend').disabled = false;
   pollSession(true); pollSessions(true);
@@ -1500,7 +1530,7 @@ function renderQuestions() {
   const away = S.awayHtml(questions);
   if (awaySeen !== away) { awaySeen = away; $('awayBox').innerHTML = away; }
   if (view !== 'questions') return;
-  const sig = JSON.stringify([questions.away.on, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => p.id)]),
+  const sig = JSON.stringify([questions.away.on, questions.hooks?.problems, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => [p.id, p.summary?.detail])]),
     questions.asked.map((a) => [a.session, a.time])]);
   if (sig === qSig) { S.refreshTimes($('qList')); return; }
   qSig = sig;
@@ -1525,6 +1555,19 @@ document.addEventListener('change', async (e) => {
   pollQuestions(true); pollSession(true);
 });
 window.addEventListener('modules-ready', () => { qSig = null; renderQuestions(); });
+
+// ---------- the bell ----------
+// Shared with the phone page (sessions-ui.mjs mountBell): a tap on a record
+// opens its question or its session here.
+window.addEventListener('modules-ready', () => {
+  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session }) => {
+    if (tab === 'sessions' && session) { setView('sessions'); selectSession(session); return; }
+    setView('questions');
+    qSig = null;
+    pollQuestions(true);
+    S.revealQuestion($('qList'), { item, session });
+  } });
+}, { once: true });
 
 function tick() {
   const el = $('stamp');

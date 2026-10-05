@@ -49,7 +49,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 1. [ ] As a player, I want to start Monomachia as a Windows program, so that I can play without a browser.
 2. [x] As a player, I want a title screen with a live duel playing behind it, so that the game feels alive the moment it opens.
 3. [ ] As a player, I want to choose Duel, Training, Versus or Watch from the main menu, so that I can play the way I want. (Duel, Watch and, since 23.3, Training are on the menu; Versus comes with 22.16.)
-4. [ ] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer.
+4. [x] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer. (Ticked with 22.7: the select picks each, with the fighter shown in its 3D preview.)
 5. [x] As a player, I want to pick the computer's fighter, weapon and difficulty (Easy, Normal, Hard), or leave its weapon random, so that I control the challenge.
 6. [x] As a player, I want the match to be first to three rounds with a clear round call and "Fight", so that I always know where the match stands.
 7. [x] As a player, I want health bars with the posture bar underneath, round pips and an ultimate badge, so that I can read the state of the fight at a glance. (Task 24: the top bar, the announcements, toasts, prompts and the dropped-weapon marker, in the ink-wash theme; milestone 1 restyles them for the realistic look.)
@@ -112,7 +112,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 ### Fighters and look
 
 43. [ ] As a player, I want real fighters with clothing, hair and a silhouette I can recognise, so that the game looks like the dark fantasy it's meant to be.
-44. [ ] As a player, I want to choose between at least two fighters (the Rogue and the Hunter), each able to wield any of the three weapons, so that fighter and weapon are separate choices.
+44. [x] As a player, I want to choose between at least two fighters (the Rogue and the Hunter), each able to wield any of the three weapons, so that fighter and weapon are separate choices. (Ticked with 22.7: the grid picks the fighter, the loadout panel the weapon, and the preview shows the pair.)
 45. [x] As a player in a mirror match, I want the second fighter in a different colour scheme, so that I can tell us apart.
 46. [ ] As a player, I want a toon look with ink outlines and a painted, ink-wash finish, so that the game has its own style.
     > **Superseded by [ADR 0001](../adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** A realistic look replaces it: physically based materials, dark lighting and volumetric fog under a painterly colour grade, after Ghost of Tsushima's darker side, with no toon shading, outlines or ink-wash pass. Ink survives only as calligraphy in the UI.
@@ -129,8 +129,8 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 
 ### Modes and controls
 
-53. [ ] As a player, I want Training against a dummy whose behaviour I choose (idle, block, lights, heavies, thrust, sweep, slam, random, spar), with optional health refill and early/late parry feedback, so that I can practise. (23.1–23.3: the upkeep, the behaviours with the weapon each needs, and the panel and pause rows; the parry feedback comes with 23.4.)
-54. [ ] As a player, I want Watch mode with a side-on cinematic camera, so that I can learn the moves by watching the computer duel.
+53. [x] As a player, I want Training against a dummy whose behaviour I choose (idle, block, lights, heavies, thrust, sweep, slam, random, spar), with optional health refill and early/late parry feedback, so that I can practise. (23.1–23.3: the upkeep, the behaviours with the weapon each needs, and the panel and pause rows; 23.4: the parry timing feedback.)
+54. [x] As a player, I want Watch mode with a side-on cinematic camera, so that I can learn the moves by watching the computer duel. (Ticked with 23.5: Watch through the select, two computer sides with their skills, the side-on camera, the HUD's Watch form and results naming the winner.)
 55. [ ] As two players on one PC, I want Versus in a vertical split screen, each with our own camera and device (keyboard and mouse, the arrow-key layout, or a controller), so that we can play head to head.
 56. [x] As a player, I want to remap every action for keyboard, mouse and controller, save named profiles, and see PlayStation or Xbox button names, so that the controls suit me. (22.10–22.12: the Controls screen's binding table, rebinding capture and profiles, played with in a match through the active profile; a profile picked in the pause menu's Controls is taken up on resume (22.15); Versus picks profiles with 22.16.)
 57. [x] As a player, I want graphics presets, a reduce-flashes-and-shaking option and a button-hints option, so that the game runs and reads well for me. (The presets (16.5), the Settings rows (22.9), Button hints hiding the prompts (24.4), and Reduce flashes and shaking applied to the shake, the field-of-view kicks and the flashes, body flashes included (18.11). 18.12 moved to milestone 1, where the push-in and every new effect follow Reduce flashes as they land.)
@@ -248,7 +248,7 @@ Each weapon supplies what its swings strike with, a strike segment in its own fr
 - The counters (stomp, leap, evade), which the demo made deliberately generous, keep their generous cone checks, now measured from each move's path.
 - Each move's reach and arc, which the computer opponent and the move list use, are computed from its path at load. The reach is how far the blade gets across the ground from the fighter's feet through the active frames, plus half the thickness its sweep tests, without the lunge, as the demo's range was. The arc is twice the blade's widest bearing from the facing over those frames, or 360 when it passes behind. The weapon's reach, which the computer keeps to, comes from its light starter's, and the training dummy keeps that distance once the starter has a swing. The rules can also play a move at a standing defender at any distance and bearing, lunge and turning included, for the frame it would first touch and how deep.
 - Ultimate projectiles and scripted hits (the Moonsplitter wave, Impaler, Tempest) keep their own checks.
-- A debug view draws, over the match, each fighter's hurt capsule, the blades where the rules hold them, each active tick's sweep (kept for about a second) and where each hit, block, parry or whiff landed, coloured by outcome. It is turned on by F3 in a debug build or by `npm run godot:run -- --swing-debug`, and the `swing_debug` shot scene shows a hit, a block and a whiff.
+- A debug view draws, over the match, each fighter's hurt capsule, the blades where the rules hold them, each active tick's sweep (kept for about a second) and where each hit, block, parry or whiff landed, coloured by outcome. It is turned on by F3 in a debug build or by `npm run play -- --swing-debug`, and the `swing_debug` shot scene shows a hit, a block and a whiff.
 
 **Test distances.** How far apart, centre to centre, each kind of move is tested from, played from standing at a standing defender (task 7.14; `game/tests/sim/reach_table.gd` holds the same table). D is the weapon's duelling distance. A kind's offset is how much further the demo's moves of that kind reached from standing (range, a fighter's radius and the lunge) than their weapon's first light, the median over the four weapons to the half-metre, so each kind keeps its place in its weapon's range as real blades replace the demo's cones. In play, sprint, dodge and backstep attacks start out of movement and reach further.
 
@@ -354,15 +354,24 @@ The bullets below describe the build up to that feature.
 - Choosing the dummy's behaviour (`MatchHost.set_training_behaviour`) swaps its weapon in the rules when it can't perform it: to the first weapon in the select's order that can (Thrust: the Katana; Slam: the Greatsword), worked out from the abilities' counter kinds, and back to the weapon picked in the select whenever that one can. The swap lets go of an impale, ends any state of the old weapon, arms the dummy with the new weapon's default abilities and takes its old weapon off the floor; the dummy's model and its HUD plate follow. Restart keeps the behaviour.
 - Training is chosen on the main menu and set up through the select, where the dummy picks only a fighter and a weapon. In the match, a panel at the bottom left shows "Dummy · <weapon>", the nine behaviours numbered 1–9 and refill numbered 0; the top-row digit keys and clicks change them, unless the player's profile binds that digit to an action. The panel hides while paused, where two rows at the top of the pause menu (the dummy's behaviour, Refill health) do the same for controller players.
 
-**Build and tools.** The npm scripts become a task runner (`scripts/godot.mjs`). It finds Godot through a `GODOT` environment variable, then `godot` or `godot4` on PATH, then an untracked `.godot-path` file holding the executable's path. Until the web code is deleted, `test` and `typecheck` run the web and Godot checks side by side, and the Godot soak, run and editor commands are `soak:godot`, `godot:run` and `godot:dev`. At the end the scripts are:
+**Build and tools.** The npm scripts become a task runner (`scripts/godot.mjs`). It finds Godot through a `GODOT` environment variable, then `godot` or `godot4` on PATH, then an untracked `.godot-path` file holding the executable's path. Until the web code was deleted, `test` and `typecheck` ran the web and Godot checks side by side, and the Godot soak, run and editor commands were `soak:godot`, `godot:run` and `godot:dev`. Since then (plan task 26.3) the scripts are:
 
-- `test`: GUT, headless.
+- `test`: the Node tools' tests (`test:node`, on `node --test`), then GUT headless (`test:godot`).
 - `typecheck`: loads every script and fails on any error.
 - `soak`: headless computer-vs-computer matches with balance numbers and the targets; `soak:tune` runs 300 for tuning.
-- `build`: Windows export.
+- `counterlab`: how often the computer lands each unblockable's counter.
+- `build`: Windows export, with the licence, credits and notices beside the exe.
+- `release`: on the PC with the clip libraries, exports, plays `--smoke`, zips and attaches the build to the tag's GitHub release.
+- `play`: plays the game.
 - `dev`: opens the editor.
+- `studio`: opens the Animation Studio.
 - `shots`: renders chosen scenes to PNG in a window, and fails on any shader or script error.
+- `godot`: the runner itself, for its other commands (`npm run godot -- help`).
 - `check:sizes`: fails on any tracked file over 10 MB that isn't allow-listed, and prints the asset and repo sizes.
+- `audio:sonniss`, `audio:synth` and `audio:music`: rebuild the sound effects and music.
+- `brain`, `brain:serve` and `board`: the second brain and the Project Manager, which are Node tools.
+
+`package.json`'s version follows `project.godot`'s.
 
 The exported game takes a `--smoke` flag: it plays a Watch match to the results and exits 0, or 1 on any error, stall or timeout.
 

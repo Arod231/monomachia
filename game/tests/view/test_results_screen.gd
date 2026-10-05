@@ -94,6 +94,14 @@ func test_watch_and_versus_name_the_winner_in_their_colour() -> void:
 		assert_eq(_headline().get_theme_color(&"font_color"), ResultsScreen.side_color(1), String(mode))
 
 
+func test_a_mirror_match_s_winner_carries_the_side_s_seal() -> void:
+	var r: MatchResults = _results(MatchConfig.WATCH, 1, -1)
+	r.names = ["Hunter", "Hunter"] as Array[String]
+	await _show(r)
+	assert_eq(_headline().text, "Hunter 青 wins")
+	assert_eq(_headline().get_theme_color(&"font_color"), ResultsScreen.side_color(r.palettes[1]))
+
+
 func test_a_draw_says_so() -> void:
 	await _show(_results(MatchConfig.DUEL, -1, 0))
 	assert_eq(_kanji().text, "引分")

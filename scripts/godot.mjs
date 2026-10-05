@@ -24,6 +24,11 @@
 //   bake [--weapon=<id>] [--check]   bake the swings of the moves in the move-clip
 //                          table from the clip libraries (tools/bake_swings.gd)
 //
+// package.json's scripts call most of these by their own names (plan task
+// 26.3): test:godot, typecheck, soak (soak:tune runs 300), build, release,
+// play (= run), dev, studio, shots and counterlab (= script
+// res://tools/counterlab.gd); `npm run godot -- <command>` reaches the rest.
+//
 // Godot is found through the GODOT environment variable, then `godot` or
 // `godot4` on PATH, then a local `.godot-path` file (see findGodot).
 
@@ -185,6 +190,8 @@ async function main() {
   const [cmd = 'help', ...rest] = process.argv.slice(2);
   if (cmd === 'help' || cmd === '--help') {
     console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|run|studio|dev|build|release|clips|bake');
+    console.log('npm scripts: test:godot, typecheck, soak, soak:tune, build, release, play (run), dev, studio, shots, counterlab;');
+    console.log('the rest through npm run godot -- <command> (see the top of scripts/godot.mjs).');
     return;
   }
   const godot = findGodot();

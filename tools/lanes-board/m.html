@@ -85,6 +85,30 @@ h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .pcard input.text, .pcard textarea.text { width: 100%; font: inherit; font-size: 16px; border: 0.5px solid var(--border-strong); border-radius: 10px; padding: 9px 11px; background: var(--page); color: var(--text); }
 .pcard textarea.freeform { margin-top: 10px; }
 .pcard .row input.text { flex: 1; min-width: 0; }
+.pcard .plan { max-height: 60vh; overflow-y: auto; font-size: 15px; line-height: 1.5; padding: 2px 12px; background: var(--page); border-radius: 10px; overflow-wrap: anywhere; }
+.plan .mdh { margin: 12px 0 4px; font-size: 16px; }
+.plan ul, .plan ol { margin: 4px 0; padding-left: 22px; }
+.plan hr { border: 0; border-top: 0.5px solid var(--border-strong); margin: 10px 0; }
+.plan pre { margin: 6px 0; padding: 8px 10px; background: var(--card); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-x: auto; }
+.plan code { font: 13px ui-monospace, Menlo, monospace; }
+.pcard .sum { font-size: 15px; margin-bottom: 8px; }
+.pcard .plan.last { max-height: 40vh; margin-bottom: 4px; }
+.pcard textarea.turnreply { margin-top: 10px; }
+.hookwarn { border: 1px solid var(--owner); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 15px; background: var(--card); }
+.hookwarn ul { margin: 6px 0; padding-left: 22px; }
+/* The bell */
+.bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 34px; margin-right: 4px; border: 0; border-radius: 10px; background: transparent; color: var(--text); flex: none; }
+.bell svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+.belln { position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--owner); color: #fff; font-size: 12px; line-height: 18px; text-align: center; }
+#bellPanel { position: fixed; top: calc(env(safe-area-inset-top) + 56px); left: 12px; right: 12px; max-height: 70vh; overflow-y: auto; z-index: 60; background: var(--card); border: 0.5px solid var(--border-strong); border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,.22); }
+.bhead { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 0.5px solid var(--border-strong); font-size: 16px; }
+.blist { list-style: none; margin: 0; padding: 0; }
+.brec { padding: 12px 14px; border-bottom: 0.5px solid var(--surface); font-size: 15px; color: var(--muted); }
+.brec.unread { color: var(--text); box-shadow: inset 4px 0 0 var(--owner); }
+.brec .bd { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brec .k { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.bempty { padding: 16px; font-size: 15px; color: var(--muted); }
+.pcard.flash, .qgroup.flash { outline: 3px solid var(--owner); outline-offset: 2px; }
 pre.code { margin: 0; padding: 9px 11px; background: var(--surface); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 pre.code.pv { margin-top: 6px; font-size: 12px; background: var(--page); text-align: left; }
 .q { margin-top: 10px; }
@@ -144,6 +168,8 @@ h2 { font-size: 17px; font-weight: 650; margin: 0; }
 .filter { display: flex; gap: 8px; margin: 4px 0 12px; }
 .chip { border: 0.5px solid var(--border-strong); background: var(--card); border-radius: 999px; padding: 0 14px; min-height: 34px; font-size: 14px; }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--page); border-color: var(--text); }
+/* A card's chips (a question's header, a turn's summary) stay small. */
+.pcard .chip { min-height: 0; border: 0; background: var(--surface); border-radius: 5px; padding: 1px 7px; font-size: 12px; }
 .lanes { display: grid; gap: 10px; }
 .lane { background: var(--card); border: 0.5px solid var(--border); border-radius: 14px; padding: 13px 14px; min-width: 0; }
 .lane.active { border: 1.5px solid var(--good); padding: 12px 13px; }
@@ -273,6 +299,7 @@ nav.tabs .count:empty { display: none; }
     <h1 id="title">Overview</h1>
     <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
     <span id="awayBox"></span>
+    <span id="bellBox"></span>
   </div>
   <div class="seg" id="planSeg" hidden></div>
   <div class="seg" id="laneSeg" hidden></div>
@@ -324,6 +351,7 @@ nav.tabs .count:empty { display: none; }
 <div id="scrim"></div>
 <div id="sheet" role="dialog" aria-modal="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="bellPanel" hidden></div>
 
 <script type="module">
 // The context gauge, the roadmap summary and how sessions are drawn, shared
@@ -414,7 +442,7 @@ function waitingItems() {
   // What sessions hold for the owner while Away is on: answered in the Questions tab.
   for (const g of questions?.groups ?? []) {
     for (const p of g.items) {
-      const what = p.kind === 'permission' ? `wants to use ${p.tool}` : p.kind === 'question' ? 'asks you a question' : 'finished its turn and waits for your reply';
+      const what = window.S ? S.waitingText(p) : 'needs you';
       items.push({ sw: 'owner', text: `${g.title} ${what}`, k: ago(p.time), goto: 'questions' });
     }
   }
@@ -650,7 +678,7 @@ function renderQueue() {
   }).join('');
   $('queue').innerHTML = groups + `<div class="qlaunch"><button class="btn primary block" id="qLaunch">Launch ${sessions === 1 ? 'a session' : `${sessions} sessions`} on the PC</button>
     <button class="btn block" id="qClear">Clear the queue</button></div>
-    <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. The board starts it for you: it presses Send in the Claude app, so nobody needs to be at the PC (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</p>`;
+    <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app, so nobody needs to be at the PC (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</p>`;
 }
 function setQueued(refs, on) {
   queue = on ? [...new Set([...queue, ...refs])] : queue.filter((r) => !refs.includes(r));
@@ -678,9 +706,9 @@ async function launchQueue() {
   launching = false;
   render();
 }
-// The board opens the launch's link and presses Send again (refused once it started).
+// The Project Manager opens the launch's link and presses Send again (refused once it started).
 async function retryLaunch(id) {
-  try { await post('/launch/retry', { launch: id }); toast('Trying again: the board opens the session and presses Send on the PC.'); }
+  try { await post('/launch/retry', { launch: id }); toast('Trying again: the Project Manager opens the session and presses Send on the PC.'); }
   catch (e) { toast(`Couldn't try again: ${e.message}`, true); }
   poll(true);
 }
@@ -698,8 +726,9 @@ function openTask(ref, confirmEnd) {
   sheetRef = ref;
   const lane = data.lanes.find((l) => l.working && l.plan === k && l.task === id);
   const bl = t.blockers.length ? `Blocked by ${t.blockers.map((b) => `<span class="${b.done ? 'ok' : ''}">${esc(b.label)}</span>`).join(', ')}` : 'No blockers';
-  const launch = (data.launches ?? []).find((l) => !l.endedAt && l.tasks.includes(ref));
-  const ended = (data.launches ?? []).find((l) => l.endedAt && l.tasks.includes(ref));
+  // The task's newest launch: an older one may have lapsed.
+  const launch = (data.launches ?? []).findLast((l) => !l.endedAt && l.tasks.includes(ref));
+  const ended = (data.launches ?? []).findLast((l) => l.endedAt && l.tasks.includes(ref));
   const launchTasks = launch ? launch.tasks.map((r) => taskName(...r.split(':'))).join(', ') : '';
   let acts = '';
   if (confirmEnd && launch) {
@@ -813,7 +842,7 @@ function renderQuestions() {
   const away = S.awayHtml(questions);
   if (awaySeen !== away) { awaySeen = away; $('awayBox').innerHTML = away; }
   if (tab !== 'questions') return;
-  const sig = JSON.stringify([questions.away.on, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => p.id)]),
+  const sig = JSON.stringify([questions.away.on, questions.hooks?.problems, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => [p.id, p.summary?.detail])]),
     questions.asked.map((a) => [a.session, a.time])]);
   if (sig === qSig) { S.refreshTimes($('qList')); return; }
   qSig = sig;
@@ -843,7 +872,8 @@ $('qList').addEventListener('click', async (e) => {
     await post('/relay/answer', body);
     card?.remove();
     qSig = null;
-    toast(body.release ? 'Handed back: it waits in the app now.' : 'Sent: the session carries on.');
+    const turnEnd = !!card?.querySelector('[data-turn]');
+    toast(body.release ? (turnEnd ? 'Handed back: its turn ends, and it waits in the app.' : 'Handed back: it waits in the app now.') : 'Sent: the session carries on.');
   } catch (err) { toast(`Couldn't answer: ${err.message}`, true); b.disabled = false; }
   pollQuestions();
 });
@@ -896,6 +926,17 @@ async function poll(once) {
 // No polling while the phone is locked or the tab is in the background.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); pollQuestions(); } else { clearTimeout(pollTimer); clearTimeout(questionsTimer); } });
 window.addEventListener('modules-ready', render);
+
+// ---------- the bell ----------
+// Shared with the PC page (sessions-ui.mjs mountBell). A tap opens the
+// record's question; a finished turn opens Lanes until sessions get pages.
+window.addEventListener('modules-ready', () => {
+  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session }) => {
+    if (tab === 'sessions') { setTab('lanes'); return; }
+    setTab('questions');
+    S.revealQuestion($('qList'), { item, session });
+  } });
+}, { once: true });
 setInterval(tick, 1000);
 setTab(TITLES[tab] ? tab : 'overview');
 poll();

@@ -27,28 +27,57 @@ export const needsLabel = (s) => (s.pending.length ? 'Waiting on you' : s.asking
 export function sessionPills(s) {
   const pills = [];
   for (const p of s.pending) {
-    pills.push(`<span class="pill need">${p.kind === 'permission' ? `Approve ${esc(p.tool)}` : p.kind === 'question' ? 'Asking you' : 'Waiting for your reply'}</span>`);
+    const what = { permission: `Approve ${esc(p.tool)}`, plan: 'Approve its plan', question: 'Asking you' }[p.kind] ?? 'Waiting for your reply';
+    pills.push(`<span class="pill need">${what}</span>`);
   }
   if (s.asking && !s.pending.some((p) => p.kind === 'question')) pills.push('<span class="pill need">Asking you (in the app)</span>');
   if (s.queued) pills.push('<span class="pill">Reply queued</span>');
   return pills.length ? `<div class="pills">${pills.join('')}</div>` : '';
 }
 
-// A little Markdown: code blocks, inline code, bold, links.
+// A little Markdown, escaped first: code blocks, headings, lists, rules,
+// inline code, bold and https links. Other lines keep their line breaks.
+const inline = (s) => esc(s)
+  .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+  .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+  .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+function mdBlocks(part) {
+  const out = [];
+  let lines = [];
+  let list = null;
+  const endLines = () => { if (lines.length) out.push(lines.join('<br>')); lines = []; };
+  const endList = () => { if (list) out.push(`<${list.tag}>${list.items.map((x) => `<li>${x}</li>`).join('')}</${list.tag}>`); list = null; };
+  for (const line of part.split('\n')) {
+    const h = line.match(/^#{1,6}\s+(.*)$/);
+    const li = line.match(/^\s*([-*]|\d+[.)])\s+(.*)$/);
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { endLines(); endList(); out.push('<hr>'); }
+    else if (h) { endLines(); endList(); out.push(`<h4 class="mdh">${inline(h[1])}</h4>`); }
+    else if (li) {
+      endLines();
+      const tag = /\d/.test(li[1]) ? 'ol' : 'ul';
+      if (list?.tag !== tag) { endList(); list = { tag, items: [] }; }
+      list.items.push(inline(li[2]));
+    } else { endList(); lines.push(inline(line)); }
+  }
+  endLines();
+  endList();
+  return out.join('');
+}
+
 export function md(text) {
-  return String(text).split(/```[^\n]*\n?/).map((part, i) => {
-    if (i % 2) return `<pre>${esc(part.replace(/\n$/, ''))}</pre>`;
-    return esc(part)
-      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
-      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-      .replace(/\n/g, '<br>');
-  }).join('');
+  return String(text).split(/```[^\n]*\n?/).map((part, i) => (i % 2 ? `<pre>${esc(part.replace(/\n$/, ''))}</pre>` : mdBlocks(part))).join('');
 }
 
 // ---------- what a session waits on ----------
 // p is a held item from the relay folder: { id, kind: question | permission |
-// stop, tool, input, suggestions, time }.
+// plan | stop, tool, input, suggestions, time }.
+
+// What a held item waits for, after the session's name.
+export function waitingText(p) {
+  return { permission: `wants to use ${p.tool}`, plan: 'asks you to approve its plan', question: 'asks you a question' }[p.kind]
+    ?? 'finished its turn and waits for your reply';
+}
 
 export function inputPreview(tool, input) {
   if (!input || typeof input !== 'object') return String(input ?? '');
@@ -67,6 +96,13 @@ export function ruleText(sug) {
     const rules = (s.rules ?? []).map((r) => `${r.toolName}${r.ruleContent ? `(${r.ruleContent})` : ''}`).join(', ');
     return `${rules || 'this'}${s.directories ? ` ${s.directories.join(', ')}` : ''}`;
   }).join('; ');
+}
+
+// The button for one of a plan prompt's own choices: a mode to go on in, or a
+// rule to add.
+const MODES = { acceptEdits: 'auto-accept edits', default: 'ask before edits', bypassPermissions: 'bypass permissions', auto: 'auto mode', dontAsk: "don't ask" };
+export function approveLabel(sug) {
+  return sug?.type === 'setMode' ? `Approve, ${MODES[sug.mode] ?? sug.mode}` : `Approve, and allow ${ruleText([sug])}`;
 }
 
 // AskUserQuestion's questions; live: answerable here (else read-only). An
@@ -90,15 +126,37 @@ export function pendingCard(p) {
         <button class="btn" data-deny="${esc(p.id)}">Deny</button><input class="text why" placeholder="Why (optional): sent to Claude with a deny"></div>
       <div class="row">${back}</div></div>`;
   }
+  if (p.kind === 'plan') {
+    const plan = typeof p.input?.plan === 'string' ? md(p.input.plan) : `<pre class="code">${esc(inputPreview(p.tool, p.input))}</pre>`;
+    return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Asks you to approve its plan</b>${when}</div>
+      <div class="plan">${plan}</div>
+      <div class="row"><button class="btn primary" data-approve="${esc(p.id)}">Approve</button>${(Array.isArray(p.suggestions) ? p.suggestions : [])
+        .map((s, i) => `<button class="btn" data-approve="${esc(p.id)}" data-sug="${i}">${esc(approveLabel(s))}</button>`).join('')}</div>
+      <div class="row"><button class="btn" data-reject="${esc(p.id)}">Reject</button><input class="text why" placeholder="Why, and what to change (optional): sent to Claude"></div>
+      <div class="row">${back}</div></div>`;
+  }
   if (p.kind === 'question') {
     return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Asks you</b>${when}</div>
       ${questionsHtml(p.input?.questions ?? [], true)}
       <textarea class="text freeform" rows="2" placeholder="Or reply in your own words instead of picking"></textarea>
       <div class="row"><button class="btn primary" data-answer="${esc(p.id)}">Send answer${(p.input?.questions ?? []).length > 1 ? 's' : ''}</button>${back}</div></div>`;
   }
-  return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Finished its turn and is waiting for your reply</b>${when}</div>
-    <div class="m">Type below and send. It waits up to 20 minutes, then goes idle; meanwhile the app shows it as working.</div>
-    <div class="row">${back}</div></div>`;
+  // A turn end: the app's summary of the turn once written, the session's last
+  // message, two quick replies and a reply box.
+  const s = p.summary;
+  return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Finished its turn</b>${when}</div>
+    ${s ? `<div class="sum"><span class="chip">${esc(s.label)}</span> ${esc(s.detail)}${s.action ? `<div class="m">Next: ${esc(s.action)}</div>` : ''}</div>` : ''}
+    ${p.last ? `<div class="plan last">${md(p.last)}</div>` : ''}
+    <div class="row"><button class="btn primary" data-turn="${esc(p.id)}" data-cmd="approve">Approve &amp; continue</button>
+      <button class="btn" data-turn="${esc(p.id)}" data-cmd="show">Show me</button></div>
+    <textarea class="text turnreply" rows="2" placeholder="Or reply: it carries on with your words"></textarea>
+    <div class="row"><button class="btn" data-send="${esc(p.id)}">Send reply</button>${back}</div></div>`;
+}
+
+// What the page says once a reply or command is sent (`when` from the server).
+export function deliveredNote(when) {
+  return { now: 'Sent: it carries on with it now.', 'next-step': 'Sent: it gets this before its next step.' }[when]
+    ?? 'Queued: it gets this when its turn next ends.';
 }
 
 // ---------- the Away switch and the Questions tab ----------
@@ -122,6 +180,19 @@ const groupHead = (g, when) => `<div class="qgh"><b>${esc(g.title)}</b><span cla
 // in the app (read-only, with a button to open the session: openLabel).
 export function questionsTabHtml(q, { openLabel = 'Open in the app' } = {}) {
   if (!q) return '<div class="empty">Loading…</div>';
+  return hooksNotice(q.hooks) + questionsList(q, openLabel);
+}
+
+// When the hooks installed in user settings aren't this version's (hooks.mjs),
+// Away can't work as this page says: what's wrong, and the fix.
+function hooksNotice(hooks) {
+  if (!hooks || hooks.current) return '';
+  return `<div class="hookwarn"><b>The hooks in your user settings aren't this version's</b>, so Away may not work as shown here.
+    <ul>${hooks.problems.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>
+    To fix it, ask a session to run <code>npm run board:hooks</code> (it changes your user settings, so it asks you first).</div>`;
+}
+
+function questionsList(q, openLabel) {
   const held = q.groups.map((g) => `<section class="qgroup" data-session="${esc(g.session)}">${groupHead(g, g.since)}
     ${g.items.map((p) => pendingCard(p)).join('')}</section>`);
   const asked = q.asked.map((a) => `<section class="qgroup" data-session="${esc(a.session)}">${groupHead(a, a.time)}
@@ -142,6 +213,13 @@ export function answerFor(b, card) {
   if (d.allow) return { id: d.allow, behavior: 'allow' };
   if (d.always) return { id: d.always, behavior: 'allow', always: true };
   if (d.deny) return { id: d.deny, behavior: 'deny', message: card?.querySelector('.why')?.value ?? '' };
+  if (d.approve) return d.sug == null || d.sug === '' ? { id: d.approve, behavior: 'allow' } : { id: d.approve, behavior: 'allow', suggestion: Number(d.sug) };
+  if (d.reject) return { id: d.reject, behavior: 'deny', message: card?.querySelector('.why')?.value ?? '' };
+  if (d.turn) return { id: d.turn, command: d.cmd };
+  if (d.send) {
+    const reply = card?.querySelector('.turnreply')?.value.trim();
+    return reply ? { id: d.send, reply } : { error: 'Type a reply first, or tap Approve & continue.' };
+  }
   if (d.release) return { id: d.release, release: true };
   if (!d.answer) return null;
   const reply = card?.querySelector('.freeform')?.value.trim();
@@ -181,6 +259,85 @@ export function restoreCards(root, state) {
     for (const o of card.querySelectorAll('.opt')) if (st.on.includes(`${o.closest('.q')?.dataset.qi}:${o.dataset.label}`)) o.classList.add('on');
     [...card.querySelectorAll('input.text, textarea.text')].forEach((t, i) => { t.value = st.text[i] ?? ''; });
   }
+}
+
+// ---------- the bell ----------
+// b is /bell (bell-api.mjs): { unread, records } newest first. A record's
+// target says where a tap goes; the page marks it read and goes there.
+
+export function bellButtonHtml(b) {
+  const n = b?.unread ?? 0;
+  return `<button class="bell" data-bell-open aria-label="Notifications${n ? `, ${n} unread` : ''}" title="Notifications">`
+    + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg>'
+    + `${n ? `<b class="belln" aria-hidden="true">${n > 99 ? '99+' : n}</b>` : ''}</button>`;
+}
+
+export function bellListHtml(b) {
+  const records = b?.records ?? [];
+  if (!records.length) return '<div class="bempty">Nothing yet. Questions, plans, permission prompts and finished turns from every session show here.</div>';
+  return `<div class="bhead"><b>Notifications</b>${b.unread ? '<button class="btn small ghost" data-bell-all>Mark all read</button>' : ''}</div>
+    <ul class="blist">${records.map((r) => `<li class="brec${r.read ? '' : ' unread'}" data-bell="${esc(r.id)}" data-tab="${esc(r.target?.tab)}"`
+      + `${r.target?.item ? ` data-item="${esc(r.target.item)}"` : ''} data-session="${esc(r.target?.session)}">`
+      + `<div class="bt">${esc(r.text)}</div>${r.detail ? `<div class="bd">${esc(r.detail)}</div>` : ''}`
+      + `<div class="k" data-t="${Number(r.time) || ''}">${esc(ago(r.time))}</div></li>`).join('')}</ul>`;
+}
+
+// Runs the bell on a page: box holds its button, panel its list (hidden until
+// opened); post(url, body) is the page's JSON post; go({ tab, item, session })
+// takes the page to a record's target. Polls /bell every few seconds.
+export function mountBell({ box, panel, post, go, everyMs = 5000 }) {
+  let view = null;
+  let timer = null;
+  let shown = '';
+  const draw = () => {
+    const button = bellButtonHtml(view);
+    if (button !== shown) { shown = button; box.innerHTML = button; }
+    if (!panel.hidden) panel.innerHTML = bellListHtml(view);
+  };
+  async function poll() {
+    try {
+      const d = await (await fetch('/bell', { cache: 'no-store' })).json();
+      if (Array.isArray(d.records)) { view = d; draw(); }
+    } catch { /* the page's stamp shows the server's state */ }
+    clearTimeout(timer);
+    timer = setTimeout(poll, document.hidden ? 30000 : everyMs);
+  }
+  box.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-bell-open]')) return;
+    panel.hidden = !panel.hidden;
+    draw();
+    if (!panel.hidden) poll();
+  });
+  panel.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-bell-all]')) {
+      try { view = await post('/bell/read', { all: true }); } catch { /* next poll */ }
+      draw();
+      return;
+    }
+    const rec = e.target.closest('[data-bell]');
+    if (!rec) return;
+    panel.hidden = true;
+    try { view = await post('/bell/read', { ids: [rec.dataset.bell] }); } catch { /* next poll */ }
+    draw();
+    go({ tab: rec.dataset.tab, item: rec.dataset.item ?? null, session: rec.dataset.session || null });
+  });
+  document.addEventListener('click', (e) => {
+    if (!panel.hidden && !panel.contains(e.target) && !box.contains(e.target)) panel.hidden = true;
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+  poll();
+  return { poll };
+}
+
+// Brings a held item's card (or its session's group) into view in the
+// Questions tab once it is drawn, and flashes it.
+export function revealQuestion(root, { item, session }, tries = 20) {
+  const el = (item && root.querySelector(`.pcard[data-pid="${CSS.escape(item)}"]`))
+    || (session && root.querySelector(`.qgroup[data-session="${CSS.escape(session)}"]`));
+  if (!el) { if (tries > 0) setTimeout(() => revealQuestion(root, { item, session }, tries - 1), 150); return; }
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1600);
 }
 
 // Refreshes every "5 min ago" under root from its data-t.

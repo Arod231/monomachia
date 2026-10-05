@@ -23,7 +23,7 @@
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, readdir, stat, access, writeFile, open, mkdir } from 'node:fs/promises';
+import { readFile, readdir, stat, access, writeFile, open, mkdir, rename } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
@@ -33,7 +33,9 @@ import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, canc
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
 import { contextTracker } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
-import { createStarter, firstPrompt, linkLaunches, pressResult, startView } from './launcher.mjs';
+import { HOOKS, hooksStatus } from './hooks.mjs';
+import { bellApi } from './bell-api.mjs';
+import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -233,7 +235,8 @@ async function appSessions() {
         try {
           const r = JSON.parse(await readFile(p, 'utf8'));
           out.push({ id: r.sessionId, cli: r.cliSessionId, title: r.title ?? '', archived: !!r.isArchived,
-            dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0 });
+            dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0,
+            summary: r.postTurnSummary ?? null }); // the app's turn summary (sessions.mjs turnSummary)
         } catch { /* being written */ }
       }
     }
@@ -266,9 +269,24 @@ async function waitingQuestion(dir, cli) {
 const LAUNCHES = path.join(STATE, 'launches.json');
 await mkdir(STATE, { recursive: true });
 let launches = [];
-try { launches = JSON.parse(await readFile(LAUNCHES, 'utf8')); } catch { launches = []; }
-const LAUNCH_FRESH_MS = 48 * 60 * 60 * 1000;
-const saveLaunches = () => writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+try { launches = JSON.parse(await readFile(LAUNCHES, 'utf8')); } catch (err) {
+  launches = [];
+  // A file that won't read is kept aside for a look, not overwritten.
+  if (err.code !== 'ENOENT') await rename(LAUNCHES, `${LAUNCHES}.bad-${Date.now()}`).catch(() => {});
+}
+// The starter, the passes and the page's requests all save the launches: one
+// write at a time, each to a new file renamed over the old, so overlapping saves
+// can never leave half a file.
+let saving = Promise.resolve();
+function saveLaunches() {
+  const write = saving.then(async () => {
+    const tmp = `${LAUNCHES}.${process.pid}.tmp`;
+    await writeFile(tmp, JSON.stringify(launches, null, 2));
+    await rename(tmp, LAUNCHES);
+  });
+  saving = write.catch((err) => console.error(err));
+  return write;
+}
 // The board starts each launch itself (launcher.mjs): it opens the launch's link
 // and press-send.ps1 presses Send in the app, one launch at a time. A launch made
 // while the PC is locked starts once it's unlocked (tick, on each pass).
@@ -294,16 +312,15 @@ async function promptOfSession(cli, file) {
   } catch { return null; } finally { await fh?.close(); }
 }
 async function linkSessions(sessions, transcripts) {
-  const pending = launches.filter((l) => !l.session && !l.endedAt);
-  if (!pending.length) return false;
-  const since = Math.min(...pending.map((l) => l.time)) - 10_000;
-  const candidates = sessions.filter((s) => s.cli && s.created >= since && transcripts.has(s.cli));
+  const now = Date.now();
+  const candidates = linkCandidates(launches, sessions, now).filter((s) => transcripts.has(s.cli));
+  if (!candidates.length) return false;
   const prompts = new Map();
   await pool(candidates, 4, async (s) => {
     const p = await promptOfSession(s.cli, transcripts.get(s.cli));
     if (p) prompts.set(s.cli, p);
   });
-  return linkLaunches(launches, candidates, prompts);
+  return linkLaunches(launches, candidates, prompts, now);
 }
 
 let prs = [];
@@ -651,7 +668,7 @@ async function endLaunch(body) {
   entries.push({ id: l.id, label, branch: l.branch, worktree: tree?.path ?? null, sessions: [...ids], requestedAt: Date.now(), firedAt: null });
   await writeFile(STOPS, JSON.stringify({ entries }, null, 2));
   l.endedAt = Date.now();
-  await writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+  await saveLaunches();
   try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
   return { label, worktree: tree?.path ?? null, sessions: ids.size };
 }
@@ -666,7 +683,22 @@ function taskOfDir(dir) {
   if (!l?.plan || !l.task) return null;
   return { ref: `${l.plan}:${l.task}`, label: `${PLAN_BY_KEY[l.plan]?.short ?? l.plan} ${l.task}`, title: l.taskTitle ?? '' };
 }
-const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir, sweepMs: 5000 });
+// Whether the hooks installed in user settings are this checkout's (hooks.mjs);
+// both pages say so when they aren't. LANES_CLAUDE_DIR overrides ~/.claude.
+const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.claude');
+async function hooksState() {
+  const text = (file) => readFile(file, 'utf8').catch(() => null);
+  const tracked = Object.fromEntries(await Promise.all(HOOKS.map(async (h) => [h.name, await text(path.join(HERE, h.file))])));
+  const installed = Object.fromEntries(await Promise.all(HOOKS.map(async (h) => [h.name, await text(path.join(CLAUDE_DIR, 'hooks', h.name, 'hook.mjs'))])));
+  let settings = {};
+  try { settings = JSON.parse(await readFile(path.join(CLAUDE_DIR, 'settings.json'), 'utf8')); } catch { /* none, or being written */ }
+  return hooksStatus({ tracked, installed, settings, home: CLAUDE_DIR });
+}
+const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
+  hooks: hooksState, sweepMs: 5000 });
+// The bell: notifications from held items and the relay hook's events (bell-api.mjs).
+const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
+  titlesOf: sessionRoutes.titlesOf, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
@@ -759,7 +791,7 @@ async function handle(req, res) {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if ((result = await sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] })) === undefined) { res.writeHead(404); res.end('{}'); return; }
+      } else if ((result = await (bellRoutes.post(req.url, body) ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
       return;
@@ -767,7 +799,7 @@ async function handle(req, res) {
     if (req.url === '/brain') { res.writeHead(302, { location: '/brain/' }); res.end(); return; }
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
-    const routed = url.pathname === '/data' ? data() : sessionRoutes.get(url);
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.

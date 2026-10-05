@@ -64,7 +64,7 @@ const REDUCED_FLASH: float = 0.45
 
 ## Draws blade sweeps and hurt capsules over the match (SwingDebugView, task
 ## 7.15). F3 turns it on and off in a debug build, and --swing-debug on the
-## command line (npm run godot:run -- --swing-debug) turns it on.
+## command line (npm run play -- --swing-debug) turns it on.
 @export var swing_debug: bool = false
 
 var host: MatchHost

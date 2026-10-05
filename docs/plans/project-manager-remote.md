@@ -132,13 +132,14 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a free-form reply reaches the session as a decline carrying the owner's words ("The owner answered from the Project Manager: …"), which hooks already deliver, rather than the spec's `response`;
     - turn ends are held while Away is on from this task, as switched-on sessions' are today (20 minutes, a reply continues them); task 8 adds the inbox, release, the 24 hours and the Questions-tab cards.
   - After the spike: a held item whose session is deleted (its transcript gone, or its app record gone once seen) is dropped and its hook released, swept every 5 seconds; the spike found such holds otherwise wait on.
-- [ ] **7. Permission prompts and plan approvals.** With Away on, a session's permission prompts and plans wait in the Questions tab too.
+- [x] **7. Permission prompts and plan approvals.** With Away on, a session's permission prompts and plans wait in the Questions tab too.
   - Delivers: on both pages,
     - held permissions showing the command or edit, with Allow, Always allow (naming the rule it adds) and Deny with a reason;
     - held plans rendered as Markdown, with Approve, and Reject with a reason.
   - Check: round-trip cases for allow, always (the rule is passed back), deny with a reason, and plan approve and reject.
   - Blocked by: 6 · Stories: 21, 22
-- [ ] **8. Turn ends, replies and the inbox.** With Away on, a session that finishes its turn waits for the owner, and messages reach a session wherever it is.
+  - Owner's answers (Oct 4, lane `lane/pm-7-8-9-10`, with tasks 8, 9 and 10; side-lane rule as in task 4): a plan card offers the app's own choices, a plain Approve plus one button per mode the prompt suggests (such as "Approve, auto-accept edits"), read from the prompt's suggestions.
+- [x] **8. Turn ends, replies and the inbox.** With Away on, a session that finishes its turn waits for the owner, and messages reach a session wherever it is.
   - Delivers:
     - **Held turn ends:** while Away is on, the relay hook holds each turn end with the session's last message, continued by a reply, Approve & continue or Show me. A reply already queued goes in at once. With Away off, it records "turn finished".
     - **The inbox:** a per-session inbox in the relay folder. The PreToolUse hook adds the oldest message as context before the session's next tool, and a turn end takes what's left. Replies to sessions no hook can reach are queued for their next turn end.
@@ -153,7 +154,10 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - hand back;
     - the shortened time limit.
   - Blocked by: 3, 6 · Stories: 4, 5, 6, 7, 8, 9, 23
-- [ ] **9. The hooks installed, and the first real Away.** The tracked hooks go live in user settings, and the owner uses Away from the phone.
+  - Owner's answers (Oct 4):
+    - until task 15 brings `npm run post`, Show me asks the session to capture a shot or short clip of what it's working on and give its path with a one-line caption, or to say in one line that there's nothing to show yet; task 15 switches the text to `npm run post`;
+    - a turn-end card shows the session's last message at once, and the app's turn summary once the app has written it.
+- [x] **9. The hooks installed, and the first real Away.** The tracked hooks go live in user settings, and the owner uses Away from the phone.
   - Delivers:
     - with the owner's OK, the relay and stop hooks copied to `~/.claude/hooks/`, and the PermissionRequest and Stop timeouts in `~/.claude/settings.json` raised to 24 hours;
     - the page saying when the installed copies differ from the tracked ones;
@@ -161,16 +165,24 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: a test of the installed-versus-tracked comparison; the owner switches Away on from the phone, answers a real session's question and replies to a finished turn, and both sessions carry on.
   - Blocked by: 7, 8 · Stories: 81, 82
   - **Owner:** OKs the user-settings change and the preview, then tries Away from the phone.
+  - Owner's answers (Oct 4):
+    - the preview serves this lane's branch (`lane/pm-7-8-9-10`) as soon as task 9's code is in, and moves to `tools/project-manager-remote` once the lane's pull request merges;
+    - while the owner tries Away from the phone, task 10 is built; task 9 is ticked once the owner confirms it worked.
+  - The install (Oct 4): both hooks were copied to `~/.claude/hooks/` and the preview runs this lane on 5197. `~/.claude/settings.json` refuses every write on this PC, even from Notepad or an administrator's PowerShell, though its permissions are normal, so the relay hook's timeouts stay at 1500 s. Holds give up after 25 minutes until that's found. The owner chose to try Away now and leave the 24-hour timeouts as a follow-up (`npm run board:hooks` finishes the install once the file can be written).
+  - Done Oct 4: the owner switched Away on from the phone, answered a real session's question and replied to a finished turn, and both sessions carried on.
 
 ### Phase C: notifications
 
-- [ ] **10. The bell.** Every page has a bell listing what happened while the owner was elsewhere.
+- [x] **10. The bell.** Every page has a bell listing what happened while the owner was elsewhere.
   - Delivers:
     - notification records from held questions, permissions and plans, questions asked in the app, and finished turns (tasks 13 and 15 add pull requests ready to merge and new visuals);
     - records kept in the state folder with a read flag shared by every device, and trimmed after 7 days;
     - on both pages, the bell with its unread count, the list newest first, and Mark all read. Tapping a record marks it read and opens its question or session.
   - Check: unit tests of the notification rules (events to records, the trim, read state); round trip: a held question makes one record, and marking it read from one client shows it read on the other.
   - Blocked by: 6, 8 · Stories: 28, 29, 30, 31, 32, 33
+  - Owner's answers (Oct 4):
+    - answering, handing back or a timeout marks a held item's record read, so the bell counts only what still needs the owner;
+    - a session's newer finished-turn record replaces its older unread one, so each session shows at most one unread finished turn.
 - [ ] **11. Lock-screen notifications.** While Away is on, the iPhone shows each new notification on its lock screen.
   - Delivers:
     - **On the phone:** a service worker at the site root that shows a push and opens its target on tap, and the manifest set up as a standalone Home Screen app. "Turn on notifications" is offered only in the Home Screen app over HTTPS, with an explanation anywhere else.
