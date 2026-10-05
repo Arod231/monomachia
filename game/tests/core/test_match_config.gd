@@ -24,14 +24,15 @@ func test_the_default_configs_are_valid() -> void:
 	assert_eq(MatchConfig.attract().problem(), "")
 
 
-func test_the_default_duel_is_rogue_katana_against_hunter_greatsword_on_normal() -> void:
+func test_the_default_duel_is_the_hunter_katana_mirror_on_normal() -> void:
 	var c: MatchConfig = MatchConfig.default_duel()
 	assert_eq(c.mode, MatchConfig.DUEL)
-	assert_eq(c.sides[0].fighter_id, &"rogue")
+	assert_eq(c.sides[0].fighter_id, &"hunter")
 	assert_eq(c.sides[0].weapon_id, &"katana")
 	assert_eq(c.sides[0].controller, MatchSide.HUMAN)
 	assert_eq(c.sides[1].fighter_id, &"hunter")
-	assert_eq(c.sides[1].weapon_id, &"greatsword")
+	assert_eq(c.sides[1].weapon_id, &"katana")
+	assert_eq([c.sides[0].palette, c.sides[1].palette], [0, 1], "crimson against indigo")
 	assert_eq(c.sides[1].controller, MatchSide.COMPUTER)
 	assert_eq(c.sides[1].difficulty, &"normal")
 	assert_ne(c.sides[0].palette, c.sides[1].palette, "the two sides wear different palettes")

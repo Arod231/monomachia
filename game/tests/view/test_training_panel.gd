@@ -66,7 +66,7 @@ func _lit() -> Array[StringName]:
 	var lit: Array[StringName] = []
 	for i: int in _panel().chips.size():
 		if _panel().is_lit(i):
-			lit.append(TrainingBrain.BEHAVIOURS[i])
+			lit.append(_panel().behaviours[i])
 	return lit
 
 
@@ -93,7 +93,7 @@ func test_the_dummy_side_picks_fighter_and_weapon_only_with_the_explanation() ->
 	assert_false(loadout.slots[0].visible, "no block abilities")
 	assert_true(loadout.cards.visible, "the weapon cards")
 	assert_true(loadout.dummy_note.visible)
-	assert_string_contains(loadout.dummy_note.text, "1–9")
+	assert_string_contains(loadout.dummy_note.text, "number keys")
 	select.show_side(0)
 	assert_false(loadout.dummy_note.visible, "only on the dummy's side")
 
@@ -124,7 +124,9 @@ func test_the_panel_shows_in_training_only() -> void:
 	var texts: Array[String] = []
 	for c: Button in _panel().chips:
 		texts.append(c.text)
-	assert_eq(texts, ["1 Stand still", "2 Block", "3 Light chains", "4 Heavies", "5 Thrust", "6 Sweep", "7 Slam", "8 Mixed attacks", "9 Spar"] as Array[String])
+	# no Slam while the Greatsword is hidden (milestone-1 task 4)
+	assert_eq(texts, ["1 Stand still", "2 Block", "3 Light chains", "4 Heavies", "5 Thrust", "6 Sweep", "7 Mixed attacks", "8 Spar"] as Array[String])
+	assert_string_contains(_panel().hint.text, "Keys 1–8")
 	assert_eq(_panel().refill_chip.text, "0 Refill health: on")
 	assert_eq(_lit(), [&"idle"] as Array[StringName], "Stand still lit")
 	main.call("quit_to_menu")
@@ -139,8 +141,10 @@ func test_digit_keys_change_the_behaviour_and_refill() -> void:
 	_press_key(KEY_5)
 	assert_eq(host.training_behaviour(), &"thrust")
 	assert_eq(_panel().heading.text, "Dummy · Katana", "the heading follows the swap")
-	_press_key(KEY_9)
+	_press_key(KEY_8)
 	assert_eq(host.training_behaviour(), &"fight")
+	_press_key(KEY_9)
+	assert_eq(host.training_behaviour(), &"fight", "9 has no drill")
 	_press_key(KEY_0)
 	assert_false(host.refill())
 	assert_eq(_panel().refill_chip.text, "0 Refill health: off")
@@ -161,8 +165,8 @@ func test_a_digit_bound_in_the_profile_is_ignored() -> void:
 func test_clicks_change_the_behaviour_and_refill() -> void:
 	_training()
 	_panel().chips[6].pressed.emit()
-	assert_eq(host.training_behaviour(), &"slam")
-	assert_eq(_lit(), [&"slam"] as Array[StringName])
+	assert_eq(host.training_behaviour(), &"random")
+	assert_eq(_lit(), [&"random"] as Array[StringName])
 	_panel().refill_chip.pressed.emit()
 	assert_false(host.refill())
 

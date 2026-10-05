@@ -154,6 +154,7 @@ func start(cfg: MatchConfig, p_attract: bool = false) -> bool:
 	if cfg.mode == MatchConfig.TRAINING:
 		sim_match.endless = true
 		_upkeep = TrainingUpkeep.new(world, cfg.dummy_side())
+		_upkeep.weapons = Roster.weapons()
 	for i: int in 2:
 		var side: MatchSide = cfg.sides[i]
 		match side.controller:
@@ -382,13 +383,17 @@ func training_behaviour() -> StringName:
 
 
 ## Tells the training dummy what to do. When its weapon can't perform the
-## behaviour, it swaps to one that can (back to the select's pick whenever
-## that one can) and loadout_changed fires. Nothing happens outside Training.
+## behaviour, it swaps to one the roster offers that can (back to the
+## select's pick whenever that one can) and loadout_changed fires; a
+## behaviour no such weapon can perform (the Slam while the Greatsword is
+## hidden) is refused. Nothing happens outside Training.
 func set_training_behaviour(behaviour: StringName) -> void:
 	var b: TrainingBrain = _dummy_brain()
 	if b == null or not TrainingBrain.BEHAVIOURS.has(behaviour):
 		return
 	var w: WeaponDef = _upkeep.weapon_for(behaviour)
+	if not TrainingUpkeep.can_perform(w, behaviour):
+		return
 	var swapped: bool = w != world.fighters[_upkeep.dummy].weapon
 	if swapped:
 		_upkeep.swap_dummy_weapon(w)

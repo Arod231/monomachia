@@ -9,7 +9,7 @@ var backs: int = 0
 
 
 func _open(mode: StringName) -> MatchSelection.Draft:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(mode)
+	var d: MatchSelection.Draft = DemoDraft.of(mode)
 	select.start(d)
 	select.open()
 	await get_tree().process_frame
@@ -17,12 +17,18 @@ func _open(mode: StringName) -> MatchSelection.Draft:
 
 
 func before_each() -> void:
+	# the select's mechanics, walked with the whole roster (DemoDraft)
+	Roster.full = true
 	locked.clear()
 	backs = 0
 	select = FighterSelect.new()
 	add_child_autofree(select)
 	select.locked_in.connect(func(d: MatchSelection.Draft) -> void: locked.append(d))
 	select.back_requested.connect(func() -> void: backs += 1)
+
+
+func after_each() -> void:
+	Roster.reset()
 
 
 func _key(key: Key) -> void:
@@ -181,7 +187,7 @@ func test_only_computer_sides_have_a_skill_row() -> void:
 
 
 func test_the_picks_it_opens_on_show() -> void:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(MatchConfig.DUEL)
+	var d: MatchSelection.Draft = DemoDraft.of(MatchConfig.DUEL)
 	MatchSelection.set_fighter(d, 0, &"hunter")
 	MatchSelection.set_weapon(d, 0, &"daggers")
 	MatchSelection.set_difficulty(d, 1, &"easy")
@@ -195,7 +201,7 @@ func test_the_picks_it_opens_on_show() -> void:
 
 
 func test_a_random_opponent_weapon_reads_random() -> void:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(MatchConfig.DUEL)
+	var d: MatchSelection.Draft = DemoDraft.of(MatchConfig.DUEL)
 	MatchSelection.set_random_weapon(d, 1, true)
 	select.start(d)
 	select.show_side(1)
@@ -215,3 +221,33 @@ func test_the_select_is_set_in_the_theme() -> void:
 		assert_false((c as Control).has_theme_font_override(&"font"), "%s sets its own font" % c.name)
 	assert_eq(select.grid.chips[0].theme_type_variation, UiTheme.CARD_ON)
 	assert_eq(select.grid.chips[1].theme_type_variation, UiTheme.CARD)
+
+
+# ------------------------------------------------------------------ milestone 1's roster
+
+## A select made with the milestone's roster (no --full-roster).
+func _milestone_select(mode: StringName) -> FighterSelect:
+	Roster.full = false
+	var s: FighterSelect = FighterSelect.new()
+	add_child_autofree(s)
+	s.start(MatchSelection.default_draft(mode))
+	s.open()
+	await get_tree().process_frame
+	return s
+
+
+func test_without_the_flag_the_grid_has_one_hunter_card() -> void:
+	var s: FighterSelect = await _milestone_select(MatchConfig.DUEL)
+	assert_eq(s.fighter_ids, [&"hunter"] as Array[StringName])
+	assert_eq(s.grid.chips.size(), 1)
+	assert_eq(s.preview_name.text, "Hunter")
+
+
+func test_without_the_flag_there_is_one_katana_card_and_no_random() -> void:
+	var s: FighterSelect = await _milestone_select(MatchConfig.DUEL)
+	s.show_side(1)
+	await get_tree().process_frame
+	var cards: WeaponCardRow = s.loadout_panel.cards
+	assert_eq(cards.choices, [&"katana"] as Array[StringName], "the Duel opponent gets no Random")
+	assert_eq(cards.cards.filter(func(c: Button) -> bool: return c.visible).size(), 1)
+	assert_eq(cards.choice, &"katana")

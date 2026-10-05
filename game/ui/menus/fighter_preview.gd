@@ -16,14 +16,14 @@ extends SubViewportContainer
 ## clips when installed, the CC0 fallback otherwise) with the weapon fixed in
 ## the hands: the select shows the fighter as the match will. Its floor marks
 ## (the shadow disc and the side's ring) come with it. A Random weapon (the
-## Duel opponent's) cycles the three playable weapons every CYCLE_SECONDS.
+## Duel opponent's) cycles the roster's weapons every CYCLE_SECONDS.
 ##
 ## The world steps at the rules' 60 a second and the stage turns only while
 ## the preview is visible in the tree; a hidden select renders nothing.
 
 ## One revolution of the slow turn, in seconds.
 const TURN_SECONDS: float = 12.0
-## How long a Random weapon shows each of the three.
+## How long a Random weapon shows each weapon.
 const CYCLE_SECONDS: float = 1.5
 ## Where the unseen opponent stands, straight ahead.
 const OPPONENT_GAP: float = 2.5
@@ -38,7 +38,7 @@ var pivot: Node3D
 var view: FighterView
 ## The rules world the fighter idles in; remade when the weapon changes.
 var world: World
-## The weapon held now (one of the three while a Random weapon cycles).
+## The weapon held now (one of the roster's while a Random weapon cycles).
 var weapon_shown: StringName = &""
 ## The slow turn so far, in radians (unwrapped).
 var turn: float = 0.0
@@ -76,14 +76,14 @@ func _notification(what: int) -> void:
 
 
 ## Shows a side of a selection draft: its fighter, palette and weapon, or the
-## cycle of the three when its weapon is Random.
+## cycle of the roster's weapons when its weapon is Random.
 func show_draft(d: MatchSelection.Draft, p_side: int) -> void:
 	var s: MatchSide = d.sides[p_side]
 	show_side(s.fighter_id, s.palette, s.weapon_id, p_side, d.random_weapon[p_side])
 
 
 ## Shows `fighter_id` in `palette` holding `weapon_id` (ignored while
-## `random`, which cycles the three).
+## `random`, which cycles the roster's weapons).
 func show_side(fighter_id: StringName, palette: int, weapon_id: StringName, p_side: int, random: bool) -> void:
 	var was_random: bool = _random
 	var same: bool = world != null and fighter_id == _fighter_id and palette == _palette and p_side == _side
@@ -94,7 +94,7 @@ func show_side(fighter_id: StringName, palette: int, weapon_id: StringName, p_si
 	var weapon: StringName = weapon_id
 	if random:
 		# a cycle already running carries on; a new one starts on the first
-		weapon = weapon_shown if was_random and weapon_shown != &"" else Moves.PLAYABLE_WEAPONS[0]
+		weapon = weapon_shown if was_random and weapon_shown != &"" else Roster.weapons()[0]
 		if not was_random:
 			_cycle_left = CYCLE_SECONDS
 	# a refresh that changes nothing shown keeps the idle running
@@ -117,8 +117,9 @@ func advance(delta: float) -> void:
 		_cycle_left -= delta
 		while _cycle_left <= 0.0:
 			_cycle_left += CYCLE_SECONDS
-			var i: int = Moves.PLAYABLE_WEAPONS.find(weapon_shown)
-			_show(Moves.PLAYABLE_WEAPONS[(i + 1) % Moves.PLAYABLE_WEAPONS.size()])
+			var offered: Array[StringName] = Roster.weapons()
+			var i: int = offered.find(weapon_shown)
+			_show(offered[(i + 1) % offered.size()])
 	_step_left += delta
 	var dt: float = 1.0 / float(SimConst.FPS)
 	while _step_left >= dt - 0.000001:

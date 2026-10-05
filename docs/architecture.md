@@ -64,7 +64,7 @@ flowchart TD
 
     GAME --> G_SIM["sim/ rules, no graphics"]
     GAME --> G_INPUT["input/ devices, bindings, profiles"]
-    GAME --> G_CORE["core/ GameServices autoload, settings, match config"]
+    GAME --> G_CORE["core/ GameServices autoload, settings, match config, roster"]
     GAME --> G_VIEW["view/ match host, camera, fighter animation, look"]
     GAME --> G_AUDIO["audio/ sound bank, players, music"]
     GAME --> G_UI["ui/ HUD and menus"]
@@ -82,7 +82,7 @@ flowchart TD
 | `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry. |
 | `game/sim/ai` | `AIBrain` (the computer opponent) and `TrainingBrain` (the training dummy). |
 | `game/input` | Reading keyboards, mice and controllers into a `RawInput` per player; bindings, profiles, rebinding, button labels. |
-| `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`. |
+| `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
 | `game/view/match` | `MatchHost` (the fixed-step loop), `MatchView`, `CameraRig`, `MatchAudio`, `StickPose`, the arena registry. |
 | `game/view/fighter` | Animating a rigged fighter from the rules' state: the clip director, locomotion, foot locking, IK rig. |
 | `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replace today's three. |
@@ -113,7 +113,7 @@ flowchart BT
     subgraph DEVICES["Devices"]
         INPUT["input/<br/>InputDevices, ControlProfiles"]
     end
-    CORE["core/<br/>GameServices, GameSettings,<br/>MatchConfig, MatchSide, MatchResults"]
+    CORE["core/<br/>GameServices, GameSettings,<br/>MatchConfig, MatchSide, MatchResults,<br/>Roster"]
     HOST["view/match/MatchHost<br/>fixed-step loop"]
     VIEW["view/match, view/fighter<br/>MatchView, CameraRig, FighterView"]
     LOOK["view/look<br/>toon, outline, ink wash, presets"]
@@ -652,8 +652,9 @@ flowchart LR
 | --- | --- | --- |
 | `game_services.gd` (autoload `GameServices`) | The shared `GameSettings`, `ControlProfiles`, `InputDevices`, `InputFeed`, music director and player, UI sounds, and the match being played. `begin_match`/`end_match`, `play_menu_music`, `play_match_music`, `music_event`, `play_ui`. | Nearly everything outside `sim` |
 | `game_settings.gd` | Graphics preset, volumes, Reduce flashes and shaking, and Button hints, saved to `user://settings.cfg`. Its `changed` signal (emitted by the Settings screen after each change) lets a match follow a change made in the pause menu. With `MONOMACHIA_DEFAULT_SETTINGS=1` (tests, screenshots) the saved file is ignored. | GameServices, graphics applier, `MatchView` (Reduce flashes), `MatchHud` (Button hints) |
-| `match_config.gd` | Everything a match is built from: mode (Duel, Training, Watch, Versus), two `MatchSide`s, arena id, world seed. `default_duel`, `default_watch`, `attract`, `next_seed`, `problem()` (validation). | `MatchHost.start()`, main.gd, views, HUD |
+| `match_config.gd` | Everything a match is built from: mode (Duel, Training, Watch, Versus), two `MatchSide`s, arena id, world seed. `default_duel`, `default_training`, `default_watch`, `attract` (all the Hunter mirror with the Katana, crimson against indigo), `next_seed`, `problem()` (validation). | `MatchHost.start()`, main.gd, views, HUD |
 | `match_side.gd` | One side: fighter, palette, weapon, abilities, controller (human, computer, dummy), device, profile, difficulty. | MatchHost turns it into a `FighterConfig` plus a brain or a device |
+| `roster.gd` | What the menus offer (milestone-1 task 4): the Hunter and the Katana, or the whole roster with `--full-roster` (`Roster.full` in tests). `fighters()`, `weapons()`, `behaviours()` (Training's drills some offered weapon can perform), `offers_side()`. `MatchSide.problem()` checks what exists; this checks what is offered. | The fighter select (grid, weapon cards, Random, preview), `MatchSelection` (random pick, saved picks), How to play's tabs, Training's panel and pause rows, `MatchHost` (the dummy's weapon swaps), the soak |
 | `match_results.gd` | Winner, wins, names, weapons and stats for the results screen. | ResultsScreen, smoke run |
 
 ## 9. Drawing the match (`game/view`)

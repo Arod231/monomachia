@@ -12,6 +12,8 @@ var picks: Array = []
 
 
 func before_each() -> void:
+	# the select's mechanics, walked with the whole roster (DemoDraft)
+	Roster.full = true
 	picks.clear()
 	page = MenuScreen.new()
 	add_child_autofree(page)
@@ -26,6 +28,10 @@ func before_each() -> void:
 	panel.show_side(side)
 	page.open()
 	await get_tree().process_frame
+
+
+func after_each() -> void:
+	Roster.reset()
 
 
 func _key(key: Key) -> void:
@@ -160,7 +166,7 @@ func test_the_training_dummy_gets_no_ability_slots() -> void:
 # ------------------------------------------------------------------ editing a draft
 
 func _edit(mode: StringName, side_index: int) -> MatchSelection.Draft:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(mode)
+	var d: MatchSelection.Draft = DemoDraft.of(mode)
 	panel.edit(d, side_index)
 	panel.cards.grab_focus()
 	return d

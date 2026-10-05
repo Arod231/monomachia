@@ -43,47 +43,48 @@ static func make(
 	return c
 
 
-## Duel against the computer, the demo's default: the Rogue with the katana
-## (you) against the Hunter with the greatsword (Normal).
+## Milestone 1's match-up (task 4): every default is the Hunter in crimson
+## (palette 0) against the Hunter in indigo (palette 1), both with the Katana
+## and its default block abilities (Flash and Piercing Thrust).
+const DEFAULT_FIGHTER: StringName = &"hunter"
+const DEFAULT_WEAPON: StringName = &"katana"
+
+
+## Duel against the computer: you against the computer (Normal), the Hunter
+## mirror.
 static func default_duel(p_seed: int = 1) -> MatchConfig:
 	return make(
 		DUEL,
-		MatchSide.human(&"rogue", &"katana", 0),
-		MatchSide.computer(&"hunter", &"greatsword", 1, &"normal"),
+		MatchSide.human(DEFAULT_FIGHTER, DEFAULT_WEAPON, 0),
+		MatchSide.computer(DEFAULT_FIGHTER, DEFAULT_WEAPON, 1, &"normal"),
 		p_seed,
 	)
 
 
-## Training, the demo's default: the Rogue with the katana (you) against the
-## Hunter with the greatsword as the training dummy.
+## Training: you against the training dummy, the Hunter mirror.
 static func default_training(p_seed: int = 1) -> MatchConfig:
 	var dummy: MatchSide = MatchSide.new()
-	dummy.fighter_id = &"hunter"
-	dummy.weapon_id = &"greatsword"
+	dummy.fighter_id = DEFAULT_FIGHTER
+	dummy.weapon_id = DEFAULT_WEAPON
 	dummy.palette = 1
 	dummy.controller = MatchSide.DUMMY
-	return make(TRAINING, MatchSide.human(&"rogue", &"katana", 0), dummy, p_seed)
+	return make(TRAINING, MatchSide.human(DEFAULT_FIGHTER, DEFAULT_WEAPON, 0), dummy, p_seed)
 
 
-## Computer against computer from the side-on camera, the demo's default:
-## katana (Normal) against daggers (Normal).
+## Computer against computer from the side-on camera, both Normal, the
+## Hunter mirror.
 static func default_watch(p_seed: int = 1) -> MatchConfig:
 	return make(
 		WATCH,
-		MatchSide.computer(&"rogue", &"katana", 0, &"normal"),
-		MatchSide.computer(&"hunter", &"daggers", 1, &"normal"),
+		MatchSide.computer(DEFAULT_FIGHTER, DEFAULT_WEAPON, 0, &"normal"),
+		MatchSide.computer(DEFAULT_FIGHTER, DEFAULT_WEAPON, 1, &"normal"),
 		p_seed,
 	)
 
 
-## The duel behind the menus: katana against greatsword, both Normal.
+## The duel behind the menus: Watch's mirror.
 static func attract(p_seed: int = 1) -> MatchConfig:
-	return make(
-		WATCH,
-		MatchSide.computer(&"rogue", &"katana", 0, &"normal"),
-		MatchSide.computer(&"hunter", &"greatsword", 1, &"normal"),
-		p_seed,
-	)
+	return default_watch(p_seed)
 
 
 ## The demo's per-match seed step (a Lehmer-style LCG), for rematches and

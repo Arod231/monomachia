@@ -158,7 +158,7 @@ func test_a_controller_alone_walks_from_the_title_to_a_duel() -> void:
 	_press_pad(JOY_BUTTON_A)
 	assert_eq(_screen(), MainScript.Screen.PLAYING)
 	assert_eq(host.config.mode, MatchConfig.DUEL)
-	assert_eq([host.config.sides[0].weapon_id, host.config.sides[1].weapon_id], [&"katana", &"greatsword"], "the defaults")
+	assert_eq([host.config.sides[0].weapon_id, host.config.sides[1].weapon_id], [&"katana", &"katana"], "the defaults: the Hunter mirror")
 
 
 func test_watch_opens_the_select_for_watch() -> void:
@@ -197,26 +197,27 @@ func test_back_steps_through_the_select_to_the_main_menu_on_duel() -> void:
 func test_the_last_picks_return() -> void:
 	main.call("open_select", MatchConfig.DUEL)
 	var select: FighterSelect = main.get("select")
-	MatchSelection.set_fighter(select.draft, 0, &"hunter")
+	var third: StringName = Moves.KATANA.abilities[2]
+	MatchSelection.set_ability(select.draft, 0, 0, third)
 	MatchSelection.set_difficulty(select.draft, 1, &"hard")
 	select.show_side(1)
 	select.confirm.pressed.emit()
 	assert_eq(_screen(), MainScript.Screen.PLAYING)
 	main.call("quit_to_menu")
 	main.call("open_select", MatchConfig.DUEL)
-	assert_eq(select.draft.sides[0].fighter_id, &"hunter", "the fighter")
+	assert_eq(select.draft.sides[0].resolved_abilities()[0], third, "the block ability")
 	assert_eq(select.draft.sides[1].difficulty, &"hard", "the skill")
 	main.call("open_select", MatchConfig.WATCH)
-	assert_eq(select.draft.sides[0].fighter_id, &"rogue", "each mode keeps its own")
+	assert_eq(select.draft.sides[0].resolved_abilities(), Moves.KATANA.default_abilities, "each mode keeps its own")
 
 
 func test_leaving_the_select_keeps_nothing() -> void:
 	main.call("open_select", MatchConfig.DUEL)
 	var select: FighterSelect = main.get("select")
-	MatchSelection.set_fighter(select.draft, 0, &"hunter")
+	MatchSelection.set_difficulty(select.draft, 1, &"hard")
 	select.step_back()
 	main.call("open_select", MatchConfig.DUEL)
-	assert_eq(select.draft.sides[0].fighter_id, &"rogue")
+	assert_eq(select.draft.sides[1].difficulty, &"normal")
 
 
 func test_test_runs_neither_read_nor_write_the_saved_picks() -> void:
@@ -231,11 +232,11 @@ func test_a_duel_runs_from_the_menu_to_the_results_and_back() -> void:
 	assert_false(host.attract)
 	assert_true(host.is_playing())
 	assert_eq(host.config.mode, MatchConfig.DUEL)
-	assert_eq(host.config.sides[0].fighter_id, &"rogue")
+	assert_eq(host.config.sides[0].fighter_id, &"hunter")
 	assert_eq(host.config.sides[0].weapon_id, &"katana")
 	assert_true(host.config.sides[0].is_human())
 	assert_eq(host.config.sides[1].fighter_id, &"hunter")
-	assert_eq(host.config.sides[1].weapon_id, &"greatsword")
+	assert_eq(host.config.sides[1].weapon_id, &"katana")
 	assert_eq(host.config.sides[1].difficulty, &"normal")
 	# nobody touches the controls: the computer wins
 	var steps: int = 0
@@ -253,7 +254,7 @@ func test_a_duel_runs_from_the_menu_to_the_results_and_back() -> void:
 	assert_eq(_screen(), MainScript.Screen.PLAYING)
 	assert_true(host.is_playing())
 	assert_ne(host.config.world_seed, seed_before, "a rematch takes a new seed")
-	assert_eq(host.config.sides[1].weapon_id, &"greatsword", "the same loadouts")
+	assert_eq(host.config.sides[1].weapon_id, &"katana", "the same loadouts")
 	main.call("quit_to_menu")
 	assert_eq(_screen(), MainScript.Screen.MENU)
 	assert_true(host.attract)

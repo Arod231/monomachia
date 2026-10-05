@@ -28,6 +28,9 @@ var controls_button: Button
 var settings_button: Button
 var restart_button: Button
 var quit_button: Button
+## The dummy behaviours the Dummy row offers (Roster.behaviours()), as the
+## roster stood when the screen was made.
+var behaviours: Array[StringName] = Roster.behaviours()
 var dummy_row: OptionRow
 var refill_row: OptionRow
 
@@ -39,7 +42,7 @@ func _init() -> void:
 	kanji.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var heading: Label = add_heading("Paused")
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dummy_row = add_options("Dummy", MenuData.behaviour_names(), 0, func(i: int) -> void: dummy_behaviour.emit(TrainingBrain.BEHAVIOURS[i]))
+	dummy_row = add_options("Dummy", MenuData.behaviour_names(), 0, func(i: int) -> void: dummy_behaviour.emit(behaviours[i]))
 	dummy_row.name = "DummyRow"
 	dummy_row.show_only_chosen()
 	refill_row = add_options("Refill health", ["On", "Off"] as Array[String], 0, func(i: int) -> void: refill_set.emit(i == 0))
@@ -60,7 +63,7 @@ func _init() -> void:
 func show_training(training: bool, behaviour: StringName = &"idle", refill: bool = true) -> void:
 	dummy_row.visible = training
 	refill_row.visible = training
-	dummy_row.set_index(maxi(0, TrainingBrain.BEHAVIOURS.find(behaviour)))
+	dummy_row.set_index(maxi(0, behaviours.find(behaviour)))
 	refill_row.set_index(0 if refill else 1)
 
 

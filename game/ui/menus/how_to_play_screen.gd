@@ -12,8 +12,9 @@ extends MenuScreen
 ## goes to Back, and up from Back returns to the tabs. The mouse wheel
 ## scrolls, and a click on a tab picks it.
 
+## Every tab with the whole roster; the screen shows the roster's (tab_names).
 const TABS: Array[String] = ["Rules", "Katana", "Greatsword", "Daggers", "Bare hands"]
-## The weapon each tab lists (none for the rules).
+## The weapon each of TABS lists (none for the rules).
 const TAB_WEAPONS: Array[StringName] = [&"", &"katana", &"greatsword", &"daggers", &"fists"]
 ## How far one up or down scrolls the page (px).
 const SCROLL_STEP: int = 90
@@ -63,14 +64,19 @@ static var RULES: Array = [
 	["Modes", [
 		"[color=#c9a15a]Duel[/color]: you against the computer, at three skill levels.",
 		"[color=#c9a15a]Versus[/color]: two people on one screen, split down the middle. Each player picks a device and a controls profile; keyboard and mouse and the arrow-key layout can share one keyboard.",
-		"[color=#c9a15a]Training[/color]: a dummy you tell what to do (keys 1–9, or the pause menu on a controller), with health refill (key 0).",
+		"[color=#c9a15a]Training[/color]: a dummy you tell what to do (the number keys, or the pause menu on a controller), with health refill (key 0).",
 		"[color=#c9a15a]Watch[/color]: two computer fighters duel while you watch.",
 	]],
 ]
 
 var tabs: OptionRow
 var scroll: ScrollContainer
-## One page per tab, in TABS order; only the current one shows.
+## The tabs shown (milestone-1 task 4): the rules, the roster's weapons and
+## bare hands, as the roster stood when the screen was made.
+var tab_names: Array[String] = []
+## The weapon each shown tab lists (none for the rules).
+var tab_weapons: Array[StringName] = []
+## One page per shown tab, in that order; only the current one shows.
 var pages: Array[Control] = []
 var back_button: Button
 var tab: int = 0
@@ -80,7 +86,12 @@ func _init() -> void:
 	super()
 	add_label("The rules of the duel", UiTheme.EYEBROW, 15)
 	add_heading("How to play")
-	tabs = add_options("", TABS, 0, show_tab)
+	for i: int in TABS.size():
+		var w: StringName = TAB_WEAPONS[i]
+		if w == &"" or w == &"fists" or Roster.offers_weapon(w):
+			tab_names.append(TABS[i])
+			tab_weapons.append(w)
+	tabs = add_options("", tab_names, 0, show_tab)
 	tabs.title.visible = false
 	scroll = ScrollContainer.new()
 	scroll.name = "Page"
@@ -91,8 +102,8 @@ func _init() -> void:
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(holder)
 	pages.append(_rules_page())
-	for i: int in range(1, TABS.size()):
-		pages.append(_weapon_page(Moves.WEAPONS[TAB_WEAPONS[i]]))
+	for i: int in range(1, tab_weapons.size()):
+		pages.append(_weapon_page(Moves.WEAPONS[tab_weapons[i]]))
 	for p: Control in pages:
 		holder.add_child(p)
 	back_button = Button.new()
@@ -113,7 +124,7 @@ func open() -> void:
 
 ## Shows a tab's page from its top.
 func show_tab(i: int) -> void:
-	tab = posmod(i, TABS.size())
+	tab = posmod(i, tab_names.size())
 	tabs.set_index(tab)
 	for p: int in pages.size():
 		pages[p].visible = p == tab
@@ -122,7 +133,7 @@ func show_tab(i: int) -> void:
 
 ## Shows a weapon's move list (the pause menu opens on the fighter's own).
 func show_weapon(weapon_id: StringName) -> void:
-	show_tab(maxi(0, TAB_WEAPONS.find(weapon_id)))
+	show_tab(maxi(0, tab_weapons.find(weapon_id)))
 
 
 func act(cmd: MenuNav.Cmd) -> void:

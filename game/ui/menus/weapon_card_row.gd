@@ -22,7 +22,7 @@ const RANDOM_CARD_SIZE: Vector2 = Vector2(136.0, 52.0)
 ## Cards to a line: the three weapons.
 const COLUMNS: int = 3
 
-## The cards' choices in order: the playable weapons, then RANDOM if offered.
+## The cards' choices in order: the roster's weapons, then RANDOM if offered.
 var choices: Array[StringName] = []
 var cards: Array[Button] = []
 var choice: StringName = &""
@@ -36,7 +36,7 @@ func _init() -> void:
 	row.add_theme_constant_override("h_separation", 8)
 	row.add_theme_constant_override("v_separation", 8)
 	add_child(row)
-	for id: StringName in Moves.PLAYABLE_WEAPONS:
+	for id: StringName in Roster.weapons():
 		row.add_child(_card(id))
 	_random_card = _random()
 	row.add_child(_random_card)
@@ -48,7 +48,7 @@ func _init() -> void:
 ## Shows or hides the Random card (the Duel opponent's only).
 func offer_random(on: bool) -> void:
 	_random_card.visible = on
-	choices.assign(Moves.PLAYABLE_WEAPONS)
+	choices.assign(Roster.weapons())
 	if on:
 		choices.append(RANDOM)
 	if not choices.has(choice) and not choices.is_empty():
