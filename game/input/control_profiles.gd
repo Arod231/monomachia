@@ -1,7 +1,7 @@
 class_name ControlProfiles
 extends RefCounted
 ## The saved controls profiles and which one is active. Port of ProfileStore,
-## loadProfiles() and saveProfiles() in src/input/bindings.ts and the profile
+## loadProfiles() and saveProfiles() in v0.1-web-mvp:src/input/bindings.ts and the profile
 ## row of the Controls screen, saved to user://controls.cfg (a ConfigFile)
 ## instead of browser storage. There is always at least one profile.
 ##

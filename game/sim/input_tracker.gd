@@ -1,6 +1,6 @@
 class_name InputTracker
 extends RefCounted
-## Port of src/sim/input.ts (the tracker and its direction helpers; the button
+## Port of v0.1-web-mvp:src/sim/input.ts (the tracker and its direction helpers; the button
 ## enum is in btn.gd and RawInput in raw_input.gd).
 ##
 ## Device-agnostic input as the simulation sees it.

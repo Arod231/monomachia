@@ -4,7 +4,7 @@ extends RefCounted
 ## own names and blurbs: the loadout panel's kanji, class, stat bars and
 ## ultimate per weapon, a description per ability, and the training dummy's
 ## behaviours as Training's panel and pause rows name them. Port of
-## WEAPON_INFO, ABILITY_INFO and TRAINING_BEHAVIOURS in src/ui/data.ts. An ability's name is its move's name in
+## WEAPON_INFO, ABILITY_INFO and TRAINING_BEHAVIOURS in v0.1-web-mvp:src/ui/data.ts. An ability's name is its move's name in
 ## the rules (Moves), so the two can't drift apart.
 
 ## The stat bars on a weapon card, in order.

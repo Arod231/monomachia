@@ -19,6 +19,11 @@ extends RefCounted
 ##   [audio]     master=80  effects=90  music=100
 ##   [display]   reduce_flashes=false  button_hints=true
 
+## A setting changed: the Settings screen emits it after each change it
+## saves, so what follows the settings applies them again at once (the
+## match view's Reduce flashes, even behind the pause menu).
+signal changed
+
 const PATH: String = "user://settings.cfg"
 const SECTION_GRAPHICS: String = "graphics"
 const SECTION_AUDIO: String = "audio"
@@ -54,8 +59,10 @@ var music_volume: int = 100:
 	set(value):
 		music_volume = snap_volume(value)
 
-## Reduce flashes and shaking: the effects (18.11) scale the shake to 0.15,
-## drop the field-of-view kicks and the push-in, and dim flashes to 0.45.
+## Reduce flashes and shaking (18.11, MatchView.apply_reduce_flashes): the
+## camera's shake scaled to 0.15, no field-of-view kicks, and flashes (the
+## effects' glows and rings and the fighters' body flashes) dimmed to 0.45.
+## Milestone 1's push-in and new effects follow it as they land.
 var reduce_flashes: bool = false
 ## Button hints on screen: off hides the HUD's prompts (24.4).
 var button_hints: bool = true

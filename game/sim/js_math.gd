@@ -3,7 +3,7 @@ extends RefCounted
 ## Math.hypot, Math.sin, Math.cos and Math.atan2 computed exactly as V8 (Node
 ## and the browsers' JavaScript engine) computes them, so the GDScript rules
 ## stay bit-identical to the TypeScript rules, and give the same results on
-## every platform. Not a port of a file in src/sim: the TS calls the JS
+## every platform. Not a port of a file in v0.1-web-mvp:src/sim: the TS calls the JS
 ## built-ins, and every such call in the port goes through here
 ## (Math.hypot(x, z) -> JsMath.hypot(x, z), Math.sin(a) -> JsMath.sin(a)...).
 ##

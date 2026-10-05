@@ -1,7 +1,7 @@
 class_name ControlsScreen
 extends MenuScreen
 ## The Controls screen's binding table (port of showControls() in
-## src/ui/menus.ts): Keyboard-and-mouse and Controller tabs, opening on the
+## v0.1-web-mvp:src/ui/menus.ts): Keyboard-and-mouse and Controller tabs, opening on the
 ## tab of the last device used; on the controller tab a status line naming the
 ## connected controller and its button style; the 13 actions with two slots
 ## each, named in that style (ControlsTable); and Reset to defaults and, on the

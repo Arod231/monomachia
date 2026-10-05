@@ -1,6 +1,6 @@
 class_name Moves
 extends RefCounted
-## Port of src/sim/moves/index.ts: the weapon registry and the scripted
+## Port of v0.1-web-mvp:src/sim/moves/index.ts: the weapon registry and the scripted
 ## ultimate hits.
 ##
 ## Port notes:

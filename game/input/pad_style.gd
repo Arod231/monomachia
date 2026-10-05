@@ -1,7 +1,7 @@
 class_name PadStyle
 extends RefCounted
 ## Which button names a controller gets: PlayStation, Xbox or generic. Port of
-## styleOf() in src/input/devices.ts, using Godot's joypad name and info
+## styleOf() in v0.1-web-mvp:src/input/devices.ts, using Godot's joypad name and info
 ## (vendor ids 0x054C Sony and 0x045E Microsoft).
 
 const GENERIC: int = 0

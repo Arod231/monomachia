@@ -22,6 +22,12 @@ extends Node3D
 ## With swing_debug on (F3 in a debug build, or --swing-debug), a
 ## SwingDebugView draws the hurt capsules, the blades' sweeps and where each
 ## outcome landed over the match (task 7.15).
+##
+## Reduce flashes and shaking (task 18.11) follows the player's settings at
+## match start and whenever they change (apply_reduce_flashes()): the
+## camera's shake scaled to REDUCED_SHAKE, no field-of-view kicks, and the
+## effects' flashes and the fighters' body flashes at REDUCED_FLASH of their
+## brightness, at full size (the owner's choice, Oct 4, 2026).
 
 ## A fighter's foot came down on the ground at `at` while its footsteps are
 ## its clips' (steps_from_clips()).
@@ -52,6 +58,9 @@ const FOOTFALL_LAG: int = 4
 	&"fists": 0.6, &"small": 0.8, &"medium": 1.4, &"colossal": 2.4,
 }
 const HEAVY_KICK: float = 1.5
+## Reduce flashes and shaking: the shake's scale, and the flashes' brightness.
+const REDUCED_SHAKE: float = 0.15
+const REDUCED_FLASH: float = 0.45
 
 ## Draws blade sweeps and hurt capsules over the match (SwingDebugView, task
 ## 7.15). F3 turns it on and off in a debug build, and --swing-debug on the
@@ -71,6 +80,12 @@ var swing_debug_view: SwingDebugView
 var effects: CombatEffects
 ## The recall's power-up aura and burst (task 30b), drawn with the effects.
 var recall_aura: RecallAura = RecallAura.new()
+## The settings whose Reduce flashes switch the view follows (use_settings();
+## the game's by default).
+var settings: GameSettings
+## How bright the fighters' body flashes are (REDUCED_FLASH with Reduce
+## flashes on).
+var body_flash_scale: float = 1.0
 
 ## owner side -> Node3D: the dropped weapon stand-ins.
 var _dropped: Dictionary[int, Node3D] = {}
@@ -88,12 +103,37 @@ func _ready() -> void:
 		effects = CombatEffects.new()
 		add_child(effects)
 		effects.host = host
+	if settings == null:
+		use_settings(GameServices.settings)
 	if host == null and has_node(host_path):
 		var h: Node = get_node(host_path)
 		if h is MatchHost:
 			bind(h as MatchHost)
 	if swing_debug or wants_swing_debug(OS.get_cmdline_args()) or wants_swing_debug(OS.get_cmdline_user_args()):
 		set_swing_debug(true)
+
+
+## Follows these settings' Reduce flashes switch: applies it now, and again
+## whenever they change (GameSettings.changed). The settings followed before
+## no longer reach the view.
+func use_settings(p_settings: GameSettings) -> void:
+	if settings != null and settings.changed.is_connected(apply_reduce_flashes):
+		settings.changed.disconnect(apply_reduce_flashes)
+	settings = p_settings
+	if settings != null:
+		settings.changed.connect(apply_reduce_flashes)
+	apply_reduce_flashes()
+
+
+## Reduce flashes and shaking (18.11) on or off, as the settings say: the
+## camera's shake scale and field-of-view kicks, the effects' flash
+## brightness and the body flashes'.
+func apply_reduce_flashes() -> void:
+	var on: bool = settings != null and settings.reduce_flashes
+	camera.shake_scale = REDUCED_SHAKE if on else 1.0
+	camera.fov_kick_scale = 0.0 if on else 1.0
+	effects.flash_scale = REDUCED_FLASH if on else 1.0
+	body_flash_scale = REDUCED_FLASH if on else 1.0
 
 
 func bind(p_host: MatchHost) -> void:
@@ -202,6 +242,7 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	_clear_dropped()
 	effects.clear()
 	effects.set_preset(GameServices.graphics_preset())
+	apply_reduce_flashes()
 	if host.attract:
 		camera.mode = CameraRig.Mode.MENU
 	elif cfg.mode == MatchConfig.WATCH:
@@ -300,6 +341,12 @@ func _kick_on_contact(e: Dictionary) -> void:
 	camera.kick_fov(kick * (HEAVY_KICK if e["heavy"] else 1.0))
 
 
+## Flashes fighter i's body (a hit's tint, a disarm's or a K.O.'s white) at
+## this strength, dimmed by body_flash_scale.
+func _body_flash(i: int, color: Color, strength: float) -> void:
+	fighters[i].flash(color, strength * body_flash_scale, host.world.frame)
+
+
 func _on_sim_event(e: Dictionary) -> void:
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
@@ -309,7 +356,7 @@ func _on_sim_event(e: Dictionary) -> void:
 			camera.add_shake(heavy_hit_shake if heavy else light_hit_shake)
 			_kick_on_contact(e)
 			var color: Color = Color(1.0, 0.94, 0.88) if e["sound"] == &"fist" else Color(1.0, 0.38, 0.25)
-			fighters[int(e["target"])].flash(color, 0.55 if heavy else 0.4, host.world.frame)
+			_body_flash(int(e["target"]), color, 0.55 if heavy else 0.4)
 		&"block":
 			camera.add_shake(heavy_block_shake if e["heavy"] else light_block_shake)
 			_kick_on_contact(e)
@@ -322,7 +369,7 @@ func _on_sim_event(e: Dictionary) -> void:
 		&"disarm":
 			camera.add_shake(disarm_shake)
 			camera.kick_fov(7.0)
-			fighters[int(e["victim"])].flash(Color.WHITE, 0.6, host.world.frame)
+			_body_flash(int(e["victim"]), Color.WHITE, 0.6)
 		&"ultStart":
 			camera.kick_fov(8.0)
 		&"ultWave":
@@ -341,12 +388,12 @@ func _on_sim_event(e: Dictionary) -> void:
 			camera.add_shake(1.0 if e["hit"] else 0.4)
 			camera.kick_fov(8.0)
 			if e["hit"]:
-				fighters[int(e["on"])].flash(Color(1.0, 0.9, 0.55), 0.7, host.world.frame)
+				_body_flash(int(e["on"]), Color(1.0, 0.9, 0.55), 0.7)
 		&"ko":
 			camera.add_shake(ko_shake)
 			var loser: int = int(e["loser"])
 			if loser >= 0:
-				fighters[loser].flash(Color.WHITE, 0.8, host.world.frame)
+				_body_flash(loser, Color.WHITE, 0.8)
 			if host.config.mode != MatchConfig.VERSUS:
 				camera.start_ko_orbit()
 		&"roundStart":

@@ -14,7 +14,11 @@
 //   run                    play the game
 //   studio                 open the Animation Studio (gallery, editor and chat panel; dev tool)
 //   dev                    open the editor
-//   build                  export the Windows build to build/windows/
+//   build                  export the Windows build to build/windows/, with the licence,
+//                          credits and notices beside the exe (tools/build_notices.gd)
+//   release <tag> [--no-upload]   on the PC with the clips: export, --smoke the exe, zip
+//                          Monomachia-<tag>-windows.zip and attach it to the tag's GitHub
+//                          release, a draft made if needed (scripts/release.mjs)
 //   clips                  convert the clip manifest's Iglesias clips into the
 //                          gitignored clip libraries (needs the packs; see findAssetsSrc)
 //   bake [--weapon=<id>] [--check]   bake the swings of the moves in the move-clip
@@ -27,6 +31,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { STAND_IN_FILE, checkTag, projectVersion, releaseFiles, workProblems, writeZip, zipName } from './release.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PROJECT = join(ROOT, 'game');
@@ -137,10 +142,48 @@ async function importProject(godot) {
   }
 }
 
+const UPLOAD_TRIES = 3;
+const STAND_IN_WARNING =
+  'godot.mjs: WARNING: no Kevin Iglesias clip libraries, so this is a stand-in build (STAND-IN.txt is in it, and in ' +
+  'attacks the weapons drift off the hands). Build the libraries with `node scripts/godot.mjs clips` before a real release.';
+
+/**
+ * Exports the Windows build to build/windows/ and writes LICENSE.txt,
+ * CREDITS.txt and THIRD-PARTY-NOTICES.txt beside the exe, plus STAND-IN.txt
+ * when the project has no clip libraries (tools/build_notices.gd). Returns the
+ * folder; exits on any failure.
+ */
+async function exportWindows(godot) {
+  await importProject(godot);
+  const outDir = join(ROOT, 'build', 'windows');
+  mkdirSync(outDir, { recursive: true });
+  // The export preset bakes the shaders, which needs a GPU: on a PC the
+  // export runs in a window (it flashes up briefly). CI has no GPU, so it
+  // exports headless and the build compiles its shaders on first use.
+  const headless = process.env.CI ? ['--headless'] : [];
+  const r = await runGodot(
+    godot,
+    [...headless, '--path', PROJECT, '--export-release', 'Windows Desktop', join(outDir, 'Monomachia.exe')],
+    { timeoutMs: 1800000 },
+  );
+  if (r.code === 0 && hasScriptErrors(r.output)) die('godot.mjs: the export reported script errors.');
+  if (r.code !== 0 && /No export template found/.test(r.output)) {
+    die(
+      'godot.mjs: Windows export templates are not installed. In the Godot editor, open Editor → Manage Export ' +
+        'Templates and download 4.7.2 (about 1.3 GB), or let CI build the Windows version.',
+    );
+  }
+  if (r.code !== 0) process.exit(r.code);
+  const out = `--out=${outDir.split('\\').join('/')}`;
+  const notices = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/write_build_notices.gd', '--', out]);
+  if (notices.code !== 0 || hasScriptErrors(notices.output)) die('godot.mjs: writing the licence and credits files failed.');
+  return outDir;
+}
+
 async function main() {
   const [cmd = 'help', ...rest] = process.argv.slice(2);
   if (cmd === 'help' || cmd === '--help') {
-    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|run|studio|dev|build|clips|bake');
+    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|run|studio|dev|build|release|clips|bake');
     return;
   }
   const godot = findGodot();
@@ -255,27 +298,57 @@ async function main() {
     case 'dev':
       spawn(godot, ['--path', PROJECT, '-e', ...rest], { stdio: 'inherit', detached: true }).unref();
       return;
-    case 'build': {
-      await importProject(godot);
-      const outDir = join(ROOT, 'build', 'windows');
-      mkdirSync(outDir, { recursive: true });
-      // The export preset bakes the shaders, which needs a GPU: on a PC the
-      // export runs in a window (it flashes up briefly). CI has no GPU, so it
-      // exports headless and the build compiles its shaders on first use.
-      const headless = process.env.CI ? ['--headless'] : [];
-      const r = await runGodot(
-        godot,
-        [...headless, '--path', PROJECT, '--export-release', 'Windows Desktop', join(outDir, 'Monomachia.exe')],
-        { timeoutMs: 1800000 },
-      );
-      if (r.code === 0 && hasScriptErrors(r.output)) die('godot.mjs: the export reported script errors.');
-      if (r.code !== 0 && /No export template found/.test(r.output)) {
-        die(
-          'godot.mjs: Windows export templates are not installed. In the Godot editor, open Editor → Manage Export ' +
-            'Templates and download 4.7.2 (about 1.3 GB), or let CI build the Windows version.',
-        );
+    case 'build':
+      await exportWindows(godot);
+      return;
+    case 'release': {
+      // A release, exported here on the PC with the asset repository's clips
+      // (CI's export is only a stand-in): the checks, the export, the exe's
+      // --smoke, the zip, then gh release upload to the tag's release, made as
+      // a draft if there is none; publishing stays a person's click. See
+      // scripts/release.mjs.
+      const [tag] = rest.filter((a) => !a.startsWith('--'));
+      const upload = !rest.includes('--no-upload');
+      const tagProblem = checkTag(tag, projectVersion(readFileSync(join(PROJECT, 'project.godot'), 'utf8')));
+      if (tagProblem) die(`godot.mjs: ${tagProblem}`);
+      spawnSync('git', ['fetch', '--quiet', 'origin'], { cwd: ROOT, stdio: 'inherit' });
+      const git = (args) => spawnSync('git', args, { cwd: ROOT, encoding: 'utf8' }).stdout ?? '';
+      const problems = workProblems(git(['status', '--porcelain', '--untracked-files=no']), git(['branch', '-r', '--contains', 'HEAD']));
+      if (problems.length) die(`godot.mjs: can't release ${tag}:\n- ${problems.join('\n- ')}`);
+      const head = git(['rev-parse', 'HEAD']).trim();
+      const outDir = await exportWindows(godot);
+      const standIn = existsSync(join(outDir, STAND_IN_FILE));
+      if (standIn) console.warn(`\n${STAND_IN_WARNING}\n`);
+      console.log('godot.mjs: playing the exported game with --smoke...');
+      const smoke = await runGodot(join(outDir, 'Monomachia.exe'), ['--smoke'], { cwd: outDir, timeoutMs: 300000 });
+      if (smoke.code !== 0) die(`godot.mjs: the exported game failed its --smoke run (exit ${smoke.code}).`);
+      const zip = join(ROOT, 'build', 'release', zipName(tag));
+      writeZip(zip, releaseFiles(outDir));
+      console.log(`godot.mjs: wrote ${zip}.`);
+      if (upload) {
+        const gh = (args) => spawnSync('gh', args, { cwd: ROOT, encoding: 'utf8' });
+        if (gh(['release', 'view', tag]).status !== 0) {
+          const made = gh([
+            'release', 'create', tag, '--draft', '--target', head, '--title', `Monomachia ${tag}`,
+            '--notes', `Monomachia ${tag} for Windows: unzip ${zipName(tag)} and run Monomachia.exe.`,
+          ]);
+          if (made.status !== 0) die(`godot.mjs: gh release create failed:\n${made.stderr}`);
+          console.log(`godot.mjs: made a draft release ${tag} at ${head.slice(0, 7)}.`);
+        }
+        // A slow uplink can stall long enough for GitHub to drop the upload
+        // (HTTP 408), so it gets three tries; --clobber replaces a partial asset.
+        let sent;
+        for (let attempt = 1; attempt <= UPLOAD_TRIES; attempt++) {
+          console.log(`godot.mjs: uploading ${zipName(tag)} (try ${attempt} of ${UPLOAD_TRIES})...`);
+          sent = gh(['release', 'upload', tag, zip, '--clobber']);
+          if (sent.status === 0) break;
+          console.warn(`godot.mjs: the upload failed: ${sent.stderr.trim()}`);
+        }
+        if (sent.status !== 0) die(`godot.mjs: gh release upload failed ${UPLOAD_TRIES} times; retry with gh release upload ${tag} "${zip}" --clobber`);
+        const url = gh(['release', 'view', tag, '--json', 'url', '--jq', '.url']).stdout.trim();
+        console.log(`godot.mjs: uploaded ${zipName(tag)} to ${url}`);
       }
-      process.exit(r.code);
+      console.log(standIn ? STAND_IN_WARNING : `godot.mjs: release ${tag} ${upload ? 'uploaded' : 'zipped (not uploaded)'}, with the licensed clips.`);
       return;
     }
     default:

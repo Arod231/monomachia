@@ -12,8 +12,8 @@ extends SceneTree
 ## Port notes:
 ## - The match count is the first user argument (after --), read like JS
 ##   Number(); the default is 30.
-## - It uses the same seeds as the TS soak, and its report matched
-##   `npx tsx scripts/soak.ts <matches>` line for line up to commit 4222167
+## - It uses the same seeds as the TS soak, and its report matched the TS
+##   soak (v0.1-web-mvp:scripts/soak.ts) line for line up to commit 4222167
 ##   (plan task 8.2, which records that baseline). Since then the Godot rules
 ##   change on their own, so the report describes them alone. Numbers are
 ##   printed with JsFormat (JS toFixed and console.log of an object).

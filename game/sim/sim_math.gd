@@ -1,8 +1,8 @@
 class_name SimMath
 extends RefCounted
-## Port of src/sim/math.ts.
+## Port of v0.1-web-mvp:src/sim/math.ts.
 ##
-## Small math helpers for the simulation (no three.js dependency so it runs in tests).
+## Small math helpers for the simulation, free of engine types so it runs in tests.
 ##
 ## Port notes:
 ## - Vec2 and Vec3 live in v2.gd and v3.gd; v2() and v3() are V2.make() and V3.make().

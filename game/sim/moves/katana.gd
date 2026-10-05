@@ -1,6 +1,6 @@
 class_name KatanaMoves
 extends RefCounted
-## Port of src/sim/moves/katana.ts.
+## Port of v0.1-web-mvp:src/sim/moves/katana.ts.
 ##
 ## Katana — medium class. Balanced, versatile, decent speed.
 

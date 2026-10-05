@@ -4,7 +4,7 @@ extends RefCounted
 ## numbers with no nodes (task 24.1): the HP bar and whether it runs low, the
 ## posture bar and its heat, the lit pips, the ultimate badge and the
 ## disarmed tag. MatchHud draws it; tests check it. The demo's rules from
-## src/ui/hud.ts's update().
+## v0.1-web-mvp:src/ui/hud.ts's update().
 
 enum Posture { CALM, HOT, FULL }
 enum Badge { HIDDEN, READY, USED }

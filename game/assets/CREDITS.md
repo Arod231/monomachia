@@ -1,5 +1,15 @@
 # Credits
 
+The per-file record of where everything in `game/assets` comes from. The short credits page the game ships with is `CREDITS.md` at the repository root (`CREDITS.txt` beside the exe), and `tests/credits.test.mjs` checks that it names every pack recorded here.
+
+| Folder | What it holds | Record |
+|---|---|---|
+| `quaternius/` | characters, outfits, hair and animation libraries by Quaternius (CC0) | the tables below |
+| `weapons/` | the Greatsword and Dagger models by Quaternius (CC0) | the tables below |
+| `audio/` | sound effects cut from the Sonniss bundle, and generated sounds and music | `audio/SOURCES.md` |
+| `kevin_iglesias/` | the list of licensed Kevin Iglesias clips the game uses and their bone map; the clips themselves are converted on the developer's PC into the gitignored `library/` and never committed | `kevin_iglesias/clip_manifest.json`, and "Not in the repo" below |
+| `authored/` | the hand-keyed animations (`keys/*.json` and the library built from them), Monomachia's own | the project's licence |
+
 The art in `game/assets` comes from free packs by Quaternius. Every pack is under the **CC0 1.0 Universal** public domain dedication (https://creativecommons.org/publicdomain/zero/1.0/): free for any use, commercial included, with no credit required. We credit Quaternius anyway.
 
 Models and animations by **Quaternius** (https://quaternius.com, https://www.patreon.com/quaternius).
@@ -30,7 +40,7 @@ The Katana (`game/weapons/katana`), the Hunter's tricorn and the worn-cloth text
 
 ## Not in the repo
 
-These packs are kept unzipped in the local source folder (`Desktop/Monomachia-assets/kevin_iglesias`) for reference only. Their licence allows using them in the game but not redistributing them, so the raw files must not be committed to this public repo.
+These packs are kept unzipped in the asset repository on the developer's PC (the folder `.assets-src-path` names; today `Desktop/Monomachia-assets/kevin_iglesias`). Their licence allows using them in the game but not redistributing them, so the raw files, and the clips converted from them, must never be committed to this public repo. `node scripts/godot.mjs clips` converts the clips `kevin_iglesias/clip_manifest.json` names into the gitignored `kevin_iglesias/library/`, and a build made with them packs them into the exe. The game uses Human Melee Animations, Human Basic Motions and Human Crafting Animations (two shoulder-carry clips); Human Dance Animations is unused.
 
 | Pack | Version | Source | Licence |
 |---|---|---|---|
@@ -39,4 +49,4 @@ These packs are kept unzipped in the local source folder (`Desktop/Monomachia-as
 | Human Crafting Animations | 2.2 | as above | as above |
 | Human Dance Animations | 2.1 | as above | as above |
 
-All four are FBX clips (plus Blender files) made for Kevin Iglesias's own HumanF and HumanM rigs, not the Quaternius skeleton, so they would need retargeting before the game could use them.
+All four are FBX clips (plus Blender files) made for Kevin Iglesias's own HumanF and HumanM rigs, not the Quaternius skeleton; the import tool retargets them through `kevin_iglesias/iglesias_bone_map.tres`.

@@ -1,6 +1,6 @@
 class_name RawInput
 extends RefCounted
-## Port of the RawInput interface and emptyInput() from src/sim/input.ts.
+## Port of the RawInput interface and emptyInput() from v0.1-web-mvp:src/sim/input.ts.
 ##
 ## Device-agnostic input as the simulation sees it.
 ## Keyboards, gamepads and the AI all produce a RawInput each frame; the
