@@ -45,18 +45,37 @@ func _initialize() -> void:
 
 
 ## Bakes the table's weapons (or only `only`) and writes their files, or
-## with `check` compares them. Returns the exit code.
+## with `check` compares them, printing the report. Returns the exit code.
 func run(only: StringName, check: bool) -> int:
+	var out: Dictionary = bake(only, check, root)
+	for line: String in out["report"]:
+		print(line)
+	for line: String in out["errors"]:
+		printerr(line)
+	return out["code"]
+
+
+## The bake itself, run under `parent` (the command's root, or the Studio's
+## save, milestone-1 task 27): {"code": the exit code, "report": the lines it
+## prints, "errors": the lines it complains with}.
+static func bake(only: StringName, check: bool, parent: Node) -> Dictionary:
+	var lines: PackedStringArray = []
+	var complaints: PackedStringArray = []
+	var code: int = _bake(only, check, parent, lines, complaints)
+	return {"code": code, "report": lines, "errors": complaints}
+
+
+static func _bake(only: StringName, check: bool, parent: Node, lines: PackedStringArray, complaints: PackedStringArray) -> int:
 	if not ClipLibraries.available():
-		printerr("bake_swings: no clip libraries; run `node scripts/godot.mjs clips` (needs the packs, see .assets-src-path)")
+		complaints.append("bake_swings: no clip libraries; run `node scripts/godot.mjs clips` (needs the packs, see .assets-src-path)")
 		return EXIT_NO_LIBRARIES
 	var manifest: ClipManifest = ClipManifest.read()
 	var table: MoveClips = MoveClips.read(manifest)
 	if not manifest.errors.is_empty() or not table.errors.is_empty():
-		printerr("bake_swings: mistakes in the tables:\n  " + "\n  ".join(manifest.errors + table.errors))
+		complaints.append("bake_swings: mistakes in the tables:\n  " + "\n  ".join(manifest.errors + table.errors))
 		return 1
 	if only != &"" and not table.moves.has(only):
-		printerr("bake_swings: %s is not in the move-clip table" % only)
+		complaints.append("bake_swings: %s is not in the move-clip table" % only)
 		return 1
 	var code: int = 0
 	var old_table: FrameDataTable = FrameDataTable.read()
@@ -69,28 +88,28 @@ func run(only: StringName, check: bool) -> int:
 			continue
 		var path: String = SwingFile.path_for(wid)
 		var old: String = FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
-		var out: Dictionary = bake_weapon(wid, table, manifest, root, old)
-		print("%s:\n  %s" % [wid, "\n  ".join(out["report"])])
+		var out: Dictionary = bake_weapon(wid, table, manifest, parent, old)
+		lines.append("%s:\n  %s" % [wid, "\n  ".join(out["report"])])
 		if not (out["errors"] as Array).is_empty():
-			printerr("bake_swings: %s:\n  %s" % [wid, "\n  ".join(out["errors"])])
+			complaints.append("bake_swings: %s:\n  %s" % [wid, "\n  ".join(out["errors"])])
 			code = 1
 			continue
 		rows[String(wid)] = out["rows"]
 		if check:
 			if out["text"] != old:
-				printerr("bake_swings: %s differs from a fresh bake" % path)
+				complaints.append("bake_swings: %s differs from a fresh bake" % path)
 				code = 1
 			continue
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SwingFile.DIR))
 		var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 		f.store_string(out["text"])
 		f.close()
-		print("  wrote %s" % path)
+		lines.append("  wrote %s" % path)
 	if code != 0:
 		return code
-	var extras: Dictionary = bake_extras(manifest, root)
+	var extras: Dictionary = bake_extras(manifest, parent)
 	if not (extras["errors"] as Array).is_empty():
-		printerr("bake_swings: the table:\n  %s" % "\n  ".join(extras["errors"]))
+		complaints.append("bake_swings: the table:\n  %s" % "\n  ".join(extras["errors"]))
 		return 1
 	var ordered: Dictionary = {}
 	for wid: StringName in Moves.WEAPONS:
@@ -100,13 +119,13 @@ func run(only: StringName, check: bool) -> int:
 	var old_text: String = FileAccess.get_file_as_string(FrameDataTable.PATH) if FileAccess.file_exists(FrameDataTable.PATH) else ""
 	if check:
 		if text != old_text:
-			printerr("bake_swings: %s differs from a fresh bake" % FrameDataTable.PATH)
+			complaints.append("bake_swings: %s differs from a fresh bake" % FrameDataTable.PATH)
 			code = 1
 		return code
 	var f: FileAccess = FileAccess.open(FrameDataTable.PATH, FileAccess.WRITE)
 	f.store_string(text)
 	f.close()
-	print("wrote %s" % FrameDataTable.PATH)
+	lines.append("wrote %s" % FrameDataTable.PATH)
 	return code
 
 
