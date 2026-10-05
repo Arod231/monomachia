@@ -417,13 +417,14 @@ $w.ShowDialog() | Out-Null
     const noted = (word) => existsSync(log) && readFileSync(log, 'utf8').split(/\r?\n/).includes(word);
     try {
       for (let i = 0; i < 100 && !noted('shown'); i++) await new Promise((r) => setTimeout(r, 100));
-      return await fn({ env, noted });
+      // The press looks only at this stand-in: env carries its process id.
+      return await fn({ env: { ...env, FAKE_PID: String(app.pid) }, noted });
     } finally {
       app.kill();
       rmSync(dir, { recursive: true, force: true });
     }
   }
-  const press = async (env, extra) => pressResult((await run('powershell.exe', [...POWERSHELL, '-App', 'powershell', ...extra],
+  const press = async (env, extra) => pressResult((await run('powershell.exe', [...POWERSHELL, '-AppPid', env.FAKE_PID, ...extra],
     { windowsHide: true, timeout: 60_000, env })).stdout);
 
   it('presses the Send button beside the box holding the prompt, once the box has settled', () => withFakeApp([], async ({ env, noted }) => {
@@ -454,4 +455,21 @@ $w.ShowDialog() | Out-Null
     assert.equal(noted('trusted') || noted('cancelled'), false);
     assert.equal(noted('sent'), false);
   }));
+
+  // Another lane's tests can have a stand-in of their own up at the same time.
+  it('looks only at its own app, not at another one asking to trust another folder', () => withFakeApp(['-Trust', 'C:\\Elsewhere', '-BoxBehind'], (other) =>
+    withFakeApp([], async ({ env, noted }) => {
+      const r = await press({ ...env, LANES_FOLDER: 'C:\\Repo\\Mono' }, ['-WaitMs', '20000', '-SettleMs', '200', '-TakeMs', '5000']);
+      assert.equal(r.result, 'pressed');
+      assert.equal(noted('sent'), true);
+      assert.equal(other.noted('trusted') || other.noted('cancelled') || other.noted('sent'), false);
+    })));
+
+  it('never presses another program\'s Send for a box that has none', () => withFakeApp([], (other) =>
+    withFakeApp(['-NoSend'], async ({ env, noted }) => {
+      const r = await press(env, ['-WaitMs', '3000', '-SettleMs', '200']);
+      assert.equal(r.result, 'no-send');
+      assert.equal(other.noted('sent'), false);
+      assert.equal(noted('sent'), false);
+    })));
 });

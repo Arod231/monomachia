@@ -18,9 +18,14 @@ extends RefCounted
 ## - InkWashPass nodes get the post quality and the normal lines;
 ## - WorldEnvironment nodes get fog, height fog and glow, and the look's
 ##   colour grade (InkGrade) unless they bring their own;
+## - SubViewports in group graphics_viewports (Versus's split-screen halves)
+##   get the anti-aliasing and render scale, as the root viewport does
+##   (apply_to_group(); GameServices.apply_graphics() calls it);
 ## - every material made by ToonMaterials has its outline switched by its
 ##   OutlineKind.
 
+## Viewports besides the root that draw the match (SplitView's halves).
+const VIEWPORTS_GROUP: StringName = &"graphics_viewports"
 const GROUP_SHADOW_LIGHT: StringName = &"look_shadow_light"
 const GROUP_MINOR_LIGHT: StringName = &"look_minor_light"
 const GROUP_PARTICLES: StringName = &"look_particles"
@@ -59,6 +64,14 @@ static func apply_to_tree(preset: GraphicsPreset, root: Node) -> void:
 		var kind: ToonMaterials.OutlineKind = ToonMaterials.outline_kind_of(material)
 		if kind != ToonMaterials.OutlineKind.NONE:
 			ToonMaterials.set_outline(material, preset.outlines_on(kind), preset.outline_width_scale)
+
+
+## Applies the preset's anti-aliasing and render scale to every viewport in
+## VIEWPORTS_GROUP.
+static func apply_to_group(preset: GraphicsPreset, tree: SceneTree) -> void:
+	for node: Node in tree.get_nodes_in_group(VIEWPORTS_GROUP):
+		if node is Viewport:
+			apply_to_viewport(preset, node as Viewport)
 
 
 ## Applies the preset's anti-aliasing and render scale to viewport.
