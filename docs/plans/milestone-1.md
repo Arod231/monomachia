@@ -138,11 +138,39 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Blocked by: 2, `docs/plans/godot-rebuild.md` task 26.4 · Stories: 15, 205
   - Decided with the owner (Oct 5, before building): the asset repository's budget script goes there on a branch with a pull request for the owner to approve, not pushed to its main. Technical: the public art budget counts what `test_asset_budget.gd` counts today (`game/assets` without the audio and the gitignored Iglesias folders, plus the baked PNG, RES and EXR files in `game/fighters` and `game/weapons`); its 25 MB per-file and texture checks stay.
   - Done Oct 5: `scripts/check-sizes.mjs` keeps the 10 MB per-file guard and adds the public repository's budgets, failing on either: the committed game art (what `isArt()` counts, as decided above) under 150 MB, today 105.0 MB, and the committed audio (`game/assets/audio`) under 40 MB, today 30.5 MB; it prints both against their budgets. `test_asset_budget.gd`'s 110 MB test is gone. In the asset repository, `tools/check-budgets.mjs` (pull request Arod231/monomachia-assets#1, for the owner) checks the total, each fighter's and weapon's sources and exports, each exported clip, the arena and the textures (4K in fighters, weapons and `hero-props/` folders, 2K elsewhere in `blender/` and `exports/`), weighing a file not pulled from LFS by its pointer's size; today 1891.1 MB, every place inside. Checked: `tests/check-sizes.test.mjs` (each budget at its limit and one byte over, what counts as art and audio, the command's budget lines) and the asset repository's 16 tests; both checks pass today. Story 205 stays open: the shipped game's budget (2 GB zipped, 3 GB installed) isn't checked yet; task 123 runs the size budgets on the finished build.
-- [ ] **9. PoseCheck measures foot slide and blade clearance on every rules frame.** The per-move checklist's foot and blade items get a measure that skips no frame.
+- [x] **9. PoseCheck measures foot slide and blade clearance on every rules frame.** The per-move checklist's foot and blade items get a measure that skips no frame.
   - Delivers: a foot-slide measure in `PoseCheck` (a planted foot's travel over its contact, limit 1 cm); `MoveBench` runs PoseCheck's foot slide and blade clearance on every rules frame of a clip, not only the sheet's chosen frames, and reports the worst frame.
   - Check: unit tests on a sliding and a planted foot; a local-only test runs every Katana move through it and prints today's worst values into Progress as the baseline.
   - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 101, 103
   - Decided with the owner (Oct 5, before building): a foot is planted by FootLock's rule (its ankle within 3 cm of its rest height, let go above 6 cm); its slide is how far it moves along the ground from where it landed, on the final pose in world space; over 1 cm is a failure on the sheets and in MoveBench's summary. This lane is a side lane: the baseline goes in this task's Done note, and Progress and the spec's status line stay the main lane's (so for tasks 7, 8 and 10 too).
+  - Done Oct 5: `PoseCheck.FootTrack` follows a run of frames (`Frame.root` carries skeleton space into the world; `ankle_rest` holds each ankle's rest height) and `measure(frame, contact, track)` fills `Report.feet`, each planted foot's slide along the ground since it came down; over `FOOT_SLIDE_MAX` (1 cm) is a failure ("right foot slid 2.4 cm") and the summary prints it. `MoveBench` gives each move a track, so every rules frame of the move is measured for both foot slide and blade clearance, and `MoveBench.worst()` (`Worst`) and the summary name the worst frame of each. `test_pose_check.gd`: a planted foot held still under a moving body, a foot creeping 6 mm a frame (failing past 1 cm), rising within the plant, a lifted foot landing afresh and one coming down only between the heights, no slide on a single frame, the bench's worst frames; `test_local_every_katana_move_s_feet_and_blade_print_their_worst` prints the baseline.
+  - Baseline (Oct 5, the Hunter with the licensed clips, every Katana move from the guard; worst blade clearance, its capsule and frame; worst foot slide, its foot and frame). The slides are long because the rules' lunges carry the fighter while the clip's feet stay low, so one contact runs the length of the lunge (foot locking lets go and re-plants every 15 cm); travel from the clips (task 21) and the families' re-keys answer them.
+
+    | Move | Frames | Blade | Foot slide |
+    |---|---|---|---|
+    | k_l1 Right Cut | 29 | 1.1 cm (torso, fr 9) | 63.6 cm (left, fr 18) |
+    | k_l2 Return Cut | 28 | −4.2 cm (head, fr 3) | 7.5 cm (right, fr 26) |
+    | k_l3 Kesa Cut | 30 | −4.3 cm (head, fr 2) | 29.6 cm (left, fr 22) |
+    | k_l4 Crown Cut | 39 | −2.2 cm (head, fr 2) | 62.4 cm (left, fr 30) |
+    | k_iai Iai Slash (vertical) | 50 | −3.2 cm (head, fr 20) | 126.9 cm (left, fr 32) |
+    | k_iai_h Iai Slash (horizontal) | 50 | −1.3 cm (torso, fr 5) | 130.0 cm (left, fr 30) |
+    | k_h1f Rising Heaven | 43 | 4.8 cm (torso, fr 43) | 108.6 cm (left, fr 23) |
+    | k_rdraw Returning Draw | 43 | −3.3 cm (head, fr 13) | 96.6 cm (left, fr 25) |
+    | k_h2 Heaven Splitter | 53 | 1.2 cm (head, fr 11) | 1.3 cm (right, fr 2) |
+    | k_sl Running Draw | 33 | 0.4 cm (torso, fr 9) | 169.6 cm (left, fr 27) |
+    | k_sh Leaping Cleave | 50 | 1.2 cm (head, fr 10) | 1.6 cm (right, fr 2) |
+    | k_dl Wind Cut | 27 | 5.0 cm (torso, fr 27) | 50.2 cm (left, fr 15) |
+    | k_dh Whirl Cut | 47 | 0.5 cm (head, fr 2) | 32.6 cm (right, fr 18) |
+    | k_bl Rising Cut | 30 | 3.5 cm (torso, fr 30) | 111.8 cm (left, fr 20) |
+    | k_bh Lunging Cut | 45 | 2.6 cm (left thigh, fr 38) | 52.7 cm (left, fr 35) |
+    | k_jl Aerial Cut | 22 | 0.8 cm (torso, fr 5) | 33.3 cm (left, fr 12) |
+    | k_jh Falling Crown | 34 | −6.7 cm (head, fr 2) | 0.0 cm |
+    | k_flash Flash | 37 | −6.2 cm (head, fr 22) | 0.0 cm |
+    | k_thrust Piercing Thrust | 53 | 1.8 cm (head, fr 2) | 35.0 cm (right, fr 24) |
+    | k_sweep Swallow Sweep | 54 | 0.5 cm (head, fr 2) | 95.5 cm (right, fr 24) |
+    | k_lunge Counter Lunge | 26 | −5.4 cm (head, fr 2) | 90.4 cm (left, fr 17) |
+
+    A negative clearance is blade inside the capsule. Only Heaven Splitter's (1.3 cm), Leaping Cleave's (1.6 cm), Falling Crown's and Flash's (0.0 cm) feet come near the limit, and no move passes both items yet. Stories 101 and 103 stay open until the clips pass.
 - [ ] **10. The per-move checklist.** A committed record of the spec's 17 checklist items for every milestone-1 move and clip.
   - Delivers: `docs/reviews/milestone-1-checklist.md`, one row per Katana and bare-hands move and per clip that sets a rules length or shows a protected timing, one column per item; a tool fills the CI-checked columns from the test results and the owner's columns are ticked at each family's review.
   - Check: a test that every move in the frame-data readers' list has a row; the tool fills a row from a test run.

@@ -718,7 +718,7 @@ flowchart TD
 | `body_layer.gd` | `BodyLayer` | Procedural pelvis, spine and head over the clip. |
 | `locomotion.gd` | `Locomotion` | The packs' directional walk, run and sprint clips blended by the rules' velocity on one shared step phase stepped per rules frame; tap steps, a backwards sprint turned away, the turn on the spot, footfalls at the clips' foot contacts (authored-animation task 29). |
 | `foot_phase.gd` | `FootPhase` | Measures each locomotion clip's way, stride, mid-stances and foot contacts once. |
-| `pose_check.gd` | `PoseCheck` | Pose quality checks for tools and tests (wrist bend, knee over toes, blade clearance). |
+| `pose_check.gd` | `PoseCheck` | Pose quality checks for tools and tests (wrist bend, knee over toes, blade clearance, and with a `FootTrack` over a move's frames, planted feet sliding over 1 cm, milestone-1 task 9). `MoveBench` (`game/tools`) measures every rules frame of a move and names its worst frames. |
 | `rig_callback.gd` | `RigCallback` | Lets the rig insert a function into the modifier stack. |
 
 ## 10. Fighters, weapons and arenas (content)
