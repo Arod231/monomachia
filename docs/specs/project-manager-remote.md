@@ -30,7 +30,7 @@ The Project Manager becomes the place to run sessions from the phone:
 3. As the owner, I want the Away switch to show how many items are waiting for me, so that I know at a glance whether anything is stuck.
 4. As the owner, I want switching Away off to hand every held question back to the app's own dialogs, so that I answer at the PC as usual when I'm back.
 5. As the owner, I want sessions that finish their turn while I'm away to wait for my reply instead of going idle, so that a reply or command I send hours later still reaches them.
-6. As the owner, I want a held item to give up after 24 hours, so that a forgotten session doesn't wait forever.
+6. As the owner, I want a held item to give up after 24 minutes, so that a forgotten session doesn't wait forever.
 7. As the owner, I want "Hand back to the app" on any held item, so that I can leave one item for the PC.
 8. As the owner, I want a reply to a session in the middle of a turn to reach it before its next step, so that I can steer it without waiting for the turn to end.
 9. As the owner, I want a reply to a session the Project Manager can't reach right now to be queued for its next turn end, so that nothing I send is lost.
@@ -147,7 +147,7 @@ The owner's answers from the Oct 4 interview.
 |---|---|
 | One spec or several, and in what order? | One spec and one plan. Questions first: the Questions tab and routing, then notifications, then commands, then the session page's visuals and docs. |
 | When do sessions send their questions to the Project Manager? | While the Away switch is on. It's flipped by hand on the phone or the PC (no automatic Away), and it replaces the per-session switch. |
-| What does Away hold? | Questions, permission prompts (plan approvals included) and turn ends, until answered, handed back, Away goes off, or 24 hours pass. |
+| What does Away hold? | Questions, permission prompts (plan approvals included) and turn ends, until answered, handed back, Away goes off, or 24 minutes pass (the owner, Oct 4: 25 minutes is enough). |
 | How do notifications reach the owner? | A bell on every page, always; iPhone lock-screen notifications only while Away is on, through Web Push to a Home Screen app made from the HTTPS address. |
 | Which events notify? | Questions and approvals, finished turns, pull requests ready to merge, new visuals. |
 | How do visuals reach a session's page? | Posted by the session with a caption (`npm run post`), plus every image it got back from its tools, listed apart. |
@@ -175,13 +175,13 @@ The owner's answers from the Oct 4 interview.
 
 - **One switch, in a file.** The relay folder (`~/.claude/lanes-relay`, `LANES_RELAY` overrides it) gets an Away file (on or off, since when, from which device) in place of the per-session list. Both pages show the switch in their header with the number of items waiting.
 - **The relay hook decides per event:**
-  - *PermissionRequest, Away on:* it writes a held item (a question for AskUserQuestion, a plan for ExitPlanMode, a permission for anything else) and waits for an answer, a hand-back, Away going off, or 24 hours. A question is answered as Claude Code's own hosts answer it: allow, with the tool's input passed back plus an `answers` map (question text to the chosen label, several labels joined with ", ", free text for "Other"), or a `response` for a free-form reply. A permission is allowed (optionally with the suggested rule), or denied with the owner's reason; a plan is approved, or rejected with the reason.
+  - *PermissionRequest, Away on:* it writes a held item (a question for AskUserQuestion, a plan for ExitPlanMode, a permission for anything else) and waits for an answer, a hand-back, Away going off, or 24 minutes. A question is answered as Claude Code's own hosts answer it: allow, with the tool's input passed back plus an `answers` map (question text to the chosen label, several labels joined with ", ", free text for "Other"), or a `response` for a free-form reply. A permission is allowed (optionally with the suggested rule), or denied with the owner's reason; a plan is approved, or rejected with the reason.
   - *Stop, Away on:* a reply already queued for the session goes in at once. Otherwise it holds the turn end, with the session's last message, and waits the same way. The owner's reply, or a command's message, continues the session ("The owner replied from the Project Manager: …").
   - *Either event, Away off:* it records an event for the bell (asked in the app, turn finished) and exits at once, so the session runs as it does today. With no relay folder at all, it exits before reading anything, as now.
 - **Messages to a working session** (a reply, Approve & continue, Show me, the merge tidy-up) wait in a per-session inbox in the relay folder. The PreToolUse hook, which already runs before every tool call, adds the oldest as context before the next tool runs. No extra process per tool call. A turn end takes what's left.
 - **Sessions the hooks can't reach** (idle since before Away went on, or with Away off): commands queue in the inbox for the session's next turn end, and the page offers Open in the Claude app.
 - **Going off.** Switching Away off releases every held item: questions and permissions go back to the app's dialogs, held turn ends simply end.
-- **The 24-hour limit** is the hook's own (`LANES_RELAY_WAIT_MS` overrides it for tests). The installed hooks' timeouts are raised to match, and the spike checks that Claude Code honours a timeout that long.
+- **The 24-minute limit** is the hook's own (`LANES_RELAY_WAIT_MS` overrides it for tests). The installed hooks' timeouts are 25 minutes, a minute longer, so the hook always gives up and clears its card before Claude Code ends it. It was 24 hours until the owner settled on 25 minutes (Oct 4), the timeout `~/.claude/settings.json` already had.
 - **Stop now** stops the session before its next tool call and ends its turn; with Away on, that turn end is held like any other, so the session waits for the owner. **End work** keeps today's behaviour (the lane is ended and takes no task), for any session, launched or not.
 - **The fallback**, if the spike shows a hook can't answer AskUserQuestion: the hook declines the question with the owner's answers as the reason, which Claude reads and follows.
 
@@ -245,9 +245,9 @@ The owner's answers from the Oct 4 interview.
 
 The tracked hooks stay dependency-free and exit at once when nothing concerns the session.
 
-- The relay hook gains Away, the event records and the 24-hour holds.
+- The relay hook gains Away, the event records and the 24-minute holds.
 - The stop hook gains inbox delivery and Stop now.
-- The install (copying them to `~/.claude/hooks/` and raising the PermissionRequest and Stop timeouts to 24 hours in `~/.claude/settings.json`) waits for the owner's OK, as before.
+- The install (copying them to `~/.claude/hooks/` and raising the PermissionRequest and Stop timeouts to 25 minutes in `~/.claude/settings.json`) waits for the owner's OK, as before.
 - The page compares the installed copies with the tracked ones and says when they're out of date.
 
 ### Security

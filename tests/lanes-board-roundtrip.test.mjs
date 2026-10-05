@@ -334,7 +334,7 @@ describe('the round trip: turn ends, replies and the inbox', () => {
     assert.match(late.body.error, /already answered, handed back or timed out/);
   });
 
-  it('gives up a hold at its time limit (shortened here from 24 hours)', async () => {
+  it('gives up a hold at its time limit (shortened here from 24 minutes)', async () => {
     await board.post('/relay/away', { on: true });
     const started = Date.now();
     assert.equal(await board.hook(STOP(), { waitMs: 400 }).done, null);

@@ -12,15 +12,16 @@ import { HOOKS, hookCommand, hooksStatus, withHooks } from '../tools/lanes-board
 const HOME = 'C:/Users/owner/.claude';
 const relay = hookCommand(HOME, 'lanes-relay');
 const stop = hookCommand(HOME, 'lanes-stop');
-const DAY = 86400;
+const HOLD = 1500;
 
-// User settings as they were before the install: the relay hook's 25-minute timeouts.
-const before = (home = HOME) => ({
+// User settings with the relay hook's timeouts (relayTimeout seconds): 10
+// minutes, too short for a hold, unless given.
+const before = (home = HOME, relayTimeout = 600) => ({
   enabledPlugins: { x: true },
   hooks: {
     PreToolUse: [{ matcher: '*', hooks: [{ type: 'command', command: hookCommand(home, 'lanes-stop'), timeout: 10 }] }],
-    Stop: [{ hooks: [{ type: 'command', command: hookCommand(home, 'lanes-stop'), timeout: 10 }, { type: 'command', command: hookCommand(home, 'lanes-relay'), timeout: 1500 }] }],
-    PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: hookCommand(home, 'lanes-relay'), timeout: 1500 }] }],
+    Stop: [{ hooks: [{ type: 'command', command: hookCommand(home, 'lanes-stop'), timeout: 10 }, { type: 'command', command: hookCommand(home, 'lanes-relay'), timeout: relayTimeout }] }],
+    PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: hookCommand(home, 'lanes-relay'), timeout: relayTimeout }] }],
   },
 });
 const tracked = { 'lanes-relay': 'relay v2\n', 'lanes-stop': 'stop v2\n' };
@@ -32,12 +33,15 @@ describe('hookCommand', () => {
 });
 
 describe('withHooks', () => {
-  it('raises the relay hook\'s timeouts to 24 hours, leaving everything else as it was', () => {
+  it('raises the relay hook\'s timeouts to 25 minutes, leaving everything else as it was', () => {
     const s = withHooks(before(), HOME);
     assert.deepEqual(s.enabledPlugins, { x: true });
-    assert.deepEqual(s.hooks.PermissionRequest, [{ matcher: '*', hooks: [{ type: 'command', command: relay, timeout: DAY }] }]);
-    assert.deepEqual(s.hooks.Stop, [{ hooks: [{ type: 'command', command: stop, timeout: 10 }, { type: 'command', command: relay, timeout: DAY }] }]);
+    assert.deepEqual(s.hooks.PermissionRequest, [{ matcher: '*', hooks: [{ type: 'command', command: relay, timeout: HOLD }] }]);
+    assert.deepEqual(s.hooks.Stop, [{ hooks: [{ type: 'command', command: stop, timeout: 10 }, { type: 'command', command: relay, timeout: HOLD }] }]);
     assert.deepEqual(s.hooks.PreToolUse, before().hooks.PreToolUse);
+  });
+  it('leaves 25-minute timeouts as they are', () => {
+    assert.deepEqual(withHooks(before(HOME, HOLD), HOME), before(HOME, HOLD));
   });
   it('adds what is missing, keeps other hooks, and changes nothing the second time', () => {
     const other = { type: 'command', command: 'node other.mjs', timeout: 5 };
@@ -45,7 +49,7 @@ describe('withHooks', () => {
     assert.deepEqual(s.hooks.Stop[0].hooks[0], other);
     assert.deepEqual(s.hooks.Stop.flatMap((g) => g.hooks).map((h) => h.command), ['node other.mjs', relay, stop]);
     assert.deepEqual(s.hooks.PreToolUse, [{ matcher: '*', hooks: [{ type: 'command', command: stop, timeout: 10 }] }]);
-    assert.deepEqual(s.hooks.PermissionRequest, [{ matcher: '*', hooks: [{ type: 'command', command: relay, timeout: DAY }] }]);
+    assert.deepEqual(s.hooks.PermissionRequest, [{ matcher: '*', hooks: [{ type: 'command', command: relay, timeout: HOLD }] }]);
     assert.deepEqual(withHooks(s, HOME), s);
     assert.deepEqual(withHooks({}, HOME), withHooks(withHooks({}, HOME), HOME));
   });
@@ -68,11 +72,11 @@ describe('hooksStatus', () => {
       'The stop hook isn\'t installed.',
     ]);
   });
-  it('says when a registration is missing or its timeout is too short for a 24-hour hold', () => {
+  it('says when a registration is missing or its timeout is too short for a 24-minute hold', () => {
     const s = status(tracked, before());
     assert.deepEqual(s.problems, [
-      'The relay hook\'s PermissionRequest timeout is 1500 s, not 24 hours.',
-      'The relay hook\'s Stop timeout is 1500 s, not 24 hours.',
+      'The relay hook\'s PermissionRequest timeout is 600 s, not 25 minutes.',
+      'The relay hook\'s Stop timeout is 600 s, not 25 minutes.',
     ]);
     const bare = status(tracked, {});
     assert.equal(bare.problems.length, 4);
@@ -105,8 +109,16 @@ describe('install-hooks.mjs', () => {
     }
     const settings = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8'));
     assert.equal(settings.hooks.PermissionRequest[0].hooks.length, 1);
-    assert.equal(settings.hooks.PermissionRequest[0].hooks[0].timeout, DAY);
+    assert.equal(settings.hooks.PermissionRequest[0].hooks[0].timeout, HOLD);
     assert.ok(readdirSync(dir).some((n) => n.startsWith('settings.json.bak-')));
+    assert.match(run('--check').stdout, /current/i);
+  });
+  it('copies the hooks without touching settings that already register them', () => {
+    writeFileSync(path.join(dir, 'settings.json'), JSON.stringify(before(dir, HOLD)));
+    const r = run();
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /already registers them/);
+    assert.deepEqual(readdirSync(dir).sort(), ['hooks', 'settings.json']);
     assert.match(run('--check').stdout, /current/i);
   });
   it('starts settings from nothing when there are none', () => {

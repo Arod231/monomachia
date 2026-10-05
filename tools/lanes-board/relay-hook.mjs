@@ -6,11 +6,11 @@
 // the app or a finished turn is noted for the Project Manager.
 //
 // Install: copy this file to ~/.claude/hooks/lanes-relay/hook.mjs and add, to
-// ~/.claude/settings.json (beside the lanes stop hook), with timeouts of 24 hours
-// so a hold lasts as long as this file lets it:
+// ~/.claude/settings.json (beside the lanes stop hook), with timeouts of 25
+// minutes, a minute longer than this file holds, so it always gives up first:
 //   "hooks": {
-//     "PermissionRequest": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 86400 }] }],
-//     "Stop": [{ "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 86400 }] }]
+//     "PermissionRequest": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 1500 }] }],
+//     "Stop": [{ "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 1500 }] }]
 //   }
 //
 // It talks to the board through files in ~/.claude/lanes-relay (LANES_RELAY
@@ -26,7 +26,7 @@
 //   events.jsonl         what happened in the app meanwhile (a question asked
 //                        there, or a turn finished, while Away was off), one JSON
 //                        object per line
-// A prompt waits up to 24 hours for the board (LANES_RELAY_WAIT_MS), then falls
+// A prompt waits up to 24 minutes for the board (LANES_RELAY_WAIT_MS), then falls
 // back to the app's dialog; so does switching Away off. A turn's end waits the
 // same, so the owner can reply; meanwhile the app shows the session as working,
 // and "Hand back to the app" on the board ends the wait.
@@ -38,7 +38,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const DIR = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
-const WAIT_MS = Number(process.env.LANES_RELAY_WAIT_MS) || 24 * 60 * 60 * 1000;
+const WAIT_MS = Number(process.env.LANES_RELAY_WAIT_MS) || 24 * 60 * 1000;
 const POLL_MS = 400;
 
 const readJson = (file) => { try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return null; } };
