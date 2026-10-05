@@ -1,6 +1,6 @@
 # Spec: Milestone 1, the Hunter with the Katana and bare hands at final quality
 
-Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · progress: task 2 (the private asset repository) done Oct 4, task 3 (the mood board) waiting on the owner's approval · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
+Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · progress: tasks 2 (the private asset repository) and 3 (the mood board, approved with For Honor's camera framing) done Oct 4 · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
 
 Read with: `docs/design.md` (section 1, Order of work, and every "(Oct 4)" line), [ADR 0001](../adr/0001-animation-leads-realistic-look.md), the plan `docs/plans/milestone-1.md`, and the roadmap `docs/plans/roadmap.md`.
 
@@ -195,13 +195,13 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 131. As a player, I want neither the round-end beat nor the victory pose to play its own sheathe after a Katana finisher, which already re-sheathes; the winner holds the finisher's end pose through Warrior Slain, and the victory pose starts from it, so that the blade isn't sheathed twice. **(P4, confirmed Oct 4)**
 132. As a player, I want every KO that ends a round, finishers included, called Warrior Slain with the brushed kanji 討死 in place of 一本 K.O., and a double KO to keep its own call, so that the call fits the game.
 133. As a player, I want an ultimate's wind-up to stay on the gameplay camera, with the roar and a push-in, and its cinematic shot to play only once it connects, so that I can read and answer it.
-134. As a player, I want the camera over the shoulder, slightly more zoomed out than For Honor and locked on to the opponent, with its framing settled in the look test scene **(P20, confirmed Oct 4)**, so that I see both fighters and the space between.
+134. As a player, I want the camera over the shoulder, framed like For Honor (the mood board's Camera 2, chosen Oct 4 in place of "slightly more zoomed out") and locked on to the opponent, with its framing settled in the look test scene **(P20, confirmed Oct 4)**, so that I see both fighters and the space between.
 135. As a player, I want the camera clean during play (temporal anti-aliasing, subtle bloom, ambient occlusion, fog, the colour grade and light film grain, with no depth of field, motion blur or colour fringing), with those effects coming in only for the ultimates' and finishers' shots, the push-ins and the KO, so that wind-ups stay readable.
 136. As a player, I want hit-stop, camera shake on heavy blows and slow motion on the final blow at the new pace, so that big moments land.
 
 ### The look
 
-137. As the owner, I want to approve a mood board, with a UI page on it, before anything converts, with the ultimates' energy (element and colour) and the gameplay camera's framing settled on it too **(P20, confirmed Oct 4)**, so that the look is agreed before work is spent on it.
+137. [x] As the owner, I want to approve a mood board, with a UI page on it, before anything converts, with the ultimates' energy (element and colour) and the gameplay camera's framing settled on it too **(P20, confirmed Oct 4)**, so that the look is agreed before work is spent on it.
 138. As the owner, I want a look test scene (one fighter with the Katana in a corner of the Moonlit Shrine at Ultra on the RTX 3090) approved before the art converts, settling the lighting and the camera effects, so that the realistic look is proven in Godot first.
 139. As the owner, I want clip work to start at once and only the art conversion (materials, models, the arena, how effects look and the UI style) to wait for the mood board and the look test, so that animation isn't blocked by the look. **(P2, confirmed Oct 4)**
 140. As a player, I want the realistic look (physically based materials, dark lighting and volumetric fog under a painterly grade, after Ghost of Tsushima's darker side), with no toon shading, outlines or ink-wash, so that the game looks like the dark fantasy it means to be.
@@ -405,7 +405,7 @@ Module names are the code's; the plan names the files. The tables at the end of 
 ### Cinematic shots and the camera
 
 - A shot director plays authored camera shots from data (a camera path, a lens, and the camera effects allowed) on the presentation side, never in the rules. Shots: Moonsplitter and Breaker Palm once they connect, both finishers, and the match-winning KO. The recall gets a push-in, not a shot **(P37, confirmed Oct 4)**. A finisher that ends a round plays its own shot through Warrior Slain, and a match-winning finisher's shot replaces the authored KO shot **(P38, confirmed Oct 4)**. After a Katana finisher, which already re-sheathes, neither the round-end beat nor the victory pose plays its own sheathe: the winner holds the finisher's end pose through Warrior Slain, and a victory pose starts from it **(P4, confirmed Oct 4)**.
-- The camera rig gains a push-in for every parry, Flash and redirect, frozen in hit-stop and off under Reduce flashes **(P8, confirmed Oct 4)**. The gameplay camera's framing comes from the look test **(P20, confirmed Oct 4)**.
+- The camera rig gains a push-in for every parry, Flash and redirect, frozen in hit-stop and off under Reduce flashes **(P8, confirmed Oct 4)**. The gameplay camera's framing comes from the look test **(P20, confirmed Oct 4)**. The mood board set its target on Oct 4: For Honor's framing, the board's Camera 2 (about 3.4 m back, 1.0 m to the right (swinging out 0.6 m for each metre closer than 3.5 m), 1.75 m up, a 55° field of view), in place of today's 4.6 m back, 1.35 m right, 1.95 m up and 60°.
 
 ### Effects and blood
 
@@ -415,6 +415,7 @@ Module names are the code's; the plan names the files. The tables at the end of 
 
 ### Look, presets and the performance harness
 
+- The mood board (`moodboard/` in the asset repository) was approved by the owner on Oct 4, subject to change: the look and grade as drawn; crimson dye #9e2b25 against indigo dye #1d2a4d (ΔL* 18.5, so they read apart in grey); Moonsplitter's wave as moonlight and the disarmed ultimate as a spirit shockwave, neither in a side's colour; the UI in lacquer and gold; and the gameplay camera framed like For Honor (Camera 2).
 - Physically based materials under one colour grade replace the toon materials, outlines and ink-wash pass. The graphics presets become four data files (Ultra, High, Medium, Low), with Ultra the reference, FSR 2.2 upscaling on Ultra, and a first-launch pick from the detected graphics card. Low's upscaler is chosen at its first bench **(P30, confirmed Oct 4)**.
 - A performance harness plays the worst-case input log in a window after a shader warm-up pass and writes every frame's time; the gate reads the 99th percentile. CI has no GPU, so the gates are owner-run measurements recorded in the plan, not CI checks.
 

@@ -4,7 +4,7 @@ tags: [game, presentation]
 
 # Camera
 
-Over the right shoulder, like For Honor but a little more zoomed out, and always locked on to the opponent: this is always a duel.
+Over the right shoulder and always locked on to the opponent: this is always a duel. On Oct 4, 2026 the mood board set the target framing to For Honor's own: about 3.4 m back, 1.0 m to the side, 1.75 m up and a 55° field of view, closer than the earlier "a little more zoomed out". The look test scene settles the final numbers; until then the camera keeps today's, below.
 
 - About 4.6 m back and 1.3–1.4 m to the side when the fighters stand 3.5 m apart or more. It swings out by 0.8 m for each metre closer (to about 3.5 m at the closest), so the player never hides the opponent.
 - Low enough that blades read against the sky, with a 60° field of view.

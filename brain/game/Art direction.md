@@ -19,6 +19,7 @@ On Oct 4, 2026 a realistic look replaced the toon and ink-wash look the rebuild 
 - **Arena:** the [[Moonlit Shrine]] gains glowing purple wisteria, stars, worn paving and dynamic weather moved by one wind.
 - **Fighters and weapons:** for the first milestone the current bodies are re-textured in the new look; new stylised-real models with cloth-simulated clothing arrive by the second. Every weapon is modelled in Blender; the models set the blade lengths, and reach is retuned to match.
 - **Target:** Ultra at 4K and 60 fps on an RTX 3090 is the reference preset every look is judged at. Low must hold 60 fps at 1080p, upscaled from about 720p, on the Ryzen 7 4700U laptop.
+- **Mood board (Oct 4):** approved, subject to change: the look and grade as drawn, crimson #9e2b25 against indigo #1d2a4d, Moonsplitter's wave as moonlight and the disarmed ultimate as a spirit shockwave (neither in a side's colour), the UI in lacquer and gold, and For Honor's camera framing ([[Camera]]). It lives in the private asset repository.
 - **Look test:** a mood board, then a test scene (one fighter with the Katana in a corner of the [[Moonlit Shrine]], at Ultra) settles the look before anything converts.
 - **Assets:** paid and large art lives in a private asset repository that the import tools read. The public repository keeps the code, free-licence and self-made art, and labelled stand-ins.
 

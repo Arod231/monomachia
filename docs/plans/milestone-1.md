@@ -56,6 +56,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - Oct 4, 2026: drafted with the spec; awaiting the owner's review.
 - Oct 4, 2026: the owner confirmed all 56 defaults and approved the spec and this plan (task 1). Milestone-1 work starts once the consolidation merges into `master` (`docs/plans/godot-rebuild.md` task 26.4) and `feature/milestone-1` is cut (roadmap R4).
 - Oct 4, 2026: task 2 done: the private asset repository (`Arod231/monomachia-assets`) replaces the packs' folder, and the clip libraries build from it byte for byte. Task 3 started: the mood board is in the asset repository's `moodboard/` (open `index.html`), waiting on the owner's approval and five choices (the look, the two palettes, the ultimates' energy, the camera's framing, the UI style).
+- Oct 4, 2026: task 3 done: the owner approved the mood board, subject to change, with For Honor's camera framing (the board's Camera 2) in place of the recommended one. The look test (task 30) no longer waits on it, only on tasks 28 and 29.
 
 ## Build order
 
@@ -92,11 +93,12 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Check: a fresh clone with LFS, named in `.assets-src-path`, stages and builds the clip libraries byte for byte as the old folder did (`godot.mjs clips`), and its size is inside the asset repository's budget in the spec's size budget table.
   - Blocked by: 1 (and the owner's OK) · Stories: 9, 10, 11
   - Done Oct 4: `Arod231/monomachia-assets` on GitHub, private. LFS takes every binary art type in any letter case, and no file has its line endings converted. It holds the four Kevin Iglesias packs, the Quaternius packs the game uses with the LowPoly Medieval Weapons pack (the `--weapons` folder of `import_assets.gd`), the effects packs, empty `blender/` and `exports/` folders (fighters, weapons, shrine, clips) and a README with each folder's licence and the size budget: about 1.9 GB on disk, 1.6 GiB of LFS. The Sonniss zips stay outside it. A fresh clone at `Desktop/Monomachia-asset-repo` is named in `.assets-src-path`, and `godot.mjs clips` from it staged and built the clip libraries byte for byte as the old folder did (all 358 staged and built files identical). The old `Desktop/Monomachia-assets` folder is left for the owner to delete.
-- [ ] **3. The mood board.** A mood board for the realistic look, with a UI page, the ultimates' energy and the gameplay camera's framing.
+- [x] **3. The mood board.** A mood board for the realistic look, with a UI page, the ultimates' energy and the gameplay camera's framing.
   - Delivers: reference images (Ghost of Tsushima's darker side, For Honor, the wisteria Shrine at night, the crimson and indigo dyes, Katana and saya references, the UI page with brushed calligraphy, Moonsplitter's and the disarmed ultimate's energy, the gameplay camera's framing); generated images allowed here only. It lives in the asset repository (or beside it until task 2 lands), never in this repository.
   - Check: the board covers every heading of the spec's look stories (137–155) and the UI page; the owner has it.
   - Blocked by: 1 (and the owner's OK) · Stories: 137, 139, 147
   - **Owner:** approves the mood board. Nothing in the art conversion starts until then.
+  - Done Oct 4: `moodboard/index.html` in the asset repository: nine sections over 53 reference images (the Met's CC0 collection, Wikimedia Commons, official Ghost of Tsushima and For Honor screenshots; sources in `moodboard/SOURCES.md`), the palettes with their grey check, camera frames computed from the camera's numbers, and three UI mock-ups. No generated images. The owner approved it on Oct 4, subject to change: the look and grade as drawn, crimson #9e2b25 against indigo #1d2a4d, Moonsplitter as moonlight, bare hands as a spirit shockwave, the UI in lacquer and gold, and, in place of the recommended camera (today's), For Honor's framing (Camera 2: about 3.4 m back, 1.0 m to the right (swinging out 0.6 m for each metre closer than 3.5 m), 1.75 m up, a 55° field of view), which the look test (task 30) confirms in Godot. design.md and the spec's story 134 now say so.
 
 ### Phase B: groundwork
 
