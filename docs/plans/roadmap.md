@@ -49,6 +49,7 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
   - Check: the downloaded zip's exe passes `--smoke` and plays a match.
   - Blocked by: `docs/plans/godot-rebuild.md` task 26.4
   - **Owner:** publishes the release.
+  - Decided with the owner (Oct 5, before building): the release is built from `master` as it stands (31e64b3, the consolidation as merged), not after a further merge of `feature/godot-rebuild`, so the Versus work (22.16, 23.6, 23.7) waits for a later release. The tag is `v0.2.0`, matching `project.godot` and `package.json`, so the version isn't bumped. It's exported in a worktree detached at `origin/master`, with the clip libraries built from the asset repository. The draft is marked as a pre-release and carries short written notes put on with `gh release edit`: what's in the build, how to run it, system requirements, known limits (the look and stand-ins retiring) and the licence line. The notes live only on GitHub. If the upload fails, it's retried until the zip lands. The Check's match is the downloaded exe's `--smoke` Watch match, with no separate owner playtest. README's Play paragraph drops the "first release follows the merge" sentence on this lane. The owner publishes.
 
 ### Phase 2: Milestone 1
 
