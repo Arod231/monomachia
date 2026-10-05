@@ -11,6 +11,8 @@
 //   script <res://path.gd> [-- user args]   run a SceneTree tool script headless
 //   shots <scene> [out.png] [frames] [scene args...]   render a scene in an off-screen window;
 //                          fails on a shader or script error
+//   bench [scene args...]  the frame-time harness: plays the worst-case replay in a window
+//                          and writes every frame's time to build/bench/ (tools/bench/frame_time_bench.gd)
 //   run                    play the game
 //   studio                 open the Animation Studio (gallery and editor; dev tool)
 //   dev                    open the editor
@@ -29,8 +31,9 @@
 //
 // package.json's scripts call most of these by their own names (plan task
 // 26.3): test:godot, typecheck, soak (soak:tune runs 300), build, release,
-// play (= run), dev, studio, shots and counterlab (= script
-// res://tools/counterlab.gd); `npm run godot -- <command>` reaches the rest.
+// play (= run), dev, studio, shots, bench, counterlab (= script
+// res://tools/counterlab.gd) and bench:record (= script
+// res://tools/bench/record_worst_case.gd); `npm run godot -- <command>` reaches the rest.
 //
 // Godot is found through the GODOT environment variable, then `godot` or
 // `godot4` on PATH, then a local `.godot-path` file (see findGodot).
@@ -192,8 +195,8 @@ async function exportWindows(godot) {
 async function main() {
   const [cmd = 'help', ...rest] = process.argv.slice(2);
   if (cmd === 'help' || cmd === '--help') {
-    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|run|studio|dev|build|release|clips|bake');
-    console.log('npm scripts: test:godot, typecheck, soak, soak:tune, build, release, play (run), dev, studio, shots, counterlab;');
+    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|bench|run|studio|dev|build|release|clips|bake');
+    console.log('npm scripts: test:godot, typecheck, soak, soak:tune, build, release, play (run), dev, studio, shots, bench, bench:record, counterlab;');
     console.log('the rest through npm run godot -- <command> (see the top of scripts/godot.mjs).');
     return;
   }
@@ -276,6 +279,26 @@ async function main() {
       // show; a scene that draws a broken shader still saves its shot.
       if (r.code === 0 && hasShaderErrors(r.output)) die('godot.mjs: a shader failed to compile (see SHADER ERROR above).');
       if (r.code === 0 && hasScriptErrors(r.output)) die('godot.mjs: the scene reported script errors.');
+      process.exit(r.code);
+      return;
+    }
+    case 'bench': {
+      // The frame-time harness (milestone-1 task 28) in a real window: the
+      // match renders into its own 4K target, so the window's size doesn't
+      // matter. --fixed-fps 60 moves the view 1/60 s a frame, one rules step
+      // a frame, without capping the frame rate.
+      const outDir = join(ROOT, 'build', 'bench');
+      mkdirSync(outDir, { recursive: true });
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+      const args = rest.some((a) => a.startsWith('--out=')) ? rest : [`--out=${join(outDir, `frame-times-${stamp}.csv`)}`, ...rest];
+      await importProject(godot);
+      const r = await runGodot(
+        godot,
+        ['--path', PROJECT, '--resolution', '1600x900', '--fixed-fps', '60', 'res://tools/bench/frame_time_bench.tscn', '--', ...args],
+        { timeoutMs: 1800000, env: DEFAULT_SETTINGS_ENV },
+      );
+      if (r.code === 0 && hasShaderErrors(r.output)) die('godot.mjs: a shader failed to compile (see SHADER ERROR above).');
+      if (r.code === 0 && hasScriptErrors(r.output)) die('godot.mjs: the bench reported script errors.');
       process.exit(r.code);
       return;
     }

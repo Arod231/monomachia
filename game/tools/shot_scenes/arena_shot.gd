@@ -33,7 +33,7 @@ extends Node3D
 ## where the camera goes when a fighter is cornered (arena_wall.tscn).
 ##
 ## Bench: with entries in bench, the rig times frames instead of taking one
-## shot (arena_bench.tscn times Low, Medium and High from the gameplay view):
+## shot (arena_bench.tscn times Low, Medium, High and Ultra from the gameplay view):
 ##   node scripts/godot.mjs shots res://tools/shot_scenes/arena_bench.tscn <sheet.png>
 ## The window goes to bench_resolution with vsync off, and the match plays
 ## from the view's camera with its HUD, one rules step a frame. Each entry is
@@ -81,7 +81,7 @@ const GATE_MARK_LIFT: float = 8.0
 
 @export var arena_id: StringName = ArenaScenes.MOONLIT_SHRINE
 @export var view: View = View.GAMEPLAY
-## A preset id (low, medium or high); empty shoots the saved preset.
+## A preset id (low, medium, high or ultra); empty shoots the saved preset.
 @export var preset_id: StringName = &""
 ## Frames to let the renderer settle before the capture.
 @export var settle_frames: int = 20
@@ -543,11 +543,7 @@ static func average(values: PackedFloat64Array) -> float:
 
 ## The nearest-rank 95th percentile: 95% of the values are at most this.
 static func percentile_95(values: PackedFloat64Array) -> float:
-	if values.is_empty():
-		return 0.0
-	var sorted: PackedFloat64Array = values.duplicate()
-	sorted.sort()
-	return sorted[ceili(0.95 * sorted.size()) - 1]
+	return FrameTimes.percentile(values, 95.0)
 
 
 ## The entries' shots side by side, in order, each scaled by scale; null
