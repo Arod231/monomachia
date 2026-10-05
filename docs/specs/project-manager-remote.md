@@ -50,7 +50,7 @@ The Project Manager becomes the place to run sessions from the phone:
 20. As the owner, I want to reply in free text instead of picking options, so that I can redirect a session that asked the wrong question.
 21. As the owner, I want a permission prompt to show what the session wants to run, with Allow, Always allow (naming the rule it adds) and Deny with a reason, so that I can approve commands remotely.
 22. As the owner, I want a plan approval to show the plan rendered, with Approve and Reject with a reason, so that I can approve plans from my phone.
-23. As the owner, I want a finished turn to show the session's last message, with Approve & continue, Show me and a reply box, so that I can keep a session moving in one tap.
+23. As the owner, I want a finished turn to show the app's turn summary and the session's last message, with Approve & continue, Show me and a reply box, so that I can keep a session moving in one tap.
 24. As the owner, I want an answered item to leave the list at once while the session carries on, so that I can see my answer went through.
 25. As the owner, I want to be told when an item was already answered, handed back or timed out, so that I don't answer twice.
 26. As the owner, I want the Questions tab to show a count of what's waiting, so that I notice it from any tab.
@@ -192,7 +192,7 @@ The owner's answers from the Oct 4 interview.
   - Questions: header chip, text, options with descriptions, previews in a monospace block (escaped, never run as HTML), multi-select, "Other", a free-form reply, and one Send per call.
   - Permissions: the command or edit, with Allow, Always allow (naming the rule), and Deny with a reason.
   - Plans: rendered Markdown, with Approve, and Reject with a reason.
-  - Turn ends: the session's last message (the app writes its turn summary only once a turn has really ended), with Approve & continue, Show me, and a reply box.
+  - Turn ends: the app's turn summary (it is written while the turn end is held, as the spike showed) and the session's last message, with Approve & continue, Show me, and a reply box.
 - **Every answer** checks that the item is still held. Late answers get "already answered, handed back or timed out". A count badge sits on the tab, and the Overview's "Waiting on you" links here.
 
 ### Notifications and lock-screen push
