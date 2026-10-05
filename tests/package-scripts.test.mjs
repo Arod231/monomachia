@@ -29,6 +29,7 @@ describe('package.json', () => {
       'bench',
       'bench:record',
       'board',
+      'board:hooks',
       'brain',
       'brain:serve',
       'build',

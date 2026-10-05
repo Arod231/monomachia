@@ -62,6 +62,24 @@ describe('sameOrigin', () => {
     assert.equal(post('null', 'localhost:5197'), false);
     assert.equal(post('http://localhost:5197', 'localhost:5197', 'text/plain'), false);
   });
+
+  // Tailscale Serve answers https://<pc>.<tailnet>.ts.net and hands the request
+  // on from loopback with its Host unchanged.
+  it('accepts its own pages from its HTTPS address through Tailscale Serve', () => {
+    assert.equal(post('https://pc.tail1234.ts.net', 'pc.tail1234.ts.net'), true);
+    assert.equal(post('https://PC.tail1234.ts.net', 'pc.tail1234.ts.net'), true);
+  });
+
+  it('refuses https from another site, a name that is not its tailnet name, a wrong host or a form post', () => {
+    assert.equal(post('https://evil.example', 'evil.example'), false);
+    assert.equal(post('https://evil.example', 'pc.tail1234.ts.net'), false);
+    assert.equal(post('https://other.tail1234.ts.net', 'other.tail1234.ts.net'), false);
+    assert.equal(post('https://pc', 'pc'), false);
+    assert.equal(post('https://100.120.241.100', '100.120.241.100'), false);
+    assert.equal(post('https://pc.tail1234.ts.net', 'localhost:5197'), false);
+    assert.equal(post('https://pc.tail1234.ts.net', 'pc.tail1234.ts.net', 'text/plain'), false);
+    assert.equal(post('https://pc.tail1234.ts.net', 'pc.tail1234.ts.net', 'application/x-www-form-urlencoded'), false);
+  });
 });
 
 describe('pageFor', () => {

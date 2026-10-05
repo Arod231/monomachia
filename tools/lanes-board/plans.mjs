@@ -353,6 +353,38 @@ export function cancelStops(entries, branch, now) {
   return { entries: out, cancelled };
 }
 
+/**
+ * A launch's tasks in a session title, in the order given: "Task 12", "Tasks
+ * 1-4", "Tasks 4-6, 13", "Tasks 8.4-8.6, 9.1". A run is ids with the same
+ * prefix ("8.", "R" or none) and numbers one after another; a lettered id
+ * ("30b") stands alone.
+ */
+export function taskRange(ids) {
+  const parts = ids.map((id) => {
+    const m = /^(.*?)(\d+)$/.exec(id);
+    return m ? { id, prefix: m[1], n: Number(m[2]) } : { id };
+  });
+  const runs = [];
+  for (const p of parts) {
+    const run = runs.at(-1);
+    const last = run?.at(-1);
+    if (last && p.n !== undefined && last.n !== undefined && p.prefix === last.prefix && p.n === last.n + 1) run.push(p);
+    else runs.push([p]);
+  }
+  const text = runs.map((r) => (r.length > 1 ? `${r[0].id}-${r.at(-1).id}` : r[0].id)).join(', ');
+  return `${ids.length > 1 ? 'Tasks' : 'Task'} ${text}`;
+}
+
+/**
+ * A launched session's title, which the session sets itself right after setup (goalFor): its
+ * task range, then "<plan short> PR #<pr> <task range>" once its lane has a
+ * pull request.
+ */
+export function sessionTitle({ plan, ids, pr }) {
+  const range = taskRange(ids);
+  return pr === undefined ? range : `${plan.short} PR #${pr} ${range}`;
+}
+
 export const GOAL_LIMIT = 4000; // launch prompts stay this short (the app cuts a link's prompt at 14,336 characters)
 
 /**
@@ -379,6 +411,7 @@ export function goalFor({ plan, ids, tasks, branch, repo, baseExists = true }) {
     `Finish implementation of the queued ${plan.name} tasks: ${list(n)} (${plan.file}), in the Monomachia repository at ${repo}, with every change built on and merged into ${target}.`,
     `Done when each queued task is built with its checks passing, ticked in ${plan.file}, committed and pushed on ${branch}, with a pull request into ${plan.branch}, never master${baseExists ? '' : `; or, if ${base} is still missing, when you have told me so and stopped`}.`,
     `Setup, before anything else: work only in a worktree of ${repo}, never in a scratch or other folder. If your working directory is not inside ${repo}, run git -C "${repo}" fetch origin, then git -C "${repo}" worktree add "${worktree}" -b ${branch} ${base} (or check out ${branch} there if it exists), and move this session into it with the change_directory tool (find it with ToolSearch). Otherwise run git fetch origin and git switch -c ${branch} ${base} in this worktree.`,
+    `Then name this session: set this session's title to "${sessionTitle({ plan, ids })}" with the set_session_title tool (session_id "self"; find it with ToolSearch). As soon as ${branch} has a pull request (yours, or one already open), set it to "${sessionTitle({ plan, ids, pr: '<number>' })}" with the pull request's number in place of <number>.`,
     `Before any edit, check that git branch --show-current prints ${branch} and that git merge-base --is-ancestor ${base} HEAD succeeds. If missing, copy .godot-path and .assets-src-path from ${repo} and junction its node_modules.`,
     'Before implementing, run wayfinder for questions only: read ~/.claude/skills/wayfinder/SKILL.md (it cannot be called as a tool) and follow its questioning to find every open decision these tasks need, but write no map or ticket files.',
     'Ask each decision with the AskUserQuestion tool as clickable multiple choice, recommended option first, and wait for my answers. Record the answers in the tasks\' blocks in the plan.',
