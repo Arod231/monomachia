@@ -23,9 +23,8 @@ extends RefCounted
 ## that performs it, the one picked in the select (picked) whenever it can,
 ## else the first of `weapons` (the weapons on offer, in the select's order)
 ## that can;
-## the unblockable drills need an ability with their counter kind
-## (TrainingBrain.weapon_ability_for), so new unblockables count without a
-## table. swap_dummy_weapon() changes it cleanly, as Game.swapDummyWeapon()
+## the unblockable drills need their route (UnblockableRoutes.can_perform,
+## milestone-1 task 83). swap_dummy_weapon() changes it cleanly, as Game.swapDummyWeapon()
 ## did: anything that belongs to the old weapon stops first.
 
 ## Frames unhurt before the refill starts.
@@ -94,22 +93,14 @@ func step() -> void:
 			_upkeep_dummy_weapon(f, unhurt)
 
 
-## Whether weapon w can perform a dummy behaviour (TrainingBrain.BEHAVIOURS):
-## the unblockable drills need an ability with their counter kind.
-static func can_perform(w: WeaponDef, behaviour: StringName) -> bool:
-	if behaviour == &"thrust" or behaviour == &"sweep" or behaviour == &"slam":
-		return TrainingBrain.weapon_ability_for(w, behaviour) != &""
-	return true
-
-
 ## The weapon the dummy performs a behaviour with: the picked one when it
 ## can, else the first in the select's order that can.
 func weapon_for(behaviour: StringName) -> WeaponDef:
-	if can_perform(picked, behaviour):
+	if UnblockableRoutes.can_perform(picked, behaviour):
 		return picked
 	for id: StringName in weapons:
 		var w: WeaponDef = Moves.WEAPONS[id]
-		if can_perform(w, behaviour):
+		if UnblockableRoutes.can_perform(w, behaviour):
 			return w
 	return picked
 

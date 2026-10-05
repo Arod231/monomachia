@@ -1,17 +1,25 @@
 extends SceneTree
 ## Port of scripts/counterlab.ts.
 ##
-## Targeted experiment: a dummy repeating one unblockable vs an AI that always tries the counter.
+## Targeted experiment: a dummy repeating one unblockable vs an AI that always
+## tries the counter, a minute per case (Counterlab, counterlab_run.gd, holds
+## the cases and the run). Exits 1 when a case never lands its counter.
 ##
 ## usage: node scripts/godot.mjs script res://tools/counterlab.gd   (or: npm run counterlab)
 ##
 ## Port notes: the output matched the TypeScript counterlab
 ## (v0.1-web-mvp:scripts/counterlab.ts) line for line up to commit 4222167 (plan task 8.2, which records that baseline);
-## since then it reports on the Godot rules alone. The tally is printed like
+## since then it reports on the Godot rules alone. Since milestone-1 task 83
+## its cases are the Katana's thrust and sweep through Training's routes (the
+## Greatsword's slam returns in milestone 2). The tally is printed like
 ## console.log, see JsFormat. If a script error aborts the run, _process()
 ## still quits, with exit code 1.
 
-## Stays 1 unless _run() runs to its end.
+## Loaded when the run starts, not named: a script run with -s that names
+## Counterlab compiles the moves while the frame-data table is still loading.
+const LAB: String = "res://tools/counterlab_run.gd"
+
+## Stays 1 unless _run() runs to its end with every counter landed.
 var _exit_code: int = 1
 
 
@@ -25,47 +33,14 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
-	var cases: Array = [[&"slam", &"greatsword"], [&"thrust", &"katana"], [&"sweep", &"greatsword"]]
-	for c: Array in cases:
+	var lab: GDScript = load(LAB)
+	var missed: Array[String] = []
+	for c: Array in lab.CASES:
 		var kind: StringName = c[0]
-		var weapon: StringName = c[1]
-		var W: World = World.new(FighterConfig.make(Moves.WEAPONS[weapon]), FighterConfig.make(Moves.KATANA), 5)
-		for f: Fighter in W.fighters:
-			f.set_state(&"free")
-		var dummy: TrainingBrain = TrainingBrain.new(W.fighters[0])
-		dummy.set_behaviour(kind)
-		# { ...DIFFICULTY.hard, counter: 1, parry: 0, dodge: 0, block: 0, aggression: 0, guard: 0 }
-		var params: AIBrain.AIParams = AIBrain.DIFFICULTY[&"hard"].copy()
-		params.counter = 1.0
-		params.parry = 0.0
-		params.dodge = 0.0
-		params.block = 0.0
-		params.aggression = 0.0
-		params.guard = 0.0
-		var ai: AIBrain = AIBrain.new(W.fighters[1], params, 3)
-		var tally: Dictionary[String, int] = {}
-		for _i: int in 60 * 60:
-			W.step([dummy.think(), ai.think()])
-			for e: Dictionary in W.drain_events():
-				if e["t"] == &"counter":
-					_add(tally, "counter:" + String(e["kind"]))
-				if e["t"] == &"hit" and e["attacker"] == 0:
-					_add(tally, "hit")
-				if e["t"] == &"telegraph" and e["f"] == 0:
-					_add(tally, "attempts")
-				if e["t"] == &"whiff" and e["f"] == 0:
-					_add(tally, "whiff")
-			for f: Fighter in W.fighters:
-				f.hp = 100.0
-				f.posture = 0.0
-				if f.state == &"ko":
-					f.set_state(&"free")
+		var tally: Dictionary[String, int] = lab.run(kind, c[1], 60 * 60)
 		print("%s %s" % [kind, JsFormat.inspect(tally)])
-		dummy.dispose()
-		ai.dispose()
-		W.dispose()
-	_exit_code = 0
-
-
-static func _add(tally: Dictionary[String, int], k: String) -> void:
-	tally[k] = tally.get(k, 0) + 1
+		if tally.get("counter:" + String(c[2]), 0) == 0:
+			missed.append("%s never countered by %s" % [kind, c[2]])
+	for m: String in missed:
+		printerr("counterlab: " + m)
+	_exit_code = 0 if missed.is_empty() else 1

@@ -3,11 +3,11 @@ extends RefCounted
 ## Port of v0.1-web-mvp:src/sim/ai/training.ts.
 ##
 ## Training dummy: repeats one chosen behaviour so the player can practise
-## parry timing and the three unblockable counters.
+## parry timing and the unblockable counters. It performs each unblockable
+## through its route (UnblockableRoutes, milestone-1 task 83).
 ##
 ## Port notes:
 ## - TrainingBehaviour is a StringName equal to the TS literal (BEHAVIOURS).
-## - abilityFor is the static ability_for(); its null is &"".
 ## - Fighter.abilities is always replaced with a new array, never changed in
 ##   place: by default it is the weapon's own default_abilities array.
 ## - dispose() is new: it disposes the sparring brain and drops the fighter.
@@ -24,24 +24,15 @@ extends RefCounted
 ## way, once the heavy can take it: at the demo's fixed 34 frames it came
 ## before the startup of a heavy whose clip at 1.0x runs longer (the
 ## Greatsword's Overhead Strike), and was lost.
+## Since milestone-1 task 83 a heavy with a second draw (the Katana's Iai,
+## drawn horizontally with the stick held sideways) runs a four-turn cycle:
+## the first draw with its follow-up, the second draw alone, the first alone,
+## the second with its follow-up; other heavies take theirs every other turn.
 
 ## TrainingBehaviour
 const BEHAVIOURS: Array[StringName] = [
 	&"idle", &"block", &"lights", &"heavies", &"thrust", &"sweep", &"slam", &"random", &"fight",
 ]
-
-
-## The id of f's weapon ability with the given counter kind, or &"" (TS null).
-static func ability_for(f: Fighter, kind: StringName) -> StringName:
-	return weapon_ability_for(f.weapon, kind)
-
-
-## The id of weapon w's ability with the given counter kind, or &"".
-static func weapon_ability_for(w: WeaponDef, kind: StringName) -> StringName:
-	for ab_id: StringName in w.abilities:
-		if w.moves.has(ab_id) and w.moves[ab_id].counter == kind:
-			return ab_id
-	return &""
 
 
 ## { btn, from, to }
@@ -60,6 +51,8 @@ var _hold: int = 0
 var _heavy_turns: int = 0
 ## Whether this heavies turn's follow-up is still to be pressed.
 var _heavy_follow_up: bool = false
+## Whether this heavies turn holds the stick sideways for the second draw.
+var _heavy_sideways: bool = false
 ## Picks random's next drill.
 var _pick: int = 0
 ## The drill the current cycle runs (&"" before the first).
@@ -109,9 +102,10 @@ func set_behaviour(b: StringName) -> void:
 	_pick = 0
 	_heavy_turns = 0
 	_heavy_follow_up = false
+	_heavy_sideways = false
 	# put the practised unblockable on the light slot
-	if b == &"thrust" or b == &"sweep" or b == &"slam":
-		var ab_id: StringName = ability_for(me, b)
+	if UnblockableRoutes.DRILLS.has(b):
+		var ab_id: StringName = UnblockableRoutes.move_for(me.weapon, b)
 		if ab_id != &"":
 			var other: StringName = _other_ability(ab_id)
 			var arr: Array[StringName] = [ab_id, other]
@@ -170,12 +164,10 @@ func think() -> RawInput:
 			var b: StringName = behaviour
 			if b == &"random":
 				var opts: Array[StringName] = [&"lights", &"heavies"]
-				for k: StringName in [&"thrust", &"sweep", &"slam"]:
-					if ability_for(me, k) != &"":
-						opts.append(k)
+				opts.append_array(UnblockableRoutes.kinds(me.weapon))
 				b = opts[_pick % opts.size()]
 				_pick += 1
-				if b == &"thrust" or b == &"sweep" or b == &"slam":
+				if UnblockableRoutes.DRILLS.has(b):
 					_set_behaviour_keep_random(b)
 			_drill = b
 			match b:
@@ -186,7 +178,11 @@ func think() -> RawInput:
 					_tap(Btn.HEAVY, frame)
 					var p: int = _heavy_turns
 					_heavy_turns += 1
-					_heavy_follow_up = p % 2 == 0
+					if _second_draw() != &"":
+						_heavy_sideways = p % 2 == 1
+						_heavy_follow_up = p % 4 == 0 or p % 4 == 3
+					else:
+						_heavy_follow_up = p % 2 == 0
 					_next = frame + 120
 				&"thrust", &"sweep", &"slam":
 					_tap(Btn.BLOCK, frame, 3)
@@ -194,6 +190,9 @@ func think() -> RawInput:
 					_next = frame + 130
 	if _drill == &"lights" and _light_follow_up_due(frame):
 		_tap(Btn.LIGHT, frame)
+	# the stick held sideways until the heavy is drawn as its second draw
+	if _drill == &"heavies" and _heavy_sideways and me.atk != null and me.atk.def.id == me.weapon.heavy_start:
+		mx = 1.0
 	if _drill == &"heavies" and _heavy_follow_up and _heavy_follow_up_due():
 		_tap(Btn.HEAVY, frame)
 		_heavy_follow_up = false
@@ -229,9 +228,15 @@ func _heavy_follow_up_due() -> bool:
 	return a != null and me.takes_follow_up_at(a.frame + 1) and a.def.kind == &"heavy" and a.def.chain_heavy != &""
 
 
-## kind: &"thrust" | &"sweep" | &"slam"
+## The heavy starter's second draw (AttackDef.release_variant), or &"".
+func _second_draw() -> StringName:
+	var start: AttackDef = me.weapon.moves.get(me.weapon.heavy_start)
+	return start.release_variant if start != null else &""
+
+
+## kind: one of UnblockableRoutes.DRILLS
 func _set_behaviour_keep_random(kind: StringName) -> void:
-	var ab_id: StringName = ability_for(me, kind)
+	var ab_id: StringName = UnblockableRoutes.move_for(me.weapon, kind)
 	if ab_id == &"":
 		return
 	var other: StringName = _other_ability(ab_id)
