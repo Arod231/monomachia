@@ -36,6 +36,7 @@ const FILES = {
   '/apple-touch-icon.png': { file: 'icon.png', type: 'image/png' },
   '/graph.mjs': { file: 'graph.mjs', type: 'text/javascript; charset=utf-8' },
   '/ui.mjs': { file: 'ui.mjs', type: 'text/javascript; charset=utf-8' },
+  '/sessions-ui.mjs': { file: 'sessions-ui.mjs', type: 'text/javascript; charset=utf-8' },
 };
 
 // The file for a GET that isn't /data or /brain: phones get m.html, computers

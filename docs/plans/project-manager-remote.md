@@ -87,7 +87,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: each item recorded as proven or replaced; the throwaway scripts stay in the scratchpad, never committed.
   - Blocked by: 1 · Stories: 12, 87
   - **Owner:** presses Enter to start the throwaway session in the app (a new session's first prompt never sends itself), types `/rc` in it, and opens its link on the phone.
-- [ ] **4. Room for the new parts.** The board's session and relay code gets a module of its own, and the two pages share their session and question rendering, with no change in behaviour.
+- [x] **4. Room for the new parts.** The board's session and relay code gets a module of its own, and the two pages share their session and question rendering, with no change in behaviour.
   - Delivers:
     - the Sessions and relay routes and helpers moved out of the server into a module it mounts;
     - a page module, served like the existing UI and graph modules, holding the question, permission and session rendering both pages use.

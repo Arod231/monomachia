@@ -289,9 +289,12 @@ nav.tabs .count:empty { display: none; }
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
-// The context gauge and the roadmap summary, shared with the desktop page.
+// The context gauge, the roadmap summary and how sessions are drawn, shared
+// with the desktop page.
 import * as U from '/ui.mjs';
+import * as S from '/sessions-ui.mjs';
 window.U = U;
+window.S = S;
 window.dispatchEvent(new Event('modules-ready'));
 </script>
 <script>
@@ -496,14 +499,13 @@ function renderLanes() {
 // gauge; read-only here: the desktop board answers them.
 let sessionList = null;
 let sessionsTimer = 0;
-const folderOf = (cwd) => String(cwd ?? '').split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
 function sessionsHtml() {
-  if (!sessionList) return '<div class="empty">Loading sessions…</div>';
+  if (!sessionList || !window.S) return '<div class="empty">Loading sessions…</div>';
   if (!sessionList.length) return '<div class="empty">No sessions in the last three days.</div>';
   return `<ul class="list sess">${sessionList.map((s) => {
-    const needs = s.pending.length ? 'Waiting on you' : s.asking ? 'Asking you (in the app)' : '';
+    const needs = S.needsLabel(s);
     return `<li><i class="dot ${s.active ? 'active' : 'recent'}"></i><span class="body"><span class="t1"><b>${esc(s.title)}</b>${U.gaugeHtml(s.context, { live: s.active })}</span>
-      <span class="k">${esc(folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</span>${needs ? `<span class="pill">${needs}</span>` : ''}</span>
+      <span class="k">${esc(S.folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</span>${needs ? `<span class="pill">${needs}</span>` : ''}</span>
       ${needs && s.app ? `<button class="btn small" data-open="${esc(s.app)}">Open on PC</button>` : ''}</li>`;
   }).join('')}</ul>`;
 }

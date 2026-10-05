@@ -445,11 +445,14 @@ details.tl pre { margin: 4px 0 4px 14px; }
 <div id="queue" aria-live="polite"><div class="in" id="queueIn"></div></div>
 <script type="module">
 // The graph layout (graph.mjs) for the Graph tab, and the context gauge and
-// roadmap summary (ui.mjs); the tests check both.
+// roadmap summary (ui.mjs), and how sessions and their prompts are drawn
+// (sessions-ui.mjs, shared with the phone page); the tests check all three.
 import * as G from '/graph.mjs';
 import * as U from '/ui.mjs';
+import * as S from '/sessions-ui.mjs';
 window.G = G;
 window.U = U;
+window.S = S;
 window.dispatchEvent(new Event('modules-ready'));
 </script>
 <script>
@@ -1265,101 +1268,35 @@ function selectSession(id) {
   pollSession(true);
 }
 
-const sessionNeeds = (s) => s.pending.length > 0 || !!s.asking;
 function renderSessionCount() {
-  const n = sessions.list.filter(sessionNeeds).length;
+  if (!window.S) return;
+  const n = sessions.list.filter(S.sessionNeeds).length;
   $('sessCount').textContent = n ? String(n) : '';
 }
-function sessionPills(s) {
-  const pills = [];
-  for (const p of s.pending) {
-    pills.push(`<span class="pill need">${p.kind === 'permission' ? `Approve ${esc(p.tool)}` : p.kind === 'question' ? 'Asking you' : 'Waiting for your reply'}</span>`);
-  }
-  if (s.asking && !s.pending.some((p) => p.kind === 'question')) pills.push('<span class="pill need">Asking you (in the app)</span>');
-  if (s.queued) pills.push('<span class="pill">Reply queued</span>');
-  if (s.on) pills.push('<span class="pill">Answers from Project Manager</span>');
-  return pills.length ? `<div class="pills">${pills.join('')}</div>` : '';
-}
-const folderOf = (cwd) => String(cwd ?? '').split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
 function renderSessionList() {
   renderSessionCount();
   if (view !== 'sessions') return;
   const q = $('sFind').value.trim().toLowerCase();
   const only = $('sWaiting').checked;
-  const list = sessions.list.filter((s) => (!only || sessionNeeds(s)) && (!q || `${s.title} ${s.cwd}`.toLowerCase().includes(q)));
+  const list = sessions.list.filter((s) => (!only || S.sessionNeeds(s)) && (!q || `${s.title} ${s.cwd}`.toLowerCase().includes(q)));
   const sig = JSON.stringify([list.map((s) => [s.id, s.title, s.active, s.pending, s.asking, s.queued, s.on, Math.round((Date.now() - s.activity) / 60000), s.context?.tokens]), sSel, !!window.U]);
-  if (sig === sSigs.list || !window.U) return;
+  if (sig === sSigs.list || !window.U || !window.S) return;
   sSigs.list = sig;
   $('sList').innerHTML = list.map((s) => `<li data-sess="${esc(s.id)}" class="${s.id === sSel ? 'on' : ''}" title="${esc(s.cwd ?? '')}">
       <i class="dot ${s.active ? 'active' : 'recent'}"></i>
-      <div class="sm"><div class="st"><b>${esc(s.title)}</b>${U.gaugeHtml(s.context, { live: s.active })}</div><div class="ss">${esc(folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</div>${sessionPills(s)}</div></li>`).join('')
+      <div class="sm"><div class="st"><b>${esc(s.title)}</b>${U.gaugeHtml(s.context, { live: s.active })}</div><div class="ss">${esc(S.folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</div>${S.sessionPills(s)}</div></li>`).join('')
     || `<li class="empty">${sessions.list.length ? 'No session matches.' : 'No sessions in the last three days.'}</li>`;
 }
 $('sList').addEventListener('click', (e) => { const li = e.target.closest('[data-sess]'); if (li) selectSession(li.dataset.sess); });
 $('sFind').addEventListener('input', renderSessionList);
 $('sWaiting').addEventListener('change', renderSessionList);
 
-// A little Markdown: code blocks, inline code, bold, links.
-function md(text) {
-  return String(text).split(/```[^\n]*\n?/).map((part, i) => {
-    if (i % 2) return `<pre>${esc(part.replace(/\n$/, ''))}</pre>`;
-    return esc(part)
-      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
-      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-      .replace(/\n/g, '<br>');
-  }).join('');
-}
-
-function inputPreview(tool, input) {
-  if (!input || typeof input !== 'object') return String(input ?? '');
-  if (tool === 'Bash' || tool === 'PowerShell') return `${input.command ?? ''}${input.description ? `\n\n# ${input.description}` : ''}`;
-  if (tool === 'Edit') return `${input.file_path}\n\n- ${String(input.old_string ?? '').slice(0, 1500)}\n+ ${String(input.new_string ?? '').slice(0, 1500)}`;
-  if (tool === 'Write') return `${input.file_path}\n\n${String(input.content ?? '').split('\n').slice(0, 40).join('\n')}`;
-  if (tool === 'ExitPlanMode') return String(input.plan ?? JSON.stringify(input, null, 2));
-  const s = JSON.stringify(input, null, 2);
-  return s.length > 3000 ? `${s.slice(0, 3000)}…` : s;
-}
-function ruleText(sug) {
-  return (sug ?? []).map((s) => {
-    if (s.type === 'setMode') return `switch to ${s.mode}`;
-    const rules = (s.rules ?? []).map((r) => `${r.toolName}${r.ruleContent ? `(${r.ruleContent})` : ''}`).join(', ');
-    return `${rules || 'this'}${s.directories ? ` ${s.directories.join(', ')}` : ''}`;
-  }).join('; ');
-}
-function questionsHtml(questions, live) {
-  return questions.map((q, i) => `<div class="q" data-qi="${i}" data-multi="${q.multiSelect ? 1 : 0}">
-      <div class="qh">${q.header ? `<span class="chip">${esc(q.header)}</span>` : ''}${esc(q.question)}${q.multiSelect ? ' <span class="m">(pick any)</span>' : ''}</div>
-      <div class="opts">${(q.options ?? []).map((o) => `<button class="opt" data-label="${esc(o.label)}" ${live ? '' : 'disabled'}><b>${esc(o.label)}</b>${o.description ? `<span>${esc(o.description)}</span>` : ''}</button>`).join('')}
-      ${live ? `<input class="text other" placeholder="Other: type your own answer">` : ''}</div></div>`).join('');
-}
-function pendingCard(p, d) {
-  const when = `<span class="k">${esc(ago(p.time))}</span>`;
-  const back = `<button class="btn small ghost" data-release="${esc(p.id)}" title="Stop waiting for the Project Manager: the app shows its own prompt">Hand back to the app</button>`;
-  if (p.kind === 'permission') {
-    const always = Array.isArray(p.suggestions) && p.suggestions.length;
-    return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Wants to use ${esc(p.tool)}</b>${when}</div>
-      <pre class="code">${esc(inputPreview(p.tool, p.input))}</pre>
-      <div class="row"><button class="btn primary" data-allow="${esc(p.id)}">Allow</button>
-        ${always ? `<button class="btn" data-always="${esc(p.id)}" title="Adds a permission rule">Allow, and don't ask again for ${esc(ruleText(p.suggestions))}</button>` : ''}
-        <button class="btn" data-deny="${esc(p.id)}">Deny</button><input class="text why" placeholder="Why (optional): sent to Claude with a deny"></div>
-      <div class="row">${back}</div></div>`;
-  }
-  if (p.kind === 'question') {
-    return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Asks you</b>${when}</div>
-      ${questionsHtml(p.input?.questions ?? [], true)}
-      <div class="row"><button class="btn primary" data-answer="${esc(p.id)}">Send answer${(p.input?.questions ?? []).length > 1 ? 's' : ''}</button>${back}</div></div>`;
-  }
-  return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Finished its turn and is waiting for your reply</b>${when}</div>
-    <div class="m">Type below and send. It waits up to 20 minutes, then goes idle; meanwhile the app shows it as working.</div>
-    <div class="row">${back}</div></div>`;
-}
 function renderPending(d) {
-  const cards = d.pending.map((p) => pendingCard(p, d));
+  const cards = d.pending.map((p) => S.pendingCard(p));
   // A question or a step waiting in the app, which this page can't answer.
   if (d.open?.name === 'AskUserQuestion' && !d.pending.some((p) => p.kind === 'question')) {
     cards.push(`<div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b><span class="k">${esc(ago(d.open.time))}</span></div>
-      ${questionsHtml(d.open.questions ?? [], false)}
+      ${S.questionsHtml(d.open.questions ?? [], false)}
       <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Answer in the app</button>` : ''}<span class="m">${d.on ? 'It was asked before this session was switched on.' : 'Switch on "Answer from Project Manager" to answer its next questions here.'}</span></div></div>`);
   } else if (d.open && !d.pending.length && !d.active && Date.now() - (d.open.time ?? 0) > 30000) {
     cards.push(`<div class="pcard info"><div class="ch"><b>Its last step hasn't finished: ${esc(d.open.name)}</b><span class="k">${esc(ago(d.open.time))}</span></div>
@@ -1380,8 +1317,8 @@ function renderLog(d) {
   const results = new Map(d.entries.filter((e) => e.kind === 'result').map((e) => [e.tool, e]));
   const toolIds = new Set(d.entries.filter((e) => e.kind === 'tool').map((e) => e.id));
   const parts = d.entries.map((e) => {
-    if (e.kind === 'user') return `<div class="msg u"><div class="who">You${e.time ? ` · ${esc(new Date(e.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}` : ''}</div><div class="tx">${md(e.text)}</div></div>`;
-    if (e.kind === 'assistant') return `<div class="msg a"><div class="tx">${md(e.text)}</div></div>`;
+    if (e.kind === 'user') return `<div class="msg u"><div class="who">You${e.time ? ` · ${esc(new Date(e.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}` : ''}</div><div class="tx">${S.md(e.text)}</div></div>`;
+    if (e.kind === 'assistant') return `<div class="msg a"><div class="tx">${S.md(e.text)}</div></div>`;
     if (e.kind === 'system') return `<div class="sys">${esc(e.text)}</div>`;
     if (e.kind === 'tool') {
       const r = results.get(e.id);
@@ -1427,6 +1364,7 @@ function renderSessionDetail() {
       <div class="m">${d.on ? 'On: its permission prompts and questions come here instead of the app (for up to 20 minutes each), and when a turn ends it waits for your reply here. Switch off to hand it back to the app.'
         : 'Off: read-only here. Switch on to approve its commands, answer its questions and reply to it from this page.'}</div>`;
   }
+  if (!window.S) return;
   renderPending(d);
   renderLog(d);
   // The reply box.
@@ -1469,12 +1407,7 @@ $('sDetail').addEventListener('click', async (e) => {
   else if (b.dataset.deny) send({ id: b.dataset.deny, behavior: 'deny', message: card.querySelector('.why')?.value ?? '' });
   else if (b.dataset.release) send({ id: b.dataset.release, release: true });
   else if (b.dataset.answer) {
-    const picks = [...card.querySelectorAll('.q')].map((q) => {
-      const chosen = [...q.querySelectorAll('.opt.on')].map((o) => o.dataset.label);
-      const other = q.querySelector('.other')?.value.trim();
-      if (other) chosen.push(other);
-      return q.dataset.multi === '1' ? chosen : chosen.slice(-1);
-    });
+    const picks = S.picksOf(card);
     if (picks.some((p) => !p.length)) { alert('Pick an answer for each question (or type one under Other).'); return; }
     send({ id: b.dataset.answer, picks });
   } else if (b.id === 'sMore') { sessions.limit += 300; sSigs.log = null; pollSession(true); }
