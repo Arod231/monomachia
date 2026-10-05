@@ -54,7 +54,7 @@ function main(hook) {
     entry.firedBy = hook.session_id ?? null;
     writeFileSync(FILE, JSON.stringify(list, null, 2));
   }
-  const why = `Work on ${entry.label ?? 'this lane'} was ended from the Project Manager. Stop here: run nothing more. Your commits, branch and pull request stay as they are. To carry on later, the owner messages this session (and types /goal clear to drop the goal).`;
+  const why = `Work on ${entry.label ?? 'this lane'} was ended from the Project Manager. Stop here: run nothing more. Your commits, branch and pull request stay as they are. To carry on later, the owner messages this session.`;
   const out = { continue: false, stopReason: why, systemMessage: why };
   if (hook.hook_event_name === 'PreToolUse') {
     out.hookSpecificOutput = { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: why };
