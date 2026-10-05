@@ -52,6 +52,11 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 - Oct 4, 2026: the owner approved this plan (task 1). Next: task 2 in its own small pull request, then the spike (task 3).
 - Oct 4, 2026: task 2 done: pull request #37 merged (38f43fa) and the live Project Manager follows PM. Next: the spike (task 3), with task 4 alongside while its long holds run.
 - Oct 4, 2026: task 3 done (the spike; findings under Decisions so far). Next: task 4.
+- Oct 4, 2026: tasks 4, 5 and 6 done in lane `lane/pm-4-5-6`: pull request #42 merged (618922d), then #44 (0cdc58a), which drops held items of deleted sessions. Next: tasks 7 to 10.
+- Oct 4, 2026: tasks 7, 8, 9 and 10 done in lane `lane/pm-7-8-9-10`: pull request #45 merged (d3f0e56). Task 9 was ticked once the owner had used Away from the phone. The review fixes followed in #52 (6792420), and the 25-minute holds in #50. Pull request #36 was retargeted to `master` once the rebuild merged there. Next: tasks 11 to 14.
+- Oct 5, 2026: questions stay in the app (the owner's call): #55 merged into `master` (4fde976). Then #36 merged into `master` (bb52ea0) and `tools/project-manager-remote` was pushed again from `master` for the rest of this plan.
+- Oct 5, 2026: tasks 11, 12, 13 and 14 done in lane `lane/pm-11-12-13-14`: pull request #57 merged (5924826). Tasks 11 and 14 were ticked once the owner had tried them from the phone. Next: tasks 15 to 18.
+- Oct 5, 2026: tasks 15, 16, 17 and 18 done in lane `lane/pm-15-16-17-18`: pull request #58 merged (a0e6cdb). Outside the plan, the New session button followed (#64, 4feebbd). Next: the owner's check (task 19).
 
 ## Build order
 
@@ -311,3 +316,16 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a session compacted.
   - Blocked by: 9, 11, 13, 14, 16, 17, 18 · Stories: 1–87
   - **Owner:** runs the check and approves the pull request.
+  - Owner's answers (Oct 5, lane `lane/pm-19`, built on `tools/project-manager-remote` after #58 and #64 merged):
+    - "the pull request" is a new one from `tools/project-manager-remote` into `master` (#36, its predecessor, merged into `master`), opened as a draft and marked ready once the check passes;
+    - since questions stay in the app (Oct 5), "a question answered" becomes both a permission prompt or plan answered in the Questions tab and a question answered in the Claude app, reached by Open in the Claude app;
+    - a full close-out: a Progress line for each of tasks 4 to 19 (no main lane is left to write them since #36 merged), every story ticked, and the spec's status set to built;
+    - the check runs on this lane's own session: it posts a clip to its page, ends turns for the owner to approve, asks a question and a permission prompt, is compacted from the phone, and its pull request is merged from its page with Merge, last;
+    - the live Project Manager on port 5197 is restarted onto the branch's head first, so tasks 15 to 18 and New session are live;
+    - before the owner's check, Claude walks the six steps on a test board in the Browser pane at phone width and fixes what it finds.
+  - The dry run (Oct 5), at 375 px on a test board with fixture sessions and a stand-in `gh`: a permission prompt allowed and a plan shown in the Questions tab; a turn approved; an in-app question reached from the bell, with Open in the Claude app; a posted clip opened from its notification's address, looping in the viewer; a pull request merged; the Compact panel. Every step worked. Three snags on the phone page were fixed (2936f47): the header pushed the bell 14 px off screen once Away showed; the Merge button ran past its panel with a long base name; a ready Merge panel was filled solid green, because its `ready` class was also the task-status colour.
+  - Found next (Oct 5, f602b39): this lane's own session showed no branch or pull request, so no Merge. A session started outside git, as lanes launched from a scratch folder are, records its branch as "HEAD" on every transcript line, even after it moves into a worktree. The board now falls back to the branch checked out in the session's folder, for its card, page, Merge and Docs.
+  - For the check, on the owner's OK, port 5197 serves `lane/pm-19` from `~/.claude/all-lanes-server/preview.cmd` in place of `follow.cmd`, and goes back to `follow.cmd` once #65 merges. The session posted a 5-second clip of `arena_watch` to its page.
+  - The check (Oct 5), with Away switched on from the phone. Step 1 (a question answered in the Claude app) worked. It turned up two fixes (5fc0cf6):
+    - a question asked in the app left its bell record unread for good: it is now marked read once its session no longer has the question open (after a 20-second grace);
+    - a plan approved in the app stayed held in the Questions tab for up to 24 minutes, because the transcript's ExitPlanMode call carries no plan and so never matched by summary: plans now match by tool alone. The sweep reads a transcript's last 60 entries, so the one plan held before this fix went live was handed back by hand.

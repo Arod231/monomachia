@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { BELL_KEEP_MS, EVENTS_KEEP_MS, bellUpdate, bellView, eventsDue, markRead } from '../tools/lanes-board/bell.mjs';
+import { ASKED_GRACE_MS, BELL_KEEP_MS, EVENTS_KEEP_MS, bellUpdate, bellView, eventsDue, markRead } from '../tools/lanes-board/bell.mjs';
 import { bellApi } from '../tools/lanes-board/bell-api.mjs';
 
 const S1 = '11111111-2222-4333-8444-555555555555';
@@ -38,6 +38,18 @@ describe('bellUpdate', () => {
     const s = update(null, { pending: [held('q-1', 'question'), held('p-1', 'permission', { tool: 'Bash' })] });
     const after = update(s, { pending: [held('p-1', 'permission', { tool: 'Bash' })] });
     assert.deepEqual(after.records.map((r) => [r.id, r.read]), [['held:q-1', true], ['held:p-1', false]]);
+  });
+
+  it('marks a question asked in the app read once its session no longer has it open, after a short grace', () => {
+    const asked = (session, time, offset) => ({ time, kind: 'asked-in-app', session, questions: ['Which?'], offset });
+    const s = bellUpdate(null, { events: [asked(S1, 1000, 0), asked(S2, 1000, 50)], posts: [], now: 2000, titleOf, asking: new Set([S1, S2]) });
+    const readOf = (st) => st.records.map((r) => [r.session, r.read]);
+    assert.deepEqual(readOf(bellUpdate(s, { now: 60_000, titleOf, asking: new Set([S1, S2]) })), [[S1, false], [S2, false]], 'both still open');
+    assert.deepEqual(readOf(bellUpdate(s, { now: 60_000, titleOf, asking: new Set([S2]) })), [[S1, true], [S2, false]], "S1's was answered");
+    assert.deepEqual(readOf(bellUpdate(s, { now: 1000 + ASKED_GRACE_MS - 1, titleOf, asking: new Set() })), [[S1, false], [S2, false]], 'inside the grace');
+    assert.equal(bellUpdate(s, { now: 60_000, titleOf, asking: null }), s, 'unknown: nothing changes');
+    const turn = bellUpdate(null, { events: [{ time: 1000, kind: 'turn-finished', session: S1, offset: 0 }], now: 2000, titleOf });
+    assert.deepEqual(readOf(bellUpdate(turn, { now: 60_000, titleOf, asking: new Set() })), readOf(turn), 'other kinds untouched');
   });
 
   it('records what the hook noted: questions asked in the app and turns finished while Away was off', () => {
@@ -153,6 +165,15 @@ describe('bellApi', () => {
     assert.deepEqual(readdirSync(dir).sort(), ['events.jsonl.old', 'notifications.json']);
     appendFileSync(path.join(dir, 'events.jsonl'), line({ time: Date.now() + 1, kind: 'asked-in-app', session: S1, questions: ['After?'] }));
     assert.deepEqual((await look(a)).records.map((r) => r.detail), ['After?', 'New.']);
+  });
+
+  it('asks which sessions are asking in the app on each look, and reads the answered ones', async () => {
+    let asking = [S1];
+    const a = bellApi({ file: path.join(dir, 'notifications.json'), relay: dir, held: async () => [], titlesOf: async () => new Map(), asking: async () => asking });
+    writeFileSync(path.join(dir, 'events.jsonl'), line({ time: Date.now() - 60_000, kind: 'asked-in-app', session: S1, questions: ['A?'] }));
+    assert.equal((await look(a)).unread, 1);
+    asking = [];
+    assert.equal((await look(a)).unread, 0);
   });
 });
 

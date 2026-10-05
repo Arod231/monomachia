@@ -26,8 +26,9 @@ const PR_FIELDS = 'number,title,url,state,isDraft,body,baseRefName,headRefName,h
 
 // repoDir: the main checkout; worktrees(): the live ones ({ path }); gh:
 // ghRunner() (merge-api.mjs); prOf(branch): its open pull request from the
-// board's list; fileOf(session): its transcript's path, or null.
-export function docsApi({ repoDir, worktrees, gh, prOf = () => null, fileOf }) {
+// board's list; fileOf(session): its transcript's path, or null; branchOf(session):
+// its branch as the Sessions tab has it, for a transcript that names none.
+export function docsApi({ repoDir, worktrees, gh, prOf = () => null, fileOf, branchOf = async () => null }) {
   let repoName = null;
   const repo = async () => (repoName ??= JSON.parse(await gh(['repo', 'view', '--json', 'nameWithOwner'], { cwd: repoDir })).nameWithOwner);
 
@@ -74,7 +75,7 @@ export function docsApi({ repoDir, worktrees, gh, prOf = () => null, fileOf }) {
       const rel = place.rel.split('/');
       return { path: d.path, name: rel.at(-1), dir: rel.slice(0, -1).join('/'), kind: d.kind, time: d.time };
     }).filter(Boolean);
-    const branch = sc.branch();
+    const branch = sc.branch() ?? await branchOf(url.searchParams.get('session'));
     return { docs, artifacts: sc.artifacts(), branch, pr: branch ? await prOfBranch(branch) : null };
   }
 
