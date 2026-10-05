@@ -261,10 +261,16 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - round trip: a post shows on the session page and makes one notification;
     - the viewer checked by hand on the phone.
   - Blocked by: 10, 12 · Stories: 37, 63, 64, 65, 67, 68, 69, 70, 73
+  - Owner's answers (Oct 5, lane `lane/pm-15-16-17-18`, with tasks 16, 17 and 18; side-lane rule as in task 4):
+    - the lane merges `lane/pm-11-12-13-14` (pull request #57, task 12's session page) in at the start, so its pull request shows those commits too until #57 merges;
+    - the checks "by hand on the phone" in tasks 15, 17 and 18 are skipped: each task is ticked once its automated checks pass;
+    - a session page opens from its posted media alone (for a session older than the Sessions list's 3 days, or whose transcript was deleted), and the Sessions list gains an "Older" filter of sessions with media from the last 30 days;
+    - the owner wants a session's page to show shots and media of the game or feature being worked on, as progress updates, and its documents and artifacts.
 - [ ] **16. Everything it looked at.** The images a session got back from its tools show on its page without it posting them.
   - Delivers: images found in the results of the session's tool calls (browser screenshots, images it opened, viewport shots), listed under Visuals and served by reference to their transcript line. Images the owner pasted are left out. The viewer is shared with task 15.
   - Check: unit tests on fixture transcript lines (an image read from a file, a browser screenshot, an MCP tool's image, a pasted image left out); the page shows them.
   - Blocked by: 15 · Stories: 66
+  - Owner's answers (Oct 5): only images of the work are listed: images the session opened from its own worktree's `shots/` (renders of the game it made) and Godot or Blender viewport shots. Browser-pane screenshots, pasted images, images from outside its worktree and its subagents' images are left out.
 - [ ] **17. Docs, the pull request and artifacts.** A session's page lists what it wrote and what it published.
   - Delivers:
     - the Markdown files its Write and Edit calls name, newest first, read from the worktree or, once that's gone, from its branch in git, and rendered with the Markdown library the second brain vendors;
@@ -273,6 +279,9 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     Paths are served only when the session's transcript names them and they lie inside the repo or one of its worktrees.
   - Check: unit tests of the extraction and of the path rule (a named file inside a worktree is served; an unnamed file or one outside is refused); checked by hand on the phone.
   - Blocked by: 12 · Stories: 74, 75, 76, 77, 80
+  - Owner's answers (Oct 5):
+    - the documents listed are the Markdown files it wrote (rendered), plus HTML pages and PDFs it wrote (opened as they are; HTML in a sandbox, so a page can't act as the Project Manager), all inside the repo or its worktrees;
+    - a document whose worktree is gone is read from its branch (local, then remote), else from its merged pull request's head commit; only if all fail does it show "no longer available".
 - [ ] **18. Clips, and sessions told to post.** Sessions can record a scene as a looping clip, and CLAUDE.md tells them when to post.
   - Delivers:
     - **`npm run clip -- <scene> [--seconds N] [scene args]`:** it records a scene the shots tool runs, with Godot's Movie Maker at 30 fps and 1280×720, as a looping MP4 (H.264, no audio, 6 seconds by default and 20 at most) plus a still, written into the worktree's `shots/`.
@@ -283,6 +292,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
       - the Project Manager line names Away, the Questions tab and the bell.
   - Check: a clip of a shot scene plays in the phone's viewer; the Godot suite passes if the recorder changed anything under `game/`.
   - Blocked by: 15 · Stories: 71, 72
+  - Owner's answer (Oct 5): `clip` only writes the MP4 and its still into `shots/`; the session posts them with `npm run post`, as any shot.
 
 ### Phase F: the owner's check
 
