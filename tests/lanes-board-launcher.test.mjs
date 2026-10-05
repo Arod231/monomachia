@@ -3,7 +3,7 @@
 // link and presses Send in the Claude app, the wait for a locked PC, retries,
 // linking a launch to the session it started, and what the pages show. The
 // queue runs here with fakes for the link, the press and the lock check; the
-// real press (press-send.ps1) gets a smoke test on Windows.
+// real press (press-send.ps1) runs on Windows against a stand-in window.
 
 import { execFile, spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -11,7 +11,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { assertMatches } from './assert-matches.mjs';
 import {
   LOCK_CHECK_MS, LOST_MS, createStarter, firstPrompt, launchLink, linkLaunches, pressResult, startView,
 } from '../tools/lanes-board/launcher.mjs';
@@ -20,7 +22,7 @@ import { launchStartText } from '../tools/lanes-board/ui.mjs';
 const REPO = 'C:\\Users\\me\\Monomachia';
 const launch = (id, time, extra = {}) => ({
   id, time, plan: 'gr', tasks: [`gr:${id}`], branch: `lane/gr-${id}`, goal: `Finish ${id} on lane/gr-${id}.`,
-  prompt: `Finish ${id} on lane/gr-${id}.`, start: { state: 'queued', at: time, attempts: 0 }, ...extra,
+  start: { state: 'queued', at: time, attempts: 0 }, ...extra,
 });
 
 // A starter on fakes. press answers from `results` in turn ('pressed' when
@@ -43,10 +45,10 @@ const acts = (log) => log.filter(([a]) => a === 'open' || a === 'press').map(([a
 describe('launchLink', () => {
   it('opens a new Code session in the folder with the prompt in its box', () => {
     const url = new URL(launchLink(REPO, 'Finish 1.1 & 1.2'));
-    expect(url.protocol).toBe('claude:');
-    expect(url.host + url.pathname).toBe('code/new');
-    expect(url.searchParams.get('folder')).toBe(REPO);
-    expect(url.searchParams.get('q')).toBe('Finish 1.1 & 1.2');
+    assert.equal(url.protocol, 'claude:');
+    assert.equal(url.host + url.pathname, 'code/new');
+    assert.equal(url.searchParams.get('folder'), REPO);
+    assert.equal(url.searchParams.get('q'), 'Finish 1.1 & 1.2');
   });
 });
 
@@ -55,9 +57,9 @@ describe('createStarter', () => {
     const l = launch('1.1', 1000);
     const { starter, log } = harness([l]);
     await starter.kick();
-    expect(acts(log)).toEqual(['open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.']);
-    expect(log.find(([a]) => a === 'press')[2]).toBe(REPO);
-    expect(l.start).toMatchObject({ state: 'pressed', attempts: 1, pressedAt: 10_000 });
+    assert.deepEqual(acts(log), ['open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.']);
+    assert.equal(log.find(([a]) => a === 'press')[2], REPO);
+    assertMatches(l.start, { state: 'pressed', attempts: 1, pressedAt: 10_000 });
   });
 
   it('starts launches one at a time in launch order, since each link replaces the draft in the app\'s box', async () => {
@@ -66,7 +68,7 @@ describe('createStarter', () => {
     const { starter, log } = harness([a, b]);
     starter.kick();
     await starter.kick(); // a second kick joins the run in progress
-    expect(acts(log)).toEqual([
+    assert.deepEqual(acts(log), [
       'open Finish 2.1 on lane/gr-2.1.', 'press Finish 2.1 on lane/gr-2.1.',
       'open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.',
     ]);
@@ -78,56 +80,56 @@ describe('createStarter', () => {
     await starter.kick();
     launches.push(launch('1.1', 1000));
     await starter.kick();
-    expect(acts(log)).toEqual(['open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.']);
+    assert.deepEqual(acts(log), ['open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.']);
   });
 
   it('leaves the link unopened while the PC is locked, and starts the launch once the PC is unlocked', async () => {
     const l = launch('1.1', 1000);
     const { starter, log, lock, clock } = harness([l], { lock: { on: true } });
     await starter.kick();
-    expect(acts(log)).toEqual([]);
-    expect(l.start).toMatchObject({ state: 'waiting', reason: 'locked' });
+    assert.deepEqual(acts(log), []);
+    assertMatches(l.start, { state: 'waiting', reason: 'locked' });
 
     await starter.tick(); // still locked
-    expect(acts(log)).toEqual([]);
+    assert.deepEqual(acts(log), []);
     lock.on = false;
     await starter.tick(); // too soon after the last look at the lock
-    expect(acts(log)).toEqual([]);
+    assert.deepEqual(acts(log), []);
     clock.t += LOCK_CHECK_MS;
     await starter.tick();
-    expect(acts(log)).toEqual(['open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.']);
-    expect(l.start).toMatchObject({ state: 'pressed', attempts: 1 });
+    assert.deepEqual(acts(log), ['open Finish 1.1 on lane/gr-1.1.', 'press Finish 1.1 on lane/gr-1.1.']);
+    assertMatches(l.start, { state: 'pressed', attempts: 1 });
   });
 
   it('waits on the lock again when the PC locks between the check and the press', async () => {
     const l = launch('1.1', 1000);
     const { starter } = harness([l], { results: ['locked'] });
     await starter.kick();
-    expect(l.start).toMatchObject({ state: 'waiting', reason: 'locked', attempts: 1 });
+    assertMatches(l.start, { state: 'waiting', reason: 'locked', attempts: 1 });
   });
 
   it('records why Send couldn\'t be pressed, and tries no more on its own', async () => {
     const l = launch('1.1', 1000);
     const { starter, log, clock } = harness([l], { results: ['no-draft'] });
     await starter.kick();
-    expect(l.start).toMatchObject({ state: 'waiting', reason: 'no-draft', attempts: 1 });
+    assertMatches(l.start, { state: 'waiting', reason: 'no-draft', attempts: 1 });
     clock.t += LOCK_CHECK_MS * 4;
     await starter.tick();
-    expect(acts(log)).toHaveLength(2);
+    assert.equal(acts(log).length, 2);
   });
 
   it('counts a press that answered nonsense, or a link that wouldn\'t open, as an error', async () => {
     const a = launch('1.1', 1000);
     const { starter } = harness([a], { results: ['what?'] });
     await starter.kick();
-    expect(a.start).toMatchObject({ state: 'waiting', reason: 'error' });
+    assertMatches(a.start, { state: 'waiting', reason: 'error' });
     const c = launch('1.3', 1000);
     const broken = createStarter({
       list: () => [c], folder: REPO, now: () => 5, open: async () => { throw new Error('rundll32 failed'); },
       press: async () => ({ result: 'pressed' }), locked: async () => false, save: async () => {},
     });
     await broken.kick();
-    expect(c.start).toMatchObject({ state: 'waiting', reason: 'error' });
+    assertMatches(c.start, { state: 'waiting', reason: 'error' });
   });
 
   it('tries again on request, but not for a launch that started, ended, or is starting now', async () => {
@@ -135,18 +137,18 @@ describe('createStarter', () => {
     const { starter, log } = harness([l], { results: ['no-send'] });
     await starter.kick();
     await starter.retry('1.1'); // refuses at once, else hands back the run it started
-    expect(acts(log)).toHaveLength(4);
-    expect(l.start).toMatchObject({ state: 'pressed', attempts: 2 });
+    assert.equal(acts(log).length, 4);
+    assertMatches(l.start, { state: 'pressed', attempts: 2 });
 
-    expect(() => starter.retry('nope')).toThrow('Unknown launch');
-    expect(() => starter.retry('1.1')).toThrow('just sent');
+    assert.throws(() => starter.retry('nope'), /Unknown launch/);
+    assert.throws(() => starter.retry('1.1'), /just sent/);
     l.start = { state: 'queued', at: 1, attempts: 2 };
-    expect(() => starter.retry('1.1')).toThrow('starting now');
+    assert.throws(() => starter.retry('1.1'), /starting now/);
     l.session = { id: 'local_x', cli: 'c' };
-    expect(() => starter.retry('1.1')).toThrow('already started');
+    assert.throws(() => starter.retry('1.1'), /already started/);
     delete l.session;
     l.endedAt = 5;
-    expect(() => starter.retry('1.1')).toThrow('ended');
+    assert.throws(() => starter.retry('1.1'), /ended/);
   });
 
   it('allows a retry once a pressed launch has shown no session for a while', async () => {
@@ -154,7 +156,7 @@ describe('createStarter', () => {
     const { starter, clock } = harness([l]);
     clock.t = 1000 + LOST_MS;
     await starter.retry('1.1');
-    expect(l.start.attempts).toBe(2);
+    assert.equal(l.start.attempts, 2);
   });
 
   it('skips launches already started, ended or made before launches started themselves', async () => {
@@ -163,7 +165,7 @@ describe('createStarter', () => {
     const old = { id: '1.3', time: 1000, tasks: ['gr:1.3'], branch: 'lane/gr-1.3', goal: 'g' };
     const { starter, log } = harness([started, ended, old]);
     await starter.kick();
-    expect(acts(log)).toEqual([]);
+    assert.deepEqual(acts(log), []);
   });
 
   it('lets a launch older than two days lapse rather than start it, since its tasks no longer show as launched', async () => {
@@ -173,41 +175,41 @@ describe('createStarter', () => {
     clock.t = 2 * 24 * 3600_000 + 1;
     await starter.kick();
     await starter.tick();
-    expect(acts(log)).toEqual([]);
-    expect(() => starter.retry('1.2')).toThrow('two days');
+    assert.deepEqual(acts(log), []);
+    assert.throws(() => starter.retry('1.2'), /two days/);
   });
 
   it('takes up a press the board was killed in the middle of as an error, so it can be retried', () => {
     const l = launch('1.1', 1000, { start: { state: 'pressing', at: 1000, attempts: 1 } });
     const { starter } = harness([l]);
-    starter.recover();
-    expect(l.start).toMatchObject({ state: 'waiting', reason: 'error' });
+    assert.equal(starter.recover(), 1);
+    assertMatches(l.start, { state: 'waiting', reason: 'error' });
   });
 });
 
 describe('startView', () => {
   const now = 100_000;
   it('says nothing for launches made before launches started themselves, or ended ones', () => {
-    expect(startView({ id: 'x', time: 1, tasks: [] }, now)).toBeNull();
-    expect(startView(launch('1.1', 1, { endedAt: 5 }), now)).toBeNull();
+    assert.equal(startView({ id: 'x', time: 1, tasks: [] }, now), null);
+    assert.equal(startView(launch('1.1', 1, { endedAt: 5 }), now), null);
   });
   it('is started once a session is linked, whatever the queue said', () => {
-    expect(startView(launch('1.1', 1, { session: { id: 'local_a' }, start: { state: 'waiting', reason: 'no-draft', at: 1 } }), now)).toEqual({ state: 'started' });
+    assert.deepEqual(startView(launch('1.1', 1, { session: { id: 'local_a' }, start: { state: 'waiting', reason: 'no-draft', at: 1 } }), now), { state: 'started' });
   });
   it('is starting while queued, being pressed, or just sent', () => {
-    expect(startView(launch('1.1', 1), now).state).toBe('starting');
-    expect(startView(launch('1.1', 1, { start: { state: 'pressing', at: 1 } }), now).state).toBe('starting');
-    expect(startView(launch('1.1', 1, { start: { state: 'pressed', at: now - 1000, pressedAt: now - 1000 } }), now).state).toBe('starting');
+    assert.equal(startView(launch('1.1', 1), now).state, 'starting');
+    assert.equal(startView(launch('1.1', 1, { start: { state: 'pressing', at: 1 } }), now).state, 'starting');
+    assert.equal(startView(launch('1.1', 1, { start: { state: 'pressed', at: now - 1000, pressedAt: now - 1000 } }), now).state, 'starting');
   });
   it('is waiting, lost, when Send was pressed a while ago and no session appeared', () => {
-    expect(startView(launch('1.1', 1, { start: { state: 'pressed', at: 1, pressedAt: now - LOST_MS } }), now))
-      .toEqual({ state: 'waiting', reason: 'lost', retry: true, since: 1 });
+    assert.deepEqual(startView(launch('1.1', 1, { start: { state: 'pressed', at: 1, pressedAt: now - LOST_MS } }), now),
+      { state: 'waiting', reason: 'lost', retry: true, since: 1 });
   });
   it('is waiting with its reason, and offers a retry except while the PC is locked', () => {
-    expect(startView(launch('1.1', 1, { start: { state: 'waiting', reason: 'no-send', at: 7 } }), now))
-      .toEqual({ state: 'waiting', reason: 'no-send', retry: true, since: 7 });
-    expect(startView(launch('1.1', 1, { start: { state: 'waiting', reason: 'locked', at: 7 } }), now))
-      .toEqual({ state: 'waiting', reason: 'locked', retry: false, since: 7 });
+    assert.deepEqual(startView(launch('1.1', 1, { start: { state: 'waiting', reason: 'no-send', at: 7 } }), now),
+      { state: 'waiting', reason: 'no-send', retry: true, since: 7 });
+    assert.deepEqual(startView(launch('1.1', 1, { start: { state: 'waiting', reason: 'locked', at: 7 } }), now),
+      { state: 'waiting', reason: 'locked', retry: false, since: 7 });
   });
 });
 
@@ -223,12 +225,12 @@ describe('firstPrompt', () => {
       ] } }),
       line({ type: 'user', message: { role: 'user', content: 'a later message about lane/gr-2.1' } }),
     ].join('\n');
-    expect(firstPrompt(text)).toBe('<system-reminder>\nYou are operating in a git worktree.\n</system-reminder>\n\n\nFinish 1.1 on lane/gr-1.1.');
+    assert.equal(firstPrompt(text), '<system-reminder>\nYou are operating in a git worktree.\n</system-reminder>\n\n\nFinish 1.1 on lane/gr-1.1.');
   });
   it('takes a plain string message, and is null before the first message or on a cut-off line', () => {
-    expect(firstPrompt(line({ type: 'user', message: { content: 'hello' } }))).toBe('hello');
-    expect(firstPrompt(line({ type: 'attachment' }))).toBeNull();
-    expect(firstPrompt('{"type":"user","message":{"content":"cut of')).toBeNull();
+    assert.equal(firstPrompt(line({ type: 'user', message: { content: 'hello' } })), 'hello');
+    assert.equal(firstPrompt(line({ type: 'attachment' })), null);
+    assert.equal(firstPrompt('{"type":"user","message":{"content":"cut of'), null);
   });
   it('skips tool results and meta lines, which are not prompts', () => {
     const text = [
@@ -236,7 +238,7 @@ describe('firstPrompt', () => {
       line({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 't', content: 'x' }] } }),
       line({ type: 'user', message: { content: 'the prompt' } }),
     ].join('\n');
-    expect(firstPrompt(text)).toBe('the prompt');
+    assert.equal(firstPrompt(text), 'the prompt');
   });
 });
 
@@ -252,23 +254,23 @@ describe('linkLaunches', () => {
       ['cli-local_a', 'Finish 1.1 on lane/gr-1.1.'],
       ['cli-local_a2', 'Finish 1.1 on lane/gr-1.1.'],
     ]);
-    expect(linkLaunches([a, b], sessions, prompts)).toBe(true);
-    expect(a.session).toEqual({ id: 'local_a', cli: 'cli-local_a' });
-    expect(b.session).toEqual({ id: 'local_b', cli: 'cli-local_b' });
-    expect(linkLaunches([a, b], sessions, prompts)).toBe(false);
+    assert.equal(linkLaunches([a, b], sessions, prompts), true);
+    assert.deepEqual(a.session, { id: 'local_a', cli: 'cli-local_a' });
+    assert.deepEqual(b.session, { id: 'local_b', cli: 'cli-local_b' });
+    assert.equal(linkLaunches([a, b], sessions, prompts), false);
   });
 
   it('links a session started by hand from the draft hours later, but none made before the launch', () => {
     const l = launch('1.1', 1_000_000);
-    expect(linkLaunches([l], [sess('local_early', 900_000)], new Map([['cli-local_early', 'lane/gr-1.1']]))).toBe(false);
-    expect(linkLaunches([l], [sess('local_late', 1_000_000 + 5 * 3600_000)], new Map([['cli-local_late', 'lane/gr-1.1']]))).toBe(true);
-    expect(l.session.id).toBe('local_late');
+    assert.equal(linkLaunches([l], [sess('local_early', 900_000)], new Map([['cli-local_early', 'lane/gr-1.1']])), false);
+    assert.equal(linkLaunches([l], [sess('local_late', 1_000_000 + 5 * 3600_000)], new Map([['cli-local_late', 'lane/gr-1.1']])), true);
+    assert.equal(l.session.id, 'local_late');
   });
 
   it('waits for a session whose first prompt isn\'t known yet, and doesn\'t mistake lane/gr-1.1 for lane/gr-1.10', () => {
     const l = launch('1.1', 1000);
-    expect(linkLaunches([l], [sess('local_new', 2000, null), sess('local_x', 2000)], new Map([['cli-local_x', 'Finish lane/gr-1.10 now']]))).toBe(false);
-    expect(l.session).toBeUndefined();
+    assert.equal(linkLaunches([l], [sess('local_new', 2000, null), sess('local_x', 2000)], new Map([['cli-local_x', 'Finish lane/gr-1.10 now']])), false);
+    assert.equal(l.session, undefined);
   });
 
   it('leaves ended launches and sessions another launch took alone', () => {
@@ -276,52 +278,53 @@ describe('linkLaunches', () => {
     const b = launch('1.1', 1000, { id: 'again' });
     const ended = launch('1.2', 1000, { endedAt: 3000 });
     const prompts = new Map([['cli-local_a', 'lane/gr-1.1'], ['cli-local_c', 'lane/gr-1.2']]);
-    expect(linkLaunches([a, b, ended], [sess('local_a', 2000), sess('local_c', 2500)], prompts)).toBe(false);
-    expect(b.session).toBeUndefined();
-    expect(ended.session).toBeUndefined();
+    assert.equal(linkLaunches([a, b, ended], [sess('local_a', 2000), sess('local_c', 2500)], prompts), false);
+    assert.equal(b.session, undefined);
+    assert.equal(ended.session, undefined);
   });
 });
 
 describe('pressResult', () => {
   it('reads the press script\'s last line of JSON', () => {
-    expect(pressResult('noise\r\n{"result":"pressed","ms":812,"trusted":true}\r\n')).toEqual({ result: 'pressed', ms: 812, trusted: true });
+    assert.deepEqual(pressResult('noise\r\n{"result":"pressed","ms":812,"trusted":true}\r\n'), { result: 'pressed', ms: 812, trusted: true });
   });
   it('is an error for anything else', () => {
-    expect(pressResult('')).toEqual({ result: 'error' });
-    expect(pressResult('Exception calling "Invoke"')).toEqual({ result: 'error' });
-    expect(pressResult('{"ms":1}')).toEqual({ result: 'error' });
+    assert.deepEqual(pressResult(''), { result: 'error' });
+    assert.deepEqual(pressResult('Exception calling "Invoke"'), { result: 'error' });
+    assert.deepEqual(pressResult('{"ms":1}'), { result: 'error' });
   });
 });
 
 describe('launchStartText', () => {
   it('says how a launch is getting on, and why it waits', () => {
-    expect(launchStartText(null)).toBeNull();
-    expect(launchStartText({ state: 'started' })).toBe('Started on the PC');
-    expect(launchStartText({ state: 'starting' })).toBe('Starting on the PC: the board presses Send in the Claude app');
-    expect(launchStartText({ state: 'waiting', reason: 'locked' })).toBe('Waiting: the PC is locked. It starts when the PC is unlocked.');
-    expect(launchStartText({ state: 'waiting', reason: 'no-draft' })).toMatch(/^Couldn't start: .*prompt.*\. Try again, or send it from the Claude app on the PC\.$/);
-    expect(launchStartText({ state: 'waiting', reason: 'surprise' })).toMatch(/^Couldn't start: .*\. Try again/);
+    assert.equal(launchStartText(null), null);
+    assert.equal(launchStartText({ state: 'started' }), 'Started on the PC');
+    assert.equal(launchStartText({ state: 'starting' }), 'Starting on the PC: the board presses Send in the Claude app');
+    assert.equal(launchStartText({ state: 'waiting', reason: 'locked' }), 'Waiting: the PC is locked. It starts when the PC is unlocked.');
+    assert.match(launchStartText({ state: 'waiting', reason: 'no-draft' }), /^Couldn't start: .*prompt.*\. Try again, or send it from the Claude app on the PC\.$/);
+    assert.match(launchStartText({ state: 'waiting', reason: 'surprise' }), /^Couldn't start: .*\. Try again/);
   });
 });
 
-// The real press, on Windows: with a prompt no app shows, it finds nothing to
-// press (or the PC is locked) and says so in one line of JSON.
+// The real press, on Windows only: first with a prompt no app shows, then against
+// a stand-in for the app.
 const run = promisify(execFile);
 const SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'lanes-board', 'press-send.ps1');
-describe.skipIf(process.platform !== 'win32')('press-send.ps1', () => {
+const POWERSHELL = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT];
+describe('press-send.ps1', { skip: process.platform !== 'win32' && 'needs Windows UI Automation' }, () => {
   it('reports a prompt it can\'t find without pressing anything', async () => {
-    const { stdout } = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT, '-WaitMs', '1500'], {
+    const { stdout } = await run('powershell.exe', [...POWERSHELL, '-WaitMs', '1500'], {
       windowsHide: true, timeout: 60_000,
       env: { ...process.env, LANES_PROMPT: `no such draft ${Math.random()}`, LANES_FOLDER: 'C:\\no\\such\\folder' },
     });
     // 'trust' if the app happens to be asking about another folder right now.
-    expect(['no-draft', 'no-app', 'locked', 'trust']).toContain(pressResult(stdout).result);
-  }, 60_000);
+    assert.ok(['no-draft', 'no-app', 'locked', 'trust'].includes(pressResult(stdout).result));
+  });
 
   it('answers the lock check', async () => {
-    const { stdout } = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT, '-LockOnly'], { windowsHide: true, timeout: 60_000 });
-    expect(['locked', 'unlocked']).toContain(pressResult(stdout).result);
-  }, 60_000);
+    const { stdout } = await run('powershell.exe', [...POWERSHELL, '-LockOnly'], { windowsHide: true, timeout: 60_000 });
+    assert.ok(['locked', 'unlocked'].includes(pressResult(stdout).result));
+  });
 
   // A stand-in for the app: a see-through, off-screen window with the prompt in a
   // box and, unless told otherwise, a Send button that empties the box and notes
@@ -360,20 +363,19 @@ $w.ShowDialog() | Out-Null
       rmSync(dir, { recursive: true, force: true });
     }
   }
-  const press = async (env, extra) => pressResult((await run('powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT, '-App', 'powershell', ...extra],
+  const press = async (env, extra) => pressResult((await run('powershell.exe', [...POWERSHELL, '-App', 'powershell', ...extra],
     { windowsHide: true, timeout: 60_000, env })).stdout);
 
   it('presses the Send button beside the box holding the prompt, once the box has settled', () => withFakeApp([], async ({ env, sent }) => {
     const r = await press(env, ['-WaitMs', '20000', '-SettleMs', '1200', '-TakeMs', '5000']);
-    expect(r.result).toBe('pressed');
-    expect(r.ms).toBeGreaterThanOrEqual(1200);
-    expect(sent()).toBe(true);
-  }), 60_000);
+    assert.equal(r.result, 'pressed');
+    assert.ok(r.ms >= 1200, `pressed after ${r.ms} ms`);
+    assert.equal(sent(), true);
+  }));
 
   it('says no-send for a box with no Send button, and presses nothing', () => withFakeApp(['-NoSend'], async ({ env, sent }) => {
     const r = await press(env, ['-WaitMs', '3000', '-SettleMs', '200']);
-    expect(r.result).toBe('no-send');
-    expect(sent()).toBe(false);
-  }), 60_000);
+    assert.equal(r.result, 'no-send');
+    assert.equal(sent(), false);
+  }));
 });

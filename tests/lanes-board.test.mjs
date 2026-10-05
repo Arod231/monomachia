@@ -599,12 +599,12 @@ describe('goalFor', () => {
   });
 
   it('is plain words, since the app turns a link\'s leading slash into a full-width one and never runs it as a command', () => {
-    expect(goal).not.toMatch(/^\s*[/／]/);
-    expect(goal).not.toContain('/goal');
+    assert.doesNotMatch(goal, /^\s*[/／]/);
+    assert.ok(!goal.includes('/goal'));
   });
 
   it('keeps going from task to task without waiting for an OK, except for questions and owner gates', () => {
-    expect(goal).toContain('Go on from one task to the next without waiting for my OK; stop only for a question that needs my answer, at an owner gate, or when every queued task is done.');
+    assert.ok(goal.includes('Go on from one task to the next without waiting for my OK; stop only for a question that needs my answer, at an owner gate, or when every queued task is done.'));
   });
 
   it('stays within the launch prompt\'s limit by shortening the titles', () => {
