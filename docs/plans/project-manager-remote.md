@@ -52,6 +52,11 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 - Oct 4, 2026: the owner approved this plan (task 1). Next: task 2 in its own small pull request, then the spike (task 3).
 - Oct 4, 2026: task 2 done: pull request #37 merged (38f43fa) and the live Project Manager follows PM. Next: the spike (task 3), with task 4 alongside while its long holds run.
 - Oct 4, 2026: task 3 done (the spike; findings under Decisions so far). Next: task 4.
+- Oct 4, 2026: tasks 4, 5 and 6 done in lane `lane/pm-4-5-6`: pull request #42 merged (618922d), then #44 (0cdc58a), which drops held items of deleted sessions. Next: tasks 7 to 10.
+- Oct 4, 2026: tasks 7, 8, 9 and 10 done in lane `lane/pm-7-8-9-10`: pull request #45 merged (d3f0e56). Task 9 was ticked once the owner had used Away from the phone. The review fixes followed in #52 (6792420), and the 25-minute holds in #50. Pull request #36 was retargeted to `master` once the rebuild merged there. Next: tasks 11 to 14.
+- Oct 5, 2026: questions stay in the app (the owner's call): #55 merged into `master` (4fde976). Then #36 merged into `master` (bb52ea0) and `tools/project-manager-remote` was pushed again from `master` for the rest of this plan.
+- Oct 5, 2026: tasks 11, 12, 13 and 14 done in lane `lane/pm-11-12-13-14`: pull request #57 merged (5924826). Tasks 11 and 14 were ticked once the owner had tried them from the phone. Next: tasks 15 to 18.
+- Oct 5, 2026: tasks 15, 16, 17 and 18 done in lane `lane/pm-15-16-17-18`: pull request #58 merged (a0e6cdb). Outside the plan, the New session button followed (#64, 4feebbd). Next: the owner's check (task 19).
 
 ## Build order
 
@@ -318,3 +323,4 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - the check runs on this lane's own session: it posts a clip to its page, ends turns for the owner to approve, asks a question and a permission prompt, is compacted from the phone, and its pull request is merged from its page with Merge, last;
     - the live Project Manager on port 5197 is restarted onto the branch's head first, so tasks 15 to 18 and New session are live;
     - before the owner's check, Claude walks the six steps on a test board in the Browser pane at phone width and fixes what it finds.
+  - The dry run (Oct 5), at 375 px on a test board with fixture sessions and a stand-in `gh`: a permission prompt allowed and a plan shown in the Questions tab; a turn approved; an in-app question reached from the bell, with Open in the Claude app; a posted clip opened from its notification's address, looping in the viewer; a pull request merged; the Compact panel. Every step worked. Three snags on the phone page were fixed (2936f47): the header pushed the bell 14 px off screen once Away showed; the Merge button ran past its panel with a long base name; a ready Merge panel was filled solid green, because its `ready` class was also the task-status colour.
