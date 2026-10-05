@@ -3,18 +3,26 @@ extends SceneTree
 ## library per clip set (ClipLibraries: HumanM for the Hunter, HumanF for the
 ## Rogue). Run it whenever the manifest changes:
 ##
-##   node scripts/godot.mjs clips
+##   node scripts/godot.mjs clips [--manifest=<file>] [--staging=<res:// folder>] [--library=<folder>]
 ##
-## which runs this script twice around a Godot import:
-## 1. `--stage` copies each clip's FBX from the packs' folder (AssetSource)
-##    into the gitignored staging folder and writes its .import, which
-##    retargets it through the Iglesias bone map (unmapped bones' tracks
-##    dropped). Staged files the manifest no longer names are removed.
+## which runs this script twice around a Godot import (the options, for
+## tests, read another manifest, stage into another folder and write the
+## libraries elsewhere; with another manifest Roll01 [RM] is left out):
+## 1. `--stage` copies each clip's file into the gitignored staging folder
+##    and writes its .import, which retargets it through the Iglesias bone
+##    map (unmapped bones' tracks dropped, but for a clip flagged "props"):
+##    a pack clip's FBX from the packs' folder (AssetSource), or an exported
+##    clip's GLB from the asset repository's exports (milestone-1 task 13;
+##    the same GLB for every set, its skeleton found under the armature the
+##    GLB names, glb_skeleton_path()). Staged files the manifest no longer
+##    names are removed.
 ## 2. Godot imports the staged files.
 ## 3. `--build` reads each imported clip and, for each set, writes its
 ##    library into the gitignored library folder:
 ##    - drops the Root track, every scale track and every position track but
-##      the hips' (the rules own where a fighter is);
+##      the hips' (the rules own where a fighter is), keeping a clip flagged
+##      "props" its prop bones' (B-handProp.L/R) turns and travel, for the
+##      weapon's own motion (strip());
 ##    - scales the hips' travel from their rest by the target fighter's
 ##      leg-to-hips ratio over Kevin's rig's, because our fighters' legs are
 ##      longer for their hips height (docs/research/retarget-prototype.md);
@@ -50,15 +58,29 @@ const ROOT_SOURCES: Array[Dictionary] = [
 const ROLL_SOURCE: StringName = &"Roll01_RM"
 const ROLL_SET: StringName = &"HumanM"
 const EXIT_NO_PACKS: int = 2
+## The prop bones a clip flagged "props" keeps (the bone map leaves them out).
+const PROP_BONES: Array[StringName] = [&"B-handProp.L", &"B-handProp.R"]
 
 
 func _initialize() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
+	var manifest: String = ClipManifest.PATH
+	var staging: String = STAGING
+	var library: String = ClipLibraries.FOLDER
+	for a: String in args:
+		if a.begins_with("--manifest="):
+			manifest = a.get_slice("=", 1)
+		elif a.begins_with("--staging="):
+			staging = a.get_slice("=", 1)
+		elif a.begins_with("--library="):
+			library = a.get_slice("=", 1)
+	# Roll01 [RM]'s travel is the committed manifest's alone
+	var roll: bool = manifest == ClipManifest.PATH
 	var code: int = 1
 	if args.has("--stage"):
-		code = stage(ClipManifest.read())
+		code = stage(ClipManifest.read(manifest), staging, roll)
 	elif args.has("--build"):
-		code = build(ClipManifest.read())
+		code = build(ClipManifest.read(manifest), staging, library, roll)
 	else:
 		printerr("import_clips: say --stage or --build (or run `node scripts/godot.mjs clips`)")
 	quit(code)
@@ -66,23 +88,27 @@ func _initialize() -> void:
 
 # --- stage ---------------------------------------------------------------------
 
-## Copies the manifest's clips into STAGING with their import settings.
-## Returns 0, EXIT_NO_PACKS, or 1 on any other failure.
-func stage(m: ClipManifest) -> int:
+## Copies the manifest's clips into `staging` with their import settings
+## (with `roll`, Roll01 [RM] too). Returns 0, EXIT_NO_PACKS, or 1 on any
+## other failure.
+func stage(m: ClipManifest, staging: String = STAGING, roll: bool = true) -> int:
 	if not m.errors.is_empty():
 		printerr("import_clips: the manifest has mistakes:\n  " + "\n  ".join(m.errors))
 		return 1
-	if not AssetSource.has_iglesias():
+	var clips: Array[ClipManifest.Clip] = m.sourced()
+	if roll:
+		clips.append_array(root_clips())
+	if clips.any(func(c: ClipManifest.Clip) -> bool: return not c.exported()) and not AssetSource.has_iglesias():
 		printerr("import_clips: " + AssetSource.missing_message("kevin_iglesias"))
 		return EXIT_NO_PACKS
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(STAGING))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(staging))
 	var wanted: Dictionary[String, bool] = {}
 	var missing: PackedStringArray = []
 	var copied: int = 0
 	for set_name: StringName in m.sets:
-		for clip: ClipManifest.Clip in m.sourced() + root_clips():
+		for clip: ClipManifest.Clip in clips:
 			var src: String = source_path(m, set_name, clip)
-			var dest: String = staged_path(set_name, clip)
+			var dest: String = staged_path(set_name, clip, staging)
 			wanted[dest.get_file()] = true
 			if not FileAccess.file_exists(src):
 				missing.append(src)
@@ -92,39 +118,89 @@ func stage(m: ClipManifest) -> int:
 					printerr("import_clips: cannot copy %s" % src)
 					return 1
 				copied += 1
-			_write_import(dest)
+			var skeleton: String = "Skeleton3D"
+			if clip.exported():
+				skeleton = glb_skeleton_path(dest)
+				if skeleton == "":
+					printerr("import_clips: %s has no skinned armature" % src)
+					return 1
+			_write_import(dest, skeleton, clip.props)
 	if not missing.is_empty():
-		printerr("import_clips: not in the packs:\n  " + "\n  ".join(missing))
+		printerr("import_clips: not in the packs or the asset repository's exports:\n  " + "\n  ".join(missing))
 		return 1
 	var removed: int = 0
-	for f: String in DirAccess.get_files_at(STAGING):
+	for f: String in DirAccess.get_files_at(staging):
 		var base: String = f.trim_suffix(".import")
 		if not wanted.has(base):
-			DirAccess.remove_absolute(ProjectSettings.globalize_path(STAGING.path_join(f)))
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(staging.path_join(f)))
 			removed += 1
-	print("import_clips: staged %d clips for %d sets (%d copied, %d stale files removed)" % [m.sourced().size(), m.sets.size(), copied, removed])
+	print("import_clips: staged %d clips for %d sets (%d copied, %d stale files removed)" % [clips.size(), m.sets.size(), copied, removed])
 	return 0
 
 
-## A clip's FBX in the packs.
+## A clip's file: a pack clip's FBX in the packs, an exported clip's GLB in
+## the asset repository (the same for every set).
 static func source_path(m: ClipManifest, set_name: StringName, clip: ClipManifest.Clip) -> String:
+	if clip.exported():
+		return AssetSource.folder().path_join(clip.export_path)
 	return AssetSource.pack_folder("kevin_iglesias").path_join(clip.file(set_name, m.sets[set_name]))
 
 
-## Where a clip is staged: `<set>@<source>.fbx`, with anything but letters,
-## digits and underscores in the source name turned into underscores
-## ("Roll01 [RM]" -> "Roll01_RM").
-static func staged_path(set_name: StringName, clip: ClipManifest.Clip) -> String:
+## Where a clip is staged in `staging`: `<set>@<source>.fbx` for a pack
+## clip, `<set>@<id>.glb` for an exported one, with anything but letters,
+## digits and underscores in the name turned into underscores ("Roll01 [RM]"
+## -> "Roll01_RM").
+static func staged_path(set_name: StringName, clip: ClipManifest.Clip, staging: String = STAGING) -> String:
 	var name: String = ""
-	for ch: String in clip.source:
+	for ch: String in (String(clip.id) if clip.exported() else clip.source):
 		name += ch if (ch >= "a" and ch <= "z") or (ch >= "A" and ch <= "Z") or (ch >= "0" and ch <= "9") or ch == "_" else "_"
 	while name.contains("__"):
 		name = name.replace("__", "_")
-	return STAGING.path_join("%s@%s.fbx" % [set_name, name.trim_suffix("_")])
+	return staging.path_join("%s@%s.%s" % [set_name, name.trim_suffix("_"), "glb" if clip.exported() else "fbx"])
 
 
-## The import settings a staged clip needs (Godot fills in the rest).
-static func import_settings(source_file: String) -> String:
+## The path, in the scene Godot imports from GLB `path`, of the skeleton it
+## builds from the GLB's first skin: under the node holding the skin's top
+## joint (the armature Blender exported), named as Godot names nodes, or at
+## the top when no node holds it. Empty when the GLB has no skin.
+static func glb_skeleton_path(path: String) -> String:
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if f == null or f.get_length() < 20 or f.get_32() != 0x46546C67:
+		return ""
+	f.get_32()
+	f.get_32()
+	var length: int = f.get_32()
+	if f.get_32() != 0x4E4F534A:
+		return ""
+	var data: Variant = JSON.parse_string(f.get_buffer(length).get_string_from_utf8())
+	if not data is Dictionary or not (data as Dictionary).get("skins") is Array or (data["skins"] as Array).is_empty():
+		return ""
+	var nodes: Array = (data as Dictionary).get("nodes", [])
+	var joints: Array[int] = []
+	for j: Variant in (data["skins"][0] as Dictionary).get("joints", []):
+		joints.append(int(j))
+	if joints.is_empty():
+		return ""
+	var parent: Dictionary[int, int] = {}
+	for i: int in nodes.size():
+		for c: Variant in (nodes[i] as Dictionary).get("children", []):
+			parent[int(c)] = i
+	var top: int = joints[0]
+	while parent.has(top) and joints.has(parent[top]):
+		top = parent[top]
+	if not parent.has(top):
+		return "Skeleton3D"
+	var armature: String = str((nodes[parent[top]] as Dictionary).get("name", "")).validate_node_name()
+	return "Skeleton3D" if armature == "" else armature + "/Skeleton3D"
+
+
+## The import settings a staged clip needs (Godot fills in the rest): an
+## FBX's, or a GLB's, with its skeleton at `skeleton` (glb_skeleton_path());
+## `keep_unmapped` keeps the tracks of the bones the bone map leaves out
+## (the props).
+static func import_settings(source_file: String, skeleton: String = "Skeleton3D", keep_unmapped: bool = false) -> String:
+	var own: String = "gltf/naming_version=2\ngltf/embedded_image_handling=1" if source_file.ends_with(".glb") else \
+		"fbx/importer=0\nfbx/allow_geometry_helper_nodes=false\nfbx/embedded_image_handling=1\nfbx/naming_version=2"
 	return """[remap]
 
 importer="scene"
@@ -151,51 +227,54 @@ animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
 _subresources={
 "nodes": {
-"PATH:Skeleton3D": {
+"PATH:%s": {
 "retarget/bone_map": Resource("%s"),
-"retarget/remove_tracks/unmapped_bones": true
+"retarget/remove_tracks/unmapped_bones": %s
 }
 }
 }
-fbx/importer=0
-fbx/allow_geometry_helper_nodes=false
-fbx/embedded_image_handling=1
-fbx/naming_version=2
-""" % [source_file, BONE_MAP]
+%s
+""" % [source_file, skeleton, BONE_MAP, "false" if keep_unmapped else "true", own]
 
 
-## Writes a staged clip's .import unless it already retargets through the
-## bone map (Godot rewrites the file on import, keeping these settings).
-func _write_import(dest: String) -> void:
+## Writes a staged clip's .import unless it already retargets its skeleton
+## through the bone map as asked (Godot rewrites the file on import, keeping
+## these settings).
+func _write_import(dest: String, skeleton: String, keep_unmapped: bool) -> void:
 	var path: String = dest + ".import"
 	if FileAccess.file_exists(path):
 		var text: String = FileAccess.get_file_as_string(path)
-		if text.contains(BONE_MAP) and text.contains("\"retarget/remove_tracks/unmapped_bones\": true") \
+		if text.contains(BONE_MAP) and text.contains("\"PATH:%s\"" % skeleton) \
+				and text.contains("\"retarget/remove_tracks/unmapped_bones\": %s" % ("false" if keep_unmapped else "true")) \
 				and text.contains("animation/trimming=false") and text.contains("animation/fps=30"):
 			return
 	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
-	f.store_string(import_settings(dest))
+	f.store_string(import_settings(dest, skeleton, keep_unmapped))
 	f.close()
 
 
 # --- build ---------------------------------------------------------------------
 
-## Writes every set's library from the staged, imported clips.
-func build(m: ClipManifest) -> int:
+## Writes every set's library from the clips staged in `staging` into
+## `library` (ClipLibraries.path()'s file names), and with `roll` prints
+## Roll01 [RM]'s travel.
+func build(m: ClipManifest, staging: String = STAGING, library: String = ClipLibraries.FOLDER, roll: bool = true) -> int:
 	if not m.errors.is_empty():
 		printerr("import_clips: the manifest has mistakes:\n  " + "\n  ".join(m.errors))
 		return 1
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ClipLibraries.FOLDER))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(library))
 	for set_name: StringName in m.sets:
-		var lib: AnimationLibrary = build_set(m, set_name)
+		var lib: AnimationLibrary = build_set(m, set_name, staging)
 		if lib == null:
 			return 1
-		var path: String = ClipLibraries.path(set_name)
+		var path: String = library.path_join(ClipLibraries.path(set_name).get_file())
 		var err: Error = ResourceSaver.save(lib, path)
 		if err != OK:
 			printerr("import_clips: cannot save %s (%s)" % [path, error_string(err)])
 			return 1
 		print("import_clips: %s: %d clips -> %s" % [set_name, lib.get_animation_list().size(), path])
+	if not roll:
+		return 0
 	for set_name: StringName in m.sets:
 		var curve: PackedFloat64Array = roll_curve(set_name)
 		if curve.is_empty():
@@ -261,14 +340,15 @@ static func curve_of(anim: Animation, frames: int) -> PackedFloat64Array:
 	return out
 
 
-## A set's library from the staged clips, or null if one isn't imported.
-static func build_set(m: ClipManifest, set_name: StringName) -> AnimationLibrary:
+## A set's library from the clips staged in `staging`, or null if one isn't
+## imported.
+static func build_set(m: ClipManifest, set_name: StringName, staging: String = STAGING) -> AnimationLibrary:
 	var target: FighterModel = (load(TARGETS[set_name]) as PackedScene).instantiate()
 	var target_ratio: float = leg_ratio(target.skeleton)
 	target.free()
 	var lib: AnimationLibrary = AnimationLibrary.new()
 	for clip: ClipManifest.Clip in m.sourced():
-		var path: String = staged_path(set_name, clip)
+		var path: String = staged_path(set_name, clip, staging)
 		if not ResourceLoader.exists(path):
 			printerr("import_clips: %s is not imported; run `node scripts/godot.mjs clips`" % path)
 			return null
@@ -281,7 +361,7 @@ static func build_set(m: ClipManifest, set_name: StringName) -> AnimationLibrary
 			return null
 		var src: AnimationLibrary = (players[0] as AnimationPlayer).get_animation_library(&"")
 		var anim: Animation = src.get_animation(src.get_animation_list()[0]).duplicate(true)
-		strip(anim)
+		strip(anim, clip.props)
 		var rest: Vector3 = sk.get_bone_rest(sk.find_bone("Hips")).origin / sk.motion_scale
 		scale_hips(anim, rest, target_ratio / leg_ratio(sk))
 		scene.free()
@@ -290,7 +370,7 @@ static func build_set(m: ClipManifest, set_name: StringName) -> AnimationLibrary
 		anim.loop_mode = Animation.LOOP_LINEAR if clip.loop else Animation.LOOP_NONE
 		anim.resource_name = String(clip.id)
 		# A fixed sub-resource id, so the saved file doesn't change from run to run.
-		anim.resource_scene_unique_id = "clip_" + staged_path(set_name, clip).get_file().get_basename().get_slice("@", 1)
+		anim.resource_scene_unique_id = "clip_" + staged_path(set_name, clip, staging).get_file().get_basename().get_slice("@", 1)
 		lib.add_animation(clip.id, anim)
 	for clip: ClipManifest.Clip in m.clips.values():
 		if not clip.composed():
@@ -344,16 +424,18 @@ static func compose(upper: Animation, legs: Animation, upper_from: int, legs_fro
 
 
 ## Leaves only rotation tracks on profile bones other than Root, and the
-## hips' position track.
-static func strip(anim: Animation) -> void:
+## hips' position track; with `props`, the prop bones' rotation and position
+## tracks too (PROP_BONES).
+static func strip(anim: Animation, props: bool = false) -> void:
 	var profile: SkeletonProfileHumanoid = SkeletonProfileHumanoid.new()
 	for t: int in range(anim.get_track_count() - 1, -1, -1):
 		var path: NodePath = anim.track_get_path(t)
 		var bone: StringName = StringName(path.get_concatenated_subnames())
 		var type: int = anim.track_get_type(t)
+		var prop: bool = props and PROP_BONES.has(bone)
 		var keep: bool = String(path.get_concatenated_names()) == SKELETON and bone != &"Root" \
-			and profile.find_bone(bone) >= 0 \
-			and (type == Animation.TYPE_ROTATION_3D or (type == Animation.TYPE_POSITION_3D and bone == &"Hips"))
+			and (profile.find_bone(bone) >= 0 or prop) \
+			and (type == Animation.TYPE_ROTATION_3D or (type == Animation.TYPE_POSITION_3D and (bone == &"Hips" or prop)))
 		if not keep:
 			anim.remove_track(t)
 
@@ -370,7 +452,7 @@ static func scale_hips(anim: Animation, rest: Vector3, k: float) -> void:
 
 
 ## Swaps left and right: each Left bone's track goes to its Right bone and
-## back, every rotation is reflected across the body's middle (x, y, z, w ->
+## back (a prop bone's .L to its .R), every rotation is reflected across the body's middle (x, y, z, w ->
 ## x, -y, -z, w) and the hips' travel to the side is flipped.
 static func mirror(anim: Animation) -> void:
 	for t: int in anim.get_track_count():
@@ -380,6 +462,8 @@ static func mirror(anim: Animation) -> void:
 			bone = "Right" + bone.substr(4)
 		elif bone.begins_with("Right"):
 			bone = "Left" + bone.substr(5)
+		elif PROP_BONES.has(StringName(bone)):
+			bone = bone.left(-1) + ("R" if bone.ends_with("L") else "L")
 		anim.track_set_path(t, NodePath(SKELETON + ":" + bone))
 		for i: int in anim.track_get_key_count(t):
 			match anim.track_get_type(t):

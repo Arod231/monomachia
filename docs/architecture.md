@@ -79,7 +79,7 @@ flowchart TD
 | Folder | What it holds |
 | --- | --- |
 | `game/sim` | The rules: fighters, world, match, moves, AI. Pure `RefCounted` objects, stepped 60 times per second, no nodes or rendering. |
-| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry. |
+| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry; the baked swings (`swings/<weapon>.json`) and the frame-data table (`frame_data.json`, read by `FrameDataTable`), both written by `godot.mjs bake`. |
 | `game/sim/ai` | `AIBrain` (the computer opponent) and `TrainingBrain` (the training dummy). |
 | `game/input` | Reading keyboards, mice and controllers into a `RawInput` per player; bindings, profiles, rebinding, button labels. |
 | `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
@@ -264,9 +264,10 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `sim_state.gd` | `SimState` | Snapshots and the state hash (milestone 1): `capture()` copies an object's script variables but those it names in `SNAPSHOT_SKIP` (links, output), sharing only content (`WeaponDef`, `AttackDef`, `FighterBody`, `AIParams`); `state_hash()` is SHA-256 over a canonical form. `World`, `Fighter`, `Match`, `DroppedWeapon`, `SlashWave`, `Rng`, the brains and `TrainingUpkeep` each have `snapshot()`, and `World`, `Fighter`, `Match`, `DroppedWeapon`, `SlashWave` and `Rng` a `restore()` that puts one back (a rollback); `World.state_hash()` and `MatchHost.state_hash()` (the match seam: world, match, brains, upkeep) hash them. |
 | `v2.gd`, `v3.gd` | `V2`, `V3` | 64-bit vectors (Godot's `Vector3` is 32-bit). |
 | `moves/attack_def.gd` | `AttackDef` | One move's frame data and flags; `finalize_moves()` fills defaults. |
+| `moves/frame_data_table.gd` | `FrameDataTable` | The committed frame-data table (milestone-1 task 16): each move's band kind, chain, generated frame data and per-frame travel, each gait clip's measured speed, each rules-length clip's length, the clips not keyed yet, and per row the source clips' checksum and a digest of the row with its swing (`digest()`), which CI recomputes. |
 | `moves/weapon_def.gd` | `WeaponDef` | One weapon: class, speed, parry window, block mitigation, its moves and which move starts each context. |
 | `moves/moves.gd` | `Moves` | The registry: `WEAPONS`, `PLAYABLE_WEAPONS`, `COUNTER_LUNGE`, `ULT_HITS`, `get_move()`. |
-| `moves/katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd` | `KatanaMoves` and so on | Each weapon's `MOVES` table and `build()`. Fists is the bare-hands moveset. |
+| `moves/katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd` | `KatanaMoves` and so on | Each weapon's `MOVES` table and `build()`: what design sets (damage, posture, kind, type, follow-ups, lunges and the like). Since milestone-1 task 17 the frames (startup, active, recovery, the dodge cancel, the travel) come from the frame-data table (`AttackDef.finalize_moves()` given the weapon, `TABLE_FIELDS`). Fists is the bare-hands moveset. |
 | `ai/ai_brain.gd` | `AIBrain` | The computer opponent. |
 | `ai/training_brain.gd` | `TrainingBrain` | The training dummy's drills. |
 | `training_upkeep.gd` | `TrainingUpkeep` | Training's upkeep, stepped by the host after each rules step: getting up after a K.O., the refill (90 frames unhurt, then 2 HP a frame, the dummy's posture draining as fast), the dummy re-arming after 240 frames disarmed. `weapon_for()` and `swap_dummy_weapon()` give the dummy a weapon that can perform a behaviour. |
@@ -934,7 +935,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
 | `npm run build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
-| `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…) |
+| `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…). `clips` builds the clip libraries from the clip manifest: the packs' FBX, and the GLBs of clips exported from Blender (milestone-1 task 13: an entry's `export` path in the asset repository, one export for every clip set, with its pack clip kept as its origin when it replaces one, and `props` keeping the prop bones' motion) |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
 | `npm run checklist` | Write the last test run's move-by-move results (`build/checklist-results.json`, recorded through `ChecklistResults`) into the per-move checklist, `docs/reviews/milestone-1-checklist.md`; the owner's columns are never touched (milestone-1 task 10) |
 | `npm run export` | The Blender export (`scripts/blender/export.mjs` running `export_blend.py` in Blender headless): each source in the asset repository's `blender/sources.json` to one GLB in its `exports/`, with a record of its source and checksums; clip and fighter sources must carry the Kevin Iglesias rig's bones; self-made and CC0 models are copied into `game/assets/` inside the art budget |
@@ -962,6 +963,7 @@ flowchart TD
         BSRC["asset repository: blender/*.blend<br/>listed in blender/sources.json"] --> BEX["export.mjs + export_blend.py<br/>Blender headless"]
         BEX --> BOUT["asset repository: exports/*.glb<br/>+ a record of each source"]
         BEX --> BGAME["game/assets/: self-made and CC0 models<br/>inside the 150 MB art budget"]
+        BOUT --> BCLIP["godot.mjs clips (tools/import_clips.gd)<br/>exported clips the clip manifest names, beside the packs' FBX:<br/>retargeted, mirrored, into the gitignored clip libraries"]
     end
     subgraph ARTP["Fighters and weapons (game/tools)"]
         BM["build_bone_map.gd"] --> IA["import_assets.gd<br/>copy chosen Quaternius and weapon files"]
@@ -973,7 +975,7 @@ flowchart TD
     end
 ```
 
-Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `checklist_results.gd` (where tests record per-move checklist results), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
+Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
 
 ## 17. CI and releases
 

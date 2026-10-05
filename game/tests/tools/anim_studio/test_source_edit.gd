@@ -49,9 +49,9 @@ func test_find_reads_a_whole_object_value() -> void:
 
 func test_find_reads_a_gd_value_under_a_const() -> void:
 	var text: String = _read(KATANA)
-	var span: Vector2i = SourceEdit.find_value(text, ["MOVES", "k_l1", "startup"])
-	assert_ne(span, Vector2i(-1, -1), "startup is found")
-	assert_eq(text.substr(span.x, span.y - span.x), "11")
+	var span: Vector2i = SourceEdit.find_value(text, ["MOVES", "k_l1", "damage"])
+	assert_ne(span, Vector2i(-1, -1), "damage is found")
+	assert_eq(text.substr(span.x, span.y - span.x), "6")
 
 
 func test_find_matches_stringname_and_string_keys_alike() -> void:
@@ -149,14 +149,16 @@ func test_replacing_clips_with_an_array() -> void:
 	assert_eq((parsed as Dictionary)["katana"]["moves"]["k_iai"]["clips"], ["A@1-2", "B"])
 
 
-func test_replacing_startup_in_katana_gd_still_parses() -> void:
+func test_replacing_damage_in_katana_gd_still_parses() -> void:
+	# the move data's frames come from the frame-data table since milestone-1
+	# task 17, so a design number stands in
 	var text: String = _read(KATANA)
-	var path: Array[String] = ["MOVES", "k_l1", "startup"]
+	var path: Array[String] = ["MOVES", "k_l1", "damage"]
 	var span: Vector2i = SourceEdit.find_value(text, path)
 	var edited: String = SourceEdit.replace_value(text, path, 9, _errors())
 	var new_span: Vector2i = SourceEdit.find_value(edited, path)
 	assert_eq(edited.substr(new_span.x, new_span.y - new_span.x), "9")
-	assert_eq(_cut(edited, new_span.x, new_span.y), _cut(text, span.x, span.y), "only the startup changed")
+	assert_eq(_cut(edited, new_span.x, new_span.y), _cut(text, span.x, span.y), "only the damage changed")
 	assert_true(_parses(edited), "the edited text still parses")
 
 
@@ -233,7 +235,7 @@ func test_adding_a_key_in_a_gd_dict_uses_its_style_and_round_trips() -> void:
 	var errors: Array[String] = _errors()
 	var added: String = SourceEdit.replace_value(text, path, 3, errors)
 	assert_eq(errors, [] as Array[String])
-	assert_true(added.contains('"dodge_cancel_from": 20, "newkey": 3,\n'), "string key, same line, trailing comma kept")
+	assert_true(added.contains('"chain_heavy": &"k_h2", "newkey": 3,\n'), "string key, same line, trailing comma kept")
 	assert_true(_parses(added), "still parses")
 	assert_eq(SourceEdit.remove_key(added, path, errors), text, "round trip")
 
@@ -417,7 +419,7 @@ func test_the_untouched_katana_passes_the_parse_check() -> void:
 func test_every_real_move_is_found_where_the_game_reads_it() -> void:
 	var gd: String = _read(KATANA)
 	for move: StringName in KatanaMoves.MOVES:
-		for field: String in ["startup", "active", "recovery", "damage"]:
+		for field: String in ["damage", "posture", "knockback"]:
 			var span: Vector2i = SourceEdit.find_value(gd, ["MOVES", String(move), field])
 			assert_ne(span, Vector2i(-1, -1), "%s.%s is found" % [move, field])
 			assert_eq(gd.substr(span.x, span.y - span.x), str(KatanaMoves.MOVES[move][field]), "%s.%s" % [move, field])

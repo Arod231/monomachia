@@ -585,7 +585,7 @@ func test_shadow_step_plays_the_roll_and_blinks_through_its_active_frames() -> v
 	var f: Fighter = W.fighters[0]
 	var def: AttackDef = Moves.DAGGERS.moves[&"d_shadow"]
 	assert_eq(def.swing.clips, [&"Roll01"] as Array[StringName], "played from Roll01")
-	assert_eq(def.swing.speed, 2.0, "sped up")
+	assert_eq(def.swing.speed, 1.0, "at its own speed (milestone-1 task 17; sped up 2x before)")
 	var lengths: Dictionary[String, float] = {}
 	for set_name: StringName in ClipLibraries.SETS:
 		lengths["%s/Roll01" % set_name] = 39.0 / 30.0
