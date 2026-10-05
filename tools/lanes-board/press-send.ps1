@@ -93,28 +93,37 @@ public static class LanesSessionLock {
     $null
   }
 
+  # "Trust this workspace?": confirms it when it names the launch's own folder.
+  # The dialog is the nearest window above its button that holds no prompt box
+  # (never the app's own window). Says 'confirmed', 'other' (a dialog naming
+  # another folder, left for the owner) or 'none'.
+  $trustCheck = {
+    $seen = 'none'
+    foreach ($w in (& $windows)) {
+      foreach ($t in $w.FindAll($TS::Descendants, $isTrust)) {
+        $dialog = $t
+        do { $dialog = $walker.GetParent($dialog) } while ($dialog -and $dialog.Current.ControlType -ne $CT::Window)
+        if (-not $dialog -or $dialog.FindFirst($TS::Descendants, $isEdit)) { continue }
+        $names = @($dialog.FindAll($TS::Descendants, $isText) | ForEach-Object { $_.Current.Name.Replace('/', '\').TrimEnd('\').ToLowerInvariant() })
+        if ($folder -and $names -contains $folder) {
+          $t.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+          $script:trusted = $true
+          Start-Sleep -Milliseconds 600
+          if ($seen -eq 'none') { $seen = 'confirmed' }
+        } elseif ($names.Count) { $seen = 'other' }
+      }
+    }
+    $seen
+  }
+
   $sawApp = $false; $sawBox = $false; $otherFolder = $false; $boxSince = $null
   while ($sw.ElapsedMilliseconds -lt $WaitMs) {
     if ([LanesSessionLock]::Locked()) { Answer 'locked' }
     try {
       $wins = & $windows
       if ($wins.Count) { $sawApp = $true }
-
-      # "Trust this workspace?": confirm it only for the launch's own folder,
-      # named in the dialog itself (a window inside the app's window).
-      foreach ($w in $wins) {
-        foreach ($t in $w.FindAll($TS::Descendants, $isTrust)) {
-          $dialog = $t
-          do { $dialog = $walker.GetParent($dialog) } while ($dialog -and $dialog.Current.ControlType -ne $CT::Window)
-          $inside = $dialog -and -not $AE::RootElement.Equals($walker.GetParent($dialog))
-          $names = if ($inside) { @($dialog.FindAll($TS::Descendants, $isText) | ForEach-Object { $_.Current.Name.Replace('/', '\').TrimEnd('\').ToLowerInvariant() }) } else { @() }
-          if ($folder -and $names -contains $folder) {
-            $t.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-            $trusted = $true
-            Start-Sleep -Milliseconds 600
-          } elseif ($names.Count) { $otherFolder = $true }
-        }
-      }
+      # Never press Send behind a dialog it won't confirm.
+      if ((& $trustCheck) -eq 'other') { $otherFolder = $true; $boxSince = $null; Start-Sleep -Milliseconds 400; continue }
 
       $box = & $findBox
       if (-not $box) { $boxSince = $null }
@@ -135,10 +144,16 @@ public static class LanesSessionLock {
         }
         if ($send -and $send.Current.IsEnabled) {
           $send.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+          # Sent once the prompt has left the box. A trust dialog coming up now
+          # also hides the box, so look at that first.
           $until = $sw.ElapsedMilliseconds + $TakeMs
           while ($sw.ElapsedMilliseconds -lt $until) {
             Start-Sleep -Milliseconds 400
-            try { if (-not (& $findBox)) { Answer 'pressed' } } catch { }
+            try {
+              $after = & $trustCheck
+              if ($after -eq 'other') { Answer 'trust' }
+              if ($after -eq 'none' -and -not (& $findBox)) { Answer 'pressed' }
+            } catch { }
           }
           Answer 'not-taken'
         }

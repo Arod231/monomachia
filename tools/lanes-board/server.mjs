@@ -23,7 +23,7 @@
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, readdir, stat, access, writeFile, open, mkdir } from 'node:fs/promises';
+import { readFile, readdir, stat, access, writeFile, open, mkdir, rename } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
@@ -33,7 +33,7 @@ import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, canc
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
 import { contextTracker } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
-import { createStarter, firstPrompt, linkLaunches, pressResult, startView } from './launcher.mjs';
+import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -266,9 +266,24 @@ async function waitingQuestion(dir, cli) {
 const LAUNCHES = path.join(STATE, 'launches.json');
 await mkdir(STATE, { recursive: true });
 let launches = [];
-try { launches = JSON.parse(await readFile(LAUNCHES, 'utf8')); } catch { launches = []; }
-const LAUNCH_FRESH_MS = 48 * 60 * 60 * 1000;
-const saveLaunches = () => writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+try { launches = JSON.parse(await readFile(LAUNCHES, 'utf8')); } catch (err) {
+  launches = [];
+  // A file that won't read is kept aside for a look, not overwritten.
+  if (err.code !== 'ENOENT') await rename(LAUNCHES, `${LAUNCHES}.bad-${Date.now()}`).catch(() => {});
+}
+// The starter, the passes and the page's requests all save the launches: one
+// write at a time, each to a new file renamed over the old, so overlapping saves
+// can never leave half a file.
+let saving = Promise.resolve();
+function saveLaunches() {
+  const write = saving.then(async () => {
+    const tmp = `${LAUNCHES}.${process.pid}.tmp`;
+    await writeFile(tmp, JSON.stringify(launches, null, 2));
+    await rename(tmp, LAUNCHES);
+  });
+  saving = write.catch((err) => console.error(err));
+  return write;
+}
 // The board starts each launch itself (launcher.mjs): it opens the launch's link
 // and press-send.ps1 presses Send in the app, one launch at a time. A launch made
 // while the PC is locked starts once it's unlocked (tick, on each pass).
@@ -294,16 +309,15 @@ async function promptOfSession(cli, file) {
   } catch { return null; } finally { await fh?.close(); }
 }
 async function linkSessions(sessions, transcripts) {
-  const pending = launches.filter((l) => !l.session && !l.endedAt);
-  if (!pending.length) return false;
-  const since = Math.min(...pending.map((l) => l.time)) - 10_000;
-  const candidates = sessions.filter((s) => s.cli && s.created >= since && transcripts.has(s.cli));
+  const now = Date.now();
+  const candidates = linkCandidates(launches, sessions, now).filter((s) => transcripts.has(s.cli));
+  if (!candidates.length) return false;
   const prompts = new Map();
   await pool(candidates, 4, async (s) => {
     const p = await promptOfSession(s.cli, transcripts.get(s.cli));
     if (p) prompts.set(s.cli, p);
   });
-  return linkLaunches(launches, candidates, prompts);
+  return linkLaunches(launches, candidates, prompts, now);
 }
 
 let prs = [];
@@ -651,7 +665,7 @@ async function endLaunch(body) {
   entries.push({ id: l.id, label, branch: l.branch, worktree: tree?.path ?? null, sessions: [...ids], requestedAt: Date.now(), firedAt: null });
   await writeFile(STOPS, JSON.stringify({ entries }, null, 2));
   l.endedAt = Date.now();
-  await writeFile(LAUNCHES, JSON.stringify(launches, null, 2));
+  await saveLaunches();
   try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
   return { label, worktree: tree?.path ?? null, sessions: ids.size };
 }
