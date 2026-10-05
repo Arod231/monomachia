@@ -65,8 +65,9 @@ export function findGodot() {
 }
 
 /**
- * The folder the raw asset packs are unzipped in (holding quaternius/ and
- * kevin_iglesias/), from a one-line `.assets-src-path` file at the repo root
+ * The folder holding the raw asset packs (quaternius/ and kevin_iglesias/),
+ * a checkout of the private asset repository on the owner's PC, from a
+ * one-line `.assets-src-path` file at the repo root
  * (not committed), or the main checkout's in a linked git worktree. Null when
  * there is none; the Godot tools then look in `assets_src/` at the repo root
  * (tools/asset_source.gd). Passed to every Godot run as MONOMACHIA_ASSETS_SRC.

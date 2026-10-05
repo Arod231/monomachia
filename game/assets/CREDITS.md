@@ -30,7 +30,7 @@ The Katana (`game/weapons/katana`), the Hunter's tricorn and the worn-cloth text
 
 ## Not in the repo
 
-These packs are kept unzipped in the local source folder (`Desktop/Monomachia-assets/kevin_iglesias`) for reference only. Their licence allows using them in the game but not redistributing them, so the raw files must not be committed to this public repo.
+These packs live in the private asset repository (`kevin_iglesias/` there), which the import tools read through `.assets-src-path`. Their licence allows using them in the game but not redistributing them, so neither the raw files nor any clip converted from them may be committed to this public repo.
 
 | Pack | Version | Source | Licence |
 |---|---|---|---|

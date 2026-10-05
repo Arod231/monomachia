@@ -1,6 +1,6 @@
 # Spec: Milestone 1, the Hunter with the Katana and bare hands at final quality
 
-Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
+Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · progress: task 2 (the private asset repository) done Oct 4, task 3 (the mood board) waiting on the owner's approval · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
 
 Read with: `docs/design.md` (section 1, Order of work, and every "(Oct 4)" line), [ADR 0001](../adr/0001-animation-leads-realistic-look.md), the plan `docs/plans/milestone-1.md`, and the roadmap `docs/plans/roadmap.md`.
 
@@ -49,9 +49,9 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### The pipeline
 
-9. As the owner, I want a private GitHub repository with Git LFS holding the packs, the Blender sources and the exports (about 2 GB), so that paid and large art has a home the public repository never sees.
-10. As the owner, I want the raw Sonniss zips kept outside the asset repository and only processed sounds committed, as today, so that neither repository carries 6.5 GB of raw audio.
-11. As a developer, I want the import tools to read the asset repository wherever the owner keeps it, through today's asset-source setting, so that a real build always uses it.
+9. [x] As the owner, I want a private GitHub repository with Git LFS holding the packs, the Blender sources and the exports (about 2 GB), so that paid and large art has a home the public repository never sees.
+10. [x] As the owner, I want the raw Sonniss zips kept outside the asset repository and only processed sounds committed, as today, so that neither repository carries 6.5 GB of raw audio.
+11. [x] As a developer, I want the import tools to read the asset repository wherever the owner keeps it, through today's asset-source setting, so that a real build always uses it.
 12. As a developer, I want clones and CI builds without the asset repository to run on labelled stand-ins (CC0 clips and code-built or committed models), with every test that needs the clips skipping itself, so that CI stays green for anyone.
 13. As a developer, I want a scripted export from the Blender sources to the files the game uses, for clips and for models, so that an edit in Blender reaches the game with one command and no hand steps.
 14. As a developer, I want clips edited in Blender or Cascadeur imported like the pack clips (retargeted, mirrored where the manifest says, markers kept), so that a re-keyed move replaces its pack clip in the game.
