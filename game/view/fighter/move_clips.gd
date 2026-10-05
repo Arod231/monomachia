@@ -24,10 +24,28 @@ extends RefCounted
 ## chargeable move's marks may add the "hold" its charge holds at
 ## (ClipTiming). "sheathed" gives the source frames (from the chain's start)
 ## the blade spends in the saya, from going in to coming out (task 11).
+##
+## "markers" (milestone-1 task 14) are the markers the move's frame data are
+## generated from (tasks 15-17), in source frames from the chain's start
+## played at 1.0x, each a whole or half frame: the wind-up start, the active
+## frames' start and end, the settle, the dodge-cancel window (its start, and
+## an end that defaults to the settle) when the move has one, and a branch
+## point for each follow-up ("branch": {move: frame}). Until task 19 the clips
+## still play by "marks" and the speed, so the two can differ. On the
+## Katana's and bare hands' moves they are stand-ins ("markers_stand_in"):
+## placed to give today's frame data exactly, not at the clip's events, until
+## their family re-keys them; frame_data() reads them.
 
 const PATH: String = "res://assets/kevin_iglesias/move_clips.json"
 const WEAPON_FIELDS: Array[String] = ["guard", "moves"]
-const MOVE_FIELDS: Array[String] = ["clips", "speed", "fallback", "marks", "sheathed"]
+const MOVE_FIELDS: Array[String] = ["clips", "speed", "fallback", "marks", "sheathed", "markers", "markers_stand_in"]
+## A move's markers that every move has, in the order they fall.
+const RULES_MARKERS: Array[String] = ["windup", "active_start", "active_end", "settle"]
+## The dodge-cancel window's markers, for a move with one: the start, and an
+## end that defaults to the settle.
+const DODGE_CANCEL_MARKERS: Array[String] = ["dodge_cancel", "dodge_cancel_end"]
+## Rules frames per source frame at 1.0x: 60 a second over 30.
+const RULES_PER_SOURCE: float = ClipTiming.RULES_FPS / ClipManifest.SOURCE_FPS
 
 
 ## One move fitted to its clips.
@@ -47,6 +65,13 @@ class Entry:
 	## The source frames from the chain's start the blade is in the saya,
 	## first and last; empty for never.
 	var sheathed: PackedFloat64Array = PackedFloat64Array()
+	## The markers the move's frame data are generated from (RULES_MARKERS,
+	## DODGE_CANCEL_MARKERS and "branch": {follow-up: frame}), in source
+	## frames from the chain's start at 1.0x; empty for none.
+	var markers: Dictionary = {}
+	## Whether they are stand-ins giving today's frame data, waiting for the
+	## move's family to re-key it.
+	var markers_stand_in: bool = false
 
 
 ## Weapon id -> the clip its guard is read from.
@@ -125,6 +150,26 @@ static func markers(e: Entry, manifest: ClipManifest, lengths: PackedFloat64Arra
 	return out
 
 
+## The frame data markers give (an Entry's markers), the clip played at
+## 1.0x: startup, active and recovery, "dodge_cancel_from" and
+## "dodge_cancel_to" (AttackDef.UNSET without a window) and "branch" (follow-up
+## -> the frame it starts on), all in rules frames from the wind-up start.
+static func frame_data(m: Dictionary) -> Dictionary:
+	var at: Callable = func(x: float) -> int: return roundi((x - float(m["windup"])) * RULES_PER_SOURCE)
+	var out: Dictionary = {
+		"startup": at.call(m["active_start"]),
+		"active": at.call(m["active_end"]) - at.call(m["active_start"]),
+		"recovery": at.call(m["settle"]) - at.call(m["active_end"]),
+		"dodge_cancel_from": at.call(m["dodge_cancel"]) if m.has("dodge_cancel") else AttackDef.UNSET,
+		"dodge_cancel_to": at.call(m.get("dodge_cancel_end", m["settle"])) if m.has("dodge_cancel") else AttackDef.UNSET,
+		"branch": {},
+	}
+	var branch: Dictionary = m.get("branch", {})
+	for follow: Variant in branch:
+		out["branch"][follow] = at.call(branch[follow])
+	return out
+
+
 func _entry(wid: StringName, id: StringName, d: Variant, manifest: ClipManifest) -> Entry:
 	var at: String = "%s.%s" % [wid, id]
 	if not (Moves.WEAPONS[wid] as WeaponDef).moves.has(id):
@@ -193,4 +238,67 @@ func _entry(wid: StringName, id: StringName, d: Variant, manifest: ClipManifest)
 			errors.append("%s: sheathed must be two source frames, the first before the second" % at)
 			return null
 		e.sheathed = PackedFloat64Array([float(sh[0]), float(sh[1])])
+	if (d as Dictionary).has("markers"):
+		var why: Array[String] = []
+		e.markers = _markers(wid, d["markers"], why)
+		if not why.is_empty():
+			for w: String in why:
+				errors.append("%s: %s" % [at, w])
+			return null
+	var stand_in: Variant = (d as Dictionary).get("markers_stand_in", false)
+	if not stand_in is bool or (stand_in and e.markers.is_empty()):
+		errors.append("%s: markers_stand_in is true or false, and true only with markers" % at)
+		return null
+	e.markers_stand_in = stand_in
 	return e
+
+
+## A move's markers read from `m` (see Entry.markers), each mistake pushed
+## into `why`.
+static func _markers(wid: StringName, m: Variant, why: Array[String]) -> Dictionary:
+	if not m is Dictionary:
+		why.append("markers must be an object")
+		return {}
+	var out: Dictionary = {}
+	var frame: Callable = func(name: String, v: Variant) -> bool:
+		if not (v is float or v is int) or float(v) < 0.0 or float(v) * 2.0 != floorf(float(v) * 2.0):
+			why.append("marker %s must be a whole or half source frame" % name)
+			return false
+		return true
+	for name: Variant in m:
+		if not (RULES_MARKERS.has(str(name)) or DODGE_CANCEL_MARKERS.has(str(name)) or str(name) == "branch"):
+			why.append("unknown marker %s" % name)
+	for name: String in RULES_MARKERS + DODGE_CANCEL_MARKERS:
+		if not (m as Dictionary).has(name):
+			if RULES_MARKERS.has(name):
+				why.append("no %s marker" % name)
+			continue
+		if frame.call(name, m[name]):
+			out[name] = float(m[name])
+	if not why.is_empty():
+		return out
+	for i: int in range(1, RULES_MARKERS.size()):
+		if out[RULES_MARKERS[i]] <= out[RULES_MARKERS[i - 1]]:
+			why.append("marker %s must come after %s" % [RULES_MARKERS[i], RULES_MARKERS[i - 1]])
+	if out.has("dodge_cancel_end") and not out.has("dodge_cancel"):
+		why.append("dodge_cancel_end needs a dodge_cancel")
+	elif out.has("dodge_cancel"):
+		var end: float = out.get("dodge_cancel_end", out["settle"])
+		if out["dodge_cancel"] < out["active_end"] or out["dodge_cancel"] >= end or end > out["settle"]:
+			why.append("the dodge-cancel window must open from active_end and close by the settle")
+	var branch: Variant = (m as Dictionary).get("branch", {})
+	if not branch is Dictionary:
+		why.append("branch must be an object of follow-up moves and frames")
+		return out
+	var points: Dictionary = {}
+	for follow: Variant in branch:
+		var move := StringName(str(follow))
+		if not (Moves.WEAPONS[wid] as WeaponDef).moves.has(move):
+			why.append("branch %s is not a move of the %s" % [move, wid])
+		elif frame.call("branch %s" % move, branch[follow]):
+			var x: float = float(branch[follow])
+			if x <= out["active_start"] or x > out["settle"]:
+				why.append("branch %s must come after active_start and by the settle" % move)
+			points[move] = x
+	out["branch"] = points
+	return out

@@ -14,7 +14,7 @@
 //   bench [scene args...]  the frame-time harness: plays the worst-case replay in a window
 //                          and writes every frame's time to build/bench/ (tools/bench/frame_time_bench.gd)
 //   run                    play the game
-//   studio                 open the Animation Studio (gallery, editor and chat panel; dev tool)
+//   studio                 open the Animation Studio (gallery and editor; dev tool)
 //   dev                    open the editor
 //   build                  export the Windows build to build/windows/, with the licence,
 //                          credits and notices beside the exe (tools/build_notices.gd)

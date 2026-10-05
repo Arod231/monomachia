@@ -219,7 +219,7 @@ func test_adding_marks_to_a_move_that_has_none_and_removing_it_again_gives_the_o
 	assert_eq(errors, [] as Array[String])
 	var span: Vector2i = SourceEdit.find_value(added, path)
 	assert_ne(span, Vector2i(-1, -1), "marks are there now")
-	assert_true(added.contains('"fallback": "Sword_Light_A", "marks": {"windup": 8, "contact": 15}}'), "added on the same line, after the last entry")
+	assert_true(added.contains('"branch": {"k_l2": 8, "k_h2": 8}}, "marks": {"windup": 8, "contact": 15}}'), "added on the same line, after the last entry (its markers)")
 	assert_eq(added.count("\n"), text.count("\n"), "no line was added")
 	assert_not_null(JSON.parse_string(added), "still valid JSON")
 	var removed: String = SourceEdit.remove_key(added, path, errors)
@@ -288,7 +288,7 @@ func test_removing_a_whole_move_from_move_clips() -> void:
 	var errors: Array[String] = _errors()
 	var removed: String = SourceEdit.remove_key(text, ["katana", "moves", "k_l2"], errors)
 	assert_eq(errors, [] as Array[String])
-	assert_false(removed.contains('"k_l2"'), "k_l2 is gone")
+	assert_false(removed.contains('"k_l2": {'), "k_l2 is gone (k_l1's branch point still names it)")
 	assert_eq(removed.count("\n"), text.count("\n") - 1, "exactly its line went")
 	assert_not_null(JSON.parse_string(removed), "still valid JSON")
 

@@ -53,9 +53,9 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 10. [x] As the owner, I want the raw Sonniss zips kept outside the asset repository and only processed sounds committed, as today, so that neither repository carries 6.5 GB of raw audio.
 11. [x] As a developer, I want the import tools to read the asset repository wherever the owner keeps it, through today's asset-source setting, so that a real build always uses it.
 12. As a developer, I want clones and CI builds without the asset repository to run on labelled stand-ins (CC0 clips and code-built or committed models), with every test that needs the clips skipping itself, so that CI stays green for anyone.
-13. As a developer, I want a scripted export from the Blender sources to the files the game uses, for clips and for models, so that an edit in Blender reaches the game with one command and no hand steps.
+13. [x] As a developer, I want a scripted export from the Blender sources to the files the game uses, for clips and for models, so that an edit in Blender reaches the game with one command and no hand steps. (Ticked with task 12.)
 14. As a developer, I want clips edited in Blender or Cascadeur imported like the pack clips (retargeted, mirrored where the manifest says, markers kept), so that a re-keyed move replaces its pack clip in the game.
-15. As the owner, I want every new model and every clip keyed from scratch to be the project's own art (all rights reserved), with its Blender source in the asset repository; clips re-keyed from a pack clip to stay under the pack's licence, exported only into the asset repository; and the exports of self-made and CC0 models and materials also committed to the public repository inside its size budget **(P23, confirmed Oct 4)**, so that everything shipped can be sold and plain clones and CI see the art they may.
+15. [x] As the owner, I want every new model and every clip keyed from scratch to be the project's own art (all rights reserved), with its Blender source in the asset repository; clips re-keyed from a pack clip to stay under the pack's licence, exported only into the asset repository; and the exports of self-made and CC0 models and materials also committed to the public repository inside its size budget **(P23, confirmed Oct 4)**, so that everything shipped can be sold and plain clones and CI see the art they may. (Ticked with task 12.)
 16. As a developer, I want every move's source clip recorded beside its numbers, so that any move can be re-baked from another clip.
 17. As a developer, I want a frame-data generator that reads each attack's clip at its own speed and writes the startup, active and recovery frames, the cancel windows, the branch points and the per-frame travel into a committed frame-data table, and the hit path into the committed swing files, in the same run, so that the clip decides the frame data with no hand overrides.
 18. As a developer, I want the rules, the computer opponent, the move list, the sheets and every other reader of frame data to read that table, so that there is one source of truth.
@@ -71,7 +71,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 28. As the owner, I want markers set on the Studio's timeline to give each clip's active frames, cancel windows and branch points, and saving to regenerate the frame-data table and report any move outside its band, so that a marker edit is the only way frame data change. **(P12, confirmed Oct 4)**
 29. As the owner, I want the Studio's timeline to show each move's generated frame data against its timing band, and whether it connects from its distance band, so that I see at once whether a clip fits.
 30. As the owner, I want the Studio's chains kept without their speed field or held frames, so that nothing in the Studio can speed up, slow down or freeze a clip.
-31. As a developer, I want bone posing, correctives, IK handles, keyed-clip editing, the refinement launcher and the chat panel dropped from the Studio in favour of Blender, so that the tool stays small.
+31. [x] As a developer, I want bone posing, correctives, IK handles, keyed-clip editing, the refinement launcher and the chat panel dropped from the Studio in favour of Blender, so that the tool stays small. (Ticked with task 11.)
 32. As the owner, I want to try the slimmed Studio on the pilot family before the other families start, so that the marker workflow is proven early.
 
 ### Timing, distance and pace
@@ -245,7 +245,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 172. As a player, I want the final hit to ring out as the slow motion drains the arena's sound and the music, then a deep drum under Warrior Slain, so that a round's end is felt.
 173. As a player, I want the 危's warning sound distinct from everything else, so that I hear an unblockable coming.
 174. As a player, I want placeholder effort vocals (breaths, kiai shouts on heavies, pain on hits, death cries), so that the fighters aren't silent until a vocals pack is bought after this milestone.
-175. As the owner, I want the code-generated score extended with the shakuhachi, the biwa and a low choir beside its taiko, with electronic and metal layers rising at match point, while the menus keep the groovier fusion, so that the sign-off build sounds like the design.
+175. [x] As the owner, I want the code-generated score extended with the shakuhachi, the biwa and a low choir beside its taiko, with electronic and metal layers rising at match point, while the menus keep the groovier fusion, so that the sign-off build sounds like the design. (Ticked with task 113.)
 176. As the owner, I want a listening pass on each family's sounds as part of its review, the roll's sound included, so that sound reaches final quality with the moves.
 
 ### HUD, menus and settings
