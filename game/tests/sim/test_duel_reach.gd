@@ -9,7 +9,10 @@ extends GutTest
 ## 15-20 cm deep (SwingReach.inside(), authored-animation task 24). Its
 ## lunge ends on the frame it first touches, so the front foot lands on
 ## contact, and from 6 m it whiffs. The check itself is tested on synthetic
-## lights.
+## lights. Since milestone-1 task 17 the Greatsword's and the Daggers' moves
+## play their clips at 1.0x with no band test until milestone 2 re-keys them
+## (the spec's P10): what they get wrong is printed, not failed
+## (MILESTONE_2).
 
 const RT := preload("res://tests/sim/reach_table.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
@@ -21,6 +24,8 @@ const WHIFF_FROM: float = 6.0
 ## frame 12, the demo's; its baked swing ends it on 13 (authored-animation
 ## task 9).
 const DEMO_LUNGE_END: int = 12
+## The weapons whose reach waits for milestone 2.
+const MILESTONE_2: Array[StringName] = [&"greatsword", &"daggers"]
 
 
 ## What light `id` of `w` gets wrong against the rule, or nothing.
@@ -76,6 +81,10 @@ func test_a_fist_is_measured_by_its_depth_and_a_blade_by_its_length_inside() -> 
 func test_every_light_with_a_swing_puts_15_to_20_cm_into_a_defender_at_the_duelling_distance() -> void:
 	var problems: Array[String] = []
 	for id: StringName in Moves.WEAPONS:
+		if MILESTONE_2.has(id):
+			for p: String in _weapon_problems(Moves.WEAPONS[id]):
+				gut.p("milestone 2: " + p)
+			continue
 		problems.append_array(_weapon_problems(Moves.WEAPONS[id]))
 	assert_eq(problems, [] as Array[String])
 

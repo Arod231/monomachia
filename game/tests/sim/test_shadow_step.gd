@@ -77,15 +77,17 @@ func test_the_held_side_sets_the_way_round() -> void:
 	assert_eq(signf(sides[0]), -signf(sides[1]), "held left, it circles the other way (%.2f vs %.2f)" % sides)
 
 
-func test_the_step_is_invulnerable_through_its_first_20_frames() -> void:
+func test_the_step_is_invulnerable_through_its_first_40_frames() -> void:
+	# 20 until its frames came from its clip at 1.0x, carried onto them
+	# (milestone-1 task 17)
 	var def: AttackDef = Moves.DAGGERS.moves[D]
-	assert_eq(Array(def.invuln), [0, 20])
+	assert_eq(Array(def.invuln), [0, 40])
 	var W: World = _world()
 	var a: Fighter = W.fighters[0]
 	W.step([SimHelpers.btn(Btn.BLOCK, Btn.HEAVY), SimHelpers.idle()])
 	while a.state == &"attack":
 		var f: int = a.atk.frame
-		assert_eq(a.is_invulnerable(), f >= 0 and f <= 20, "frame %d" % f)
+		assert_eq(a.is_invulnerable(), f >= 0 and f <= 40, "frame %d" % f)
 		W.step([SimHelpers.idle(), SimHelpers.idle()])
 
 

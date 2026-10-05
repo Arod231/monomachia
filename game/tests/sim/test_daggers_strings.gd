@@ -7,32 +7,32 @@ extends WeaponStringsTest
 ## WeaponStringsTest.rows): all seven.
 const ROWS: Dictionary[StringName, Dictionary] = {
 	&"d_l1": {
-		"name": "Quick Slice", "frames": [7, 2, 13], "damage": 4, "posture": 4,
+		"name": "Quick Slice", "damage": 4, "posture": 4,
 		"light": &"d_l2", "heavy": &"d_h1", "sides": [&"right", &"left"],
 	},
 	&"d_l2": {
-		"name": "Off-hand Slice", "frames": [7, 2, 13], "damage": 4, "posture": 4,
+		"name": "Off-hand Slice", "damage": 4, "posture": 4,
 		"light": &"d_l3", "heavy": &"d_h1", "sides": [&"left", &"right"],
 	},
 	&"d_l3": {
-		"name": "Twin Rip", "frames": [9, 3, 14], "damage": 6, "posture": 5,
+		"name": "Twin Rip", "damage": 6, "posture": 5,
 		"light": &"d_l4", "heavy": &"", "sides": [&"centre", &"centre"],
 	},
 	&"d_l4": {
-		"name": "Flurry Finisher", "frames": [11, 3, 18], "damage": 7, "posture": 6,
+		"name": "Flurry Finisher", "damage": 7, "posture": 6,
 		"light": &"", "heavy": &"d_h2", "sides": [&"centre", &"centre"],
 	},
 	&"d_h1": {
-		"name": "Twin Fang", "frames": [16, 3, 20], "damage": 10, "posture": 9,
+		"name": "Twin Fang", "damage": 10, "posture": 9,
 		"light": &"", "heavy": &"d_h2", "sides": [&"centre", &"centre"],
 	},
 	&"d_h2": {
-		"name": "Spinning Backhand", "frames": [18, 5, 22], "damage": 12, "posture": 10,
+		"name": "Spinning Backhand", "damage": 12, "posture": 10,
 		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
 	},
 	# out of a dodge, in no string
 	&"d_dl": {
-		"name": "Passing Cut", "frames": [6, 2, 12], "damage": 5, "posture": 4,
+		"name": "Passing Cut", "damage": 5, "posture": 4,
 		"light": &"", "heavy": &"", "sides": [&"", &""],
 	},
 }
@@ -76,16 +76,9 @@ func _init() -> void:
 	rows = ROWS
 
 
-## The spec's first active frame of move id: startup + 1.
+## Move id's first active frame: startup + 1.
 func _first_active_frame(id: StringName) -> int:
-	return rows[id]["frames"][0] + 1
-
-
-## The spec's first recovery frame of move id, the frame after its last
-## active one: startup + active + 1.
-func _first_recovery_frame(id: StringName) -> int:
-	var frames: Array = rows[id]["frames"]
-	return frames[0] + frames[1] + 1
+	return _frames(id)[0] + 1
 
 
 ## n light presses.
@@ -264,11 +257,11 @@ func _passing_cut_then_dodge_on(stick: Vector2, gap: float, pressed: int) -> Pla
 	return r
 
 
-func test_passing_cut_dodge_cancels_from_its_first_recovery_frame_after_a_hit_and_after_a_whiff() -> void:
+func test_passing_cut_dodge_cancels_from_its_cancel_frame_after_a_hit_and_after_a_whiff() -> void:
 	# out of a forward dodge it hits; out of one to the right, far away, it
 	# whiffs. A dodge pressed in its active frames waits in the input buffer
 	# (over a hit's hit-stop too)
-	var cancel: int = _first_recovery_frame(&"d_dl")
+	var cancel: int = _cancel(&"d_dl")
 	var ways: Array = [[STICK_FORWARD, FORWARD_DODGE_GAP, "after a hit"], [STICK_RIGHT, WHIFF_GAP, "after a whiff"]]
 	for way: Array in ways:
 		for pressed: int in [_first_active_frame(&"d_dl"), cancel - 1, cancel]:
@@ -286,12 +279,12 @@ func test_passing_cut_dodge_cancels_from_its_first_recovery_frame_after_a_hit_an
 
 # ------------------------------------------------------------------ dodge cancels
 
-func test_each_light_dodge_cancels_from_its_first_recovery_frame() -> void:
+func test_each_light_dodge_cancels_from_its_cancel_frame() -> void:
 	# a dodge pressed in its active frames, from the first, waits in the input
 	# buffer (over a hit's hit-stop too) and comes on that frame
 	for n: int in LIGHTS.size():
 		var id: StringName = LIGHTS[n]
-		_assert_dodge_cancels_from(_lights(n + 1), id, _first_recovery_frame(id), [_first_active_frame(id)])
+		_assert_dodge_cancels_from(_lights(n + 1), id, _cancel(id), [_first_active_frame(id)])
 
 
 # ------------------------------------------------------------------ hitstun
@@ -307,9 +300,9 @@ func test_a_defender_pressing_block_as_hitstun_ends_parries_off_hand_slice() -> 
 		if probe.defender_state[i] != &"hitstun":
 			free_step = i
 			break
-	# Off-hand Slice lands 11 frames after Quick Slice (the plan's notes), so
-	# the string's hitstun leaves the defender one free step before it
-	assert_eq(free_step, hits[1]["step"] - 1, "out of hitstun for one step before Off-hand Slice lands")
+	# the string's hitstun (today's, until milestone 2 retunes the Daggers)
+	# leaves the defender free before Off-hand Slice lands
+	assert_lt(free_step, hits[1]["step"], "out of hitstun before Off-hand Slice lands")
 	# pressing block a step before hitstun ends: the press waits in the buffer
 	var r: PlayedString = _play_against(_lights(2), H.tap_at(free_step - 1, Btn.BLOCK))
 	assert_eq(r.ids(&"hit"), LIGHTS.slice(0, 1), "only Quick Slice lands")

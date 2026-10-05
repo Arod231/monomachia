@@ -486,24 +486,29 @@ func test_a_charged_heavy_opens_its_cancel_later_by_half_its_extra_recovery() ->
 
 
 func test_mountain_slam_cannot_be_dodge_cancelled() -> void:
-	# a block ability, 32 frames of startup, 5 active and 36 of recovery: a
-	# heavy with those frames would cancel from 55
+	# a block ability: a dodge late in its recovery (frame 62 of its clip's
+	# 74, the table's) does nothing
+	var slam: AttackDef = Moves.GREATSWORD.moves[&"g_slam"]
+	assert_gt(slam.total_frames(), 62, "frame 62 is in its recovery")
 	var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 10.0, {"a": [&"g_slam", &"g_sweep"]})
 	var r: CancelRun = _cancel_run(W, H.btn(Btn.BLOCK, Btn.LIGHT), 1, 62, H.idle())
 	assert_eq(r.attack, &"g_slam")
 	assert_true(r.pressed)
 	assert_eq(r.dodge_frame, -1, "a dodge late in its recovery does nothing")
-	assert_eq(r.last_frame, 32 + 5 + 36 - 1, "the slam runs to its end")
+	assert_eq(r.last_frame, slam.total_frames() - 1, "the slam runs to its end")
 
 
 func test_a_jump_heavy_cannot_dodge_cancel_in_the_air() -> void:
-	# the Daggers' Dive Stab (12/4/18) opens its cancel on frame 25
-	var W: World = H.make_world(Moves.DAGGERS, Moves.KATANA, 10.0)
+	# bare hands' Axe Kick opens its cancel while a disarmed jump is still in
+	# the air (the Daggers' Dive Stab did, until its frames came from its clip
+	# at 1.0x, milestone-1 task 17)
+	var kick: AttackDef = Moves.FISTS.moves[&"f_jh"]
+	var W: World = H.make_world(Moves.FISTS, Moves.KATANA, 10.0)
 	W.step([H.btn(Btn.JUMP), H.idle()])
-	var r: CancelRun = _cancel_run(W, H.btn(Btn.HEAVY), 1, 25, H.idle())
-	assert_eq(r.attack, &"d_jh")
+	var r: CancelRun = _cancel_run(W, H.btn(Btn.HEAVY), 1, kick.dodge_cancel_from, H.idle())
+	assert_eq(r.attack, &"f_jh")
 	assert_true(r.pressed_in_the_air, "thrown straight after the jump, it is still in the air there")
-	assert_gt(r.dodge_frame, 25, "the dodge comes after the cancel frame")
+	assert_gt(r.dodge_frame, kick.dodge_cancel_from, "the dodge comes after the cancel frame")
 	assert_false(r.dodged_in_the_air, "once the fighter has landed")
 
 
@@ -513,10 +518,11 @@ func test_a_jump_heavy_cannot_dodge_cancel_in_the_air() -> void:
 ## recovery frames, eased out.
 const SLIDE: float = 0.35
 const SLIDE_FRAMES: int = 10
-## Heavy Swing, from its move data: 14 frames of startup and 4 active, so its
-## recovery starts on frame 19, and it dodge-cancels from frame 26.
-const SWING_ACTIVE_END: int = 14 + 4
-const SWING_CANCEL: int = 26
+## Heavy Swing's last active frame and the frame it dodge-cancels from, its
+## frame data the table's (milestone-1 task 17; 18 and 26 while the move data
+## set them).
+static var SWING_ACTIVE_END: int = (Moves.GREATSWORD.moves[&"g_l1"] as AttackDef).startup + (Moves.GREATSWORD.moves[&"g_l1"] as AttackDef).active
+static var SWING_CANCEL: int = (Moves.GREATSWORD.moves[&"g_l1"] as AttackDef).dodge_cancel_from
 
 
 ## How far fighter 0 moves on each of attack id's recovery frames (frames

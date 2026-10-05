@@ -7,27 +7,27 @@ extends WeaponStringsTest
 ## the dodge thrusts are in no string, so they have no sides.
 const ROWS: Dictionary[StringName, Dictionary] = {
 	&"g_l1": {
-		"name": "Heavy Swing", "frames": [14, 4, 22], "damage": 9, "posture": 11,
+		"name": "Heavy Swing", "damage": 9, "posture": 11,
 		"light": &"g_l2", "heavy": &"g_h1", "sides": [&"right", &"left"],
 	},
 	&"g_l2": {
-		"name": "Backswing", "frames": [11, 4, 22], "damage": 9, "posture": 11,
+		"name": "Backswing", "damage": 9, "posture": 11,
 		"light": &"", "heavy": &"g_h1", "sides": [&"left", &"right"],
 	},
 	&"g_h1": {
-		"name": "Overhead Strike", "frames": [26, 5, 29], "damage": 18, "posture": 22,
+		"name": "Overhead Strike", "damage": 18, "posture": 22,
 		"light": &"", "heavy": &"g_h2", "sides": [&"centre", &"right"],
 	},
 	&"g_h2": {
-		"name": "Low Sweep", "frames": [26, 5, 34], "damage": 16, "posture": 22,
+		"name": "Low Sweep", "damage": 16, "posture": 22,
 		"light": &"", "heavy": &"", "sides": [&"right", &"left"],
 	},
 	&"g_dl": {
-		"name": "Piercing Lunge", "frames": [12, 3, 20], "damage": 8, "posture": 10,
+		"name": "Piercing Lunge", "damage": 8, "posture": 10,
 		"light": &"", "heavy": &"", "sides": [&"", &""],
 	},
 	&"g_dh": {
-		"name": "Skewer", "frames": [22, 4, 28], "damage": 14, "posture": 18,
+		"name": "Skewer", "damage": 14, "posture": 18,
 		"light": &"", "heavy": &"", "sides": [&"", &""],
 	},
 }
@@ -103,13 +103,15 @@ func test_two_lights_then_a_heavy_hit_with_heavy_swing_backswing_and_overhead_st
 	assert_eq(_play([light, heavy]).ids(&"hit"), [&"g_l1", &"g_h1"] as Array[StringName], "L-H: Heavy Swing, Overhead Strike")
 
 
-func test_backswing_swings_sooner_than_heavy_swing_riding_its_momentum() -> void:
+func test_heavy_swing_and_backswing_swing_on_their_tables_frames() -> void:
+	# Backswing swung sooner than Heavy Swing while the move data set the
+	# frames; since milestone-1 task 17 their clips at 1.0x do (P10)
 	var r: PlayedString = _play([Btn.LIGHT, Btn.LIGHT])
 	var swung_on: Array[int] = []
 	for e: Dictionary in r.all(&"swing"):
 		if e["f"] == 0:
 			swung_on.append(r.frame[int(e["step"])])
-	assert_eq(swung_on, [14, 11] as Array[int], "Heavy Swing swings on its frame 14, and Backswing on its 11")
+	assert_eq(swung_on, [_frames(&"g_l1")[0], _frames(&"g_l2")[0]] as Array[int], "each swings on its startup's last frame")
 
 
 func test_a_light_starts_nothing_after_backswing() -> void:
@@ -129,8 +131,8 @@ func test_a_held_heavy_charges_overhead_strike_standing_still() -> void:
 	assert_eq(r.charging.rfind(true), 59, "until heavy is let go on step 60")
 	assert_eq(r.walked(0, 60), 0.0, "standing still meanwhile, the stick to the side")
 	assert_eq(r.ids(&"hit"), [&"g_h1"] as Array[StringName], "then Overhead Strike hits")
-	var startup: int = ROWS[&"g_h1"]["frames"][0]
-	assert_eq(r.step_of(&"hit") - 60, startup - CHARGE_FROM, "17 frames after the release: the rest of its 26-frame startup")
+	var startup: int = _frames(&"g_h1")[0]
+	assert_eq(r.step_of(&"hit") - 60, startup - CHARGE_FROM, "after the release, the rest of its startup")
 
 
 func test_an_overhead_strike_held_for_2_5_s_releases_by_itself_as_a_stronger_power_attack() -> void:
@@ -152,7 +154,9 @@ func test_overhead_strike_charges_as_the_l_l_hs_finisher_too() -> void:
 		if i == 0 or i == second_light:
 			return H.btn(Btn.LIGHT)
 		return H.btn(Btn.HEAVY) if i >= heavy_from else H.idle()
-	var r: PlayedString = _run(held_finisher)
+	# the string's two lights, the charge's 2.5 s and the strike, at the
+	# clips' frames
+	var r: PlayedString = _run(held_finisher, NAN, STEPS + 120)
 	var charged_from: int = r.charging.find(true)
 	assert_eq(
 		[r.attack[charged_from], r.frame[charged_from]] if charged_from >= 0 else [],
@@ -220,12 +224,12 @@ func test_low_sweep_ends_the_string() -> void:
 
 
 func test_low_sweep_is_narrower_and_faster_than_reaping_sweep_and_reaches_past_the_lights() -> void:
-	# the spec's numbers: Low Sweep 26 frames, 110° and 3.2 m; Reaping Sweep
-	# 28 frames and 160°; the lights 3.0 m
+	# the spec's numbers: Low Sweep 110° and 3.2 m; Reaping Sweep 160°; the
+	# lights 3.0 m; the startups the clips' (the table's)
 	var moves: Dictionary[StringName, AttackDef] = Moves.GREATSWORD.moves
 	var low: AttackDef = moves[&"g_h2"]
 	var reaping: AttackDef = moves[&"g_sweep"]
-	assert_eq([reaping.startup, reaping.arc, moves[&"g_l1"].range], [28, 160.0, 3.0], "Reaping Sweep's and the lights' numbers")
+	assert_eq([reaping.arc, moves[&"g_l1"].range], [160.0, 3.0], "Reaping Sweep's and the lights' numbers")
 	assert_lt(low.startup, reaping.startup, "Low Sweep starts sooner than Reaping Sweep")
 	assert_lt(low.arc, reaping.arc, "and is narrower")
 	assert_gt(low.range, moves[&"g_l1"].range, "it reaches past the lights, as an unblockable does")
@@ -234,27 +238,28 @@ func test_low_sweep_is_narrower_and_faster_than_reaping_sweep_and_reaches_past_t
 func test_low_sweep_is_marked_as_an_unblockable_that_can_be_jumped() -> void:
 	# the spec: unblockable (dodge invincibility doesn't help against it, and
 	# it leaves the danger trail, the red ink trail), jumpable, with the sweep
-	# counter, and as a heavy it dodge-cancels from 26 + 5 + 17 = 48. jumpable
+	# counter, and as a heavy it dodge-cancels where its table row says. jumpable
 	# matters only close in and off to the side, where the hit's cone widens
 	# more than the leap counter's, so the flag is held here.
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_h2"]
 	assert_eq(
 		[m.unblockable, m.undodgeable, m.trail, m.jumpable, m.counter, m.dodge_cancel_from],
-		[true, true, &"danger", true, &"sweep", 48],
+		[true, true, &"danger", true, &"sweep", _cancel(&"g_h2")],
 	)
 
 
 func test_low_sweep_is_a_sweep_with_its_interim_cone_and_earthbreakers_lunge() -> void:
 	# a sweep (the stand-in's sweep pose), 3.2 m and 110° (the cone, kept for
 	# the computer opponent), with Earthbreaker's knockback and hitstop, its
-	# lunge ending two frames after its cut starts, as Earthbreaker's did;
+	# lunge ending two frames after its cut starts, as Earthbreaker's did (its
+	# window carried onto its clip's frames at 1.0x, milestone-1 task 17);
 	# 0.85 m, 5 cm past Earthbreaker's, so its clip (Attack2H03) reaches
 	# 3.5 m (authored animation 20)
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_h2"]
 	assert_eq([m.type, m.anim], [&"sweep", &"sweep"], "a sweep")
 	assert_eq(
 		[m.range, m.arc, m.lunge, m.lunge_start, m.lunge_end, m.knockback, m.hitstop],
-		[3.2, 110.0, 0.85, 10, 28, 2.0, 10],
+		[3.2, 110.0, 0.85, 11, 30, 2.0, 10],
 		"range, arc, lunge and its window, knockback and hitstop",
 	)
 
@@ -324,7 +329,7 @@ func test_skewer_is_an_unblockable_thrust_reaching_past_the_lights_with_its_inte
 		[true, true, &"danger", 5.0, &"thrust"],
 		"an unblockable (turning slowly as it winds up too), with the thrust counter",
 	)
-	assert_eq(m.dodge_cancel_from, 40, "as a heavy it dodge-cancels from 22 + 4 + 14")
+	assert_eq(m.dodge_cancel_from, _cancel(&"g_dh"), "as a heavy it dodge-cancels where its table row says")
 	assert_eq(
 		[m.range, m.arc, m.lunge, m.track_active, m.knockback],
 		[3.4, 36.0, 1.0, 0.5, 1.4],
@@ -343,20 +348,22 @@ func test_all_six_rows_match_the_spec_table() -> void:
 func test_overhead_strike_is_an_overhead_with_crushing_blows_cone() -> void:
 	# an overhead (the stand-in's overhead pose) with Crushing Blow's reach,
 	# width, knockback and hitstop, and its lunge grown from 0.7 m for its
-	# clip (Attack2H02) to reach from 3.5 m (authored animation 18)
+	# clip (Attack2H02) to reach from 3.5 m (authored animation 18), its window
+	# carried onto the clip's frames at 1.0x (milestone-1 task 17)
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_h1"]
 	assert_eq([m.type, m.anim], [&"overhead", &"overhead"], "an overhead")
 	assert_eq(
 		[m.range, m.arc, m.lunge, m.lunge_start, m.lunge_end, m.knockback, m.hitstop],
-		[3.1, 90.0, 1.05, 10, 30, 1.6, 9],
+		[3.1, 90.0, 1.05, 16, 48, 1.6, 9],
 		"range, arc, lunge and its window, knockback and hitstop",
 	)
 
 
 func test_backswings_lunge_and_dodge_cancel_keep_pace_with_its_faster_start() -> void:
-	# the lunge ends one frame after the cut starts, on its blade's first
-	# touch, and the dodge cancel opens 8 frames after the cut ends, as Heavy
-	# Swing's do (16 and 26); 0.55 m, as its clip (Attack2H01 mirrored)
-	# reaches less far than its cone (authored animation 18)
+	# the lunge ends just after the cut starts, on its blade's first touch
+	# (carried onto its clip's frames at 1.0x, milestone-1 task 17), and the
+	# dodge cancel opens where its table row says; 0.55 m, as its clip
+	# (Attack2H01 mirrored) reaches less far than its cone (authored
+	# animation 18)
 	var m: AttackDef = Moves.GREATSWORD.moves[&"g_l2"]
-	assert_eq([m.lunge, m.lunge_end, m.dodge_cancel_from], [0.55, 12, 23])
+	assert_eq([m.lunge, m.lunge_end, m.dodge_cancel_from], [0.55, 18, _cancel(&"g_l2")])

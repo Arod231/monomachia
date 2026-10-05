@@ -3,7 +3,10 @@ extends GutTest
 ## What each weapon's strings test (plan tasks 9-11) shares. A test names its
 ## weapon and the spec's table of its moves in _init, plays its strings
 ## through _play and _run (see PlayedString), and checks them with the
-## asserts below. Expected numbers come from the spec, not the code.
+## asserts below. Expected numbers come from the spec, not the code; a
+## move's frames (startup, active, recovery) and its dodge cancel come from
+## the frame-data table, since milestone-1 task 17 generates them from the
+## clips (_frames(), _cancel()).
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 ## toBeCloseTo's default precision (2 digits), as the neighbouring tests use
@@ -19,10 +22,9 @@ const WHIFF_GAP: float = 10.0
 
 ## The weapon fighter 0 holds.
 var weapon: WeaponDef
-## The spec's table of the weapon's moves, by id: name, frames (startup,
-## active, recovery), damage, posture, the light and heavy follow-ups (&""
-## for none), and the sides the spec's move data gives the weapon (start,
-## end).
+## The spec's table of the weapon's moves, by id: name, damage, posture, the
+## light and heavy follow-ups (&"" for none), and the sides the spec's move
+## data gives the weapon (start, end).
 var rows: Dictionary[StringName, Dictionary]
 
 
@@ -30,9 +32,22 @@ func after_each() -> void:
 	H.dispose_all()
 
 
-## The spec's length of move id in frames: startup + active + recovery.
+## Move id's frames, [startup, active, recovery], as its row of the
+## frame-data table gives them.
+func _frames(id: StringName) -> Array:
+	var row: Dictionary = FrameDataTable.shared().row(weapon.id, id)
+	return [int(row["startup"]), int(row["active"]), int(row["recovery"])]
+
+
+## The frame move id's dodge cancel opens on, by its row of the frame-data
+## table.
+func _cancel(id: StringName) -> int:
+	return int(FrameDataTable.shared().row(weapon.id, id)["dodge_cancel"][0])
+
+
+## Move id's length in frames: startup + active + recovery.
 func _length(id: StringName) -> int:
-	var frames: Array = rows[id]["frames"]
+	var frames: Array = _frames(id)
 	return frames[0] + frames[1] + frames[2]
 
 
@@ -161,7 +176,8 @@ func _assert_dodge_cancels_from(presses: Array[int], id: StringName, cancel: int
 
 
 ## Checks each of the spec's rows against the weapon's move: its name,
-## frames, damage and posture, follow-ups and sides.
+## frames (its row of the frame-data table's), damage and posture, follow-ups
+## and sides.
 func _assert_rows_match_the_spec() -> void:
 	for id: StringName in rows:
 		var row: Dictionary = rows[id]
@@ -170,7 +186,7 @@ func _assert_rows_match_the_spec() -> void:
 		if m == null:
 			continue
 		assert_eq(m.name, row["name"], "%s name" % id)
-		assert_eq([m.startup, m.active, m.recovery], row["frames"], "%s frames" % row["name"])
+		assert_eq([m.startup, m.active, m.recovery], _frames(id), "%s frames, the table's" % row["name"])
 		assert_eq([m.damage, m.posture], [float(row["damage"]), float(row["posture"])], "%s damage and posture" % row["name"])
 		assert_eq([m.chain_light, m.chain_heavy], [row["light"], row["heavy"]], "%s follow-ups" % row["name"])
 		assert_eq([m.side_start, m.side_end], row["sides"], "%s sides" % row["name"])
