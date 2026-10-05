@@ -79,7 +79,7 @@ flowchart TD
 | Folder | What it holds |
 | --- | --- |
 | `game/sim` | The rules: fighters, world, match, moves, AI. Pure `RefCounted` objects, stepped 60 times per second, no nodes or rendering. |
-| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry. |
+| `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry; the baked swings (`swings/<weapon>.json`) and the frame-data table (`frame_data.json`, read by `FrameDataTable`), both written by `godot.mjs bake`. |
 | `game/sim/ai` | `AIBrain` (the computer opponent) and `TrainingBrain` (the training dummy). |
 | `game/input` | Reading keyboards, mice and controllers into a `RawInput` per player; bindings, profiles, rebinding, button labels. |
 | `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
@@ -264,6 +264,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `sim_state.gd` | `SimState` | Snapshots and the state hash (milestone 1): `capture()` copies an object's script variables but those it names in `SNAPSHOT_SKIP` (links, output), sharing only content (`WeaponDef`, `AttackDef`, `FighterBody`, `AIParams`); `state_hash()` is SHA-256 over a canonical form. `World`, `Fighter`, `Match`, `DroppedWeapon`, `SlashWave`, `Rng`, the brains and `TrainingUpkeep` each have `snapshot()`, and `World`, `Fighter`, `Match`, `DroppedWeapon`, `SlashWave` and `Rng` a `restore()` that puts one back (a rollback); `World.state_hash()` and `MatchHost.state_hash()` (the match seam: world, match, brains, upkeep) hash them. |
 | `v2.gd`, `v3.gd` | `V2`, `V3` | 64-bit vectors (Godot's `Vector3` is 32-bit). |
 | `moves/attack_def.gd` | `AttackDef` | One move's frame data and flags; `finalize_moves()` fills defaults. |
+| `moves/frame_data_table.gd` | `FrameDataTable` | The committed frame-data table (milestone-1 task 16): each move's band kind, chain, generated frame data and per-frame travel, each gait clip's measured speed, each rules-length clip's length, the clips not keyed yet, and per row the source clips' checksum and a digest of the row with its swing (`digest()`), which CI recomputes. |
 | `moves/weapon_def.gd` | `WeaponDef` | One weapon: class, speed, parry window, block mitigation, its moves and which move starts each context. |
 | `moves/moves.gd` | `Moves` | The registry: `WEAPONS`, `PLAYABLE_WEAPONS`, `COUNTER_LUNGE`, `ULT_HITS`, `get_move()`. |
 | `moves/katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd` | `KatanaMoves` and so on | Each weapon's `MOVES` table and `build()`. Fists is the bare-hands moveset. |
@@ -974,7 +975,7 @@ flowchart TD
     end
 ```
 
-Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants), `checklist_results.gd` (where tests record per-move checklist results), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
+Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
 
 ## 17. CI and releases
 

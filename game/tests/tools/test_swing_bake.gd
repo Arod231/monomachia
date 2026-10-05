@@ -266,13 +266,16 @@ func test_a_chain_plays_its_clips_one_after_another() -> void:
 const BakeSwings := preload("res://tools/bake_swings.gd")
 
 
-func test_local_every_swing_file_matches_a_fresh_bake() -> void:
+## Every move re-baked from the real clips matches the committed swing files
+## and frame-data table (milestone-1 task 16: any drift fails).
+func test_local_every_move_matches_a_fresh_bake() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
 		return
 	var manifest: ClipManifest = ClipManifest.read()
 	var table: MoveClips = MoveClips.read(manifest)
 	var checked: int = 0
+	var rows: Dictionary = {}
 	for wid: StringName in table.moves:
 		if table.of(wid).is_empty():
 			continue
@@ -281,8 +284,13 @@ func test_local_every_swing_file_matches_a_fresh_bake() -> void:
 		var out: Dictionary = BakeSwings.bake_weapon(wid, table, manifest, self, old)
 		assert_eq(out["errors"], [] as Array[String], "%s bakes" % wid)
 		assert_eq(out["text"], old, "%s's swing file is what a fresh bake writes (node scripts/godot.mjs bake)" % wid)
+		rows[String(wid)] = out["rows"]
 		checked += 1
 	assert_true(checked <= table.moves.size(), "%d weapons re-baked" % checked)
+	var extras: Dictionary = BakeSwings.bake_extras(manifest, self)
+	assert_eq(extras["errors"], [] as Array[String])
+	var text: String = FrameDataRows.table_text(rows, extras["gaits"], extras["clips"], FrameDataRows.NOT_KEYED_YET)
+	assert_eq(text, FileAccess.get_file_as_string(FrameDataTable.PATH), "the frame-data table is what a fresh bake writes, source checksums and all")
 
 
 func test_local_a_move_bakes_from_an_iglesias_clip() -> void:

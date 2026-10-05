@@ -185,6 +185,34 @@ static func travel(r: Result, feet: Array[Dictionary], hips: Array[V3], contacts
 		r.turn.append(root_turn)
 
 
+## A looping gait clip's ground speed over one loop at 1.0x, as its planted
+## feet sweep back under it (the clip plays in place), sampled on every
+## rules frame: {"speed": m/s, "heading": degrees to the right of forward,
+## "stride": m over one loop}; zeros with no foot ever planted.
+static func gait(pose: Callable, length: float, contacts: Dictionary) -> Dictionary:
+	var frames: int = floori(length * ClipTiming.RULES_FPS)
+	var sweep: V3 = V3.make()
+	var planted_frames: int = 0
+	var was: Dictionary = pose.call(0.0).duplicate()
+	for f: int in range(1, frames + 1):
+		var now: Dictionary = pose.call(f / ClipTiming.RULES_FPS).duplicate()
+		var slide: V3 = V3.make()
+		var planted: int = 0
+		for side: String in ClipManifest.FEET:
+			if planted_over(contacts.get(side, []), (f - 1) * 0.5, f * 0.5):
+				var part: StringName = StringName(side + "_foot")
+				slide = V3.add(slide, V3.sub(_ground((now[part] as Swing.Sample).grip), _ground((was[part] as Swing.Sample).grip)))
+				planted += 1
+		if planted > 0:
+			sweep = V3.add(sweep, V3.scale(slide, -1.0 / planted))
+			planted_frames += 1
+		was = now
+	if planted_frames == 0:
+		return {"speed": 0.0, "heading": 0.0, "stride": 0.0}
+	var speed: float = V3.length(sweep) / (planted_frames / ClipTiming.RULES_FPS)
+	return {"speed": speed, "heading": rad_to_deg(atan2(sweep.x, sweep.z)), "stride": speed * length}
+
+
 ## Whether a foot with `spans` ([plant, lift] source frames) is planted from
 ## source frame `a` to `b`.
 static func planted_over(spans: Array, a: float, b: float) -> bool:
