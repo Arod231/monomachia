@@ -56,7 +56,9 @@ extends Node
 ## "toasts" shows three toasts (24.3) in their hold, by --toasts=: "player"
 ## (gold Parry, the jade Evade counter with its advice, the opponent's red
 ## Ultimate), "training" (the dim Dummy behaviour and Evaded, the jade Behind
-## them) or "watch" (named in the sides' red and blue).
+## them), "watch" (named in the sides' red and blue) or "timing" (Training's
+## parry timing, 23.4: the gold Parry with its frames before impact and
+## window, then the dim Too early and Too late).
 ##
 ## "prompts" shows the prompts (24.4) by --prompts=: "keyboard" (the
 ## disarmed Rogue 1.5 m from her Katana with the ultimate ready: the urgent
@@ -86,7 +88,8 @@ const SEED: int = 7
 ## The "call" shot's announcement (24.2), from the player's side: final_round,
 ## fight, double_ko, round_won (Perfect) or disarmed (--call= sets it too).
 @export var call: String = "final_round"
-## The "toasts" shot's form: player, training or watch (--toasts= sets it too).
+## The "toasts" shot's form: player, training, watch or timing (--toasts= sets
+## it too).
 @export var toasts_form: String = "player"
 ## The "prompts" shot's form: keyboard, pad or tilt (--prompts= sets it too).
 @export var prompts_form: String = "keyboard"
@@ -339,12 +342,15 @@ func _call_shot() -> void:
 func _toasts_shot() -> void:
 	var events: Array[Dictionary] = []
 	match toasts_form:
-		"training":
+		"training", "timing":
 			var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
 			dummy.controller = MatchSide.DUMMY
 			var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
 			_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(FakeDeviceState.new()))
-			events = [{"t": &"evade", "f": 0, "attacker": 1}, {"t": &"backstabReady", "f": 0}]
+			if toasts_form == "timing":
+				events = [{"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 4, "window": 9}]
+			else:
+				events = [{"t": &"evade", "f": 0, "attacker": 1}, {"t": &"backstabReady", "f": 0}]
 		"watch":
 			_gameplay(MatchConfig.WATCH)
 			events = [
@@ -375,6 +381,20 @@ func _toasts_shot() -> void:
 	for e: Dictionary in events:
 		hud._on_sim_event(e)
 		host.step(4)
+	if toasts_form == "timing":
+		# a hit 6 frames past the window of a press, then a press 2 frames
+		# after a block
+		var me: Fighter = host.fighter(0)
+		me.parry_window_at_press = 9
+		me.block_press_frame = host.world.frame - 15
+		hud._on_sim_event({"t": &"hit", "attacker": 1, "target": 0, "backstab": false})
+		host.step(4)
+		# the block long after any press, so it isn't too early as well
+		me.block_press_frame = host.world.frame - 100
+		hud._on_sim_event({"t": &"block", "attacker": 1, "target": 0})
+		host.step(2)
+		me.block_press_frame = host.world.frame
+		host.step(2)
 	host.step(20)
 	hud._process(0.0)
 

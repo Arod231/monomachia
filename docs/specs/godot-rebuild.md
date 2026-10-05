@@ -129,7 +129,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 
 ### Modes and controls
 
-53. [ ] As a player, I want Training against a dummy whose behaviour I choose (idle, block, lights, heavies, thrust, sweep, slam, random, spar), with optional health refill and early/late parry feedback, so that I can practise. (23.1–23.3: the upkeep, the behaviours with the weapon each needs, and the panel and pause rows; the parry feedback comes with 23.4.)
+53. [x] As a player, I want Training against a dummy whose behaviour I choose (idle, block, lights, heavies, thrust, sweep, slam, random, spar), with optional health refill and early/late parry feedback, so that I can practise. (23.1–23.3: the upkeep, the behaviours with the weapon each needs, and the panel and pause rows; 23.4: the parry timing feedback.)
 54. [ ] As a player, I want Watch mode with a side-on cinematic camera, so that I can learn the moves by watching the computer duel.
 55. [ ] As two players on one PC, I want Versus in a vertical split screen, each with our own camera and device (keyboard and mouse, the arrow-key layout, or a controller), so that we can play head to head.
 56. [x] As a player, I want to remap every action for keyboard, mouse and controller, save named profiles, and see PlayStation or Xbox button names, so that the controls suit me. (22.10–22.12: the Controls screen's binding table, rebinding capture and profiles, played with in a match through the active profile; a profile picked in the pause menu's Controls is taken up on resume (22.15); Versus picks profiles with 22.16.)

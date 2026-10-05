@@ -9,7 +9,9 @@ extends CanvasLayer
 ## Double K.O., 勝 or 敗 for the round's result, 武器喪失 Disarmed), with the
 ## demo's entrance (AnnouncementEntrance). The toasts under the centre
 ## (24.3, HudToasts): parries, counters, ultimates, backstabs and dazes, and
-## in Training evades and the dummy's behaviour. The prompts at the bottom
+## in Training evades, the dummy's behaviour and the parry timing (23.4,
+## ParryFeedback: the frames before impact, Too early and Too late). The
+## prompts at the bottom
 ## (24.4, HudPrompts): at most two, urgent first, naming each key as a key
 ## cap from the device the player last used, for the player's own side only,
 ## while the round is fought and the Button hints setting is on. The marker
@@ -89,6 +91,8 @@ var _blink: float = 0.0
 var training_panel: TrainingPanel
 ## The toasts under the centre (24.3).
 var toasts: HudToasts
+## Training's parry timing feedback (23.4): Too early and Too late.
+var parry_feedback: ParryFeedback = ParryFeedback.new()
 ## The prompts at the bottom (24.4).
 var prompts: HudPrompts
 ## The marker on your dropped weapon (24.5).
@@ -191,6 +195,7 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	announcement = {}
 	_queued.clear()
 	toasts.clear()
+	parry_feedback.clear()
 	_behaviour = host.training_behaviour()
 	var me: int = _me()
 	for i: int in 2:
@@ -237,6 +242,8 @@ func _on_sim_event(e: Dictionary) -> void:
 	var now: int = host.step_count
 	var names: Array[String] = [host.fighter(0).name, host.fighter(1).name]
 	toasts.push_all(HudToasts.for_event(e, me, training, names, host.label("light", me) if me >= 0 else ""))
+	if training and me >= 0:
+		toasts.push_all(parry_feedback.on_event(e, me, host.fighter(me), host.world.frame))
 	match e["t"]:
 		&"roundStart":
 			var n: int = int(e["round"])
@@ -290,6 +297,9 @@ func _on_stepped(_step: int) -> void:
 			keep.append(q)
 	_queued = keep
 	_refresh_announcement()
+	var me: int = _me()
+	if host.config.mode == MatchConfig.TRAINING and me >= 0:
+		toasts.push_all(parry_feedback.after_step(host.fighter(me), host.world.frame))
 	toasts.expire()
 
 
