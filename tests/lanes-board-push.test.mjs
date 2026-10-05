@@ -108,5 +108,7 @@ describe('the rules', () => {
     assert.deepEqual(Object.fromEntries(new URL(turn.url, 'https://pc').searchParams), { bell: 'event:9-0', go: 'sessions', session: S });
     const ready = pushMessage({ ...rec, id: 'event:9:10', kind: 'merge', target: { tab: 'sessions', session: S, merge: 51 } });
     assert.deepEqual(Object.fromEntries(new URL(ready.url, 'https://pc').searchParams), { bell: 'event:9:10', go: 'sessions', merge: '51', session: S });
+    const vis = pushMessage({ ...rec, id: `visuals:${S}:1-0`, kind: 'visuals', target: { tab: 'sessions', session: S, visuals: true } });
+    assert.deepEqual(Object.fromEntries(new URL(vis.url, 'https://pc').searchParams), { bell: `visuals:${S}:1-0`, go: 'sessions', visuals: '1', session: S });
   });
 });

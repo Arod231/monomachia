@@ -497,6 +497,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
         <div class="sf">
           <input type="search" id="sFind" placeholder="Filter by title or folder" aria-label="Filter sessions">
           <label><input type="checkbox" id="sWaiting"> Only sessions waiting on you</label>
+          <label><input type="checkbox" id="sOlder"> Older sessions, kept for what they posted</label>
         </div>
         <ul id="sList"></ul>
       </aside>
@@ -505,6 +506,8 @@ details.tl pre { margin: 4px 0 4px 14px; }
         <div class="mergebox" id="sMerge" hidden></div>
         <div class="mergebox" id="sRemote" hidden></div>
         <div id="sPend"></div>
+        <div id="sVis"></div>
+        <div id="sDocs"></div>
         <div id="sLog"></div>
         <div class="comp" id="sComp" hidden>
           <textarea id="sText" rows="3" placeholder="Reply to this session (Ctrl+Enter sends)"></textarea>
@@ -518,6 +521,8 @@ details.tl pre { margin: 4px 0 4px 14px; }
 <div id="tip"></div>
 <div id="menu" role="menu"></div>
 <div id="queue" aria-live="polite"><div class="in" id="queueIn"></div></div>
+<!-- The second brain's Markdown library (window.marked), for a session's Docs. -->
+<script src="/marked.js" defer></script>
 <script type="module">
 // The graph layout (graph.mjs) for the Graph tab, and the context gauge and
 // roadmap summary (ui.mjs), and how sessions and their prompts are drawn
@@ -1340,8 +1345,11 @@ window.addEventListener('resize', () => { if (view === 'graph' && !gView[gOpt.pl
 // Project Manager (relay-hook.mjs), answered here or in the Questions tab; its
 // questions stay in the app, and the bell says when one waits.
 
-const sessions = { list: [], detail: null, limit: 300, drafts: {} };
+const sessions = { list: [], older: [], detail: null, limit: 300, drafts: {} };
 let merge = null;
+let viewer = null; // the full-screen viewer of a session's visuals (sessions-ui.mjs mountViewer)
+let reader = null; // the full-screen reader of its Markdown documents (sessions-ui.mjs mountReader)
+let docsTimer = null;
 let remote = null; // Compact and Open in the Claude app (sessions-ui.mjs mountRemote)
 let sSel = store.get('al-session', null);
 let sSigs = {};
@@ -1358,9 +1366,39 @@ function selectSession(id) {
   remote?.hide();
   sOpenTools.clear();
   $('sText').value = sessions.drafts[id] ?? '';
+  sessions.docs = null;
+  $('sDocs').innerHTML = '';
+  viewer?.dismiss();
+  reader?.dismiss();
   renderSessionList();
   renderSessionDetail();
   pollSession(true);
+  pollDocs();
+}
+
+// Its Docs (docs-api.mjs): asked for when it's picked and every 30 s while
+// the Sessions tab shows it (GitHub's side is asked at most once a minute).
+let docsFor = null; // the session whose Docs are being kept up to date
+async function pollDocs() {
+  clearTimeout(docsTimer);
+  const id = sSel;
+  docsFor = id;
+  if (!id) return;
+  if (view === 'sessions') {
+    try {
+      const d = await (await fetch(`/docs?session=${encodeURIComponent(id)}`, { cache: 'no-store' })).json();
+      // A deleted session has no transcript, so no Docs: ask again only every 30 s.
+      if (id === sSel) { sessions.docs = d.error ? { docs: [], artifacts: [], pr: null } : d; renderDocs(); }
+    } catch { /* try again */ }
+  }
+  if (id === sSel) docsTimer = setTimeout(pollDocs, sessions.docs ? 30000 : 3000);
+}
+function renderDocs() {
+  if (!sessions.docs || !window.S) return;
+  const sig = JSON.stringify([sSel, sessions.docs, !!window.marked]);
+  if (sig === sSigs.docs) return;
+  sSigs.docs = sig;
+  $('sDocs').innerHTML = S.docsHtml(sessions.docs, sSel, { marked: window.marked ?? null });
 }
 
 function renderSessionCount() {
@@ -1372,6 +1410,18 @@ function renderSessionList() {
   renderSessionCount();
   if (view !== 'sessions') return;
   const q = $('sFind').value.trim().toLowerCase();
+  // Older: sessions past the 3 days, kept for what they posted (30 days).
+  if ($('sOlder').checked) {
+    const older = sessions.older.filter((s) => !q || `${s.title} ${s.cwd}`.toLowerCase().includes(q));
+    const sig = JSON.stringify(['older', older.map((s) => [s.id, s.title, s.count, s.latest]), sSel, !!window.S]);
+    if (sig === sSigs.list || !window.S) return;
+    sSigs.list = sig;
+    $('sList').innerHTML = older.map((s) => `<li data-sess="${esc(s.id)}" class="${s.id === sSel ? 'on' : ''}" title="${esc(s.cwd ?? '')}">
+        <i class="dot"></i><div class="sm"><div class="st"><b>${esc(s.title)}</b></div>
+        <div class="ss">${esc(S.folderOf(s.cwd))} · ${s.count} visual${s.count === 1 ? '' : 's'}, the last ${esc(ago(s.latest))}</div></div></li>`).join('')
+      || `<li class="empty">${sessions.older.length ? 'No session matches.' : 'No older session posted anything.'}</li>`;
+    return;
+  }
   const only = $('sWaiting').checked;
   const list = sessions.list.filter((s) => (!only || S.sessionNeeds(s)) && (!q || `${s.title} ${s.cwd}`.toLowerCase().includes(q)));
   const sig = JSON.stringify([list.map((s) => [s.id, s.title, s.active, s.pending, s.asking, s.queued, Math.round((Date.now() - s.activity) / 60000), s.context?.tokens, s.state, s.stopping]), sSel, !!window.U]);
@@ -1385,6 +1435,7 @@ function renderSessionList() {
 $('sList').addEventListener('click', (e) => { const li = e.target.closest('[data-sess]'); if (li) selectSession(li.dataset.sess); });
 $('sFind').addEventListener('input', renderSessionList);
 $('sWaiting').addEventListener('change', renderSessionList);
+$('sOlder').addEventListener('change', renderSessionList);
 
 function renderPending(d) {
   const away = !!d.away?.on;
@@ -1442,6 +1493,7 @@ function renderSessionDetail() {
     const note = $('sCmdNote')?.textContent ?? '';
     $('sHead').innerHTML = `<div class="row1"><h2 title="${esc(d.title)}">${esc(d.title)}</h2>${S.stateHtml(d)}
         ${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open in app</button>` : ''}</div>
+      ${d.gone ? '<div class="m">This session was deleted; what it posted stays here for 30 days.</div>' : ''}
       <div class="m" title="${esc(d.cwd ?? '')}"><i class="dot ${d.active ? 'active' : 'recent'}"></i> ${d.active ? 'At work' : `Last active ${esc(ago(d.activity))}`} · ${esc(d.cwd ?? '')}</div>
       <div class="facts">${S.sessionFactsHtml(d)}</div>
       ${S.commandBarHtml(d)}<div class="m" id="sCmdNote">${esc(note)}</div>
@@ -1451,9 +1503,12 @@ function renderSessionDetail() {
   }
   if (!window.S) return;
   renderPending(d);
+  // What it posted (npm run post) and its images of the work, newest first; a click opens the viewer.
+  const vis = JSON.stringify([d.id, (d.visuals ?? []).map((v) => v.id), (d.workImages ?? []).map((v) => v.id)]);
+  if (vis !== sSigs.vis) { sSigs.vis = vis; $('sVis').innerHTML = S.visualsHtml(d.visuals) + S.workImagesHtml(d.workImages); }
   renderLog(d);
-  // The reply box.
-  $('sComp').hidden = false;
+  // The reply box (none for a deleted session).
+  $('sComp').hidden = !!d.gone;
   const waiting = d.pending.find((p) => p.kind === 'stop');
   const queued = d.queued ?? [];
   $('sSend').textContent = waiting ? 'Send' : 'Queue reply';
@@ -1483,6 +1538,12 @@ async function answerClick(e) {
 }
 $('qList').addEventListener('click', answerClick);
 $('sDetail').addEventListener('click', async (e) => {
+  const fig = e.target.closest('[data-vis]');
+  if (fig && sessions.detail?.visuals) { viewer?.open(sessions.detail.visuals, Number(fig.dataset.vis)); return; }
+  const work = e.target.closest('[data-work]');
+  if (work && sessions.detail?.workImages) { viewer?.open(sessions.detail.workImages, Number(work.dataset.work)); return; }
+  const docb = e.target.closest('[data-doc]');
+  if (docb && sessions.docs) { reader?.open(sSel, sessions.docs.docs[Number(docb.dataset.doc)]); return; }
   if (await answerClick(e)) return;
   const b = e.target.closest('button');
   if (!b) return;
@@ -1529,6 +1590,7 @@ async function pollSessions(once) {
     const d = await (await fetch('/sessions', { cache: 'no-store' })).json();
     if (d.sessions) {
       sessions.list = d.sessions;
+      sessions.older = d.older ?? [];
       renderSessionList();
       if (view === 'progress' && data && window.U) { renderKpis(); renderWaiting(); }
       if (view === 'roadmap' && data && window.U) renderKpis();
@@ -1542,7 +1604,7 @@ async function pollSession(once) {
     try {
       const r = await fetch(`/session?id=${encodeURIComponent(sSel)}&limit=${sessions.limit}`, { cache: 'no-store' });
       const d = await r.json();
-      if (d.id === sSel) { sessions.detail = d; renderSessionDetail(); }
+      if (d.id === sSel) { sessions.detail = d; renderSessionDetail(); if (docsFor !== sSel) pollDocs(); }
       else if (d.error) { $('sHead').innerHTML = `<div class="empty">${esc(d.error)}</div>`; }
     } catch { /* try again */ }
   }
@@ -1595,8 +1657,16 @@ window.addEventListener('modules-ready', () => {
   // The Merge panel on a session (sessions-ui.mjs mountMerge).
   merge = S.mountMerge({ panel: $('sMerge'), post, session: () => sSel, say: (t) => { $('sCmdNote').textContent = t; } });
   remote = S.mountRemote({ panel: $('sRemote'), detail: () => (sessions.detail?.id === sSel ? sessions.detail : null), say: (t) => { $('sCmdNote').textContent = t; } });
-  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session, merge: pr }) => {
-    if (tab === 'sessions' && session) { setView('sessions'); selectSession(session); if (pr) merge.show(); return; }
+  viewer = S.mountViewer();
+  reader = S.mountReader();
+  renderDocs();
+  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session, merge: pr, visuals }) => {
+    if (tab === 'sessions' && session) {
+      setView('sessions'); selectSession(session); if (pr) merge.show();
+      // New visuals: once the page has them, bring them into view.
+      if (visuals) { let n = 40; const look = () => { if (sessions.detail?.id === session && $('sVis').firstChild) $('sVis').scrollIntoView({ block: 'start' }); else if (n-- > 0) setTimeout(look, 150); }; look(); }
+      return;
+    }
     setView('questions');
     qSig = null;
     pollQuestions(true);

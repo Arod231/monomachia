@@ -17,6 +17,7 @@
     "dev": "node scripts/godot.mjs dev",
     "studio": "node scripts/godot.mjs studio",
     "shots": "node scripts/godot.mjs shots",
+    "clip": "node scripts/godot.mjs clip",
     "counterlab": "node scripts/godot.mjs script res://tools/counterlab.gd",
     "godot": "node scripts/godot.mjs",
     "check:sizes": "node scripts/check-sizes.mjs",
@@ -26,7 +27,8 @@
     "brain": "node tools/second-brain/build.mjs",
     "brain:serve": "node tools/second-brain/serve.mjs",
     "board": "node tools/lanes-board/server.mjs",
-    "board:hooks": "node tools/lanes-board/install-hooks.mjs"
+    "board:hooks": "node tools/lanes-board/install-hooks.mjs",
+    "post": "node tools/lanes-board/post.mjs"
   },
   "engines": {
     "node": ">=22.12"

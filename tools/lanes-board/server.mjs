@@ -38,6 +38,8 @@ import { hooksStatusOf } from './hooks.mjs';
 import { bellApi } from './bell-api.mjs';
 import { pushApi } from './push-api.mjs';
 import { ghRunner, mergeApi } from './merge-api.mjs';
+import { mediaApi } from './media-api.mjs';
+import { docsApi } from './docs-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
@@ -701,21 +703,25 @@ function prOfBranch(branch) {
   const p = prs.find((x) => x.headRefName === branch);
   return p ? { number: p.number, title: p.title, url: p.url, base: p.baseRefName, draft: !!p.isDraft } : null;
 }
+// What sessions post with `npm run post` (media.mjs, media-api.mjs), swept hourly.
+const mediaRoutes = mediaApi({ state: STATE, sweepMs: 60 * 60 * 1000 });
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
-  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch });
+  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch, media: mediaRoutes });
 // Merge from a session's page (merge-api.mjs), and "ready to merge" for the
 // bell, looked for every minute (LANES_MERGE_POLL_MS overrides it, for tests).
 const mergeRoutes = mergeApi({ repoDir: REPO, relay: RELAY, gh, prOf: prOfBranch, sessions: sessionRoutes,
   stateFile: path.join(STATE, 'merge-ready.json'), pollMs: Number(process.env.LANES_MERGE_POLL_MS) || 60_000 });
+// A session's Docs: what it wrote, its pull request and its artifacts (docs-api.mjs).
+const docsRoutes = docsApi({ repoDir: REPO, worktrees, gh, prOf: prOfBranch, fileOf: sessionRoutes.fileOf });
 // Lock-screen notifications (push-api.mjs): the bell's new records, pushed while
 // Away is on to every phone that turned them on. LANES_PUSH_INSECURE=1 lets a
 // test's stand-in push service on http through.
 const pushRoutes = pushApi({ state: STATE, insecure: !!process.env.LANES_PUSH_INSECURE,
   away: async () => awayOf(JSON.parse(await readFile(path.join(RELAY, 'away.json'), 'utf8').catch(() => 'null'))),
   httpsUrl: () => { const n = [...hostNames].find((h) => h.endsWith('.ts.net')); return n ? `https://${n}` : null; } });
-// The bell: notifications from held items and the relay hook's events (bell-api.mjs).
+// The bell: notifications from held items, the relay hook's events and posted media (bell-api.mjs).
 const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
-  titlesOf: sessionRoutes.titlesOf, onNew: pushRoutes.notify, sweepMs: 5000 });
+  titlesOf: sessionRoutes.titlesOf, posts: mediaRoutes.posts, onNew: pushRoutes.notify, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
@@ -818,7 +824,16 @@ async function handle(req, res) {
     if (req.url === '/brain') { res.writeHead(302, { location: '/brain/' }); res.end(); return; }
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
-    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? sessionRoutes.get(url);
+    if (await mediaRoutes.serve(req, res, url)) return;
+    if (await docsRoutes.serve(req, res, url)) return;
+    const work = await sessionRoutes.workImage(url);
+    if (work !== undefined) {
+      if (!work) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('No such image'); return; }
+      res.writeHead(200, { 'content-type': work.type, 'content-length': work.bytes.length, 'cache-control': 'private, max-age=86400' });
+      res.end(work.bytes);
+      return;
+    }
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? docsRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.
