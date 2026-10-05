@@ -644,4 +644,10 @@ describe('heldAnsweredElsewhere', () => {
     assert.equal(heldAnsweredElsewhere(ask, [call('q1', 9_000, ask.input, 'AskUserQuestion'), result('q1', 15_000)]), true);
     assert.equal(heldAnsweredElsewhere({ kind: 'stop', time: 10_000 }, [call('t1', 9_000), result('t1', 12_000)]), false);
   });
+  it('matches a plan by its tool alone, as the transcript\'s ExitPlanMode call carries no plan (the hook is given it)', () => {
+    const plan = { kind: 'plan', tool: 'ExitPlanMode', input: { plan: '# Fix the bell\n\nSteps.', planFilePath: 'C:/x.md' }, time: 10_000 };
+    assert.equal(heldAnsweredElsewhere(plan, [call('p1', 9_000, {}, 'ExitPlanMode'), result('p1', 12_000)]), true);
+    assert.equal(heldAnsweredElsewhere(plan, [call('p1', 9_000, {}, 'ExitPlanMode')]), false);
+    assert.equal(heldAnsweredElsewhere(plan, [call('p0', 1_000, {}, 'ExitPlanMode'), result('p0', 2_000), call('p1', 9_000, {}, 'ExitPlanMode')]), false);
+  });
 });

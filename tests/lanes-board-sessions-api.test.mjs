@@ -70,6 +70,15 @@ describe('sessions api', () => {
     await assert.rejects(api.post('/relay/answer', { id: 'abcd-efgh', behavior: 'deny' }), /already answered/);
   });
 
+  it('says which sessions are asking in the app now, for the bell', async () => {
+    assert.deepEqual(await api.askingNow(), []);
+    writeFileSync(path.join(projects, 'C--repo', `${ID}.jsonl`), [
+      line({ type: 'user', cwd: 'C:/repo', message: { content: 'Build it' } }),
+      line({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_q', name: 'AskUserQuestion', input: { questions: [{ question: 'Which?' }] } }] } }),
+    ].join('\n'));
+    assert.deepEqual(await api.askingNow(), [ID]);
+  });
+
   describe("a session's branch", () => {
     const PR = { number: 65, title: 'PM task 19', url: 'https://github.com/o/r/pull/65', base: 'tools/pm', draft: true };
     const withBranch = (gitBranch) => {

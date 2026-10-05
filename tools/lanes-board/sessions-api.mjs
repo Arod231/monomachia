@@ -363,6 +363,9 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
   // The Questions tab: every held item grouped by session, oldest first, with
   // the session's title, folder and plan task, and the questions sessions are
   // asking in the app's own dialogs (read-only here). count is everything waiting.
+  // A session asking in the app: its transcript's open call is AskUserQuestion,
+  // and the app hasn't archived it.
+  const isAsking = (t, archived) => !archived && t?.open?.name === 'AskUserQuestion';
   async function questions() {
     const [found, app, state] = await Promise.all([findTranscripts(), appSessions(), relayState()]);
     const byCli = new Map(app.filter((x) => x.cli).map((x) => [x.cli, x]));
@@ -389,7 +392,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     for (const f of found) {
       if (bySession.get(f.id)?.some((p) => p.kind === 'question')) continue;
       const { t, archived, ...who } = await about(f.id, null);
-      if (archived || t?.open?.name !== 'AskUserQuestion') continue;
+      if (!isAsking(t, archived)) continue;
       asked.push({ ...who, time: t.open.time, questions: t.open.questions ?? [] });
     }
     asked.sort((x, y) => (x.time ?? 0) - (y.time ?? 0));
@@ -429,6 +432,15 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       return (await pool(found, 8, async (f) => {
         try { const t = await transcript(f.file, 1); return { id: f.id, branch: branchIn(t, t.cwd) }; } catch { return null; }
       })).filter((x) => x?.branch);
+    },
+    // For the bell (bell-api.mjs): the ids of sessions asking in the app now.
+    async askingNow() {
+      const [found, app] = await Promise.all([findTranscripts(), appSessions()]);
+      const archived = new Set(app.filter((a) => a.cli && a.archived).map((a) => a.cli));
+      const ids = await pool(found, 8, async (f) => {
+        try { return isAsking(await transcript(f.file, 1), archived.has(f.id)) ? f.id : null; } catch { return null; }
+      });
+      return ids.filter(Boolean);
     },
     // For Docs (docs-api.mjs): a session's branch, or null.
     async branchOfSession(session) {

@@ -8,9 +8,13 @@
 // goes: { tab: 'questions', item?, session } or { tab: 'sessions', session, merge? }),
 // time, read }. Owner's rules (PM task 10, Oct 4): answering, handing back or a
 // timeout marks a held item's record read; a session's newer finished turn
-// replaces its older unread one.
+// replaces its older unread one. Since Oct 5 (PM task 19), a question asked in
+// the app is read once its session no longer has it open (answered in the app
+// or over Remote Control), after ASKED_GRACE_MS, since the hook can note it
+// before its call reaches the transcript.
 
 export const BELL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+export const ASKED_GRACE_MS = 20 * 1000;
 // events.jsonl only grows, so once its oldest line is older than this the
 // board moves it aside (to events.jsonl.old, replacing the last one) and the
 // hook starts a new one: at most about two months are kept.
@@ -81,9 +85,10 @@ function visualsRecords(posts, titleOf) {
 
 // The bell's state after a look at the relay: { records }. pending: the items
 // held now; events: those noted since the last look; posts: the media posted
-// in the last 7 days; titleOf(session): its title. Returns state itself when
-// nothing changed.
-export function bellUpdate(state, { pending = [], events = [], posts = [], now = Date.now(), titleOf = () => '(untitled)' }) {
+// in the last 7 days; titleOf(session): its title; asking: the sessions with a
+// question open in the app now (a Set), or null when that isn't known. Returns
+// state itself when nothing changed.
+export function bellUpdate(state, { pending = [], events = [], posts = [], now = Date.now(), titleOf = () => '(untitled)', asking = null }) {
   let records = state?.records ?? [];
   let changed = !state;
   const add = (r) => {
@@ -121,6 +126,14 @@ export function bellUpdate(state, { pending = [], events = [], posts = [], now =
     changed = true;
     return { ...r, read: true };
   });
+  // Questions asked in the app that are no longer open were answered there.
+  if (asking) {
+    records = records.map((r) => {
+      if (r.kind !== 'asked' || r.read || asking.has(r.session) || now - r.time < ASKED_GRACE_MS) return r;
+      changed = true;
+      return { ...r, read: true };
+    });
+  }
   const kept = records.filter((r) => now - r.time <= BELL_KEEP_MS).slice(-MAX_RECORDS);
   if (kept.length !== records.length) changed = true;
   return changed ? { ...(state ?? {}), records: kept, visualsAt } : state;

@@ -395,9 +395,11 @@ export function heldOrphaned(p, { transcriptExists, hasRecord, sawRecord }) {
 // after the hold began. entries: the session's turns (parseTranscript).
 export function heldAnsweredElsewhere(p, entries) {
   if (!['question', 'permission', 'plan'].includes(p.kind) || !p.tool) return false;
-  const summary = toolSummary(p.tool, p.input ?? {});
+  // The transcript's ExitPlanMode call has no input (the hook is given the
+  // plan), so a plan matches by its tool alone.
+  const summary = p.tool === 'ExitPlanMode' ? null : toolSummary(p.tool, p.input ?? {});
   const done = new Map(entries.filter((e) => e.kind === 'result').map((e) => [e.tool, e]));
-  return entries.some((e) => e.kind === 'tool' && e.name === p.tool && e.summary === summary
+  return entries.some((e) => e.kind === 'tool' && e.name === p.tool && (summary === null || e.summary === summary)
     && (done.get(e.id)?.time ?? 0) > (Number(p.time) || Infinity));
 }
 

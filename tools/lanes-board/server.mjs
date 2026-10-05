@@ -742,7 +742,7 @@ const pushRoutes = pushApi({ state: STATE, insecure: !!process.env.LANES_PUSH_IN
   httpsUrl: () => { const n = [...hostNames].find((h) => h.endsWith('.ts.net')); return n ? `https://${n}` : null; } });
 // The bell: notifications from held items, the relay hook's events and posted media (bell-api.mjs).
 const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
-  titlesOf: sessionRoutes.titlesOf, posts: mediaRoutes.posts, onNew: pushRoutes.notify, sweepMs: 5000 });
+  titlesOf: sessionRoutes.titlesOf, posts: mediaRoutes.posts, asking: sessionRoutes.askingNow, onNew: pushRoutes.notify, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
