@@ -195,7 +195,74 @@ export function commandBarHtml(d) {
     + `<button class="btn small primary" data-cmd="approve">Approve &amp; continue</button>`
     + `<button class="btn small" data-cmd="show">Show me</button>`
     + `<button class="btn small" data-cmd="stop"${off(d.stopping)}>Stop now</button>`
+    + `${d.pr ? `<button class="btn small" data-cmd="merge">Merge #${Number(d.pr.number)}</button>` : ''}`
     + `<button class="btn small danger" data-cmd="end"${off(d.state === 'ended')}>End work</button></div>`;
+}
+
+// The Merge panel under the command bar: m is /merge (merge-api.mjs), null
+// while it's being checked; error when it couldn't be.
+export function mergePanelHtml(m, { error = null } = {}) {
+  if (error) return `<div class="mergep"><p>${esc(error)}</p><button class="btn small" data-merge-check>Check again</button></div>`;
+  if (!m) return '<div class="mergep"><p>Checking the pull request…</p></div>';
+  const n = Number(m.pr.number);
+  const head = `<p><a href="${esc(m.pr.url)}" target="_blank" rel="noopener">PR #${n}</a> ${esc(m.pr.title)}, into <code>${esc(m.pr.base)}</code></p>`;
+  if (m.ready) {
+    return `<div class="mergep ready">${head}<p>Ready: out of draft, every check passed, no conflicts, up to date with its base.</p>`
+      + `<button class="btn primary" data-merge-go="${n}">Merge #${n} into ${esc(m.pr.base)}</button></div>`;
+  }
+  return `<div class="mergep">${head}<p>Not ready to merge yet:</p><ul>${m.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`
+    + `${m.behind ? `<button class="btn small primary" data-merge-update="${n}">Update branch</button> ` : ''}<button class="btn small" data-merge-check>Check again</button></div>`;
+}
+
+// Runs the Merge panel (panel: its element, outside anything re-rendered):
+// session() is the session shown; say(text, error) tells the owner what happened.
+export function mountMerge({ panel, post, session, say }) {
+  let m = null;
+  async function check() {
+    m = null;
+    panel.innerHTML = mergePanelHtml(null);
+    const id = session();
+    try {
+      const d = await (await fetch(`/merge?session=${encodeURIComponent(id)}`, { cache: 'no-store' })).json();
+      if (id !== session()) return;
+      if (d.error) panel.innerHTML = mergePanelHtml(null, { error: d.error });
+      else { m = d; panel.innerHTML = mergePanelHtml(m); }
+    } catch (err) { panel.innerHTML = mergePanelHtml(null, { error: `Couldn't ask GitHub: ${err.message}` }); }
+  }
+  panel.addEventListener('click', async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.mergeCheck !== undefined) { check(); return; }
+    if (b.dataset.mergeUpdate) {
+      b.disabled = true;
+      try {
+        await post('/merge/update', { session: session(), number: Number(b.dataset.mergeUpdate) });
+        say('Asked GitHub to bring the branch up to date with its base: its checks run again, so check back in a few minutes.');
+      } catch (err) { say(`Couldn't update the branch: ${err.message}`, true); }
+      check();
+      return;
+    }
+    if (b.dataset.mergeGo && m) {
+      if (!confirm(mergeConfirmText(m))) return;
+      b.disabled = true;
+      try {
+        const r = await post('/merge', { session: session(), number: Number(b.dataset.mergeGo) });
+        say(`Merged #${r.number} into ${r.base}. Its session ${r.told === 'now' ? 'has been' : 'will be'} told to tidy up its local branch.`);
+        panel.hidden = true;
+      } catch (err) { say(`Couldn't merge: ${err.message}`, true); check(); }
+    }
+  });
+  return {
+    toggle() { panel.hidden = !panel.hidden; if (!panel.hidden) check(); },
+    show() { panel.hidden = false; check(); },
+    hide() { panel.hidden = true; panel.innerHTML = ''; m = null; },
+  };
+}
+
+// The confirmation before a merge.
+export function mergeConfirmText(m) {
+  return `Merge pull request #${m.pr.number} "${m.pr.title}" into ${m.pr.base}? It merges with a merge commit and deletes the branch ${m.pr.head} on GitHub; `
+    + 'the session is then told to tidy up its own. Your tap is the approval for this pull request.';
 }
 
 // What the page says once a command is sent (`when` from the server).
@@ -359,13 +426,13 @@ export function bellListHtml(b) {
   if (!records.length) return '<div class="bempty">Nothing yet. Questions, plans, permission prompts and finished turns from every session show here.</div>';
   return `<div class="bhead"><b>Notifications</b>${b.unread ? '<button class="btn small ghost" data-bell-all>Mark all read</button>' : ''}</div>
     <ul class="blist">${records.map((r) => `<li class="brec${r.read ? '' : ' unread'}" data-bell="${esc(r.id)}" data-tab="${esc(r.target?.tab)}"`
-      + `${r.target?.item ? ` data-item="${esc(r.target.item)}"` : ''} data-session="${esc(r.target?.session)}">`
+      + `${r.target?.item ? ` data-item="${esc(r.target.item)}"` : ''}${r.target?.merge ? ` data-merge="${Number(r.target.merge)}"` : ''} data-session="${esc(r.target?.session)}">`
       + `<div class="bt">${esc(r.text)}</div>${r.detail ? `<div class="bd">${esc(r.detail)}</div>` : ''}`
       + `<div class="k" data-t="${Number(r.time) || ''}">${esc(ago(r.time))}</div></li>`).join('')}</ul>`;
 }
 
 // Runs the bell on a page: box holds its button, panel its list (hidden until
-// opened); post(url, body) is the page's JSON post; go({ tab, item, session })
+// opened); post(url, body) is the page's JSON post; go({ tab, item, session, merge })
 // takes the page to a record's target. Polls /bell every few seconds.
 // push (the phone page's mountPush) puts lock-screen notifications at the top of the list.
 export function mountBell({ box, panel, post, go, push = null, everyMs = 5000 }) {
@@ -405,7 +472,7 @@ export function mountBell({ box, panel, post, go, push = null, everyMs = 5000 })
     panel.hidden = true;
     try { view = await post('/bell/read', { ids: [rec.dataset.bell] }); } catch { /* next poll */ }
     draw();
-    go({ tab: rec.dataset.tab, item: rec.dataset.item ?? null, session: rec.dataset.session || null });
+    go({ tab: rec.dataset.tab, item: rec.dataset.item ?? null, session: rec.dataset.session || null, merge: Number(rec.dataset.merge) || null });
   });
   document.addEventListener('click', (e) => {
     if (!panel.hidden && !panel.contains(e.target) && !box.contains(e.target)) panel.hidden = true;

@@ -225,7 +225,11 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
   // inbox. `when` says when it arrives (deliveryOf in sessions.mjs).
   async function relayReply(body) {
     if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-    const text = ownerMessage(body.command != null ? { command: body.command } : { text: body.text });
+    return send(body.session, ownerMessage(body.command != null ? { command: body.command } : { text: body.text }));
+  }
+  // text, worded already, to a session wherever it is.
+  async function send(session, text) {
+    const body = { session };
     const { pending } = await relayState();
     const waiting = pending.find((p) => p.session === body.session && p.kind === 'stop');
     const answered = waiting && await stat(path.join(relay, 'answers', `${waiting.id}.json`)).then(() => true, () => false);
@@ -335,6 +339,18 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     },
     // For the bell (bell-api.mjs): the items held now, and sessions' titles.
     held: async () => (await relayState()).pending,
+    // For Merge (merge-api.mjs): a worded message to a session, delivered as a
+    // reply would be, and the recent sessions with their branches.
+    async deliver(session, text) {
+      if (!SESSION_ID.test(session ?? '')) throw new Error('Bad session id');
+      return send(session, text);
+    },
+    async branches() {
+      const found = await findTranscripts();
+      return (await pool(found, 8, async (f) => {
+        try { return { id: f.id, branch: (await transcript(f.file, 1)).branch ?? null }; } catch { return null; }
+      })).filter((x) => x?.branch);
+    },
     async titlesOf(ids) {
       const [found, app] = await Promise.all([findTranscripts(), appSessions()]);
       const titles = new Map();

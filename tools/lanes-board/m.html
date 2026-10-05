@@ -278,6 +278,11 @@ details.legend span { display: inline-flex; align-items: center; gap: 7px; }
 .cmds { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
 .cmds .btn.danger { background: transparent; color: var(--critical); }
 #sPend { display: grid; gap: 10px; margin-top: 12px; }
+.mergebox { margin-top: 10px; background: var(--card); border: 0.5px solid var(--border-strong); border-radius: 12px; padding: 12px 14px; font-size: 15px; }
+.mergebox.ready, .mergebox:has(.ready) { border-color: var(--good); }
+.mergebox p { margin: 0 0 8px; }
+.mergebox ul { margin: 0 0 10px; padding-left: 20px; color: var(--text-2); }
+.mergebox code { font: 13px ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
 #sPend:empty { display: none; }
 .slog { margin-top: 6px; }
 .slog .more { text-align: center; margin-bottom: 8px; }
@@ -374,6 +379,7 @@ nav.tabs .count:empty { display: none; }
   <section class="page" id="p-session" hidden>
     <button class="back" id="sBack">‹ Sessions</button>
     <div class="shead" id="sHead"><div class="empty">Loading…</div></div>
+    <div class="mergebox" id="sMerge" hidden></div>
     <div id="sPend"></div>
     <div class="sh"><h2>Conversation</h2></div>
     <div class="slog" id="sLog"></div>
@@ -666,13 +672,14 @@ $('laneSeg').addEventListener('click', (e) => {
 // conversation with a reply box. Opened from a card or a notification, with
 // its own history entry so the back gesture returns to the list.
 let openId = null;
+let merge = null; // the Merge panel (sessions-ui.mjs mountMerge)
 let detail = null;
 let detailLimit = 150;
 let detailTimer = 0;
 let sSig = {};
 const openTools = new Set();
 function openSession(id, push = true) {
-  if (openId !== id) { detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; }
+  if (openId !== id) { detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; merge?.hide(); }
   if (tab !== 'sessions') { tab = 'sessions'; store.set('m-tab', tab); }
   openId = id;
   if (push && history.state?.session !== id) history.pushState({ session: id }, '', `/m#session=${encodeURIComponent(id)}`);
@@ -693,7 +700,7 @@ window.addEventListener('popstate', (e) => {
 });
 async function pollDetail() {
   clearTimeout(detailTimer);
-  if (!openId || document.hidden) return;
+  if (!openId) return;
   const id = openId;
   try {
     const d = await (await fetch(`/session?id=${encodeURIComponent(id)}&limit=${detailLimit}`, { cache: 'no-store' })).json();
@@ -702,7 +709,8 @@ async function pollDetail() {
       else if (d.error) $('sHead').innerHTML = `<div class="empty">${esc(d.error)}</div>`;
     }
   } catch { /* the stamp shows the server's state */ }
-  if (id === openId) detailTimer = setTimeout(pollDetail, 3000);
+  // No polling while the phone is locked or the app is in the background.
+  if (id === openId && !document.hidden) detailTimer = setTimeout(pollDetail, 3000);
 }
 function renderSession() {
   const d = detail;
@@ -746,6 +754,7 @@ $('p-session').addEventListener('click', async (e) => {
   if (!b || !openId) return;
   if (b.dataset.more !== undefined) { detailLimit += 150; sSig.log = null; pollDetail(); return; }
   if (b.id === 'sSend') { sendReply(); return; }
+  if (b.dataset.cmd === 'merge') { merge?.toggle(); return; }
   if (!b.dataset.cmd) return;
   const command = b.dataset.cmd;
   if (command === 'end' && !confirm(`End work on "${detail?.title ?? 'this session'}"? It stops at its next step; its branch and pull request stay as they are.`)) return;
@@ -1110,8 +1119,8 @@ window.addEventListener('modules-ready', render);
 // Lock-screen notifications (mountPush) are turned on at the top of its list,
 // and a tap on one comes here as /m?bell=<record>&go=<tab>&item=&session=,
 // in the address the app opens or in a message from the service worker (sw.js).
-function goTo({ tab, item, session }) {
-  if (tab === 'sessions') { if (session) openSession(session); else setTab('sessions'); return; }
+function goTo({ tab, item, session, merge: pr }) {
+  if (tab === 'sessions') { if (session) { openSession(session); if (pr) merge?.show(); } else setTab('sessions'); return; }
   setTab('questions');
   S.revealQuestion($('qList'), { item, session });
 }
@@ -1125,9 +1134,10 @@ function openFrom(href) {
   history.replaceState(null, '', '/m');
   const id = u.searchParams.get('bell');
   if (id) post('/bell/read', { ids: [id] }).then(() => bell?.poll(), () => {});
-  goTo({ tab: go, item: u.searchParams.get('item'), session: u.searchParams.get('session') });
+  goTo({ tab: go, item: u.searchParams.get('item'), session: u.searchParams.get('session'), merge: Number(u.searchParams.get('merge')) || null });
 }
 window.addEventListener('modules-ready', () => {
+  merge = S.mountMerge({ panel: $('sMerge'), post, session: () => openId, say: (t, err) => toast(t, err) });
   bell = S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: goTo, push: S.mountPush({ post }) });
   navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'open') openFrom(e.data.url); });
   openFrom(location.href);

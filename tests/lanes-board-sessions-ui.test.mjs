@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  STATE_LABELS, commandBarHtml, commandNote, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
+  STATE_LABELS, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -344,6 +344,11 @@ describe('the session page', () => {
     assert.match(commandBarHtml({ ...base, state: 'ended' }), /data-cmd="end" disabled/);
   });
 
+  it('offers Merge only to a session with an open pull request', () => {
+    assert.match(commandBarHtml(base), /data-cmd="merge"[^>]*>Merge #51</);
+    assert.doesNotMatch(commandBarHtml({ ...base, pr: null }), /data-cmd="merge"/);
+  });
+
   it('says what happens to each command', () => {
     assert.equal(commandNote('approve', 'now'), 'Sent: it carries on with it now.');
     assert.equal(commandNote('show', 'next-step'), 'Sent: it gets this before its next step.');
@@ -380,5 +385,40 @@ describe('the session page', () => {
     assert.match(h, /<details class="tl" data-tool="t1" open><summary><span class="tn">Bash<\/span> npm test/);
     assert.match(h, /&lt;ok&gt;/);
     assert.match(h, /data-tool="t2" ><summary><span class="tn">Read<\/span> a.md <span class="run">· no result yet/);
+  });
+});
+
+describe('the Merge panel', () => {
+  const m = { pr: { number: 51, title: 'PM <tasks>', url: 'https://github.com/o/r/pull/51', base: 'tools/pm', head: 'lane/pm-13', draft: false },
+    ready: true, behind: false, reasons: [] };
+
+  it('offers the merge, naming the pull request and its base, when ready', () => {
+    const h = mergePanelHtml(m);
+    assert.match(h, /data-merge-go="51"[^>]*>Merge #51 into tools\/pm</);
+    assert.match(h, /PM &lt;tasks&gt;/);
+    assert.doesNotMatch(h, /data-merge-update/);
+  });
+
+  it('gives every reason it isn\'t ready, with Update branch when behind', () => {
+    const h = mergePanelHtml({ ...m, ready: false, behind: true, reasons: ['It is behind tools/pm.', 'Checks failed: <x>.'] });
+    assert.doesNotMatch(h, /data-merge-go/);
+    assert.match(h, /<li>It is behind tools\/pm\.<\/li>/);
+    assert.match(h, /Checks failed: &lt;x&gt;\./);
+    assert.match(h, /data-merge-update="51"[^>]*>Update branch</);
+    assert.match(h, /data-merge-check/);
+  });
+
+  it('says when it is checking, or why it can\'t', () => {
+    assert.match(mergePanelHtml(null), /Checking/);
+    assert.match(mergePanelHtml(null, { error: 'No <pr>' }), /No &lt;pr&gt;/);
+  });
+
+  it('asks before merging, naming the pull request, its base and that the tap is the approval', () => {
+    const t = mergeConfirmText(m);
+    assert.match(t, /#51/);
+    assert.match(t, /PM <tasks>/);
+    assert.match(t, /into tools\/pm/);
+    assert.match(t, /merge commit/);
+    assert.match(t, /approval/);
   });
 });

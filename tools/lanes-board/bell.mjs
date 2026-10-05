@@ -3,9 +3,9 @@
 // noted, and keeps its state in ~/.claude/lanes-board/notifications.json, so
 // every device shares one read flag. tests/lanes-board-bell.test.mjs checks it.
 //
-// A record: { id, kind: question | permission | plan | turn | asked, session,
+// A record: { id, kind: question | permission | plan | turn | asked | merge, session,
 // text (who needs what, one line), detail (one line more), target (where a tap
-// goes: { tab: 'questions', item?, session } or { tab: 'sessions', session }),
+// goes: { tab: 'questions', item?, session } or { tab: 'sessions', session, merge? }),
 // time, read }. Owner's rules (PM task 10, Oct 4): answering, handing back or a
 // timeout marks a held item's record read; a session's newer finished turn
 // replaces its older unread one.
@@ -49,6 +49,11 @@ function eventRecord(e, n, title) {
   }
   if (e.kind === 'turn-finished') {
     return { ...base, kind: 'turn', text: `${title} finished its turn`, detail: lastLine(e.last), target: { tab: 'sessions', session: e.session } };
+  }
+  // Noted by the board itself (merge-api.mjs) when a session's pull request turns ready.
+  if (e.kind === 'pr-ready' && Number.isInteger(e.pr?.number)) {
+    return { ...base, kind: 'merge', text: `${title}: pull request #${e.pr.number} is ready to merge`,
+      detail: oneLine(`${e.pr.title ?? ''} into ${e.pr.base ?? 'its base'}`), target: { tab: 'sessions', session: e.session, merge: e.pr.number } };
   }
   return null;
 }

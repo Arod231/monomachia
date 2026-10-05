@@ -93,6 +93,7 @@ export function cleanSubscription(s, { insecure = false } = {}) {
 export function targetUrl(record) {
   const q = new URLSearchParams({ bell: record.id, go: record.target?.tab ?? 'questions' });
   if (record.target?.item) q.set('item', record.target.item);
+  if (record.target?.merge) q.set('merge', String(record.target.merge));
   if (record.target?.session ?? record.session) q.set('session', record.target?.session ?? record.session);
   return `/m?${q}`;
 }

@@ -55,6 +55,12 @@ describe('bellUpdate', () => {
     assert.deepEqual(s.records[1].target, { tab: 'sessions', session: S2 });
   });
 
+  it('tells of a pull request turning ready to merge, opening its session\'s merge', () => {
+    const s = update(null, { events: [{ time: 4000, kind: 'pr-ready', session: S1, pr: { number: 51, title: 'PM <11-14>', base: 'tools/pm' } }] });
+    assert.deepEqual(s.records.map((r) => [r.kind, r.text, r.detail]), [['merge', 'Lane <one>: pull request #51 is ready to merge', 'PM <11-14> into tools/pm']]);
+    assert.deepEqual(s.records[0].target, { tab: 'sessions', session: S1, merge: 51 });
+  });
+
   it('tells apart events from the same millisecond read in different looks, by where each sits in the file', () => {
     let s = update(null, { events: [{ time: 2000, kind: 'asked-in-app', session: S1, questions: ['A?'], offset: 0 }] });
     s = update(s, { events: [{ time: 2000, kind: 'asked-in-app', session: S2, questions: ['B?'], offset: 120 }] });

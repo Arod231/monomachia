@@ -220,7 +220,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: unit tests of the session-state rules; round-trip cases for each command's delivery; both pages by hand.
   - Blocked by: 4, 8 · Stories: 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 62
   - Owner's answer (Oct 5): Stop now refuses every tool call the session tries, telling it the owner pressed Stop now and to end its turn, until its turn ends; with Away on that turn end is then held like any other. A hard stop (as End work does) was turned down, since it leaves the session idle where only the Claude app can wake it.
-- [ ] **13. Merge.** A session's pull request is merged from its page once it's ready.
+- [x] **13. Merge.** A session's pull request is merged from its page once it's ready.
   - Delivers:
     - **A readiness rule** over `gh pr view`'s fields (draft, mergeable, checks, behind its base), giving the reasons when the pull request isn't ready. Update branch is offered when it's behind.
     - **The merge:** a confirmation naming the pull request and its base, and the request must name the pull request the page showed. Then `gh pr merge --merge --delete-branch` runs against the repository on GitHub, never a local branch or worktree. The session is then told to update its local base and delete its local branch.
