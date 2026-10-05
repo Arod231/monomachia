@@ -9,6 +9,8 @@ extends VBoxContainer
 ## .marker style; the in-world beam over the weapon is the view's.
 ##
 ## place() works out where it goes, with no nodes; show_at() puts it there.
+## In Versus (23.7) each player has one, labelled "Player 1's weapon", kept
+## to their own half of the split through their own camera (show_in()).
 
 ## Side arrows, for at_edge's side.
 enum Side { NONE, LEFT, RIGHT }
@@ -112,26 +114,35 @@ static func place(at: Vector2, behind: bool, screen: Vector2, half_width: float 
 ## position in the world) seen through `camera`, on a screen of `screen`
 ## size, and shows it.
 func show_for(camera: Camera3D, weapon: Vector3, screen: Vector2) -> void:
+	show_in(camera, weapon, Rect2(Vector2.ZERO, screen), screen)
+
+
+## As show_for(), in a region of the screen that `camera` draws into (a
+## Versus half, 23.7): the camera's viewport is `viewport_size` pixels, and
+## its picture fills `region`. The marker clamps to the region's edges, and
+## its side arrow points by the region's halves.
+func show_in(camera: Camera3D, weapon: Vector3, region: Rect2, viewport_size: Vector2) -> void:
 	var point: Vector3 = weapon + Vector3(0.0, MARKER_HEIGHT, 0.0)
-	var at: Vector2 = camera.unproject_position(point)
+	var at: Vector2 = camera.unproject_position(point) * region.size / viewport_size
 	var behind: bool = camera.is_position_behind(point)
 	# once to learn which arrow shows, and so the marker's width; then again
 	# kept that wide clear of the edge
-	show_at(place(at, behind, screen))
+	show_at(place(at, behind, region.size), region.position)
 	if side() != Side.NONE:
-		show_at(place(at, behind, screen, size.x * 0.5))
+		show_at(place(at, behind, region.size, size.x * 0.5), region.position)
 
 
-## Shows the marker as place() put it: its bottom centre at "pos", the down
-## arrow on screen or the side arrow at the edge.
-func show_at(where: Dictionary) -> void:
+## Shows the marker as place() put it: its bottom centre at "pos" (from
+## `origin`, a region's corner), the down arrow on screen or the side arrow
+## at the edge.
+func show_at(where: Dictionary, origin: Vector2 = Vector2.ZERO) -> void:
 	var side: int = where["side"]
 	_left.visible = side == Side.LEFT
 	_right.visible = side == Side.RIGHT
 	_down.visible = not bool(where["edge"])
 	visible = true
 	size = get_combined_minimum_size()
-	position = Vector2(where["pos"]) - Vector2(size.x * 0.5, size.y)
+	position = origin + Vector2(where["pos"]) - Vector2(size.x * 0.5, size.y)
 
 
 ## Which way the marker points now (Side.NONE: down at the weapon).

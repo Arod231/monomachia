@@ -54,7 +54,10 @@ extends Node3D
 ## left out. On the command line, --bench= takes the entries
 ## separated by ";" (quoted: "--bench=high;high:hide=Arena/Particles"), and
 ## --bench-passes=, --bench-frames= and --bench-res=1600x900 override the
-## exports.
+## exports. --versus (or versus) times Versus split screen (task 23.6): the
+## match is a Versus of two standing players, each half drawn by its own
+## camera, and the GPU and CPU times add up the root viewport's and both
+## halves'.
 
 enum View { GAMEPLAY, WATCH, MENU, ESTABLISHING, TOP_DOWN }
 
@@ -128,6 +131,8 @@ const GATE_MARK_LIFT: float = 8.0
 @export var bench_frames: int = 300
 ## The window's size while timing (the 3D renders at the window's pixels).
 @export var bench_resolution: Vector2i = Vector2i(1920, 1080)
+## Bench Versus split screen: two players, two views (--versus).
+@export var versus: bool = false
 
 ## Each entry's size in the bench's sheet, as a fraction of the screen.
 const SHEET_SCALE: float = 0.5
@@ -188,10 +193,13 @@ func _ready() -> void:
 	host = (load("res://view/match/match_host.tscn") as PackedScene).instantiate()
 	host.auto_run = false
 	host.use_services = false
+	if versus:
+		host.input = InputDevices.new(FakeDeviceState.new())
+		host.profiles = ControlProfiles.new()
 	add_child(host)
 	var match_view: MatchView = host.get_node("View")
 	match_view.set_arena(_make_arena(), arena_id)
-	host.start(MatchConfig.make(
+	host.start(_versus_config() if versus else MatchConfig.make(
 		MatchConfig.WATCH,
 		MatchSide.computer(&"rogue", &"katana", 0, &"hard"),
 		MatchSide.computer(&"hunter", &"greatsword", 1, &"hard"),
@@ -210,6 +218,7 @@ func _ready() -> void:
 	if not CAMERA_MODES.has(view):
 		_add_shot_camera(match_view.camera.far)
 	GraphicsApplier.apply(preset, self, get_viewport())
+	GraphicsApplier.apply_to_group(preset, get_tree())
 	if view == View.TOP_DOWN:
 		_setup_top_down(match_view.arena)
 	if not bench.is_empty():
@@ -241,6 +250,8 @@ func apply_args(args: PackedStringArray) -> void:
 				push_error("arena_shot.gd: --wall= takes an angle in degrees, not '%s'" % a)
 			else:
 				wall_angle_deg = float(deg)
+		elif a == "--versus":
+			versus = true
 		elif a.begins_with("--bench="):
 			bench = a.trim_prefix("--bench=").split(";", false)
 		elif a.begins_with("--bench-passes="):
@@ -307,6 +318,10 @@ func _make_arena() -> Node3D:
 ## Puts the match camera in the view's mode (when the view is one of its
 ## own) and snaps it there.
 func _aim_match_camera(match_view: MatchView) -> void:
+	if versus:
+		# each half's camera follows its player
+		match_view.snap_camera()
+		return
 	var camera: CameraRig = match_view.camera
 	camera.mode = CAMERA_MODES.get(view, CameraRig.Mode.FOLLOW)
 	if view == View.MENU:
@@ -585,7 +600,8 @@ func _start_bench() -> void:
 	_saved_window_size = get_window().size
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	get_window().size = bench_resolution
-	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	for rid: RID in _measured():
+		RenderingServer.viewport_set_measure_render_time(rid, true)
 	var hud: CanvasLayer = host.get_node("Hud")
 	hud.visible = true
 	hud.set_process(true)
@@ -644,6 +660,7 @@ func start_bench_entry(entry: String) -> void:
 		shot_camera.make_current()
 	preset = parsed["preset"]
 	GraphicsApplier.apply(preset, self, get_viewport())
+	GraphicsApplier.apply_to_group(preset, get_tree())
 	for path: NodePath in parsed["hide"]:
 		var node: Node = match_view.get_node(path)
 		node.set("visible", false)
@@ -675,10 +692,14 @@ func _process(_delta: float) -> void:
 	var now: int = Time.get_ticks_usec()
 	_frame_in_entry += 1
 	if _frame_in_entry > bench_settle and _last_usec != 0:
-		var rid: RID = get_viewport().get_viewport_rid()
+		var gpu: float = 0.0
+		var cpu: float = RenderingServer.get_frame_setup_time_cpu()
+		for rid: RID in _measured():
+			gpu += RenderingServer.viewport_get_measured_render_time_gpu(rid)
+			cpu += RenderingServer.viewport_get_measured_render_time_cpu(rid)
 		_frame_ms.append((now - _last_usec) / 1000.0)
-		_gpu_ms.append(RenderingServer.viewport_get_measured_render_time_gpu(rid))
-		_cpu_ms.append(RenderingServer.viewport_get_measured_render_time_cpu(rid) + RenderingServer.get_frame_setup_time_cpu())
+		_gpu_ms.append(gpu)
+		_cpu_ms.append(cpu)
 	_last_usec = now
 	if _frame_ms.size() >= bench_frames:
 		_end_entry()
@@ -732,3 +753,25 @@ func bench_report() -> PackedStringArray:
 		lines.append("bench: %s %6.1f fps  frame %6.2f ms (passes %s)  p95 %6.2f ms  gpu %6.2f ms  render cpu %5.2f ms" % [
 			key.rpad(width), 1000.0 / ms if ms > 0.0 else 0.0, ms, " / ".join(passes), average(p95), average(gpu), average(cpu)])
 	return lines
+
+
+## The viewports the bench times: the root, and in Versus both halves.
+func _measured() -> Array[RID]:
+	var rids: Array[RID] = [get_viewport().get_viewport_rid()]
+	var split: SplitView = (host.get_node("View") as MatchView).split
+	if split != null:
+		for vp: SubViewport in split.viewports:
+			rids.append(vp.get_viewport_rid())
+	return rids
+
+
+## The --versus bench's match: the Rogue with the Katana and the Hunter with
+## the Greatsword, two players on the keyboard and a controller.
+func _versus_config() -> MatchConfig:
+	return MatchConfig.make(
+		MatchConfig.VERSUS,
+		MatchSide.human(&"rogue", &"katana", 0, InputDevices.KBM),
+		MatchSide.human(&"hunter", &"greatsword", 1, InputDevices.PAD0),
+		SEED,
+		arena_id,
+	)

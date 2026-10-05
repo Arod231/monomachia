@@ -3,6 +3,9 @@ extends RefCounted
 ## What the results screen shows when a match ends: the winner, the rounds
 ## won, how many rounds were fought, and the demo's seven per-fighter stats.
 ## MatchHost.results() builds it from the rules' Match and Fighter state.
+## In Versus the sides are named for their players ("Player 1 wins"), with
+## each fighter beside its weapon ("Rogue · Katana"), as the HUD names them
+## (23.7).
 
 ## The stats in display order: [FighterStats field, label].
 const STATS: Array[Array] = [
@@ -30,6 +33,8 @@ var palettes: Array[int] = [0, 1]
 var stats: Array[Dictionary] = [{}, {}]
 ## The sides' seals (赤 red, 青 blue), which tell a mirror match's sides apart.
 const SEALS: Array[String] = ["赤", "青"]
+## Versus's names for its sides (the demo's).
+const PLAYERS: Array[String] = ["Player 1", "Player 2"]
 
 ## The side a human played (the perspective of "Victory" / "Defeat"), or -1.
 var player_side: int = -1
@@ -46,6 +51,9 @@ static func from_match(m: Match, cfg: MatchConfig, p_player_side: int) -> MatchR
 		var f: Fighter = m.world.fighters[i]
 		r.names[i] = f.name
 		r.weapons[i] = f.weapon.name
+		if cfg.mode == MatchConfig.VERSUS:
+			r.names[i] = PLAYERS[i]
+			r.weapons[i] = fighter_and_weapon(f)
 		if i < cfg.sides.size() and cfg.sides[i] != null:
 			r.palettes[i] = cfg.sides[i].palette
 		var s: Dictionary = {}
@@ -88,6 +96,12 @@ func stat_text(side: int, field: String) -> String:
 	if v is float:
 		return str(roundi(float(v)))
 	return str(v)
+
+
+## A fighter beside its weapon, as Versus names a side's fighter: "Rogue ·
+## Katana".
+static func fighter_and_weapon(f: Fighter) -> String:
+	return "%s · %s" % [f.name, f.weapon.name]
 
 
 ## A side's fighter by name, with the side's seal when both sides have the
