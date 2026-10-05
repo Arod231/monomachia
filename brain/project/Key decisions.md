@@ -16,7 +16,7 @@ On Oct 4, 2026 the owner set a new direction: animation leads the rules' timing,
 | What decides a hit | The weapon's real path ([[Weapon swings]]) |
 | How attacks animate | **Oct 4:** animation leads. Each attack's frame data and footwork come from its clip, edited until it lands inside its [[Timing band]]; nothing speeds up, slows down, freezes or stretches a clip while the game runs. Only the protected timings and the jump arcs stay rules numbers. Was: The same path moves the weapon; the arms follow by inverse kinematics ([[Fighter animation]]) |
 | Pace | **Oct 4:** slower and weightier, close to For Honor's: a medium weapon's lights (the Katana's) land in roughly 400–500 ms. Every weapon is rebalanced as its animation lands, and the old rule of staying within 5 points of the baseline retires |
-| First fighters | The Rogue and the Hunter, the two the free packs can dress ([[Roster]]) |
+| First fighters | The Rogue and the Hunter, the two the free packs can dress ([[Roster]]). **Oct 4:** during milestone 1 the menus offer only the Hunter and the Katana (bare hands stay the disarmed state), and every default match is the Hunter in crimson against the Hunter in indigo; a `--full-roster` flag brings back the Rogue, the Greatsword and the Twin Daggers |
 | Arena | The [[Moonlit Shrine]], floating and walled, radius 15 m |
 | Fluid combat | **Oct 4:** a fighter moves only as their clips carry them, so the rules no longer add lunges, slides or carried speed, and dodge cancels open at markers on each clip. Hitstun stays a rules number. Was: Half the run speed kept into attacks, eased lunges, colossal slides, late dodge cancels, 14-frame light hitstun instead of a combo breaker ([[Attacking]]) |
 | Blocking walk | 60% of run speed (was 45%) |

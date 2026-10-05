@@ -26,7 +26,7 @@ signal ability_chosen(slot: int, ability_id: StringName)
 signal changed
 
 ## The training dummy's note (the demo's, for this build's controls).
-const DUMMY_NOTE: String = "In Training you tell the dummy what to do from the panel on screen (keys 1–9 or a click), or from the pause menu on a controller. Health refills on its own; key 0 turns that off."
+const DUMMY_NOTE: String = "In Training you tell the dummy what to do from the panel on screen (the number keys or a click), or from the pause menu on a controller. Health refills on its own; key 0 turns that off."
 ## The text column's width (px).
 const TEXT_WIDTH: float = 400.0
 ## The panel's width (px): the widest pair of ability rows (the

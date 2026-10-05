@@ -85,19 +85,17 @@ func _init(p_path: String = PATH, p_persist: bool = true) -> void:
 		drafts[mode] = default_draft(mode)
 
 
-## The demo's defaults: Duel is the Rogue with the katana against the Hunter
-## with the greatsword (Normal); Training the same against the dummy; Watch
-## katana against daggers, both Normal; Versus katana against greatsword, on
-## the keyboard and mouse and the first controller. The Moonlit Shrine.
+## Milestone 1's defaults (task 4): in every mode the Hunter in crimson
+## against the Hunter in indigo, both with the Katana (Normal); Versus on the
+## keyboard and mouse and the first controller. The Moonlit Shrine.
 static func default_draft(mode: StringName) -> Draft:
 	var d: Draft = Draft.new()
 	d.mode = mode
-	var weapons: Array[StringName] = [&"katana", &"daggers" if mode == MatchConfig.WATCH else &"greatsword"]
 	for i: int in 2:
 		var s: MatchSide = MatchSide.new()
-		s.fighter_id = &"rogue" if i == 0 else &"hunter"
+		s.fighter_id = MatchConfig.DEFAULT_FIGHTER
 		s.palette = i
-		s.weapon_id = weapons[i]
+		s.weapon_id = MatchConfig.DEFAULT_WEAPON
 		s.difficulty = &"normal"
 		s.device = InputDevices.ALL
 		d.sides.append(s)
@@ -173,7 +171,8 @@ static func lock_in(d: Draft, p_seed: int) -> MatchConfig:
 		elif d.mode != MatchConfig.VERSUS:
 			s.device = InputDevices.ALL
 		if d.random_weapon[i] and offers_random(d.mode, i):
-			s.weapon_id = Moves.PLAYABLE_WEAPONS[rng.randi_range(0, Moves.PLAYABLE_WEAPONS.size() - 1)]
+			var offered: Array[StringName] = Roster.weapons()
+			s.weapon_id = offered[rng.randi_range(0, offered.size() - 1)]
 			s.abilities.clear()
 		sides.append(s)
 	var arena: StringName = d.arena
@@ -195,9 +194,10 @@ static func controller_for(mode: StringName, side: int) -> StringName:
 
 
 ## Whether a side may leave its weapon to chance: the Duel opponent only
-## (lock_in() picks it).
+## (lock_in() picks it from the roster's weapons), and only while the roster
+## offers more than one.
 static func offers_random(mode: StringName, side: int) -> bool:
-	return mode == MatchConfig.DUEL and side == 1
+	return mode == MatchConfig.DUEL and side == 1 and Roster.weapons().size() > 1
 
 
 ## Whether a side picks block abilities: everyone but the training dummy.
@@ -228,8 +228,9 @@ func save() -> Error:
 	return f.save(path)
 
 
-## Reads the saved drafts; a mode whose draft is missing or broken keeps its
-## default. Returns whether the file was read.
+## Reads the saved drafts; a mode whose draft is missing or broken, or picks
+## a fighter or weapon the roster hides, keeps its default. Returns whether
+## the file was read.
 func load_saved() -> bool:
 	for mode: StringName in MatchConfig.MODES:
 		drafts[mode] = default_draft(mode)
@@ -243,7 +244,7 @@ func load_saved() -> bool:
 		if not v is Dictionary:
 			continue
 		var d: Draft = Draft.from_dict(v)
-		if d.mode == mode and problem(d) == "":
+		if d.mode == mode and problem(d) == "" and Roster.offers_side(d.sides[0]) and Roster.offers_side(d.sides[1]):
 			for i: int in 2:
 				d.sides[i].palette = i
 			drafts[mode] = d

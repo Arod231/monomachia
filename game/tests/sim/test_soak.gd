@@ -5,6 +5,16 @@ extends GutTest
 const Soak := preload("res://tools/soak.gd")
 
 
+# These pin the soak over all three weapons, so they run with the whole
+# roster; test_the_soak_plays_the_roster_s_weapons covers the default.
+func before_each() -> void:
+	Roster.full = true
+
+
+func after_each() -> void:
+	Roster.reset()
+
+
 ## A soak's report lines, failures, and each match's two weapons.
 class SoakRun:
 	var lines: Array[String] = []
@@ -106,3 +116,13 @@ func test_the_targets_mark_numbers_past_their_ends_out() -> void:
 		"  greatsword wins 45-55%: 55.6%, out",
 		"  daggers wins 45-55%: no matches, out",
 	] as Array[String], "0.296 prints as 0.30 and is in; the rest are past their ends")
+
+
+func test_the_soak_plays_the_roster_s_weapons() -> void:
+	# milestone 1 (task 4): without --full-roster only the Katana is offered
+	Roster.full = false
+	var soak: SoakRun = _knockout_soak(4)
+	assert_eq(soak.failures, 0)
+	for p: PackedStringArray in soak.pairs:
+		assert_eq(p, PackedStringArray(["katana", "katana"]))
+	assert_eq(soak.block("win rates, mirror matches left out:"), ["  katana: no matches"] as Array[String])

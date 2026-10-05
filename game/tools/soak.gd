@@ -8,6 +8,10 @@ extends SceneTree
 ##
 ## usage: node scripts/godot.mjs soak [matches]     (or: npm run soak -- 40)
 ##        npm run soak:tune                         (300 matches, for tuning)
+##        npm run soak -- 40 --full-roster          (the hidden weapons too)
+##
+## It plays the weapons the roster offers (Roster.weapons(): the Katana
+## during milestone 1, all three with --full-roster, milestone-1 task 4).
 ##
 ## Port notes:
 ## - The match count is the first user argument (after --), read like JS
@@ -65,6 +69,7 @@ func _process(_delta: float) -> bool:
 ## before each step.
 static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callable = Callable()) -> int:
 	var rng: Rng = Rng.new(2026)
+	var offered: Array[StringName] = Roster.weapons()
 	var diffs: Array[StringName] = [&"easy", &"normal", &"hard"]
 	var totals: Dictionary[String, int] = {}
 	var total_rounds: int = 0
@@ -81,8 +86,8 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 
 	var m: int = 0
 	while float(m) < N:
-		var w0: StringName = rng.pick(Moves.PLAYABLE_WEAPONS)
-		var w1: StringName = rng.pick(Moves.PLAYABLE_WEAPONS)
+		var w0: StringName = rng.pick(offered)
+		var w1: StringName = rng.pick(offered)
 		var d0: StringName = rng.pick(diffs)
 		var d1: StringName = rng.pick(diffs)
 		var W: World = World.new(FighterConfig.make(Moves.WEAPONS[w0]), FighterConfig.make(Moves.WEAPONS[w1]), 1000 + m)
@@ -206,8 +211,9 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 ## mark judges the number as printed, so a line never reads "0.60, out".
 static func report_balance(out: Callable, avg_round_s: float, disarms_per_round: float, records: Dictionary[String, Vector2i]) -> void:
 	var win_rates: Array[String] = [] # as printed, or "" with no matches
+	var offered: Array[StringName] = Roster.weapons()
 	out.call("win rates, mirror matches left out:")
-	for id: StringName in Moves.PLAYABLE_WEAPONS:
+	for id: StringName in offered:
 		var r: Vector2i = records.get(String(id), Vector2i())
 		win_rates.append("" if r.y == 0 else JsFormat.to_fixed(100.0 * float(r.x) / float(r.y), 1))
 		out.call("  %s: %s" % [id, "no matches" if r.y == 0 else "%s%% (%d of %d)" % [win_rates.back(), r.x, r.y]])
@@ -217,9 +223,9 @@ static func report_balance(out: Callable, avg_round_s: float, disarms_per_round:
 	out.call("targets (the spec's):")
 	out.call("  rounds of %s s: %s s, %s" % [_range(TARGET_ROUND_S), round_text, _mark(round_text, TARGET_ROUND_S)])
 	out.call("  disarms %s per round: %s, %s" % [_range(TARGET_DISARMS), disarms_text, _mark(disarms_text, TARGET_DISARMS)])
-	for i: int in Moves.PLAYABLE_WEAPONS.size():
+	for i: int in offered.size():
 		var shown: String = "no matches" if win_rates[i] == "" else win_rates[i] + "%"
-		out.call("  %s wins %s%%: %s, %s" % [Moves.PLAYABLE_WEAPONS[i], _range(TARGET_WIN_RATE), shown, _mark(win_rates[i], TARGET_WIN_RATE)])
+		out.call("  %s wins %s%%: %s, %s" % [offered[i], _range(TARGET_WIN_RATE), shown, _mark(win_rates[i], TARGET_WIN_RATE)])
 
 
 ## "35-60" for [35, 60].

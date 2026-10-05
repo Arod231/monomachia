@@ -110,7 +110,7 @@ const SEED: int = 7
 @export var blink_time: float = 0.25
 ## The "select_preview" shot's fighter, weapon, palette (the side shown) and
 ## turn in degrees (--fighter=, --weapon=, --palette=, --turn=).
-@export var preview_fighter: StringName = &"rogue"
+@export var preview_fighter: StringName = &"hunter"
 @export var preview_weapon: StringName = &"katana"
 @export var preview_palette: int = 0
 @export var preview_turn: float = 20.0

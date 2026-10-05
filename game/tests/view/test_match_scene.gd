@@ -8,6 +8,10 @@ var view: MatchView
 var hud: MatchHud
 
 
+func after_each() -> void:
+	Roster.reset()
+
+
 func before_each() -> void:
 	host = (load("res://view/match/match_host.tscn") as PackedScene).instantiate()
 	host.auto_run = false
@@ -313,7 +317,10 @@ func test_a_dropped_weapon_is_in_the_toon_look() -> void:
 
 
 func test_the_view_and_hud_follow_the_dummy_s_weapon_swap() -> void:
+	# a Greatsword dummy, with the whole roster so the Slam can bring it back
+	Roster.full = true
 	var cfg: MatchConfig = _with_standin(MatchConfig.default_training(5))
+	cfg.sides[1].weapon_id = &"greatsword"
 	host.start(cfg)
 	host.step(Match.INTRO_FRAMES + 5)
 	var dummy: Fighter = host.fighter(1)

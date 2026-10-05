@@ -2,7 +2,8 @@ class_name TrainingPanel
 extends PanelContainer
 ## Training's panel at the bottom left of the HUD (port of
 ## setupTrainingPanel() and trainingKeys() in v0.1-web-mvp:src/game.ts): "Dummy ·
-## <weapon>", a hint, the nine behaviour chips numbered 1-9 and the refill
+## <weapon>", a hint, a chip per behaviour the roster offers (Roster.behaviours(),
+## eight while the Greatsword's Slam is hidden) numbered from 1, and the refill
 ## chip numbered 0, the dummy's behaviour and the refill lit.
 ##
 ## A click on a chip, or its number key during play, tells the host
@@ -17,7 +18,9 @@ extends PanelContainer
 var host: MatchHost
 var heading: Label
 var hint: Label
-## One per behaviour, in TrainingBrain.BEHAVIOURS order.
+## The behaviours offered, as the roster stood when the panel was made.
+var behaviours: Array[StringName] = Roster.behaviours()
+## One per behaviour, in that order.
 var chips: Array[Button] = []
 var refill_chip: Button
 ## Is the host's match a played Training match?
@@ -41,7 +44,7 @@ func _init() -> void:
 	heading.name = "Heading"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	box.add_child(heading)
-	hint = UiTheme.label("What should the dummy do? Keys 1–9 also work.", UiTheme.MUTED, 15)
+	hint = UiTheme.label("What should the dummy do? Keys 1–%d also work." % behaviours.size(), UiTheme.MUTED, 15)
 	hint.name = "Hint"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	box.add_child(hint)
@@ -93,7 +96,7 @@ func refresh() -> void:
 	if host == null or not host.is_started() or host.training_behaviour() == &"":
 		return
 	heading.text = "Dummy · %s" % host.fighter(host.config.dummy_side()).weapon.name
-	var b: int = TrainingBrain.BEHAVIOURS.find(host.training_behaviour())
+	var b: int = behaviours.find(host.training_behaviour())
 	for i: int in chips.size():
 		chips[i].theme_type_variation = UiTheme.OPTION_ON if i == b else UiTheme.OPTION
 	var on: bool = host.refill()
@@ -131,8 +134,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _choose(i: int) -> void:
-	if host != null and i >= 0 and i < TrainingBrain.BEHAVIOURS.size():
-		host.set_training_behaviour(TrainingBrain.BEHAVIOURS[i])
+	if host != null and i >= 0 and i < behaviours.size():
+		host.set_training_behaviour(behaviours[i])
 
 
 func _toggle_refill() -> void:

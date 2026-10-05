@@ -40,12 +40,12 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 1. As the owner, I want milestone 1 to start only after the consolidation has merged the Godot rebuild into `master` (the web version retired, CI green on clones without the clips), so that new work branches from `master` again and nothing is built on a branch about to move.
 2. As a developer, I want milestone 1's code on its own branch, `feature/milestone-1`, cut from `master` after godot-rebuild task 26.4 and merged back by one pull request, with this spec and its plan already on `master` (they arrive earlier, through the docs pull request into `feature/godot-rebuild` and the consolidation, an exception to CLAUDE.md for this round), so that the owner reviews the code in one place.
-3. As a player, I want the menus during milestone 1 to offer only the Hunter and the Katana, with bare hands when disarmed, so that every match I play is one this milestone has brought to final quality.
+3. [x] As a player, I want the menus during milestone 1 to offer only the Hunter and the Katana, with bare hands when disarmed, so that every match I play is one this milestone has brought to final quality. (Ticked with task 4.)
 4. As a developer, I want a dev flag that still shows the Rogue, the Greatsword and the Twin Daggers, with their code kept and their tests passing (those that pin frame data become reads of the generated table), so that milestone 2 starts from working code.
-5. As a player, I want every default match (Duel, Training, Watch and the title's attract duel) to be the Hunter in crimson against the Hunter in indigo, both with the Katana and today's default block abilities (Flash and Piercing Thrust), so that no default reaches a hidden fighter or weapon.
-6. As a Training player, I want no drill to swap the dummy to a hidden weapon (today the slam drill brings in the Greatsword), so that Training stays inside the milestone's content.
-7. As a player reading How to play or the move list, I want only the Katana's and bare hands' tabs while the roster is hidden, so that nothing describes content I can't pick.
-8. As the owner, I want bare hands to stay the disarmed state, not a loadout, so that there is no bare-hands draw to make and the cheer plays only when a disarmed fighter wins the match. **(P1, confirmed Oct 4)**
+5. [x] As a player, I want every default match (Duel, Training, Watch and the title's attract duel) to be the Hunter in crimson against the Hunter in indigo, both with the Katana and today's default block abilities (Flash and Piercing Thrust), so that no default reaches a hidden fighter or weapon. (Ticked with task 4.)
+6. [x] As a Training player, I want no drill to swap the dummy to a hidden weapon (today the slam drill brings in the Greatsword), so that Training stays inside the milestone's content. (Ticked with task 4.)
+7. [x] As a player reading How to play or the move list, I want only the Katana's and bare hands' tabs while the roster is hidden, so that nothing describes content I can't pick. (Ticked with task 4.)
+8. [x] As the owner, I want bare hands to stay the disarmed state, not a loadout, so that there is no bare-hands draw to make and the cheer plays only when a disarmed fighter wins the match. **(P1, confirmed Oct 4)** (Ticked with task 4.)
 
 ### The pipeline
 
@@ -63,10 +63,10 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 20. As a developer, I want CI to check that the committed table is complete and that every Katana and bare-hands attack sits inside its timing band and connects from its distance band, so that a clip out of band can't be merged.
 21. As a developer, I want a local-only test that re-bakes every move from the clips and fails on any drift from the committed table, so that the table never falls behind the clips. **(P12, confirmed Oct 4)**
 22. As a developer, I want the Greatsword's and the Daggers' frame data generated from their current clips through the same generator, with no band test until milestone 2, so that one generator serves every weapon. **(P10, confirmed Oct 4)**
-23. As a developer, I want a replay test in the pipeline phase, in this form: a seeded match run twice gives matching state hashes on every step **(P18, confirmed Oct 4)**, so that the rules stay deterministic for rollback netcode.
-24. As a developer, I want a save-and-restore test in the pipeline phase, in this form: save mid-match, restore, step again and compare **(P18, confirmed Oct 4)**, so that the rules can be rolled back later without a retrofit.
+23. [x] As a developer, I want a replay test in the pipeline phase, in this form: a seeded match run twice gives matching state hashes on every step **(P18, confirmed Oct 4)**, so that the rules stay deterministic for rollback netcode. (Ticked with task 5.)
+24. [x] As a developer, I want a save-and-restore test in the pipeline phase, in this form: save mid-match, restore, step again and compare **(P18, confirmed Oct 4)**, so that the rules can be rolled back later without a retrofit. (Ticked with tasks 134 and 6.)
 25. As a developer, I want both tests to cover a finisher and a stuck weapon, so that the new rules are as deterministic as the old. **(P18, confirmed Oct 4)**
-26. As a developer, I want matches recordable as input logs that replay to the same result, so that the performance gate, the balance run and bug reports can replay a match exactly.
+26. [x] As a developer, I want matches recordable as input logs that replay to the same result, so that the performance gate, the balance run and bug reports can replay a match exactly. (Ticked with task 6.)
 27. As the owner, I want the Animation Studio slimmed to its gallery, a timeline, markers and chains, so that it does what animation-leads needs and nothing it no longer needs.
 28. As the owner, I want markers set on the Studio's timeline to give each clip's active frames, cancel windows and branch points, and saving to regenerate the frame-data table and report any move outside its band, so that a marker edit is the only way frame data change. **(P12, confirmed Oct 4)**
 29. As the owner, I want the Studio's timeline to show each move's generated frame data against its timing band, and whether it connects from its distance band, so that I see at once whether a clip fits.

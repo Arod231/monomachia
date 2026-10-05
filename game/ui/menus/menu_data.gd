@@ -58,8 +58,7 @@ const ABILITY_DESCRIPTIONS: Dictionary[StringName, String] = {
 }
 
 
-## Each training dummy behaviour's name, in TrainingBrain.BEHAVIOURS order
-## (the panel's keys 1-9).
+## Each training dummy behaviour's name.
 const BEHAVIOUR_NAMES: Dictionary[StringName, String] = {
 	&"idle": "Stand still",
 	&"block": "Block",
@@ -73,10 +72,11 @@ const BEHAVIOUR_NAMES: Dictionary[StringName, String] = {
 }
 
 
-## The behaviours' names in TrainingBrain.BEHAVIOURS order.
+## The names of the behaviours the roster offers (Roster.behaviours()), in
+## that order: the panel's keys 1 on.
 static func behaviour_names() -> Array[String]:
 	var names: Array[String] = []
-	for b: StringName in TrainingBrain.BEHAVIOURS:
+	for b: StringName in Roster.behaviours():
 		names.append(BEHAVIOUR_NAMES.get(b, String(b)))
 	return names
 
