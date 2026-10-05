@@ -28,6 +28,10 @@ func test_every_move_takes_its_frames_from_the_table() -> void:
 			elif m.kind != &"heavy":
 				assert_eq(m.dodge_cancel_from, AttackDef.UNSET, "%s.%s has no dodge cancel" % [wid, id])
 			assert_eq(m.real_markers, not bool(row.get("stand_in", false)), "%s.%s: real markers unless its row is a stand-in" % [wid, id])
+			var branches: Dictionary = row.get("branches", {})
+			assert_eq(m.branches.size(), branches.size(), "%s.%s's branch points" % [wid, id])
+			for follow: Variant in branches:
+				assert_eq(Array(m.branches.get(StringName(follow), PackedInt32Array())), (branches[follow] as Array).map(func(x: Variant) -> int: return int(x)), "%s.%s -> %s" % [wid, id, follow])
 			assert_eq(m.travel.size(), 3 * (m.total_frames() + 1), "%s.%s: travel on every frame" % [wid, id])
 			var last: Array = (row["travel"] as Array)[-1]
 			assert_eq([m.travel[-3], m.travel[-2], m.travel[-1]], [float(last[0]), float(last[1]), float(last[2])], "%s.%s's travel" % [wid, id])

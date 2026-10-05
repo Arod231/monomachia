@@ -961,23 +961,28 @@ func _update_attack() -> void:
 		a.whiff_emitted = true
 		world.emit({"t": &"whiff", "f": id, "attack": def.id})
 
-	# Combo chains.
+	# Combo chains: a follow-up pressed after the startup and by the last frame
+	# of its window starts at its branch point, or at once if that has passed
+	# (the frame-data table's, milestone-1 task 20); any extra recovery (a
+	# charge's) moves the window's end on with the move's.
 	if takes_follow_up_at(f):
-		if def.chain_light != &"" and inp.buffered(Btn.LIGHT) and not (armed and inp.is_held(Btn.BLOCK)):
+		if _can_follow(def.chain_light, Btn.LIGHT, f):
 			inp.consume(Btn.LIGHT)
 			a.queued = def.chain_light
-		elif def.chain_heavy != &"" and inp.buffered(Btn.HEAVY) and not (armed and inp.is_held(Btn.BLOCK)):
+		elif _can_follow(def.chain_heavy, Btn.HEAVY, f):
 			inp.consume(Btn.HEAVY)
 			a.queued = def.chain_heavy
-	if a.queued != &"" and f >= S + A + 2:
+	if a.queued != &"" and f >= def.branch_window(a.queued)[0]:
 		start_attack(a.queued, -1, def)
 		return
 
-	# Dodge-cancel the recovery from the move's cancel frame, later by half any
-	# extra recovery (a charge's), and never in the air.
+	# Dodge-cancel the recovery in the move's window (the table's), opening
+	# later by half any extra recovery (a charge's) and closing later by all
+	# of it, and never in the air.
 	if (
 		def.dodge_cancel_from != AttackDef.UNSET
 		and f >= def.dodge_cancel_from + ceili(a.extra_recovery / 2.0)
+		and (def.dodge_cancel_to == AttackDef.UNSET or f <= def.dodge_cancel_to + a.extra_recovery)
 		and not airborne()
 		and inp.buffered(Btn.DODGE)
 	):
@@ -990,6 +995,15 @@ func _update_attack() -> void:
 			backstab_until = W.frame + 30
 		atk = null
 		to_free()
+
+
+## Whether the attack takes follow-up `follow` (none for &"") pressed with
+## button `b` on attack frame `f`: buffered, not held under a block, and by
+## the last frame of its window.
+func _can_follow(follow: StringName, b: int, f: int) -> bool:
+	if follow == &"" or not input.buffered(b) or (armed and input.is_held(Btn.BLOCK)):
+		return false
+	return f <= atk.def.branch_window(follow)[1] + atk.extra_recovery
 
 
 ## As a chargeable heavy is drawn, the stick held sideways (as Moonsplitter

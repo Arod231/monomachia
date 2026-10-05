@@ -56,10 +56,10 @@ extends RefCounted
 ## - Since milestone-1 task 17 a weapon's moves take their frame data from
 ##   the frame-data table (FrameDataTable, generated from their clips):
 ##   finalize_moves() given the weapon fills startup, active, recovery, the
-##   dodge-cancel window, the travel and whether its markers are real
-##   (TABLE_FIELDS) from each move's row, and a record with a row must set
-##   none of them. A record without a row (the ultimates' scripted hits, test
-##   moves) keeps its own.
+##   dodge-cancel window, the travel, whether its markers are real and its
+##   follow-ups' branch points (TABLE_FIELDS) from each move's row, and a
+##   record with a row must set none of them. A record without a row (the
+##   ultimates' scripted hits, test moves) keeps its own.
 
 const ATTACK_TYPES: Array[StringName] = [
 	&"slash", &"overhead", &"thrust", &"sweep", &"slam", &"spin", &"bash", &"stab", &"punch", &"kick",
@@ -160,6 +160,10 @@ var travel: PackedFloat64Array = PackedFloat64Array()
 ## start (milestone-1 task 19). false for a stand-in, waiting for its family
 ## to re-key it, and for a record without a row
 var real_markers: bool = false
+## each follow-up's branch point and the last frame it may start on, from
+## the frame-data table: follow-up id -> [branch point, last frame]
+## (milestone-1 task 20); empty without a row (branch_window())
+var branches: Dictionary[StringName, PackedInt32Array] = {}
 ## the path the weapon travels through the move (task 7, the rebuild's), put
 ## on it from the weapon's swing file when the weapon is built
 ## (WeaponDef.from_dict); null until the move has one. A record may also
@@ -174,10 +178,10 @@ const KEYS: Array[String] = [
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
 	"sound", "trail", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "travel", "real_markers", "swing",
+	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
-const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers"]
+const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches"]
 
 
 ## Builds an AttackDef from a move record (snake_case keys). Missing keys keep
@@ -236,6 +240,9 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	m.lunge_along_dodge = bool(d.get("lunge_along_dodge", false))
 	m.travel = PackedFloat64Array(d.get("travel", PackedFloat64Array()))
 	m.real_markers = bool(d.get("real_markers", false))
+	var windows: Dictionary = d.get("branches", {})
+	for follow: Variant in windows:
+		m.branches[StringName(follow)] = PackedInt32Array(windows[follow])
 	m.swing = d.get("swing", null)
 	return m
 
@@ -305,11 +312,26 @@ static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName) -> vo
 		travel.append(float(step[2]))
 	m["travel"] = travel
 	m["real_markers"] = not bool(row.get("stand_in", false))
+	var branches: Dictionary = {}
+	var windows: Dictionary = row.get("branches", {})
+	for follow: Variant in windows:
+		branches[StringName(follow)] = [int(windows[follow][0]), int(windows[follow][1])]
+	m["branches"] = branches
 
 
 ## totalFrames(m)
 func total_frames() -> int:
 	return startup + active + recovery
+
+
+## The frames follow-up `follow` may start on, [branch point, last frame]
+## (milestone-1 task 20): its row's branch point and window, or, for a move
+## without one (a test move), the end of the active frames plus two to the
+## move's last frame, as before the table.
+func branch_window(follow: StringName) -> PackedInt32Array:
+	if branches.has(follow):
+		return branches[follow]
+	return PackedInt32Array([startup + active + 2, total_frames()])
 
 
 ## The lunge the move covers when started `distance` m from its target
