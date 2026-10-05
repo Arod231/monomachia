@@ -1,7 +1,7 @@
 extends GutTest
 ## The ink-wash UI theme (task 22.1): the project theme draws the UI in the
 ## demo's fonts (Zen Kaku Gothic New for text, Zen Antique for titles and
-## kanji) and colours (UiPalette, the demo's src/ui/style.css), checked through
+## kanji) and colours (UiPalette, the demo's v0.1-web-mvp:src/ui/style.css), checked through
 ## the controls that use it, so the theme file and UiPalette can't drift apart.
 
 const UI_FONT: String = "Zen Kaku Gothic New"
@@ -139,7 +139,7 @@ func _assert_color(got: Color, want: Color, what: String = "") -> void:
 	assert_true(got.is_equal_approx(want), "%s %s is %s" % [what, got, want])
 
 
-## Every kanji the demo's UI shows (src/ui/menus.ts, hud.ts and data.ts: the
+## Every kanji the demo's UI shows (v0.1-web-mvp:src/ui/menus.ts, hud.ts and data.ts: the
 ## title, seals, ultimate badge, round and fight calls, results, pause and the
 ## weapons' kanji), which the screens still to come take over.
 const DEMO_KANJI: String = "一騎討ち赤青奥義第二三四五六七八九戦始め武器喪失相打本勝敗利北決着休止危刀双短大剣"
@@ -317,7 +317,14 @@ func test_the_hud_is_set_in_the_theme() -> void:
 	_assert_themed(hud)
 	assert_eq(_font_of(hud.find_child("Announce", true, false) as Control), DISPLAY_FONT)
 	assert_eq(_font_of(hud.find_child("Plate0", true, false) as Control), DISPLAY_FONT)
-	assert_eq(_font_of(hud.find_child("Hint", true, false) as Control), UI_FONT)
+	# a toast in the display font (24.3), a prompt and its key cap in the UI
+	# font (24.4)
+	hud.toasts.push("Parry", HudToasts.Tone.GOLD)
+	assert_eq(_font_of(hud.toasts.get_child(0).get_node("Text") as Control), DISPLAY_FONT)
+	hud.prompts.show_prompts([{"parts": ["Pick up your weapon ", HudPrompts.key("E")], "urgent": true}] as Array[Dictionary])
+	var row: Node = hud.prompts.get_child(0).get_node("Row")
+	assert_eq(_font_of(row.get_child(0) as Control), UI_FONT, "a prompt's text")
+	assert_eq(_font_of(row.get_child(1).get_node("Name") as Control), UI_FONT, "a key cap")
 
 
 ## The HUD's tags (the demo's .plate .tag): spaced capitals in --danger in a

@@ -1,7 +1,8 @@
 // Tests for tools/lanes-board/access.mjs: who may reach the board (this PC and
 // the owner's tailnet), which names it answers to, and which page a phone gets.
 
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import {
   fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip,
 } from '../tools/lanes-board/access.mjs';
@@ -15,18 +16,18 @@ const NAMES = new Set(['localhost', '127.0.0.1', '100.120.241.100', 'pc', 'pc.ta
 
 describe('fromTailnetOrLocal', () => {
   it('lets in loopback, in IPv4 and IPv6 forms', () => {
-    for (const a of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) expect(fromTailnetOrLocal(a)).toBe(true);
+    for (const a of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) assert.equal(fromTailnetOrLocal(a), true);
   });
 
   it('lets in Tailscale addresses: 100.64.0.0/10 and fd7a:115c:a1e0::/48', () => {
     for (const a of ['100.64.0.1', '100.120.241.100', '100.127.255.254', '::ffff:100.100.1.2', 'fd7a:115c:a1e0::1']) {
-      expect(fromTailnetOrLocal(a)).toBe(true);
+      assert.equal(fromTailnetOrLocal(a), true);
     }
   });
 
   it('refuses the rest of 100.x, the LAN and everything else', () => {
     for (const a of ['100.63.255.255', '100.128.0.1', '192.168.1.20', '10.0.0.5', '8.8.8.8', 'fe80::1', '', undefined]) {
-      expect(fromTailnetOrLocal(a)).toBe(false);
+      assert.equal(fromTailnetOrLocal(a), false);
     }
   });
 });
@@ -34,12 +35,12 @@ describe('fromTailnetOrLocal', () => {
 describe('knownHost', () => {
   it('answers to its own names, with or without the port, in any case', () => {
     for (const h of ['localhost:5197', '127.0.0.1:5197', '100.120.241.100:5197', 'PC:5197', 'pc.tail1234.ts.net']) {
-      expect(knownHost(h, NAMES)).toBe(true);
+      assert.equal(knownHost(h, NAMES), true);
     }
   });
 
   it('refuses any other name, so a DNS-rebinding page gets nothing', () => {
-    for (const h of ['evil.example:5197', '192.168.1.20:5197', '', undefined]) expect(knownHost(h, NAMES)).toBe(false);
+    for (const h of ['evil.example:5197', '192.168.1.20:5197', '', undefined]) assert.equal(knownHost(h, NAMES), false);
   });
 });
 
@@ -47,59 +48,59 @@ describe('sameOrigin', () => {
   const post = (origin, host, contentType = 'application/json') => sameOrigin({ origin, host, contentType }, NAMES);
 
   it('accepts the board posting to itself under any name it answers to', () => {
-    expect(post('http://localhost:5197', 'localhost:5197')).toBe(true);
-    expect(post('http://100.120.241.100:5197', '100.120.241.100:5197')).toBe(true);
-    expect(post('http://pc:5197', 'pc:5197', 'application/json; charset=utf-8')).toBe(true);
+    assert.equal(post('http://localhost:5197', 'localhost:5197'), true);
+    assert.equal(post('http://100.120.241.100:5197', '100.120.241.100:5197'), true);
+    assert.equal(post('http://pc:5197', 'pc:5197', 'application/json; charset=utf-8'), true);
   });
 
   it('refuses a page from anywhere else, a name it does not know, or a form post', () => {
-    expect(post('http://evil.example', 'localhost:5197')).toBe(false);
-    expect(post('http://localhost:5197', 'pc:5197')).toBe(false);
-    expect(post('http://evil.example:5197', 'evil.example:5197')).toBe(false);
-    expect(post('https://localhost:5197', 'localhost:5197')).toBe(false);
-    expect(post(undefined, 'localhost:5197')).toBe(false);
-    expect(post('null', 'localhost:5197')).toBe(false);
-    expect(post('http://localhost:5197', 'localhost:5197', 'text/plain')).toBe(false);
+    assert.equal(post('http://evil.example', 'localhost:5197'), false);
+    assert.equal(post('http://localhost:5197', 'pc:5197'), false);
+    assert.equal(post('http://evil.example:5197', 'evil.example:5197'), false);
+    assert.equal(post('https://localhost:5197', 'localhost:5197'), false);
+    assert.equal(post(undefined, 'localhost:5197'), false);
+    assert.equal(post('null', 'localhost:5197'), false);
+    assert.equal(post('http://localhost:5197', 'localhost:5197', 'text/plain'), false);
   });
 });
 
 describe('pageFor', () => {
   it('gives phones the mobile page and computers the desktop one', () => {
-    expect(pageFor('/', IPHONE).file).toBe('m.html');
-    expect(pageFor('/', ANDROID).file).toBe('m.html');
-    expect(pageFor('/', ANDROID_TABLET).file).toBe('index.html');
-    expect(pageFor('/', DESKTOP).file).toBe('index.html');
-    expect(pageFor('/?x=1', IPHONE).file).toBe('m.html');
+    assert.equal(pageFor('/', IPHONE).file, 'm.html');
+    assert.equal(pageFor('/', ANDROID).file, 'm.html');
+    assert.equal(pageFor('/', ANDROID_TABLET).file, 'index.html');
+    assert.equal(pageFor('/', DESKTOP).file, 'index.html');
+    assert.equal(pageFor('/?x=1', IPHONE).file, 'm.html');
   });
 
   it('lets /m and /desktop pick a page by hand', () => {
-    expect(pageFor('/m', DESKTOP).file).toBe('m.html');
-    expect(pageFor('/desktop', IPHONE).file).toBe('index.html');
-    expect(pageFor('/desktop?from=m', IPHONE).file).toBe('index.html');
+    assert.equal(pageFor('/m', DESKTOP).file, 'm.html');
+    assert.equal(pageFor('/desktop', IPHONE).file, 'index.html');
+    assert.equal(pageFor('/desktop?from=m', IPHONE).file, 'index.html');
   });
 
   it('serves the web app manifest and the home-screen icon', () => {
-    expect(pageFor('/manifest.webmanifest', IPHONE)).toEqual({ file: 'manifest.webmanifest', type: 'application/manifest+json' });
-    expect(pageFor('/icon.png', IPHONE)).toEqual({ file: 'icon.png', type: 'image/png' });
-    expect(pageFor('/apple-touch-icon.png', IPHONE)).toEqual({ file: 'icon.png', type: 'image/png' });
-    expect(pageFor('/', DESKTOP).type).toBe('text/html; charset=utf-8');
+    assert.deepEqual(pageFor('/manifest.webmanifest', IPHONE), { file: 'manifest.webmanifest', type: 'application/manifest+json' });
+    assert.deepEqual(pageFor('/icon.png', IPHONE), { file: 'icon.png', type: 'image/png' });
+    assert.deepEqual(pageFor('/apple-touch-icon.png', IPHONE), { file: 'icon.png', type: 'image/png' });
+    assert.equal(pageFor('/', DESKTOP).type, 'text/html; charset=utf-8');
   });
 });
 
 describe('wantsGzip', () => {
   it('gzips only for a client that says it takes gzip', () => {
-    expect(wantsGzip('gzip, deflate, br')).toBe(true);
-    expect(wantsGzip('br')).toBe(false);
-    expect(wantsGzip('x-gzipped')).toBe(false);
-    expect(wantsGzip(undefined)).toBe(false);
+    assert.equal(wantsGzip('gzip, deflate, br'), true);
+    assert.equal(wantsGzip('br'), false);
+    assert.equal(wantsGzip('x-gzipped'), false);
+    assert.equal(wantsGzip(undefined), false);
   });
 });
 
 describe('the PC\'s Tailscale identity', () => {
   it('reads its IPv4 addresses and MagicDNS names from tailscale status --json', () => {
     const status = { Self: { TailscaleIPs: ['100.120.241.100', 'fd7a:115c:a1e0::1'], DNSName: 'PC.tail1234.ts.net.' } };
-    expect(tailscaleSelf(status)).toEqual({ ips: ['100.120.241.100'], names: ['pc.tail1234.ts.net', 'pc'] });
-    expect(tailscaleSelf({})).toEqual({ ips: [], names: [] });
+    assert.deepEqual(tailscaleSelf(status), { ips: ['100.120.241.100'], names: ['pc.tail1234.ts.net', 'pc'] });
+    assert.deepEqual(tailscaleSelf({}), { ips: [], names: [] });
   });
 
   it('finds the Tailscale IPv4 address among the network interfaces, skipping loopback and the LAN', () => {
@@ -108,6 +109,6 @@ describe('the PC\'s Tailscale identity', () => {
       Tailscale: [{ family: 'IPv4', address: '100.120.241.100' }, { family: 'IPv6', address: 'fd7a:115c:a1e0::1' }],
       'Loopback Pseudo-Interface 1': [{ family: 'IPv4', address: '127.0.0.1' }],
     };
-    expect(tailnetIPv4s(interfaces)).toEqual(['100.120.241.100']);
+    assert.deepEqual(tailnetIPv4s(interfaces), ['100.120.241.100']);
   });
 });

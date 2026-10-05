@@ -1,6 +1,6 @@
 class_name FighterConfig
 extends RefCounted
-## Port of the FighterConfig interface in src/sim/fighter.ts: what a fighter is
+## Port of the FighterConfig interface in v0.1-web-mvp:src/sim/fighter.ts: what a fighter is
 ## built from.
 ##
 ## Port notes: the optional TS fields need sentinels. An empty abilities array

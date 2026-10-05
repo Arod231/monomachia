@@ -2,7 +2,8 @@
 // the DSP and synthesis helpers, and checks on the committed audio files.
 // Plain JavaScript because the scripts are Node .mjs modules.
 
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -97,13 +98,13 @@ describe('zip reader', () => {
         { name: 'Library/Deflated, with comma.bin', data: big, deflate: true },
       ]));
       const zip = openZip(path);
-      expect(zip.names()).toEqual(['Library/Stored.txt', 'Library/Deflated, with comma.bin']);
-      expect((await zip.read('Library/Stored.txt')).toString()).toBe('hello, bundle');
-      expect((await zip.read('Library/Deflated, with comma.bin')).equals(big)).toBe(true);
+      assert.deepEqual(zip.names(), ['Library/Stored.txt', 'Library/Deflated, with comma.bin']);
+      assert.equal((await zip.read('Library/Stored.txt')).toString(), 'hello, bundle');
+      assert.equal((await zip.read('Library/Deflated, with comma.bin')).equals(big), true);
       const head = await zip.read('Library/Deflated, with comma.bin', { maxBytes: 1000 });
-      expect(head.length).toBe(1000);
-      expect(head.equals(big.subarray(0, 1000))).toBe(true);
-      await expect(zip.read('Library/Missing.wav')).rejects.toThrow(/no entry/);
+      assert.equal(head.length, 1000);
+      assert.equal(head.equals(big.subarray(0, 1000)), true);
+      await assert.rejects(zip.read('Library/Missing.wav'), /no entry/);
       zip.close();
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -116,19 +117,19 @@ describe('wav reader and writer', () => {
     const a = sine(441, 0.1, 44100);
     const buf = writeWav(a, { loop: { start: 0, end: 4410 } });
     const b = readWav(buf);
-    expect(b.sampleRate).toBe(44100);
-    expect(b.bits).toBe(16);
-    expect(b.channels[0].length).toBe(4410);
-    for (let i = 0; i < 4410; i++) expect(Math.abs(b.channels[0][i] - a.channels[0][i])).toBeLessThan(2.5 / 32768);
+    assert.equal(b.sampleRate, 44100);
+    assert.equal(b.bits, 16);
+    assert.equal(b.channels[0].length, 4410);
+    for (let i = 0; i < 4410; i++) assert.ok(Math.abs(b.channels[0][i] - a.channels[0][i]) < 2.5 / 32768);
     const smpl = buf.indexOf('smpl');
-    expect(smpl).toBeGreaterThan(0);
-    expect(buf.readUInt32LE(smpl + 8 + 44)).toBe(0); // loop start
-    expect(buf.readUInt32LE(smpl + 8 + 48)).toBe(4410); // loop end
+    assert.ok(smpl > 0);
+    assert.equal(buf.readUInt32LE(smpl + 8 + 44), 0); // loop start
+    assert.equal(buf.readUInt32LE(smpl + 8 + 48), 4410); // loop end
   });
 
   it('writes the same bytes every time', () => {
     const a = sine(1000, 0.05, 44100);
-    expect(writeWav(a, { seed: 3 }).equals(writeWav(a, { seed: 3 }))).toBe(true);
+    assert.equal(writeWav(a, { seed: 3 }).equals(writeWav(a, { seed: 3 })), true);
   });
 
   it('reads 24-bit integer and 32-bit float stereo, and a file cut short', () => {
@@ -158,15 +159,15 @@ describe('wav reader and writer', () => {
     const f32 = make(3, 32, (b, p, v) => b.writeFloatLE(v, p));
     for (const buf of [pcm24, f32]) {
       const a = readWav(buf);
-      expect(a.sampleRate).toBe(96000);
-      expect(a.channels.length).toBe(2);
-      expect(a.channels[0][50]).toBeCloseTo(0.5, 5);
-      expect(a.channels[1][50]).toBeCloseTo(-0.5, 5);
+      assert.equal(a.sampleRate, 96000);
+      assert.equal(a.channels.length, 2);
+      assert.ok(Math.abs(a.channels[0][50] - 0.5) < 10 ** -5 / 2);
+      assert.ok(Math.abs(a.channels[1][50] - (-0.5)) < 10 ** -5 / 2);
     }
     const cut = readWav(pcm24.subarray(0, 44 + 40 * 6 + 3));
-    expect(cut.truncated).toBe(true);
-    expect(cut.channels[0].length).toBe(40);
-    expect(readWavInfo(pcm24).frames).toBe(frames);
+    assert.equal(cut.truncated, true);
+    assert.equal(cut.channels[0].length, 40);
+    assert.equal(readWavInfo(pcm24).frames, frames);
   });
 });
 
@@ -174,23 +175,23 @@ describe('dsp', () => {
   it('resamples 96 kHz to 44.1 kHz keeping pitch and level', () => {
     const a = sine(1000, 0.5, 96000, 0.5);
     const b = dsp.resample(a, 44100);
-    expect(b.sampleRate).toBe(44100);
-    expect(b.channels[0].length).toBe(22050);
-    expect(zeroCrossingHz(b.channels[0], 44100)).toBeCloseTo(1000, 0);
+    assert.equal(b.sampleRate, 44100);
+    assert.equal(b.channels[0].length, 22050);
+    assert.ok(Math.abs(zeroCrossingHz(b.channels[0], 44100) - 1000) < 10 ** -0 / 2);
     const mid = dsp.slice(b, 0.1, 0.4);
-    expect(dsp.peak(mid)).toBeGreaterThan(0.49);
-    expect(dsp.peak(mid)).toBeLessThan(0.51);
+    assert.ok(dsp.peak(mid) > 0.49);
+    assert.ok(dsp.peak(mid) < 0.51);
   });
 
   it('removes content above the new Nyquist frequency instead of folding it back', () => {
     const b = dsp.resample(sine(30000, 0.5, 96000, 0.5), 44100);
-    expect(dsp.gainToDb(dsp.peak(dsp.slice(b, 0.1, 0.4)) / 0.5)).toBeLessThan(-60);
+    assert.ok(dsp.gainToDb(dsp.peak(dsp.slice(b, 0.1, 0.4)) / 0.5) < -60);
   });
 
   it('pitches up an octave by halving the length', () => {
     const b = dsp.pitchShift(sine(500, 0.4, 44100), 12);
-    expect(b.channels[0].length).toBe(Math.floor(0.4 * 44100 / 2));
-    expect(zeroCrossingHz(b.channels[0], 44100)).toBeCloseTo(1000, 0);
+    assert.equal(b.channels[0].length, Math.floor(0.4 * 44100 / 2));
+    assert.ok(Math.abs(zeroCrossingHz(b.channels[0], 44100) - 1000) < 10 ** -0 / 2);
   });
 
   it('finds separate takes and trims silence', () => {
@@ -201,20 +202,20 @@ describe('dsp', () => {
       for (let i = 0; i < 4410; i++) a.channels[0][s + i] = 0.5 * Math.sin(i * 0.2) * Math.exp(-i / 1500);
     }
     const takes = dsp.regions(a, { floorDb: -50, minSilence: 0.2 });
-    expect(takes.length).toBe(3);
-    [0.5, 1.4, 2.3].forEach((t, i) => expect(Math.abs(takes[i].start - t)).toBeLessThan(0.006));
+    assert.equal(takes.length, 3);
+    [0.5, 1.4, 2.3].forEach((t, i) => assert.ok(Math.abs(takes[i].start - t) < 0.006));
     const trimmed = dsp.trimSilence(a, { thresholdDb: -50, padStart: 0, padEnd: 0 });
-    expect(dsp.duration(trimmed)).toBeGreaterThan(1.85);
-    expect(dsp.duration(trimmed)).toBeLessThan(2.0);
+    assert.ok(dsp.duration(trimmed) > 1.85);
+    assert.ok(dsp.duration(trimmed) < 2.0);
   });
 
   it('crossfades a loop so the last sample flows into the first', () => {
     const a = sine(220, 3, 44100, 0.5);
     const loop = dsp.loopCrossfade(a, 2.0, 0.25);
     const c = loop.channels[0];
-    expect(c.length).toBe(88200);
+    assert.equal(c.length, 88200);
     // the jump across the seam is no bigger than one step of the sine
-    expect(Math.abs(c[0] - c[c.length - 1])).toBeLessThan(0.5 * 2 * Math.PI * 220 / 44100 * 1.05);
+    assert.ok(Math.abs(c[0] - c[c.length - 1]) < 0.5 * 2 * Math.PI * 220 / 44100 * 1.05);
   });
 
   it('finds the loudest sample in a stretch and measures short-term loudness', () => {
@@ -222,10 +223,10 @@ describe('dsp', () => {
     const a = dsp.silence(rate, 1, 1);
     a.channels[0][Math.round(0.42 * rate)] = 0.9;
     a.channels[0][Math.round(0.8 * rate)] = -0.5;
-    expect(dsp.peakTime(a, 0.3, 0.6)).toBeCloseTo(0.42, 4);
-    expect(dsp.peakTime(a, 0.6, 1)).toBeCloseTo(0.8, 4);
+    assert.ok(Math.abs(dsp.peakTime(a, 0.3, 0.6) - 0.42) < 10 ** -4 / 2);
+    assert.ok(Math.abs(dsp.peakTime(a, 0.6, 1) - 0.8) < 10 ** -4 / 2);
     // a full-scale sine's loudest 100 ms is 3 dB under its peak
-    expect(dsp.shortTermLoudness(sine(1000, 0.5, rate, 1))).toBeCloseTo(-3.01, 1);
+    assert.ok(Math.abs(dsp.shortTermLoudness(sine(1000, 0.5, rate, 1)) - (-3.01)) < 10 ** -1 / 2);
   });
 
   it('matches loudness, limiting peaks to the ceiling only where it must', () => {
@@ -234,34 +235,34 @@ describe('dsp', () => {
     const spiky = sine(300, 0.4, rate, 0.05);
     spiky.channels[0][8000] = 0.9;
     const m = dsp.matchLoudness(spiky, { loudnessDb: -15, ceilingDb: -3 });
-    expect(dsp.shortTermLoudness(m.audio)).toBeCloseTo(-15, 1);
-    expect(dsp.gainToDb(dsp.peak(m.audio))).toBeLessThanOrEqual(-3 + 1e-4);
-    expect(m.limitedDb).toBeGreaterThan(0);
+    assert.ok(Math.abs(dsp.shortTermLoudness(m.audio) - (-15)) < 10 ** -1 / 2);
+    assert.ok(dsp.gainToDb(dsp.peak(m.audio)) <= -3 + 1e-4);
+    assert.ok(m.limitedDb > 0);
     // a loud, dense clip is only turned down
     const dense = dsp.matchLoudness(sine(300, 0.4, rate, 0.8), { loudnessDb: -15, ceilingDb: -3 });
-    expect(dense.limitedDb).toBe(0);
-    expect(dsp.shortTermLoudness(dense.audio)).toBeCloseTo(-15, 1);
+    assert.equal(dense.limitedDb, 0);
+    assert.ok(Math.abs(dsp.shortTermLoudness(dense.audio) - (-15)) < 10 ** -1 / 2);
     // the limiter never lets a sample over its ceiling
     const limited = dsp.limit(dsp.gain(sine(80, 0.3, rate, 0.9), 12), -6);
-    expect(dsp.gainToDb(dsp.peak(limited))).toBeLessThanOrEqual(-6 + 1e-4);
+    assert.ok(dsp.gainToDb(dsp.peak(limited)) <= -6 + 1e-4);
   });
 
   it('decays 20 dB per period and takes out DC', () => {
     const rate = 44100;
     const ones = { sampleRate: rate, channels: [new Float32Array(rate).fill(1)] };
     const d = dsp.decay(ones, 0.5);
-    expect(d.channels[0][Math.round(0.5 * rate)]).toBeCloseTo(0.1, 3);
+    assert.ok(Math.abs(d.channels[0][Math.round(0.5 * rate)] - 0.1) < 10 ** -3 / 2);
     const offset = sine(441, 0.2, rate, 0.3);
     for (let i = 0; i < offset.channels[0].length; i++) offset.channels[0][i] += 0.2;
     const fixed = dsp.removeDc(offset).channels[0];
-    expect(Math.abs(fixed.reduce((x, y) => x + y, 0) / fixed.length)).toBeLessThan(1e-6);
+    assert.ok(Math.abs(fixed.reduce((x, y) => x + y, 0) / fixed.length) < 1e-6);
   });
 
   it('normalizes to a peak and mixes layers at offsets', () => {
     const a = dsp.normalize(sine(100, 0.1, 44100, 0.2), { peakDb: -6 });
-    expect(dsp.gainToDb(dsp.peak(a))).toBeCloseTo(-6, 1);
+    assert.ok(Math.abs(dsp.gainToDb(dsp.peak(a)) - (-6)) < 10 ** -1 / 2);
     const m = dsp.mix([{ audio: a }, { audio: a, offset: 0.1 }]);
-    expect(dsp.duration(m)).toBeCloseTo(0.2, 3);
+    assert.ok(Math.abs(dsp.duration(m) - 0.2) < 10 ** -3 / 2);
   });
 });
 
@@ -285,7 +286,7 @@ describe('synthesis', () => {
       }
       const [y0, y1, y2] = [corr(bestLag - 1), best, corr(bestLag + 1)];
       const measured = SR / (bestLag + (y0 - y2) / (2 * (y0 - 2 * y1 + y2)));
-      expect(Math.abs(1200 * Math.log2(measured / f))).toBeLessThan(2);
+      assert.ok(Math.abs(1200 * Math.log2(measured / f)) < 2);
     }
   });
 
@@ -297,7 +298,7 @@ describe('synthesis', () => {
       let q = 0;
       for (const v of b) (s += v), (q += v * v);
       const meanDb = 20 * Math.log10(Math.abs(s / b.length) / Math.sqrt(q / b.length));
-      expect(meanDb, `MIDI ${midi}`).toBeLessThan(-40);
+      assert.ok(meanDb < -40, `MIDI ${midi}`);
     }
   });
 
@@ -312,21 +313,21 @@ describe('synthesis', () => {
     }
     highpassLoop([L, R], 20);
     const mean = L.reduce((x, y) => x + y, 0) / n;
-    expect(Math.abs(mean)).toBeLessThan(1e-4);
+    assert.ok(Math.abs(mean) < 1e-4);
     // the drift is gone and the tone kept: the wrapped step is a tone step
     const step = Math.abs(L[0] - L[n - 1]);
-    expect(step).toBeLessThan(0.3 * ((2 * Math.PI * 220) / n) * 1.1);
+    assert.ok(step < 0.3 * ((2 * Math.PI * 220) / n) * 1.1);
     let peak = 0;
     for (let i = n / 2; i < n; i++) peak = Math.max(peak, Math.abs(L[i]));
-    expect(peak).toBeGreaterThan(0.29);
-    expect(peak).toBeLessThan(0.31);
+    assert.ok(peak > 0.29);
+    assert.ok(peak < 0.31);
   });
 
   it('renders every generated sound the same way twice', () => {
     for (const s of SOUNDS.slice(0, 6)) {
       const a = s.render(makeRandom(s.file));
       const b = s.render(makeRandom(s.file));
-      expect(Buffer.from(a.buffer).equals(Buffer.from(b.buffer))).toBe(true);
+      assert.equal(Buffer.from(a.buffer).equals(Buffer.from(b.buffer)), true);
     }
   });
 });
@@ -337,28 +338,28 @@ describe('committed audio', () => {
   it('stays under 40 MB in total', () => {
     let total = 0;
     for (const dir of ['sfx', 'music']) for (const f of files(dir)) total += statSync(join(AUDIO, dir, f)).size;
-    expect(total / 1048576).toBeLessThan(40);
+    assert.ok(total / 1048576 < 40);
   });
 
   it('has every Sonniss pick and every generated sound, as 16-bit 44.1 kHz', () => {
     const picks = JSON.parse(readFileSync(join(ROOT, 'scripts', 'audio', 'sonniss-picks.json'), 'utf8'));
     const present = new Set(files('sfx'));
     for (const name of [...picks.outputs.map((o) => o.file), ...SOUNDS.map((s) => s.file)]) {
-      expect(present.has(name), name).toBe(true);
+      assert.equal(present.has(name), true, name);
       const info = readWavInfo(readFileSync(join(AUDIO, 'sfx', name)).subarray(0, 256));
-      expect(info.sampleRate, name).toBe(44100);
-      expect(info.bits, name).toBe(16);
-      expect(info.channels, name).toBe(name.startsWith('amb_') ? 2 : 1);
+      assert.equal(info.sampleRate, 44100, name);
+      assert.equal(info.bits, 16, name);
+      assert.equal(info.channels, name.startsWith('amb_') ? 2 : 1, name);
     }
   });
 
   describe('music', () => {
     const index = JSON.parse(readFileSync(join(AUDIO, 'music', 'tracks.json'), 'utf8'));
     for (const [id, track] of Object.entries(index.tracks)) {
-      it(`${id}: lasts exactly its bars, loops seamlessly and pulses at ${track.bpm} BPM`, () => {
+      it(`${id}: lasts exactly its bars, loops seamlessly and pulses at ${track.bpm} BPM`, { timeout: 60000 }, () => {
         const a = readWav(readFileSync(join(AUDIO, 'music', track.file)));
-        expect(a.channels.length).toBe(2);
-        expect(dsp.duration(a)).toBeCloseTo((track.bars * 4 * 60) / track.bpm, 3);
+        assert.equal(a.channels.length, 2);
+        assert.ok(Math.abs(dsp.duration(a) - ((track.bars * 4 * 60) / track.bpm)) < 10 ** -3 / 2);
 
         // Seamless: the step from the last sample to the first is no bigger
         // than the steps just around it.
@@ -368,26 +369,26 @@ describe('committed audio', () => {
           let local = 0;
           for (let i = n - w; i < n - 1; i++) local = Math.max(local, Math.abs(ch[i + 1] - ch[i]));
           for (let i = 0; i < w; i++) local = Math.max(local, Math.abs(ch[i + 1] - ch[i]));
-          expect(Math.abs(ch[0] - ch[n - 1])).toBeLessThanOrEqual(local * 1.5 + 1e-3);
+          assert.ok(Math.abs(ch[0] - ch[n - 1]) <= local * 1.5 + 1e-3);
         }
 
         // Tempo measured from the audio: the strongest beat between 60 and
         // 200 BPM is the track's own tempo, not half or double it.
         const measured = strongestBeat(a);
-        expect(Math.abs(measured - track.bpm), `measured ${measured.toFixed(2)} BPM`).toBeLessThanOrEqual(2);
+        assert.ok(Math.abs(measured - track.bpm) <= 2, `measured ${measured.toFixed(2)} BPM`);
 
         // No DC or sub-sonic drift: the whole loop and every second of it
         // average out to (nearly) zero.
         for (const ch of a.channels) {
           const sr = a.sampleRate;
-          expect(dsp.gainToDb(Math.abs(ch.reduce((x, y) => x + y, 0) / ch.length))).toBeLessThan(-70);
+          assert.ok(dsp.gainToDb(Math.abs(ch.reduce((x, y) => x + y, 0) / ch.length)) < -70);
           for (let s = 0; s + sr <= ch.length; s += sr) {
             let sum = 0;
             for (let i = s; i < s + sr; i++) sum += ch[i];
-            expect(Math.abs(sum / sr)).toBeLessThan(0.003); // about 100 LSB, -50 dBFS
+            assert.ok(Math.abs(sum / sr) < 0.003); // about 100 LSB, -50 dBFS
           }
         }
-      }, 60000);
+      });
     }
   });
 });

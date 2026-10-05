@@ -1,6 +1,6 @@
 class_name AttackDef
 extends RefCounted
-## Port of the attack half of src/sim/moves/types.ts (AttackDef, finalizeMoves,
+## Port of the attack half of v0.1-web-mvp:src/sim/moves/types.ts (AttackDef, finalizeMoves,
 ## totalFrames). The weapon half is in weapon_def.gd.
 ##
 ## Data definitions for attacks and weapons. Every move in the game is a record

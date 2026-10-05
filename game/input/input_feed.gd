@@ -1,8 +1,8 @@
 class_name InputFeed
 extends Node
 ## Hands every input event to an InputDevices and tells the host when the
-## window loses focus. Port of the window listeners in src/input/devices.ts and
-## the blur handler in src/game.ts.
+## window loses focus. Port of the window listeners in v0.1-web-mvp:src/input/devices.ts and
+## the blur handler in v0.1-web-mvp:src/game.ts.
 ##
 ## Events go to InputDevices.note_event() from _input(), which runs before the
 ## GUI: a focused menu item takes ui_accept, and the viewport takes focus

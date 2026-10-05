@@ -109,7 +109,7 @@ export async function writeSourcesMd() {
   lines.push('');
   lines.push('## Generated sound effects');
   lines.push('');
-  lines.push('Synthesized in `scripts/audio/synth.mjs` from seeded noise, oscillators, modal resonators and filters; the design follows the web demo\'s `src/audio/audio.ts`. Every sound is high-passed at 25 Hz (12 dB per octave) so it carries no DC, normalized, matched to its pool (above), trimmed where its tail falls under -60 dBFS and faded.');
+  lines.push('Synthesized in `scripts/audio/synth.mjs` from seeded noise, oscillators, modal resonators and filters; the design follows the web demo\'s `v0.1-web-mvp:src/audio/audio.ts`. Every sound is high-passed at 25 Hz (12 dB per octave) so it carries no DC, normalized, matched to its pool (above), trimmed where its tail falls under -60 dBFS and faded.');
   lines.push('');
   lines.push('| File | Used for | How it is made |');
   lines.push('|---|---|---|');

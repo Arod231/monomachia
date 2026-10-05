@@ -2,7 +2,7 @@ class_name Bindings
 extends RefCounted
 ## The 13 control actions and the default binding sets. Port of ACTIONS,
 ## DEFAULT_KB, DEFAULT_PAD, FIGHTSTICK_PAD, KB_ARROWS and tokensOf in
-## src/input/bindings.ts, translated to Godot codes (see InputToken).
+## v0.1-web-mvp:src/input/bindings.ts, translated to Godot codes (see InputToken).
 ##
 ## A binding set is a Dictionary from action id to an Array of up to SLOTS
 ## token strings. The default sets are functions that return a fresh copy, so

@@ -4,7 +4,8 @@
 // The measurements are in measure.mjs; the music's tempo and DC are checked
 // in audio-tools.test.mjs.
 
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readWav } from '../../scripts/audio/lib/wav.mjs';
@@ -30,42 +31,42 @@ const MENU = /^ui_(move|select|back)_/;
 describe('sound effects', () => {
   it('impacts peak within 15 ms of the start, with no second hit within 3 dB', () => {
     const impacts = oneShots.filter((f) => IMPACT.test(f));
-    expect(impacts.length).toBeGreaterThan(30);
+    assert.ok(impacts.length > 30);
     for (const f of impacts) {
       const { peakMs, laterDb } = attack(load(f));
-      expect(peakMs, `${f} peaks at ${peakMs} ms`).toBeLessThanOrEqual(15);
-      expect(laterDb, `${f} hits again at ${laterDb.toFixed(1)} dB`).toBeLessThan(-3);
+      assert.ok(peakMs <= 15, `${f} peaks at ${peakMs} ms`);
+      assert.ok(laterDb < -3, `${f} hits again at ${laterDb.toFixed(1)} dB`);
     }
   });
 
   it('menu move, select and back sounds peak within 10 ms', () => {
     const menu = oneShots.filter((f) => MENU.test(f));
-    expect(menu.length).toBe(7);
-    for (const f of menu) expect(attack(load(f)).peakMs, f).toBeLessThanOrEqual(10);
+    assert.equal(menu.length, 7);
+    for (const f of menu) assert.ok(attack(load(f)).peakMs <= 10, f);
   });
 
   it('dodge cloth flaps and the dash peak within 30 ms', () => {
     for (const f of oneShots.filter((x) => /^(dodge_cloth_|ult_dash_)/.test(x))) {
-      expect(attack(load(f)).peakMs, f).toBeLessThanOrEqual(30);
+      assert.ok(attack(load(f)).peakMs <= 30, f);
     }
   });
 
   it('carry no DC', () => {
-    for (const f of names) expect(dcDb(load(f)), f).toBeLessThan(-70);
+    for (const f of names) assert.ok(dcDb(load(f)) < -70, f);
   });
 
   it('end within 30 ms of their last sample above -60 dBFS', () => {
-    for (const f of oneShots) expect(tailMs(load(f)), f).toBeLessThanOrEqual(30);
+    for (const f of oneShots) assert.ok(tailMs(load(f)) <= 30, f);
   });
 
   it('match their pool loudness, peaks under the ceiling', () => {
     for (const [name, pool] of Object.entries(POOLS)) {
       const files = oneShots.filter((f) => pool.files.test(f));
-      expect(files.length, name).toBeGreaterThanOrEqual(2);
+      assert.ok(files.length >= 2, name);
       for (const f of files) {
         const a = load(f);
-        expect(Math.abs(loudness(a) - pool.loudnessDb), `${f} in ${name}`).toBeLessThan(0.5);
-        expect(peakDb(a), f).toBeLessThanOrEqual(pool.ceilingDb + 0.1);
+        assert.ok(Math.abs(loudness(a) - pool.loudnessDb) < 0.5, `${f} in ${name}`);
+        assert.ok(peakDb(a) <= pool.ceilingDb + 0.1, f);
       }
     }
   });
@@ -77,13 +78,13 @@ describe('sound effects', () => {
       cue: m[1],
       files: [...m[2].matchAll(/"([^"]+\.wav)"/g)].map((x) => x[1]),
     }));
-    expect(cues.length).toBeGreaterThan(30);
+    assert.ok(cues.length > 30);
     const pooled = cues.filter((c) => c.files.length > 1 && !c.files.some((f) => f.startsWith('amb_')));
-    expect(pooled.length).toBeGreaterThan(20);
+    assert.ok(pooled.length > 20);
     for (const { cue, files } of pooled) {
       const levels = files.map((f) => loudness(load(f)));
       const spread = Math.max(...levels) - Math.min(...levels);
-      expect(spread, `${cue}: ${files.map((f, i) => `${f} ${levels[i].toFixed(1)}`).join(', ')}`).toBeLessThanOrEqual(2);
+      assert.ok(spread <= 2, `${cue}: ${files.map((f, i) => `${f} ${levels[i].toFixed(1)}`).join(', ')}`);
     }
   });
 });

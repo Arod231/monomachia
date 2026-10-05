@@ -1,6 +1,6 @@
 class_name Match
 extends RefCounted
-## Port of src/sim/match.ts.
+## Port of v0.1-web-mvp:src/sim/match.ts.
 ##
 ## Round and match flow: intro -> fight -> KO -> next round, first to 3 wins.
 ##

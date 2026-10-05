@@ -1,6 +1,6 @@
 class_name AttackState
 extends RefCounted
-## Port of the AttackState interface in src/sim/fighter.ts: the attack a
+## Port of the AttackState interface in v0.1-web-mvp:src/sim/fighter.ts: the attack a
 ## fighter is performing right now.
 ##
 ## Port notes:

@@ -6,7 +6,7 @@
 //   battle_140.wav       140 BPM, 16 bars: dark fantasy oriental with metal and electronics
 //   match_point_160.wav  160 BPM, 16 bars: the battle material, intensified
 //
-// It grows out of the web demo's music sequencer (src/audio/audio.ts): the same
+// It grows out of the web demo's music sequencer (v0.1-web-mvp:src/audio/audio.ts): the same
 // taiko groove (strokes on the 1st, 5th, 11th and 13th sixteenths, the rim "ka"
 // on the off sixteenths), the palm-muted distorted chug on D, plucked strings
 // in the Japanese In scale and the low sawtooth drone, now composed into

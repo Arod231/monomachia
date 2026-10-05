@@ -1,6 +1,6 @@
 class_name SimEvents
 extends RefCounted
-## Port of src/sim/events.ts and the OutcomeKind type in src/sim/worldTypes.ts.
+## Port of v0.1-web-mvp:src/sim/events.ts and the OutcomeKind type in src/sim/worldTypes.ts.
 ##
 ## Everything noteworthy that happens in the simulation is emitted as an event.
 ## The renderer, audio and HUD consume them; tests assert on them.

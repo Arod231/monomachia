@@ -1,7 +1,7 @@
 class_name LoadoutPanel
 extends VBoxContainer
 ## The fighter select's loadout panel for one side (port of the weapon and
-## ability part of showSelect() in src/ui/menus.ts): the weapon cards
+## ability part of showSelect() in v0.1-web-mvp:src/ui/menus.ts): the weapon cards
 ## (WeaponCardRow, with Random for the Duel opponent), the weapon's blurb and
 ## its ultimate, and the two block-ability slots, each an OptionRow of the
 ## weapon's three abilities under its button badge (a label over the row, so

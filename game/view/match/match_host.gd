@@ -2,7 +2,7 @@ class_name MatchHost
 extends Node
 ## The fixed-step match host: owns the rules (World, Match, the computer
 ## brains), feeds them each side's input 60 times per second, and hands every
-## rules event to the presentation. Port of the loop in src/game.ts.
+## rules event to the presentation. Port of the loop in v0.1-web-mvp:src/game.ts.
 ##
 ## The rules never see the wall clock. In _process() the host adds the frame's
 ## time to an accumulator, scaled by the rules' slow motion
@@ -360,6 +360,13 @@ func label(action: String, side: int) -> String:
 	if p < 0 or input == null:
 		return ""
 	return input.label(action, p)
+
+
+## Whether a side's player names controller buttons now (InputDevices.on_pad;
+## false for a computer side).
+func on_pad(side: int) -> bool:
+	var p: int = _player_of_side[side]
+	return p >= 0 and input != null and input.on_pad(p)
 
 
 ## Whether Training refills health (always true outside Training).
