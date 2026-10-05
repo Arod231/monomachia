@@ -35,7 +35,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - a preview of this branch on port 5197 from task 9;
   - stops only at the gates.
 - Before this plan: Tailscale HTTPS certificates on, and `tailscale serve --bg 5197` set up (Oct 4).
-- Out of this plan: launched sessions that wait for Enter on the PC are a separate follow-up.
+- Out of this plan: launched sessions that waited for Enter on the PC, fixed separately in pull requests #39 and #43.
 - **Spike results (task 3, Oct 4)**, from a throwaway session in auto mode whose project settings carried a logging test hook:
   - **Proven: answering a question.** AskUserQuestion fires a PermissionRequest hook; allow with `updatedInput` = the tool input plus `answers` (question text to label, several joined with ", ") reaches the session as its answer, and the app never shows the question.
   - **Proven: delivery before the next step.** `additionalContext` from a PreToolUse hook reaches the session with that tool call (it quoted the message).

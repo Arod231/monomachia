@@ -160,7 +160,7 @@ The owner's answers from the Oct 4 interview.
 | How long is media kept? | 30 days with a 5 GB cap, oldest deleted first, outside the repo. |
 | How is it tested? | Round-trip tests (real hooks, real server, throwaway folders) and rule unit tests; the owner checks the phone pages; a live spike comes first. |
 | Is the plan on the board? | Yes, as plan "PM", outside the roadmap's game phases. |
-| Launched sessions that wait for Enter on the PC? | Out of scope: a separate follow-up. |
+| Launched sessions that wait for Enter on the PC? | Out of scope: a separate follow-up, since done (pull requests #39 and #43: the board presses Send through Windows UI Automation). |
 | Where does the work go? | Branch `tools/project-manager-remote` from `feature/godot-rebuild`, with a pull request into it (retargeted to `master` if the consolidation merges the rebuild first). |
 
 ### What exists today
@@ -289,7 +289,7 @@ The Project Manager follows `docs/plans/project-manager-remote.md` as plan "PM" 
 
 ## Out of Scope
 
-- Starting a launched session without someone pressing Enter on the PC: a separate follow-up.
+- Starting a launched session without someone pressing Enter on the PC: done separately (pull requests #39 and #43). The same work found that the app turns a leading "/" in a link's prompt into "／", so no link can run a slash command, which backs Compact handing off to the Claude app.
 - Running `/compact` or any other slash command from the Project Manager itself; Compact hands off to the Claude app.
 - Waking a session that isn't waiting in a hook; Remote Control does that.
 - Changing the Claude app's settings (such as the Remote Control default) from the Project Manager.
