@@ -485,8 +485,9 @@ func test_the_bench_tracks_the_feet_and_names_the_worst_frames() -> void:
 
 ## The baseline (milestone-1 task 9): every Katana move on the Hunter with
 ## the licensed clips, foot slide and blade clearance on every rules frame,
-## each move's worst printed. Not yet required to pass: the families re-key
-## the clips.
+## each move's worst printed and recorded for the per-move checklist's items
+## 8 and 9 (npm run checklist). Not yet required to pass: the families
+## re-key the clips.
 func test_local_every_katana_move_s_feet_and_blade_print_their_worst() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
@@ -500,4 +501,6 @@ func test_local_every_katana_move_s_feet_and_blade_print_their_worst() -> void:
 		lines.append("%-9s %3d fr  blade %5.1f cm (%s, fr %d)  foot slide %4.1f cm (%s, fr %d)" % [
 			move_id, steps.size(), w.blade_gap * 100.0, w.blade_near, w.blade_frame,
 			w.slide * 100.0, w.slide_side.to_lower() if w.slide_side != "" else "-", w.slide_frame])
+		ChecklistResults.record(8, move_id, w.slide <= PoseCheck.FOOT_SLIDE_MAX, "worst %.1f cm at frame %d" % [w.slide * 100.0, w.slide_frame])
+		ChecklistResults.record(9, move_id, w.blade_gap >= PoseCheck.BLADE_CLEARANCE, "worst %.1f cm at frame %d" % [w.blade_gap * 100.0, w.blade_frame])
 	gut.p("hunter, Katana moves with the clips, worst over every rules frame:\n" + "\n".join(lines))
