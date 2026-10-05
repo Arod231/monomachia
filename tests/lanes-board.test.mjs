@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { assertMatches } from './assert-matches.mjs';
 import {
   GOAL_LIMIT, PLANS, PLAN_BY_KEY, cancelStops, expandIds, goalFor, linkMoved, mergeCopies, parseFlat, parseNested,
-  SUBJECT_TASK, parsePlan, parseRoadmap, planOfBranch, roadmapView,
+  SUBJECT_TASK, parsePlan, parseRoadmap, planOfBranch, roadmapView, sessionTitle, taskRange,
 } from '../tools/lanes-board/plans.mjs';
 
 const GR = PLAN_BY_KEY.gr;
@@ -607,11 +607,50 @@ describe('goalFor', () => {
     assert.ok(goal.includes('Go on from one task to the next without waiting for my OK; stop only for a question that needs my answer, at an owner gate, or when every queued task is done.'));
   });
 
+  it('has the session title itself with the task range, then with the plan and pull request once there is one', () => {
+    assert.ok(goal.includes('set this session\'s title to "Tasks 22.15, 23.1" with the set_session_title tool (session_id "self"; find it with ToolSearch)'));
+    assert.ok(goal.includes('set it to "GR PR #<number> Tasks 22.15, 23.1"'));
+    const tasks4 = { 1: { title: 'a' }, 2: { title: 'b' }, 3: { title: 'c' }, 4: { title: 'd' } };
+    const m1 = goalFor({ plan: M1, ids: ['1', '2', '3', '4'], tasks: tasks4, branch: 'lane/m1-1-2-3-4', repo });
+    assert.ok(m1.includes('"Tasks 1-4"'));
+    assert.ok(m1.includes('"M1 PR #<number> Tasks 1-4"'));
+  });
+
   it('stays within the launch prompt\'s limit by shortening the titles', () => {
     const many = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`18.${i}`, { title: 'x'.repeat(200) }]));
     const long = goalFor({ plan: GR, ids: Object.keys(many), tasks: many, branch: 'lane/gr-many', repo });
     assert.ok(long.length <= GOAL_LIMIT);
     assert.ok(long.includes('18.39'));
+  });
+});
+
+describe('taskRange', () => {
+  it('joins runs of consecutive tasks with a hyphen', () => {
+    assert.equal(taskRange(['1', '2', '3', '4']), 'Tasks 1-4');
+    assert.equal(taskRange(['4', '5', '6', '13']), 'Tasks 4-6, 13');
+    assert.equal(taskRange(['8.4', '8.5', '8.6', '9.1']), 'Tasks 8.4-8.6, 9.1');
+    assert.equal(taskRange(['R3', 'R4']), 'Tasks R3-R4');
+  });
+
+  it('keeps tasks apart that are not one after another', () => {
+    assert.equal(taskRange(['22.15', '23.1']), 'Tasks 22.15, 23.1');
+    assert.equal(taskRange(['29', '30', '30b', '31']), 'Tasks 29-30, 30b, 31');
+    assert.equal(taskRange(['1', '3']), 'Tasks 1, 3');
+  });
+
+  it('says Task for one', () => {
+    assert.equal(taskRange(['12']), 'Task 12');
+  });
+});
+
+describe('sessionTitle', () => {
+  it('is the task range until the lane has a pull request', () => {
+    assert.equal(sessionTitle({ plan: M1, ids: ['1', '2', '3', '4'] }), 'Tasks 1-4');
+  });
+
+  it('names the plan, the pull request and the task range once it has one', () => {
+    assert.equal(sessionTitle({ plan: M1, ids: ['1', '2', '3', '4'], pr: 46 }), 'M1 PR #46 Tasks 1-4');
+    assert.equal(sessionTitle({ plan: GR, ids: ['22.15', '23.1'], pr: '<number>' }), 'GR PR #<number> Tasks 22.15, 23.1');
   });
 });
 
