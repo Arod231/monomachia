@@ -19,8 +19,11 @@
 //   release <tag> [--no-upload]   on the PC with the clips: export, --smoke the exe, zip
 //                          Monomachia-<tag>-windows.zip and attach it to the tag's GitHub
 //                          release, a draft made if needed (scripts/release.mjs)
-//   clips                  convert the clip manifest's Iglesias clips into the
-//                          gitignored clip libraries (needs the packs; see findAssetsSrc)
+//   clips [--manifest=<file>] [--staging=<res://folder>] [--library=<folder>]
+//                          convert the clip manifest's clips (the packs' and the asset
+//                          repository's exported ones) into the gitignored clip libraries
+//                          (see findAssetsSrc; the options, for tests, read another manifest
+//                          and write elsewhere, tools/import_clips.gd)
 //   bake [--weapon=<id>] [--check]   bake the swings of the moves in the move-clip
 //                          table from the clip libraries (tools/bake_swings.gd)
 //
@@ -280,11 +283,11 @@ async function main() {
       // Stage the manifest's clips from the packs, import them, then build the
       // libraries (tools/import_clips.gd).
       await importProject(godot);
-      const staged = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--stage']);
+      const staged = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--stage', ...rest]);
       if (staged.code === 2) die('godot.mjs: no clips converted: the Iglesias packs were not found (see above).');
       if (staged.code !== 0 || hasScriptErrors(staged.output)) die('godot.mjs: staging the clips failed.');
       await importProject(godot);
-      const built = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--build']);
+      const built = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--build', ...rest]);
       if (built.code !== 0 || hasScriptErrors(built.output)) die('godot.mjs: building the clip libraries failed.');
       return;
     }

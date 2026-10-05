@@ -934,7 +934,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
 | `npm run build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
-| `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…) |
+| `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…). `clips` builds the clip libraries from the clip manifest: the packs' FBX, and the GLBs of clips exported from Blender (milestone-1 task 13: an entry's `export` path in the asset repository, one export for every clip set, with its pack clip kept as its origin when it replaces one, and `props` keeping the prop bones' motion) |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
 | `npm run checklist` | Write the last test run's move-by-move results (`build/checklist-results.json`, recorded through `ChecklistResults`) into the per-move checklist, `docs/reviews/milestone-1-checklist.md`; the owner's columns are never touched (milestone-1 task 10) |
 | `npm run export` | The Blender export (`scripts/blender/export.mjs` running `export_blend.py` in Blender headless): each source in the asset repository's `blender/sources.json` to one GLB in its `exports/`, with a record of its source and checksums; clip and fighter sources must carry the Kevin Iglesias rig's bones; self-made and CC0 models are copied into `game/assets/` inside the art budget |
@@ -962,6 +962,7 @@ flowchart TD
         BSRC["asset repository: blender/*.blend<br/>listed in blender/sources.json"] --> BEX["export.mjs + export_blend.py<br/>Blender headless"]
         BEX --> BOUT["asset repository: exports/*.glb<br/>+ a record of each source"]
         BEX --> BGAME["game/assets/: self-made and CC0 models<br/>inside the 150 MB art budget"]
+        BOUT --> BCLIP["godot.mjs clips (tools/import_clips.gd)<br/>exported clips the clip manifest names, beside the packs' FBX:<br/>retargeted, mirrored, into the gitignored clip libraries"]
     end
     subgraph ARTP["Fighters and weapons (game/tools)"]
         BM["build_bone_map.gd"] --> IA["import_assets.gd<br/>copy chosen Quaternius and weapon files"]
