@@ -22,12 +22,52 @@ func test_the_sets_are_the_two_fighters_sets() -> void:
 func test_every_clip_has_its_four_markers_in_order() -> void:
 	var m: ClipManifest = ClipManifest.read()
 	for clip: ClipManifest.Clip in m.clips.values():
-		assert_eq(clip.markers.size(), 4, "%s has four markers" % clip.id)
+		var rules_length: int = clip.markers.keys().filter(func(k: String) -> bool: return ClipManifest.RULES_LENGTH_MARKERS.has(k)).size()
+		assert_eq(clip.markers.size() - rules_length, 4, "%s has four markers" % clip.id)
 		var last: int = -1
 		for marker: String in ClipManifest.MARKERS:
 			assert_true(clip.markers.has(marker), "%s has %s" % [clip.id, marker])
 			assert_gte(clip.markers.get(marker, -1), last, "%s: %s comes no earlier than the one before" % [clip.id, marker])
 			last = clip.markers.get(marker, last)
+
+
+func test_every_clip_has_each_feet_contacts_in_order() -> void:
+	# measured from the clips by tools/measure_feet.gd (milestone-1 task 14)
+	var m: ClipManifest = ClipManifest.read()
+	for clip: ClipManifest.Clip in m.clips.values():
+		assert_eq(clip.foot_contacts.keys(), ["left", "right"], "%s has both feet's contacts" % clip.id)
+		for side: String in clip.foot_contacts:
+			var last: int = -1
+			for span: Array in clip.foot_contacts[side]:
+				assert_gt(int(span[0]), last, "%s %s: each contact after the one before" % [clip.id, side])
+				assert_gte(int(span[1]), int(span[0]), "%s %s: lifts at or after it plants" % [clip.id, side])
+				last = int(span[1])
+
+
+func test_no_clip_of_todays_sets_a_rules_length_marker() -> void:
+	# the draw, the pull-out, the paired stomp and leap and the finishers set
+	# them, and none of those clips is keyed yet
+	var m: ClipManifest = ClipManifest.read()
+	for clip: ClipManifest.Clip in m.clips.values():
+		for name: String in ClipManifest.RULES_LENGTH_MARKERS:
+			assert_false(clip.markers.has(name), "%s has no %s marker" % [clip.id, name])
+
+
+func test_rules_length_markers_and_foot_contacts_read() -> void:
+	var path: String = "user://test_clip_manifest_new_markers.json"
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(JSON.stringify({"sets": {"HumanM": "Male"}, "clips": {
+		"Draw": {"pack": "P", "dir": "D", "source": "Draw", "groups": ["katana"],
+			"markers": {"windup": 0, "contact": 9, "contact_end": 12, "settle": 20, "ready": 18},
+			"foot_contacts": {"left": [[0, 20]], "right": [[0, 6], [11, 20]]}},
+	}}))
+	f.close()
+	var m: ClipManifest = ClipManifest.read(path)
+	assert_eq(m.errors, PackedStringArray())
+	var c: ClipManifest.Clip = m.clips[&"Draw"]
+	assert_eq(c.markers["ready"], 18)
+	assert_eq(c.foot_contacts, {"left": [[0, 20]], "right": [[0, 6], [11, 20]]})
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func test_every_clip_names_its_file() -> void:
@@ -62,6 +102,10 @@ func test_a_bad_manifest_is_reported() -> void:
 		"C": {"dir": "D", "source": "C", "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
 		"E": {"compose": {"upper": "A", "upper_from": 1.5, "legs": "F"}, "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
 		"G": {"compose": {"upper": "A"}, "mirror": true, "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
+		"H": {"pack": "P", "dir": "D", "source": "H", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3, "kill": 2.5},
+			"foot_contacts": {"left": [[4, 2]], "right": [[0, 3]]}},
+		"I": {"pack": "P", "dir": "D", "source": "I", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3},
+			"foot_contacts": {"left": [[0, 3]]}},
 	}}))
 	f.close()
 	var m: ClipManifest = ClipManifest.read(path)
@@ -76,6 +120,9 @@ func test_a_bad_manifest_is_reported() -> void:
 	assert_string_contains(text, "E: composed from F, which is not a clip with a file")
 	assert_string_contains(text, "G: a composed clip names its upper and legs clips")
 	assert_string_contains(text, "G: a composed clip isn't mirrored")
+	assert_string_contains(text, "H: marker kill is not a whole frame")
+	assert_string_contains(text, "H: foot_contacts left must be [plant, lift] source frames, in order, each lift at or after its plant")
+	assert_string_contains(text, "I: foot_contacts gives left and right")
 	assert_false(text.contains("E: no pack"), "a composed clip has no file")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 

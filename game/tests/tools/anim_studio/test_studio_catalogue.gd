@@ -266,13 +266,14 @@ func test_provisional_clips_give_the_provisional_badge() -> void:
 	assert_false(cat.find(&"state", &"stomp").badges[&"provisional"], "nor a keyed one")
 
 
-func test_every_entry_has_the_five_badges_and_starts_clean_of_the_studios() -> void:
+func test_every_entry_has_the_four_badges_and_starts_clean_of_the_studios() -> void:
 	var cat: StudioCatalogue = _build()
 	for e: StudioCatalogue.Entry in cat.entries:
-		assert_eq(e.badges.size(), 5, "%s has five badges" % e.id)
-		for b: StringName in [&"fallback", &"provisional", &"corrective", &"unsaved", &"balance"]:
+		assert_eq(e.badges.size(), 4, "%s has four badges" % e.id)
+		for b: StringName in [&"fallback", &"provisional", &"unsaved", &"balance"]:
 			assert_true(e.badges.has(b), "%s has %s" % [e.id, b])
-		assert_false(e.badges[&"corrective"] or e.badges[&"unsaved"] or e.badges[&"balance"], "%s starts clean" % e.id)
+		assert_false(e.badges.has(&"corrective"), "%s has no corrective badge: correctives are dropped" % e.id)
+		assert_false(e.badges[&"unsaved"] or e.badges[&"balance"], "%s starts clean" % e.id)
 
 
 # --- where the data is -------------------------------------------------------

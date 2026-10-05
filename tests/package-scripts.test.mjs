@@ -34,6 +34,7 @@ describe('package.json', () => {
       'checklist',
       'counterlab',
       'dev',
+      'export',
       'godot',
       'play',
       'release',

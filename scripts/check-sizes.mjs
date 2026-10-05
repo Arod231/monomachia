@@ -101,7 +101,9 @@ function fail(message, code) {
   process.exit(code);
 }
 
-function trackedFiles() {
+// Every tracked file and its size: [{ path, bytes }]. The Blender export
+// (scripts/blender/export.mjs) weighs a copy into the game against these.
+export function trackedFiles() {
   let out;
   try {
     out = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * MB });
