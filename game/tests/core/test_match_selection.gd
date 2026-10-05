@@ -7,10 +7,12 @@ const PATH: String = "user://test_last_select.cfg"
 
 
 func before_each() -> void:
+	Roster.full = false
 	_remove()
 
 
 func after_each() -> void:
+	Roster.reset()
 	_remove()
 
 
@@ -28,18 +30,23 @@ func test_every_mode_s_default_makes_a_match() -> void:
 		assert_eq(cfg.world_seed, 5)
 
 
-func test_the_defaults_are_the_demo_s() -> void:
+func test_the_defaults_are_the_hunter_mirror() -> void:
+	# milestone 1 (task 4): the Hunter in crimson (palette 0) against the
+	# Hunter in indigo (palette 1), both with the Katana and Flash and
+	# Piercing Thrust, in every mode
+	for mode: StringName in MatchConfig.MODES:
+		var cfg: MatchConfig = MS.lock_in(MS.default_draft(mode), 1)
+		for i: int in 2:
+			var side: MatchSide = cfg.sides[i]
+			assert_eq([side.fighter_id, side.palette, side.weapon_id], [&"hunter", i, &"katana"], "%s side %d" % [mode, i])
+			assert_eq(side.resolved_abilities(), [&"k_flash", &"k_thrust"] as Array[StringName], "%s side %d" % [mode, i])
 	var duel: MatchConfig = MS.lock_in(MS.default_draft(MatchConfig.DUEL), 1)
-	assert_eq([duel.sides[0].fighter_id, duel.sides[0].weapon_id, duel.sides[0].controller],
-		[&"rogue", &"katana", MatchSide.HUMAN])
-	assert_eq([duel.sides[1].fighter_id, duel.sides[1].weapon_id, duel.sides[1].controller, duel.sides[1].difficulty],
-		[&"hunter", &"greatsword", MatchSide.COMPUTER, &"normal"])
+	assert_eq([duel.sides[0].controller, duel.sides[1].controller, duel.sides[1].difficulty],
+		[MatchSide.HUMAN, MatchSide.COMPUTER, &"normal"])
 	var training: MatchConfig = MS.lock_in(MS.default_draft(MatchConfig.TRAINING), 1)
 	assert_eq(training.sides[1].controller, MatchSide.DUMMY)
-	assert_eq(training.sides[1].weapon_id, &"greatsword")
 	var watch: MatchConfig = MS.lock_in(MS.default_draft(MatchConfig.WATCH), 1)
 	assert_eq(watch.human_count(), 0)
-	assert_eq(watch.sides[1].weapon_id, &"daggers")
 	var versus: MatchConfig = MS.lock_in(MS.default_draft(MatchConfig.VERSUS), 1)
 	assert_eq(versus.human_count(), 2)
 	assert_eq([versus.sides[0].device, versus.sides[1].device], [InputDevices.KBM, InputDevices.PAD0])
@@ -48,9 +55,11 @@ func test_the_defaults_are_the_demo_s() -> void:
 func test_the_default_duel_and_watch_match_main_s() -> void:
 	assert_eq(MS.lock_in(MS.default_draft(MatchConfig.DUEL), 3).to_dict(), MatchConfig.default_duel(3).to_dict())
 	assert_eq(MS.lock_in(MS.default_draft(MatchConfig.WATCH), 3).to_dict(), MatchConfig.default_watch(3).to_dict())
+	var attract: MatchConfig = MatchConfig.attract(3)
+	assert_eq(attract.to_dict(), MatchConfig.default_watch(3).to_dict(), "the duel behind the menus is the Watch mirror")
 
 
-func test_default_training_is_the_rogue_against_the_dummy() -> void:
+func test_default_training_is_the_hunter_against_the_dummy() -> void:
 	var cfg: MatchConfig = MatchConfig.default_training(4)
 	assert_eq(cfg.problem(), "")
 	assert_eq(cfg.mode, MatchConfig.TRAINING)
@@ -84,17 +93,17 @@ func test_picking_the_other_slot_s_ability_swaps_them() -> void:
 
 func test_a_mirror_match_dresses_the_second_fighter_in_the_second_palette() -> void:
 	var d: MS.Draft = MS.default_draft(MatchConfig.DUEL)
-	MS.set_fighter(d, 1, &"rogue")
 	var cfg: MatchConfig = MS.lock_in(d, 1)
-	assert_eq(cfg.sides[0].fighter_id, cfg.sides[1].fighter_id)
+	assert_eq(cfg.sides[0].fighter_id, cfg.sides[1].fighter_id, "the default is a mirror")
 	assert_eq([cfg.sides[0].palette, cfg.sides[1].palette], [0, 1])
-	MS.set_fighter(d, 0, &"hunter")
-	MS.set_fighter(d, 1, &"hunter")
+	MS.set_fighter(d, 0, &"rogue")
+	MS.set_fighter(d, 1, &"rogue")
 	cfg = MS.lock_in(d, 1)
 	assert_eq([cfg.sides[0].palette, cfg.sides[1].palette], [0, 1])
 
 
 func test_a_random_weapon_is_picked_from_the_seed_at_lock_in() -> void:
+	Roster.full = true
 	var d: MS.Draft = MS.default_draft(MatchConfig.DUEL)
 	MS.set_random_weapon(d, 1, true)
 	var seen: Dictionary[StringName, bool] = {}
@@ -112,10 +121,22 @@ func test_a_random_weapon_is_picked_from_the_seed_at_lock_in() -> void:
 
 
 func test_random_applies_only_to_the_duel_opponent() -> void:
+	Roster.full = true
 	var d: MS.Draft = MS.default_draft(MatchConfig.WATCH)
+	MS.set_weapon(d, 1, &"daggers")
 	d.random_weapon = [true, true]
 	var cfg: MatchConfig = MS.lock_in(d, 9)
 	assert_eq([cfg.sides[0].weapon_id, cfg.sides[1].weapon_id], [&"katana", &"daggers"])
+
+
+func test_without_a_second_weapon_there_is_no_random_pick() -> void:
+	assert_false(MS.offers_random(MatchConfig.DUEL, 1))
+	var d: MS.Draft = MS.default_draft(MatchConfig.DUEL)
+	d.random_weapon = [false, true]
+	for s: int in range(1, 20):
+		assert_eq(MS.lock_in(d, s).sides[1].weapon_id, &"katana")
+	Roster.full = true
+	assert_true(MS.offers_random(MatchConfig.DUEL, 1), "the flag brings Random back")
 
 
 func test_a_random_arena_is_one_of_the_selectable() -> void:
@@ -133,6 +154,7 @@ func test_the_selectable_arenas_are_the_real_ones() -> void:
 
 
 func test_saved_picks_come_back() -> void:
+	Roster.full = true
 	var a: MS = MS.new(PATH)
 	var duel: MS.Draft = a.draft(MatchConfig.DUEL)
 	MS.set_fighter(duel, 0, &"hunter")
@@ -168,6 +190,7 @@ func test_a_corrupt_file_gives_the_defaults() -> void:
 
 
 func test_a_broken_draft_gives_that_mode_its_default() -> void:
+	Roster.full = true
 	var a: MS = MS.new(PATH)
 	MS.set_weapon(a.draft(MatchConfig.WATCH), 1, &"greatsword")
 	a.save()
@@ -190,6 +213,7 @@ func test_a_broken_draft_gives_that_mode_its_default() -> void:
 
 
 func test_without_persist_nothing_is_read_or_written() -> void:
+	Roster.full = true
 	var a: MS = MS.new(PATH)
 	MS.set_weapon(a.draft(MatchConfig.DUEL), 0, &"daggers")
 	a.save()

@@ -30,9 +30,9 @@ const KIND_STATE: StringName = &"state"
 const KIND_ULT: StringName = &"ult"
 const KIND_SOURCE: StringName = &"source"
 ## An entry's badges, all false until something sets them (the fallback and
-## provisional ones here; correctives, unsaved edits and a balance change by
-## the Studio as the owner works).
-const BADGES: Array[StringName] = [&"fallback", &"provisional", &"corrective", &"unsaved", &"balance"]
+## provisional ones here; unsaved edits and a balance change by the Studio as
+## the owner works).
+const BADGES: Array[StringName] = [&"fallback", &"provisional", &"unsaved", &"balance"]
 
 const MANIFEST_FILE: String = ClipManifest.PATH
 const MOVES_FILE: String = MoveClips.PATH

@@ -131,7 +131,7 @@ func test_move_list_opens_on_the_weapon_held_and_back_returns_to_the_pause() -> 
 	_pause_menu().move_list_button.grab_focus()
 	_pause_menu().move_list_button.pressed.emit()
 	assert_eq(_top(), how)
-	assert_eq(how.tab, HowToPlayScreen.TAB_WEAPONS.find(&"katana"), "your katana's moves")
+	assert_eq(how.tab, how.tab_weapons.find(&"katana"), "your katana's moves")
 	assert_true(host.is_paused())
 	await get_tree().process_frame
 	_press_key(KEY_ESCAPE)
@@ -146,7 +146,7 @@ func test_move_list_when_disarmed_opens_bare_hands() -> void:
 	host.fighter(0).armed = false
 	_pause_menu().move_list_button.pressed.emit()
 	var how: HowToPlayScreen = main.get("how_to_play")
-	assert_eq(how.tab, HowToPlayScreen.TAB_WEAPONS.find(&"fists"))
+	assert_eq(how.tab, how.tab_weapons.find(&"fists"))
 
 
 func test_move_list_in_watch_opens_the_rules() -> void:

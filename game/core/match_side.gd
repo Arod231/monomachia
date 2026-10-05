@@ -23,7 +23,7 @@ const FIGHTER_NAMES: Dictionary[StringName, String] = {
 	&"hunter": "Hunter",
 }
 
-@export var fighter_id: StringName = &"rogue"
+@export var fighter_id: StringName = &"hunter"
 ## Which colour scheme the fighter wears. Side 1 in a mirror match takes
 ## another one so the two can be told apart.
 @export var palette: int = 0
@@ -133,7 +133,7 @@ func to_dict() -> Dictionary:
 
 static func from_dict(d: Dictionary) -> MatchSide:
 	var s: MatchSide = MatchSide.new()
-	s.fighter_id = StringName(d.get("fighter_id", "rogue"))
+	s.fighter_id = StringName(d.get("fighter_id", "hunter"))
 	s.palette = int(d.get("palette", 0))
 	s.weapon_id = StringName(d.get("weapon_id", "katana"))
 	var abs_in: Array = d.get("abilities", [])

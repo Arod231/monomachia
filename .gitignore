@@ -21,6 +21,9 @@ Sonniss*.zip
 .assets-src-path
 assets_src/
 
+# Where Blender is, for the Blender export (scripts/blender/export.mjs)
+.blender-path
+
 # Converted Iglesias clips and their staged FBX copies: never committed (licence)
 game/assets/kevin_iglesias/library/
 game/assets/kevin_iglesias/staging/

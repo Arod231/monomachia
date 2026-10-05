@@ -56,7 +56,6 @@ const ULT_WEAPONS: Dictionary[StringName, StringName] = {
 const CHIP_COLORS: Dictionary[StringName, Color] = {
 	&"fallback": Color(0.78, 0.55, 0.2),
 	&"provisional": Color(0.7, 0.62, 0.25),
-	&"corrective": Color(0.3, 0.6, 0.75),
 	&"unsaved": Color(0.75, 0.35, 0.35),
 	&"balance": Color(0.55, 0.45, 0.78),
 }

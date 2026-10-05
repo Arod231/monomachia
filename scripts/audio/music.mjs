@@ -3,14 +3,20 @@
 // game/assets/audio/music/, and tracks.json with each track's tempo and length.
 //
 //   menu_110.wav         110 BPM, 16 bars: slower, groovy electric and oriental funk
-//   battle_140.wav       140 BPM, 16 bars: dark fantasy oriental with metal and electronics
-//   match_point_160.wav  160 BPM, 16 bars: the battle material, intensified
+//   battle_140.wav       140 BPM, 16 bars: traditional instruments lead (taiko, biwa,
+//                        shamisen, shakuhachi, a low choir)
+//   match_point_160.wav  160 BPM, 16 bars: the battle material, intensified, with
+//                        electronic and metal layers building in (milestone-1 task 113)
 //
 // It grows out of the web demo's music sequencer (v0.1-web-mvp:src/audio/audio.ts): the same
 // taiko groove (strokes on the 1st, 5th, 11th and 13th sixteenths, the rim "ka"
 // on the off sixteenths), the palm-muted distorted chug on D, plucked strings
 // in the Japanese In scale and the low sawtooth drone, now composed into
-// 16-bar loops with bass, electric piano, a lead motif and a mix.
+// 16-bar loops with bass, electric piano, a lead motif and a mix. Since
+// milestone-1 task 113 the battle loop is traditional only: the riff on the
+// biwa, the motif on the shakuhachi and a low choir in place of the drone;
+// the kit, the sub and the guitars play only at match point, building in
+// over its first bars. The menu keeps the fusion.
 //
 // Each file is exactly `bars` long and loops seamlessly: every note that rings
 // past the end is wrapped round to the start, and the reverb, echo, DC-blocking
@@ -27,17 +33,19 @@ import { fileURLToPath } from 'node:url';
 import { SR, compress, highpassLoop, panGains, pingPong, reverb } from './lib/synthkit.mjs';
 import {
   bass,
+  biwa,
+  choir,
   epiano,
   gong,
   hat,
   ka,
   kick,
   koto,
-  lead,
   pad,
   powerChord,
   riser,
   shaker,
+  shakuhachi,
   shamisen,
   snare,
   subBass,
@@ -66,14 +74,14 @@ export const TRACKS = [
     file: 'battle_140.wav',
     bpm: 140,
     bars: 16,
-    description: 'Battle: dark fantasy oriental with metal and electronics (taiko and kick groove, double-tracked palm-muted distorted riff in drop D, shamisen-like plucks in the D In scale, a shakuhachi-like lead motif, sub bass and a low drone)',
+    description: 'Battle: traditional instruments lead (odaiko, shime and rim groove, the riff on a buzzing biwa with bends, shamisen plucks in the D In scale, the motif on a breathy shakuhachi, a low male choir holding the chords, a gong at the top)',
   },
   {
     id: 'match_point',
     file: 'match_point_160.wav',
     bpm: 160,
     bars: 16,
-    description: 'Match point (either fighter on two round wins): the battle theme intensified (double-time taiko, constant sixteenth-note gallop riff, double kick, the lead motif an octave up with a harmony a fourth below)',
+    description: 'Match point (either fighter on two round wins): the battle theme intensified (double-time taiko, sixteenth-note shamisen, the shakuhachi an octave up with a harmony a fourth below, the choir on "ah"), with electronic and metal layers building in over the first bars (hats, then kick, snare, sub, risers and the double-tracked palm-muted gallop riff in drop D)',
   },
 ];
 
@@ -111,6 +119,8 @@ class LoopMix {
     this.rev = pair();
     this.dly = pair();
     this.energy = new Map();
+    /** Stem -> the energy of the notes starting in each bar. */
+    this.barEnergy = new Map();
     this.r = makeRandom(seed);
     this.swing = 0.5;
   }
@@ -157,6 +167,9 @@ class LoopMix {
       e += v * v;
     }
     this.energy.set(stem, (this.energy.get(stem) ?? 0) + e);
+    // and by the bar the note starts in, to see what each bar holds
+    if (!this.barEnergy.has(stem)) this.barEnergy.set(stem, new Float64Array(this.bars));
+    this.barEnergy.get(stem)[Math.min(this.bars - 1, Math.floor((p / this.n) * this.bars))] += e;
   }
 
   /**
@@ -299,22 +312,47 @@ function playMotif(mix, startBar, motif, { octave = 0, harmony = null, gain = 0.
       const t = mix.at(startBar + bi, s);
       const length = len * mix.sixteenth * 0.92;
       const m = note + octave;
-      mix.add(lead(mix.r, m, { length, from: prev != null && Math.abs(prev - m) <= 5 ? prev : null }), t, {
+      mix.add(shakuhachi(mix.r, m, { length, from: prev != null && Math.abs(prev - m) <= 5 ? prev : null }), t, {
         gain,
         pan: 0.1,
-        rev: 0.35,
-        dly: 0.22,
-        stem: 'lead',
+        rev: 0.4,
+        dly: 0.2,
+        stem: 'shakuhachi',
       });
-      // a shamisen doubling the attack gives the line its bite
-      mix.add(shamisen(mix.r, m, { seconds: Math.min(1.2, length + 0.4), accent: 0.8 }), t, { gain: 0.22, pan: -0.2, rev: 0.2, stem: 'lead' });
+      // the biwa strikes the long notes' attacks under the flute
+      if (len >= 4) mix.add(biwa(mix.r, m - 12, { seconds: Math.min(1.4, length + 0.4), accent: 0.7 }), t, { gain: 0.3, pan: -0.25, rev: 0.25, stem: 'biwa' });
       if (harmony != null) {
-        mix.add(lead(mix.r, m + harmony, { length, saw: 0.25, breath: 0.2 }), t, { gain: gain * 0.55, pan: -0.35, rev: 0.35, dly: 0.1, stem: 'lead' });
+        mix.add(shakuhachi(mix.r, m + harmony, { length, breath: 0.7 }), t, { gain: gain * 0.5, pan: -0.35, rev: 0.4, dly: 0.1, stem: 'shakuhachi' });
       }
       prev = m;
     }
   });
 }
+
+/**
+ * One bar of the riff on the biwa, an octave above the guitars' roots: the
+ * open accents struck full (the long ones bent up a semitone and back), the
+ * palm-muted chugs damped and quieter.
+ */
+function playBiwaRiffBar(mix, bar, notes, { gain = 1 } = {}) {
+  const r = mix.r;
+  for (const [s, root, len, muted] of notes) {
+    const t = mix.at(bar, s);
+    const length = len * mix.sixteenth;
+    const accent = (s % 4 === 0 ? 1 : 0.8) * (muted ? 0.6 : 1);
+    const b = biwa(r, root + 12, { seconds: muted ? 0.35 : Math.max(0.6, length + 0.5), accent, mute: muted ? 0.7 : 0, bend: !muted && len >= 4 ? 1 : 0 });
+    mix.add(b, t, { gain: 0.32 * gain, pan: muted ? 0.2 : -0.15, rev: 0.2, stem: 'biwa' });
+  }
+}
+
+/** Held choir chords under each section: [bar, notes, bars held, vowel]. */
+const CHOIR_CHORDS = [
+  [0, [D2, A2, 50], 4, 'oo'],
+  [4, [D2, A2, 50], 4, 'oo'],
+  [8, [Bb1 + 12, F2, 46 + 12], 2, 'ah'],
+  [10, [C2 + 12, G2, 48 + 12], 2, 'ah'],
+  [12, [D2, A2, 50], 4, 'ah'],
+];
 
 function playOstinato(mix, bar, { shift = 0, gain = 0.15, sixteenths = false } = {}) {
   const cell = sixteenths
@@ -334,71 +372,96 @@ function playOstinato(mix, bar, { shift = 0, gain = 0.15, sixteenths = false } =
 
 // ------------------------------------------------------------------ tracks
 
+/**
+ * The battle loop and the match point. Traditional instruments lead both:
+ * taiko, the biwa on the riff, the shamisen ostinato, the shakuhachi on the
+ * motif and a low choir holding the chords. At match point (`intense`) the
+ * taiko doubles, the flute climbs an octave with a harmony, and the
+ * electronic layer (kick, snare, hats, risers, sub) and the metal guitars
+ * build in over the first four bars, then drive to the end of the loop.
+ */
 function renderBattle(track, { intense = false } = {}) {
   const mix = new LoopMix(track, seedFrom(track.file));
   const r = mix.r;
   const T = (b, s) => mix.at(b, s);
 
-  // A soft gong marks the top of the loop; risers lead into bar 9 and back to bar 1.
+  // A soft gong marks the top of the loop.
   mix.add(gong(buffer(4.6), r, { f0: 73.4, accent: 0.6 }), 0, { gain: 0.35, rev: 0.4, stem: 'fx', humanize: 0 });
-  mix.add(riser(r, mix.sixteenth * 16), T(7, 0), { gain: 0.5, rev: 0.3, stem: 'fx', humanize: 0 });
-  mix.add(riser(r, mix.sixteenth * 16), T(15, 0), { gain: 0.6, rev: 0.3, stem: 'fx', humanize: 0 });
 
-  // Drone pads under each section.
-  for (const [bar, notes] of [[0, [D2, A2, 50]], [4, [D2, A2, 50]], [8, [Bb1, F2, 46]], [10, [C2, G2, 48]], [12, [D2, A2, 50]]]) {
-    const len = (bar === 8 || bar === 10 ? 2 : 4) * 16 * mix.sixteenth;
-    mix.add(pad(r, notes, { length: len, cutoff: intense ? 900 : 650 }), T(bar, 0), { gain: 0.5, rev: 0.4, stem: 'pad', humanize: 0 });
+  for (const [bar, notes, held, vowel] of CHOIR_CHORDS) {
+    const length = held * 16 * mix.sixteenth;
+    mix.add(choir(r, notes, { length, vowel: intense ? 'ah' : vowel }), T(bar, 0), { gain: intense ? 1.1 : 0.75, rev: 0.5, stem: 'choir', humanize: 0 });
+  }
+
+  if (intense) {
+    // the electronic layer rises: risers into bar 5 and back to bar 1
+    mix.add(riser(r, mix.sixteenth * 32), T(2, 0), { gain: 0.6, rev: 0.3, stem: 'fx', humanize: 0 });
+    mix.add(riser(r, mix.sixteenth * 16), T(15, 0), { gain: 0.6, rev: 0.3, stem: 'fx', humanize: 0 });
   }
 
   for (let bar = 0; bar < 16; bar++) {
-    const section = Math.floor(bar / 4); // 0 intro groove, 1 motif, 2 riff B, 3 answer + fill
+    const section = Math.floor(bar / 4); // 0 groove, 1 motif, 2 riff B, 3 answer + fill
     const last = bar === 15;
+    // match point's build: how far the electronic and metal layers have risen (0 to 1)
+    const rise = intense ? Math.min(1, (bar + 1) / 4) : 0;
 
-    // ---- taiko: the demo's groove, doubled in time at match point
+    // ---- taiko: odaiko strokes, the shime on every beat, the rim between
     const big = intense ? [0, 4, 8, 12] : bar % 2 ? [0, 6, 10] : [0, 10];
-    for (const s of big) mix.add(taiko(buffer(1.2), r, { weight: 1, accent: s === 0 ? 1 : 0.8 }), T(bar, s), { gain: 0.8, rev: 0.25, stem: 'taiko' });
-    const light = intense ? [2, 6, 10, 14, 3, 7, 11, 15].filter((s) => s % 2 === 0 || bar % 2) : [4, 12];
-    for (const s of light) mix.add(taiko(buffer(0.6), r, { weight: 0.1, accent: s % 4 === 0 ? 0.8 : 0.55 }), T(bar, s), { gain: 0.45, pan: 0.25, rev: 0.2, stem: 'taiko' });
+    for (const s of big) mix.add(taiko(buffer(1.2), r, { weight: 1, accent: s === 0 ? 1 : 0.8 }), T(bar, s), { gain: 0.85, rev: 0.25, stem: 'taiko' });
+    for (const s of [0, 4, 8, 12]) mix.add(taiko(buffer(0.6), r, { weight: 0.15, accent: s % 8 === 0 ? 0.95 : 0.85 }), T(bar, s), { gain: 0.75, pan: 0.2, rev: 0.2, stem: 'taiko' });
+    const light = intense ? [2, 6, 10, 14, 3, 7, 11, 15].filter((s) => s % 2 === 0 || bar % 2) : section >= 2 ? [2, 6, 10, 14] : [6, 14];
+    for (const s of light) mix.add(taiko(buffer(0.6), r, { weight: 0.05, accent: 0.5 }), T(bar, s), { gain: 0.4, pan: -0.25, rev: 0.2, stem: 'taiko' });
     for (let s = 1; s < 16; s += 2) mix.add(ka(buffer(0.12), r, { accent: 0.4 }), T(bar, s), { gain: 1.1, pan: -0.3, stem: 'perc' });
+    if (last) {
+      // a taiko roll back to the top
+      for (let s = 8; s < 16; s++) mix.add(taiko(buffer(0.8), r, { weight: 0.6, accent: 0.55 + (s - 8) * 0.06 }), T(bar, s), { gain: 0.7, rev: 0.25, stem: 'taiko' });
+    }
 
-    // ---- kit
-    const kicks = intense
-      ? section === 3 ? Array.from({ length: 16 }, (_, s) => s) : [0, 3, 4, 8, 10, 12, 14]
-      : section >= 2 ? [0, 3, 6, 8, 10, 14] : [0, 3, 8, 10];
-    for (const s of kicks) mix.add(kick(r, { accent: s % 4 === 0 ? 1 : 0.75 }), T(bar, s), { gain: 0.7, stem: 'kick' });
-    for (const s of [4, 12]) mix.add(snare(r, { accent: 1 }), T(bar, s), { gain: 1.7, rev: 0.22, stem: 'snare' });
-    if (last) for (const s of [13, 14, 15]) mix.add(snare(r, { accent: 0.6 + (s - 13) * 0.2 }), T(bar, s), { gain: 1.5, rev: 0.2, stem: 'snare' });
-    const hats = intense || section >= 2 ? Array.from({ length: 16 }, (_, s) => s) : [0, 2, 4, 6, 8, 10, 12, 14];
-    for (const s of hats) mix.add(hat(r, { accent: s % 2 ? 0.55 : 0.9, open: s === 0 && bar % 4 === 0 }), T(bar, s), { gain: 1.2, pan: 0.35, stem: 'hats' });
-
-    // ---- riff
+    // ---- the riff on the biwa
     let notes;
     if (last) notes = RIFF_FILL;
     else if (section === 2) notes = RIFF_B[bar % 2];
     else notes = RIFF_A[bar % 2];
-    if (intense && !last) {
-      // gallop every sixteenth between the accents
-      const accents = new Map(notes.filter((n) => !n[3]).map((n) => [n[0], n]));
-      const root = notes[0][1];
-      const filled = [];
-      for (let s = 0; s < 16; s++) {
-        const a = accents.get(s);
-        if (a) {
-          filled.push(a);
-          s += a[2] - 1;
-        } else filled.push([s, root, 1, 1]);
-      }
-      notes = filled;
-    }
-    playRiffBar(mix, bar, notes, { accent: 1 });
+    playBiwaRiffBar(mix, bar, notes, { gain: section === 1 || section === 3 ? 0.7 : 1 });
 
-    // ---- shamisen ostinato in the sections without the lead
+    // ---- shamisen ostinato in the sections without the flute
     if (section === 0 || section === 2) playOstinato(mix, bar, { shift: section === 2 ? -1 : 0, sixteenths: intense });
+
+    if (!intense) continue;
+
+    // ---- match point's electronic layer: hats from the top, the kit and sub from bar 3
+    const hats = bar < 2 ? [0, 2, 4, 6, 8, 10, 12, 14] : Array.from({ length: 16 }, (_, s) => s);
+    for (const s of hats) mix.add(hat(r, { accent: s % 2 ? 0.55 : 0.9, open: s === 0 && bar % 4 === 0 }), T(bar, s), { gain: 1.2 * rise, pan: 0.35, stem: 'hats' });
+    if (bar >= 2) {
+      const kicks = bar < 4 ? [0, 8] : section === 3 ? Array.from({ length: 16 }, (_, s) => s) : [0, 3, 4, 8, 10, 12, 14];
+      for (const s of kicks) mix.add(kick(r, { accent: s % 4 === 0 ? 1 : 0.75 }), T(bar, s), { gain: 0.7 * rise, stem: 'kick' });
+      for (const s of [4, 12]) mix.add(snare(r, { accent: 1 }), T(bar, s), { gain: 1.6 * rise, rev: 0.22, stem: 'snare' });
+      if (last) for (const s of [13, 14, 15]) mix.add(snare(r, { accent: 0.6 + (s - 13) * 0.2 }), T(bar, s), { gain: 1.5, rev: 0.2, stem: 'snare' });
+    }
+
+    // ---- and the metal guitars: single chugs on the beat while it builds, then the gallop
+    if (bar >= 2) {
+      let gnotes = notes;
+      if (bar < 4) gnotes = notes.filter(([s]) => s % 4 === 0);
+      else if (!last) {
+        const accents = new Map(notes.filter((n) => !n[3]).map((n) => [n[0], n]));
+        const root = notes[0][1];
+        gnotes = [];
+        for (let s = 0; s < 16; s++) {
+          const a = accents.get(s);
+          if (a) {
+            gnotes.push(a);
+            s += a[2] - 1;
+          } else gnotes.push([s, root, 1, 1]);
+        }
+      }
+      playRiffBar(mix, bar, gnotes, { accent: 1, gainScale: rise });
+    }
   }
 
-  // ---- the lead motif and its answer
-  playMotif(mix, 4, MOTIF, { octave: intense ? 12 : 0, harmony: intense ? -5 : null, gain: 0.7 });
-  playMotif(mix, 12, MOTIF_ANSWER, { octave: 0, harmony: intense ? -5 : null, gain: 0.7 });
+  // ---- the shakuhachi motif and its answer
+  playMotif(mix, 4, MOTIF, { octave: intense ? 12 : 0, harmony: intense ? -5 : null, gain: 1.15 });
+  playMotif(mix, 12, MOTIF_ANSWER, { octave: 0, harmony: intense ? -5 : null, gain: 1.15 });
 
   return mix;
 }

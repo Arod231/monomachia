@@ -166,8 +166,8 @@ func test_training_toasts_the_dummy_s_behaviour() -> void:
 	assert_eq(_toasts().size(), 1, "the refill switch doesn't toast")
 	host.set_training_behaviour(&"lights")
 	assert_eq(_toasts().size(), 1, "choosing the same behaviour again doesn't toast")
-	host.set_training_behaviour(&"slam")
-	assert_eq(_toasts()[1], ["Slam", "Dummy behaviour", DIM])
+	host.set_training_behaviour(&"sweep")
+	assert_eq(_toasts()[1], ["Sweep", "Dummy behaviour", DIM])
 
 
 func test_a_fourth_toast_drops_the_oldest() -> void:

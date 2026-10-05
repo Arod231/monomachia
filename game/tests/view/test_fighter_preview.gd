@@ -8,17 +8,20 @@ var select: FighterSelect
 
 
 func before_each() -> void:
+	# the select's mechanics, walked with the whole roster (DemoDraft)
+	Roster.full = true
 	FrozenStateClips.install()
 	select = FighterSelect.new()
 	add_child_autofree(select)
 
 
 func after_each() -> void:
+	Roster.reset()
 	FrozenStateClips.restore()
 
 
 func _open(mode: StringName) -> MatchSelection.Draft:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(mode)
+	var d: MatchSelection.Draft = DemoDraft.of(mode)
 	select.start(d)
 	select.open()
 	await get_tree().process_frame
@@ -59,7 +62,7 @@ func test_it_shows_the_hovered_fighter() -> void:
 
 
 func test_it_follows_the_side_shown() -> void:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(MatchConfig.WATCH)
+	var d: MatchSelection.Draft = DemoDraft.of(MatchConfig.WATCH)
 	MatchSelection.set_fighter(d, 0, &"rogue")
 	MatchSelection.set_fighter(d, 1, &"hunter")
 	select.start(d)
@@ -71,7 +74,7 @@ func test_it_follows_the_side_shown() -> void:
 
 
 func test_the_second_side_of_a_mirror_match_wears_the_second_palette() -> void:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(MatchConfig.WATCH)
+	var d: MatchSelection.Draft = DemoDraft.of(MatchConfig.WATCH)
 	MatchSelection.set_fighter(d, 0, &"hunter")
 	MatchSelection.set_fighter(d, 1, &"hunter")
 	select.start(d)
@@ -135,7 +138,7 @@ func test_it_turns_slowly_all_the_way_round() -> void:
 
 
 func test_a_random_weapon_cycles_the_three() -> void:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(MatchConfig.DUEL)
+	var d: MatchSelection.Draft = DemoDraft.of(MatchConfig.DUEL)
 	MatchSelection.set_random_weapon(d, 1, true)
 	select.start(d)
 	select.show_side(1)
@@ -156,7 +159,7 @@ func test_a_random_weapon_cycles_the_three() -> void:
 
 
 func test_picking_a_weapon_ends_the_cycle() -> void:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(MatchConfig.DUEL)
+	var d: MatchSelection.Draft = DemoDraft.of(MatchConfig.DUEL)
 	MatchSelection.set_random_weapon(d, 1, true)
 	select.start(d)
 	select.show_side(1)
