@@ -168,7 +168,7 @@ func timing_problems(weapon: StringName, id: StringName, row: Dictionary) -> Arr
 	for field: String in TIMING_FIELDS:
 		if not band.has(field):
 			continue
-		var value: Variant = _timing_value(row, field)
+		var value: Variant = timing_value(row, field)
 		if value == null:
 			out.append("%s: no landing recovery in its row (task 59)" % at if field == "landing" else "%s: no %s in its row" % [at, field])
 			continue
@@ -178,7 +178,9 @@ func timing_problems(weapon: StringName, id: StringName, row: Dictionary) -> Arr
 	return out
 
 
-static func _timing_value(row: Dictionary, field: String) -> Variant:
+## The value of timing band field `field` (TIMING_FIELDS) in a frame-data
+## table row, or null when the row lacks it.
+static func timing_value(row: Dictionary, field: String) -> Variant:
 	match field:
 		"from_stance":
 			return int(row["startup"]) - Fighter.CHARGE_CHECK_FRAME if row.has("startup") else null
