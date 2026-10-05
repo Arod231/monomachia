@@ -16,8 +16,11 @@ extends SceneTree
 ## - --check: write nothing; exit 1 if a file (a swing file or the table)
 ##   would change.
 ##
-## Each move's reach is corrected toward the reach rule (SwingBake.
-## correct_reach(); the report gives the blade inside the defender before
+## A Katana or bare-hands move a family has re-keyed is led by its clip
+## (AttackDef.led_by_clip(), milestone-1 task 21): its swing is sampled
+## relative to the moving body, which its travel moves, and has no reach
+## push. Each other move's reach is corrected toward the reach rule
+## (SwingBake.correct_reach(); the report gives the blade inside the defender before
 ## and after, and marks a move that needs more than 15 cm), and the Rogue
 ## playing HumanF is measured against the path (SwingBake.drift()): past
 ## 5 cm the swing says she plays HumanM. A move's swing is the generator's
@@ -195,6 +198,9 @@ static func bake_weapon(wid: StringName, table: MoveClips, manifest: ClipManifes
 		# until then today's, baked first, so its samples are today's
 		var fd: Dictionary = MoveClips.frame_data(e.markers) if not e.markers.is_empty() else {}
 		var generated: bool = not fd.is_empty() and fd["startup"] == move.startup and fd["active"] == move.active 			and fd["recovery"] == move.recovery
+		# a move led by its clip moves by its travel: its swing sampled relative
+		# to the moving body, and no reach push (milestone-1 task 21)
+		var led: bool = not e.markers.is_empty() and AttackDef.led_by_clip(wid, e.markers_stand_in, move.special)
 		var r: SwingBake.Result = null
 		if not generated:
 			r = SwingBake.bake(poser.pose, poser.length, markers, speed, parts, why)
@@ -204,7 +210,7 @@ static func bake_weapon(wid: StringName, table: MoveClips, manifest: ClipManifes
 		if not e.markers.is_empty():
 			retime = SwingBake.timing(markers, speed, why) if e.markers_stand_in else _one_times(e.markers, why)
 			if retime != null:
-				gen = FrameDataGenerator.generate(poser.pose, poser.length, e.markers, contacts, parts, why, false,
+				gen = FrameDataGenerator.generate(poser.pose, poser.length, e.markers, contacts, parts, why, led,
 					retime if e.markers_stand_in else null)
 			if gen == null:
 				errors.append("%s: %s" % [id, "; ".join(why)])
@@ -219,7 +225,7 @@ static func bake_weapon(wid: StringName, table: MoveClips, manifest: ClipManifes
 			own_chain.append(ClipChain.qualified(ROGUE_SET, String(clip)))
 		var own: ClipPoser = ClipPoser.new(rogue, own_chain)
 		var hunters: ClipPoser = ClipPoser.new(rogue, chain)
-		var on_her: SwingBake.Result = _result(FrameDataGenerator.generate(hunters.pose, hunters.length, e.markers, contacts, parts, why, false,
+		var on_her: SwingBake.Result = _result(FrameDataGenerator.generate(hunters.pose, hunters.length, e.markers, contacts, parts, why, led,
 			retime if e.markers_stand_in else null), retime) if generated \
 			else SwingBake.bake(hunters.pose, hunters.length, markers, speed, parts, why)
 		if on_her == null:
@@ -232,7 +238,9 @@ static func bake_weapon(wid: StringName, table: MoveClips, manifest: ClipManifes
 		if gen != null and not generated:
 			line += "\n      the table: startup %d, active %d, recovery %d at 1.0x; the swing stays on today's timing until the move data take the table's frames (task 17)" % [
 				gen.startup, gen.active, gen.recovery]
-		if move.damage > 0.0 or move.posture > 0.0:
+		if led:
+			line += "\n      moved by its travel (%.2f m forward by the end of its active frames): no reach push" % _forward(gen, move)
+		elif move.damage > 0.0 or move.posture > 0.0:
 			var reach: SwingBake.Reach = SwingBake.correct_reach(r, move, weapon)
 			line += "\n      reach from %.1f m: %s inside, %s after a %.1f cm push%s%s; first touch on frame %d" % [
 				reach.distance, _cm(reach.before), _cm(reach.after), V3.length(reach.offset) * 100.0,
@@ -302,6 +310,15 @@ static func _result(gen: FrameDataGenerator.Result, timing: ClipTiming) -> Swing
 	r.times = gen.times
 	r.tracks = gen.tracks
 	return r
+
+
+## How far forward `gen`'s travel carries the body by the end of `move`'s
+## active frames (m), for the report.
+static func _forward(gen: FrameDataGenerator.Result, move: AttackDef) -> float:
+	var at: float = 0.0
+	for f: int in range(1, mini(gen.forward.size(), move.startup + move.active + 1)):
+		at += gen.forward[f]
+	return at
 
 
 ## How much further a move that falls short even with the whole push needs

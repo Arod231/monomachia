@@ -407,10 +407,12 @@ func _parry_tap(window: int, frame: int, impact: int) -> void:
 
 ## Whether the computer answers an attack `def` started `d` m away (centre to
 ## centre): within its reach (AttackDef.reach(), its swing's once it has one;
-## task 7.13), a fighter's radius, its lunge and 0.6 m, or at any distance for
-## an unblockable, whose counter it may try.
+## task 7.13), a fighter's radius, its lunge (or for a move led by its clip
+## the farthest its travel carries it, milestone-1 task 21) and 0.6 m, or at
+## any distance for an unblockable, whose counter it may try.
 static func threatens(def: AttackDef, d: float) -> bool:
-	return d <= def.reach() + SimConst.FIGHTER_RADIUS + def.lunge + 0.6 or def.counter != &""
+	var carried: float = def.forward_reach() if def.by_travel else def.lunge
+	return d <= def.reach() + SimConst.FIGHTER_RADIUS + carried + 0.6 or def.counter != &""
 
 
 ## The frames from now until the attack's first active frame: the rest of its

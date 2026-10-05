@@ -842,7 +842,12 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 		world.emit({"t": &"telegraph", "f": id, "kind": def.counter, "attack": def.id})
 	if def.special == &"shadowStep":
 		_plan_shadow_step()
-	if not def.airborne and def.hop == 0.0:
+	if def.by_travel and not def.airborne:
+		# a move led by its clip keeps none of a run's speed: its travel moves
+		# it (milestone-1 task 21)
+		vel.x = 0.0
+		vel.z = 0.0
+	elif not def.airborne and def.hop == 0.0:
 		# keep some of the momentum (jump attacks and hop attacks keep it all)
 		vel.x *= SimConst.ATTACK_MOMENTUM_KEEP
 		vel.z *= SimConst.ATTACK_MOMENTUM_KEEP
@@ -931,6 +936,9 @@ func _update_attack() -> void:
 			_advance_along(a.lunge_dir, a.lunge_total * share)
 		else:
 			_advance(a.lunge_total * share)
+	# A move led by its clip moves by its travel instead (milestone-1 task 21).
+	if def.by_travel:
+		_travel(def.travel_at(f))
 	# A colossal swing slides on into its first recovery frames, easing out.
 	var into_recovery: int = f - S - A
 	if into_recovery > 0 and into_recovery <= SimConst.COLOSSAL_SLIDE_FRAMES and _slides(def):
@@ -1020,7 +1028,19 @@ func _pick_draw() -> AttackDef:
 ## Whether def slides on into its recovery: a colossal weapon's grounded
 ## attacks, bashes aside.
 func _slides(def: AttackDef) -> bool:
-	return moveset().cls == &"colossal" and not def.airborne and def.type != &"bash"
+	return moveset().cls == &"colossal" and not def.airborne and def.type != &"bash" and not def.by_travel
+
+
+## Moves the body by one frame of a clip's travel (AttackDef.travel_at():
+## forward and to the right in the frame it faces now, then the turn to the
+## right), holding back only the part that closes on the opponent, as a
+## lunge does (_advance_along()).
+func _travel(step: PackedFloat64Array) -> void:
+	var move: V3 = SimMath.local_to_world(V3.make(), yaw, V3.make(step[1], 0.0, step[0]))
+	var dist: float = JsMath.hypot(move.x, move.z)
+	if dist > 0.0:
+		_advance_along(V2.make(move.x / dist, move.z / dist), dist)
+	yaw = SimMath.wrap_angle(yaw - step[2] * SimMath.DEG)
 
 
 ## How far we can still close on the opponent before our bodies are 0.25 m

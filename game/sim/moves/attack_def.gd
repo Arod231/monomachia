@@ -72,6 +72,11 @@ const SPECIALS: Array[StringName] = [&"flash", &"shadowStep", &"counterLunge", &
 const TRAILS: Array[StringName] = [&"normal", &"danger", &"ult"]
 const SIDES: Array[StringName] = [&"left", &"right", &"centre"]
 
+## The weapons whose moves their clips lead once re-keyed (milestone 1's):
+## played at 1.0x (MoveClips) and moved by their travel (milestone-1 tasks 19
+## and 21). The Greatsword's and the Daggers' wait for milestone 2.
+const CLIP_LED_WEAPONS: Array[StringName] = [&"katana", &"fists"]
+
 ## An int field the TS leaves undefined (no move can hold it). Unset floats are NAN.
 const UNSET: int = -0x7FFFFFFFFFFFFFFF - 1
 
@@ -164,6 +169,10 @@ var real_markers: bool = false
 ## the frame-data table: follow-up id -> [branch point, last frame]
 ## (milestone-1 task 20); empty without a row (branch_window())
 var branches: Dictionary[StringName, PackedInt32Array] = {}
+## whether the move is led by its clip (led_by_clip(), milestone-1 task 21):
+## a re-keyed Katana or bare-hands move, moved only by its travel, with no
+## lunge and none of a run's speed; set from the table
+var by_travel: bool = false
 ## the path the weapon travels through the move (task 7, the rebuild's), put
 ## on it from the weapon's swing file when the weapon is built
 ## (WeaponDef.from_dict); null until the move has one. A record may also
@@ -178,10 +187,10 @@ const KEYS: Array[String] = [
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
 	"sound", "trail", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "swing",
+	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
-const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches"]
+const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches", "by_travel"]
 
 
 ## Builds an AttackDef from a move record (snake_case keys). Missing keys keep
@@ -243,6 +252,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	var windows: Dictionary = d.get("branches", {})
 	for follow: Variant in windows:
 		m.branches[StringName(follow)] = PackedInt32Array(windows[follow])
+	m.by_travel = bool(d.get("by_travel", false))
 	m.swing = d.get("swing", null)
 	return m
 
@@ -258,7 +268,7 @@ static func finalize_moves(moves: Dictionary, weapon: StringName = &"") -> Dicti
 		var m: Dictionary = (moves[move_id] as Dictionary).duplicate()
 		var row: Dictionary = FrameDataTable.shared().row(weapon, StringName(move_id)) if weapon != &"" else {}
 		if not row.is_empty():
-			_take_row(m, row, StringName(move_id))
+			_take_row(m, row, StringName(move_id), weapon)
 		var is_unblockable: bool = bool(m.get("unblockable", false))
 		var move_kind: StringName = StringName(m.get("kind", &""))
 		if not m.has("track_startup"):
@@ -292,7 +302,7 @@ static func finalize_moves(moves: Dictionary, weapon: StringName = &"") -> Dicti
 
 
 ## Puts a move's row of the frame-data table into its record `m`.
-static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName) -> void:
+static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName, weapon: StringName) -> void:
 	for field: String in TABLE_FIELDS:
 		if m.has(field):
 			push_error("%s sets %s; its frame data come from the frame-data table" % [move_id, field])
@@ -317,6 +327,34 @@ static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName) -> vo
 	for follow: Variant in windows:
 		branches[StringName(follow)] = [int(windows[follow][0]), int(windows[follow][1])]
 	m["branches"] = branches
+	m["by_travel"] = led_by_clip(weapon, bool(row.get("stand_in", false)), StringName(m.get("special", &"")))
+
+
+## Whether a move of `weapon` is led by its clip (milestone-1 task 21):
+## one of CLIP_LED_WEAPONS', on real markers (not `stand_in`), and not a
+## Counter Lunge (`special`), which keeps its lunge until milestone 2.
+static func led_by_clip(weapon: StringName, stand_in: bool, p_special: StringName) -> bool:
+	return CLIP_LED_WEAPONS.has(weapon) and not stand_in and p_special != &"counterLunge"
+
+
+## The body's travel over attack frame `f` (from the frame before):
+## [metres forward, metres to the right, degrees turned to the right], or
+## none past the table's frames (a charge's extra recovery) or without them.
+func travel_at(f: int) -> PackedFloat64Array:
+	if f < 1 or 3 * f + 2 >= travel.size():
+		return PackedFloat64Array([0.0, 0.0, 0.0])
+	return travel.slice(3 * f, 3 * f + 3)
+
+
+## The farthest the travel carries the body forward of where it started by
+## the end of the active frames (m), for the computer's reach test.
+func forward_reach() -> float:
+	var at: float = 0.0
+	var most: float = 0.0
+	for f: int in range(1, startup + active + 1):
+		at += travel_at(f)[0]
+		most = maxf(most, at)
+	return most
 
 
 ## totalFrames(m)
@@ -336,9 +374,12 @@ func branch_window(follow: StringName) -> PackedInt32Array:
 
 ## The lunge the move covers when started `distance` m from its target
 ## (centre to centre): a counter lunge closes the gap to 0.6 m between the
-## bodies (7 m at most), any other move covers its own lunge. Fighter's
+## bodies (7 m at most), a move led by its clip none (it moves by its
+## travel), any other move covers its own lunge. Fighter's
 ## start_attack() and SwingReach.first_contact() (task 7.13) both use it.
 func lunge_from(distance: float) -> float:
+	if by_travel:
+		return 0.0
 	if special == &"counterLunge":
 		return SimMath.clamp(distance - SimConst.FIGHTER_RADIUS * 2.0 - 0.6, 0.0, 7.0)
 	return lunge

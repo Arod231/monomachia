@@ -48,7 +48,8 @@ const PATH: String = "res://assets/kevin_iglesias/move_clips.json"
 const WEAPON_FIELDS: Array[String] = ["guard", "moves"]
 const MOVE_FIELDS: Array[String] = ["clips", "speed", "fallback", "marks", "sheathed", "markers", "markers_stand_in", "loop"]
 ## The weapons whose moves play at 1.0x once re-keyed (milestone 1's): a
-## re-keyed move of theirs has no speed.
+## re-keyed move of theirs has no speed. AttackDef.CLIP_LED_WEAPONS, written
+## out: a constant read from it here makes a cycle as the rules load.
 const ONE_SPEED_WEAPONS: Array[StringName] = [&"katana", &"fists"]
 ## A move's markers that every move has, in the order they fall.
 const RULES_MARKERS: Array[String] = ["windup", "active_start", "active_end", "settle"]
