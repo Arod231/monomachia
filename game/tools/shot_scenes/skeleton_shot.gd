@@ -16,6 +16,11 @@ extends Node
 ## "select_duel" and "select_watch" show the fighter select (22.5): a Duel on
 ## your side, and Watch on its second side.
 ##
+## "select_preview" shows the fighter select's 3D preview (22.7) on your side
+## of a Duel: --fighter=rogue|hunter, --weapon=katana|greatsword|daggers and
+## --palette=0|1 (1 shows the opponent's side of a mirror match, in the second
+## palette), turned --turn= degrees (20 by default) and held still.
+##
 ## "iai_stance", "iai_vertical" and "iai_horizontal" show the player's Rogue
 ## with the Katana's Iai Slash against an idle training dummy: sheathed in the
 ## stance, from her front left so the left hip shows, and each draw on frame
@@ -68,7 +73,7 @@ const SEED: int = 7
 
 @export_enum(
 	"round_start", "exchange", "parry", "watch", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
-	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch",
+	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch", "select_preview",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
 	"recall_burst", "toasts", "prompts", "marker",
 ) var shot: String = "round_start"
@@ -97,6 +102,12 @@ const SEED: int = 7
 ## near its brightest with the bar lit; 0.1 on 0.2 s, the pulse lower with
 ## the bar dimmed.
 @export var blink_time: float = 0.25
+## The "select_preview" shot's fighter, weapon, palette (the side shown) and
+## turn in degrees (--fighter=, --weapon=, --palette=, --turn=).
+@export var preview_fighter: StringName = &"rogue"
+@export var preview_weapon: StringName = &"katana"
+@export var preview_palette: int = 0
+@export var preview_turn: float = 20.0
 ## Frames to let the renderer settle before the capture.
 @export var settle_frames: int = 10
 
@@ -132,6 +143,14 @@ func _ready() -> void:
 			prompts_form = a.trim_prefix("--prompts=")
 		elif a.begins_with("--marker="):
 			marker_place = a.trim_prefix("--marker=")
+		elif a.begins_with("--fighter="):
+			preview_fighter = StringName(a.trim_prefix("--fighter="))
+		elif a.begins_with("--weapon="):
+			preview_weapon = StringName(a.trim_prefix("--weapon="))
+		elif a.begins_with("--palette="):
+			preview_palette = int(a.trim_prefix("--palette="))
+		elif a.begins_with("--turn="):
+			preview_turn = float(a.trim_prefix("--turn="))
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
 		elif a == "--reduce-flashes":
@@ -178,6 +197,10 @@ func _ready() -> void:
 			_main()
 			main.call("open_select", MatchConfig.DUEL)
 			host.step(420)
+		"select_preview":
+			_main()
+			main.call("open_select", MatchConfig.DUEL)
+			_select_preview()
 		"select_watch":
 			# the Watch select on its second side: the skill row, the arena
 			# slot and Lock in
@@ -618,3 +641,17 @@ func _on_event(e: Dictionary) -> void:
 		_ko = true
 	elif e["t"] == &"hit" and int(e["attacker"]) == 0 and not _katana_hit:
 		_katana_hit = true
+
+
+## Sets the select's side for the "select_preview" shot and turns its
+## preview to --turn=, then holds it still.
+func _select_preview() -> void:
+	var select: FighterSelect = main.get("select")
+	for side: int in 2:
+		MatchSelection.set_fighter(select.draft, side, preview_fighter)
+		MatchSelection.set_weapon(select.draft, side, preview_weapon)
+	select.show_side(clampi(preview_palette, 0, 1))
+	host.step(420)
+	var p: FighterPreview = select.preview
+	p.set_process(false)
+	p.advance(preview_turn / 360.0 * FighterPreview.TURN_SECONDS)

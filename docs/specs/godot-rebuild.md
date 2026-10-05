@@ -49,7 +49,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 1. [ ] As a player, I want to start Monomachia as a Windows program, so that I can play without a browser.
 2. [x] As a player, I want a title screen with a live duel playing behind it, so that the game feels alive the moment it opens.
 3. [ ] As a player, I want to choose Duel, Training, Versus or Watch from the main menu, so that I can play the way I want. (Duel, Watch and, since 23.3, Training are on the menu; Versus comes with 22.16.)
-4. [ ] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer.
+4. [x] As a player, I want to pick my fighter, my weapon and my two block abilities before a match, so that I fight with the loadout I prefer. (Ticked with 22.7: the select picks each, with the fighter shown in its 3D preview.)
 5. [x] As a player, I want to pick the computer's fighter, weapon and difficulty (Easy, Normal, Hard), or leave its weapon random, so that I control the challenge.
 6. [x] As a player, I want the match to be first to three rounds with a clear round call and "Fight", so that I always know where the match stands.
 7. [x] As a player, I want health bars with the posture bar underneath, round pips and an ultimate badge, so that I can read the state of the fight at a glance. (Task 24: the top bar, the announcements, toasts, prompts and the dropped-weapon marker, in the ink-wash theme; milestone 1 restyles them for the realistic look.)
@@ -112,7 +112,7 @@ A ticked story works in the Godot build today. The plan names the tasks that del
 ### Fighters and look
 
 43. [ ] As a player, I want real fighters with clothing, hair and a silhouette I can recognise, so that the game looks like the dark fantasy it's meant to be.
-44. [ ] As a player, I want to choose between at least two fighters (the Rogue and the Hunter), each able to wield any of the three weapons, so that fighter and weapon are separate choices.
+44. [x] As a player, I want to choose between at least two fighters (the Rogue and the Hunter), each able to wield any of the three weapons, so that fighter and weapon are separate choices. (Ticked with 22.7: the grid picks the fighter, the loadout panel the weapon, and the preview shows the pair.)
 45. [x] As a player in a mirror match, I want the second fighter in a different colour scheme, so that I can tell us apart.
 46. [ ] As a player, I want a toon look with ink outlines and a painted, ink-wash finish, so that the game has its own style.
     > **Superseded by [ADR 0001](../adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** A realistic look replaces it: physically based materials, dark lighting and volumetric fog under a painterly colour grade, after Ghost of Tsushima's darker side, with no toon shading, outlines or ink-wash pass. Ink survives only as calligraphy in the UI.
