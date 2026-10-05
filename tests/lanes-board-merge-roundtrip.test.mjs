@@ -57,7 +57,7 @@ describe('the round trip: Merge', () => {
     setView({ mergeStateStatus: 'BEHIND' });
     assertMatches((await board.get(`/merge?session=${SESSION}`)).body, { ready: false, behind: true, reasons: ['It is behind tools/pm.'] });
     assertMatches(await board.post('/merge/update', { session: SESSION, number: 51 }), { status: 200, body: { updated: true } });
-    assert.deepEqual(calls().at(-1).args, ['pr', 'update-branch', '51', '--repo', 'o/r']);
+    assert.deepEqual(calls().find((c) => c.args[1] === 'update-branch').args, ['pr', 'update-branch', '51', '--repo', 'o/r']);
   });
 
   it('refuses a merge that isn\'t ready, or that names another pull request', async () => {

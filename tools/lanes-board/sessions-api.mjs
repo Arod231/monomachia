@@ -173,7 +173,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       const pending = state.pending.filter((p) => p.session === f.id).sort((x, y) => x.time - y.time);
       const last = t.entries.at(-1);
       const s = {
-        id: f.id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
+        id: f.id, app: a?.id ?? null, remote: a?.remote ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
         activity: f.mtime, active: now - f.mtime < activeMs, queued: state.inbox[f.id]?.length ?? 0,
         pending: pending.map((p) => ({ id: p.id, kind: p.kind, tool: p.tool ?? null, time: p.time })),
         asking: t.open?.name === 'AskUserQuestion' ? t.open.questions.map((q) => q.question) : null,
@@ -193,7 +193,7 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     const [t, state, app, context, stops] = await Promise.all([transcript(f.file, limit), relayState(), appSessions(), contextOf(f.file), readStops()]);
     const a = app.find((x) => x.cli === id);
     const d = {
-      id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
+      id, app: a?.id ?? null, remote: a?.remote ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
       activity: f.mtime, active: Date.now() - f.mtime < activeMs, entries: t.entries, more: t.more || (t.cut ? 1 : 0),
       open: t.open, away: state.away, queued: state.inbox[id] ?? [],
       pending: state.pending.filter((p) => p.session === id).sort((x, y) => x.time - y.time),
@@ -297,7 +297,8 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
       let t = null;
       if (files.has(id)) { try { t = await transcript(files.get(id), 1); } catch { /* being written */ } }
       const dir = t?.cwd ?? cwd ?? a?.dir ?? null;
-      return { session: id, app: a?.id ?? null, title: a?.title || t?.title || '(untitled)', cwd: dir, task: dir ? taskOf(dir) : null, t, archived: !!a?.archived };
+      return { session: id, app: a?.id ?? null, remote: a?.remote ?? null, title: a?.title || t?.title || '(untitled)', cwd: dir, task: dir ? taskOf(dir) : null, t,
+        archived: !!a?.archived };
     };
     const bySession = new Map();
     for (const p of [...state.pending].sort((x, y) => x.time - y.time)) {

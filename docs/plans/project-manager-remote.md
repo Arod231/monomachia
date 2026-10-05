@@ -209,6 +209,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a session's newest lock-screen notification replaces its older one (the tag is the session), since a tap opens the Questions tab or the session page, which list everything;
     - "Turn on notifications", or why it isn't possible here, sits at the top of the bell's list; once on, a short line says so, with Turn off;
     - once task 11 is pushed, the preview on port 5197 moves to `lane/pm-11-12-13-14`, and tasks 12 and 13 are built while the owner tries the notifications; task 11 is ticked once the owner confirms one arrived.
+  - Built (Oct 5, 84664b7): `push.mjs` (RFC 8291 encryption, checked against its worked example; VAPID; the rules), `push-api.mjs` (keys and subscriptions in `~/.claude/lanes-board/push-keys.json` and `push-subscriptions.json`; the bell's new records pushed while Away is on), `/sw.js`. The preview on 5197 serves it, at https://desktop-jk5bn8g.tailec6188.ts.net too. Waits on the owner's try from the phone.
 
 ### Phase D: sessions and commands
 
@@ -243,6 +244,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: a unit test of reading the link from a record; the owner opens a session from the phone and compacts it.
   - Blocked by: 3, 12 · Stories: 10, 59, 60, 61
   - **Owner:** turns on "Connect new sessions to Remote Control" in the Claude app (Settings > Claude Code), and tries Compact from the phone.
+  - Built (Oct 5): the link is the record's newest `bridgeSessionIds` entry at `https://claude.ai/code/<id>` (19 of the PC's 34 session records had one on Oct 5). Compact opens a panel saying to type `/compact` in the Claude app, with Copy /compact and Open in the Claude app; with no link, it says to turn on Remote Control (or type `/rc` once) and offers the app's session list. Questions asked in the app get Open in the Claude app too. Waits on the owner's try from the phone.
 
 ### Phase E: visuals and docs
 

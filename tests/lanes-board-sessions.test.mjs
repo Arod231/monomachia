@@ -15,7 +15,7 @@ import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
   PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldOrphaned,
-  STOP_NOW, deliveryOf, endedAtOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, sessionState, toolSummary, turnSummary,
+  STOP_NOW, deliveryOf, remoteLinkOf, endedAtOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, sessionState, toolSummary, turnSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 
@@ -607,5 +607,17 @@ describe('the session page\'s rules', () => {
   it('words Stop now for the session: stop at once and end the turn', () => {
     assert.match(STOP_NOW, /Stop now/);
     assert.match(STOP_NOW, /end your turn/);
+  });
+});
+
+describe('remoteLinkOf', () => {
+  it('reads the Remote Control link from the app\'s session record: its newest bridge session', () => {
+    assert.equal(remoteLinkOf({ bridgeSessionIds: ['session_01Old', 'session_01D7VSLCnQpmX45bMfUkX9ny'] }), 'https://claude.ai/code/session_01D7VSLCnQpmX45bMfUkX9ny');
+  });
+  it('has none without Remote Control, or with an id that isn\'t one', () => {
+    assert.equal(remoteLinkOf({ bridgeSessionIds: [] }), null);
+    assert.equal(remoteLinkOf({}), null);
+    assert.equal(remoteLinkOf(null), null);
+    assert.equal(remoteLinkOf({ bridgeSessionIds: ['../../evil?x=1'] }), null);
   });
 });

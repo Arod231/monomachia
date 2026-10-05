@@ -196,6 +196,9 @@ export function commandBarHtml(d) {
     + `<button class="btn small" data-cmd="show">Show me</button>`
     + `<button class="btn small" data-cmd="stop"${off(d.stopping)}>Stop now</button>`
     + `${d.pr ? `<button class="btn small" data-cmd="merge">Merge #${Number(d.pr.number)}</button>` : ''}`
+    + `<button class="btn small" data-cmd="compact">Compact</button>`
+    + (d.remote ? `<a class="btn small" href="${esc(d.remote)}" target="_blank" rel="noopener">Open in the Claude app</a>`
+      : `<button class="btn small" data-cmd="app">Open in the Claude app</button>`)
     + `<button class="btn small danger" data-cmd="end"${off(d.state === 'ended')}>End work</button></div>`;
 }
 
@@ -256,6 +259,51 @@ export function mountMerge({ panel, post, session, say }) {
     toggle() { panel.hidden = !panel.hidden; if (!panel.hidden) check(); },
     show() { panel.hidden = false; check(); },
     hide() { panel.hidden = true; panel.innerHTML = ''; m = null; },
+  };
+}
+
+// ---------- Compact and Open in the Claude app ----------
+// No link or local interface can type into a session or run a slash command
+// in it; Remote Control can, from the Claude app on the phone. So Compact
+// opens the session there with /compact to type, and a session with no
+// Remote Control address gets how to turn it on, and the app's session list.
+export const APP_SESSIONS_URL = 'https://claude.ai/code';
+
+// The panel under the command bar for Compact (compact: true) or Open in the
+// Claude app on a session with no Remote Control address.
+export function remotePanelHtml(d, { compact = false } = {}) {
+  const say = compact ? '<p>Compact runs in the Claude app: there, type <code>/compact</code> in this session and send it. It frees the context and the session carries on.</p>' : '';
+  if (d.remote) {
+    return `<div class="mergep">${say}<p><button class="btn small" data-copy="/compact">Copy /compact</button> `
+      + `<a class="btn small primary" href="${esc(d.remote)}" target="_blank" rel="noopener">Open in the Claude app</a></p></div>`;
+  }
+  return `<div class="mergep">${say}<p>${esc(d.title)} has no Remote Control link, so the Claude app can't open it straight away. To give it one:</p><ul>`
+    + '<li>for sessions from now on, turn on <b>Connect new sessions to Remote Control</b> in the Claude app (Settings, Claude Code);</li>'
+    + '<li>for this one, type <code>/rc</code> in it once at the PC.</li></ul>'
+    + `<p>Meanwhile it may be in the Claude app's session list. ${compact ? '<button class="btn small" data-copy="/compact">Copy /compact</button> ' : ''}`
+    + `<a class="btn small" href="${APP_SESSIONS_URL}" target="_blank" rel="noopener">Open the session list</a></p></div>`;
+}
+
+// Runs the Compact / Open in the Claude app panel: detail() is the session
+// shown; say(text, error) tells the owner what happened. show('compact' | 'app')
+// opens it, or closes it when it already shows that.
+export function mountRemote({ panel, detail, say }) {
+  let kind = null;
+  panel.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-copy]');
+    if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copy); say(`Copied ${b.dataset.copy}: paste it in the session in the Claude app.`); }
+    catch { say(`Couldn't copy here: type ${b.dataset.copy} in the Claude app.`, true); }
+  });
+  return {
+    show(what) {
+      const d = detail();
+      if (!d || (kind === what && !panel.hidden)) { this.hide(); return; }
+      kind = what;
+      panel.innerHTML = remotePanelHtml(d, { compact: what === 'compact' });
+      panel.hidden = false;
+    },
+    hide() { kind = null; panel.hidden = true; panel.innerHTML = ''; },
   };
 }
 
@@ -347,7 +395,7 @@ function questionsList(q, openLabel) {
   const asked = q.asked.map((a) => `<section class="qgroup" data-session="${esc(a.session)}">${groupHead(a, a.time)}
     <div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b></div>
     ${questionsHtml(a.questions, false)}
-    <div class="row">${a.app ? `<button class="btn small" data-open="${esc(a.app)}">${esc(openLabel)}</button>` : ''}<span class="m">${q.away.on ? 'It asked before Away was on, so it waits in the app.' : 'Away is off, so it waits in the app.'}</span></div></div></section>`);
+    <div class="row">${a.remote ? `<a class="btn small" href="${esc(a.remote)}" target="_blank" rel="noopener">Open in the Claude app</a>` : ''}${a.app ? `<button class="btn small" data-open="${esc(a.app)}">${esc(openLabel)}</button>` : ''}<span class="m">${q.away.on ? 'It asked before Away was on, so it waits in the app.' : 'Away is off, so it waits in the app.'}</span></div></div></section>`);
   if (!held.length && !asked.length) {
     return `<div class="empty">${q.away.on ? 'Nothing waiting. Questions, permission prompts and finished turns from every session land here while Away is on.'
       : "Nothing waiting. Away is off, so sessions ask in the app's own dialogs; switch Away on before you leave the PC and they wait here instead."}</div>`;

@@ -282,6 +282,7 @@ details.legend span { display: inline-flex; align-items: center; gap: 7px; }
 .mergebox.ready, .mergebox:has(.ready) { border-color: var(--good); }
 .mergebox p { margin: 0 0 8px; }
 .mergebox ul { margin: 0 0 10px; padding-left: 20px; color: var(--text-2); }
+.cmds a.btn, .mergebox a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .mergebox code { font: 13px ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
 #sPend:empty { display: none; }
 .slog { margin-top: 6px; }
@@ -380,6 +381,7 @@ nav.tabs .count:empty { display: none; }
     <button class="back" id="sBack">‹ Sessions</button>
     <div class="shead" id="sHead"><div class="empty">Loading…</div></div>
     <div class="mergebox" id="sMerge" hidden></div>
+    <div class="mergebox" id="sRemote" hidden></div>
     <div id="sPend"></div>
     <div class="sh"><h2>Conversation</h2></div>
     <div class="slog" id="sLog"></div>
@@ -673,13 +675,14 @@ $('laneSeg').addEventListener('click', (e) => {
 // its own history entry so the back gesture returns to the list.
 let openId = null;
 let merge = null; // the Merge panel (sessions-ui.mjs mountMerge)
+let remote = null; // Compact and Open in the Claude app (sessions-ui.mjs mountRemote)
 let detail = null;
 let detailLimit = 150;
 let detailTimer = 0;
 let sSig = {};
 const openTools = new Set();
 function openSession(id, push = true) {
-  if (openId !== id) { detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; merge?.hide(); }
+  if (openId !== id) { detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; merge?.hide(); remote?.hide(); }
   if (tab !== 'sessions') { tab = 'sessions'; store.set('m-tab', tab); }
   openId = id;
   if (push && history.state?.session !== id) history.pushState({ session: id }, '', `/m#session=${encodeURIComponent(id)}`);
@@ -754,7 +757,8 @@ $('p-session').addEventListener('click', async (e) => {
   if (!b || !openId) return;
   if (b.dataset.more !== undefined) { detailLimit += 150; sSig.log = null; pollDetail(); return; }
   if (b.id === 'sSend') { sendReply(); return; }
-  if (b.dataset.cmd === 'merge') { merge?.toggle(); return; }
+  if (b.dataset.cmd === 'merge') { remote?.hide(); merge?.toggle(); return; }
+  if (b.dataset.cmd === 'compact' || b.dataset.cmd === 'app') { merge?.hide(); remote?.show(b.dataset.cmd); return; }
   if (!b.dataset.cmd) return;
   const command = b.dataset.cmd;
   if (command === 'end' && !confirm(`End work on "${detail?.title ?? 'this session'}"? It stops at its next step; its branch and pull request stay as they are.`)) return;
@@ -1138,6 +1142,7 @@ function openFrom(href) {
 }
 window.addEventListener('modules-ready', () => {
   merge = S.mountMerge({ panel: $('sMerge'), post, session: () => openId, say: (t, err) => toast(t, err) });
+  remote = S.mountRemote({ panel: $('sRemote'), detail: () => (detail?.id === openId ? detail : null), say: (t, err) => toast(t, err) });
   bell = S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: goTo, push: S.mountPush({ post }) });
   navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'open') openFrom(e.data.url); });
   openFrom(location.href);

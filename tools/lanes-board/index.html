@@ -386,6 +386,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
 .shd .facts { margin-top: 6px; display: grid; gap: 2px; font-size: 12px; color: var(--text-2); }
 .shd .fact .fk { color: var(--muted); margin-right: 4px; }
 .shd .fact.sum b { color: var(--text); }
+.shd a.btn { text-decoration: none; color: inherit; }
 .shd .fact code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; }
 .cmds { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .btn.danger { color: var(--critical); }
@@ -502,6 +503,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
       <section class="sdetail" id="sDetail">
         <div class="shd" id="sHead"><div class="empty">Pick a session on the left.</div></div>
         <div class="mergebox" id="sMerge" hidden></div>
+        <div class="mergebox" id="sRemote" hidden></div>
         <div id="sPend"></div>
         <div id="sLog"></div>
         <div class="comp" id="sComp" hidden>
@@ -1339,6 +1341,7 @@ window.addEventListener('resize', () => { if (view === 'graph' && !gView[gOpt.pl
 
 const sessions = { list: [], detail: null, limit: 300, drafts: {} };
 let merge = null;
+let remote = null; // Compact and Open in the Claude app (sessions-ui.mjs mountRemote)
 let sSel = store.get('al-session', null);
 let sSigs = {};
 const sOpenTools = new Set();
@@ -1351,6 +1354,7 @@ function selectSession(id) {
   sessions.limit = 300;
   sSigs = {};
   merge?.hide();
+  remote?.hide();
   sOpenTools.clear();
   $('sText').value = sessions.drafts[id] ?? '';
   renderSessionList();
@@ -1482,7 +1486,8 @@ $('sDetail').addEventListener('click', async (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   if (b.dataset.more !== undefined) { sessions.limit += 300; sSigs.log = null; pollSession(true); }
-  else if (b.dataset.cmd === 'merge') merge?.toggle();
+  else if (b.dataset.cmd === 'merge') { remote?.hide(); merge?.toggle(); }
+  else if (b.dataset.cmd === 'compact' || b.dataset.cmd === 'app') { merge?.hide(); remote?.show(b.dataset.cmd); }
   else if (b.dataset.cmd) sessionCommand(b);
   else if (b.id === 'sUnqueue') { try { await post('/relay/unqueue', { session: sSel }); } catch {} pollSession(true); pollSessions(true); }
   else if (b.id === 'sSend') sendReply();
@@ -1588,6 +1593,7 @@ window.addEventListener('modules-ready', () => { qSig = null; renderQuestions();
 window.addEventListener('modules-ready', () => {
   // The Merge panel on a session (sessions-ui.mjs mountMerge).
   merge = S.mountMerge({ panel: $('sMerge'), post, session: () => sSel, say: (t) => { $('sCmdNote').textContent = t; } });
+  remote = S.mountRemote({ panel: $('sRemote'), detail: () => (sessions.detail?.id === sSel ? sessions.detail : null), say: (t) => { $('sCmdNote').textContent = t; } });
   S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session, merge: pr }) => {
     if (tab === 'sessions' && session) { setView('sessions'); selectSession(session); if (pr) merge.show(); return; }
     setView('questions');

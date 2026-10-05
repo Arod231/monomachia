@@ -101,6 +101,12 @@ describe('the round trip: the session page and its commands', () => {
     assert.equal(await board.stopHook(TOOL).done, null, 'other sessions carry on');
   });
 
+  it('gives each session its Remote Control link from the app\'s record', async () => {
+    board.appRecord(SESSION, 'Fixture session', { bridgeSessionIds: ['session_01Abc'] });
+    assert.equal((await board.get('/sessions')).body.sessions.find((x) => x.id === SESSION).remote, 'https://claude.ai/code/session_01Abc');
+    assert.equal((await board.get(`/session?id=${SESSION}`)).body.remote, 'https://claude.ai/code/session_01Abc');
+  });
+
   it('refuses an unknown command or session', async () => {
     assert.equal((await command('dance')).status, 400);
     assert.equal((await command('stop', '../x')).status, 400);

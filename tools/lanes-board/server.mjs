@@ -32,7 +32,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
-import { awayOf, contextTracker } from './sessions.mjs';
+import { awayOf, contextTracker, remoteLinkOf } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
 import { hooksStatusOf } from './hooks.mjs';
 import { bellApi } from './bell-api.mjs';
@@ -239,7 +239,8 @@ async function appSessions() {
           const r = JSON.parse(await readFile(p, 'utf8'));
           out.push({ id: r.sessionId, cli: r.cliSessionId, title: r.title ?? '', archived: !!r.isArchived,
             dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0,
-            summary: r.postTurnSummary ?? null }); // the app's turn summary (sessions.mjs turnSummary)
+            summary: r.postTurnSummary ?? null, // the app's turn summary (sessions.mjs turnSummary)
+            remote: remoteLinkOf(r) }); // its Remote Control address, if it has one
         } catch { /* being written */ }
       }
     }

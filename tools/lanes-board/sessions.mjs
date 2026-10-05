@@ -425,3 +425,12 @@ export function endedAtOf(entries, { id, cwd }) {
 // call it tries is refused with this, until its turn ends.
 export const STOP_NOW = 'The owner pressed Stop now in the Project Manager. Stop here: run nothing more, '
   + 'and end your turn with one line saying where you stopped. The owner will tell you what to do next.';
+
+// The session's Remote Control address, from the app's session record (the
+// spike, plan task 3): its newest bridge session, opened at claude.ai/code,
+// which the Claude app on the phone takes over. Null when Remote Control was
+// never on for it.
+export function remoteLinkOf(record) {
+  const id = (record?.bridgeSessionIds ?? []).at(-1);
+  return typeof id === 'string' && /^[\w-]+$/.test(id) ? `https://claude.ai/code/${id}` : null;
+}

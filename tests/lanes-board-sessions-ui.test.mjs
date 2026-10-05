@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  STATE_LABELS, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
+  STATE_LABELS, APP_SESSIONS_URL, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -344,6 +344,15 @@ describe('the session page', () => {
     assert.match(commandBarHtml({ ...base, state: 'ended' }), /data-cmd="end" disabled/);
   });
 
+  it('offers Compact and Open in the Claude app to every session', () => {
+    const h = commandBarHtml({ ...base, remote: 'https://claude.ai/code/session_01X' });
+    assert.match(h, /data-cmd="compact"[^>]*>Compact</);
+    assert.match(h, /href="https:\/\/claude.ai\/code\/session_01X"[^>]*>Open in the Claude app</);
+    const none = commandBarHtml({ ...base, remote: null });
+    assert.match(none, /data-cmd="compact"/);
+    assert.match(none, /data-cmd="app"[^>]*>Open in the Claude app</);
+  });
+
   it('offers Merge only to a session with an open pull request', () => {
     assert.match(commandBarHtml(base), /data-cmd="merge"[^>]*>Merge #51</);
     assert.doesNotMatch(commandBarHtml({ ...base, pr: null }), /data-cmd="merge"/);
@@ -420,5 +429,33 @@ describe('the Merge panel', () => {
     assert.match(t, /into tools\/pm/);
     assert.match(t, /merge commit/);
     assert.match(t, /approval/);
+  });
+});
+
+describe('Compact and Open in the Claude app', () => {
+  const d = { id: '11111111-2222-4333-8444-555555555555', title: 'Lane <7>', remote: 'https://claude.ai/code/session_01X' };
+
+  it('says to type /compact in the Claude app, then opens the session there', () => {
+    const h = remotePanelHtml(d, { compact: true });
+    assert.match(h, /\/compact/);
+    assert.match(h, /data-copy="\/compact"/);
+    assert.match(h, /href="https:\/\/claude.ai\/code\/session_01X"/);
+  });
+
+  it('without a link, says how to turn Remote Control on, and offers the app\'s session list', () => {
+    for (const compact of [true, false]) {
+      const h = remotePanelHtml({ ...d, remote: null }, { compact });
+      assert.match(h, /Connect new sessions to Remote Control/);
+      assert.match(h, /\/rc/);
+      assert.match(h, new RegExp(`href="${APP_SESSIONS_URL.replace(/[/.]/g, '\\$&')}"`));
+      assert.match(h, /Lane &lt;7&gt;/);
+    }
+  });
+
+  it('opens a question asked in the app in the Claude app, when it has a link', () => {
+    const q = { away: { on: false }, count: 1, groups: [], asked: [{ session: d.id, app: 'local_x', title: 'T', cwd: null, task: null, time: 1,
+      remote: 'https://claude.ai/code/session_01X', questions: [{ question: 'Which?', options: [{ label: 'A' }] }] }] };
+    assert.match(qTab(q), /href="https:\/\/claude.ai\/code\/session_01X"[^>]*>Open in the Claude app</);
+    assert.doesNotMatch(qTab({ ...q, asked: [{ ...q.asked[0], remote: null }] }), /claude.ai\/code\/session/);
   });
 });
