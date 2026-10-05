@@ -3,7 +3,7 @@ extends SceneTree
 ##
 ## Targeted experiment: a dummy repeating one unblockable vs an AI that always tries the counter.
 ##
-## usage: node scripts/godot.mjs script res://tools/counterlab.gd
+## usage: node scripts/godot.mjs script res://tools/counterlab.gd   (or: npm run counterlab)
 ##
 ## Port notes: the output matched the TypeScript counterlab
 ## (v0.1-web-mvp:scripts/counterlab.ts) line for line up to commit 4222167 (plan task 8.2, which records that baseline);

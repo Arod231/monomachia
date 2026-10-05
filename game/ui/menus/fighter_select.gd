@@ -3,8 +3,8 @@ extends MenuPage
 ## The fighter select, in the design's layout without the gate cinematic or
 ## the intros: the loadout on the left (LoadoutPanel: weapon cards, the
 ## blurb and ultimate, the two block abilities), the fighter grid in the middle, and
-## the right side kept for the fighter's 3D preview (22.7; until then the
-## fighter's name stands there in the side's colour).
+## the right side shows the fighter's 3D preview (FighterPreview, 22.7), its
+## name under it in the side's colour.
 ##
 ## The sides pick one after the other, each titled for the mode (You and
 ## Opponent in a Duel, Red and Blue fighter in Watch, ...). On a side the
@@ -64,9 +64,10 @@ var back_entry: Button
 var loadout: VBoxContainer
 ## The side's weapon and block abilities (22.6).
 var loadout_panel: LoadoutPanel
-## The right side, kept for the 3D preview (22.7).
+## The right side: the 3D preview (22.7) and the fighter's name under it.
 var preview_slot: Control
 var preview_name: Label
+var preview: FighterPreview
 
 
 func _init() -> void:
@@ -87,12 +88,12 @@ func _init() -> void:
 	margin.name = "Margin"
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	for edge: String in ["left", "right"]:
-		margin.add_theme_constant_override("margin_" + edge, 56)
+		margin.add_theme_constant_override("margin_" + edge, 40)
 	margin.add_theme_constant_override("margin_top", 56)
 	margin.add_theme_constant_override("margin_bottom", 56)
 	add_child(margin)
 	var columns: HBoxContainer = HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 32)
+	columns.add_theme_constant_override("separation", 20)
 	margin.add_child(columns)
 
 	# the left: the loadout panel
@@ -141,6 +142,8 @@ func _init() -> void:
 	grid = OptionRow.new("Fighter", names, 0)
 	grid.name = "Grid"
 	grid.use_cards(Vector2(190.0, 130.0))
+	# a short label column, so the three columns fit the 1600 px base width
+	grid.title.custom_minimum_size.x = 110.0
 	grid.changed.connect(_on_fighter)
 	middle.add_child(grid)
 	add_item(grid)
@@ -177,12 +180,20 @@ func _init() -> void:
 	for c: Control in loadout_panel.items():
 		add_loadout_item(c)
 
-	# the right: kept for the 3D preview
+	# the right: the 3D preview, the name under it
 	preview_slot = Control.new()
 	preview_slot.name = "Preview"
-	preview_slot.custom_minimum_size = Vector2(360.0, 0.0)
+	preview_slot.custom_minimum_size = Vector2(300.0, 0.0)
 	preview_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	columns.add_child(preview_slot)
+	preview = FighterPreview.new()
+	preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# transparent and deaf to the mouse, it reaches into the margins round the
+	# slot so a raised Greatsword or a turned blade isn't clipped
+	preview.offset_top = -56.0
+	preview.offset_left = -100.0
+	preview.offset_right = 40.0
+	preview_slot.add_child(preview)
 	preview_name = UiTheme.label("", UiTheme.DISPLAY, 56)
 	preview_name.name = "FighterName"
 	preview_name.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -274,11 +285,12 @@ func _on_arena(i: int) -> void:
 	MatchSelection.set_arena(draft, id)
 
 
-## Brings the preview's text up to the draft and tells whoever follows it
-## (draft_changed). Called after every pick (the loadout panel applies its
-## own and calls it too).
+## Brings the preview (the model and its name) up to the draft and tells
+## whoever follows it (draft_changed). Called after every pick (the loadout
+## panel applies its own and calls it too).
 func refresh() -> void:
 	var s: MatchSide = draft.sides[side]
 	preview_name.text = s.display_name()
 	preview_name.add_theme_color_override("font_color", LookPalette.side_color(side).lightened(0.35))
+	preview.show_draft(draft, side)
 	draft_changed.emit()

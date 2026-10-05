@@ -9,12 +9,20 @@ extends Node
 ## view and the HUD stop processing once snapped, so the wall clock (idle bob,
 ## shake decay, the menu orbit) can't change the picture between runs.
 ##
+## "watch_start" is Watch's first round call (23.5). --mirror makes the
+## computer duels (Watch's among them) a Rogue against a Rogue.
+##
 ## "mirror" is a Rogue against a Rogue in her two palettes. "spacing" sets the
 ## fighters --spacing= metres apart (2.5 by default), to check that the
 ## player never hides the opponent from the gameplay camera.
 ##
 ## "select_duel" and "select_watch" show the fighter select (22.5): a Duel on
 ## your side, and Watch on its second side.
+##
+## "select_preview" shows the fighter select's 3D preview (22.7) on your side
+## of a Duel: --fighter=rogue|hunter, --weapon=katana|greatsword|daggers and
+## --palette=0|1 (1 shows the opponent's side of a mirror match, in the second
+## palette), turned --turn= degrees (20 by default) and held still.
 ##
 ## "iai_stance", "iai_vertical" and "iai_horizontal" show the player's Rogue
 ## with the Katana's Iai Slash against an idle training dummy: sheathed in the
@@ -51,7 +59,9 @@ extends Node
 ## "toasts" shows three toasts (24.3) in their hold, by --toasts=: "player"
 ## (gold Parry, the jade Evade counter with its advice, the opponent's red
 ## Ultimate), "training" (the dim Dummy behaviour and Evaded, the jade Behind
-## them) or "watch" (named in the sides' red and blue).
+## them), "watch" (named in the sides' red and blue) or "timing" (Training's
+## parry timing, 23.4: the gold Parry with its frames before impact and
+## window, then the dim Too early and Too late).
 ##
 ## "prompts" shows the prompts (24.4) by --prompts=: "keyboard" (the
 ## disarmed Rogue 1.5 m from her Katana with the ultimate ready: the urgent
@@ -67,8 +77,8 @@ extends Node
 const SEED: int = 7
 
 @export_enum(
-	"round_start", "exchange", "parry", "watch", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
-	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch",
+	"round_start", "exchange", "parry", "watch", "watch_start", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
+	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch", "select_preview",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
 	"recall_burst", "toasts", "prompts", "marker",
 ) var shot: String = "round_start"
@@ -81,7 +91,8 @@ const SEED: int = 7
 ## The "call" shot's announcement (24.2), from the player's side: final_round,
 ## fight, double_ko, round_won (Perfect) or disarmed (--call= sets it too).
 @export var call: String = "final_round"
-## The "toasts" shot's form: player, training or watch (--toasts= sets it too).
+## The "toasts" shot's form: player, training, watch or timing (--toasts= sets
+## it too).
 @export var toasts_form: String = "player"
 ## The "prompts" shot's form: keyboard, pad or tilt (--prompts= sets it too).
 @export var prompts_form: String = "keyboard"
@@ -97,6 +108,14 @@ const SEED: int = 7
 ## near its brightest with the bar lit; 0.1 on 0.2 s, the pulse lower with
 ## the bar dimmed.
 @export var blink_time: float = 0.25
+## The "select_preview" shot's fighter, weapon, palette (the side shown) and
+## turn in degrees (--fighter=, --weapon=, --palette=, --turn=).
+@export var preview_fighter: StringName = &"rogue"
+@export var preview_weapon: StringName = &"katana"
+@export var preview_palette: int = 0
+@export var preview_turn: float = 20.0
+## The computer duels with a Rogue on both sides (--mirror).
+@export var mirror: bool = false
 ## Frames to let the renderer settle before the capture.
 @export var settle_frames: int = 10
 
@@ -132,12 +151,26 @@ func _ready() -> void:
 			prompts_form = a.trim_prefix("--prompts=")
 		elif a.begins_with("--marker="):
 			marker_place = a.trim_prefix("--marker=")
+		elif a.begins_with("--fighter="):
+			preview_fighter = StringName(a.trim_prefix("--fighter="))
+		elif a.begins_with("--weapon="):
+			preview_weapon = StringName(a.trim_prefix("--weapon="))
+		elif a.begins_with("--palette="):
+			preview_palette = int(a.trim_prefix("--palette="))
+		elif a.begins_with("--turn="):
+			preview_turn = float(a.trim_prefix("--turn="))
+		elif a == "--mirror":
+			mirror = true
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
 		elif a == "--reduce-flashes":
 			# the run's own settings (shot runs use the defaults, never saved)
 			GameServices.settings.reduce_flashes = true
 	match shot:
+		"watch_start":
+			# Watch's first round call over the side-on camera (23.5)
+			_gameplay(MatchConfig.WATCH)
+			host.step(40)
 		"round_start":
 			_gameplay(MatchConfig.DUEL)
 			host.step(40)
@@ -178,6 +211,10 @@ func _ready() -> void:
 			_main()
 			main.call("open_select", MatchConfig.DUEL)
 			host.step(420)
+		"select_preview":
+			_main()
+			main.call("open_select", MatchConfig.DUEL)
+			_select_preview()
 		"select_watch":
 			# the Watch select on its second side: the skill row, the arena
 			# slot and Lock in
@@ -316,12 +353,15 @@ func _call_shot() -> void:
 func _toasts_shot() -> void:
 	var events: Array[Dictionary] = []
 	match toasts_form:
-		"training":
+		"training", "timing":
 			var dummy: MatchSide = MatchSide.computer(&"hunter", &"greatsword", 1)
 			dummy.controller = MatchSide.DUMMY
 			var cfg: MatchConfig = MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"rogue", &"katana"), dummy, SEED)
 			_gameplay(MatchConfig.TRAINING, cfg, InputDevices.new(FakeDeviceState.new()))
-			events = [{"t": &"evade", "f": 0, "attacker": 1}, {"t": &"backstabReady", "f": 0}]
+			if toasts_form == "timing":
+				events = [{"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 4, "window": 9}]
+			else:
+				events = [{"t": &"evade", "f": 0, "attacker": 1}, {"t": &"backstabReady", "f": 0}]
 		"watch":
 			_gameplay(MatchConfig.WATCH)
 			events = [
@@ -352,6 +392,20 @@ func _toasts_shot() -> void:
 	for e: Dictionary in events:
 		hud._on_sim_event(e)
 		host.step(4)
+	if toasts_form == "timing":
+		# a hit 6 frames past the window of a press, then a press 2 frames
+		# after a block
+		var me: Fighter = host.fighter(0)
+		me.parry_window_at_press = 9
+		me.block_press_frame = host.world.frame - 15
+		hud._on_sim_event({"t": &"hit", "attacker": 1, "target": 0, "backstab": false})
+		host.step(4)
+		# the block long after any press, so it isn't too early as well
+		me.block_press_frame = host.world.frame - 100
+		hud._on_sim_event({"t": &"block", "attacker": 1, "target": 0})
+		host.step(2)
+		me.block_press_frame = host.world.frame
+		host.step(2)
 	host.step(20)
 	hud._process(0.0)
 
@@ -424,7 +478,7 @@ func _config(mode: StringName) -> MatchConfig:
 	return MatchConfig.make(
 		mode,
 		MatchSide.computer(&"rogue", &"katana", 0, &"hard"),
-		MatchSide.computer(&"hunter", &"greatsword", 1, &"hard"),
+		MatchSide.computer(&"rogue" if mirror else &"hunter", &"greatsword", 1, &"hard"),
 		SEED,
 	)
 
@@ -618,3 +672,17 @@ func _on_event(e: Dictionary) -> void:
 		_ko = true
 	elif e["t"] == &"hit" and int(e["attacker"]) == 0 and not _katana_hit:
 		_katana_hit = true
+
+
+## Sets the select's side for the "select_preview" shot and turns its
+## preview to --turn=, then holds it still.
+func _select_preview() -> void:
+	var select: FighterSelect = main.get("select")
+	for side: int in 2:
+		MatchSelection.set_fighter(select.draft, side, preview_fighter)
+		MatchSelection.set_weapon(select.draft, side, preview_weapon)
+	select.show_side(clampi(preview_palette, 0, 1))
+	host.step(420)
+	var p: FighterPreview = select.preview
+	p.set_process(false)
+	p.advance(preview_turn / 360.0 * FighterPreview.TURN_SECONDS)
