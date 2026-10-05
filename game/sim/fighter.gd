@@ -842,7 +842,12 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 		world.emit({"t": &"telegraph", "f": id, "kind": def.counter, "attack": def.id})
 	if def.special == &"shadowStep":
 		_plan_shadow_step()
-	if not def.airborne and def.hop == 0.0:
+	if def.by_travel and not def.airborne:
+		# a move led by its clip keeps none of a run's speed: its travel moves
+		# it (milestone-1 task 21)
+		vel.x = 0.0
+		vel.z = 0.0
+	elif not def.airborne and def.hop == 0.0:
 		# keep some of the momentum (jump attacks and hop attacks keep it all)
 		vel.x *= SimConst.ATTACK_MOMENTUM_KEEP
 		vel.z *= SimConst.ATTACK_MOMENTUM_KEEP
@@ -931,6 +936,9 @@ func _update_attack() -> void:
 			_advance_along(a.lunge_dir, a.lunge_total * share)
 		else:
 			_advance(a.lunge_total * share)
+	# A move led by its clip moves by its travel instead (milestone-1 task 21).
+	if def.by_travel:
+		_travel(def.travel_at(f))
 	# A colossal swing slides on into its first recovery frames, easing out.
 	var into_recovery: int = f - S - A
 	if into_recovery > 0 and into_recovery <= SimConst.COLOSSAL_SLIDE_FRAMES and _slides(def):
@@ -961,23 +969,28 @@ func _update_attack() -> void:
 		a.whiff_emitted = true
 		world.emit({"t": &"whiff", "f": id, "attack": def.id})
 
-	# Combo chains.
+	# Combo chains: a follow-up pressed after the startup and by the last frame
+	# of its window starts at its branch point, or at once if that has passed
+	# (the frame-data table's, milestone-1 task 20); any extra recovery (a
+	# charge's) moves the window's end on with the move's.
 	if takes_follow_up_at(f):
-		if def.chain_light != &"" and inp.buffered(Btn.LIGHT) and not (armed and inp.is_held(Btn.BLOCK)):
+		if _can_follow(def.chain_light, Btn.LIGHT, f):
 			inp.consume(Btn.LIGHT)
 			a.queued = def.chain_light
-		elif def.chain_heavy != &"" and inp.buffered(Btn.HEAVY) and not (armed and inp.is_held(Btn.BLOCK)):
+		elif _can_follow(def.chain_heavy, Btn.HEAVY, f):
 			inp.consume(Btn.HEAVY)
 			a.queued = def.chain_heavy
-	if a.queued != &"" and f >= S + A + 2:
+	if a.queued != &"" and f >= def.branch_window(a.queued)[0]:
 		start_attack(a.queued, -1, def)
 		return
 
-	# Dodge-cancel the recovery from the move's cancel frame, later by half any
-	# extra recovery (a charge's), and never in the air.
+	# Dodge-cancel the recovery in the move's window (the table's), opening
+	# later by half any extra recovery (a charge's) and closing later by all
+	# of it, and never in the air.
 	if (
 		def.dodge_cancel_from != AttackDef.UNSET
 		and f >= def.dodge_cancel_from + ceili(a.extra_recovery / 2.0)
+		and (def.dodge_cancel_to == AttackDef.UNSET or f <= def.dodge_cancel_to + a.extra_recovery)
 		and not airborne()
 		and inp.buffered(Btn.DODGE)
 	):
@@ -990,6 +1003,15 @@ func _update_attack() -> void:
 			backstab_until = W.frame + 30
 		atk = null
 		to_free()
+
+
+## Whether the attack takes follow-up `follow` (none for &"") pressed with
+## button `b` on attack frame `f`: buffered, not held under a block, and by
+## the last frame of its window.
+func _can_follow(follow: StringName, b: int, f: int) -> bool:
+	if follow == &"" or not input.buffered(b) or (armed and input.is_held(Btn.BLOCK)):
+		return false
+	return f <= atk.def.branch_window(follow)[1] + atk.extra_recovery
 
 
 ## As a chargeable heavy is drawn, the stick held sideways (as Moonsplitter
@@ -1006,7 +1028,19 @@ func _pick_draw() -> AttackDef:
 ## Whether def slides on into its recovery: a colossal weapon's grounded
 ## attacks, bashes aside.
 func _slides(def: AttackDef) -> bool:
-	return moveset().cls == &"colossal" and not def.airborne and def.type != &"bash"
+	return moveset().cls == &"colossal" and not def.airborne and def.type != &"bash" and not def.by_travel
+
+
+## Moves the body by one frame of a clip's travel (AttackDef.travel_at():
+## forward and to the right in the frame it faces now, then the turn to the
+## right), holding back only the part that closes on the opponent, as a
+## lunge does (_advance_along()).
+func _travel(step: PackedFloat64Array) -> void:
+	var move: V3 = SimMath.local_to_world(V3.make(), yaw, V3.make(step[1], 0.0, step[0]))
+	var dist: float = JsMath.hypot(move.x, move.z)
+	if dist > 0.0:
+		_advance_along(V2.make(move.x / dist, move.z / dist), dist)
+	yaw = SimMath.wrap_angle(yaw - step[2] * SimMath.DEG)
 
 
 ## How far we can still close on the opponent before our bodies are 0.25 m

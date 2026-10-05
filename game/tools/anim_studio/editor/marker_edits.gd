@@ -17,6 +17,8 @@ extends RefCounted
 ## - A move whose markers are stand-ins (MoveClips.Entry.markers_stand_in)
 ##   asks first: the edit then replaces them with real markers, dropping
 ##   "markers_stand_in" in the same step, so undo puts the stand-ins back.
+##   A Katana or bare-hands move's "speed" goes in that step too, as one on
+##   real markers plays at 1.0x (milestone-1 task 19).
 ## Foot contacts are measured, never edited here.
 
 const STAND_IN_QUESTION: String = "Replace the stand-ins with real markers?"
@@ -108,6 +110,11 @@ static func set_move_marker(session: EditSession, file: String, wid: StringName,
 	r.edits.append(EditSession.Edit.make(file, _path(root, ["markers"] + path), _literal(before), _literal(frame)))
 	if stand_in:
 		r.edits.push_front(EditSession.Edit.make(file, _path(root, ["markers_stand_in"]), true, null))
+		# a Katana or bare-hands move on real markers plays at 1.0x, so its
+		# retime's speed goes with the stand-ins (milestone-1 task 19)
+		var speed: Variant = session.value(file, _path(root, ["speed"]), null if is_nan(entry.speed) else entry.speed)
+		if MoveClips.ONE_SPEED_WEAPONS.has(wid) and speed != null:
+			r.edits.push_front(EditSession.Edit.make(file, _path(root, ["speed"]), speed, null))
 	r.label = "%s %s to %s" % [id, name, _shown(frame)]
 	return r
 

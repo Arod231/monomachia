@@ -19,6 +19,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	for id: StringName in _saved:
+		Moves.KATANA.moves[id].real_markers = false
 		Moves.KATANA.moves[id].swing = _saved[id]
 	_saved.clear()
 	FrozenStateClips.restore()
@@ -137,6 +138,151 @@ func test_a_charge_holds_the_clip() -> void:
 		f.atk.frame = frame
 		shot = ClipDirector.step(shot, f, ctx)
 		assert_eq(shot.clip.time, t, "held at the charge's frame")
+
+
+# ------------------------------------------------------------------ at its own speed (milestone-1 task 19)
+
+## Right Cut's swing as a re-keyed move's: its markers real (no stand-in), so
+## its clip plays from its wind-up start (source frame 4) at 1.0x, whatever
+## the swing's speed and other marks say. Undone by the caller.
+static func _re_keyed(cut: AttackDef) -> void:
+	cut.real_markers = true
+	cut.swing.speed = 1.45
+	cut.swing.marks = PackedFloat64Array([4.0, 9.0, 10.5, 19.0])
+
+
+func test_a_move_with_real_markers_plays_its_clip_at_1x_of_the_worlds_time() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _ctx()
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	_re_keyed(cut)
+	var shot: ClipDirector.Shot = _next(W, ClipDirector.step(null, f, ctx), ctx, [SimHelpers.btn(Btn.LIGHT), SimHelpers.idle()] as Array[RawInput])
+	var seen: int = 0
+	while f.state == &"attack":
+		assert_eq([shot.drive, shot.clip.name], [ClipDirector.ATTACK, "HumanM/Clip_k_l1"])
+		assert_almost_eq(shot.clip.time, (4.0 + f.atk.frame / 2.0) / 30.0, 1e-9, "frame %d: 1.0x from the wind-up start" % f.atk.frame)
+		if f.atk.frame == 6:
+			# hit-stop holds every clip alike, and it goes on at 1.0x after
+			W.hitstop = 3
+			for i: int in 3:
+				assert_same(_next(W, shot, ctx), shot, "hit-stop holds it")
+			# slow motion steps the world less often: each step is still 1/60 s
+			W.request_slowmo(50, 0.3)
+		var before: float = shot.clip.time
+		shot = _next(W, shot, ctx)
+		if f.state == &"attack":
+			assert_almost_eq(shot.clip.time - before, 1.0 / 60.0, 1e-9, "a rules frame of clip each step")
+		seen += 1
+	cut.real_markers = false
+	assert_gt(seen, 20, "through the whole move")
+
+
+func test_a_stand_in_keeps_its_retime() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _ctx()
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	assert_false(cut.real_markers, "Right Cut is on stand-in markers until task 31")
+	cut.swing.speed = 1.45
+	cut.swing.marks = PackedFloat64Array([4.0, 9.0, 10.5, 19.0])
+	_poke(W, f, &"attack", &"k_l1", 6)
+	var t: ClipTiming = ClipDirector.timing_of(cut.swing)
+	assert_almost_eq(ClipDirector.step(null, f, ctx).clip.time, t.clip_time(6.0), 1e-9, "on the swing's speed and marks")
+
+
+func test_a_move_that_outlasts_its_clip_hands_on_and_never_freezes() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _ctx()
+	ctx.lengths["HumanM/Clip_k_l1"] = 0.2
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	_re_keyed(cut)
+	# 0.2 s is 6 source frames: from source frame 4, 4 rules frames of clip
+	for frame: int in [1, 4]:
+		_poke(W, f, &"attack", &"k_l1", frame)
+		assert_eq(ClipDirector.step(null, f, ctx).drive, ClipDirector.ATTACK, "frame %d: in the clip" % frame)
+	_poke(W, f, &"attack", &"k_l1", 5)
+	assert_null(ClipDirector.attack_clip(f, ctx, 5.0), "past its end: no clip held")
+	assert_eq(ClipDirector.step(null, f, ctx).drive, ClipDirector.LEGS, "handed on to the legs")
+	cut.real_markers = false
+
+
+func test_a_held_charge_plays_its_loop() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _ctx()
+	ctx.lengths["HumanM/Loop_A"] = 0.5
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	_re_keyed(cut)
+	cut.swing.loop = &"Loop_A"
+	var shot: ClipDirector.Shot = _next(W, ClipDirector.step(null, f, ctx), ctx, [SimHelpers.btn(Btn.LIGHT), SimHelpers.idle()] as Array[RawInput])
+	for i: int in 3:
+		shot = _next(W, shot, ctx)
+	var frame: int = f.atk.frame
+	var wound: float = shot.clip.time
+	f.atk.charging = true
+	for held: int in range(1, 50):
+		W.frame += 1
+		f.atk.frame = frame
+		f.atk.charge_frames = held
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq([shot.clip.name, shot.phase], ["HumanM/Loop_A", &"hold"], "held: the loop")
+		assert_almost_eq(shot.clip.time, fmod(held / 60.0, 0.5), 1e-9, "looped at 1.0 (held %d)" % held)
+		if held == 1:
+			assert_eq(shot.fade, StateClips.shared().fades[&"follow_up"], "faded into from the wound-up pose")
+			assert_almost_eq(shot.from.time, wound, 1e-9)
+	# let go: the attack's clip again, from its frame
+	f.atk.charging = false
+	W.frame += 1
+	f.atk.frame = frame + 1
+	shot = ClipDirector.step(shot, f, ctx)
+	assert_eq([shot.clip.name, shot.phase], ["HumanM/Clip_k_l1", &"swing"], "released")
+	assert_eq(shot.fade, StateClips.shared().fades[&"follow_up"], "faded out of the loop")
+	assert_almost_eq(shot.clip.time, (4.0 + (frame + 1) / 2.0) / 30.0, 1e-9)
+	cut.swing.loop = &""
+	cut.real_markers = false
+
+
+func test_a_state_clip_at_its_own_speed_loops_or_hands_on() -> void:
+	var ctx: ClipDirector.Context = _reaction_ctx()
+	var sc: StateClips = StateClips.shared()
+	sc.own_speed = {&"CombatDamage01": &"hand_on", &"Stun01": &"loop"}
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	# CombatDamage01 is 30 source frames: 60 rules frames at 1.0. A 14-frame
+	# hitstun plays it at 1.0, not sped up to fit; a 90-frame (heavy) one
+	# outlasts it and hands on
+	f.enter_hitstun(14)
+	f.sf = 10
+	assert_almost_eq(ClipDirector.reaction_clip(f, ctx, &"hitstun", 0).time, 10.0 / 60.0, 1e-9, "1.0, not fitted to the hitstun")
+	sc.hit_clips[1] = &"CombatDamage01"
+	f.enter_hitstun(90)
+	for sf: int in [30, 59]:
+		f.sf = sf
+		assert_almost_eq(ClipDirector.reaction_clip(f, ctx, &"hitstun", 0).time, sf / 60.0, 1e-9, "frame %d at 1.0" % sf)
+	f.sf = 61
+	assert_null(ClipDirector.reaction_clip(f, ctx, &"hitstun", 0), "past its end it hands on, never held")
+	# a looping clip loops
+	f.enter_stun(200, &"stagger")
+	f.sf = 170
+	assert_almost_eq(ClipDirector.reaction_clip(f, ctx, &"stun", 0).time, fmod(170.0 / 60.0, 80.0 / 30.0), 1e-9, "looped")
+	# a clip not on the list is fitted as before
+	f.set_state(&"blockstun", 16)
+	f.sf = 8
+	assert_almost_eq(ClipDirector.reaction_clip(f, ctx, &"blockstun", 0).time,
+		ClipDirector.fitted_time(8, 16, ctx.lengths["HumanM/Parry1H01_R_Hit"]), 1e-9, "fitted")
+
+
+func test_today_no_katana_or_bare_hands_move_has_real_markers_but_the_counter_lunges() -> void:
+	# the families' re-keys take them to 1.0x one by one (task 31's Right Cut first)
+	for w: WeaponDef in [Moves.KATANA, Moves.FISTS]:
+		for id: StringName in w.moves:
+			var def: AttackDef = w.moves[id]
+			if def.special == &"counterLunge":
+				assert_true(def.real_markers, "%s: its own clip's markers (P48)" % id)
+			elif FrameDataTable.shared().row(w.id, id).has("stand_in"):
+				assert_false(def.real_markers, "%s: a stand-in until its family re-keys it" % id)
 
 
 ## Pokes fighter `f` into a state for the director's next step.

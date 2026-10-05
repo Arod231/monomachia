@@ -438,3 +438,8 @@ func test_the_rogues_drift_and_a_flagged_move_plays_humanm() -> void:
 	var read: Swing = SwingFile.parse(SwingBake.file_text(SwingBake.guard_record((got[1] as ClipPoser).pose(0.0)), {"t_cut": record}),
 		_moves(r.timing), "rogue.json")[&"t_cut"]
 	assert_true(read.rogue_humanm, "the swing file carries the flag")
+	# a charge's loop (milestone-1 task 19) goes with the clips
+	assert_false(record.has("loop"), "no loop unless the move has one")
+	r.clips = [&"Cut"]
+	r.loop = &"Stance@0-20"
+	assert_eq(r.record()["loop"], "Stance@0-20", "the loop written with the clips")

@@ -36,7 +36,7 @@ const DEGREE_PLACES: int = 2
 ## The order a key's (or a guard pose's) fields are written in.
 const FIELD_ORDER: Array[String] = ["frame", "grip", "blade", "edge", "pole", "torso", "pelvis", "pelvis_shift", "ease"]
 ## A swing's fields after its tracks, in the order they are written.
-const EXTRA_FIELDS: Array[String] = ["clips", "speed", "marks", "fallback", "sheathed", "reach", "rogue_humanm"]
+const EXTRA_FIELDS: Array[String] = ["clips", "speed", "marks", "fallback", "sheathed", "loop", "reach", "rogue_humanm"]
 ## The longest reach correction (m): a move that needs more gets another
 ## clip or a lunge in the rules.
 const MAX_REACH: float = SwingFile.MAX_REACH
@@ -77,6 +77,8 @@ class Result:
 	## The attack frames the blade is in the saya (sheathed_frames()), first
 	## and last; empty for none.
 	var sheathed: PackedInt32Array = PackedInt32Array()
+	## The loop a held charge plays (Swing.loop); empty for none.
+	var loop: StringName = &""
 
 	## The swing as a swing file holds it: {"tracks": {part: {"baked": true,
 	## "keys": [...]}}, "reach": [...], "rogue_humanm": true}, rounded to the
@@ -99,6 +101,8 @@ class Result:
 			swing["marks"] = timing.all_marks()
 		if fallback != &"":
 			swing["fallback"] = String(fallback)
+		if loop != &"":
+			swing["loop"] = String(loop)
 		if sheathed.size() == 2:
 			swing["sheathed"] = Array(sheathed)
 		if V3.length(reach_offset) > 0.0:

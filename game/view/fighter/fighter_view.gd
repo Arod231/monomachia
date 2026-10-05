@@ -318,8 +318,8 @@ static func edge_for(blade: Vector3, sweep: Vector3) -> Vector3:
 # ------------------------------------------------------------------ posing
 
 ## Hands the director's clips to the legs' tree: the driving clip shown
-## alpha of the way from the frame before (held while charging), over the
-## clip it fades in from.
+## alpha of the way from the frame before (held while charging, but for a
+## charge's loop, unless it just came round), over the clip it fades in from.
 func _show_authored(f: Fighter, alpha: float) -> void:
 	var a: String = ""
 	var a_time: float = 0.0
@@ -327,7 +327,9 @@ func _show_authored(f: Fighter, alpha: float) -> void:
 		a = shot.clip.name
 		a_time = shot.clip.time
 		var before: ClipDirector.Clip = shot.clip_before
-		if before != null and before.name == a and not (f.atk != null and f.atk.charging):
+		var looping: bool = shot.phase == &"hold"
+		var held: bool = f.atk != null and f.atk.charging and not looping
+		if before != null and before.name == a and not held and not (looping and before.time > a_time):
 			a_time = lerpf(before.time, a_time, alpha)
 	var b: String = shot.from.name if shot.from != null else ""
 	var b_time: float = shot.from.time if shot.from != null else 0.0

@@ -1,6 +1,6 @@
 # Spec: Milestone 1, the Hunter with the Katana and bare hands at final quality
 
-Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · progress: tasks 2 (the private asset repository) and 3 (the mood board, approved with For Honor's camera framing) done Oct 4; the groundwork (tasks 4–11, 14, 113, 134), the Blender export (12) the clip import (13) the frame-data generator (15), the committed frame-data table (16), every reader reading it (17) and the band tables with their tests (18) done Oct 5 · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
+Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · progress: tasks 2 (the private asset repository) and 3 (the mood board, approved with For Honor's camera framing) done Oct 4; the groundwork (tasks 4–11, 14, 113, 134), the Blender export (12) the clip import (13) the frame-data generator (15), the committed frame-data table (16), every reader reading it (17) and the band tables with their tests (18) done Oct 5; the clips at their own speed (19) built Oct 5, playing each move at 1.0× as its family re-keys it, follow-ups and dodge cancels at the table's markers (20) done Oct 5, and travel from the clips (21) built Oct 5, moving each move by its clip's travel as its family re-keys it · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
 
 Read with: `docs/design.md` (section 1, Order of work, and every "(Oct 4)" line), [ADR 0001](../adr/0001-animation-leads-realistic-look.md), the plan `docs/plans/milestone-1.md`, and the roadmap `docs/plans/roadmap.md`.
 
@@ -89,10 +89,10 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 43. As a player, I want the roll to keep 16 frames (12 invincible) plus 9 of recovery over 2.8 m, and the backstep 14 (10) plus 9 over 2.1 m, so that dodging still works as before.
 44. As a developer, I want a test that pins the frozen protected timings and checks the free-frame rule and the earliest branch points across every follow-up pair in the table, so that changing one needs a deliberate edit the owner approves.
 45. As the owner, I want follow-ups and dodge cancels to open at markers on each clip, where the body can plausibly break off, so that a follow-up starts from its branch point rather than waiting for the move to end.
-46. As a player, I want every follow-up to stay optional, so that I can stop after any hit and recover normally.
+46. [x] As a player, I want every follow-up to stay optional, so that I can stop after any hit and recover normally. (Ticked with task 20.)
 47. As a player, I want strings to flow, each swing continuing from where the last one ended, and two lights to flow into a heavy as the third hit, so that a string reads as one motion.
 48. As a player, I want the jump arcs to stay rules numbers and the jump clips made to match them, so that clearing a sweep always works the same way.
-49. As a player, I want the rules to keep running at a fixed 60 steps a second, with faster displays showing frames blended between steps, so that the fight is the same on every screen.
+49. [x] As a player, I want the rules to keep running at a fixed 60 steps a second, with faster displays showing frames blended between steps, so that the fight is the same on every screen. (Ticked with task 19.)
 50. As the owner, I want the Katana and bare hands rebalanced around their clips as each family lands, with the old "within 5 points of the baseline" rule retired, so that balance follows the new pace.
 
 ### The Katana
@@ -264,8 +264,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### The computer opponent, Training, Watch and Versus
 
-187. As a player, I want the computer to read the generated frame-data table, so that its defence follows the clips as they're re-animated. **(P17, confirmed Oct 4)**
-188. As a player, I want the computer to time its defence from each swing's first touch and ignore moves that can't reach, so that it defends fairly at the new pace.
+187. [x] As a player, I want the computer to read the generated frame-data table, so that its defence follows the clips as they're re-animated. **(P17, confirmed Oct 4)** (Ticked with task 24.)
+188. [x] As a player, I want the computer to time its defence from each swing's first touch and ignore moves that can't reach, so that it defends fairly at the new pace. (Ticked with task 24.)
 189. As a Training player, I want the dummy to perform every milestone-1 unblockable (Piercing Thrust and Swallow Sweep) through one shared routes table, and the Katana dummy's heavies to alternate both Iai variants, so that I can drill every counter the milestone has.
 190. As a developer, I want counterlab to show the stomp and the leap reached, with the evade waiting for milestone 2, so that every reachable counter is proven.
 191. As a player, I want the computer to use and answer the Iai (quick draws, walking in sheathed, both variants, the follow-ups, dodging out when attacked; against a sheathed opponent, keeping out of range, punishing or parrying the release), landing it from the Iai's distance band, so that it plays the Katana well.

@@ -36,8 +36,9 @@ extends RefCounted
 ## "clips" (clip-manifest ids), "speed", "marks" (the four markers, source
 ## frames, a fifth for a held clip's hold) and "fallback" (a CC0 clip; see
 ## Swing.clips), and "sheathed" (the first and last attack frames the blade
-## is in the saya, before the active frames; Swing.sheathed). The bake writes these files with a stable key order and fixed
-## decimals.
+## is in the saya, before the active frames; Swing.sheathed), and "loop"
+## (the clip a held charge loops; Swing.loop, milestone-1 task 19). The bake
+## writes these files with a stable key order and fixed decimals.
 
 const DIR: String = "res://sim/moves/swings/"
 
@@ -47,7 +48,7 @@ const LIMB_FIELDS: Dictionary[String, bool] = {"grip": true, "blade": true, "edg
 const BODY_FIELDS: Dictionary[String, bool] = {"torso": true, "pelvis": true, "pelvis_shift": false}
 const KEY_FIELDS: Dictionary[String, bool] = {"frame": true, "ease": false}
 const FILE_FIELDS: Array[String] = ["guard", "swings"]
-const SWING_FIELDS: Array[String] = ["tracks", "reach", "rogue_humanm", "clips", "speed", "marks", "fallback", "sheathed"]
+const SWING_FIELDS: Array[String] = ["tracks", "reach", "rogue_humanm", "clips", "speed", "marks", "fallback", "sheathed", "loop"]
 ## The longest reach correction a swing may carry (m; SwingBake).
 const MAX_REACH: float = 0.15
 ## The fields of a baked track: true when required.
@@ -187,6 +188,11 @@ static func _swing(record: Variant, move: AttackDef, where: String, guard: Dicti
 			errors.append("%s: sheathed must be two attack frames, the first no later than the second, both before the active frames" % where)
 		else:
 			swing.sheathed = PackedInt32Array([int(sh[0]), int(sh[1])])
+	if d.has("loop"):
+		if not d["loop"] is String:
+			errors.append("%s: loop must be a clip name" % where)
+		else:
+			swing.loop = StringName(d["loop"])
 	if d.has("rogue_humanm"):
 		if typeof(d["rogue_humanm"]) != TYPE_BOOL:
 			errors.append("%s: rogue_humanm must be true or false" % where)

@@ -23,9 +23,9 @@ extends VBoxContainer
 ##
 ## A move's chain (milestone-1 task 27) is edited in the Chain panel: each
 ## part's clip and source-frame range, moved up or down, removed or added
-## (ChainEdits); today's holds and the move's speed show read-only, for task
-## 19 to remove. The fighter plays the pending chain at once. Save (the
-## button or Ctrl+S) writes the pending edits and regenerates the frame-data
+## (ChainEdits); today's holds and the move's speed show read-only, going
+## with the stand-ins (milestone-1 task 19). The fighter plays the pending
+## chain at once. Save (the button or Ctrl+S) writes the pending edits and regenerates the frame-data
 ## table (StudioSaver), and the side panel shows its report: what was saved
 ## or refused, each move whose frame data changed, each one out of band, and
 ## that a soak is due.
@@ -362,7 +362,7 @@ func _show_chain() -> void:
 	_speed_label.visible = move_entry != null and not is_nan(move_entry.speed)
 	if move_entry == null:
 		return
-	_speed_label.text = "speed %s (task 19 removes it)" % move_entry.speed
+	_speed_label.text = "speed %s (goes with the stand-ins)" % move_entry.speed
 	var rows: Array[ChainEdits.Row] = chain_rows()
 	for i: int in rows.size():
 		var row: ChainEdits.Row = rows[i]
@@ -371,7 +371,7 @@ func _show_chain() -> void:
 		_chain_box.add_child(line)
 		if row.is_held():
 			var held: Label = Label.new()
-			held.text = "%s · hold (task 19)" % row.held
+			held.text = "%s · hold (goes with the stand-ins)" % row.held
 			held.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			line.add_child(held)
 		else:

@@ -19,13 +19,23 @@ extends RefCounted
 ##    "knockdown": {"clips": {"fall": ...}, "fallbacks": {"fall": ...}, "standup_from": 6},
 ##    "ko": {"clips": {"front": [light, heavy], "behind": [light, heavy]}, "fallback": "Death01"}}
 ##
-## Every group and field is needed, and a field it doesn't know is an error,
-## as in MoveClips. An "about" field may say what the file is. Weapon-keyed
+## Every group and field is needed, but "own_speed", and a field it doesn't
+## know is an error, as in MoveClips.
+##
+## "own_speed" (milestone-1 task 19) lists the clips that play at 1.0 from
+## their state's start instead of fitted to it, each "loop" (looping once
+## past its end) or "hand_on" (handing on to what comes next): the families
+## add each clip they re-key to fit its state (families 2 and 4); none yet,
+## so every state clip is still fitted (ClipDirector.fitted_time()). An "about" field may say what the file is. Weapon-keyed
 ## tables may list any weapon but must have the bare hands' ("fists"), which
 ## stands in for a weapon without an entry.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "hit", "guard", "stun", "rebound", "carry", "ults", "keyed", "knockdown", "ko"]
+## The groups a file may leave out.
+const OPTIONAL_GROUPS: Array[String] = ["own_speed"]
+## What a clip at its own speed does past its end.
+const OWN_SPEED_ENDS: Array[String] = ["loop", "hand_on"]
 const KNOCKDOWN_PHASES: Array[String] = ["fall", "ground", "standUp"]
 const FADE_NAMES: Array[String] = ["attack", "follow_up", "dodge_cancel", "hitstun", "locomotion", "stance", "state", "guard", "rebound"]
 const ULT_KINDS: Array[String] = ["moonsplitter", "impaler", "tempest"]
@@ -33,6 +43,9 @@ const MOONSPLITTER_FIELDS: Array[String] = ["clips", "fallback", "windup", "rele
 const IMPALER_FIELDS: Array[String] = ["clip", "drawn", "out", "recover", "recover_frames", "fallback", "aim", "dash"]
 const TEMPEST_FIELDS: Array[String] = ["spin", "slashes", "flash", "final", "final_from", "final_frames", "recover_frames", "fallback"]
 
+## The clips that play at their own speed (1.0), by clip id: &"loop" or
+## &"hand_on" past their end.
+var own_speed: Dictionary[StringName, StringName] = {}
 ## The crossfades' lengths, in rules frames, by what changes (FADE_NAMES).
 var fades: Dictionary[StringName, int] = {}
 ## The free state's idle per weapon (a WeaponDef id; bare hands are "fists"),
@@ -190,6 +203,17 @@ static func read(path: String = PATH) -> StateClips:
 	var deaths: Dictionary = t._object(g.get("clips"), "ko.clips", ["front", "behind"])
 	t.ko_clips = [t._ids(deaths, "ko.clips", "front", 2), t._ids(deaths, "ko.clips", "behind", 2)]
 	t.ko_fallback = t._id(g, "ko", "fallback")
+
+	if root.has("own_speed"):
+		var own: Variant = root["own_speed"]
+		if not own is Dictionary:
+			t.errors.append("own_speed: must be an object")
+		else:
+			for id: Variant in own:
+				if not OWN_SPEED_ENDS.has(str(own[id])):
+					t.errors.append("own_speed.%s: must be loop or hand_on" % id)
+				else:
+					t.own_speed[StringName(str(id))] = StringName(str(own[id]))
 	return t
 
 
@@ -218,7 +242,7 @@ func _object(v: Variant, at: String, fields: Array[String]) -> Dictionary:
 		return {}
 	var d: Dictionary = v
 	for key: Variant in d:
-		if not (at == "" and str(key) == "about") and not fields.has(str(key)):
+		if not (at == "" and (str(key) == "about" or OPTIONAL_GROUPS.has(str(key)))) and not fields.has(str(key)):
 			errors.append("%s: unknown field %s" % [where, key])
 	for key: String in fields:
 		if not d.has(key):
