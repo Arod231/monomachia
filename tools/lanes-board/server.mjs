@@ -32,10 +32,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
-import { contextTracker } from './sessions.mjs';
+import { awayOf, contextTracker, remoteLinkOf } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
 import { hooksStatusOf } from './hooks.mjs';
 import { bellApi } from './bell-api.mjs';
+import { pushApi } from './push-api.mjs';
+import { ghRunner, mergeApi } from './merge-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
@@ -237,7 +239,8 @@ async function appSessions() {
           const r = JSON.parse(await readFile(p, 'utf8'));
           out.push({ id: r.sessionId, cli: r.cliSessionId, title: r.title ?? '', archived: !!r.isArchived,
             dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0,
-            summary: r.postTurnSummary ?? null }); // the app's turn summary (sessions.mjs turnSummary)
+            summary: r.postTurnSummary ?? null, // the app's turn summary (sessions.mjs turnSummary)
+            remote: remoteLinkOf(r) }); // its Remote Control address, if it has one
         } catch { /* being written */ }
       }
     }
@@ -324,14 +327,16 @@ async function linkSessions(sessions, transcripts) {
   return linkLaunches(launches, candidates, prompts, now);
 }
 
+// gh, or LANES_GH (a script run with node, standing in for gh in tests).
+const gh = ghRunner();
 let prs = [];
 let prsAt = 0;
 let prsBusy = false;
 function refreshPrs() {
   if (prsBusy || Date.now() - prsAt < 60_000) return;
   prsBusy = true;
-  run('gh', ['pr', 'list', '--state', 'open', '--json', 'number,title,headRefName,baseRefName,isDraft,url'], { cwd: REPO, windowsHide: true, timeout: 20_000 })
-    .then(({ stdout }) => { prs = JSON.parse(stdout); }, () => {})
+  gh(['pr', 'list', '--state', 'open', '--json', 'number,title,headRefName,baseRefName,isDraft,url'], { cwd: REPO, timeout: 20_000 })
+    .then((stdout) => { prs = JSON.parse(stdout); }, () => {})
     .finally(() => { prsAt = Date.now(); prsBusy = false; });
 }
 
@@ -691,11 +696,26 @@ const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.cla
 async function hooksState() {
   return hooksStatusOf({ claudeDir: CLAUDE_DIR, boardDir: HERE, read: (file) => { try { return readFileSync(file, 'utf8'); } catch { return null; } } });
 }
+// A branch's open pull request, from the list refreshed each minute (refreshPrs).
+function prOfBranch(branch) {
+  const p = prs.find((x) => x.headRefName === branch);
+  return p ? { number: p.number, title: p.title, url: p.url, base: p.baseRefName, draft: !!p.isDraft } : null;
+}
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
-  hooks: hooksState, sweepMs: 5000 });
+  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch });
+// Merge from a session's page (merge-api.mjs), and "ready to merge" for the
+// bell, looked for every minute (LANES_MERGE_POLL_MS overrides it, for tests).
+const mergeRoutes = mergeApi({ repoDir: REPO, relay: RELAY, gh, prOf: prOfBranch, sessions: sessionRoutes,
+  stateFile: path.join(STATE, 'merge-ready.json'), pollMs: Number(process.env.LANES_MERGE_POLL_MS) || 60_000 });
+// Lock-screen notifications (push-api.mjs): the bell's new records, pushed while
+// Away is on to every phone that turned them on. LANES_PUSH_INSECURE=1 lets a
+// test's stand-in push service on http through.
+const pushRoutes = pushApi({ state: STATE, insecure: !!process.env.LANES_PUSH_INSECURE,
+  away: async () => awayOf(JSON.parse(await readFile(path.join(RELAY, 'away.json'), 'utf8').catch(() => 'null'))),
+  httpsUrl: () => { const n = [...hostNames].find((h) => h.endsWith('.ts.net')); return n ? `https://${n}` : null; } });
 // The bell: notifications from held items and the relay hook's events (bell-api.mjs).
 const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
-  titlesOf: sessionRoutes.titlesOf, sweepMs: 5000 });
+  titlesOf: sessionRoutes.titlesOf, onNew: pushRoutes.notify, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
@@ -788,7 +808,9 @@ async function handle(req, res) {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if ((result = await (bellRoutes.post(req.url, body) ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
+      } else if ((result = await (bellRoutes.post(req.url, body) ?? mergeRoutes.post(req.url, body)
+        ?? pushRoutes.post(req.url, body, { origin: req.headers.origin, ua: req.headers['user-agent'] })
+        ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
       return;
@@ -796,7 +818,7 @@ async function handle(req, res) {
     if (req.url === '/brain') { res.writeHead(302, { location: '/brain/' }); res.end(); return; }
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
-    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? sessionRoutes.get(url);
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.

@@ -108,6 +108,10 @@ h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .brec .bd { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brec .k { font-size: 12px; color: var(--muted); margin-top: 3px; }
 .bempty { padding: 16px; font-size: 15px; color: var(--muted); }
+.pushbox { padding: 12px 14px; border-bottom: 0.5px solid var(--border-strong); font-size: 14px; color: var(--muted); line-height: 1.5; }
+.pushbox b { color: var(--text); font-weight: 600; word-break: break-all; }
+.pushbox .btn { margin-right: 6px; }
+.pusherr { margin-top: 6px; color: var(--owner); }
 .pcard.flash, .qgroup.flash { outline: 3px solid var(--owner); outline-offset: 2px; }
 pre.code { margin: 0; padding: 9px 11px; background: var(--surface); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 pre.code.pv { margin-top: 6px; font-size: 12px; background: var(--page); text-align: left; }
@@ -252,11 +256,55 @@ details.legend span { display: inline-flex; align-items: center; gap: 7px; }
 .phase .list { margin-top: 8px; border-radius: 10px; }
 .phase .list li { padding: 10px 12px; font-size: 14px; }
 
-/* ---------- sessions (lanes tab) ---------- */
-.sess li { align-items: flex-start; }
+/* ---------- the Sessions tab and the session page ---------- */
+.sess li.scard { display: block; }
 .sess .t1 { display: flex; gap: 8px; align-items: center; }
 .sess .t1 b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sess .dot { margin-top: 8px; }
+.sess .t2 { display: flex; gap: 8px; align-items: center; margin-top: 3px; }
+.sess .t2 .k { margin-top: 0; }
+.sess .sum b { color: var(--text); font-weight: 600; }
+.state { display: inline-block; font-size: 12px; border-radius: 6px; padding: 0 7px; background: var(--surface); color: var(--text-2); white-space: nowrap; animation: none; }
+.state.waiting, .state.asked { background: var(--owner); color: #0b0b0b; }
+.state.working { background: var(--ready); color: #fff; }
+.state.stopping { background: var(--working); color: #fff; }
+.back { border: 0; background: none; color: var(--text-2); font-size: 16px; padding: 4px 0 10px; }
+.shead h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; overflow-wrap: anywhere; }
+.shead .t2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.shead .ctx { margin-top: 8px; font-size: 14px; color: var(--muted); }
+.facts { margin-top: 10px; display: grid; gap: 4px; font-size: 14px; color: var(--text-2); overflow-wrap: anywhere; }
+.fact .fk { color: var(--muted); margin-right: 4px; }
+.fact.sum b { color: var(--text); }
+.fact code { font: 13px ui-monospace, Menlo, monospace; }
+.cmds { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.cmds .btn.danger { background: transparent; color: var(--critical); }
+#sPend { display: grid; gap: 10px; margin-top: 12px; }
+.mergebox { margin-top: 10px; background: var(--card); border: 0.5px solid var(--border-strong); border-radius: 12px; padding: 12px 14px; font-size: 15px; }
+.mergebox.ready, .mergebox:has(.ready) { border-color: var(--good); }
+.mergebox p { margin: 0 0 8px; }
+.mergebox ul { margin: 0 0 10px; padding-left: 20px; color: var(--text-2); }
+.cmds a.btn, .mergebox a.btn { text-decoration: none; display: inline-flex; align-items: center; }
+.mergebox code { font: 13px ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+#sPend:empty { display: none; }
+.slog { margin-top: 6px; }
+.slog .more { text-align: center; margin-bottom: 8px; }
+.msg { margin: 10px 0; font-size: 15px; }
+.msg .who { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.msg.u .tx { background: var(--surface); border-radius: 12px; padding: 8px 11px; display: inline-block; max-width: 100%; }
+.msg .tx { overflow-wrap: anywhere; }
+.msg .tx pre { margin: 6px 0; padding: 9px 11px; background: var(--surface); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-x: auto; }
+.msg .tx code { font: 13px ui-monospace, Menlo, monospace; background: var(--surface); border-radius: 4px; padding: 0 4px; }
+.msg .tx a { color: inherit; }
+details.tl { margin: 4px 0; font-size: 14px; }
+details.tl summary { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; list-style-position: inside; }
+details.tl summary .tn { font-weight: 600; color: var(--text); }
+details.tl.err summary .tn { color: var(--critical); }
+details.tl .run { color: var(--working); }
+details.tl pre { margin: 4px 0; }
+.sys { font-size: 13px; color: var(--muted); margin: 6px 0; font-style: italic; }
+.scomp { position: sticky; bottom: calc(var(--tabbar) + var(--bottom)); background: var(--page); padding: 10px 0 6px; margin-top: 8px; }
+.scomp textarea { width: 100%; font: inherit; font-size: 16px; border: 0.5px solid var(--border-strong); border-radius: 10px; padding: 9px 11px; background: var(--card); color: var(--text); }
+.scomp .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.scomp .row .k { flex: 1; font-size: 13px; color: var(--muted); }
 .pill { display: inline-block; font-size: 12px; border-radius: 6px; padding: 0 7px; margin-top: 4px; background: var(--owner); color: #0b0b0b; }
 
 /* ---------- tab bar ---------- */
@@ -326,8 +374,19 @@ nav.tabs .count:empty { display: none; }
     </div></details>
     <p class="qnote"><a href="/brain/">Second brain</a> · <a href="/desktop">Desktop view</a></p>
   </section>
-  <section class="page" id="p-lanes" hidden>
+  <section class="page" id="p-sessions" hidden>
     <div class="lanes" id="lanes"></div>
+  </section>
+  <section class="page" id="p-session" hidden>
+    <button class="back" id="sBack">‹ Sessions</button>
+    <div class="shead" id="sHead"><div class="empty">Loading…</div></div>
+    <div class="mergebox" id="sMerge" hidden></div>
+    <div class="mergebox" id="sRemote" hidden></div>
+    <div id="sPend"></div>
+    <div class="sh"><h2>Conversation</h2></div>
+    <div class="slog" id="sLog"></div>
+    <div class="scomp"><textarea id="sText" rows="2" placeholder="Reply to this session"></textarea>
+      <div class="row"><span class="k" id="sNote"></span><button class="btn primary" id="sSend">Send</button></div></div>
   </section>
   <section class="page" id="p-questions" hidden>
     <div id="qList"><div class="empty">Loading…</div></div>
@@ -342,7 +401,7 @@ nav.tabs .count:empty { display: none; }
 
 <nav class="tabs" role="tablist">
   <button role="tab" data-tab="overview" aria-selected="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Overview<span class="count" id="cWait"></span></button>
-  <button role="tab" data-tab="lanes" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><circle cx="6" cy="8" r="1.6" fill="currentColor"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/><circle cx="18" cy="10" r="1.6" fill="currentColor"/></svg>Lanes</button>
+  <button role="tab" data-tab="sessions" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M7.5 9l2.5 2-2.5 2M12 13h4M9 20h6"/></svg>Sessions<span class="count" id="cSess"></span></button>
   <button role="tab" data-tab="questions" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v10H10l-4.5 4v-4H4z"/><path d="M10 9.2a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4"/><circle cx="12" cy="13.9" r=".5" fill="currentColor"/></svg>Questions<span class="count" id="cQ"></span></button>
   <button role="tab" data-tab="plans" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Plans</button>
   <button role="tab" data-tab="queue" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 12.5 12 4l7 8.5M12 4v16"/></svg>Launch<span class="count" id="cQueue"></span></button>
@@ -367,7 +426,7 @@ const $ = (id) => document.getElementById(id);
 // The page re-renders on every poll; replacing unchanged HTML would swallow a tap
 // that lands mid-swap, so these containers only take new HTML when it differs.
 const innerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-for (const id of ['kpis', 'road', 'waiting', 'atWork', 'laneSeg', 'lanes', 'planSeg', 'plan', 'queue', 'sheet']) {
+for (const id of ['kpis', 'road', 'waiting', 'atWork', 'laneSeg', 'lanes', 'planSeg', 'plan', 'queue', 'sheet', 'sHead', 'sLog']) {
   Object.defineProperty($(id), 'innerHTML', {
     get() { return innerHTML.get.call(this); },
     set(v) { if (this._html !== v) { this._html = v; innerHTML.set.call(this, v); } },
@@ -380,12 +439,13 @@ const store = {
 };
 const LABEL = { done: 'Done', working: 'In progress', launched: 'Launched, its session is starting', ready: 'Ready to start', owner: 'Waits on your OK', blocked: 'Blocked', retired: 'Retired', moved: 'Moved' };
 const STARTABLE = new Set(['ready', 'blocked', 'owner']);
-const TITLES = { overview: 'Overview', lanes: 'Lanes', questions: 'Questions', plans: 'Plans', queue: 'Launch queue' };
+const TITLES = { overview: 'Overview', sessions: 'Sessions', questions: 'Questions', plans: 'Plans', queue: 'Launch queue' };
 
 let data = null, lastOk = 0;
 let tab = store.get('m-tab', 'overview');
+if (tab === 'lanes') tab = 'sessions'; // the Lanes tab became Sessions (PM task 12)
 let planKey = store.get('m-plan', 'gr');
-let laneFilter = store.get('m-lanes', 'work');
+let laneFilter = store.get('m-sessions', 'sessions');
 let hideDone = store.get('m-hidedone', true);
 let queue = store.get('m-queue', []);
 const saveQueue = () => store.set('m-queue', queue);
@@ -423,6 +483,7 @@ $('toast').addEventListener('click', () => $('toast').classList.remove('on'));
 // ---------- tabs ----------
 function setTab(t) {
   tab = t; store.set('m-tab', t);
+  if (openId) { openId = null; if (history.state?.session) history.replaceState(null, '', '/m'); }
   for (const b of document.querySelectorAll('nav.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === t));
   for (const p of document.querySelectorAll('.page')) p.hidden = p.id !== `p-${t}`;
   $('title').textContent = TITLES[t];
@@ -481,7 +542,7 @@ function kpisHtml(waits) {
     : `<div class="kpi"><div class="l">Milestone 1</div><div class="v"><small>not written</small></div><div class="s">plan not written yet</div></div>`;
   return cur + m1
     + `<div class="kpi"><div class="l">Ready now</div><div class="v">${k.readyRefs.length}</div><div class="s">in the current phase</div></div>
-    <button class="kpi" data-goto="lanes"><div class="l">Active lanes</div><div class="v">${k.activeLanes} <small>${k.onTask} on a task</small></div><div class="s">session in the last 3 min</div></button>
+    <button class="kpi" data-goto="sessions"><div class="l">Active lanes</div><div class="v">${k.activeLanes} <small>${k.onTask} on a task</small></div><div class="s">session in the last 3 min</div></button>
     <button class="kpi ${waits.length ? 'alert' : ''}" data-goto="questions"><div class="l">Waiting on you</div><div class="v">${waits.length}</div><div class="s">questions, gates, PRs</div></button>`;
 }
 // The phase track condensed: a step per phase, then the current phase(s) with
@@ -560,17 +621,25 @@ function laneCard(l) {
     ${l.pr ? `<div class="meta"><a href="${esc(l.pr.url)}" target="_blank" rel="noopener">PR #${l.pr.number}</a> into ${esc(l.pr.base)}${l.pr.draft ? ' (draft)' : ''}</div>` : ''}
   </div>`;
 }
-function renderLanes() {
-  const live = (l) => l.activity !== 'idle' || l.dirty || l.merging || l.ahead > 0 || l.main;
+// A session's worktree: the lane whose folder holds its own, the deepest one
+// (the main checkout holds every worktree under .claude/worktrees).
+const normPath = (p) => String(p ?? '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+function laneOf(cwd) {
+  const c = normPath(cwd);
+  if (!c || !data?.lanes) return null;
+  return data.lanes.filter((l) => { const p = normPath(l.path); return c === p || c.startsWith(`${p}/`); })
+    .sort((a, b) => b.path.length - a.path.length)[0] ?? null;
+}
+function renderSessions() {
   const rank = (a) => ['active', 'recent', 'idle'].indexOf(a.activity);
   const order = (a, b) => (rank(a) - rank(b)) || ((b.session ?? b.last.time * 1000) - (a.session ?? a.last.time * 1000));
-  const work = data.lanes.filter(live).sort(order);
-  const parked = data.lanes.filter((l) => !live(l)).sort(order);
-  $('laneSeg').innerHTML = `<button data-lanes="work" aria-pressed="${laneFilter === 'work'}">At work · ${work.length}</button><button data-lanes="parked" aria-pressed="${laneFilter === 'parked'}">Parked · ${parked.length}</button>`
-    + `<button data-lanes="sessions" aria-pressed="${laneFilter === 'sessions'}">Sessions${sessionList ? ` · ${sessionList.length}` : ''}</button>`;
+  const used = new Set((sessionList ?? []).map((x) => laneOf(x.cwd)?.path).filter(Boolean));
+  const trees = data.lanes.filter((l) => !used.has(l.path)).sort(order);
+  if (laneFilter !== 'worktrees') laneFilter = 'sessions';
+  $('laneSeg').innerHTML = `<button data-lanes="sessions" aria-pressed="${laneFilter === 'sessions'}">Sessions${sessionList ? ` · ${sessionList.length}` : ''}</button>`
+    + `<button data-lanes="worktrees" aria-pressed="${laneFilter === 'worktrees'}">Worktrees · ${trees.length}</button>`;
   if (laneFilter === 'sessions') { $('lanes').innerHTML = sessionsHtml(); return; }
-  const list = laneFilter === 'parked' ? parked : work;
-  $('lanes').innerHTML = list.map(laneCard).join('') || `<div class="empty">${laneFilter === 'parked' ? 'No parked worktrees.' : 'No lanes at work.'}</div>`;
+  $('lanes').innerHTML = trees.map(laneCard).join('') || '<div class="empty">Every worktree has a session.</div>';
 }
 
 // ---------- sessions ----------
@@ -578,29 +647,144 @@ function renderLanes() {
 // gauge; their questions are answered in the app.
 let sessionList = null;
 let sessionsTimer = 0;
+// Each session's card: its state, the app's turn summary, its gauge and task.
+// A tap opens its page.
 function sessionsHtml() {
   if (!sessionList || !window.S) return '<div class="empty">Loading sessions…</div>';
   if (!sessionList.length) return '<div class="empty">No sessions in the last three days.</div>';
-  return `<ul class="list sess">${sessionList.map((s) => {
-    const needs = S.needsLabel(s);
-    return `<li><i class="dot ${s.active ? 'active' : 'recent'}"></i><span class="body"><span class="t1"><b>${esc(s.title)}</b>${U.gaugeHtml(s.context, { live: s.active })}</span>
-      <span class="k">${esc(S.folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</span>${needs ? `<span class="pill">${needs}</span>` : ''}</span>
-      ${needs && s.app ? `<button class="btn small" data-open="${esc(s.app)}">Open on PC</button>` : ''}</li>`;
-  }).join('')}</ul>`;
+  return `<ul class="list sess">${sessionList.map((s) => S.sessionCardHtml(s, { gauge: (c, live) => U.gaugeHtml(c, { live }) })).join('')}</ul>`;
 }
 async function pollSessions() {
   clearTimeout(sessionsTimer);
-  if (tab !== 'lanes' || laneFilter !== 'sessions' || document.hidden) return;
+  if (document.hidden) return;
   try {
     const d = await (await fetch('/sessions', { cache: 'no-store' })).json();
     if (d.sessions) { sessionList = d.sessions; render(); }
   } catch { /* the stamp shows the server's state */ }
-  sessionsTimer = setTimeout(pollSessions, 6000);
+  sessionsTimer = setTimeout(pollSessions, tab === 'sessions' && !openId ? 6000 : 15000);
 }
 $('laneSeg').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-lanes]');
-  if (b) { laneFilter = b.dataset.lanes; store.set('m-lanes', laneFilter); render(); pollSessions(); }
+  if (b) { laneFilter = b.dataset.lanes; store.set('m-sessions', laneFilter); render(); pollSessions(); }
 });
+
+// ---------- the session page ----------
+// /session?id= (sessions-api.mjs): its state, turn summary, gauge, branch,
+// task and pull request, the command bar, what it holds for you, and the
+// conversation with a reply box. Opened from a card or a notification, with
+// its own history entry so the back gesture returns to the list.
+let openId = null;
+let merge = null; // the Merge panel (sessions-ui.mjs mountMerge)
+let remote = null; // Compact and Open in the Claude app (sessions-ui.mjs mountRemote)
+let detail = null;
+let detailLimit = 150;
+let detailTimer = 0;
+let sSig = {};
+const openTools = new Set();
+function openSession(id, push = true) {
+  if (openId !== id) { detail = null; detailLimit = 150; sSig = {}; openTools.clear(); $('sText').value = ''; $('sNote').textContent = ''; merge?.hide(); remote?.hide(); }
+  if (tab !== 'sessions') { tab = 'sessions'; store.set('m-tab', tab); }
+  openId = id;
+  if (push && history.state?.session !== id) history.pushState({ session: id }, '', `/m#session=${encodeURIComponent(id)}`);
+  for (const b of document.querySelectorAll('nav.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === 'sessions'));
+  for (const p of document.querySelectorAll('.page')) p.hidden = p.id !== 'p-session';
+  $('laneSeg').hidden = true;
+  $('title').textContent = 'Session';
+  window.scrollTo(0, 0);
+  renderSession();
+  pollDetail();
+}
+function closeSession() {
+  if (history.state?.session) history.back(); else setTab('sessions');
+}
+window.addEventListener('popstate', (e) => {
+  if (e.state?.session) openSession(e.state.session, false);
+  else if (openId) setTab('sessions');
+});
+async function pollDetail() {
+  clearTimeout(detailTimer);
+  if (!openId) return;
+  const id = openId;
+  try {
+    const d = await (await fetch(`/session?id=${encodeURIComponent(id)}&limit=${detailLimit}`, { cache: 'no-store' })).json();
+    if (id === openId) {
+      if (d.id === id) { detail = d; renderSession(); }
+      else if (d.error) $('sHead').innerHTML = `<div class="empty">${esc(d.error)}</div>`;
+    }
+  } catch { /* the stamp shows the server's state */ }
+  // No polling while the phone is locked or the app is in the background.
+  if (id === openId && !document.hidden) detailTimer = setTimeout(pollDetail, 3000);
+}
+function renderSession() {
+  const d = detail;
+  if (!openId || !window.S || !window.U) return;
+  if (!d) {
+    const s = sessionList?.find((x) => x.id === openId);
+    $('sHead').innerHTML = `<h2>${esc(s?.title ?? 'Loading…')}</h2>`;
+    return;
+  }
+  const lane = laneOf(d.cwd);
+  const head = `<h2>${esc(d.title)}</h2>
+    <div class="t2">${S.stateHtml(d)}<span>${d.active ? 'at work now' : `last active ${esc(ago(d.activity))}`} · ${esc(S.folderOf(d.cwd))}</span></div>
+    ${d.context ? `<div class="ctx">Context ${U.gaugeHtml(d.context, { live: d.active })}</div>` : ''}
+    <div class="facts">${S.sessionFactsHtml(d)}${lane ? `<div class="fact"><span class="fk">Worktree</span> ${esc(laneGit(lane))}</div>
+      <div class="fact"><span class="fk">Last commit</span> ${esc(ago((lane.last.time ?? 0) * 1000))}: ${esc(lane.last.subject)}</div>` : ''}</div>
+    ${S.commandBarHtml(d)}${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open on PC</button>` : ''}`;
+  $('sHead').innerHTML = head;
+  // What it holds for you, answered here as in the Questions tab.
+  const pend = JSON.stringify(d.pending.map((p) => [p.id, p.summary?.detail]));
+  if (pend !== sSig.pend) {
+    sSig.pend = pend;
+    const kept = S.captureCards($('sPend'));
+    $('sPend').innerHTML = d.pending.map((p) => S.pendingCard(p)).join('');
+    S.restoreCards($('sPend'), kept);
+  } else S.refreshTimes($('sPend'));
+  const log = JSON.stringify([d.id, d.entries.length, d.entries.at(-1)?.time, d.more, detailLimit]);
+  if (log !== sSig.log) { sSig.log = log; $('sLog').innerHTML = S.logHtml(d, openTools); }
+  const waiting = d.pending.some((p) => p.kind === 'stop');
+  $('sSend').textContent = waiting ? 'Send' : 'Queue';
+  if (!$('sNote').dataset.sent) {
+    $('sNote').textContent = waiting ? "It's waiting for you: a reply goes straight in." : d.active ? 'It gets a reply before its next step.' : 'It gets a reply when its turn next ends.';
+  }
+}
+$('sBack').addEventListener('click', closeSession);
+$('sLog').addEventListener('toggle', (e) => {
+  const id = e.target.dataset?.tool;
+  if (id) { if (e.target.open) openTools.add(id); else openTools.delete(id); }
+}, true);
+$('p-session').addEventListener('click', async (e) => {
+  const b = e.target.closest('button');
+  if (!b || !openId) return;
+  if (b.dataset.more !== undefined) { detailLimit += 150; sSig.log = null; pollDetail(); return; }
+  if (b.id === 'sSend') { sendReply(); return; }
+  if (b.dataset.cmd === 'merge') { remote?.hide(); merge?.toggle(); return; }
+  if (b.dataset.cmd === 'compact' || b.dataset.cmd === 'app') { merge?.hide(); remote?.show(b.dataset.cmd); return; }
+  if (!b.dataset.cmd) return;
+  const command = b.dataset.cmd;
+  if (command === 'end' && !confirm(`End work on "${detail?.title ?? 'this session'}"? It stops at its next step; its branch and pull request stay as they are.`)) return;
+  b.disabled = true;
+  try {
+    const r = await post('/session/command', { session: openId, command });
+    toast(S.commandNote(command, r.when));
+  } catch (err) { toast(`Couldn't send: ${err.message}`, true); }
+  b.disabled = false;
+  pollDetail(); pollQuestions();
+});
+$('sPend').addEventListener('click', (e) => answerIn(e, () => { sSig.pend = null; pollDetail(); }));
+async function sendReply() {
+  const text = $('sText').value.trim();
+  if (!text || !openId) return;
+  $('sSend').disabled = true;
+  try {
+    const r = await post('/relay/reply', { session: openId, text });
+    $('sText').value = '';
+    $('sNote').textContent = S.deliveredNote(r.when);
+    $('sNote').dataset.sent = '1';
+    setTimeout(() => { delete $('sNote').dataset.sent; }, 8000);
+  } catch (err) { toast(`Couldn't send: ${err.message}`, true); }
+  $('sSend').disabled = false;
+  pollDetail();
+}
 
 // ---------- plans ----------
 function renderPlan() {
@@ -812,6 +996,8 @@ sheet.addEventListener('touchend', (e) => {
 // ---------- clicks ----------
 document.addEventListener('click', async (e) => {
   if (e.target.closest('#sheet, nav.tabs, #planSeg, #laneSeg')) return;
+  const card = e.target.closest('.scard[data-session]');
+  if (card && !e.target.closest('button, a')) { openSession(card.dataset.session); return; }
   const b = e.target.closest('button');
   if (b?.dataset.unqueue) { setQueued([b.dataset.unqueue], false); return; }
   if (b?.dataset.open) {
@@ -859,7 +1045,8 @@ async function pollQuestions() {
   } catch { /* the stamp shows the server's state */ }
   questionsTimer = setTimeout(pollQuestions, tab === 'questions' ? 2500 : 5000);
 }
-$('qList').addEventListener('click', async (e) => {
+// Answers a held item's card, in the Questions tab or on a session page.
+async function answerIn(e, after) {
   const opt = e.target.closest('.opt:not([disabled])');
   if (opt) { S.toggleOpt(opt); return; }
   const b = e.target.closest('button');
@@ -875,8 +1062,10 @@ $('qList').addEventListener('click', async (e) => {
     const turnEnd = !!card?.querySelector('[data-turn]');
     toast(body.release ? (turnEnd ? 'Handed back: its turn ends, and it waits in the app.' : 'Handed back: it waits in the app now.') : 'Sent: the session carries on.');
   } catch (err) { toast(`Couldn't answer: ${err.message}`, true); b.disabled = false; }
+  after?.();
   pollQuestions();
-});
+}
+$('qList').addEventListener('click', (e) => answerIn(e));
 document.addEventListener('change', async (e) => {
   if (!e.target.matches('[data-away]')) return;
   const on = e.target.checked;
@@ -896,11 +1085,12 @@ function render() {
   queue = queue.filter((ref) => { const [k, id] = ref.split(':'); return STARTABLE.has(planOf(k)?.tasks[id]?.status); });
   if (queue.length !== before) saveQueue();
   $('planSeg').hidden = tab !== 'plans';
-  $('laneSeg').hidden = tab !== 'lanes';
+  $('laneSeg').hidden = tab !== 'sessions' || !!openId;
+  $('cSess').textContent = sessionList ? String(sessionList.filter((x) => x.state === 'waiting').length || '') : '';
   const waits = waitingItems().length;
   $('cWait').textContent = waits ? String(waits) : '';
   if (tab === 'overview') renderOverview();
-  else if (tab === 'lanes') renderLanes();
+  else if (tab === 'sessions') { if (openId) renderSession(); else renderSessions(); }
   else if (tab === 'plans') renderPlan();
   renderQuestions();
   renderQueue();
@@ -924,18 +1114,38 @@ async function poll(once) {
   if (once !== true) { clearTimeout(pollTimer); if (!document.hidden) pollTimer = setTimeout(poll, 4000); }
 }
 // No polling while the phone is locked or the tab is in the background.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); pollQuestions(); } else { clearTimeout(pollTimer); clearTimeout(questionsTimer); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); pollQuestions(); pollDetail(); } else { clearTimeout(pollTimer); clearTimeout(questionsTimer); clearTimeout(detailTimer); } });
 window.addEventListener('modules-ready', render);
 
 // ---------- the bell ----------
 // Shared with the PC page (sessions-ui.mjs mountBell). A tap opens the
-// record's question; a finished turn opens Lanes until sessions get pages.
+// record's question; a finished turn opens its session's page.
+// Lock-screen notifications (mountPush) are turned on at the top of its list,
+// and a tap on one comes here as /m?bell=<record>&go=<tab>&item=&session=,
+// in the address the app opens or in a message from the service worker (sw.js).
+function goTo({ tab, item, session, merge: pr }) {
+  if (tab === 'sessions') { if (session) { openSession(session); if (pr) merge?.show(); } else setTab('sessions'); return; }
+  setTab('questions');
+  S.revealQuestion($('qList'), { item, session });
+}
+let bell = null;
+function openFrom(href) {
+  const u = new URL(href, location.origin);
+  const page = u.hash.match(/^#session=([\w-]+)$/);
+  if (page) { history.replaceState({ session: page[1] }, '', `/m#session=${page[1]}`); openSession(page[1], false); return; }
+  const go = u.searchParams.get('go');
+  if (!go) return;
+  history.replaceState(null, '', '/m');
+  const id = u.searchParams.get('bell');
+  if (id) post('/bell/read', { ids: [id] }).then(() => bell?.poll(), () => {});
+  goTo({ tab: go, item: u.searchParams.get('item'), session: u.searchParams.get('session'), merge: Number(u.searchParams.get('merge')) || null });
+}
 window.addEventListener('modules-ready', () => {
-  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session }) => {
-    if (tab === 'sessions') { setTab('lanes'); return; }
-    setTab('questions');
-    S.revealQuestion($('qList'), { item, session });
-  } });
+  merge = S.mountMerge({ panel: $('sMerge'), post, session: () => openId, say: (t, err) => toast(t, err) });
+  remote = S.mountRemote({ panel: $('sRemote'), detail: () => (detail?.id === openId ? detail : null), say: (t, err) => toast(t, err) });
+  bell = S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: goTo, push: S.mountPush({ post }) });
+  navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'open') openFrom(e.data.url); });
+  openFrom(location.href);
 }, { once: true });
 setInterval(tick, 1000);
 setTab(TITLES[tab] ? tab : 'overview');

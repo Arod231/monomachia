@@ -2,7 +2,7 @@
 // owner's answer from a page, end to end (harness in lanes-board-harness.mjs).
 
 import { spawnSync } from 'node:child_process';
-import { readdirSync, readFileSync, rmSync, utimesSync } from 'node:fs';
+import { appendFileSync, readdirSync, readFileSync, rmSync, utimesSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, beforeEach, describe, it } from 'node:test';
@@ -93,6 +93,20 @@ describe('the round trip: Away and the Questions tab', () => {
     const { done } = board.hook(BASH, { session: id, waitMs: 120000 });
     assertMatches((await held()).groups[0], { session: id, app: `local_${id}` });
     rmSync(record);
+    assert.equal(await released(done), null);
+    assertMatches((await board.get('/questions')).body, { count: 0, groups: [] });
+  });
+
+  it('drops a prompt answered in the app or over Remote Control once the call it held ran, releasing its hook', async () => {
+    const id = '44444444-2222-4333-8444-555555555555';
+    const transcript = board.addSession(id, 'Answered elsewhere');
+    const line = (o) => appendFileSync(transcript, `${JSON.stringify({ sessionId: id, timestamp: new Date().toISOString(), ...o })}\n`);
+    line({ type: 'assistant', uuid: 'a1', message: { content: [{ type: 'tool_use', id: 'toolu_held', name: 'Bash', input: { command: 'ls' } }] } });
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(BASH, { session: id, waitMs: 120000 });
+    assert.equal((await held()).groups[0].session, id);
+    await new Promise((r) => setTimeout(r, 50));
+    line({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'toolu_held', content: 'a b c' }] } });
     assert.equal(await released(done), null);
     assertMatches((await board.get('/questions')).body, { count: 0, groups: [] });
   });

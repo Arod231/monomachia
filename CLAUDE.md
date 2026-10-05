@@ -61,6 +61,7 @@ Rules:
 - Never commit paid assets (the Kevin Iglesias packs or anything bought), or files converted from them. They live in the private asset repository, which the import tools read through `.assets-src-path`; numbers measured from them (frame data, hit paths, travel) may be committed with their source clip recorded.
 - Never force-push or rewrite history on `master`.
 - Never merge a pull request or turn on auto-merge without my approval. Approval of one pull request doesn't cover the next. Ask again for each one.
+- When I press Merge on a session's page in the Project Manager, that is my approval for that pull request: the Project Manager merges it on GitHub (merge commit, remote branch deleted) and tells the session, which then brings its local base up to date and deletes its local branch, with no second approval.
 - If a push is rejected because GitHub has newer commits, run `git pull --rebase origin <branch>`, rerun the tests, then push again.
 - If I say "don't push" or "just try something", commit locally on the branch or leave the change uncommitted, whichever I ask for, and don't push.
 

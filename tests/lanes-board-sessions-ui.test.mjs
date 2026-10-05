@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
   ago, answerFor, approveLabel, awayHtml, bellButtonHtml, bellListHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
-  sessionPills,
+  STATE_LABELS, APP_SESSIONS_URL, commandBarHtml, commandNote, mergeConfirmText, mergePanelHtml, remotePanelHtml, questionsTabHtml as qTab, logHtml, pushBoxHtml, pushState, sessionCardHtml, sessionFactsHtml, sessionPills, stateHtml,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
 describe('the board serves sessions-ui.mjs to its pages', () => {
@@ -269,5 +269,193 @@ describe('answerFor', () => {
   it('sends the owner\'s own words instead when typed, and asks for an answer otherwise', () => {
     assert.deepEqual(answerFor(button({ answer: 'q' }), card({ picked: [[]], reply: ' Something else ' })), { id: 'q', reply: 'Something else' });
     assert.match(answerFor(button({ answer: 'q' }), card({ picked: [['A'], []] })).error, /Pick an answer/);
+  });
+});
+
+describe('pushBoxHtml', () => {
+  const home = { supported: true, https: true, standalone: true, permission: 'default', subscribed: false, httpsUrl: 'https://pc.tail.ts.net' };
+  it('offers Turn on notifications only in the Home Screen app over HTTPS', () => {
+    assert.equal(pushState(home), 'off');
+    assert.match(pushBoxHtml(home), /data-push="on"[^>]*>Turn on notifications</);
+    assert.match(pushBoxHtml(home), /only while Away is on/);
+  });
+  it('says how to get there from a Safari tab or the plain-HTTP address', () => {
+    const tab = { ...home, standalone: false };
+    assert.equal(pushState(tab), 'not-home-screen');
+    assert.match(pushBoxHtml(tab), /Add to Home Screen/);
+    assert.doesNotMatch(pushBoxHtml(tab), /data-push="on"/);
+    const http = { ...home, https: false };
+    assert.equal(pushState(http), 'not-https');
+    assert.match(pushBoxHtml(http), /https:\/\/pc\.tail\.ts\.net/);
+    assert.doesNotMatch(pushBoxHtml(http), /data-push="on"/);
+  });
+  it('says when they are on (with Turn off), blocked or impossible here', () => {
+    assert.equal(pushState({ ...home, subscribed: true }), 'on');
+    assert.match(pushBoxHtml({ ...home, subscribed: true }), /data-push="off"/);
+    assert.equal(pushState({ ...home, permission: 'denied' }), 'blocked');
+    assert.match(pushBoxHtml({ ...home, permission: 'denied' }), /Settings/);
+    assert.equal(pushState({ ...home, supported: false }), 'unsupported');
+  });
+  it('escapes the address', () => {
+    assert.doesNotMatch(pushBoxHtml({ ...home, https: false, httpsUrl: 'https://<x>' }), /<x>/);
+  });
+});
+
+describe('the session page', () => {
+  const S1 = '11111111-2222-4333-8444-555555555555';
+  const base = {
+    id: S1, app: 'local_x', title: 'Lane <7>', cwd: 'C:\\repo\\.claude\\worktrees\\lane-pm-12', active: true, activity: Date.now(),
+    state: 'working', summary: null, branch: 'lane/pm-12', task: { ref: 'pm:12', label: 'PM 12', title: 'The Sessions tab' },
+    pr: { number: 51, title: 'PM <tasks>', url: 'https://github.com/o/r/pull/51', base: 'tools/pm', draft: true },
+    pending: [], asking: null, queued: 0, context: null, stopping: false,
+  };
+
+  it('words every state', () => {
+    assert.deepEqual(Object.keys(STATE_LABELS).sort(), ['asked', 'ended', 'idle', 'waiting', 'working']);
+    assert.match(stateHtml(base), /class="state working"[^>]*>At work</);
+    assert.match(stateHtml({ ...base, state: 'waiting' }), /Waiting on you/);
+    assert.match(stateHtml({ ...base, stopping: true }), /Stopping/);
+  });
+
+  it('shows the branch, task and pull request, escaped', () => {
+    const h = sessionFactsHtml(base);
+    assert.match(h, /lane\/pm-12/);
+    assert.match(h, /PM 12 The Sessions tab/);
+    assert.match(h, /href="https:\/\/github.com\/o\/r\/pull\/51"[^>]*>PR #51</);
+    assert.match(h, /into tools\/pm \(draft\)/);
+    assert.doesNotMatch(h, /<tasks>/);
+    assert.match(sessionFactsHtml({ ...base, branch: null, task: null, pr: null }), /No branch/);
+  });
+
+  it('shows the app\'s turn summary when it has one', () => {
+    const h = sessionFactsHtml({ ...base, summary: { status: 'needs_input', label: 'Needs input', detail: 'Asked <which>', action: null } });
+    assert.match(h, /Needs input/);
+    assert.match(h, /Asked &lt;which&gt;/);
+  });
+
+  it('offers the four commands, End work asking first', () => {
+    const h = commandBarHtml(base);
+    for (const c of ['approve', 'show', 'stop', 'end']) assert.match(h, new RegExp(`data-cmd="${c}"`));
+    assert.match(h, />Approve &amp; continue</);
+    assert.match(h, />Show me</);
+    assert.match(h, />Stop now</);
+    assert.match(h, />End work</);
+    assert.match(commandBarHtml({ ...base, stopping: true }), /data-cmd="stop" disabled/);
+    assert.match(commandBarHtml({ ...base, state: 'ended' }), /data-cmd="end" disabled/);
+  });
+
+  it('offers Compact and Open in the Claude app to every session', () => {
+    const h = commandBarHtml({ ...base, remote: 'https://claude.ai/code/session_01X' });
+    assert.match(h, /data-cmd="compact"[^>]*>Compact</);
+    assert.match(h, /href="https:\/\/claude.ai\/code\/session_01X"[^>]*>Open in the Claude app</);
+    const none = commandBarHtml({ ...base, remote: null });
+    assert.match(none, /data-cmd="compact"/);
+    assert.match(none, /data-cmd="app"[^>]*>Open in the Claude app</);
+  });
+
+  it('offers Merge only to a session with an open pull request', () => {
+    assert.match(commandBarHtml(base), /data-cmd="merge"[^>]*>Merge #51</);
+    assert.doesNotMatch(commandBarHtml({ ...base, pr: null }), /data-cmd="merge"/);
+  });
+
+  it('says what happens to each command', () => {
+    assert.equal(commandNote('approve', 'now'), 'Sent: it carries on with it now.');
+    assert.equal(commandNote('show', 'next-step'), 'Sent: it gets this before its next step.');
+    assert.equal(commandNote('approve', 'turn-end'), 'Queued: it gets this when its turn next ends.');
+    assert.match(commandNote('stop', 'next-step'), /stops before its next step/);
+    assert.match(commandNote('stop', 'stopped'), /already stopped/);
+    assert.match(commandNote('stop', 'idle'), /nothing to stop/);
+    assert.match(commandNote('end', 'next-step'), /stops at its next step/);
+    assert.match(commandNote('end', 'turn-end'), /idle/);
+  });
+
+  it('lists a session on the phone with its state, summary and task, opening its page', () => {
+    const h = sessionCardHtml({ ...base, summary: { label: 'Done', detail: 'Built it' } }, { gauge: () => '<i class="g"></i>' });
+    assert.match(h, /data-session="11111111-2222-4333-8444-555555555555"/);
+    assert.match(h, /Lane &lt;7&gt;/);
+    assert.match(h, /At work/);
+    assert.match(h, /Done/);
+    assert.match(h, /PM 12/);
+    assert.match(h, /<i class="g"><\/i>/);
+  });
+
+  it('folds tool calls in the conversation, and escapes everything', () => {
+    const entries = [
+      { kind: 'user', time: 1, text: 'Build <it>' },
+      { kind: 'assistant', time: 2, text: 'On **it**.' },
+      { kind: 'tool', time: 3, id: 't1', name: 'Bash', summary: 'npm test', input: '{"command":"npm test"}' },
+      { kind: 'result', time: 4, tool: 't1', error: false, text: '<ok>' },
+      { kind: 'tool', time: 5, id: 't2', name: 'Read', summary: 'a.md', input: '{}' },
+    ];
+    const h = logHtml({ entries, more: 3 }, new Set(['t1']));
+    assert.match(h, /data-more/);
+    assert.match(h, /Build &lt;it&gt;/);
+    assert.match(h, /On <b>it<\/b>/);
+    assert.match(h, /<details class="tl" data-tool="t1" open><summary><span class="tn">Bash<\/span> npm test/);
+    assert.match(h, /&lt;ok&gt;/);
+    assert.match(h, /data-tool="t2" ><summary><span class="tn">Read<\/span> a.md <span class="run">· no result yet/);
+  });
+});
+
+describe('the Merge panel', () => {
+  const m = { pr: { number: 51, title: 'PM <tasks>', url: 'https://github.com/o/r/pull/51', base: 'tools/pm', head: 'lane/pm-13', draft: false },
+    ready: true, behind: false, reasons: [] };
+
+  it('offers the merge, naming the pull request and its base, when ready', () => {
+    const h = mergePanelHtml(m);
+    assert.match(h, /data-merge-go="51"[^>]*>Merge #51 into tools\/pm</);
+    assert.match(h, /PM &lt;tasks&gt;/);
+    assert.doesNotMatch(h, /data-merge-update/);
+  });
+
+  it('gives every reason it isn\'t ready, with Update branch when behind', () => {
+    const h = mergePanelHtml({ ...m, ready: false, behind: true, reasons: ['It is behind tools/pm.', 'Checks failed: <x>.'] });
+    assert.doesNotMatch(h, /data-merge-go/);
+    assert.match(h, /<li>It is behind tools\/pm\.<\/li>/);
+    assert.match(h, /Checks failed: &lt;x&gt;\./);
+    assert.match(h, /data-merge-update="51"[^>]*>Update branch</);
+    assert.match(h, /data-merge-check/);
+  });
+
+  it('says when it is checking, or why it can\'t', () => {
+    assert.match(mergePanelHtml(null), /Checking/);
+    assert.match(mergePanelHtml(null, { error: 'No <pr>' }), /No &lt;pr&gt;/);
+  });
+
+  it('asks before merging, naming the pull request, its base and that the tap is the approval', () => {
+    const t = mergeConfirmText(m);
+    assert.match(t, /#51/);
+    assert.match(t, /PM <tasks>/);
+    assert.match(t, /into tools\/pm/);
+    assert.match(t, /merge commit/);
+    assert.match(t, /approval/);
+  });
+});
+
+describe('Compact and Open in the Claude app', () => {
+  const d = { id: '11111111-2222-4333-8444-555555555555', title: 'Lane <7>', remote: 'https://claude.ai/code/session_01X' };
+
+  it('says to type /compact in the Claude app, then opens the session there', () => {
+    const h = remotePanelHtml(d, { compact: true });
+    assert.match(h, /\/compact/);
+    assert.match(h, /data-copy="\/compact"/);
+    assert.match(h, /href="https:\/\/claude.ai\/code\/session_01X"/);
+  });
+
+  it('without a link, says how to turn Remote Control on, and offers the app\'s session list', () => {
+    for (const compact of [true, false]) {
+      const h = remotePanelHtml({ ...d, remote: null }, { compact });
+      assert.match(h, /Connect new sessions to Remote Control/);
+      assert.match(h, /\/rc/);
+      assert.match(h, new RegExp(`href="${APP_SESSIONS_URL.replace(/[/.]/g, '\\$&')}"`));
+      assert.match(h, /Lane &lt;7&gt;/);
+    }
+  });
+
+  it('opens a question asked in the app in the Claude app, when it has a link', () => {
+    const q = { away: { on: false }, count: 1, groups: [], asked: [{ session: d.id, app: 'local_x', title: 'T', cwd: null, task: null, time: 1,
+      remote: 'https://claude.ai/code/session_01X', questions: [{ question: 'Which?', options: [{ label: 'A' }] }] }] };
+    assert.match(qTab(q), /href="https:\/\/claude.ai\/code\/session_01X"[^>]*>Open in the Claude app</);
+    assert.doesNotMatch(qTab({ ...q, asked: [{ ...q.asked[0], remote: null }] }), /claude.ai\/code\/session/);
   });
 });

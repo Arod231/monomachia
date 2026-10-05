@@ -17,8 +17,11 @@
 // Before a session's next tool, it also hands over the oldest message the owner
 // sent it from the Project Manager (the relay folder's inbox/<session>/, see
 // relay-hook.mjs; LANES_RELAY overrides the folder), as context the session reads
-// with that tool call (inbox.mjs). A session with neither a stop list nor an
-// inbox folder of its own is let go at once.
+// with that tool call (inbox.mjs). After the owner pressed Stop now (the relay
+// folder's stopnow/<session>.json, cleared by relay-hook.mjs when the turn
+// ends), it refuses each tool call with the board's words instead, so the
+// session ends its turn. A session with no stop list, inbox folder or Stop now
+// of its own is let go at once.
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -26,11 +29,13 @@ import { inboxDir, takeFromInbox } from './inbox.mjs';
 
 const FILE = process.env.LANES_STOP_FILE ?? path.join(os.homedir(), '.claude', 'lanes-stop.json');
 const RELAY = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
+const STOP_NOW = path.join(RELAY, 'stopnow');
 const GRACE_MS = 2 * 60 * 1000;
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+const STOP_NOW_MS = 6 * 60 * 60 * 1000;
 
 const stopList = existsSync(FILE);
-if (!stopList && !existsSync(path.join(RELAY, 'inbox'))) process.exit(0);
+if (!stopList && !existsSync(path.join(RELAY, 'inbox')) && !existsSync(STOP_NOW)) process.exit(0);
 
 let input = '';
 process.stdin.setEncoding('utf8');
@@ -39,15 +44,27 @@ process.stdin.on('end', () => {
   let hook = {};
   try { hook = JSON.parse(input || '{}'); } catch { /* never get in a session's way */ }
   const id = String(hook.session_id ?? '');
-  // Before anything else: nothing here concerns a session with no inbox of its own.
-  const inbox = /^[\w-]+$/.test(id) && existsSync(inboxDir(RELAY, id));
-  if (!stopList && !inbox) process.exit(0);
+  // Before anything else: nothing here concerns a session with no inbox or Stop now of its own.
+  const named = /^[\w-]+$/.test(id);
+  const inbox = named && existsSync(inboxDir(RELAY, id));
+  const stopNow = named && existsSync(path.join(STOP_NOW, `${id}.json`));
+  if (!stopList && !inbox && !stopNow) process.exit(0);
   let out = null;
   try { out = stopOf(hook); } catch { /* never get in a session's way */ }
-  if (!out && inbox && hook.hook_event_name === 'PreToolUse') { try { out = messageFor(id); } catch { /* likewise */ } }
+  if (!out && hook.hook_event_name === 'PreToolUse') {
+    try { out = (stopNow ? stopNowFor(id) : null) ?? (inbox ? messageFor(id) : null); } catch { /* likewise */ }
+  }
   if (out) process.stdout.write(JSON.stringify(out));
   process.exit(0);
 });
+
+// The refusal of this tool call after the owner pressed Stop now, or null.
+function stopNowFor(id) {
+  let m = null;
+  try { m = JSON.parse(readFileSync(path.join(STOP_NOW, `${id}.json`), 'utf8')); } catch { return null; }
+  if (!m?.text || Date.now() - (m.time ?? 0) > STOP_NOW_MS) return null;
+  return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: String(m.text) } };
+}
 
 // The oldest message in the session's inbox, taken, as context for this tool call.
 function messageFor(id) {

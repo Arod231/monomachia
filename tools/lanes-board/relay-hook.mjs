@@ -26,6 +26,8 @@
 //                        was held, oldest first by name: the stop hook hands the
 //                        oldest over before the session's next tool, and a turn
 //                        end here takes the rest
+//   stopnow/<session>.json  the owner pressed Stop now: the stop hook refuses the
+//                        session's tools until its turn ends, when this removes it
 //   events.jsonl         what happened in the app meanwhile (a question asked
 //                        there, or a turn finished while Away was off), one JSON
 //                        object per line
@@ -71,6 +73,9 @@ async function main(hook) {
   const event = hook.hook_event_name;
 
   if (event === 'Stop') {
+    // A Stop now has done its work once the turn ends (the stop hook refused
+    // its tools until then); the turn end is held below like any other.
+    rmSync(path.join(DIR, 'stopnow', `${id}.json`), { force: true });
     // What the owner sent meanwhile goes in first, Away or not.
     const sent = takeInbox(id);
     if (sent) return continueWith(sent);
