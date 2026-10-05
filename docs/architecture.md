@@ -937,6 +937,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…) |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
 | `npm run checklist` | Write the last test run's move-by-move results (`build/checklist-results.json`, recorded through `ChecklistResults`) into the per-move checklist, `docs/reviews/milestone-1-checklist.md`; the owner's columns are never touched (milestone-1 task 10) |
+| `npm run export` | The Blender export (`scripts/blender/export.mjs` running `export_blend.py` in Blender headless): each source in the asset repository's `blender/sources.json` to one GLB in its `exports/`, with a record of its source and checksums; clip and fighter sources must carry the Kevin Iglesias rig's bones; self-made and CC0 models are copied into `game/assets/` inside the art budget |
 | `npm run check:sizes` | Fail on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB (the spec's size budget table; the asset repository's own budgets are its `tools/check-budgets.mjs`) |
 | `npm run brain`, `npm run brain:serve`, `npm run board` | The second brain's generated notes and its viewer; the Project Manager (lanes board) |
 
@@ -956,6 +957,11 @@ flowchart TD
         SYN --> SFX
         MUSP --> MUSF["game/assets/audio/music/*.wav<br/>+ tracks.json"]
         EX & SYN & MUSP --> SRCMD["game/assets/audio/SOURCES.md"]
+    end
+    subgraph BLENDP["The Blender export (scripts/blender)"]
+        BSRC["asset repository: blender/*.blend<br/>listed in blender/sources.json"] --> BEX["export.mjs + export_blend.py<br/>Blender headless"]
+        BEX --> BOUT["asset repository: exports/*.glb<br/>+ a record of each source"]
+        BEX --> BGAME["game/assets/: self-made and CC0 models<br/>inside the 150 MB art budget"]
     end
     subgraph ARTP["Fighters and weapons (game/tools)"]
         BM["build_bone_map.gd"] --> IA["import_assets.gd<br/>copy chosen Quaternius and weapon files"]
