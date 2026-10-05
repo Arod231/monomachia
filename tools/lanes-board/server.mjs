@@ -22,6 +22,7 @@
 // ~/.claude/lanes-relay/.
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { promisify } from 'node:util';
 import { readFile, readdir, stat, access, writeFile, open, mkdir, rename } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -33,7 +34,7 @@ import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, canc
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
 import { contextTracker } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
-import { HOOKS, hooksStatus } from './hooks.mjs';
+import { hooksStatusOf } from './hooks.mjs';
 import { bellApi } from './bell-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
@@ -686,13 +687,9 @@ function taskOfDir(dir) {
 // Whether the hooks installed in user settings are this checkout's (hooks.mjs);
 // both pages say so when they aren't. LANES_CLAUDE_DIR overrides ~/.claude.
 const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.claude');
+// A handful of small files, read in place each time the Questions tab asks.
 async function hooksState() {
-  const text = (file) => readFile(file, 'utf8').catch(() => null);
-  const tracked = Object.fromEntries(await Promise.all(HOOKS.map(async (h) => [h.name, await text(path.join(HERE, h.file))])));
-  const installed = Object.fromEntries(await Promise.all(HOOKS.map(async (h) => [h.name, await text(path.join(CLAUDE_DIR, 'hooks', h.name, 'hook.mjs'))])));
-  let settings = {};
-  try { settings = JSON.parse(await readFile(path.join(CLAUDE_DIR, 'settings.json'), 'utf8')); } catch { /* none, or being written */ }
-  return hooksStatus({ tracked, installed, settings, home: CLAUDE_DIR });
+  return hooksStatusOf({ claudeDir: CLAUDE_DIR, boardDir: HERE, read: (file) => { try { return readFileSync(file, 'utf8'); } catch { return null; } } });
 }
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
   hooks: hooksState, sweepMs: 5000 });
