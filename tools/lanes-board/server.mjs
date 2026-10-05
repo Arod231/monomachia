@@ -666,7 +666,7 @@ function taskOfDir(dir) {
   if (!l?.plan || !l.task) return null;
   return { ref: `${l.plan}:${l.task}`, label: `${PLAN_BY_KEY[l.plan]?.short ?? l.plan} ${l.task}`, title: l.taskTitle ?? '' };
 }
-const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir });
+const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
