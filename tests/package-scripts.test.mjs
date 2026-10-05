@@ -32,6 +32,7 @@ describe('package.json', () => {
       'brain:serve',
       'build',
       'check:sizes',
+      'clip',
       'counterlab',
       'dev',
       'godot',

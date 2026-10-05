@@ -285,7 +285,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - the documents listed are the Markdown files it wrote (rendered), plus HTML pages and PDFs it wrote (opened as they are; HTML in a sandbox, so a page can't act as the Project Manager), all inside the repo or its worktrees;
     - a document whose worktree is gone is read from its branch (local, then remote), else from its merged pull request's head commit; only if all fail does it show "no longer available".
   - Built (Oct 5): `docs.mjs` (what its Write, Edit and MultiEdit calls name, the artifacts its publishes returned, its branch, and the path rule) and `docs-api.mjs` (`/docs`, and `/doc` serving Markdown as text, HTML in a sandbox with no access to the Project Manager, and PDF; the pull request from `gh`, cached a minute); both pages' session view shows Docs with the pull request (checks, changed files, description), the documents (Markdown opens in a full-screen reader, rendered with `marked` from `tools/second-brain/vendor/`, served at `/marked.js`, any HTML in it shown as text) and the artifacts. A PDF shows only when a Write or Edit call names it; one made by a script isn't found.
-- [ ] **18. Clips, and sessions told to post.** Sessions can record a scene as a looping clip, and CLAUDE.md tells them when to post.
+- [x] **18. Clips, and sessions told to post.** Sessions can record a scene as a looping clip, and CLAUDE.md tells them when to post.
   - Delivers:
     - **`npm run clip -- <scene> [--seconds N] [scene args]`:** it records a scene the shots tool runs, with Godot's Movie Maker at 30 fps and 1280×720, as a looping MP4 (H.264, no audio, 6 seconds by default and 20 at most) plus a still, written into the worktree's `shots/`.
     - **CLAUDE.md:**
@@ -296,6 +296,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: a clip of a shot scene plays in the phone's viewer; the Godot suite passes if the recorder changed anything under `game/`.
   - Blocked by: 15 · Stories: 71, 72
   - Owner's answer (Oct 5): `clip` only writes the MP4 and its still into `shots/`; the session posts them with `npm run post`, as any shot.
+  - Built (Oct 5): `scripts/clip.mjs` (the rules) and `scripts/godot.mjs clip` run `shot.gd` under Movie Maker with its new `--record=<frames>`: it saves the still, lets the scene run the clip's frames, then quits, and ffmpeg keeps the movie's last seconds, scaled to 1280×720 (Movie Maker writes the project's 1600×900 window). A bare scene name means `res://tools/shot_scenes/<name>.tscn`. CLAUDE.md gains the posting rule, both commands and the session page in its Project Manager line; README and `docs/architecture.md` list the commands. A 3-second clip of `arena_gameplay` came out as H.264, yuv420p, 1280×720, no sound, and was posted to this lane's own page.
 
 ### Phase F: the owner's check
 
