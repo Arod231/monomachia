@@ -4,8 +4,10 @@ extends Node
 ##   node scripts/godot.mjs shots res://tools/shot_scenes/<name>.tscn <out.png>
 ## --scroll=<px> scrolls the page first (a weapon's lower sections).
 
-## The tab (HowToPlayScreen.TABS): 0 the rules, 1-4 a weapon's moves.
-@export var tab: int = 0
+## The weapon whose tab shows (HowToPlayScreen.TAB_WEAPONS), or none for
+## the rules. A weapon the roster hides turns on the whole roster
+## (Roster.full) so its tab exists.
+@export var weapon: StringName = &""
 ## How far down the page is scrolled (px).
 @export var scroll: int = 0
 ## Frames to let the renderer settle before the capture.
@@ -26,6 +28,8 @@ func _ready() -> void:
 	for a: String in OS.get_cmdline_user_args():
 		if a.begins_with("--scroll="):
 			scroll = int(a.trim_prefix("--scroll="))
+	if weapon != &"" and weapon != &"fists" and not Roster.offers_weapon(weapon):
+		Roster.full = true
 	var main: Node = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	add_child(main)
 	var host: MatchHost = main.get_node("MatchHost")
@@ -33,7 +37,7 @@ func _ready() -> void:
 	main.call("show_main_menu")
 	main.call("show_how_to_play")
 	var screen: HowToPlayScreen = main.get("how_to_play")
-	screen.show_tab(tab)
+	screen.show_weapon(weapon)
 	host.step(420)
 	var view: MatchView = host.get_node("View")
 	view.snap_camera()

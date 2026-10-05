@@ -14,7 +14,7 @@ tags: [game, audio]
 
 ## Music
 
-Dark fantasy and ancient oriental instruments, combined with electronic music and metal.
+Dark fantasy and ancient oriental instruments, combined with electronic music and metal. **Oct 5 (milestone 1):** in matches the traditional instruments lead (taiko, the biwa on the riff, the shamisen, the shakuhachi on the motif, a low choir), and the electronic and metal layers (kit, sub, distorted guitars) build in only at match point; the menus keep the groovier fusion.
 
 | Where | Tempo |
 |---|---|

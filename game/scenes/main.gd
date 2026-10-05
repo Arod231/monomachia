@@ -121,6 +121,9 @@ func _ready() -> void:
 	host.training_changed.connect(_show_pause_training)
 	# the attract restarts draw from the same seed sequence as the matches
 	host.seed_source = _next_seed
+	# every match played records its inputs (milestone-1 task 6), outside
+	# test and shot runs
+	host.record_dir = "" if OS.has_environment(GameSettings.DEFAULTS_ENV) else InputLog.DIR
 	start_attract()
 	show_title()
 	# _process only ticks a smoke run.
@@ -129,6 +132,10 @@ func _ready() -> void:
 		_smoke = SmokeRun.new(self)
 		_smoke.start()
 		set_process(true)
+	else:
+		var replay_path: String = InputLog.requested(OS.get_cmdline_args() + OS.get_cmdline_user_args())
+		if replay_path != "":
+			start_replay(replay_path)
 
 
 func _exit_tree() -> void:
@@ -253,6 +260,20 @@ func start_match(cfg: MatchConfig) -> bool:
 		return false
 	stack.clear()
 	last_config = cfg
+	screen = Screen.PLAYING
+	GameServices.play_match_music()
+	return true
+
+
+## Plays a recorded match from an input log file (`--replay=<log>`,
+## milestone-1 task 6). An unreadable log or one whose config can't start
+## stays on the title. Returns whether the replay started.
+func start_replay(path: String) -> bool:
+	var log_in: InputLog = InputLog.load_file(path)
+	if log_in == null or not host.start_replay(log_in):
+		return false
+	stack.clear()
+	last_config = log_in.config
 	screen = Screen.PLAYING
 	GameServices.play_match_music()
 	return true

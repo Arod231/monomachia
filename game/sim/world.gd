@@ -85,6 +85,64 @@ func _init(p1: FighterConfig, p2: FighterConfig, seed_value: int = 1) -> void:
 	reset_round()
 
 
+# ------------------------------------------------------------------ snapshot
+
+## Not copied field by field: the fighters, dropped weapons, waves and the
+## generator snapshot themselves; the events are output, drained every step;
+## the scripted-hit queue is empty between steps (fighters queue and the
+## world resolves within one).
+const SNAPSHOT_SKIP: Array[StringName] = [&"fighters", &"weapons", &"waves", &"events", &"rng", &"_scripted_queue"]
+
+
+## A copy of everything the world owns (milestone-1 task 5, SimState): its
+## fields, both fighters, the dropped weapons, the waves and the generator.
+## Taken between steps.
+func snapshot() -> Dictionary:
+	if not _scripted_queue.is_empty():
+		push_error("World.snapshot(): taken mid-step, with scripted hits queued")
+	var s: Dictionary = SimState.capture(self, SNAPSHOT_SKIP)
+	s[&"fighters"] = [fighters[0].snapshot(), fighters[1].snapshot()]
+	var ws: Array[Dictionary] = []
+	for w: DroppedWeapon in weapons:
+		ws.append(w.snapshot())
+	s[&"weapons"] = ws
+	var vs: Array[Dictionary] = []
+	for v: SlashWave in waves:
+		vs.append(v.snapshot())
+	s[&"waves"] = vs
+	s[&"rng"] = rng.snapshot()
+	return s
+
+
+## SHA-256 over the world's snapshot (milestone-1 task 5): equal on every
+## step of two runs of the same seeded match.
+func state_hash() -> String:
+	return SimState.state_hash(snapshot())
+
+
+## Puts a snapshot() back (milestone-1 task 134): the world steps on from it
+## exactly as it did from the moment it was taken. The fighters are restored
+## in place; the dropped weapons and waves are rebuilt; the events and the
+## scripted-hit queue start empty. A snapshot can be restored any number of
+## times, into this world or another built from the same fighters' configs.
+func restore(s: Dictionary) -> void:
+	var fields: Dictionary = s.duplicate()
+	for n: StringName in [&"fighters", &"weapons", &"waves", &"rng"]:
+		fields.erase(n)
+	SimState.apply(self, fields)
+	for i: int in 2:
+		fighters[i].restore(s[&"fighters"][i])
+	weapons = []
+	for w: Dictionary in s[&"weapons"]:
+		weapons.append(DroppedWeapon.from_snapshot(w))
+	waves = []
+	for v: Dictionary in s[&"waves"]:
+		waves.append(SlashWave.from_snapshot(v, self))
+	rng.restore(s[&"rng"])
+	events = []
+	_scripted_queue = []
+
+
 func time_scale() -> float:
 	return slowmo_scale if slowmo_frames > 0 else 1.0
 

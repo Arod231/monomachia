@@ -12,7 +12,7 @@
 //   shots <scene> [out.png] [frames] [scene args...]   render a scene in an off-screen window;
 //                          fails on a shader or script error
 //   run                    play the game
-//   studio                 open the Animation Studio (gallery, editor and chat panel; dev tool)
+//   studio                 open the Animation Studio (gallery and editor; dev tool)
 //   dev                    open the editor
 //   build                  export the Windows build to build/windows/, with the licence,
 //                          credits and notices beside the exe (tools/build_notices.gd)

@@ -247,11 +247,3 @@ _Avoid_: Asset store (that's Unity's shop), asset pack
 
 **Animation Studio**:
 The dev tool for looking at animations and setting their markers: a gallery of every animation, a timeline with each move's frame data against its timing band, the markers, and the chains of clips a move plays. Saving regenerates the frame data. Bone posing happens in Blender.
-
-**Corrective**:
-Per-bone rotation offsets keyed on top of a clip, shared by both bodies or overridden for one, and baked into the swing.
-_Avoid_: Additive, fix layer
-
-**Refinement**:
-A change to one animation asked for in the Studio's chat panel, worked on in its own worktree and branch.
-_Avoid_: Request, job

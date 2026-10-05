@@ -319,5 +319,137 @@ export function pad(r, midis, { length = 4, accent = 1, cutoff = 600 } = {}) {
   return b;
 }
 
+// ------------------------------------------------------------------ the battle's traditional voices
+
+/**
+ * Shakuhachi: the end-blown bamboo flute, all breath and no reed. A nearly
+ * pure fundamental with weak second and third harmonics, under band-passed
+ * breath noise that is loudest at the attack (the muraiki burst) and never
+ * goes away; each note bends up into pitch from below (meri), and a slow
+ * pitch-and-breath sway (yuri) grows in on held notes. `from` is the MIDI
+ * note it slides from; `breath` scales the air.
+ */
+export function shakuhachi(r, midi, { length = 0.5, accent = 1, from = null, breath = 1 } = {}) {
+  const f1 = midiToHz(midi);
+  const f0 = from != null ? midiToHz(from) : f1 * Math.pow(2, -1.2 / 12);
+  const release = 0.18;
+  const b = buffer(length + release);
+  const glide = from != null ? 0.07 : 0.09;
+  const air = whiteNoise(length + release, r.next);
+  const airLo = new Biquad('bandpass', f1, 4);
+  const airHi = new Biquad('bandpass', f1 * 2.02, 6);
+  const airWide = new Biquad('bandpass', 2400, 0.9);
+  let ph = r.next();
+  const yuriRate = r.range(4.2, 5.4);
+  for (let i = 0; i < b.length; i++) {
+    const t = i / SR;
+    const g = Math.min(1, t / glide);
+    const sway = Math.min(1, Math.max(0, (t - 0.25) / 0.35));
+    const yuri = Math.sin(2 * Math.PI * yuriRate * t) * sway;
+    const f = (f0 + (f1 - f0) * (1 - (1 - g) * (1 - g))) * (1 + 0.009 * yuri);
+    const swell = Math.min(1, t / 0.06) * (t > length ? Math.exp(-(t - length) * 22) : 1);
+    const amp = swell * (0.8 + 0.12 * yuri + 0.2 * Math.exp(-t * 2));
+    const p = 2 * Math.PI * ph;
+    const tonal = Math.sin(p) + 0.12 * Math.sin(2 * p) + 0.05 * Math.sin(3 * p);
+    const n = air[i];
+    const burst = 0.5 + 1.6 * Math.exp(-t * 14);
+    const a = (airLo.step(n) * 1.6 + airHi.step(n) * 0.8 + airWide.step(n) * 0.25) * breath * burst;
+    b[i] = (tonal * 0.85 + a) * amp * 0.28 * accent;
+    ph += f / SR;
+    ph -= Math.floor(ph);
+  }
+  filter(b, 'highpass', 150, { q: 0.7 });
+  return b;
+}
+
+/**
+ * Biwa: the lute played with a large bachi. A low, dark plucked string with
+ * the sawari's strong buzz, a hard bachi slap on the attack, a sliding bend
+ * up after it (the player presses behind the high fret) and a wooden body
+ * with a boxy low-mid resonance; heavier and duller than the shamisen.
+ * `bend` is the bend in semitones (0 for none).
+ */
+export function biwa(r, midi, { seconds = 1.6, accent = 1, bend = 0, mute = 0 } = {}) {
+  const f = midiToHz(midi);
+  const s = pluck(f, seconds, r.next, { decay: 0.997, bright: 0.48, buzz: 0.55, attackBoost: 1.4, mute, pickPos: 0.08 });
+  let b = s;
+  if (bend) {
+    // read the string back at a rising rate: the bend's pitch climbs over 0.18 s
+    b = buffer(seconds);
+    let pos = 0;
+    for (let i = 0; i < b.length; i++) {
+      const t = i / SR;
+      const k = Math.min(1, Math.max(0, (t - 0.08) / 0.18));
+      const rate = Math.pow(2, (bend * k * k * (3 - 2 * k)) / 12);
+      const j = Math.floor(pos);
+      const fr = pos - j;
+      b[i] = j + 1 < s.length ? s[j] * (1 - fr) + s[j + 1] * fr : 0;
+      pos += rate;
+    }
+  }
+  // the bachi slap on the body
+  const slap = buffer(0.05);
+  noiseBurst(slap, { peak: 0.5, attack: 0.0005, decay: 0.03, type: 'bandpass', f0: 1800, q: 1.2, rand: r.next });
+  addInto(b, slap, 0, 0.6 * accent);
+  filter(b, 'peaking', 520, { q: 1.1, gainDb: 5 });
+  filter(b, 'peaking', 2600, { q: 2, gainDb: 3 });
+  filter(b, 'lowpass', 4200, { q: 0.7 });
+  filter(b, 'highpass', 70, { q: 0.7 });
+  for (let i = 0; i < b.length; i++) b[i] *= 0.55 * accent;
+  return b;
+}
+
+/** Vowel formants (Hz, bandwidth Hz, level) for the choir: a low male "oo" and "ah". */
+const VOWELS = {
+  oo: [[300, 60, 1], [870, 90, 0.35], [2240, 120, 0.08]],
+  ah: [[650, 80, 1], [1080, 90, 0.6], [2650, 120, 0.15]],
+};
+
+/**
+ * A low choir: for each note a few male voices, each a bright glottal pulse
+ * with its own slight detune, slow vibrato and pitch drift, summed and sung
+ * through the vowel's formants. It swells in and fades out slowly, as a held
+ * chord does. `vowel` is "oo" or "ah".
+ */
+export function choir(r, midis, { length = 2, accent = 1, vowel = 'oo', voices = 4, attack = 0.35 } = {}) {
+  const release = 0.6;
+  const n = Math.ceil((length + release) * SR);
+  const src = new Float32Array(n);
+  for (const m of midis) {
+    const f = midiToHz(m);
+    for (let v = 0; v < voices; v++) {
+      const detune = 1 + r.range(-0.006, 0.006);
+      const vibRate = r.range(4.6, 5.8);
+      const vibDepth = r.range(0.003, 0.006);
+      const drift = r.range(0, 1);
+      const lag = r.range(0, 0.06);
+      let ph = r.next();
+      for (let i = 0; i < n; i++) {
+        const t = i / SR;
+        const vib = 1 + vibDepth * Math.sin(2 * Math.PI * (vibRate * t + drift)) * Math.min(1, t / 0.6);
+        const ff = f * detune * vib;
+        const tt = Math.max(0, t - lag);
+        const amp = Math.min(1, tt / attack) * (t > length ? Math.exp(-(t - length) * 6) : 1);
+        // a glottal pulse: a sawtooth softened by its square, rich in harmonics
+        const s = wave('sawtooth', ph, ff / SR);
+        src[i] += (s - 0.3 * s * s * s) * amp;
+        ph += ff / SR;
+        ph -= Math.floor(ph);
+      }
+    }
+  }
+  const b = new Float32Array(n);
+  for (const [fc, bw, level] of VOWELS[vowel] ?? VOWELS.oo) {
+    const part = Float32Array.from(src);
+    filter(part, 'bandpass', fc, { q: fc / bw });
+    filter(part, 'bandpass', fc, { q: fc / bw });
+    for (let i = 0; i < n; i++) b[i] += part[i] * level;
+  }
+  filter(b, 'highpass', 60, { q: 0.7 });
+  const scale = (0.9 * accent) / Math.sqrt(midis.length * voices);
+  for (let i = 0; i < n; i++) b[i] *= scale;
+  return b;
+}
+
 /** Re-exported for the music script's fills. */
 export { expEnv };

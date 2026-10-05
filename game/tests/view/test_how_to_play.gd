@@ -9,6 +9,7 @@ var stack: ScreenStack
 
 
 func before_each() -> void:
+	Roster.full = false
 	opener = MenuScreen.new()
 	opener.add_button("How to play", "", func() -> void: pass)
 	add_child_autofree(opener)
@@ -18,6 +19,18 @@ func before_each() -> void:
 	stack.reset([opener] as Array[MenuPage])
 	stack.push(screen)
 	await _frames(2)
+
+
+func after_each() -> void:
+	Roster.reset()
+
+
+## A screen made with the whole roster (--full-roster).
+func _full_screen() -> HowToPlayScreen:
+	Roster.full = true
+	var s: HowToPlayScreen = HowToPlayScreen.new()
+	add_child_autofree(s)
+	return s
 
 
 func _frames(n: int) -> void:
@@ -52,8 +65,9 @@ func _texts(node: Node) -> Array[String]:
 
 
 func test_it_opens_on_the_rules_with_the_tabs_focused() -> void:
+	# milestone 1 (task 4): only the Katana's and bare hands' tabs
 	assert_eq(screen.tabs.chips.map(func(b: Button) -> String: return b.text),
-		["Rules", "Katana", "Greatsword", "Daggers", "Bare hands"])
+		["Rules", "Katana", "Bare hands"])
 	assert_eq(screen.tab, 0)
 	assert_eq(screen.focused_item(), screen.tabs)
 	assert_true(screen.pages[0].visible)
@@ -62,6 +76,13 @@ func test_it_opens_on_the_rules_with_the_tabs_focused() -> void:
 	var texts: Array[String] = _texts(screen.pages[0])
 	for block: String in ["Win the duel", "Attack", "Defend", "Posture", "Unblockables", "Disarmed", "Ultimate", "Modes"]:
 		assert_true(texts.any(func(t: String) -> bool: return t.begins_with(block)), "rule block %s" % block)
+
+
+func test_the_flag_brings_every_weapon_s_tab_back() -> void:
+	var full: HowToPlayScreen = _full_screen()
+	assert_eq(full.tabs.chips.map(func(b: Button) -> String: return b.text),
+		["Rules", "Katana", "Greatsword", "Daggers", "Bare hands"])
+	assert_eq(full.tab_weapons, HowToPlayScreen.TAB_WEAPONS)
 
 
 func test_the_rules_say_what_this_build_changed() -> void:
@@ -73,9 +94,10 @@ func test_the_rules_say_what_this_build_changed() -> void:
 
 
 func test_each_weapon_tab_shows_its_move_list_rows() -> void:
-	for i: int in range(1, HowToPlayScreen.TAB_WEAPONS.size()):
-		var w: WeaponDef = Moves.WEAPONS[HowToPlayScreen.TAB_WEAPONS[i]]
-		var page: Control = screen.pages[i]
+	var full: HowToPlayScreen = _full_screen()
+	for i: int in range(1, full.tab_weapons.size()):
+		var w: WeaponDef = Moves.WEAPONS[full.tab_weapons[i]]
+		var page: Control = full.pages[i]
 		for r: MoveList.Row in MoveList.rows(w):
 			var row: Control = page.find_child("Row_%s" % r.move_id, true, false)
 			assert_not_null(row, "%s: a row for %s" % [w.id, r.move_id])
@@ -111,7 +133,7 @@ func test_numbers_read_plainly() -> void:
 func test_an_ultimate_shows_its_hits() -> void:
 	var rows: Array[MoveList.Row] = MoveList.rows(Moves.DAGGERS)
 	assert_eq(HowToPlayScreen.hits_text(rows[-1]), "6 × 5 + 8 damage")
-	var row: Control = screen.pages[3].find_child("Row_tempest", true, false)
+	var row: Control = _full_screen().pages[3].find_child("Row_tempest", true, false)
 	assert_has(_texts(row), "6 × 5 + 8 damage")
 	# one hit: its damage column says it all
 	var moon: Control = screen.pages[1].find_child("Row_moonsplitter", true, false)
@@ -131,8 +153,8 @@ func test_left_and_right_on_the_tabs_switch_pages_with_keys() -> void:
 	assert_eq(_visible_page(), 1)
 	_key(KEY_LEFT)
 	_key(KEY_LEFT)
-	assert_eq(screen.tab, 4, "wraps round to bare hands")
-	assert_eq(_visible_page(), 4)
+	assert_eq(screen.tab, 2, "wraps round to bare hands")
+	assert_eq(_visible_page(), 2)
 
 
 func test_q_and_e_switch_pages_from_anywhere() -> void:
@@ -152,7 +174,7 @@ func test_the_shoulder_buttons_switch_pages() -> void:
 	assert_eq(screen.tab, 1)
 	_pad(JOY_BUTTON_LEFT_SHOULDER)
 	_pad(JOY_BUTTON_LEFT_SHOULDER)
-	assert_eq(screen.tab, 4)
+	assert_eq(screen.tab, 2)
 	_pad(JOY_BUTTON_DPAD_RIGHT)
 	assert_eq(screen.tab, 0)
 

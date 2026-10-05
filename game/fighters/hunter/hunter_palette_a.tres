@@ -5,15 +5,15 @@
 
 [resource]
 script = ExtResource("1_script")
-display_name = "Umber and tobacco"
-hood_color = Color(0.14, 0.1, 0.07, 1)
-vest_color = Color(0.145, 0.1, 0.07, 1)
+display_name = "Crimson"
+hood_color = Color(0.5, 0.13, 0.11, 1)
+vest_color = Color(0.4, 0.1, 0.085, 1)
 shirt_color = Color(0.3, 0.25, 0.19, 1)
-trim_color = Color(0.33, 0.24, 0.13, 1)
-sleeve_color = Color(0.2, 0.11, 0.09, 1)
+trim_color = Color(0.62, 0.17, 0.145, 1)
+sleeve_color = Color(0.62, 0.17, 0.145, 1)
 trouser_color = Color(0.22, 0.19, 0.155, 1)
 leather_color = Color(0.15, 0.105, 0.075, 1)
-boot_color = Color(0.22, 0.15, 0.095, 1)
+boot_color = Color(0.2, 0.14, 0.09, 1)
 metal_color = Color(0.42, 0.33, 0.2, 1)
 wear = 0.75
 hair_color = Color(0.26, 0.18, 0.12, 1)

@@ -64,7 +64,7 @@ flowchart TD
 
     GAME --> G_SIM["sim/ rules, no graphics"]
     GAME --> G_INPUT["input/ devices, bindings, profiles"]
-    GAME --> G_CORE["core/ GameServices autoload, settings, match config"]
+    GAME --> G_CORE["core/ GameServices autoload, settings, match config, roster"]
     GAME --> G_VIEW["view/ match host, camera, fighter animation, look"]
     GAME --> G_AUDIO["audio/ sound bank, players, music"]
     GAME --> G_UI["ui/ HUD and menus"]
@@ -82,7 +82,7 @@ flowchart TD
 | `game/sim/moves` | Frame data for each weapon (`katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd`), the `AttackDef` and `WeaponDef` records and the `Moves` registry. |
 | `game/sim/ai` | `AIBrain` (the computer opponent) and `TrainingBrain` (the training dummy). |
 | `game/input` | Reading keyboards, mice and controllers into a `RawInput` per player; bindings, profiles, rebinding, button labels. |
-| `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`. |
+| `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
 | `game/view/match` | `MatchHost` (the fixed-step loop), `MatchView`, `CameraRig`, `MatchAudio`, `StickPose`, the arena registry. |
 | `game/view/fighter` | Animating a rigged fighter from the rules' state: the clip director, locomotion, foot locking, IK rig. |
 | `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replace today's three. |
@@ -113,7 +113,7 @@ flowchart BT
     subgraph DEVICES["Devices"]
         INPUT["input/<br/>InputDevices, ControlProfiles"]
     end
-    CORE["core/<br/>GameServices, GameSettings,<br/>MatchConfig, MatchSide, MatchResults"]
+    CORE["core/<br/>GameServices, GameSettings,<br/>MatchConfig, MatchSide, MatchResults,<br/>Roster"]
     HOST["view/match/MatchHost<br/>fixed-step loop"]
     VIEW["view/match, view/fighter<br/>MatchView, CameraRig, FighterView"]
     LOOK["view/look<br/>toon, outline, ink wash, presets"]
@@ -261,6 +261,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `sim_math.gd` | `SimMath` | Angles, easing, `js_round`. |
 | `js_math.gd` | `JsMath` | V8-exact `sin`, `cos`, `atan2`, `hypot` (see [Traps](#20-traps)). |
 | `rng.gd` | `Rng` | Mulberry32, bit-exact with the TypeScript. |
+| `sim_state.gd` | `SimState` | Snapshots and the state hash (milestone 1): `capture()` copies an object's script variables but those it names in `SNAPSHOT_SKIP` (links, output), sharing only content (`WeaponDef`, `AttackDef`, `FighterBody`, `AIParams`); `state_hash()` is SHA-256 over a canonical form. `World`, `Fighter`, `Match`, `DroppedWeapon`, `SlashWave`, `Rng`, the brains and `TrainingUpkeep` each have `snapshot()`, and `World`, `Fighter`, `Match`, `DroppedWeapon`, `SlashWave` and `Rng` a `restore()` that puts one back (a rollback); `World.state_hash()` and `MatchHost.state_hash()` (the match seam: world, match, brains, upkeep) hash them. |
 | `v2.gd`, `v3.gd` | `V2`, `V3` | 64-bit vectors (Godot's `Vector3` is 32-bit). |
 | `moves/attack_def.gd` | `AttackDef` | One move's frame data and flags; `finalize_moves()` fills defaults. |
 | `moves/weapon_def.gd` | `WeaponDef` | One weapon: class, speed, parry window, block mitigation, its moves and which move starts each context. |
@@ -652,8 +653,9 @@ flowchart LR
 | --- | --- | --- |
 | `game_services.gd` (autoload `GameServices`) | The shared `GameSettings`, `ControlProfiles`, `InputDevices`, `InputFeed`, music director and player, UI sounds, and the match being played. `begin_match`/`end_match`, `play_menu_music`, `play_match_music`, `music_event`, `play_ui`. | Nearly everything outside `sim` |
 | `game_settings.gd` | Graphics preset, volumes, Reduce flashes and shaking, and Button hints, saved to `user://settings.cfg`. Its `changed` signal (emitted by the Settings screen after each change) lets a match follow a change made in the pause menu. With `MONOMACHIA_DEFAULT_SETTINGS=1` (tests, screenshots) the saved file is ignored. | GameServices, graphics applier, `MatchView` (Reduce flashes), `MatchHud` (Button hints) |
-| `match_config.gd` | Everything a match is built from: mode (Duel, Training, Watch, Versus), two `MatchSide`s, arena id, world seed. `default_duel`, `default_watch`, `attract`, `next_seed`, `problem()` (validation). | `MatchHost.start()`, main.gd, views, HUD |
+| `match_config.gd` | Everything a match is built from: mode (Duel, Training, Watch, Versus), two `MatchSide`s, arena id, world seed. `default_duel`, `default_training`, `default_watch`, `attract` (all the Hunter mirror with the Katana, crimson against indigo), `next_seed`, `problem()` (validation). | `MatchHost.start()`, main.gd, views, HUD |
 | `match_side.gd` | One side: fighter, palette, weapon, abilities, controller (human, computer, dummy), device, profile, difficulty. | MatchHost turns it into a `FighterConfig` plus a brain or a device |
+| `roster.gd` | What the menus offer (milestone-1 task 4): the Hunter and the Katana, or the whole roster with `--full-roster` (`Roster.full` in tests). `fighters()`, `weapons()`, `behaviours()` (Training's drills some offered weapon can perform), `offers_side()`. `MatchSide.problem()` checks what exists; this checks what is offered. | The fighter select (grid, weapon cards, Random, preview), `MatchSelection` (random pick, saved picks), How to play's tabs, Training's panel and pause rows, `MatchHost` (the dummy's weapon swaps), the soak |
 | `match_results.gd` | Winner, wins, names, weapons and stats for the results screen. | ResultsScreen, smoke run |
 
 ## 9. Drawing the match (`game/view`)
@@ -662,7 +664,8 @@ flowchart LR
 
 | File | Class | What it does |
 | --- | --- | --- |
-| `match_host.gd` | `MatchHost` | The fixed-step loop (section 5). Signals: `match_started`, `sim_event`, `stepped`, `match_finished`, `pause_changed`, `stopped`, `loadout_changed` (the training dummy swapped weapons; the view and the HUD's plate follow), `training_changed` (the dummy's behaviour or the refill changed). |
+| `match_host.gd` | `MatchHost` | The fixed-step loop (section 5). Signals: `match_started`, `sim_event`, `stepped`, `match_finished`, `pause_changed`, `stopped`, `loadout_changed` (the training dummy swapped weapons; the view and the HUD's plate follow), `training_changed` (the dummy's behaviour or the refill changed), `replay_checked`. Milestone 1: `snapshot()`/`restore()`/`state_hash()` over the world, the match, the brains and Training's upkeep, and `rules_hash()` without the brains; every match played records an `InputLog` (`input_log`, saved to `record_dir`), and `start_replay()` plays one back, comparing its checkpoints. |
+| `input_log.gd` | `InputLog` | A match as its inputs (milestone-1 task 6): the config, each step's `RawInput` per side (saved as the doubles' bytes in base64: Godot's text-to-float parsing isn't exact), Training's panel actions, the rules' hash every 60 steps and the end. JSON, format 1; `save_recent()` keeps the newest ten in `user://replays`; `--replay=<log>` (main.gd) plays one. |
 | `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
 | `camera_rig.gd` | `CameraRig` | FOLLOW (over the shoulder), WATCH (side-on) and MENU (orbit) cameras with damping, arena clamp, shake and FOV kick. |
 | `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera. |
@@ -715,7 +718,7 @@ flowchart TD
 | `body_layer.gd` | `BodyLayer` | Procedural pelvis, spine and head over the clip. |
 | `locomotion.gd` | `Locomotion` | The packs' directional walk, run and sprint clips blended by the rules' velocity on one shared step phase stepped per rules frame; tap steps, a backwards sprint turned away, the turn on the spot, footfalls at the clips' foot contacts (authored-animation task 29). |
 | `foot_phase.gd` | `FootPhase` | Measures each locomotion clip's way, stride, mid-stances and foot contacts once. |
-| `pose_check.gd` | `PoseCheck` | Pose quality checks for tools and tests (wrist bend, knee over toes, blade clearance). |
+| `pose_check.gd` | `PoseCheck` | Pose quality checks for tools and tests (wrist bend, knee over toes, blade clearance, and with a `FootTrack` over a move's frames, planted feet sliding over 1 cm, milestone-1 task 9). `MoveBench` (`game/tools`) measures every rules frame of a move and names its worst frames. |
 | `rig_callback.gd` | `RigCallback` | Lets the rig insert a function into the modifier stack. |
 
 ## 10. Fighters, weapons and arenas (content)
@@ -910,7 +913,7 @@ flowchart LR
 | `game/tests/view` | 24 | Arenas, camera, fighter rig and view, stick pose, locomotion, toon and ink look, presets, MatchHost, main flow, the `--smoke` run, tool scenes. **Superseded by ADR 0001 (Oct 4):** The toon and ink look tests will be replaced as the slice lands. |
 | `game/tests/audio` | 10 | Bus layout and ducking, FadedLoop, footsteps, music director and player, sound bank, sound player, headless playback of a match |
 | `game/tests/input` | 7 | Device state, InputFeed, labels, profiles, rebinding, sampling, seats and pause |
-| `game/tests/content` | 5 | Animation library, asset size budgets, fighter scenes, palettes, weapon models. **Superseded by ADR 0001 (Oct 4):** Size budgets per place (public repository, asset repository, shipped game) replace the asset budget test's 110 MB art cap, and the test will be replaced as the slice lands. |
+| `game/tests/content` | 5 | Animation library, asset hygiene (no art file over 25 MB, textures scaled down, every referenced texture there), fighter scenes, palettes, weapon models. The art's 110 MB cap went in milestone-1 task 8: `check:sizes` holds the size budgets per place. |
 | `game/tests/core` | 3 | GameServices, GameSettings, MatchConfig and MatchSide |
 | `game/tests/fixtures` | data | JSON from the TypeScript (`rng`, `moves`, `math`, `port`) and a hand-made arena scene |
 
@@ -925,7 +928,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | Command | What it runs |
 | --- | --- |
 | `npm test`, `npm run typecheck` | `node --test` and GUT (`test:node`, `test:godot`); the GDScript type check (`tools/typecheck.gd`) |
-| `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300) |
+| `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300): Hunter-against-Hunter Katana mirrors with random block abilities, the finisher share and the appear-list (milestone-1 task 7); `-- --full-roster` plays random weapon pairs with their win rates |
 | `npm run counterlab` | How often the computer lands each unblockable's counter (`tools/counterlab.gd`) |
 | `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
@@ -933,7 +936,9 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…) |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
-| `npm run check:sizes` | Fail on any tracked file over 10 MB |
+| `npm run checklist` | Write the last test run's move-by-move results (`build/checklist-results.json`, recorded through `ChecklistResults`) into the per-move checklist, `docs/reviews/milestone-1-checklist.md`; the owner's columns are never touched (milestone-1 task 10) |
+| `npm run export` | The Blender export (`scripts/blender/export.mjs` running `export_blend.py` in Blender headless): each source in the asset repository's `blender/sources.json` to one GLB in its `exports/`, with a record of its source and checksums; clip and fighter sources must carry the Kevin Iglesias rig's bones; self-made and CC0 models are copied into `game/assets/` inside the art budget |
+| `npm run check:sizes` | Fail on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB (the spec's size budget table; the asset repository's own budgets are its `tools/check-budgets.mjs`) |
 | `npm run brain`, `npm run brain:serve`, `npm run board` | The second brain's generated notes and its viewer; the Project Manager (lanes board) |
 
 ### 16.2 The Godot runner (`scripts/godot.mjs`)
@@ -953,6 +958,11 @@ flowchart TD
         MUSP --> MUSF["game/assets/audio/music/*.wav<br/>+ tracks.json"]
         EX & SYN & MUSP --> SRCMD["game/assets/audio/SOURCES.md"]
     end
+    subgraph BLENDP["The Blender export (scripts/blender)"]
+        BSRC["asset repository: blender/*.blend<br/>listed in blender/sources.json"] --> BEX["export.mjs + export_blend.py<br/>Blender headless"]
+        BEX --> BOUT["asset repository: exports/*.glb<br/>+ a record of each source"]
+        BEX --> BGAME["game/assets/: self-made and CC0 models<br/>inside the 150 MB art budget"]
+    end
     subgraph ARTP["Fighters and weapons (game/tools)"]
         BM["build_bone_map.gd"] --> IA["import_assets.gd<br/>copy chosen Quaternius and weapon files"]
         IA --> IMPRT["godot.mjs import"]
@@ -963,7 +973,7 @@ flowchart TD
     end
 ```
 
-Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
+Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `checklist_results.gd` (where tests record per-move checklist results), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
 
 ## 17. CI and releases
 
@@ -1027,6 +1037,6 @@ Major features follow `CLAUDE.md`: a spec in `docs/specs/`, a plan in `docs/plan
 - **Godot's JSON and float literals round differently from V8**, which is why the parity fixtures store floats as hex bit patterns and `JsMath` builds its constants from bits.
 - **GUT skips a test file that doesn't parse**, silently. `godot.mjs test` fails on parse errors for that reason; keep it that way.
 - **Saved settings leak into tests.** Tests and screenshots set `MONOMACHIA_DEFAULT_SETTINGS=1`, so they start from the default settings and one fresh controls profile, and never write the player's files. Do the same in any new runner.
-- **Big files.** `check:sizes` fails CI on any tracked file over 10 MB. Never commit the raw Sonniss recordings.
+- **Big files.** `check:sizes` fails CI on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB. Never commit the raw Sonniss recordings.
 - **`docs/adr/` doesn't exist yet**, although `docs/agents/domain.md` mentions it. Create it with the first ADR.
   > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** `docs/adr/` now exists, and ADR 0001 is its first record.

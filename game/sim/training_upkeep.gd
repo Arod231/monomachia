@@ -21,7 +21,8 @@ extends RefCounted
 ##
 ## Choosing the dummy's behaviour (task 23.2): weapon_for() gives the weapon
 ## that performs it, the one picked in the select (picked) whenever it can,
-## else the first in the select's order (Moves.PLAYABLE_WEAPONS) that can;
+## else the first of `weapons` (the weapons on offer, in the select's order)
+## that can;
 ## the unblockable drills need an ability with their counter kind
 ## (TrainingBrain.weapon_ability_for), so new unblockables count without a
 ## table. swap_dummy_weapon() changes it cleanly, as Game.swapDummyWeapon()
@@ -41,11 +42,18 @@ var world: World
 var dummy: int
 ## The dummy's weapon at the start, picked in the select.
 var picked: WeaponDef
+## The weapons weapon_for() may swap to, in the select's order: the playable
+## ones unless the host hands it the roster's (milestone-1 task 4).
+var weapons: Array[StringName] = Moves.PLAYABLE_WEAPONS.duplicate()
 ## Per side: the world frame it was last hurt, and its HP after the last step.
 var _last_hurt: Array[int] = [0, 0]
 var _prev_hp: Array[float] = [SimConst.HP_MAX, SimConst.HP_MAX]
 ## The world frame the dummy was first seen disarmed, or -1 while armed.
 var _disarmed_at: int = -1
+
+
+## Not in the snapshot: the world, a link the restore keeps.
+const SNAPSHOT_SKIP: Array[StringName] = [&"world"]
 
 
 func _init(p_world: World, p_dummy: int = 1) -> void:
@@ -54,6 +62,16 @@ func _init(p_world: World, p_dummy: int = 1) -> void:
 	picked = world.fighters[dummy].weapon
 	for i: int in 2:
 		_prev_hp[i] = world.fighters[i].hp
+
+
+## A copy of the upkeep's state (milestone-1 task 5).
+func snapshot() -> Dictionary:
+	return SimState.capture(self, SNAPSHOT_SKIP)
+
+
+## Puts a snapshot() back (milestone-1 task 6).
+func restore(s: Dictionary) -> void:
+	SimState.apply(self, s)
 
 
 ## Runs one step's upkeep, after the rules' step.
@@ -89,7 +107,7 @@ static func can_perform(w: WeaponDef, behaviour: StringName) -> bool:
 func weapon_for(behaviour: StringName) -> WeaponDef:
 	if can_perform(picked, behaviour):
 		return picked
-	for id: StringName in Moves.PLAYABLE_WEAPONS:
+	for id: StringName in weapons:
 		var w: WeaponDef = Moves.WEAPONS[id]
 		if can_perform(w, behaviour):
 			return w
