@@ -19,7 +19,16 @@ extends VBoxContainer
 ## the Studio's EditSession (MarkerEdits), with undo and redo (the buttons,
 ## Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y); a move with stand-in markers asks first
 ## whether to replace them with real ones. Foot contacts are shown, never
-## edited. The chain panel and save come with task 27.
+## edited.
+##
+## A move's chain (milestone-1 task 27) is edited in the Chain panel: each
+## part's clip and source-frame range, moved up or down, removed or added
+## (ChainEdits); today's holds and the move's speed show read-only, for task
+## 19 to remove. The fighter plays the pending chain at once. Save (the
+## button or Ctrl+S) writes the pending edits and regenerates the frame-data
+## table (StudioSaver), and the side panel shows its report: what was saved
+## or refused, each move whose frame data changed, each one out of band, and
+## that a soak is due.
 
 ## The Back button was pressed: return to the gallery.
 signal back_requested()
@@ -51,6 +60,10 @@ var move_entry: MoveClips.Entry = null
 var clip_id: StringName = &""
 ## The last marker edit refused, or "".
 var last_error: String = ""
+## The save (its generator a seam for tests).
+var saver: StudioSaver = null
+## The last save's result, or null.
+var last_save: StudioSaver.Result = null
 
 var viewport: SubViewport = null
 var camera: OrbitCamera = null
@@ -68,6 +81,9 @@ var _rate: HSlider = null
 var _frame_label: Label = null
 var _note: Label = null
 var _markers_box: GridContainer = null
+var _chain_box: VBoxContainer = null
+var _speed_label: Label = null
+var _report: Label = null
 var _status: Label = null
 var _undo: Button = null
 var _redo: Button = null
@@ -106,6 +122,7 @@ func open(e: StudioCatalogue.Entry, fid: StringName = fighter_id) -> void:
 	timeline.markers_editable = move_entry != null or clip_id != &""
 	_show_panel()
 	_show_markers()
+	_show_chain()
 	seek(0.0)
 
 
@@ -167,6 +184,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			undo()
 		KEY_Y when key.ctrl_pressed:
 			redo()
+		KEY_S when key.ctrl_pressed:
+			save()
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -267,6 +286,171 @@ func set_marker(name: String, frame: float, confirmed: bool = false) -> MarkerEd
 	_status.text = r.error
 	_show_markers()
 	return r
+
+
+## Sets the move's chain to `rows` as a pending edit; the fighter plays it
+## at once. A refusal shows in the status line.
+func set_chain(rows: Array[ChainEdits.Row]) -> MarkerEdits.Result:
+	var r: MarkerEdits.Result = MarkerEdits.Result.new()
+	if move_entry == null:
+		r.error = "only a move has a chain"
+	else:
+		r = ChainEdits.set_chain(session, moves_file, entry.group, move_entry, rows, _manifest)
+	last_error = r.error
+	_status.text = r.error
+	if r.error == "" and not r.edits.is_empty():
+		session.apply(r.edits, r.label)
+		_relay()
+	_show_chain()
+	_show_markers()
+	return r
+
+
+## The move's chain rows as the session has them.
+func chain_rows() -> Array[ChainEdits.Row]:
+	if move_entry == null:
+		return [] as Array[ChainEdits.Row]
+	return ChainEdits.rows_of(ChainEdits.current(session, moves_file, entry.group, move_entry))
+
+
+## Saves the pending edits and regenerates the table; the report shows in
+## the side panel. After a regeneration the weapons are built afresh from
+## the new files and the entry shown again.
+func save() -> StudioSaver.Result:
+	if saver == null:
+		saver = StudioSaver.new()
+	last_save = saver.save(session, self)
+	if last_save.regenerated and saver.table_path == FrameDataTable.PATH:
+		for wid: StringName in Moves.WEAPONS.keys():
+			var fresh: WeaponDef = StudioSaver.fresh_weapon(wid)
+			if fresh != null:
+				Moves.WEAPONS[wid] = fresh
+	if not last_save.written.is_empty() and entry != null:
+		open(entry, fighter_id)
+	_report.text = "\n".join(last_save.report())
+	_show_markers()
+	return last_save
+
+
+## Plays the pending chain: the poser laid out afresh.
+func _relay() -> void:
+	if model == null or move_entry == null:
+		return
+	var e: StudioCatalogue.Entry = StudioCatalogue.Entry.new()
+	e.kind = entry.kind
+	e.group = entry.group
+	e.id = entry.id
+	e.fallbacks = entry.fallbacks
+	e.clips.assign(ChainEdits.current(session, moves_file, entry.group, move_entry))
+	var chain: Array[String] = AnimTile.chain_on(model, e, fighter_id)[0]
+	if chain.is_empty():
+		return
+	poser = ClipPoser.new(model, chain)
+	playback.length = poser.length * float(ClipManifest.SOURCE_FPS)
+	timeline.length = playback.length
+	seek(minf(playback.frame, playback.length))
+
+
+## The Chain panel: a row per part, from the session.
+func _show_chain() -> void:
+	if _chain_box == null:
+		return
+	for c: Node in _chain_box.get_children():
+		_chain_box.remove_child(c)
+		c.queue_free()
+	_chain_box.visible = move_entry != null
+	_speed_label.visible = move_entry != null and not is_nan(move_entry.speed)
+	if move_entry == null:
+		return
+	_speed_label.text = "speed %s (task 19 removes it)" % move_entry.speed
+	var rows: Array[ChainEdits.Row] = chain_rows()
+	for i: int in rows.size():
+		var row: ChainEdits.Row = rows[i]
+		var line: HBoxContainer = HBoxContainer.new()
+		line.name = "Part%d" % i
+		_chain_box.add_child(line)
+		if row.is_held():
+			var held: Label = Label.new()
+			held.text = "%s · hold (task 19)" % row.held
+			held.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			line.add_child(held)
+		else:
+			var clip: LineEdit = LineEdit.new()
+			clip.name = "Clip"
+			clip.text = row.clip
+			clip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			clip.text_submitted.connect(_on_part_clip.bind(i))
+			line.add_child(clip)
+			var from: SpinBox = SpinBox.new()
+			from.name = "From"
+			from.step = 0.5
+			from.max_value = 999.0
+			from.set_value_no_signal(row.from)
+			from.value_changed.connect(_on_part_from.bind(i))
+			line.add_child(from)
+			var to: LineEdit = LineEdit.new()
+			to.name = "To"
+			to.placeholder_text = "end"
+			to.custom_minimum_size.x = 48.0
+			to.text = "" if is_nan(row.to) else ChainEdits._num(row.to)
+			to.text_submitted.connect(_on_part_to.bind(i))
+			line.add_child(to)
+		for b: Array in [["↑", -1], ["↓", 1]]:
+			var move: Button = Button.new()
+			move.text = b[0]
+			move.disabled = i + int(b[1]) < 0 or i + int(b[1]) >= rows.size()
+			move.pressed.connect(_on_part_move.bind(i, int(b[1])))
+			line.add_child(move)
+		var remove: Button = Button.new()
+		remove.text = "✕"
+		remove.disabled = row.is_held() or rows.size() == 1
+		remove.pressed.connect(_on_part_remove.bind(i))
+		line.add_child(remove)
+	var add: Button = Button.new()
+	add.name = "AddPart"
+	add.text = "Add part"
+	add.pressed.connect(_on_part_add)
+	_chain_box.add_child(add)
+
+
+func _on_part_clip(text: String, i: int) -> void:
+	var rows: Array[ChainEdits.Row] = chain_rows()
+	rows[i].clip = text.strip_edges()
+	set_chain(rows)
+
+
+func _on_part_from(value: float, i: int) -> void:
+	var rows: Array[ChainEdits.Row] = chain_rows()
+	rows[i].from = value
+	set_chain(rows)
+
+
+func _on_part_to(text: String, i: int) -> void:
+	var rows: Array[ChainEdits.Row] = chain_rows()
+	rows[i].to = NAN if text.strip_edges() == "" else text.to_float()
+	set_chain(rows)
+
+
+func _on_part_move(i: int, by: int) -> void:
+	var rows: Array[ChainEdits.Row] = chain_rows()
+	var row: ChainEdits.Row = rows[i]
+	rows.remove_at(i)
+	rows.insert(i + by, row)
+	set_chain(rows)
+
+
+func _on_part_remove(i: int) -> void:
+	var rows: Array[ChainEdits.Row] = chain_rows()
+	rows.remove_at(i)
+	set_chain(rows)
+
+
+func _on_part_add() -> void:
+	var rows: Array[ChainEdits.Row] = chain_rows()
+	var row: ChainEdits.Row = ChainEdits.Row.new()
+	row.clip = rows[-1].clip if not rows.is_empty() else ""
+	rows.append(row)
+	set_chain(rows)
 
 
 ## Answers the stand-in question with yes: the waiting edit is made.
@@ -422,9 +606,13 @@ func _build_ui() -> void:
 	_view_container.add_child(viewport)
 	_build_stage()
 
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.custom_minimum_size.x = 380.0
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	middle.add_child(scroll)
 	var side: VBoxContainer = _named(VBoxContainer.new(), "SidePanel")
-	side.custom_minimum_size.x = 320.0
-	middle.add_child(side)
+	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(side)
 	side.add_child(_heading("Frames and bands"))
 	_verdict = _named(Label.new(), "Verdict")
 	_verdict.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -458,6 +646,19 @@ func _build_ui() -> void:
 	_confirm.confirmed.connect(confirm_stand_ins)
 	_confirm.canceled.connect(_on_stand_in_refused)
 	add_child(_confirm)
+	side.add_child(_heading("Chain"))
+	_speed_label = _named(Label.new(), "SpeedLabel")
+	side.add_child(_speed_label)
+	_chain_box = _named(VBoxContainer.new(), "ChainPanel")
+	side.add_child(_chain_box)
+	var save_button: Button = _named(Button.new(), "SaveButton")
+	save_button.text = "Save"
+	save_button.tooltip_text = "Write the pending edits and regenerate the frame-data table (Ctrl+S)"
+	save_button.pressed.connect(save)
+	side.add_child(save_button)
+	_report = _named(Label.new(), "SaveReport")
+	_report.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	side.add_child(_report)
 	side.add_child(_heading("Layers"))
 	_foot_lock = _named(CheckBox.new(), "FootLock")
 	_foot_lock.text = "Foot locking"

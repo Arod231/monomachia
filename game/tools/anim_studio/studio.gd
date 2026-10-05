@@ -26,6 +26,7 @@ var current_entry: StudioCatalogue.Entry = null
 var editor: StudioEditor = null
 ## The pending edits, shared by the editor and the gallery's "unsaved" badges.
 var session: EditSession = EditSession.new()
+var _quit_question: ConfirmationDialog = null
 
 @onready var _gallery: Gallery = %Gallery
 @onready var _editor: Control = %Editor
@@ -51,6 +52,13 @@ func _ready() -> void:
 	editor.session = session
 	session.changed.connect(_on_session_changed)
 	body_changed.connect(_on_body_changed)
+	_quit_question = ConfirmationDialog.new()
+	_quit_question.ok_button_text = "Quit without saving"
+	_quit_question.confirmed.connect(func() -> void: get_tree().quit())
+	add_child(_quit_question)
+	if get_tree().current_scene == self:
+		# closing the window with unsaved edits asks first
+		get_tree().auto_accept_quit = false
 	show_gallery()
 
 
@@ -97,6 +105,17 @@ func _on_session_changed() -> void:
 		for t: AnimTile in _gallery.tiles_in(g):
 			t.refresh_badges()
 	_gallery.refresh_filter()
+
+
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_WM_CLOSE_REQUEST or get_tree().auto_accept_quit:
+		return
+	var dirty: PackedStringArray = session.dirty_files()
+	if dirty.is_empty():
+		get_tree().quit()
+		return
+	_quit_question.dialog_text = "Unsaved edits in %s. Quit without saving them?" % ", ".join(Array(dirty).map(func(f: String) -> String: return f.get_file()))
+	_quit_question.popup_centered()
 
 
 ## The editor shows its entry on the new body.
