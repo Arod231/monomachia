@@ -842,7 +842,7 @@ function renderQueue() {
   const toggle = `<button class="btn icon" id="qToggle" aria-expanded="${!queueCollapsed}" aria-label="${queueCollapsed ? 'Expand the launch queue' : 'Collapse the launch queue to the bottom'}" title="${queueCollapsed ? 'Expand' : 'Collapse'}"><i></i></button>`;
   $('queueIn').innerHTML = `<div class="qh"><h2>${toggle}Launch queue · ${queue.length} task${queue.length === 1 ? '' : 's'}</h2>
       ${queue.length ? `${queueCollapsed ? '' : '<button class="btn" id="qClear">Clear</button>'}<button class="btn primary" id="qLaunch">Launch ${count === 1 ? 'a session' : `${count} sessions`}</button>` : `<button class="btn" id="qClose">Close</button>`}</div>
-    ${queue.length && !queueCollapsed ? `<ul>${rows}</ul><div class="note">Each plan gets its own new session in the Claude app, with its own worktree. The board starts it for you: it presses Send in the Claude app (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</div>` : ''}
+    ${queue.length && !queueCollapsed ? `<ul>${rows}</ul><div class="note">Each plan gets its own new session in the Claude app, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</div>` : ''}
     ${queueMsg ? `<div class="msg ${queueMsg.err ? 'err' : ''}">${esc(queueMsg.text)}</div>` : ''}`;
 }
 function toggleQueued(ref, on) {
@@ -856,7 +856,7 @@ async function launchQueue() {
   try {
     const d = await post('/launch', { tasks: queue });
     queue = []; saveQueue();
-    queueMsg = { text: d.launched.map((l) => `Starting a session for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')} on ${l.branch}.`).join(' ') + ' The board presses Send for it in the Claude app.' };
+    queueMsg = { text: d.launched.map((l) => `Starting a session for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')} on ${l.branch}.`).join(' ') + ' The Project Manager presses Send for it in the Claude app.' };
     poll(true);
   } catch (e) {
     queueMsg = { err: true, text: `Couldn't launch: ${e.message}` };
@@ -881,8 +881,9 @@ document.addEventListener('click', (e) => {
 
 // ---------- what can be done with a task (right-click menu and graph panel) ----------
 
-const liveLaunch = (ref) => (data.launches ?? []).find((l) => !l.endedAt && l.tasks.includes(ref)) ?? null;
-const endedLaunch = (ref) => (data.launches ?? []).find((l) => l.endedAt && l.tasks.includes(ref)) ?? null;
+// A task's newest launch, live or ended: an older one may have lapsed.
+const liveLaunch = (ref) => (data.launches ?? []).findLast((l) => !l.endedAt && l.tasks.includes(ref)) ?? null;
+const endedLaunch = (ref) => (data.launches ?? []).findLast((l) => l.endedAt && l.tasks.includes(ref)) ?? null;
 const launchLabel = (l) => l.tasks.map((r) => taskName(...r.split(':'))).join(', ');
 // The task and its unstarted blockers in the same plan, blockers first.
 function chainOf(ref) {
@@ -934,13 +935,13 @@ function runAction(act, ref) {
   else if (act === 'goto') jumpTo(taskOf(ref).movedTo);
   else if (act === 'retry') retryLaunch(ref);
 }
-// The board opens the launch's link and presses Send again (refused once it started).
+// The Project Manager opens the launch's link and presses Send again (refused once it started).
 async function retryLaunch(ref) {
   const l = liveLaunch(ref);
   if (!l) return;
   try {
     await post('/launch/retry', { launch: l.id });
-    queueMsg = { text: `Trying again for ${launchLabel(l)}: the board opens the session and presses Send.` };
+    queueMsg = { text: `Trying again for ${launchLabel(l)}: the Project Manager opens the session and presses Send.` };
   } catch (err) { queueMsg = { err: true, text: `Couldn't try again: ${err.message}` }; }
   poll(true); render();
 }

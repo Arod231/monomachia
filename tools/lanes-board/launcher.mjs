@@ -16,16 +16,20 @@
 //   pressing the link is open and press-send.ps1 is at work
 //   pressed  Send was pressed and the prompt left the box; its session shows
 //            up in the app's records within seconds
-//   waiting  not started: reason is one of REASONS
+//   waiting  not started: reason is one of REASONS (press-send.ps1's answers
+//            other than pressed; the pages word each one, ui.mjs)
 export const REASONS = ['locked', 'no-app', 'no-draft', 'no-send', 'not-taken', 'trust', 'error'];
 export const LOST_MS = 3 * 60 * 1000; // pressed this long ago and still no session: something went wrong
 export const LOCK_CHECK_MS = 15_000; // how often a launch waiting on the lock looks again
-// A launch this old never starts by itself: by then its tasks no longer show as
-// launched (LAUNCH_FRESH_MS in server.mjs) and may have been launched again.
-export const START_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+// A launch shows on its tasks this long; after that it no longer starts, links
+// or shows, since its tasks can be launched again (server.mjs uses it too).
+export const LAUNCH_FRESH_MS = 48 * 60 * 60 * 1000;
 const GRACE_MS = 10_000; // app records can be stamped a little before the board's own clock
 
 export const launchLink = (folder, prompt) => `claude://code/new?folder=${encodeURIComponent(folder)}&q=${encodeURIComponent(prompt)}`;
+
+// Still waiting for its session: not linked to one, not ended, not lapsed.
+const pending = (l, now) => !l.session && !l.endedAt && now - l.time < LAUNCH_FRESH_MS;
 
 /**
  * The start queue. deps: list() -> the launch records (changed in place);
@@ -33,22 +37,22 @@ export const launchLink = (folder, prompt) => `claude://code/new?folder=${encode
  * -> { result }; locked() -> whether the PC is locked; save() writes the
  * records; now(). kick() starts every queued launch and returns the run (a
  * second kick joins it); tick(), on each board pass, queues the launches that
- * waited on the lock once the PC is unlocked; retry(id) refuses at once or
- * queues the launch again and returns the run; recover() turns a press the
- * board was killed in the middle of into an error, at start-up, and says how
- * many it changed.
+ * waited on the lock once the PC has stayed unlocked a while; retry(id) refuses
+ * at once or queues the launch again and returns the run; recover() turns a
+ * press the board was killed in the middle of into an error, at start-up, and
+ * says how many it changed.
  */
 export function createStarter({ list, folder, open, press, locked, save, now = Date.now }) {
   let running = null;
   let lockSeen = -Infinity;
+  let unlockedAt = null; // when tick first found the PC unlocked again
   const set = (l, patch) => {
     const next = { ...l.start, ...patch, at: now() };
     if (next.state !== 'waiting') delete next.reason;
     l.start = next;
   };
   const isLocked = async () => { lockSeen = now(); return !!(await locked()); };
-  const live = (l) => !l.session && !l.endedAt && now() - l.time < START_MAX_AGE_MS;
-  const due = () => list().filter((l) => l.start?.state === 'queued' && live(l)).sort((a, b) => a.time - b.time);
+  const due = () => list().filter((l) => l.start?.state === 'queued' && pending(l, now())).sort((a, b) => a.time - b.time);
 
   async function startOne(l) {
     try {
@@ -56,8 +60,8 @@ export function createStarter({ list, folder, open, press, locked, save, now = D
       else {
         set(l, { state: 'pressing', attempts: (l.start.attempts ?? 0) + 1 });
         await save();
-        await open(launchLink(folder, l.prompt ?? l.goal));
-        const { result } = await press({ prompt: l.prompt ?? l.goal, folder });
+        await open(launchLink(folder, l.goal));
+        const { result } = await press({ prompt: l.goal, folder });
         if (result === 'pressed') set(l, { state: 'pressed', pressedAt: now() });
         else set(l, { state: 'waiting', reason: REASONS.includes(result) ? result : 'error' });
       }
@@ -77,11 +81,18 @@ export function createStarter({ list, folder, open, press, locked, save, now = D
     return running;
   }
 
+  // The PC must stay unlocked for a lock check's span first: a press that the
+  // lock cut short leaves its draft in the box, and if someone sends it by hand
+  // on unlocking, that session is linked (and this launch skipped) by then.
   async function tick() {
     if (running) return undefined;
-    const waiting = list().filter((l) => l.start?.state === 'waiting' && l.start.reason === 'locked' && live(l));
-    if (!waiting.length || now() - lockSeen < LOCK_CHECK_MS) return undefined;
-    if (await isLocked()) return undefined;
+    const waiting = list().filter((l) => l.start?.state === 'waiting' && l.start.reason === 'locked' && pending(l, now()));
+    if (!waiting.length) { unlockedAt = null; return undefined; }
+    if (now() - lockSeen < LOCK_CHECK_MS) return undefined;
+    if (await isLocked()) { unlockedAt = null; return undefined; }
+    unlockedAt ??= now();
+    if (now() - unlockedAt < LOCK_CHECK_MS) return undefined;
+    unlockedAt = null;
     for (const l of waiting) set(l, { state: 'queued' });
     return kick();
   }
@@ -91,7 +102,7 @@ export function createStarter({ list, folder, open, press, locked, save, now = D
     if (!l) throw new Error('Unknown launch');
     if (l.endedAt) throw new Error('That launch was ended');
     if (l.session) throw new Error('Its session has already started');
-    if (!live(l)) throw new Error('That launch is over two days old: launch its tasks again');
+    if (!pending(l, now())) throw new Error('That launch is over two days old: launch its tasks again');
     const s = l.start ?? {};
     if (s.state === 'queued' || s.state === 'pressing') throw new Error('It is starting now');
     if (s.state === 'pressed' && now() - (s.pressedAt ?? s.at) < LOST_MS) throw new Error('It was just sent; give its session a few minutes to show up');
@@ -110,7 +121,7 @@ export function createStarter({ list, folder, open, press, locked, save, now = D
 
 /**
  * How a launch's start reads on the pages: null for launches from before the
- * board pressed Send itself (they have no start) and for ended ones;
+ * board pressed Send itself (they have no start), ended ones and lapsed ones;
  * { state: 'started' } once its session is linked; 'starting' while queued,
  * being pressed or just sent; else 'waiting' with a reason ('lost' when Send
  * was pressed but no session appeared) and whether a retry is offered (not
@@ -119,13 +130,14 @@ export function createStarter({ list, folder, open, press, locked, save, now = D
 export function startView(l, now) {
   if (!l.start || l.endedAt) return null;
   if (l.session) return { state: 'started' };
+  if (!pending(l, now)) return null;
   const s = l.start;
-  if (s.state === 'queued' || s.state === 'pressing') return { state: 'starting', since: s.at };
+  if (s.state === 'queued' || s.state === 'pressing') return { state: 'starting' };
   if (s.state === 'pressed') {
-    return now - (s.pressedAt ?? s.at) < LOST_MS ? { state: 'starting', since: s.at } : { state: 'waiting', reason: 'lost', retry: true, since: s.at };
+    return now - (s.pressedAt ?? s.at) < LOST_MS ? { state: 'starting' } : { state: 'waiting', reason: 'lost', retry: true };
   }
   const reason = s.reason ?? 'error';
-  return { state: 'waiting', reason, retry: reason !== 'locked', since: s.at };
+  return { state: 'waiting', reason, retry: reason !== 'locked' };
 }
 
 /**
@@ -148,22 +160,35 @@ export function firstPrompt(text) {
   return null;
 }
 
+/**
+ * The app sessions worth reading for links: those with a transcript id, made
+ * since the oldest launch still waiting for its session (less the grace). None
+ * when no launch waits.
+ */
+export function linkCandidates(launches, sessions, now) {
+  const waiting = launches.filter((l) => pending(l, now));
+  if (!waiting.length) return [];
+  const since = Math.min(...waiting.map((l) => l.time)) - GRACE_MS;
+  return sessions.filter((s) => s.cli && s.created >= since);
+}
+
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Links each launch that has no session yet to the earliest app session made
- * since the launch (less a few seconds' grace) whose first prompt names the
- * launch's lane branch, unless another launch took it. Naming the branch makes
- * it this launch's session, however late it started: the board's press, a
- * retry, or someone sending the draft by hand. sessions: [{ id, cli, created }]
- * from the app's records; prompts: cli id -> first prompt (missing until the
- * transcript has one). Changes the launches in place; true if any was linked.
+ * Links each launch still waiting for its session to the earliest app session
+ * made since the launch (less the grace) whose first prompt names the launch's
+ * lane branch, unless another launch took it. Naming the branch makes it this
+ * launch's session, however late it started: the board's press, a retry, or
+ * someone sending the draft by hand. The newest launches go first, so a
+ * relaunch of the same tasks gets its own session. sessions: [{ id, cli,
+ * created }] from the app's records; prompts: cli id -> first prompt (missing
+ * until the transcript has one). Changes the launches in place; true if any was
+ * linked.
  */
-export function linkLaunches(launches, sessions, prompts) {
+export function linkLaunches(launches, sessions, prompts, now) {
   const taken = new Set(launches.map((l) => l.session?.id).filter(Boolean));
   let linked = false;
-  for (const l of launches) {
-    if (l.session || l.endedAt || !l.branch) continue;
+  for (const l of launches.filter((x) => pending(x, now) && x.branch).sort((a, b) => b.time - a.time)) {
     // The branch as a whole word: lane/gr-1.1 isn't lane/gr-1.10, but may end a sentence.
     const names = new RegExp(`${escapeRe(l.branch)}(?![\\w-]|\\.\\w)`);
     const s = sessions
