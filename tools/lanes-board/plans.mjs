@@ -1,6 +1,6 @@
 // The lanes board's view of the plans: which plans it follows, how it reads
 // their tasks, blockers and build order, how it merges the copies on different
-// branches, the roadmap's phases, and the /goal a launched session starts with.
+// branches, the roadmap's phases, and the prompt a launched session starts with.
 // Pure functions, no git or disk, so tests/lanes-board.test.mjs can run them on
 // fixtures.
 import path from 'node:path';
@@ -353,12 +353,15 @@ export function cancelStops(entries, branch, now) {
   return { entries: out, cancelled };
 }
 
-export const GOAL_LIMIT = 4000; // /goal refuses a longer condition
+export const GOAL_LIMIT = 4000; // launch prompts stay this short (the app cuts a link's prompt at 14,336 characters)
 
 /**
- * The /goal a launched session starts with. The desktop app sometimes drops the
- * launch link's folder and opens the session in a scratch folder, so the goal
- * itself brings the session into the repository. Work stays on a lane branch
+ * The prompt a launched session starts with; the board sends it for the owner
+ * (launcher.mjs). Plain words, not /goal: the app turns a link prompt's leading
+ * "/" into a full-width "／", so a slash command in a link never runs. If the
+ * app's "Trust this workspace?" is cancelled (Enter on it does that), the app
+ * drops the link's folder and opens the session in a scratch folder, so the
+ * prompt itself brings the session into the repository. Work stays on a lane branch
  * with a pull request into the plan's branch (the owner chose to keep the PRs);
  * plan.branch is the one the plan's header names. When the board sees no such
  * branch on origin (baseExists false; milestone 1's comes with the
@@ -380,6 +383,7 @@ export function goalFor({ plan, ids, tasks, branch, repo, baseExists = true }) {
     'Before implementing, run wayfinder for questions only: read ~/.claude/skills/wayfinder/SKILL.md (it cannot be called as a tool) and follow its questioning to find every open decision these tasks need, but write no map or ticket files.',
     'Ask each decision with the AskUserQuestion tool as clickable multiple choice, recommended option first, and wait for my answers. Record the answers in the tasks\' blocks in the plan.',
     `Then implement the tasks one at a time in plan order, per CLAUDE.md (tests first; npm test and npm run typecheck before each commit; push after each; a draft PR into ${plan.branch}), ticking each in the plan as it lands. Follow the plan's Notes and the side-lane rules in memory, and stop to ask me at any owner gate.`,
+    'Go on from one task to the next without waiting for my OK; stop only for a question that needs my answer, at an owner gate, or when every queued task is done.',
   ].join(' ');
   for (const n of [120, 60, 30, 0]) {
     const text = body(n);
