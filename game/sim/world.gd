@@ -120,6 +120,29 @@ func state_hash() -> String:
 	return SimState.state_hash(snapshot())
 
 
+## Puts a snapshot() back (milestone-1 task 134): the world steps on from it
+## exactly as it did from the moment it was taken. The fighters are restored
+## in place; the dropped weapons and waves are rebuilt; the events and the
+## scripted-hit queue start empty. A snapshot can be restored any number of
+## times, into this world or another built from the same fighters' configs.
+func restore(s: Dictionary) -> void:
+	var fields: Dictionary = s.duplicate()
+	for n: StringName in [&"fighters", &"weapons", &"waves", &"rng"]:
+		fields.erase(n)
+	SimState.apply(self, fields)
+	for i: int in 2:
+		fighters[i].restore(s[&"fighters"][i])
+	weapons = []
+	for w: Dictionary in s[&"weapons"]:
+		weapons.append(DroppedWeapon.from_snapshot(w))
+	waves = []
+	for v: Dictionary in s[&"waves"]:
+		waves.append(SlashWave.from_snapshot(v, self))
+	rng.restore(s[&"rng"])
+	events = []
+	_scripted_queue = []
+
+
 func time_scale() -> float:
 	return slowmo_scale if slowmo_frames > 0 else 1.0
 

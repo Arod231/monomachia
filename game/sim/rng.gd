@@ -24,6 +24,11 @@ func snapshot() -> Dictionary:
 	return {&"_s": _s}
 
 
+## Puts a snapshot() back (milestone-1 task 134).
+func restore(s: Dictionary) -> void:
+	_s = s[&"_s"]
+
+
 func next() -> float:
 	_s = (_s + 0x6D2B79F5) & _MASK32
 	var t: int = _s

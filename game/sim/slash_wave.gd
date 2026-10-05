@@ -29,6 +29,16 @@ func snapshot() -> Dictionary:
 	return s
 
 
+## A wave rebuilt from a snapshot() in `world`, its owner found by id
+## (milestone-1 task 134).
+static func from_snapshot(s: Dictionary, world: World) -> SlashWave:
+	var fields: Dictionary = s.duplicate()
+	fields.erase(&"owner")
+	var w: SlashWave = SlashWave.new(world.fighters[s[&"owner"]], &"", 0.0, 0.0, 0.0, 0.0)
+	SimState.apply(w, fields)
+	return w
+
+
 func _init(p_owner: Fighter, p_kind: StringName, p_ox: float, p_oz: float, p_dx: float, p_dz: float) -> void:
 	owner = p_owner
 	kind = p_kind

@@ -179,6 +179,16 @@ func snapshot() -> Dictionary:
 	return s
 
 
+## Puts a snapshot() back (milestone-1 task 134), keeping the links to the
+## world and the opponent; impaled_by is found by its id in the world.
+func restore(s: Dictionary) -> void:
+	var fields: Dictionary = s.duplicate()
+	fields.erase(&"impaled_by")
+	SimState.apply(self, fields)
+	var by: int = s[&"impaled_by"]
+	impaled_by = world.fighters[by] if by >= 0 else null
+
+
 # ------------------------------------------------------------------ queries
 
 func moveset() -> WeaponDef:

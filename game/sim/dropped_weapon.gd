@@ -23,6 +23,19 @@ func snapshot() -> Dictionary:
 	return SimState.capture(self)
 
 
+## Puts a snapshot() back (milestone-1 task 134).
+func restore(s: Dictionary) -> void:
+	SimState.apply(self, s)
+
+
+## A dropped weapon rebuilt from a snapshot(), drawing nothing from the
+## world's generator.
+static func from_snapshot(s: Dictionary) -> DroppedWeapon:
+	var w: DroppedWeapon = DroppedWeapon.new(0, &"", V3.make(), V3.make(), Rng.new())
+	w.restore(s)
+	return w
+
+
 func _init(p_owner: int, p_weapon_id: StringName, p_pos: V3, p_vel: V3, rng: Rng) -> void:
 	owner = p_owner
 	weapon_id = p_weapon_id

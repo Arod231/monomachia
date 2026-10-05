@@ -51,6 +51,11 @@ func snapshot() -> Dictionary:
 	return SimState.capture(self, SNAPSHOT_SKIP)
 
 
+## Puts a snapshot() back (milestone-1 task 134); the world restores itself.
+func restore(s: Dictionary) -> void:
+	SimState.apply(self, s)
+
+
 func fighting() -> bool:
 	return phase == &"fight"
 
