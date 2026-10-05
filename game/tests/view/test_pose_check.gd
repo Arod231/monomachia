@@ -353,3 +353,154 @@ func test_a_report_over_the_stick_pose_katana_attacks_prints() -> void:
 			assert_gt(steps.size(), 0, "%s %s plays" % [id, move_id])
 			lines.append(MoveBench.summary(move_id, steps))
 		gut.p("%s, StickPose Katana attacks:\n%s" % [id, "\n".join(lines)])
+
+
+# ------------------------------------------------------------------ foot slide
+
+## A copy of `frame` with foot `side` at world point `at` (the fighter's
+## root carries the skeleton into the world).
+func _foot_at(bench: MoveBench, frame: PoseCheck.Frame, side: String, at: Vector3) -> PoseCheck.Frame:
+	var f: PoseCheck.Frame = frame.copy()
+	var foot: Transform3D = _bone(bench, f, side + "Foot")
+	foot.origin = f.root.affine_inverse() * at
+	_set_bone(bench, f, side + "Foot", foot)
+	return f
+
+
+## A copy of `frame` with the fighter's root moved by `offset` (world).
+func _rooted(frame: PoseCheck.Frame, offset: Vector3) -> PoseCheck.Frame:
+	var f: PoseCheck.Frame = frame.copy()
+	f.root = Transform3D(f.root.basis, f.root.origin + offset)
+	return f
+
+
+## The ground point under where foot `side` would rest (its ankle at its
+## rest height), `forward` metres ahead in the world.
+func _ground(bench: MoveBench, side: String, forward: float) -> Vector3:
+	var x: float = -0.12 if side == "Right" else 0.12
+	return Vector3(x, bench.check.ankle_rest[side], forward)
+
+
+## A planted foot held still while the body moves over it doesn't slide.
+func test_a_planted_foot_that_stays_put_does_not_slide() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var guard: PoseCheck.Frame = await _guard_frame(bench)
+	var track := PoseCheck.FootTrack.new(bench.check)
+	for i: int in 10:
+		var f: PoseCheck.Frame = _rooted(guard, Vector3(0.0, 0.0, 0.02 * i))
+		f = _foot_at(bench, f, "Right", _ground(bench, "Right", 0.0))
+		f = _foot_at(bench, f, "Left", _ground(bench, "Left", 0.3))
+		var report: PoseCheck.Report = bench.check.measure(f, false, track)
+		assert_almost_eq(report.feet["Right"], 0.0, 1e-5, "frame %d" % i)
+		assert_almost_eq(report.feet["Left"], 0.0, 1e-5, "frame %d" % i)
+		assert_false(_has(report.failures(), "foot slid"), "%s" % report.failures())
+
+
+## A planted foot that creeps 6 mm a frame slides from where it landed, and
+## fails once it is more than 1 cm away; the summary says so.
+func test_a_sliding_foot_fails_past_1_cm() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var guard: PoseCheck.Frame = await _guard_frame(bench)
+	var track := PoseCheck.FootTrack.new(bench.check)
+	for i: int in 5:
+		var f: PoseCheck.Frame = _foot_at(bench, guard, "Right", _ground(bench, "Right", 0.0048 * i) + Vector3(0.0036 * i, 0.0, 0.0))
+		var report: PoseCheck.Report = bench.check.measure(f, false, track)
+		var slid: float = Vector2(0.0036 * i, 0.0048 * i).length()
+		assert_almost_eq(report.feet["Right"], slid, 1e-5, "frame %d: along the ground from where it landed" % i)
+		assert_eq(_has(report.failures(), "right foot slid"), slid > PoseCheck.FOOT_SLIDE_MAX, "frame %d: %s" % [i, report.failures()])
+		if i == 4:
+			assert_true(report.failures().has("right foot slid 2.4 cm"), "%s" % report.failures())
+			assert_true(report.summary().contains("slide R 2.4"), report.summary())
+
+
+## Rising or settling within the plant doesn't count as sliding: only the
+## way along the ground does.
+func test_a_planted_foot_moving_up_and_down_does_not_slide() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var guard: PoseCheck.Frame = await _guard_frame(bench)
+	var track := PoseCheck.FootTrack.new(bench.check)
+	for lift: float in [0.0, 0.02, 0.05, 0.0]:
+		var f: PoseCheck.Frame = _foot_at(bench, guard, "Right", _ground(bench, "Right", 0.0) + Vector3(0.0, lift, 0.0))
+		var report: PoseCheck.Report = bench.check.measure(f, false, track)
+		assert_true(report.feet.has("Right"), "held planted at %.2f m up (let go above %.2f)" % [lift, PoseCheck.LIFT_HEIGHT])
+		assert_almost_eq(report.feet["Right"], 0.0, 1e-5)
+
+
+## A lifted foot isn't measured; put down again elsewhere, it lands afresh.
+## A foot that comes down only to between the plant and lift heights isn't
+## planted yet.
+func test_a_lifted_foot_lands_afresh() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var guard: PoseCheck.Frame = await _guard_frame(bench)
+	var track := PoseCheck.FootTrack.new(bench.check)
+	var at: Vector3 = _ground(bench, "Right", 0.0)
+	var steps: Array[Array] = [
+		# [forward, lift, planted]
+		[0.0, 0.0, true],
+		[0.1, 0.10, false],
+		[0.3, 0.045, false],
+		[0.4, 0.0, true],
+		[0.4, 0.0, true],
+	]
+	for s: Array in steps:
+		var f: PoseCheck.Frame = _foot_at(bench, guard, "Right", at + Vector3(0.0, s[1], s[0]))
+		var report: PoseCheck.Report = bench.check.measure(f, false, track)
+		assert_eq(report.feet.has("Right"), s[2], "%s" % [s])
+		if s[2]:
+			assert_almost_eq(report.feet["Right"], 0.0, 1e-5, "%s: measured from where it came down" % [s])
+
+
+## Without a track (a single frame, as the sheets' chosen frames were) no
+## foot is measured.
+func test_a_single_frame_measures_no_slide() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var report: PoseCheck.Report = bench.check.measure(await _guard_frame(bench))
+	assert_true(report.feet.is_empty())
+
+
+## The bench measures the feet on every frame of a move and its summary
+## names the worst frame for the blade and for the feet.
+func test_the_bench_tracks_the_feet_and_names_the_worst_frames() -> void:
+	var bench: MoveBench = _bench(&"hunter")
+	var steps: Array[MoveBench.Step] = await bench.play(&"k_l1")
+	var measured: int = 0
+	for s: MoveBench.Step in steps:
+		if not s.report.feet.is_empty():
+			measured += 1
+	assert_gt(measured, 0, "planted feet measured")
+	var worst: MoveBench.Worst = MoveBench.worst(steps)
+	var gap: float = INF
+	var slide: float = 0.0
+	for s: MoveBench.Step in steps:
+		gap = minf(gap, s.report.blade_gap)
+		for side: String in s.report.feet:
+			slide = maxf(slide, s.report.feet[side])
+	assert_almost_eq(worst.blade_gap, gap, 1e-6)
+	assert_almost_eq(worst.slide, slide, 1e-6)
+	assert_eq(steps[worst.blade_frame - 1].report.blade_gap, gap, "the blade's worst frame")
+	var summary: String = MoveBench.summary(&"k_l1", steps)
+	assert_true(summary.contains("worst blade fr %d" % worst.blade_frame), summary)
+	assert_true(summary.contains("slide %.1f cm" % (slide * 100.0)), summary)
+
+
+## The baseline (milestone-1 task 9): every Katana move on the Hunter with
+## the licensed clips, foot slide and blade clearance on every rules frame,
+## each move's worst printed and recorded for the per-move checklist's items
+## 8 and 9 (npm run checklist). Not yet required to pass: the families
+## re-key the clips.
+func test_local_every_katana_move_s_feet_and_blade_print_their_worst() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	var bench: MoveBench = _bench(&"hunter")
+	var lines: Array[String] = []
+	for move_id: StringName in Moves.KATANA.moves:
+		var steps: Array[MoveBench.Step] = await bench.play(move_id)
+		assert_gt(steps.size(), 0, "%s plays" % move_id)
+		var w: MoveBench.Worst = MoveBench.worst(steps)
+		lines.append("%-9s %3d fr  blade %5.1f cm (%s, fr %d)  foot slide %4.1f cm (%s, fr %d)" % [
+			move_id, steps.size(), w.blade_gap * 100.0, w.blade_near, w.blade_frame,
+			w.slide * 100.0, w.slide_side.to_lower() if w.slide_side != "" else "-", w.slide_frame])
+		ChecklistResults.record(8, move_id, w.slide <= PoseCheck.FOOT_SLIDE_MAX, "worst %.1f cm at frame %d" % [w.slide * 100.0, w.slide_frame])
+		ChecklistResults.record(9, move_id, w.blade_gap >= PoseCheck.BLADE_CLEARANCE, "worst %.1f cm at frame %d" % [w.blade_gap * 100.0, w.blade_frame])
+	gut.p("hunter, Katana moves with the clips, worst over every rules frame:\n" + "\n".join(lines))

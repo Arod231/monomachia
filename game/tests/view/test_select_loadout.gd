@@ -9,14 +9,20 @@ var locked: Array[MatchSelection.Draft] = []
 
 
 func before_each() -> void:
+	# the select's mechanics, walked with the whole roster (DemoDraft)
+	Roster.full = true
 	locked.clear()
 	select = FighterSelect.new()
 	add_child_autofree(select)
 	select.locked_in.connect(func(d: MatchSelection.Draft) -> void: locked.append(d))
 
 
+func after_each() -> void:
+	Roster.reset()
+
+
 func _open(mode: StringName) -> void:
-	select.start(MatchSelection.default_draft(mode))
+	select.start(DemoDraft.of(mode))
 	select.open()
 	await get_tree().process_frame
 
@@ -151,7 +157,7 @@ func test_the_training_dummy_picks_a_weapon_but_no_abilities() -> void:
 
 
 func test_leaving_without_locking_in_changes_nothing() -> void:
-	var d: MatchSelection.Draft = MatchSelection.default_draft(MatchConfig.DUEL)
+	var d: MatchSelection.Draft = DemoDraft.of(MatchConfig.DUEL)
 	select.start(d)
 	select.open()
 	await get_tree().process_frame

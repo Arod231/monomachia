@@ -99,8 +99,8 @@ The tasks run in this order:
 2. **The gallery** (5–6).
 3. **Viewing in the editor** (7–9).
 4. **Editing and saving** (10–15).
-5. **Refinements** (16–17).
-6. **Correctives and posing** (18–21).
+5. ~~**Refinements** (16–17).~~ Dropped by milestone 1.
+6. ~~**Correctives and posing** (18–21).~~ Dropped by milestone 1.
 7. **The owner's review** (22).
 
 The state-clips refactor (3) comes early because `clip_director.gd` is still changing in the authored-animation lane. Bone posing comes last so that the rest is usable first (spec, Risks). **Hard gates** (nothing after them starts without the owner's OK): task 6 (the gallery's look), task 17 (one real refinement end to end), task 22.
@@ -109,7 +109,7 @@ The state-clips refactor (3) comes early because `clip_director.gd` is still cha
 
 ```text
 game/tools/anim_studio/
-├── studio.tscn / studio.gd          # the scene: gallery ⇄ editor, chat panel docked right
+├── studio.tscn / studio.gd          # the scene: gallery ⇄ editor
 ├── source_edit.gd                   # SourceEdit: span edits in JSON and GDScript dict text
 ├── studio_catalogue.gd              # StudioCatalogue + Entry: what the gallery lists
 ├── studio_libraries.gd              # StudioLibraries: clip libraries loaded once, shared
@@ -356,7 +356,8 @@ game/tests/tools/anim_studio/test_*.gd
     Also: reordering writes the array in the new order, and a hold on a frame past the clip's length is refused with the parser's error shown.
   - Blocked by: 10 · Stories: 15
 
-- [ ] **13. The frame-data panel.**
+- [-] ~~**13. The frame-data panel.**~~
+  - Dropped (Oct 5, milestone-1 task 11): frame data are generated from the clips' markers (milestone-1 tasks 15 and 16), never edited by hand.
   - `moves_patch.gd` (`class_name MovesPatch`):
     - `const FIELDS := ["startup", "active", "recovery", "lunge", "lunge_end", "range", "arc", "damage", "posture", "knockback", "dodge_cancel_from"]`;
     - `static func path_for(weapon: StringName) -> String`, which gives `res://sim/moves/<weapon>.gd`;
@@ -369,7 +370,8 @@ game/tests/tools/anim_studio/test_*.gd
     - a refused field leaves the text unchanged and reports why.
   - Blocked by: 10 · Stories: 16
 
-- [ ] **14. The state timings panel.**
+- [-] ~~**14. The state timings panel.**~~
+  - Dropped (Oct 5, milestone-1 task 11): the protected timings stay rules numbers (milestone-1 task 22).
   - `editor/state_panel.gd` edits a state or ult entry's fields from `state_clips.json`: clip pickers for clip ids, spin boxes for frames and speeds, in the order the file holds them. Edits are written through the session at `[<group>, <key>...]`.
   - Each state's viewport plays the edited clip choice live.
   - Check, in `test_state_panel.gd`:
@@ -399,7 +401,8 @@ game/tests/tools/anim_studio/test_*.gd
 
 ### Phase E: refinements
 
-- [ ] **16. The refinement launcher.**
+- [-] ~~**16. The refinement launcher.**~~
+  - Dropped (Oct 5, milestone-1 task 11): the slimmed Studio has no refinement launcher.
   - `chat/process_runner.gd` (`class_name ProcessRunner`): `func run(cmd: String, args: PackedStringArray, cwd: String) -> Array`, returning `[exit_code: int, output: String]` through `OS.execute` with `cwd` handled by running `git -C <cwd>` / `cmd /c cd /d <cwd> && ...`, and `func spawn(cmd: String, args: PackedStringArray) -> int` (`OS.create_process`). Tests pass `FakeRunner` (in the test folder), which records calls and returns scripted results.
   - `chat/context_writer.gd` (`class_name ContextWriter`):
     - `static func prompt_md(prompt: String, entry, frame_or_range: Vector2i, base_branch: String) -> String`. It includes the owner's prompt verbatim in a fenced block, the animation (kind, group, id, name), the frame or range, and the base branch. It then gives the instructions:
@@ -431,7 +434,8 @@ game/tests/tools/anim_studio/test_*.gd
     - `animation_json` names `move_clips.json` and the right line for `k_l1`.
   - Blocked by: 4, 10 · Stories: 29, 31, 33, 35
 
-- [ ] **17. The chat panel, the terminal and the log.**
+- [-] ~~**17. The chat panel, the terminal and the log.**~~
+  - Dropped (Oct 5, milestone-1 task 11): the slimmed Studio has no chat panel; milestone-1 task 11 removed its placeholder.
   - **The panel.** `chat/chat_panel.tscn/.gd` has:
     - the selected animation's name;
     - the frame or range from the timeline (`range_selected`, or the playhead);
@@ -458,7 +462,8 @@ game/tests/tools/anim_studio/test_*.gd
 
 ### Phase F: correctives and posing
 
-- [ ] **18. Correctives in the game.**
+- [-] ~~**18. Correctives in the game.**~~
+  - Dropped (Oct 5, milestone-1 task 11): correctives are dropped; a clip is fixed in Blender and exported again (milestone-1 tasks 12 and 13).
   - **The data.** `game/view/fighter/clip_correctives.gd` (`class_name ClipCorrectives`, `extends RefCounted`):
     - `const FOLDER := "res://assets/authored/correctives"`;
     - `class Key`, holding `frame: float` (source frames) and `bones: Dictionary[StringName, Quaternion]`, read from `{"bone": [x, y, z]}` Euler degrees in the file;
@@ -483,7 +488,8 @@ game/tests/tools/anim_studio/test_*.gd
     - with a corrective on the right forearm, `bake_weapon` (local-only) gives a different `right_hand` track, and with an empty corrective file the swing text is unchanged.
   - Blocked by: 2 · Stories: 23–25
 
-- [ ] **19. Bone posing: pick, rotate, key.**
+- [-] ~~**19. Bone posing: pick, rotate, key.**~~
+  - Dropped (Oct 5, milestone-1 task 11): bone posing moves to Blender.
   - **Picking.** `editor/bone_picker.gd` lists the humanoid bones (`SkeletonProfileHumanoid` names) in a tree. A click in the viewport ray-picks the nearest bone, using bone positions and a small screen-space radius.
   - **Rotating.** `editor/pose_gizmo.gd` (`class_name PoseGizmo`, `extends Node3D`) draws three rotation rings on the selected bone. Dragging a ring rotates about that axis in bone-local space, Shift snaps to 5°, and numeric fields in the Pose tab mirror it.
   - **Keying.** "Key" writes the bone's offset from the clip's own pose at the current source frame into the pending corrective (a session Edit on `assets/authored/correctives/<clip>.json`). Edits are per bone, per key frame. "Delete key" and a key track on the timeline (diamonds) let you jump between keys. A body scope picker (Shared, Hunter only, Rogue only) picks between shared keys and an override.
@@ -499,13 +505,15 @@ game/tests/tools/anim_studio/test_*.gd
     Plus a shot of the gizmo and ghost.
   - Blocked by: 15, 18 · Stories: 21, 23, 24, 27
 
-- [ ] **20. IK handles.**
+- [-] ~~**20. IK handles.**~~
+  - Dropped (Oct 5, milestone-1 task 11): IK handles move to Blender with bone posing.
   - `editor/ik_handles.gd` (`class_name IkHandles`) adds draggable handles for the left and right hands, the left and right feet, the hips and the chest. Dragging a hand or foot solves its limb with two-bone IK; Godot 4.7's `TwoBoneIK3D` or the solver in `tools/keyed_pose.gd` (`KeyedPose._limb`), whichever gives the same bend directions (`LEG_BEND`, `ARM_BEND`). Hips and chest translate and rotate.
   - On a corrective, "Key" converts the solved pose into per-bone rotation offsets from the clip's pose (upper arm, forearm and hand, or thigh, shin and foot) and keys them as task 19 does.
   - Check, in `test_ik_handles.gd`: dragging the right hand 10 cm forward and keying gives offsets that, sampled back through the modifier, put the hand within 1 cm of the target; the elbow bends the right way (pole side).
   - Blocked by: 19 · Stories: 22
 
-- [ ] **21. Keyed clip editing.**
+- [-] ~~**21. Keyed clip editing.**~~
+  - Dropped (Oct 5, milestone-1 task 11): keyed clips are edited in Blender.
   - `editor/keyed_editor.gd`:
     - **Open.** Opening a keyed source entry (Mikiri_Stomp, Mikiri_Pinned) or "New keyed clip" (asks for an id, CamelCase, unique) edits `assets/authored/keys/<id>.json` in KeyedPose's format. Its keys are frames with IK targets for the hips, spine, legs and arms, as `KeyedPose.solve` reads them.
     - **Pose.** The IK handles (task 20) set the targets on the current key. "Add key" and "delete key" work on the timeline. The pose is solved live with `KeyedPose.solve(key, skeleton, base)`, with in-between frames as `KeyedPose.build` interpolates them.

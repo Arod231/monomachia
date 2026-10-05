@@ -15,7 +15,7 @@
 //                          shots tool runs as a looping MP4 (6 s, at most 20) and a still in
 //                          shots/, with Movie Maker and ffmpeg (rules in clip.mjs)
 //   run                    play the game
-//   studio                 open the Animation Studio (gallery, editor and chat panel; dev tool)
+//   studio                 open the Animation Studio (gallery and editor; dev tool)
 //   dev                    open the editor
 //   build                  export the Windows build to build/windows/, with the licence,
 //                          credits and notices beside the exe (tools/build_notices.gd)

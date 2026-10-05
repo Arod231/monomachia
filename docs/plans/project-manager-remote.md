@@ -57,6 +57,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 - Oct 5, 2026: questions stay in the app (the owner's call): #55 merged into `master` (4fde976). Then #36 merged into `master` (bb52ea0) and `tools/project-manager-remote` was pushed again from `master` for the rest of this plan.
 - Oct 5, 2026: tasks 11, 12, 13 and 14 done in lane `lane/pm-11-12-13-14`: pull request #57 merged (5924826). Tasks 11 and 14 were ticked once the owner had tried them from the phone. Next: tasks 15 to 18.
 - Oct 5, 2026: tasks 15, 16, 17 and 18 done in lane `lane/pm-15-16-17-18`: pull request #58 merged (a0e6cdb). Outside the plan, the New session button followed (#64, 4feebbd). Next: the owner's check (task 19).
+- Oct 5, 2026: task 19 done in lane `lane/pm-19`: the owner's check from the phone, with its fixes in pull request #65, merged (6668082) from the session's own page. Every task and story is ticked and the spec is built. Next: #67 into `master`.
 
 ## Build order
 
@@ -305,7 +306,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 
 ### Phase F: the owner's check
 
-- [ ] **19. The owner's check from the phone.** The owner runs real work remotely, and the pull request is made ready.
+- [x] **19. The owner's check from the phone.** The owner runs real work remotely, and the pull request is made ready.
   - Delivers: fixes from the owner's check; every task ticked here; the spec's stories ticked and its status set to built; the pull request marked ready.
   - Check: with Away on, from the phone:
     - a question answered;
@@ -329,3 +330,4 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - The check (Oct 5), with Away switched on from the phone. Step 1 (a question answered in the Claude app) worked. It turned up two fixes (5fc0cf6):
     - a question asked in the app left its bell record unread for good: it is now marked read once its session no longer has the question open (after a 20-second grace);
     - a plan approved in the app stayed held in the Questions tab for up to 24 minutes, because the transcript's ExitPlanMode call carries no plan and so never matched by summary: plans now match by tool alone. The sweep reads a transcript's last 60 entries, so the one plan held before this fix went live was handed back by hand.
+  - Done Oct 5: a question answered in the Claude app (step 1); a turn approved from the Project Manager, whose Stop hook said "Approved from the Project Manager" (step 2); this session compacted from the phone (step 6); and #65 merged from its page with Merge, last (6668082, step 5). The owner merged without reporting separately on the lock-screen notification (step 3) or the posted clip (step 4); both worked in the dry run. Since #65 merged first, the close-out (every story ticked, the spec built, this tick) and `master` merged in followed in a second pull request from this lane. #67 takes `tools/project-manager-remote` into `master`.

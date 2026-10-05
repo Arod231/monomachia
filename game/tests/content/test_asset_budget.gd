@@ -1,10 +1,12 @@
 extends GutTest
-## Size budgets and import hygiene for the art: the files in game/assets plus
-## the baked textures and meshes in game/fighters and game/weapons stay under
-## 110 MB with no file over 25 MB, textures are scaled down, every texture a
-## model references exists, and every skinned model is retargeted through the
-## humanoid bone map. The audio in game/assets/audio has its own budget (under
-## 40 MB, checked by the Node tests in tests/audio).
+## Import hygiene for the art: no file in game/assets or the baked textures
+## and meshes in game/fighters and game/weapons over 25 MB, textures are
+## scaled down, every texture a model references exists, and every skinned
+## model is retargeted through the humanoid bone map. The art's and the
+## audio's totals are the public repository's budgets in the spec's size
+## budget table (150 MB and 40 MB, milestone-1 task 8), checked by
+## scripts/check-sizes.mjs (npm run check:sizes) in place of the 110 MB cap
+## this test had.
 
 const ASSETS: String = "res://assets"
 const AUDIO: String = "res://assets/audio"
@@ -12,9 +14,8 @@ const AUDIO: String = "res://assets/audio"
 const BAKED: Array[String] = ["res://fighters", "res://weapons"]
 ## Binary art in the baked folders; their scenes and scripts aren't counted.
 const BAKED_EXTENSIONS: Array[String] = ["png", "res", "exr"]
-## Raised from 60 MB and 10 MB to take the UAL2 Source tier's two ~20 MB
-## clip libraries (UAL2_Source.glb and UAL2_Source_RM.glb).
-const MAX_TOTAL_BYTES: int = 110 * 1024 * 1024
+## Raised from 10 MB to take the UAL2 Source tier's two ~20 MB clip
+## libraries (UAL2_Source.glb and UAL2_Source_RM.glb).
 const MAX_FILE_BYTES: int = 25 * 1024 * 1024
 const MAX_BASE_COLOR: int = 2048
 const MAX_DATA_MAP: int = 1024
@@ -59,14 +60,6 @@ static func _png_size(path: String) -> Vector2i:
 	var size: Vector2i = Vector2i(f.get_32(), f.get_32())
 	f.close()
 	return size
-
-
-func test_the_art_stays_under_110_mb() -> void:
-	var total: int = 0
-	for path: String in _art_files():
-		total += FileAccess.get_size(path)
-	gut.p("the art comes to %.1f MB" % (total / 1048576.0))
-	assert_lt(total, MAX_TOTAL_BYTES)
 
 
 func test_no_art_file_is_over_25_mb() -> void:

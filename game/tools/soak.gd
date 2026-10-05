@@ -8,6 +8,18 @@ extends SceneTree
 ##
 ## usage: node scripts/godot.mjs soak [matches]     (or: npm run soak -- 40)
 ##        npm run soak:tune                         (300 matches, for tuning)
+##        npm run soak -- 40 --full-roster          (the hidden weapons too)
+##
+## Milestone 1 (tasks 4 and 7): by default it plays the matches milestone 1
+## promises, the Hunter against the Hunter with the Katana, at random
+## difficulties, each fighter's two block abilities drawn at random (seeded)
+## from the Katana's three, so the stomp and the leap can both appear. Win
+## rates are off until milestone 2; the targets block adds the finisher share
+## (zero until task 103 adds the finisher) and the appear-list (the stomp,
+## the leap, Flash, Moonsplitter, Breaker Palm and a pick-up, each at least
+## once; the recall is reported too). With --full-roster it plays random
+## pairs of the offered weapons and reports their win rates, as before
+## milestone 1.
 ##
 ## Port notes:
 ## - The match count is the first user argument (after --), read like JS
@@ -28,20 +40,43 @@ extends SceneTree
 ##   _process() still quits, with exit code 1. A target out of range is not a
 ##   failure.
 ## - The win rates, disarms per round and the targets block (report_balance)
-##   come after the ported report, which is unchanged.
+##   come after the ported report, which is unchanged but for its
+##   wins/losses line, printed only with the win rates.
+## - The ability draw has its own generator, so the weapons and the
+##   difficulties keep the seeds they had before milestone 1.
 
 ## 12 minutes of game time
 const LIMIT: int = 60 * 60 * 12
 ## How far past the wall a fighter's centre may be before the match fails
 ## with "left the arena" (the demo's 12 m at its 11.5 m wall).
 const LEFT_ARENA_SLACK: float = 0.5
-## The spec's balance targets (Testing Decisions), [low, high]: the average
-## round in seconds, disarms per round, and each weapon's win rate in percent
-## against the other weapons. Doubles, not a Vector2: its 32-bit 0.3 is above
-## 0.3 itself.
-const TARGET_ROUND_S: Array[float] = [35.0, 60.0]
+## The spec's balance targets (milestone 1's balance-run targets), [low,
+## high]: the average round in seconds (P24), disarms per round, and, with
+## --full-roster, each weapon's win rate in percent against the other
+## weapons. Doubles, not a Vector2: its 32-bit 0.3 is above 0.3 itself.
+const TARGET_ROUND_S: Array[float] = [60.0, 90.0]
 const TARGET_DISARMS: Array[float] = [0.3, 0.6]
 const TARGET_WIN_RATE: Array[float] = [45.0, 55.0]
+## The fighter every soak match plays (milestone 1's mirror).
+const FIGHTER: StringName = &"hunter"
+## How many block abilities each fighter takes into a match.
+const ABILITIES: int = 2
+## The appear-list, in the report's order: [key, name]. Each must appear at
+## least once but the recall, which is reported only. A stomp or a leap is
+## its counter landing, Flash a Flash parry, Moonsplitter its start,
+## Breaker Palm its swing, a pick-up a weapon picked up from the ground (the
+## recall's own pick-up isn't one).
+const APPEAR: Array[Array] = [
+	[&"stomp", "the stomp"],
+	[&"leap", "the leap"],
+	[&"flash", "Flash"],
+	[&"moonsplitter", "Moonsplitter"],
+	[&"breaker", "Breaker Palm"],
+	[&"recall", "the recall"],
+	[&"pickup", "a pick-up"],
+]
+## The appear-list's items that are reported but not targets.
+const REPORTED_ONLY: Array[StringName] = [&"recall"]
 
 ## Stays 1 unless run() returns with no failures.
 var _exit_code: int = 1
@@ -65,6 +100,9 @@ func _process(_delta: float) -> bool:
 ## before each step.
 static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callable = Callable()) -> int:
 	var rng: Rng = Rng.new(2026)
+	var ability_rng: Rng = Rng.new(2027)
+	var offered: Array[StringName] = Roster.weapons()
+	var mixed: bool = Roster.full
 	var diffs: Array[StringName] = [&"easy", &"normal", &"hard"]
 	var totals: Dictionary[String, int] = {}
 	var total_rounds: int = 0
@@ -75,17 +113,21 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 	## weapon id -> (wins, matches) against another weapon (mirror matches left out)
 	var records: Dictionary[String, Vector2i] = {}
 	var disarms: int = 0
+	var finishers: int = 0
+	var appears: Dictionary[StringName, int] = {}
+	for item: Array in APPEAR:
+		appears[item[0]] = 0
 	var failures: int = 0
 	var catcher: ErrorCatcher = ErrorCatcher.new()
 	OS.add_logger(catcher)
 
 	var m: int = 0
 	while float(m) < N:
-		var w0: StringName = rng.pick(Moves.PLAYABLE_WEAPONS)
-		var w1: StringName = rng.pick(Moves.PLAYABLE_WEAPONS)
+		var w0: StringName = rng.pick(offered)
+		var w1: StringName = rng.pick(offered)
 		var d0: StringName = rng.pick(diffs)
 		var d1: StringName = rng.pick(diffs)
-		var W: World = World.new(FighterConfig.make(Moves.WEAPONS[w0]), FighterConfig.make(Moves.WEAPONS[w1]), 1000 + m)
+		var W: World = World.new(_config(w0, ability_rng), _config(w1, ability_rng), 1000 + m)
 		var M: Match = Match.new(W)
 		var ai: Array[AIBrain] = [
 			AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[d0], 11 + m),
@@ -94,6 +136,7 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 		var frames: int = 0
 		var round_start: int = 0
 		var error: String = "" # the TS throw
+		var recalling: Array[bool] = [false, false]
 		catcher.first = "" # try {
 		while M.phase != &"matchEnd" and frames < limit:
 			if not before_step.is_null():
@@ -114,8 +157,15 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 						longest = maxi(longest, length)
 					&"parry":
 						_add(totals, "parry:" + String(e["kind"]))
+						if e["kind"] == &"flash":
+							appears[&"flash"] += 1
 					&"counter":
 						_add(totals, "counter:" + String(e["kind"]))
+						if appears.has(e["kind"]):
+							appears[e["kind"]] += 1
+					&"swing":
+						if e["attack"] == &"f_breaker":
+							appears[&"breaker"] += 1
 					&"hit":
 						_add(totals, "hits")
 					&"block":
@@ -125,12 +175,23 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 						disarms += 1
 					&"ultStart":
 						_add(totals, "ult:" + String(e["ult"]))
+						if e["ult"] == &"moonsplitter":
+							appears[&"moonsplitter"] += 1
 					&"ultChoice":
 						_add(totals, "ult:disarmedChoice")
 					&"recall":
 						_add(totals, "recall")
+						appears[&"recall"] += 1
+						recalling[int(e["f"])] = true
 					&"pickup":
 						_add(totals, "rearm")
+						if recalling[int(e["f"])]:
+							recalling[int(e["f"])] = false
+						else:
+							appears[&"pickup"] += 1
+					&"finisher":
+						# the finisher (task 103) emits it; nothing does yet
+						finishers += 1
 					&"stagger":
 						_add(totals, "stagger")
 					&"evade":
@@ -195,34 +256,88 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 	keys.sort_custom(func(a: String, b: String) -> bool: return "%s,%d" % [a, totals[a]] < "%s,%d" % [b, totals[b]])
 	for k: String in keys:
 		out.call("  %s %s" % [k.rpad(22), JsFormat.to_fixed(float(totals[k]) / float(rounds), 2)])
-	out.call("match wins/losses by weapon: " + JsFormat.inspect(wins_by_weapon))
-	report_balance(out, avg_round_s, float(disarms) / float(rounds), records)
+	if mixed:
+		out.call("match wins/losses by weapon: " + JsFormat.inspect(wins_by_weapon))
+	var t: Tally = Tally.new()
+	t.win_rates = mixed
+	t.rounds = total_rounds
+	t.avg_round_s = avg_round_s
+	t.disarms_per_round = float(disarms) / float(rounds)
+	t.finishers = finishers
+	t.appears = appears
+	t.records = records
+	report_balance(out, t)
 	return failures
 
 
+## A soak fighter's config: the Hunter with weapon `id` and ABILITIES of its
+## block abilities, drawn from `draw` without repeats.
+static func _config(id: StringName, draw: Rng) -> FighterConfig:
+	var weapon: WeaponDef = Moves.WEAPONS[id]
+	var pool: Array[StringName] = weapon.abilities.duplicate()
+	var picked: Array[StringName] = []
+	while picked.size() < ABILITIES and not pool.is_empty():
+		picked.append(pool.pop_at(draw.int(0, pool.size() - 1)))
+	return FighterConfig.make(weapon, picked, "", FIGHTER)
+
+
+## What report_balance reports: the run's numbers.
+class Tally:
+	## Whether the run reports each weapon's win rate (--full-roster).
+	var win_rates: bool = false
+	var rounds: int = 0
+	var avg_round_s: float = 0.0
+	var disarms_per_round: float = 0.0
+	## Rounds that ended in a finisher.
+	var finishers: int = 0
+	## How often each APPEAR item appeared; a missing key counts as 0.
+	var appears: Dictionary[StringName, int] = {}
+	## weapon id -> (wins, matches) against another weapon.
+	var records: Dictionary[String, Vector2i] = {}
+
+
 ## The balance lines after the ported report: each weapon's win rate against
-## the other weapons from its records (wins, matches), disarms per round, and
-## the targets block marking each number in or out of the spec's ranges. Each
-## mark judges the number as printed, so a line never reads "0.60, out".
-static func report_balance(out: Callable, avg_round_s: float, disarms_per_round: float, records: Dictionary[String, Vector2i]) -> void:
+## the other weapons from its records (wins, matches) with --full-roster,
+## else that win rates are off; disarms per round; the finisher share; the
+## appear-list; and the targets block marking each number in or out of the
+## spec's ranges. Each mark judges the number as printed, so a line never
+## reads "0.60, out".
+static func report_balance(out: Callable, t: Tally) -> void:
 	var win_rates: Array[String] = [] # as printed, or "" with no matches
-	out.call("win rates, mirror matches left out:")
-	for id: StringName in Moves.PLAYABLE_WEAPONS:
-		var r: Vector2i = records.get(String(id), Vector2i())
-		win_rates.append("" if r.y == 0 else JsFormat.to_fixed(100.0 * float(r.x) / float(r.y), 1))
-		out.call("  %s: %s" % [id, "no matches" if r.y == 0 else "%s%% (%d of %d)" % [win_rates.back(), r.x, r.y]])
-	var disarms_text: String = JsFormat.to_fixed(disarms_per_round, 2)
-	var round_text: String = JsFormat.to_fixed(avg_round_s, 1)
+	var offered: Array[StringName] = Roster.weapons()
+	if t.win_rates:
+		out.call("win rates, mirror matches left out:")
+		for id: StringName in offered:
+			var r: Vector2i = t.records.get(String(id), Vector2i())
+			win_rates.append("" if r.y == 0 else JsFormat.to_fixed(100.0 * float(r.x) / float(r.y), 1))
+			out.call("  %s: %s" % [id, "no matches" if r.y == 0 else "%s%% (%d of %d)" % [win_rates.back(), r.x, r.y]])
+	else:
+		out.call("win rates: off until milestone 2")
+	var disarms_text: String = JsFormat.to_fixed(t.disarms_per_round, 2)
+	var round_text: String = JsFormat.to_fixed(t.avg_round_s, 1)
 	out.call("disarms per round: " + disarms_text)
+	var share: float = 0.0 if t.rounds == 0 else 100.0 * float(t.finishers) / float(t.rounds)
+	out.call("finishers: %d of %d rounds (%s%%), the share is set after the first balance run" % [t.finishers, t.rounds, JsFormat.to_fixed(share, 1)])
+	var seen: PackedStringArray = []
+	for item: Array in APPEAR:
+		seen.append("%s %d" % [item[1], t.appears.get(item[0], 0)])
+	out.call("appearances: " + ", ".join(seen))
 	out.call("targets (the spec's):")
 	out.call("  rounds of %s s: %s s, %s" % [_range(TARGET_ROUND_S), round_text, _mark(round_text, TARGET_ROUND_S)])
 	out.call("  disarms %s per round: %s, %s" % [_range(TARGET_DISARMS), disarms_text, _mark(disarms_text, TARGET_DISARMS)])
-	for i: int in Moves.PLAYABLE_WEAPONS.size():
-		var shown: String = "no matches" if win_rates[i] == "" else win_rates[i] + "%"
-		out.call("  %s wins %s%%: %s, %s" % [Moves.PLAYABLE_WEAPONS[i], _range(TARGET_WIN_RATE), shown, _mark(win_rates[i], TARGET_WIN_RATE)])
+	out.call("  finishers in some rounds: %d of %d rounds, %s" % [t.finishers, t.rounds, "in" if t.finishers > 0 else "out"])
+	for item: Array in APPEAR:
+		if REPORTED_ONLY.has(item[0]):
+			continue
+		var n: int = t.appears.get(item[0], 0)
+		out.call("  %s at least once: %d, %s" % [item[1], n, "in" if n > 0 else "out"])
+	if t.win_rates:
+		for i: int in offered.size():
+			var shown: String = "no matches" if win_rates[i] == "" else win_rates[i] + "%"
+			out.call("  %s wins %s%%: %s, %s" % [offered[i], _range(TARGET_WIN_RATE), shown, _mark(win_rates[i], TARGET_WIN_RATE)])
 
 
-## "35-60" for [35, 60].
+## "60-90" for [60, 90].
 static func _range(target: Array[float]) -> String:
 	return "%s-%s" % [JsFormat.num(target[0]), JsFormat.num(target[1])]
 

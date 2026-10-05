@@ -11,6 +11,10 @@ const MATCH_LIMIT: int = 60 * 60 * 12
 var fake: FakeDeviceState
 
 
+func after_each() -> void:
+	Roster.reset()
+
+
 func _host() -> MatchHost:
 	var host: MatchHost = MatchHost.new()
 	host.auto_run = false
@@ -558,6 +562,7 @@ func _training(dummy_weapon: StringName) -> MatchHost:
 
 
 func test_each_behaviour_on_each_dummy_weapon_ends_with_a_weapon_that_can_do_it() -> void:
+	Roster.full = true # every weapon, the Slam's Greatsword included
 	for picked: StringName in Moves.PLAYABLE_WEAPONS:
 		var host: MatchHost = _training(picked)
 		for b: StringName in TrainingBrain.BEHAVIOURS:

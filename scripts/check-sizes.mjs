@@ -1,8 +1,11 @@
 // Keeps large files out of the repo, which uses plain Git without LFS: fails
-// when a tracked file is over 10 MB unless it is allow-listed below, and
-// prints how big the art, the audio and the whole working copy are. Sizes
-// are in binary megabytes (1 MB = 1024 × 1024 bytes), as in the Godot asset
-// budget test.
+// when a tracked file is over 10 MB unless it is allow-listed below, or when
+// a place goes over its budget in the spec's size budget table (milestone-1
+// task 8): the committed game art under 150 MB and the committed audio under
+// 40 MB. It prints how big the art, the audio and the whole working copy
+// are. Sizes are in binary megabytes (1 MB = 1024 × 1024 bytes), as in the
+// Godot asset budget test. The asset repository checks its own budgets
+// (its tools/check-budgets.mjs).
 //
 // usage: node scripts/check-sizes.mjs [--include <file>]...
 //   --include  also check a file that isn't tracked yet (before adding it);
@@ -33,6 +36,45 @@ export const ALLOWED = new Set([
 // The folders whose sizes are printed.
 const FOLDERS = ['game/assets', 'game/assets/audio', 'game/fighters', 'game/weapons'];
 
+// The public repository's budgets (the spec's size budget table, P23).
+// The committed game art: CC0 and self-made models and materials, the
+// exports copied from the asset repository and the labelled stand-ins,
+// which is everything in game/assets but the audio, and the baked binary
+// art beside it in game/fighters and game/weapons (their scenes and scripts
+// aren't art). The audio is everything in game/assets/audio.
+export const ART_BUDGET_BYTES = 150 * MB;
+export const AUDIO_BUDGET_BYTES = 40 * MB;
+const ASSETS = 'game/assets/';
+const AUDIO = 'game/assets/audio/';
+const BAKED = ['game/fighters/', 'game/weapons/'];
+const BAKED_EXTENSIONS = ['.png', '.res', '.exr'];
+
+// Whether a repo-relative path is committed game art.
+export function isArt(path) {
+  if (path.startsWith(ASSETS)) return !path.startsWith(AUDIO);
+  const lower = path.toLowerCase();
+  return BAKED.some((b) => path.startsWith(b)) && BAKED_EXTENSIONS.some((e) => lower.endsWith(e));
+}
+
+// Whether a repo-relative path is committed audio.
+export function isAudio(path) {
+  return path.startsWith(AUDIO);
+}
+
+// Each place's size against its budget: [{ name, bytes, limit }].
+export function budgets(files) {
+  const sum = (keep) => files.filter((f) => keep(f.path)).reduce((s, f) => s + f.bytes, 0);
+  return [
+    { name: 'committed game art', bytes: sum(isArt), limit: ART_BUDGET_BYTES },
+    { name: 'committed audio', bytes: sum(isAudio), limit: AUDIO_BUDGET_BYTES },
+  ];
+}
+
+// The places over their budgets.
+export function findOverBudget(files) {
+  return budgets(files).filter((b) => b.bytes > b.limit);
+}
+
 // The files over the limit that aren't allow-listed.
 export function findOversize(files) {
   return files.filter((f) => f.bytes > LIMIT_BYTES && !ALLOWED.has(f.path));
@@ -59,7 +101,9 @@ function fail(message, code) {
   process.exit(code);
 }
 
-function trackedFiles() {
+// Every tracked file and its size: [{ path, bytes }]. The Blender export
+// (scripts/blender/export.mjs) weighs a copy into the game against these.
+export function trackedFiles() {
   let out;
   try {
     out = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * MB });
@@ -105,12 +149,14 @@ function main(argv) {
       console.log(`note: ${path} no longer needs its place on the allow-list`);
     }
   }
+  for (const b of budgets(files)) console.log(`${b.name}: ${mb(b.bytes)} MB of a ${mb(b.limit)} MB budget`);
   const over = findOversize(files);
-  if (over.length > 0) {
-    for (const f of over) console.error(`too large: ${f.path} is ${mb(f.bytes)} MB (limit ${mb(LIMIT_BYTES)} MB)`);
-    fail('shrink these files, or allow-list one in scripts/check-sizes.mjs with its reason.', 1);
-  }
-  console.log(`no file over ${mb(LIMIT_BYTES)} MB outside the allow-list`);
+  for (const f of over) console.error(`too large: ${f.path} is ${mb(f.bytes)} MB (limit ${mb(LIMIT_BYTES)} MB)`);
+  const overBudget = findOverBudget(files);
+  for (const b of overBudget) console.error(`over budget: ${b.name} comes to ${mb(b.bytes)} MB (budget ${mb(b.limit)} MB)`);
+  if (over.length > 0) fail('shrink these files, or allow-list one in scripts/check-sizes.mjs with its reason.', 1);
+  if (overBudget.length > 0) fail('bring these places under their budgets (docs/specs/milestone-1.md, the size budget table).', 1);
+  console.log(`no file over ${mb(LIMIT_BYTES)} MB outside the allow-list, and every place inside its budget`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

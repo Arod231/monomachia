@@ -4,4 +4,4 @@
 
 [node name="HowToPlayShot" type="Node"]
 script = ExtResource("1")
-tab = 4
+weapon = &"fists"

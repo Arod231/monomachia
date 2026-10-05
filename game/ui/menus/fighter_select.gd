@@ -72,8 +72,7 @@ var preview: FighterPreview
 
 func _init() -> void:
 	super()
-	for id: StringName in MatchSide.FIGHTER_NAMES:
-		fighter_ids.append(id)
+	fighter_ids = Roster.fighters()
 
 	# an ink veil over the duel behind, so the page reads (the demo dimmed
 	# its menu screens the same way)
