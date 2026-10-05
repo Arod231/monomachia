@@ -2487,6 +2487,12 @@ Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 
     - Check: hover, palette and weapon changes swap the model; no orphan nodes after 20 changes; shots with each fighter, palette and weapon reviewed.
     - Blocked by: 22.6 · Stories: 4, 44, 45
     - Kept (Oct 4), finished on `master` after the merge: function only: the SubViewport stage, swapping the fighter, palette and weapon, the idle clip and the slow turn, with plain lighting. The fighter shows whatever look the game has, and the stage and its lighting are restyled with the milestone-1 UI redesign.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), in the lane `lane/gr-22.7-23.4-23.5-23.6` with 22.7, 23.4, 23.5 and 23.6.
+    - Decided with the owner (Oct 4, 2026):
+      - the preview plays the match's combat idle for the weapon (the packs' clips when installed, the CC0 fallback otherwise), the weapon fixed in the hands, so the select shows the fighter as the match will;
+      - a Random weapon cycles the three weapons, about every 1.5 s;
+      - a full slow turn, about 12 s a revolution;
+      - no frame or backdrop: the fighter stands over the live duel behind the ink veil, with a soft shadow disc under the feet and plain lighting, the name under it in the side's colour.
   - [x] **22.8 Results with stats, Rematch and Change fighters.** The kanji and title, rounds, the seven stats per side in their colours; Rematch, Change fighters and Main menu.
     - Check: a lost Duel shows Defeat with stats; Watch names the winner; Rematch takes a new seed; Change fighters opens the mode's select; walks with keys and with a controller; shots reviewed.
     - Blocked by: 22.5 · Stories: 8
@@ -2623,10 +2629,14 @@ Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 
     - Check: scripted parries in the window, 5 frames early and 3 late each give the right toast and number; nothing shows outside Training; shots reviewed.
     - Blocked by: 23.3, 24.3 · Stories: 53
     - Kept (Oct 4), finished on `master` after the merge: the parry window stays a rules number, but the frames before impact depend on each attack's startup, which will come from its clip. Read both from the rules as the match runs. Time the tests' scripted parries from the move's frame data, not fixed frame counts, so they still pass when the frame data table is generated from the clips. The toast's style follows the milestone-1 UI redesign.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), in the lane `lane/gr-22.7-23.4-23.5-23.6` with 22.7, 23.4, 23.5 and 23.6.
+    - Decided with the owner (Oct 4, 2026): the demo's ranges stay: "Too early" when you are hit or block within 20 frames after your parry window closed, "Too late" when block is pressed within 14 frames after a hit or block.
   - [ ] **23.5 Watch through the select.** Two computer sides with difficulties, the side-on camera, the HUD's Watch form, and results naming the winner.
     - Check: Watch samples no human input and uses the Watch camera; the results name the winner; Watch shots at round start, mid-exchange and a KO reviewed.
     - Blocked by: 22.5, 24.3 · Stories: 54
     - Kept (Oct 4), finished on `master` after the merge: most of it already exists: 22.5's Watch select with skill rows, the Watch camera, the HUD's Watch wording, the host taking no player input, and 22.8's results naming the winner. What's left is the Watch toasts once 24.3 lands, plus the checks.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), in the lane `lane/gr-22.7-23.4-23.5-23.6` with 22.7, 23.4, 23.5 and 23.6.
+    - Decided with the owner (Oct 4, 2026): the round call and the results name the winner in the side's colour (赤 red, 青 blue), as 24.3's Watch toasts do; in a mirror match the name also carries the side's seal ("Rogue 赤 wins the round").
   - [ ] **23.6 Versus split screen.** Two side-by-side views on one world, each with its own CameraRig. Shake and kicks reach both, the preset and the ink pass apply to both, the shrine's underside is hidden per camera, and only one listener hears 3D sound. The other modes keep one view.
     - Check: Versus builds two cameras and other modes one; no stray viewports after rematches; the underside rule holds in both views, with a Versus shot of a fighter at the wall; frame time at 1080p on each preset measured.
     - Note from 17.5: the shrine decides only for its own viewport's camera each frame. Call `MoonlitShrine.cull_below_deck(camera)` for the other view's camera every frame, after it moves.
@@ -2634,6 +2644,11 @@ Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 
     - Blocked by: 16.5, 17.5, 19.3 · Stories: 55
     - Superseded by ADR 0001 (Oct 4): the ink-wash pass retires with the toon look, so only the preset applies to both views. Frame time is judged against the new targets: Ultra at 4K and 60 fps on the RTX 3090, Low at 60 fps on the laptop.
     - Kept (Oct 4), finished on `master` after the merge: the ink pass needs no work: its full-screen quad already covers any camera, and it retires with the toon look. Measure frame time on today's presets and record it as a baseline. The performance gates (Ultra at 4K and 60 fps on the RTX 3090, Low at 60 fps on the laptop) apply at milestone 1, not before the merge; milestone 1 gives Versus split screen its own target.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 4, 2026), in the lane `lane/gr-22.7-23.4-23.5-23.6` with 22.7, 23.4, 23.5 and 23.6.
+    - Decided with the owner (Oct 4, 2026):
+      - Versus starts from a `MatchConfig` only (tests and shot scenes) until 22.16 puts it on the menu with the device pickers;
+      - the one 3D listener sits at the midpoint between the two fighters, facing side-on, so both players hear the fight alike and left and right match the halves;
+      - each half keeps the single view's field of view at half the width, as the demo's did, with a thin divider between the halves; the HUD stays one overlay in its Watch form until 23.7.
   - [ ] **23.7 Versus HUD.** Player 1 and Player 2 plates; prompts per half with each player's own device names; a dropped-weapon marker per half; the demo's Versus toasts and calls.
     - Check: each player's prompts use their own device's labels; markers project through the right camera; toasts name the player; shots reviewed.
     - Blocked by: 23.6, 24.2, 24.3, 24.4, 24.5 · Stories: 55, 56
