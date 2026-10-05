@@ -54,7 +54,9 @@ const POSTURE_COLORS: Dictionary = {
 	HudState.Posture.FULL: UiPalette.DANGER,
 }
 const SEAL_COLORS: Array[Color] = [UiPalette.LACQUER, UiPalette.INDIGO]
-const SEALS: Array[String] = ["赤", "青"]
+const SEALS: Array[String] = MatchResults.SEALS
+## An announcement in the theme's colour (announce()'s default).
+const NO_COLOR: Color = Color(0.0, 0.0, 0.0, 0.0)
 const BAR_WIDTH: float = 560.0
 const GOLD: Color = UiPalette.GOLD
 ## The prompts' column: 720 px wide about the centre (the demo's), and its
@@ -266,7 +268,9 @@ func _on_sim_event(e: Dictionary) -> void:
 			if not training:
 				var winner: int = int(e["winner"])
 				var call: Array[String] = _round_result(int(e["winner"]), bool(e["perfect"]), watch)
-				_queued.append({"at": now + ROUND_RESULT_DELAY, "kanji": call[0], "text": call[1], "sub": call[2], "frames": ROUND_RESULT_FRAMES})
+				# in Watch the winner's name in its side's colour, as its toasts (23.5)
+				var color: Color = HudToasts.TONE_COLORS[HudToasts.SIDE_TONES[winner]] if watch and winner >= 0 else NO_COLOR
+				_queued.append({"at": now + ROUND_RESULT_DELAY, "kanji": call[0], "text": call[1], "sub": call[2], "frames": ROUND_RESULT_FRAMES, "color": color})
 		&"disarm":
 			var victim: int = int(e["victim"])
 			var sub: String = ""
@@ -276,13 +280,16 @@ func _on_sim_event(e: Dictionary) -> void:
 
 
 ## The round's result as [kanji, words, subline]: 勝 for a round won and in
-## Watch, 敗 otherwise (a draw included), as the demo's.
+## Watch, 敗 otherwise (a draw included), as the demo's. In Watch the
+## winner is named with the side's seal in a mirror match ("Rogue 青 wins
+## the round").
 func _round_result(winner: int, perfect: bool, watch: bool) -> Array[String]:
 	if winner < 0:
 		return ["勝" if watch else "敗", "Draw", "The round will be replayed"]
 	var sub: String = "Perfect" if perfect else ""
 	if watch:
-		return ["勝", "%s wins the round" % host.fighter(winner).name, sub]
+		var names: Array[String] = [host.fighter(0).name, host.fighter(1).name]
+		return ["勝", "%s wins the round" % MatchResults.side_name(names, winner), sub]
 	var won: bool = winner == _me()
 	return ["勝" if won else "敗", "You win the round" if won else "You lose the round", sub]
 
@@ -292,7 +299,7 @@ func _on_stepped(_step: int) -> void:
 	var keep: Array[Dictionary] = []
 	for q: Dictionary in _queued:
 		if now >= int(q["at"]):
-			announce(q["kanji"], q["text"], q["sub"], int(q["frames"]))
+			announce(q["kanji"], q["text"], q["sub"], int(q["frames"]), q.get("color", NO_COLOR))
 		else:
 			keep.append(q)
 	_queued = keep
@@ -304,9 +311,12 @@ func _on_stepped(_step: int) -> void:
 
 
 ## Shows a centre announcement (a kanji over the words, and a subline) for
-## this many rules steps, starting its entrance now.
-func announce(kanji: String, text: String, sub: String, frames: int) -> void:
+## this many rules steps, starting its entrance now; its words in `color`
+## (NO_COLOR, the default, for the theme's).
+func announce(kanji: String, text: String, sub: String, frames: int, color: Color = NO_COLOR) -> void:
 	announcement = {"kanji": kanji, "text": text, "sub": sub, "at": host.step_count, "until": host.step_count + frames}
+	if color.a > 0.0:
+		announcement["color"] = color
 	_refresh_announcement()
 
 
@@ -315,6 +325,10 @@ func _refresh_announcement() -> void:
 		announcement = {}
 	_announce_kanji.text = announcement_kanji()
 	_announce_label.text = announcement_text()
+	if announcement.has("color"):
+		_announce_label.add_theme_color_override("font_color", announcement["color"])
+	else:
+		_announce_label.remove_theme_color_override("font_color")
 	_announce_sub.text = announcement_sub()
 	# fit the box's height to the new text (it never shrinks by itself),
 	# so the entrance scales about the text's middle

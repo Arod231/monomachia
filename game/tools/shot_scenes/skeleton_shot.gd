@@ -9,6 +9,9 @@ extends Node
 ## view and the HUD stop processing once snapped, so the wall clock (idle bob,
 ## shake decay, the menu orbit) can't change the picture between runs.
 ##
+## "watch_start" is Watch's first round call (23.5). --mirror makes the
+## computer duels (Watch's among them) a Rogue against a Rogue.
+##
 ## "mirror" is a Rogue against a Rogue in her two palettes. "spacing" sets the
 ## fighters --spacing= metres apart (2.5 by default), to check that the
 ## player never hides the opponent from the gameplay camera.
@@ -74,7 +77,7 @@ extends Node
 const SEED: int = 7
 
 @export_enum(
-	"round_start", "exchange", "parry", "watch", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
+	"round_start", "exchange", "parry", "watch", "watch_start", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
 	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch", "select_preview",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
 	"recall_burst", "toasts", "prompts", "marker",
@@ -111,6 +114,8 @@ const SEED: int = 7
 @export var preview_weapon: StringName = &"katana"
 @export var preview_palette: int = 0
 @export var preview_turn: float = 20.0
+## The computer duels with a Rogue on both sides (--mirror).
+@export var mirror: bool = false
 ## Frames to let the renderer settle before the capture.
 @export var settle_frames: int = 10
 
@@ -154,12 +159,18 @@ func _ready() -> void:
 			preview_palette = int(a.trim_prefix("--palette="))
 		elif a.begins_with("--turn="):
 			preview_turn = float(a.trim_prefix("--turn="))
+		elif a == "--mirror":
+			mirror = true
 		elif a == "--no-packs":
 			ClipLibraries.force_missing = true
 		elif a == "--reduce-flashes":
 			# the run's own settings (shot runs use the defaults, never saved)
 			GameServices.settings.reduce_flashes = true
 	match shot:
+		"watch_start":
+			# Watch's first round call over the side-on camera (23.5)
+			_gameplay(MatchConfig.WATCH)
+			host.step(40)
 		"round_start":
 			_gameplay(MatchConfig.DUEL)
 			host.step(40)
@@ -467,7 +478,7 @@ func _config(mode: StringName) -> MatchConfig:
 	return MatchConfig.make(
 		mode,
 		MatchSide.computer(&"rogue", &"katana", 0, &"hard"),
-		MatchSide.computer(&"hunter", &"greatsword", 1, &"hard"),
+		MatchSide.computer(&"rogue" if mirror else &"hunter", &"greatsword", 1, &"hard"),
 		SEED,
 	)
 

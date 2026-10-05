@@ -28,6 +28,9 @@ var weapons: Array[String] = ["", ""]
 var palettes: Array[int] = [0, 1]
 ## [side 0, side 1]: { stat field: number }
 var stats: Array[Dictionary] = [{}, {}]
+## The sides' seals (赤 red, 青 blue), which tell a mirror match's sides apart.
+const SEALS: Array[String] = ["赤", "青"]
+
 ## The side a human played (the perspective of "Victory" / "Defeat"), or -1.
 var player_side: int = -1
 
@@ -58,13 +61,14 @@ func for_one_player() -> bool:
 	return mode != MatchConfig.WATCH and mode != MatchConfig.VERSUS and player_side >= 0
 
 
-## The headline: Victory or Defeat for one human player, else who won.
+## The headline: Victory or Defeat for one human player, else who won (with
+## the side's seal in a mirror match: "Rogue 青 wins").
 func title() -> String:
 	if winner < 0:
 		return "Draw"
 	if for_one_player():
 		return "Victory" if winner == player_side else "Defeat"
-	return "%s wins" % names[winner]
+	return "%s wins" % side_name(names, winner)
 
 
 ## The kanji over the headline: the demo's 勝利 Victory, 敗北 Defeat and 決着
@@ -84,3 +88,11 @@ func stat_text(side: int, field: String) -> String:
 	if v is float:
 		return str(roundi(float(v)))
 	return str(v)
+
+
+## A side's fighter by name, with the side's seal when both sides have the
+## same name (a mirror match): "Rogue", or "Rogue 青".
+static func side_name(p_names: Array[String], side: int) -> String:
+	if p_names[0] == p_names[1]:
+		return "%s %s" % [p_names[side], SEALS[side]]
+	return p_names[side]
