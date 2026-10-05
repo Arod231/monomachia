@@ -22,8 +22,9 @@
 // ~/.claude/lanes-relay/.
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { promisify } from 'node:util';
-import { readFile, readdir, stat, access, writeFile, open, mkdir, rm, rename } from 'node:fs/promises';
+import { readFile, readdir, stat, access, writeFile, open, mkdir, rename } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
@@ -31,7 +32,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
-import { PENDING_ID, SESSION_ID, contextTracker, parseTranscript, relayAnswer } from './sessions.mjs';
+import { contextTracker } from './sessions.mjs';
+import { sessionsApi } from './sessions-api.mjs';
+import { hooksStatusOf } from './hooks.mjs';
+import { bellApi } from './bell-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
@@ -232,7 +236,8 @@ async function appSessions() {
         try {
           const r = JSON.parse(await readFile(p, 'utf8'));
           out.push({ id: r.sessionId, cli: r.cliSessionId, title: r.title ?? '', archived: !!r.isArchived,
-            dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0 });
+            dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0,
+            summary: r.postTurnSummary ?? null }); // the app's turn summary (sessions.mjs turnSummary)
         } catch { /* being written */ }
       }
     }
@@ -670,168 +675,27 @@ async function endLaunch(body) {
 }
 
 // ---------- sessions (the Sessions tab) ----------
-// Every Claude Code session whose transcript was written in the last three days,
-// desktop-app or not, with its turns (rules in sessions.mjs). The owner answers a
-// session here through the relay hook (relay-hook.mjs, installed in user
-// settings), which hands its prompts over as files in RELAY; only sessions
-// switched on in on.json wait for the board.
+// Every recent Claude Code session, the Away switch and the relay's answers,
+// in sessions-api.mjs. A session's plan task is its folder's lane's.
 const RELAY = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
-const SESSION_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
-const TAIL_BYTES = 768 * 1024;
-
-async function readTail(file, bytes) {
-  const { size, mtimeMs } = await stat(file);
-  const fh = await open(file, 'r');
-  try {
-    const len = Math.min(size, bytes);
-    const buf = Buffer.alloc(len);
-    await fh.read(buf, 0, len, size - len);
-    const lines = buf.toString('utf8').split(/\r?\n/);
-    if (len < size) lines.shift(); // cut off mid-line
-    return { lines, size, mtimeMs, cut: len < size };
-  } finally { await fh.close(); }
+function taskOfDir(dir) {
+  const d = path.normalize(dir).toLowerCase();
+  const l = cached?.lanes?.find((x) => path.normalize(x.path).toLowerCase() === d);
+  if (!l?.plan || !l.task) return null;
+  return { ref: `${l.plan}:${l.task}`, label: `${PLAN_BY_KEY[l.plan]?.short ?? l.plan} ${l.task}`, title: l.taskTitle ?? '' };
 }
-
-const transcriptCache = new Map(); // file -> { key, parsed }
-async function transcript(file, limit) {
-  const { size, mtimeMs } = await stat(file);
-  const key = `${size}:${mtimeMs}:${limit}`;
-  const hit = transcriptCache.get(file);
-  if (hit?.key === key) return hit.parsed;
-  const { lines, cut } = await readTail(file, TAIL_BYTES);
-  const parsed = { ...parseTranscript(lines, { limit }), cut, size, mtimeMs };
-  transcriptCache.set(file, { key, parsed });
-  return parsed;
+// Whether the hooks installed in user settings are this checkout's (hooks.mjs);
+// both pages say so when they aren't. LANES_CLAUDE_DIR overrides ~/.claude.
+const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.claude');
+// A handful of small files, read in place each time the Questions tab asks.
+async function hooksState() {
+  return hooksStatusOf({ claudeDir: CLAUDE_DIR, boardDir: HERE, read: (file) => { try { return readFileSync(file, 'utf8'); } catch { return null; } } });
 }
-
-const readJsonFile = async (file) => { try { return JSON.parse(await readFile(file, 'utf8')); } catch { return null; } };
-const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (err) { return err.code === 'EPERM'; } };
-
-async function relayState() {
-  const on = (await readJsonFile(path.join(RELAY, 'on.json')))?.sessions ?? {};
-  const pending = [];
-  let names = [];
-  try { names = (await readdir(path.join(RELAY, 'pending'))).filter((n) => n.endsWith('.json')); } catch { /* none yet */ }
-  for (const n of names) {
-    const p = await readJsonFile(path.join(RELAY, 'pending', n));
-    if (!p) continue;
-    // A hook that was killed (its session closed, or it timed out) leaves its file.
-    if (p.pid && !alive(p.pid)) { await rm(path.join(RELAY, 'pending', n), { force: true }); continue; }
-    pending.push(p);
-  }
-  const replies = {};
-  try {
-    for (const n of await readdir(path.join(RELAY, 'replies'))) {
-      const r = await readJsonFile(path.join(RELAY, 'replies', n));
-      if (r?.text) replies[n.replace(/\.json$/, '')] = r;
-    }
-  } catch { /* none yet */ }
-  return { on, pending, replies };
-}
-
-async function findTranscripts() {
-  const out = [];
-  let dirs = [];
-  try { dirs = await readdir(PROJECTS, { withFileTypes: true }); } catch { return out; }
-  const cutoff = Date.now() - SESSION_WINDOW_MS;
-  for (const d of dirs.filter((x) => x.isDirectory())) {
-    let names = [];
-    try { names = (await readdir(path.join(PROJECTS, d.name))).filter((n) => n.endsWith('.jsonl')); } catch { continue; }
-    for (const n of names) {
-      const file = path.join(PROJECTS, d.name, n);
-      const s = await stat(file).catch(() => null);
-      if (s && s.mtimeMs >= cutoff) out.push({ id: n.slice(0, -6), file, mtime: s.mtimeMs });
-    }
-  }
-  return out;
-}
-
-async function sessionList() {
-  const [found, app, relay] = await Promise.all([findTranscripts(), appSessions(), relayState()]);
-  const byCli = new Map(app.filter((a) => a.cli).map((a) => [a.cli, a]));
-  const now = Date.now();
-  const list = await pool(found, 8, async (f) => {
-    const a = byCli.get(f.id);
-    if (a?.archived) return null;
-    let t;
-    try { t = await transcript(f.file, 1); } catch { return null; }
-    const context = await contextOf(f.file);
-    const pending = relay.pending.filter((p) => p.session === f.id).sort((x, y) => x.time - y.time);
-    const last = t.entries.at(-1);
-    return {
-      id: f.id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
-      activity: f.mtime, active: now - f.mtime < ACTIVE_MS, on: !!relay.on[f.id], queued: !!relay.replies[f.id],
-      pending: pending.map((p) => ({ id: p.id, kind: p.kind, tool: p.tool ?? null, time: p.time })),
-      asking: t.open?.name === 'AskUserQuestion' ? t.open.questions.map((q) => q.question) : null,
-      openTool: t.open && t.open.name !== 'AskUserQuestion' ? { name: t.open.name, summary: t.open.summary, time: t.open.time } : null,
-      lastText: last ? String(last.text ?? last.summary ?? '').slice(0, 200) : '',
-      context,
-    };
-  });
-  return list.filter(Boolean).sort((x, y) => (y.pending.length > 0) - (x.pending.length > 0) || y.activity - x.activity);
-}
-
-async function sessionDetail(id, limit) {
-  if (!SESSION_ID.test(id ?? '')) throw new Error('Bad session id');
-  const f = (await findTranscripts()).find((x) => x.id === id);
-  if (!f) throw new Error('No recent session with that id');
-  const [t, relay, app, context] = await Promise.all([transcript(f.file, limit), relayState(), appSessions(), contextOf(f.file)]);
-  const a = app.find((x) => x.cli === id);
-  return {
-    id, app: a?.id ?? null, title: a?.title || t.title || '(untitled)', cwd: t.cwd ?? a?.dir ?? null,
-    activity: f.mtime, active: Date.now() - f.mtime < ACTIVE_MS, entries: t.entries, more: t.more || (t.cut ? 1 : 0),
-    open: t.open, on: !!relay.on[id], queued: relay.replies[id] ?? null,
-    pending: relay.pending.filter((p) => p.session === id).sort((x, y) => x.time - y.time),
-    context,
-  };
-}
-
-async function writeJsonFile(file, value) {
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, JSON.stringify(value, null, 2));
-}
-
-async function relaySwitch(body) {
-  if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-  const file = path.join(RELAY, 'on.json');
-  const cur = (await readJsonFile(file)) ?? { sessions: {} };
-  cur.sessions ??= {};
-  if (body.on) cur.sessions[body.session] = { since: Date.now() };
-  else delete cur.sessions[body.session];
-  await writeJsonFile(file, cur);
-  return { on: !!body.on };
-}
-
-async function relayAnswerTo(body) {
-  if (!PENDING_ID.test(body?.id ?? '')) throw new Error('Bad prompt id');
-  const pending = await readJsonFile(path.join(RELAY, 'pending', `${body.id}.json`));
-  if (!pending) throw new Error('That prompt is no longer waiting (answered, timed out, or handed back to the app)');
-  await writeJsonFile(path.join(RELAY, 'answers', `${body.id}.json`), relayAnswer(pending, body));
-  return { ok: true };
-}
-
-// A reply goes straight to a session waiting at its turn's end, else waits for
-// that turn's end in replies/.
-async function relayReply(body) {
-  if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-  const text = String(body.text ?? '').trim();
-  if (!text) throw new Error('Type a reply first');
-  const { on, pending } = await relayState();
-  if (!on[body.session]) throw new Error('Switch on "Answer from board" for this session first');
-  const waiting = pending.find((p) => p.session === body.session && p.kind === 'stop');
-  if (waiting) {
-    await writeJsonFile(path.join(RELAY, 'answers', `${waiting.id}.json`), { reply: text.slice(0, 20000) });
-    return { delivered: true };
-  }
-  await writeJsonFile(path.join(RELAY, 'replies', `${body.session}.json`), { text: text.slice(0, 20000), time: Date.now() });
-  return { delivered: false };
-}
-
-async function relayUnqueue(body) {
-  if (!SESSION_ID.test(body?.session ?? '')) throw new Error('Bad session id');
-  await rm(path.join(RELAY, 'replies', `${body.session}.json`), { force: true });
-  return { ok: true };
-}
+const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
+  hooks: hooksState, sweepMs: 5000 });
+// The bell: notifications from held items and the relay hook's events (bell-api.mjs).
+const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
+  titlesOf: sessionRoutes.titlesOf, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
@@ -924,11 +788,7 @@ async function handle(req, res) {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if (req.url === '/relay/on') result = await relaySwitch(body);
-      else if (req.url === '/relay/answer') result = await relayAnswerTo(body);
-      else if (req.url === '/relay/reply') result = await relayReply(body);
-      else if (req.url === '/relay/unqueue') result = await relayUnqueue(body);
-      else { res.writeHead(404); res.end('{}'); return; }
+      } else if ((result = await (bellRoutes.post(req.url, body) ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
       return;
@@ -936,10 +796,9 @@ async function handle(req, res) {
     if (req.url === '/brain') { res.writeHead(302, { location: '/brain/' }); res.end(); return; }
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
-    if (url.pathname === '/data' || url.pathname === '/sessions' || url.pathname === '/session') {
-      const body = JSON.stringify(url.pathname === '/data' ? await data()
-        : url.pathname === '/sessions' ? { updated: Date.now(), sessions: await sessionList() }
-        : await sessionDetail(url.searchParams.get('id'), Math.min(2000, Number(url.searchParams.get('limit')) || 300)));
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? sessionRoutes.get(url);
+    if (routed) {
+      const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.
       if (wantsGzip(req.headers['accept-encoding'])) {
         res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'content-encoding': 'gzip', vary: 'accept-encoding' });

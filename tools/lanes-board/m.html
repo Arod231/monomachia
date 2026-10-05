@@ -63,6 +63,62 @@ h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .live { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite; flex: none; }
 .stamp.err .live { background: var(--critical); animation: none; }
 @keyframes pulse { 50% { opacity: .35; } }
+/* ---------- Away and the Questions tab ---------- */
+.away { display: inline-flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 500; user-select: none; -webkit-user-select: none; flex: none; }
+.away input { appearance: none; -webkit-appearance: none; width: 44px; height: 26px; border-radius: 13px; background: var(--blocked); position: relative; margin: 0; transition: background .15s; }
+.away input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: left .15s; }
+.away input:checked { background: var(--owner); }
+.away input:checked::after { left: 20px; }
+.awayn { min-width: 20px; height: 20px; border-radius: 10px; background: var(--owner); color: #0b0b0b; font-size: 12px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; }
+.qgroup { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.qgh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.qgh b { font-size: 16px; width: 100%; }
+.qgh .k { font-size: 13px; color: var(--muted); }
+.qsub { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 6px 0 8px; }
+.pcard { background: var(--card); border: 1px solid var(--owner); border-radius: 12px; padding: 12px 14px; }
+.pcard.info { border-color: var(--border-strong); }
+.pcard .ch { display: flex; gap: 8px; align-items: center; font-size: 15px; margin-bottom: 6px; }
+.pcard .ch .k { margin-left: auto; font-size: 13px; color: var(--muted); }
+.pcard .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.pcard .btn { white-space: normal; text-align: left; max-width: 100%; }
+.pcard .m { font-size: 13px; color: var(--muted); }
+.pcard input.text, .pcard textarea.text { width: 100%; font: inherit; font-size: 16px; border: 0.5px solid var(--border-strong); border-radius: 10px; padding: 9px 11px; background: var(--page); color: var(--text); }
+.pcard textarea.freeform { margin-top: 10px; }
+.pcard .row input.text { flex: 1; min-width: 0; }
+.pcard .plan { max-height: 60vh; overflow-y: auto; font-size: 15px; line-height: 1.5; padding: 2px 12px; background: var(--page); border-radius: 10px; overflow-wrap: anywhere; }
+.plan .mdh { margin: 12px 0 4px; font-size: 16px; }
+.plan ul, .plan ol { margin: 4px 0; padding-left: 22px; }
+.plan hr { border: 0; border-top: 0.5px solid var(--border-strong); margin: 10px 0; }
+.plan pre { margin: 6px 0; padding: 8px 10px; background: var(--card); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-x: auto; }
+.plan code { font: 13px ui-monospace, Menlo, monospace; }
+.pcard .sum { font-size: 15px; margin-bottom: 8px; }
+.pcard .plan.last { max-height: 40vh; margin-bottom: 4px; }
+.pcard textarea.turnreply { margin-top: 10px; }
+.hookwarn { border: 1px solid var(--owner); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 15px; background: var(--card); }
+.hookwarn ul { margin: 6px 0; padding-left: 22px; }
+/* The bell */
+.bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 34px; margin-right: 4px; border: 0; border-radius: 10px; background: transparent; color: var(--text); flex: none; }
+.bell svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+.belln { position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--owner); color: #fff; font-size: 12px; line-height: 18px; text-align: center; }
+#bellPanel { position: fixed; top: calc(env(safe-area-inset-top) + 56px); left: 12px; right: 12px; max-height: 70vh; overflow-y: auto; z-index: 60; background: var(--card); border: 0.5px solid var(--border-strong); border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,.22); }
+.bhead { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 0.5px solid var(--border-strong); font-size: 16px; }
+.blist { list-style: none; margin: 0; padding: 0; }
+.brec { padding: 12px 14px; border-bottom: 0.5px solid var(--surface); font-size: 15px; color: var(--muted); }
+.brec.unread { color: var(--text); box-shadow: inset 4px 0 0 var(--owner); }
+.brec .bd { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brec .k { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.bempty { padding: 16px; font-size: 15px; color: var(--muted); }
+.pcard.flash, .qgroup.flash { outline: 3px solid var(--owner); outline-offset: 2px; }
+pre.code { margin: 0; padding: 9px 11px; background: var(--surface); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
+pre.code.pv { margin-top: 6px; font-size: 12px; background: var(--page); text-align: left; }
+.q { margin-top: 10px; }
+.q .qh { font-size: 15px; margin-bottom: 8px; }
+.q .qh .m { color: var(--muted); font-size: 13px; }
+.chip { font-size: 12px; background: var(--surface); border-radius: 5px; padding: 1px 7px; color: var(--text-2); margin-right: 6px; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; font: inherit; font-size: 15px; padding: 10px 12px; border-radius: 10px; border: 0.5px solid var(--border-strong); background: var(--card); color: var(--text); display: flex; flex-direction: column; gap: 2px; }
+.opt span { font-size: 13px; color: var(--text-2); }
+.opt.on { border-color: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
 .seg[hidden] { display: none; }
 .seg { display: flex; gap: 2px; margin-top: 10px; background: var(--surface); border-radius: 9px; padding: 2px; }
 .seg button { flex: 1; min-width: 0; border: 0; background: none; border-radius: 7px; padding: 6px 4px; font-size: 14px; font-weight: 500; color: var(--text-2);
@@ -112,6 +168,8 @@ h2 { font-size: 17px; font-weight: 650; margin: 0; }
 .filter { display: flex; gap: 8px; margin: 4px 0 12px; }
 .chip { border: 0.5px solid var(--border-strong); background: var(--card); border-radius: 999px; padding: 0 14px; min-height: 34px; font-size: 14px; }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--page); border-color: var(--text); }
+/* A card's chips (a question's header, a turn's summary) stay small. */
+.pcard .chip { min-height: 0; border: 0; background: var(--surface); border-radius: 5px; padding: 1px 7px; font-size: 12px; }
 .lanes { display: grid; gap: 10px; }
 .lane { background: var(--card); border: 0.5px solid var(--border); border-radius: 14px; padding: 13px 14px; min-width: 0; }
 .lane.active { border: 1.5px solid var(--good); padding: 12px 13px; }
@@ -240,6 +298,8 @@ nav.tabs .count:empty { display: none; }
   <div class="hrow">
     <h1 id="title">Overview</h1>
     <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
+    <span id="awayBox"></span>
+    <span id="bellBox"></span>
   </div>
   <div class="seg" id="planSeg" hidden></div>
   <div class="seg" id="laneSeg" hidden></div>
@@ -269,6 +329,9 @@ nav.tabs .count:empty { display: none; }
   <section class="page" id="p-lanes" hidden>
     <div class="lanes" id="lanes"></div>
   </section>
+  <section class="page" id="p-questions" hidden>
+    <div id="qList"><div class="empty">Loading…</div></div>
+  </section>
   <section class="page" id="p-plans" hidden>
     <div id="plan"></div>
   </section>
@@ -280,6 +343,7 @@ nav.tabs .count:empty { display: none; }
 <nav class="tabs" role="tablist">
   <button role="tab" data-tab="overview" aria-selected="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Overview<span class="count" id="cWait"></span></button>
   <button role="tab" data-tab="lanes" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><circle cx="6" cy="8" r="1.6" fill="currentColor"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/><circle cx="18" cy="10" r="1.6" fill="currentColor"/></svg>Lanes</button>
+  <button role="tab" data-tab="questions" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v10H10l-4.5 4v-4H4z"/><path d="M10 9.2a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4"/><circle cx="12" cy="13.9" r=".5" fill="currentColor"/></svg>Questions<span class="count" id="cQ"></span></button>
   <button role="tab" data-tab="plans" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Plans</button>
   <button role="tab" data-tab="queue" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 12.5 12 4l7 8.5M12 4v16"/></svg>Launch<span class="count" id="cQueue"></span></button>
 </nav>
@@ -287,11 +351,15 @@ nav.tabs .count:empty { display: none; }
 <div id="scrim"></div>
 <div id="sheet" role="dialog" aria-modal="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="bellPanel" hidden></div>
 
 <script type="module">
-// The context gauge and the roadmap summary, shared with the desktop page.
+// The context gauge, the roadmap summary and how sessions are drawn, shared
+// with the desktop page.
 import * as U from '/ui.mjs';
+import * as S from '/sessions-ui.mjs';
 window.U = U;
+window.S = S;
 window.dispatchEvent(new Event('modules-ready'));
 </script>
 <script>
@@ -312,7 +380,7 @@ const store = {
 };
 const LABEL = { done: 'Done', working: 'In progress', launched: 'Launched, its session is starting', ready: 'Ready to start', owner: 'Waits on your OK', blocked: 'Blocked', retired: 'Retired', moved: 'Moved' };
 const STARTABLE = new Set(['ready', 'blocked', 'owner']);
-const TITLES = { overview: 'Overview', lanes: 'Lanes', plans: 'Plans', queue: 'Launch queue' };
+const TITLES = { overview: 'Overview', lanes: 'Lanes', questions: 'Questions', plans: 'Plans', queue: 'Launch queue' };
 
 let data = null, lastOk = 0;
 let tab = store.get('m-tab', 'overview');
@@ -361,6 +429,7 @@ function setTab(t) {
   window.scrollTo(0, 0);
   render();
   pollSessions();
+  if (t === 'questions') { qSig = null; pollQuestions(); }
 }
 document.querySelector('nav.tabs').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-tab]');
@@ -370,6 +439,13 @@ document.querySelector('nav.tabs').addEventListener('click', (e) => {
 // ---------- overview ----------
 function waitingItems() {
   const items = [];
+  // What sessions hold for the owner while Away is on: answered in the Questions tab.
+  for (const g of questions?.groups ?? []) {
+    for (const p of g.items) {
+      const what = window.S ? S.waitingText(p) : 'needs you';
+      items.push({ sw: 'owner', text: `${g.title} ${what}`, k: ago(p.time), goto: 'questions' });
+    }
+  }
   for (const p of data.plans) {
     for (const [id, t] of Object.entries(p.tasks)) {
       if (t.status === 'owner') items.push({ sw: 'owner', text: `${taskName(p.key, id)} ${t.title}`, k: `Starts once you OK ${t.ownerOk.map((g) => taskName(p.key, g)).join(', ')}`, task: `${p.key}:${id}` });
@@ -406,7 +482,7 @@ function kpisHtml(waits) {
   return cur + m1
     + `<div class="kpi"><div class="l">Ready now</div><div class="v">${k.readyRefs.length}</div><div class="s">in the current phase</div></div>
     <button class="kpi" data-goto="lanes"><div class="l">Active lanes</div><div class="v">${k.activeLanes} <small>${k.onTask} on a task</small></div><div class="s">session in the last 3 min</div></button>
-    <div class="kpi ${waits.length ? 'alert' : ''}"><div class="l">Waiting on you</div><div class="v">${waits.length}</div><div class="s">gates, questions, PRs</div></div>`;
+    <button class="kpi ${waits.length ? 'alert' : ''}" data-goto="questions"><div class="l">Waiting on you</div><div class="v">${waits.length}</div><div class="s">questions, gates, PRs</div></button>`;
 }
 // The phase track condensed: a step per phase, then the current phase(s) with
 // their bar and next ready tasks (tap one for its sheet).
@@ -437,7 +513,7 @@ function renderOverview() {
   $('road').innerHTML = roadHtml();
   $('waitMeta').textContent = waits.length ? `${waits.length}` : '';
   $('waiting').innerHTML = waits.length
-    ? `<ul class="list">${waits.map((i) => `<li ${i.task ? `data-task="${esc(i.task)}"` : ''}><i class="sw ${i.sw}"></i><span class="body">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}<span class="k">${esc(i.k)}</span></span>${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open on PC</button>` : ''}${i.retry ? `<button class="btn small" data-retry="${esc(i.retry)}">Try again</button>` : ''}</li>`).join('')}</ul>`
+    ? `<ul class="list">${waits.map((i) => `<li ${i.task ? `data-task="${esc(i.task)}"` : ''}><i class="sw ${i.sw}"></i><span class="body">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}<span class="k">${esc(i.k)}</span></span>${i.goto ? `<button class="btn small" data-goto="${esc(i.goto)}">Answer</button>` : ''}${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open on PC</button>` : ''}${i.retry ? `<button class="btn small" data-retry="${esc(i.retry)}">Try again</button>` : ''}</li>`).join('')}</ul>`
     : `<div class="empty">Nothing right now.</div>`;
   $('workMeta').textContent = active.length ? `${active.length} session${active.length === 1 ? '' : 's'}` : '';
   const working = data.lanes.filter((l) => l.working);
@@ -499,17 +575,16 @@ function renderLanes() {
 
 // ---------- sessions ----------
 // Every Claude session of the last three days (/sessions), with its context
-// gauge; read-only here: the desktop board answers them.
+// gauge; their questions are answered in the Questions tab.
 let sessionList = null;
 let sessionsTimer = 0;
-const folderOf = (cwd) => String(cwd ?? '').split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
 function sessionsHtml() {
-  if (!sessionList) return '<div class="empty">Loading sessions…</div>';
+  if (!sessionList || !window.S) return '<div class="empty">Loading sessions…</div>';
   if (!sessionList.length) return '<div class="empty">No sessions in the last three days.</div>';
   return `<ul class="list sess">${sessionList.map((s) => {
-    const needs = s.pending.length ? 'Waiting on you' : s.asking ? 'Asking you (in the app)' : '';
+    const needs = S.needsLabel(s);
     return `<li><i class="dot ${s.active ? 'active' : 'recent'}"></i><span class="body"><span class="t1"><b>${esc(s.title)}</b>${U.gaugeHtml(s.context, { live: s.active })}</span>
-      <span class="k">${esc(folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</span>${needs ? `<span class="pill">${needs}</span>` : ''}</span>
+      <span class="k">${esc(S.folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</span>${needs ? `<span class="pill">${needs}</span>` : ''}</span>
       ${needs && s.app ? `<button class="btn small" data-open="${esc(s.app)}">Open on PC</button>` : ''}</li>`;
   }).join('')}</ul>`;
 }
@@ -754,6 +829,66 @@ document.addEventListener('click', async (e) => {
   if (task && data) openTask(task.dataset.task);
 });
 
+// ---------- the Questions tab and the Away switch ----------
+// /questions (sessions-api.mjs): what sessions hold while Away is on, grouped by
+// session, and the questions asked in the app. Answers go to /relay/answer.
+let questions = null;
+let qSig = null;
+let awaySeen = null; // the switch's HTML as last set (the DOM writes it back differently)
+let questionsTimer = 0;
+function renderQuestions() {
+  if (!questions || !window.S) return;
+  $('cQ').textContent = questions.count ? String(questions.count) : '';
+  const away = S.awayHtml(questions);
+  if (awaySeen !== away) { awaySeen = away; $('awayBox').innerHTML = away; }
+  if (tab !== 'questions') return;
+  const sig = JSON.stringify([questions.away.on, questions.hooks?.problems, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => [p.id, p.summary?.detail])]),
+    questions.asked.map((a) => [a.session, a.time])]);
+  if (sig === qSig) { S.refreshTimes($('qList')); return; }
+  qSig = sig;
+  const kept = S.captureCards($('qList'));
+  $('qList').innerHTML = S.questionsTabHtml(questions, { openLabel: 'Open on PC' });
+  S.restoreCards($('qList'), kept);
+}
+async function pollQuestions() {
+  clearTimeout(questionsTimer);
+  if (document.hidden) return;
+  try {
+    const d = await (await fetch('/questions', { cache: 'no-store' })).json();
+    if (d.away) { questions = d; render(); renderQuestions(); }
+  } catch { /* the stamp shows the server's state */ }
+  questionsTimer = setTimeout(pollQuestions, tab === 'questions' ? 2500 : 5000);
+}
+$('qList').addEventListener('click', async (e) => {
+  const opt = e.target.closest('.opt:not([disabled])');
+  if (opt) { S.toggleOpt(opt); return; }
+  const b = e.target.closest('button');
+  const card = b?.closest('.pcard');
+  const body = b && window.S ? S.answerFor(b, card) : null;
+  if (!body) return;
+  if (body.error) { toast(body.error, true); return; }
+  b.disabled = true;
+  try {
+    await post('/relay/answer', body);
+    card?.remove();
+    qSig = null;
+    const turnEnd = !!card?.querySelector('[data-turn]');
+    toast(body.release ? (turnEnd ? 'Handed back: its turn ends, and it waits in the app.' : 'Handed back: it waits in the app now.') : 'Sent: the session carries on.');
+  } catch (err) { toast(`Couldn't answer: ${err.message}`, true); b.disabled = false; }
+  pollQuestions();
+});
+document.addEventListener('change', async (e) => {
+  if (!e.target.matches('[data-away]')) return;
+  const on = e.target.checked;
+  const n = questions?.groups.reduce((k, g) => k + g.items.length, 0) ?? 0;
+  if (!on && n && !confirm(`Switch Away off? The ${n} item${n === 1 ? '' : 's'} waiting go back to the app's own dialogs.`)) { e.target.checked = true; return; }
+  try {
+    await post('/relay/away', { on });
+    toast(on ? "Away is on: sessions' questions now wait in the Questions tab." : "Away is off: sessions ask in the app's own dialogs.");
+  } catch (err) { toast(`Couldn't switch Away: ${err.message}`, true); e.target.checked = !on; }
+  pollQuestions();
+});
+
 // ---------- render and poll ----------
 function render() {
   if (!data?.plans || !window.U) return;
@@ -767,6 +902,7 @@ function render() {
   if (tab === 'overview') renderOverview();
   else if (tab === 'lanes') renderLanes();
   else if (tab === 'plans') renderPlan();
+  renderQuestions();
   renderQueue();
   // Keep an open sheet in step with the data, unless it's asking to confirm.
   if (sheetRef && !sheet.querySelector('[data-act="end-yes"]')) openTask(sheetRef);
@@ -788,11 +924,23 @@ async function poll(once) {
   if (once !== true) { clearTimeout(pollTimer); if (!document.hidden) pollTimer = setTimeout(poll, 4000); }
 }
 // No polling while the phone is locked or the tab is in the background.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); } else clearTimeout(pollTimer); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); pollQuestions(); } else { clearTimeout(pollTimer); clearTimeout(questionsTimer); } });
 window.addEventListener('modules-ready', render);
+
+// ---------- the bell ----------
+// Shared with the PC page (sessions-ui.mjs mountBell). A tap opens the
+// record's question; a finished turn opens Lanes until sessions get pages.
+window.addEventListener('modules-ready', () => {
+  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session }) => {
+    if (tab === 'sessions') { setTab('lanes'); return; }
+    setTab('questions');
+    S.revealQuestion($('qList'), { item, session });
+  } });
+}, { once: true });
 setInterval(tick, 1000);
 setTab(TITLES[tab] ? tab : 'overview');
 poll();
+pollQuestions();
 </script>
 </body>
 </html>

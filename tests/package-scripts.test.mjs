@@ -27,6 +27,7 @@ describe('package.json', () => {
       'audio:sonniss',
       'audio:synth',
       'board',
+      'board:hooks',
       'brain',
       'brain:serve',
       'build',
