@@ -706,6 +706,12 @@ function taskOfDir(dir) {
   if (!l?.plan || !l.task) return null;
   return { ref: `${l.plan}:${l.task}`, label: `${PLAN_BY_KEY[l.plan]?.short ?? l.plan} ${l.task}`, title: l.taskTitle ?? '' };
 }
+// The branch checked out in a folder, from the worktree list, for a session
+// whose transcript records none ("HEAD": started outside git, then moved in).
+function branchOfDir(dir) {
+  const d = path.normalize(dir).toLowerCase();
+  return cached?.lanes?.find((x) => path.normalize(x.path).toLowerCase() === d)?.branch ?? null;
+}
 // Whether the hooks installed in user settings are this checkout's (hooks.mjs);
 // both pages say so when they aren't. LANES_CLAUDE_DIR overrides ~/.claude.
 const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.claude');
@@ -721,13 +727,13 @@ function prOfBranch(branch) {
 // What sessions post with `npm run post` (media.mjs, media-api.mjs), swept hourly.
 const mediaRoutes = mediaApi({ state: STATE, sweepMs: 60 * 60 * 1000 });
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
-  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch, media: mediaRoutes });
+  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch, branchOf: branchOfDir, media: mediaRoutes });
 // Merge from a session's page (merge-api.mjs), and "ready to merge" for the
 // bell, looked for every minute (LANES_MERGE_POLL_MS overrides it, for tests).
 const mergeRoutes = mergeApi({ repoDir: REPO, relay: RELAY, gh, prOf: prOfBranch, sessions: sessionRoutes,
   stateFile: path.join(STATE, 'merge-ready.json'), pollMs: Number(process.env.LANES_MERGE_POLL_MS) || 60_000 });
 // A session's Docs: what it wrote, its pull request and its artifacts (docs-api.mjs).
-const docsRoutes = docsApi({ repoDir: REPO, worktrees, gh, prOf: prOfBranch, fileOf: sessionRoutes.fileOf });
+const docsRoutes = docsApi({ repoDir: REPO, worktrees, gh, prOf: prOfBranch, fileOf: sessionRoutes.fileOf, branchOf: sessionRoutes.branchOfSession });
 // Lock-screen notifications (push-api.mjs): the bell's new records, pushed while
 // Away is on to every phone that turned them on. LANES_PUSH_INSECURE=1 lets a
 // test's stand-in push service on http through.

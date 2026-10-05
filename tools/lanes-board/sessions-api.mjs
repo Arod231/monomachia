@@ -50,10 +50,12 @@ const writeJsonFile = async (file, value) => writeJsonAtomic(file, value);
 // () => { current, problems }). Every sweepMs it also looks over the held items, so a
 // deleted session's hook is released with no page open. stopFile: the stop list
 // End work writes (stop-hook.mjs reads it); prOf(branch): the open pull request
-// of a branch ({ number, title, url, base, draft }) or null. media: the posted
-// shots and clips (media-api.mjs: of(session), sessions()), or null.
+// of a branch ({ number, title, url, base, draft }) or null; branchOf(dir): the
+// branch checked out in a folder, or null, for a session whose transcript names
+// none (one started outside git, then moved into a worktree, records "HEAD").
+// media: the posted shots and clips (media-api.mjs: of(session), sessions()), or null.
 export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions, pool, taskOf = () => null, hooks = async () => null, sweepMs = 0,
-  stopFile = null, prOf = () => null, media = null }) {
+  stopFile = null, prOf = () => null, branchOf = () => null, media = null }) {
   const transcriptCache = new Map(); // file -> { key, parsed }
   async function transcript(file, limit) {
     const { size, mtimeMs } = await stat(file);
@@ -197,10 +199,12 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     const m = await readJsonFile(stopNowFile(session));
     return !!m && Date.now() - (m.time ?? 0) < STOP_NOW_MS;
   }
+  // A session's branch: its transcript's, else the one checked out where it works.
+  const branchIn = (t, dir) => t.branch ?? (dir ? branchOf(dir) : null) ?? null;
   // s: the session as listed; t: its transcript; a: its app record; stops: the stop list.
   async function facts(s, t, a, stops) {
     const endedAt = endedAtOf(stops, { id: s.id, cwd: s.cwd });
-    const branch = t.branch ?? null;
+    const branch = branchIn(t, s.cwd);
     return {
       state: sessionState({ ...s, endedAt }), endedAt, stopping: await stopping(s.id),
       summary: turnSummary(a?.summary, t.lastReply), branch, task: s.cwd ? taskOf(s.cwd) : null, pr: branch ? prOf(branch) : null,
@@ -423,8 +427,15 @@ export function sessionsApi({ relay, projects, activeMs, contextOf, appSessions,
     async branches() {
       const found = await findTranscripts();
       return (await pool(found, 8, async (f) => {
-        try { return { id: f.id, branch: (await transcript(f.file, 1)).branch ?? null }; } catch { return null; }
+        try { const t = await transcript(f.file, 1); return { id: f.id, branch: branchIn(t, t.cwd) }; } catch { return null; }
       })).filter((x) => x?.branch);
+    },
+    // For Docs (docs-api.mjs): a session's branch, or null.
+    async branchOfSession(session) {
+      if (!SESSION_ID.test(session ?? '')) return null;
+      const f = (await findTranscripts()).find((x) => x.id === session) ?? await findTranscript(session);
+      if (!f) return null;
+      try { const t = await transcript(f.file, 1); return branchIn(t, t.cwd); } catch { return null; }
     },
     async titlesOf(ids) {
       const [found, app] = await Promise.all([findTranscripts(), appSessions()]);
