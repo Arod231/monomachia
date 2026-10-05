@@ -598,7 +598,16 @@ describe('goalFor', () => {
     assert.ok(!goalFor({ plan: M1, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo }).includes('does not exist yet'));
   });
 
-  it('stays within /goal\'s limit by shortening the titles', () => {
+  it('is plain words, since the app turns a link\'s leading slash into a full-width one and never runs it as a command', () => {
+    assert.doesNotMatch(goal, /^\s*[/／]/);
+    assert.ok(!goal.includes('/goal'));
+  });
+
+  it('keeps going from task to task without waiting for an OK, except for questions and owner gates', () => {
+    assert.ok(goal.includes('Go on from one task to the next without waiting for my OK; stop only for a question that needs my answer, at an owner gate, or when every queued task is done.'));
+  });
+
+  it('stays within the launch prompt\'s limit by shortening the titles', () => {
     const many = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`18.${i}`, { title: 'x'.repeat(200) }]));
     const long = goalFor({ plan: GR, ids: Object.keys(many), tasks: many, branch: 'lane/gr-many', repo });
     assert.ok(long.length <= GOAL_LIMIT);
