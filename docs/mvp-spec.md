@@ -1,5 +1,7 @@
 # Monomachia — MVP Plan & Spec
 
+> **The record of the web demo (Oct 4, 2026).** This spec describes the three.js browser demo as it was finished on Sep 30, 2026, kept at the tag `v0.1-web-mvp` (`git show v0.1-web-mvp:src/…` reads its sources). That demo was rebuilt in Godot and its web code deleted, so nothing below describes the current game: its status, files, commands and workflows are the demo's. For the game as built, read `docs/specs/godot-rebuild.md` and `docs/architecture.md`; for where it is going, `docs/design.md` and `docs/adr/0001-animation-leads-realistic-look.md`.
+
 Sep 30, 2026 · @Andrew Rodriguez
 
 The MVP is a playable browser demo of Monomachia's core duel: you against a computer opponent or a friend on the same screen, first to 3 rounds, with the posture, parry, disarm and ultimate loop from the design doc. It is built in three.js with simple shapes and code-generated sound, so it runs from a single file with nothing to install.

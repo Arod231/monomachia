@@ -8,13 +8,17 @@ Node is the task runner; every Godot command goes through `scripts/godot.mjs`, w
 
 | Command | What it does |
 |---|---|
-| `npm test` | The Node tests on Node's own runner (`node --test`), then the GUT tests headless (about 1,800) |
+| `npm test` | The Node tests on Node's own runner (`npm run test:node`), then the GUT tests headless (`npm run test:godot`, about 1,800) |
 | `npm run typecheck` | Every GDScript file loaded and checked |
-| `npm run soak:godot` | Computer-vs-computer matches with balance numbers (round length, disarms per round, win rates) |
+| `npm run soak` | Computer-vs-computer matches with balance numbers (round length, disarms per round, win rates) |
 | `npm run soak:tune` | A 300-match tuning run |
+| `npm run counterlab` | How often the computer lands each unblockable's counter |
 | `npm run shots` | Renders a scene to a PNG, failing on shader or script errors |
-| `npm run godot:run` | Plays the game (`-- --swing-debug` shows the swing debug view) |
-| `npm run godot:dev` | Opens the editor |
+| `npm run play` | Plays the game (`-- --swing-debug` shows the swing debug view) |
+| `npm run dev` | Opens the editor |
+| `npm run studio` | Opens the Animation Studio |
+| `npm run build` | Exports the Windows build, with the licence, credits and notices beside the exe |
+| `npm run release -- <tag>` | On the PC with the clip libraries: exports, checks with `--smoke`, zips and attaches the build to the tag's GitHub release |
 | `npm run check:sizes` | Keeps files over 10 MB out of the repo |
 | `npm run brain` | Writes this vault's generated notes (see [[About this vault]]) |
 

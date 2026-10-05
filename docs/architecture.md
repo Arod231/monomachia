@@ -927,14 +927,16 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | Command | What it runs |
 | --- | --- |
 | `npm test`, `npm run typecheck` | `node --test` and GUT (`test:node`, `test:godot`); the GDScript type check (`tools/typecheck.gd`) |
-| `npm run soak:godot -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300) |
-| `npm run godot:dev`, `npm run godot:run` | Open the Godot editor; run the game |
+| `npm run soak -- 40`, `npm run soak:tune` | 40 computer matches in the Godot rules, with the balance report (`soak:tune` runs 300) |
+| `npm run counterlab` | How often the computer lands each unblockable's counter (`tools/counterlab.gd`) |
+| `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
-| `npm run godot -- build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
+| `npm run build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
-| `npm run godot -- script res://tools/x.gd` | Run any headless tool script |
+| `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…) |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
 | `npm run check:sizes` | Fail on any tracked file over 10 MB |
+| `npm run brain`, `npm run brain:serve`, `npm run board` | The second brain's generated notes and its viewer; the Project Manager (lanes board) |
 
 ### 16.2 The Godot runner (`scripts/godot.mjs`)
 
@@ -970,7 +972,7 @@ Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScr
 ```mermaid
 flowchart LR
     PUSH["push or pull request"] --> CI1["ci.yml: test<br/>setup Godot 4.7.2, npm ci,<br/>check:sizes, npm test, typecheck,<br/>4-match Godot soak"]
-    CI1 --> CI2["ci.yml: export-windows<br/>Godot with export templates,<br/>npm run godot -- build"]
+    CI1 --> CI2["ci.yml: export-windows<br/>Godot with export templates,<br/>npm run build"]
     CI2 --> ART2["artifact: Monomachia-windows-stand-in<br/>(STAND-IN.txt inside)"]
     PC["the developer's PC,<br/>with the clip libraries"] --> R1["npm run release -- v0.2.0<br/>checks, export, --smoke, zip"]
     R1 --> R2["gh release upload<br/>Monomachia-v0.2.0-windows.zip<br/>to a draft release"]
@@ -1013,8 +1015,8 @@ Major features follow `CLAUDE.md`: a spec in `docs/specs/`, a plan in `docs/plan
 | Add a graphics option | A field on `GraphicsPreset`, the three preset files, and `GraphicsApplier`. **Superseded by ADR 0001 (Oct 4):** Four presets (Ultra, High, Medium, Low) replace the three as the slice lands, with Ultra the reference preset. |
 | Add a binding or action | `Bindings.ACTIONS`, `ACTION_BUTTON`, the default sets, `Btn` if it is a new rules button |
 | Add a screen | Build it in `ui/menus`, switch to it from `scenes/main.gd` (task 22 reworks this) |
-| Check the balance after a change | `npm run soak:godot -- 40` |
-| See a change | `npm run godot:run`, or a screenshot with `npm run shots` |
+| Check the balance after a change | `npm run soak -- 40` |
+| See a change | `npm run play`, or a screenshot with `npm run shots` |
 
 ## 20. Traps
 
