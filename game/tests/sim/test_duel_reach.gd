@@ -12,7 +12,10 @@ extends GutTest
 ## lights. Since milestone-1 task 17 the Greatsword's and the Daggers' moves
 ## play their clips at 1.0x with no band test until milestone 2 re-keys them
 ## (the spec's P10): what they get wrong is printed, not failed
-## (MILESTONE_2).
+## (MILESTONE_2). Since milestone-1 task 18 a Katana or bare-hands light
+## taken off the band tables' waiting list is held by the distance-band test
+## (test_move_bands.gd) instead, so this guards today's reach only for the
+## moves still waiting (still_waits()).
 
 const RT := preload("res://tests/sim/reach_table.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
@@ -51,12 +54,21 @@ static func _problems(w: WeaponDef, id: StringName) -> Array[String]:
 	return out
 
 
+## Whether today's reach checks still guard move `id` of `w`: every move of
+## every move the band tests don't hold (MoveBands.is_held()): a weapon with
+## no bands, a Counter Lunge, and a banded weapon's moves still on the
+## waiting list.
+static func still_waits(w: WeaponDef, id: StringName) -> bool:
+	var kind: StringName = StringName(FrameDataTable.shared().row(w.id, id).get("kind", ""))
+	return not MoveBands.shared().is_held(w.id, id, kind)
+
+
 ## Every problem of every light of the string with a swing on `w`.
 static func _weapon_problems(w: WeaponDef) -> Array[String]:
 	var out: Array[String] = []
 	for id: StringName in w.moves:
 		var m: AttackDef = w.moves[id]
-		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) == &"string_light":
+		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) == &"string_light" and still_waits(w, id):
 			out.append_array(_problems(w, id))
 	return out
 
