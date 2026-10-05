@@ -143,7 +143,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Delivers:
     - **Held turn ends:** while Away is on, the relay hook holds each turn end with the session's last message, continued by a reply, Approve & continue or Show me. A reply already queued goes in at once. With Away off, it records "turn finished".
     - **The inbox:** a per-session inbox in the relay folder. The PreToolUse hook adds the oldest message as context before the session's next tool, and a turn end takes what's left. Replies to sessions no hook can reach are queued for their next turn end.
-    - **Release:** Away off releases every held item (dialogs back to the app, held turns ending). Hand back to the app works on any item, and every hold gives up after 24 hours (shortened in tests).
+    - **Release:** Away off releases every held item (dialogs back to the app, held turns ending). Hand back to the app works on any item, and every hold gives up after 24 minutes (shortened in tests; 24 hours until the owner settled on 25 minutes after task 9).
     - **On both pages,** turn ends appear in the Questions tab with quick replies and a reply box.
   - Check: round-trip cases:
     - a held turn continued by a reply;
@@ -159,7 +159,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a turn-end card shows the session's last message at once, and the app's turn summary once the app has written it.
 - [ ] **9. The hooks installed, and the first real Away.** The tracked hooks go live in user settings, and the owner uses Away from the phone.
   - Delivers:
-    - with the owner's OK, the relay and stop hooks copied to `~/.claude/hooks/`, and the PermissionRequest and Stop timeouts in `~/.claude/settings.json` raised to 24 hours;
+    - with the owner's OK, the relay and stop hooks copied to `~/.claude/hooks/`, and the PermissionRequest and Stop timeouts in `~/.claude/settings.json` at least 25 minutes (24 hours until the owner, Oct 4, found 25 minutes enough; the hold gives up at 24);
     - the page saying when the installed copies differ from the tracked ones;
     - with the owner's OK, port 5197 served from this branch until the merge.
   - Check: a test of the installed-versus-tracked comparison; the owner switches Away on from the phone, answers a real session's question and replies to a finished turn, and both sessions carry on.
