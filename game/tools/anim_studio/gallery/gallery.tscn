@@ -1,0 +1,117 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/anim_studio/gallery/gallery.gd" id="1_gallery"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gallery"]
+bg_color = Color(0.105, 0.11, 0.125, 1)
+border_color = Color(0.2, 0.21, 0.235, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+
+[node name="Gallery" type="PanelContainer"]
+theme_override_styles/panel = SubResource("StyleBoxFlat_gallery")
+script = ExtResource("1_gallery")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ErrorBanner" type="PanelContainer" parent="Layout"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"ErrorBanner"
+
+[node name="ErrorLabel" type="Label" parent="Layout/ErrorBanner"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ErrorLabel"
+autowrap_mode = 3
+
+[node name="Toolbar" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Search" type="LineEdit" parent="Layout/Toolbar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+placeholder_text = "Search by name or id"
+clear_button_enabled = true
+
+[node name="BadgeChips" type="HBoxContainer" parent="Layout/Toolbar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Badge_fallback" type="Button" parent="Layout/Toolbar/BadgeChips"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "fallback"
+
+[node name="Badge_provisional" type="Button" parent="Layout/Toolbar/BadgeChips"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "provisional"
+
+[node name="Badge_corrective" type="Button" parent="Layout/Toolbar/BadgeChips"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "corrective"
+
+[node name="Badge_unsaved" type="Button" parent="Layout/Toolbar/BadgeChips"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "unsaved"
+
+[node name="Badge_balance" type="Button" parent="Layout/Toolbar/BadgeChips"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "balance"
+
+[node name="Spacer" type="Control" parent="Layout/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CountLabel" type="Label" parent="Layout/Toolbar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CountLabel"
+
+[node name="Content" type="Control" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Tabs" type="TabContainer" parent="Layout/Content"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EmptyNote" type="Label" parent="Layout/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"PlaceholderLabel"
+horizontal_alignment = 1
+vertical_alignment = 1

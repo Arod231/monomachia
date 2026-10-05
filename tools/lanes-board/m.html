@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- The phone page of the all-lanes board, sized for an iPhone 17 Pro Max
+     (440 x 956 pt, Dynamic Island, home indicator) and fine on any phone.
+     Same /data and POST endpoints as index.html; tap replaces right-click and hover. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Project Manager">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>Monomachia Project Manager</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff; --bar: rgba(249,249,247,0.86);
+  --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+  --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
+  --done: #2a78d6; --working: #eb6834; --ready: #1baf7a; --owner: #eda100; --blocked: #d3d1c7;
+  --good: #0ca30c; --critical: #d03b3b; --scrim: rgba(0,0,0,0.32);
+  --top: env(safe-area-inset-top, 0px); --bottom: env(safe-area-inset-bottom, 0px);
+  --side: max(16px, env(safe-area-inset-left, 0px));
+  --tabbar: 56px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e; --bar: rgba(13,13,13,0.84);
+    --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+    --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+    --scrim: rgba(0,0,0,0.55);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e; --bar: rgba(13,13,13,0.84);
+  --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+  --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+  --scrim: rgba(0,0,0,0.55);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; background: var(--page); color: var(--text); font: 16px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif;
+  touch-action: manipulation; overscroll-behavior-y: none; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+
+/* ---------- top bar ---------- */
+header { position: sticky; top: 0; z-index: 20; background: var(--bar); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  border-bottom: 0.5px solid var(--border); padding: calc(var(--top) + 8px) var(--side) 10px; }
+.hrow { display: flex; align-items: center; gap: 10px; }
+h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.stamp { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stamp.err { color: var(--critical); }
+.live { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite; flex: none; }
+.stamp.err .live { background: var(--critical); animation: none; }
+@keyframes pulse { 50% { opacity: .35; } }
+.seg[hidden] { display: none; }
+.seg { display: flex; gap: 2px; margin-top: 10px; background: var(--surface); border-radius: 9px; padding: 2px; }
+.seg button { flex: 1; min-width: 0; border: 0; background: none; border-radius: 7px; padding: 6px 4px; font-size: 14px; font-weight: 500; color: var(--text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#planSeg button { font-size: 13px; padding: 6px 2px; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+
+/* ---------- pages ---------- */
+main { padding: 14px var(--side) calc(var(--tabbar) + var(--bottom) + 24px); }
+.page[hidden] { display: none; }
+h2 { font-size: 17px; font-weight: 650; margin: 0; }
+.sh { display: flex; align-items: baseline; gap: 8px; margin: 22px 0 8px; }
+.sh:first-child { margin-top: 4px; }
+.sh .m { font-size: 13px; color: var(--muted); margin-left: auto; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kpi { background: var(--surface); border-radius: 12px; padding: 12px 14px; min-width: 0; border: 0; text-align: left; }
+.kpi .l { font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .v { font-size: 26px; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.kpi .v small { font-size: 14px; font-weight: 400; color: var(--muted); }
+.kpi .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .bar { display: flex; gap: 1px; height: 5px; margin-top: 8px; border-radius: 3px; overflow: hidden; background: var(--blocked); }
+.kpi.wide { grid-column: 1 / -1; }
+.kpi.alert .v { color: var(--owner); }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+.done { background: var(--done); } .working { background: var(--working); } .ready { background: var(--ready); }
+.owner { background: var(--owner); } .blocked { background: var(--blocked); }
+.launched { background: transparent; box-shadow: inset 0 0 0 2px var(--working); }
+.retired { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+.list { list-style: none; margin: 0; padding: 0; background: var(--card); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+.list li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; font-size: 15px; }
+.list li + li { border-top: 0.5px solid var(--border); }
+.list li .sw { margin-top: 5px; }
+.list .body { flex: 1; min-width: 0; }
+.list .k { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.empty { font-size: 15px; color: var(--muted); padding: 14px; background: var(--surface); border-radius: 12px; }
+
+.btn { border-radius: 10px; border: 0.5px solid var(--border-strong); background: var(--card); padding: 0 14px; min-height: 36px; font-size: 15px; font-weight: 500; white-space: nowrap; }
+.btn.small { min-height: 32px; padding: 0 12px; font-size: 14px; flex: none; }
+.btn.primary { background: var(--text); color: var(--page); border-color: var(--text); }
+.btn.danger { background: var(--critical); color: #fff; border-color: var(--critical); }
+.btn.block { display: flex; width: 100%; align-items: center; justify-content: center; min-height: 50px; font-size: 17px; font-weight: 600; border-radius: 13px; }
+.btn[disabled] { opacity: .45; }
+.btn:active:not([disabled]) { opacity: .7; }
+
+/* ---------- lanes ---------- */
+.filter { display: flex; gap: 8px; margin: 4px 0 12px; }
+.chip { border: 0.5px solid var(--border-strong); background: var(--card); border-radius: 999px; padding: 0 14px; min-height: 34px; font-size: 14px; }
+.chip[aria-pressed="true"] { background: var(--text); color: var(--page); border-color: var(--text); }
+.lanes { display: grid; gap: 10px; }
+.lane { background: var(--card); border: 0.5px solid var(--border); border-radius: 14px; padding: 13px 14px; min-width: 0; }
+.lane.active { border: 1.5px solid var(--good); padding: 12px 13px; }
+.lane .top { display: flex; align-items: center; gap: 8px; }
+.lane .name { font-weight: 650; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { font-size: 12px; color: var(--text-2); background: var(--surface); border-radius: 6px; padding: 1px 7px; white-space: nowrap; margin-left: auto; flex: none; }
+.lane .br { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; margin-top: 1px; }
+.lane .task { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; margin: 9px 0 6px; }
+.lane .task .sw { margin-top: 5px; }
+.lane .meta { font-size: 13px; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 2px; }
+.act { font-size: 13px; display: flex; align-items: center; gap: 6px; color: var(--text-2); margin-top: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blocked); flex: none; }
+.dot.active { background: var(--good); animation: pulse 2s infinite; } .dot.recent { background: var(--muted); }
+.ask { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin: 8px 0 4px; padding: 9px 10px; border-radius: 10px; background: var(--surface); }
+.ask .sw { margin-top: 4px; }
+.ask span { flex: 1; min-width: 0; }
+
+/* ---------- plans ---------- */
+.total { display: flex; gap: 2px; height: 8px; margin: 6px 0 4px; border-radius: 4px; overflow: hidden; }
+.total div { height: 100%; }
+.pmeta { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.counts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--text-2); margin: 8px 0 4px; }
+.counts span { display: inline-flex; align-items: center; gap: 5px; }
+.stage { background: var(--card); border: 0.5px solid var(--border); border-radius: 12px; padding: 10px 12px 12px; margin-top: 8px; }
+.stage .hd { display: flex; align-items: baseline; gap: 8px; }
+.stage .nm { font-size: 15px; font-weight: 550; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage .nm .n { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; margin-right: 6px; }
+.stage .ct { margin-left: auto; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; flex: none; }
+.stage.complete .nm { color: var(--text-2); }
+.tiles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.t { width: 28px; height: 28px; border-radius: 6px; border: 0; padding: 0; position: relative; }
+.t.gate::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--page); opacity: .9; }
+.t.working { animation: pulse 1.6s infinite; }
+.t.queued { box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--text); }
+.t.launched.queued { box-shadow: inset 0 0 0 2px var(--working), 0 0 0 2px var(--page), 0 0 0 4px var(--text); }
+.t:active { transform: scale(0.9); }
+.hidedone .stage.complete { display: none; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 15px; margin: 12px 0 2px; }
+.switch { position: relative; width: 51px; height: 31px; flex: none; }
+.switch input { position: absolute; opacity: 0; inset: 0; margin: 0; z-index: 1; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--blocked); transition: background .2s; }
+.switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform .2s; }
+.switch input:checked + span { background: var(--ready); }
+.switch input:checked + span::after { transform: translateX(20px); }
+details.legend { margin-top: 22px; font-size: 14px; color: var(--text-2); }
+details.legend summary { color: var(--muted); padding: 6px 0; }
+details.legend div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; padding-top: 6px; }
+details.legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+.t.moved { width: auto; min-width: 34px; padding: 0 5px; font-size: 11px; font-weight: 650; color: var(--muted); background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
+.moved { background: transparent; box-shadow: inset 0 0 0 1px var(--muted); }
+.pclosed { font-size: 14px; color: var(--text-2); background: var(--surface); border-radius: 10px; padding: 9px 12px; margin-top: 10px; }
+
+/* ---------- context gauge (ui.mjs draws it) ---------- */
+.gauge { --g: var(--done); display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
+.gauge.warn { --g: var(--owner); } .gauge.high { --g: var(--critical); }
+.gauge .gm { position: relative; width: 56px; height: 7px; border-radius: 4px; background: var(--surface); box-shadow: inset 0 0 0 0.5px var(--border-strong); }
+.gauge .gm i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--g); }
+.gauge .gp { min-width: 3.2ch; text-align: right; }
+.gauge.stale { color: var(--muted); }
+.gauge.stale .gm i { opacity: .4; }
+.gauge.high.fresh .gp { color: var(--critical); }
+.lane .ctx { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); margin-top: 6px; }
+
+/* ---------- roadmap (overview) ---------- */
+.steps { display: flex; gap: 4px; margin: 2px 0 10px; }
+.steps span { flex: 1; min-width: 0; height: 6px; border-radius: 3px; background: var(--blocked); position: relative; overflow: hidden; }
+.steps span i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--done); }
+.steps span.cur { box-shadow: 0 0 0 2px var(--page), 0 0 0 3.5px var(--text); }
+.stepnames { display: flex; gap: 4px; font-size: 11px; color: var(--muted); margin-top: -6px; margin-bottom: 4px; }
+.stepnames span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stepnames span.cur { color: var(--text); font-weight: 600; }
+.phase { background: var(--card); border: 1.5px solid var(--text); border-radius: 14px; padding: 12px 14px; margin-top: 10px; }
+.phase .hd { display: flex; align-items: baseline; gap: 8px; }
+.phase .nm { font-size: 16px; font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phase .nm .n { color: var(--muted); font-weight: 400; margin-right: 6px; }
+.phase .ct { margin-left: auto; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; flex: none; }
+.phase .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.phase .total { background: var(--blocked); }
+.phase .list { margin-top: 8px; border-radius: 10px; }
+.phase .list li { padding: 10px 12px; font-size: 14px; }
+
+/* ---------- sessions (lanes tab) ---------- */
+.sess li { align-items: flex-start; }
+.sess .t1 { display: flex; gap: 8px; align-items: center; }
+.sess .t1 b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sess .dot { margin-top: 8px; }
+.pill { display: inline-block; font-size: 12px; border-radius: 6px; padding: 0 7px; margin-top: 4px; background: var(--owner); color: #0b0b0b; }
+
+/* ---------- tab bar ---------- */
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; background: var(--bar); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  border-top: 0.5px solid var(--border); padding: 0 max(8px, env(safe-area-inset-left, 0px)) var(--bottom); }
+nav.tabs button { flex: 1; border: 0; background: none; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-size: 11px; font-weight: 500; color: var(--muted); position: relative; }
+nav.tabs button[aria-selected="true"] { color: var(--text); }
+nav.tabs svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+nav.tabs .count { position: absolute; top: 5px; left: calc(50% + 7px); min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px; font-size: 11px; font-weight: 650; line-height: 18px;
+  background: var(--critical); color: #fff; font-variant-numeric: tabular-nums; }
+nav.tabs .count:empty { display: none; }
+
+/* ---------- sheet ---------- */
+#scrim { position: fixed; inset: 0; z-index: 30; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity .2s; }
+#scrim.on { opacity: 1; pointer-events: auto; }
+#sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; background: var(--card); border-radius: 16px 16px 0 0; max-height: 82vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 8px var(--side) calc(var(--bottom) + 16px); transform: translateY(105%); transition: transform .26s cubic-bezier(.2,.8,.2,1); overscroll-behavior: contain; }
+#sheet.on { transform: none; }
+#sheet .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--border-strong); margin: 0 auto 12px; }
+#sheet h3 { font-size: 19px; font-weight: 650; margin: 0 0 4px; line-height: 1.3; }
+#sheet .st { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text-2); }
+#sheet .d { font-size: 15px; color: var(--text-2); margin-top: 10px; }
+#sheet .ok { color: var(--muted); text-decoration: line-through; }
+#sheet .acts { display: grid; gap: 10px; margin-top: 18px; }
+#sheet .warn { font-size: 15px; background: var(--surface); border-radius: 10px; padding: 10px 12px; margin-top: 14px; }
+
+/* ---------- queue ---------- */
+.qnote { font-size: 13px; color: var(--muted); margin-top: 12px; }
+.qlaunch { margin-top: 14px; display: grid; gap: 10px; }
+#toast { position: fixed; left: var(--side); right: var(--side); bottom: calc(var(--tabbar) + var(--bottom) + 12px); z-index: 25; background: var(--text); color: var(--page);
+  border-radius: 12px; padding: 12px 14px; font-size: 15px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
+#toast.on { opacity: 1; transform: none; pointer-events: auto; }
+#toast.err { background: var(--critical); color: #fff; }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 id="title">Overview</h1>
+    <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
+  </div>
+  <div class="seg" id="planSeg" hidden></div>
+  <div class="seg" id="laneSeg" hidden></div>
+</header>
+<main>
+  <section class="page" id="p-overview">
+    <div class="kpis" id="kpis"></div>
+    <div class="sh"><h2>Roadmap</h2><span class="m" id="roadMeta"></span></div>
+    <div id="road"></div>
+    <div class="sh"><h2>Waiting on you</h2><span class="m" id="waitMeta"></span></div>
+    <div id="waiting"></div>
+    <div class="sh"><h2>At work now</h2><span class="m" id="workMeta"></span></div>
+    <div id="atWork"></div>
+    <details class="legend"><summary>What the colours mean</summary><div>
+      <span><i class="sw done"></i>Done</span>
+      <span><i class="sw working"></i>In progress</span>
+      <span><i class="sw ready"></i>Ready to start</span>
+      <span><i class="sw owner"></i>Waits on your OK</span>
+      <span><i class="sw blocked"></i>Blocked</span>
+      <span><i class="sw retired"></i>Retired</span>
+      <span><i class="sw moved"></i>Moved to M1 or M2</span>
+      <span><i class="sw launched"></i>Launched</span>
+      <span><i class="sw blocked" style="position:relative"><i style="position:absolute;inset:3px;border-radius:50%;background:var(--page)"></i></i>Review gate</span>
+    </div></details>
+    <p class="qnote"><a href="/brain/">Second brain</a> · <a href="/desktop">Desktop view</a></p>
+  </section>
+  <section class="page" id="p-lanes" hidden>
+    <div class="lanes" id="lanes"></div>
+  </section>
+  <section class="page" id="p-plans" hidden>
+    <div id="plan"></div>
+  </section>
+  <section class="page" id="p-queue" hidden>
+    <div id="queue"></div>
+  </section>
+</main>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="overview" aria-selected="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Overview<span class="count" id="cWait"></span></button>
+  <button role="tab" data-tab="lanes" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><circle cx="6" cy="8" r="1.6" fill="currentColor"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/><circle cx="18" cy="10" r="1.6" fill="currentColor"/></svg>Lanes</button>
+  <button role="tab" data-tab="plans" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Plans</button>
+  <button role="tab" data-tab="queue" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 12.5 12 4l7 8.5M12 4v16"/></svg>Launch<span class="count" id="cQueue"></span></button>
+</nav>
+
+<div id="scrim"></div>
+<div id="sheet" role="dialog" aria-modal="true"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+// The context gauge and the roadmap summary, shared with the desktop page.
+import * as U from '/ui.mjs';
+window.U = U;
+window.dispatchEvent(new Event('modules-ready'));
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+// The page re-renders on every poll; replacing unchanged HTML would swallow a tap
+// that lands mid-swap, so these containers only take new HTML when it differs.
+const innerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+for (const id of ['kpis', 'road', 'waiting', 'atWork', 'laneSeg', 'lanes', 'planSeg', 'plan', 'queue', 'sheet']) {
+  Object.defineProperty($(id), 'innerHTML', {
+    get() { return innerHTML.get.call(this); },
+    set(v) { if (this._html !== v) { this._html = v; innerHTML.set.call(this, v); } },
+  });
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const LABEL = { done: 'Done', working: 'In progress', launched: 'Launched, its session is starting', ready: 'Ready to start', owner: 'Waits on your OK', blocked: 'Blocked', retired: 'Retired', moved: 'Moved' };
+const STARTABLE = new Set(['ready', 'blocked', 'owner']);
+const TITLES = { overview: 'Overview', lanes: 'Lanes', plans: 'Plans', queue: 'Launch queue' };
+
+let data = null, lastOk = 0;
+let tab = store.get('m-tab', 'overview');
+let planKey = store.get('m-plan', 'gr');
+let laneFilter = store.get('m-lanes', 'work');
+let hideDone = store.get('m-hidedone', true);
+let queue = store.get('m-queue', []);
+const saveQueue = () => store.set('m-queue', queue);
+
+function ago(ms) {
+  if (!ms) return '';
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 60) return `${s} s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} d ago`;
+}
+const planOf = (k) => data.plans.find((p) => p.key === k);
+// Plans the board follows but that have no copy yet still get a short name.
+const taskName = (k, id) => `${planOf(k)?.short ?? k.toUpperCase()} ${id}`;
+const refName = (ref) => taskName(...ref.split(':'));
+const taskOf = (ref) => { const [k, id] = ref.split(':'); return planOf(k)?.tasks[id] ?? null; };
+const pct = (done, total) => (total ? Math.round((done / total) * 100) : 0);
+// "Moved → M1, carried on by M1 12" for a moved task, else its status.
+function statusLabel(t) {
+  if (t.status !== 'moved') return LABEL[t.status];
+  return `Moved → ${t.moved.toUpperCase()}${t.movedTo ? `, carried on by ${refName(t.movedTo)}` : ', no task there names it yet'}`;
+}
+const laneName = (l) => (l.main ? 'Main checkout' : l.folder.split(/[\\/]/).pop());
+
+// ---------- toast ----------
+let toastTimer = 0;
+function toast(text, err) {
+  const t = $('toast');
+  t.textContent = text; t.classList.toggle('err', !!err); t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), err ? 7000 : 5000);
+}
+$('toast').addEventListener('click', () => $('toast').classList.remove('on'));
+
+// ---------- tabs ----------
+function setTab(t) {
+  tab = t; store.set('m-tab', t);
+  for (const b of document.querySelectorAll('nav.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === t));
+  for (const p of document.querySelectorAll('.page')) p.hidden = p.id !== `p-${t}`;
+  $('title').textContent = TITLES[t];
+  window.scrollTo(0, 0);
+  render();
+  pollSessions();
+}
+document.querySelector('nav.tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tab]');
+  if (b) setTab(b.dataset.tab);
+});
+
+// ---------- overview ----------
+function waitingItems() {
+  const items = [];
+  for (const p of data.plans) {
+    for (const [id, t] of Object.entries(p.tasks)) {
+      if (t.status === 'owner') items.push({ sw: 'owner', text: `${taskName(p.key, id)} ${t.title}`, k: `Starts once you OK ${t.ownerOk.map((g) => taskName(p.key, g)).join(', ')}`, task: `${p.key}:${id}` });
+    }
+  }
+  for (const l of data.lanes) {
+    if (l.question) items.push({ sw: 'owner', text: l.question, k: `${l.app?.title || laneName(l)} asks · answer in its session`, open: l.app?.id });
+  }
+  // Launches that haven't started: the PC is locked, or the board couldn't press Send.
+  for (const l of data.launches ?? []) {
+    if (l.start?.state !== 'waiting') continue;
+    items.push({ sw: l.start.reason === 'locked' ? 'launched' : 'owner', text: `Launch of ${l.tasks.map((r) => taskName(...r.split(':'))).join(', ')}`,
+      k: U.launchStartText(l.start), task: l.tasks[0], retry: l.start.retry ? l.id : null });
+  }
+  for (const pr of data.prs ?? []) {
+    if (!pr.isDraft) items.push({ sw: 'ready', text: `PR #${pr.number} ${pr.title}`, k: `Ready for review · ${pr.headRefName} → ${pr.baseRefName}`, url: pr.url });
+  }
+  return items;
+}
+// A phase's (or plan's) counts as a bar: done, under way, ready, then blocked.
+const bar = (c) => ['done', 'working', 'launched', 'owner', 'ready'].filter((k) => c[k])
+  .map((k) => `<div class="${k}" style="flex:${c[k]}"></div>`).join('') + `<div style="flex:${c.blocked ?? 0}"></div>`;
+// Summary tiles rebased on the roadmap's current phase and milestone 1 (ui.mjs roadmapKpis).
+function kpisHtml(waits) {
+  const k = U.roadmapKpis(data);
+  const c = k.current;
+  const cur = c.names.length
+    ? `<div class="kpi wide"><div class="l">${c.fallback ? 'Open plan (no roadmap yet)' : c.names.length > 1 ? 'Current phases' : 'Current phase'}: ${esc(c.names.join(' + '))}</div>
+      <div class="v">${pct(c.done, c.total)}% <small>${c.done}/${c.total}</small></div><div class="s">${c.open} open${c.working ? ` · ${c.working} in progress` : ''}${c.blocked ? ` · ${c.blocked} blocked` : ''}</div><div class="bar">${bar(c)}</div></div>`
+    : `<div class="kpi wide"><div class="l">Current phase</div><div class="v">Done</div><div class="s">no open task in any phase</div></div>`;
+  const m1 = k.m1
+    ? `<button class="kpi" data-plan="m1"><div class="l">Milestone 1</div><div class="v">${pct(k.m1.done, k.m1.total)}% <small>${k.m1.done}/${k.m1.total}</small></div><div class="s">${k.m1.total - k.m1.done} left · ${k.m1.ready} ready</div></button>`
+    : `<div class="kpi"><div class="l">Milestone 1</div><div class="v"><small>not written</small></div><div class="s">plan not written yet</div></div>`;
+  return cur + m1
+    + `<div class="kpi"><div class="l">Ready now</div><div class="v">${k.readyRefs.length}</div><div class="s">in the current phase</div></div>
+    <button class="kpi" data-goto="lanes"><div class="l">Active lanes</div><div class="v">${k.activeLanes} <small>${k.onTask} on a task</small></div><div class="s">session in the last 3 min</div></button>
+    <div class="kpi ${waits.length ? 'alert' : ''}"><div class="l">Waiting on you</div><div class="v">${waits.length}</div><div class="s">gates, questions, PRs</div></div>`;
+}
+// The phase track condensed: a step per phase, then the current phase(s) with
+// their bar and next ready tasks (tap one for its sheet).
+function roadHtml() {
+  const phases = data.roadmap?.phases ?? U.fallbackPhases(data);
+  if (!phases.length) return '<div class="empty">No open plans.</div>';
+  const steps = phases.map((ph) => `<span class="${ph.current ? 'cur' : ''}" title="${esc(ph.name)}"><i style="width:${pct(ph.counts.done, ph.total)}%"></i></span>`).join('');
+  const names = phases.map((ph) => `<span class="${ph.current ? 'cur' : ''}">${esc(ph.name)}</span>`).join('');
+  const cards = phases.filter((ph) => ph.current).map((ph) => {
+    const next = ph.next.length
+      ? `<ul class="list">${ph.next.map((x) => `<li data-task="${esc(x.ref)}"><i class="sw ready"></i><span class="body">${esc(refName(x.ref))} ${esc(x.title)}</span></li>`).join('')}</ul>`
+      : `<div class="sub">Nothing ready${ph.counts.blocked ? `: ${ph.counts.blocked} blocked` : ''}${ph.counts.working ? `, ${ph.counts.working} in progress` : ''}.</div>`;
+    const waiting = [...new Set(ph.waiting.map((r) => r.split(':')[0].toUpperCase()))].map((k) => `${k} plan not written yet`).join(' · ');
+    return `<div class="phase"><div class="hd"><span class="nm">${ph.n != null ? `<span class="n">${ph.n}</span>` : ''}${esc(ph.name)}</span><span class="ct">${ph.counts.done}/${ph.total}</span></div>
+      <div class="total">${bar(ph.counts)}</div>
+      <div class="sub">${ph.counts.open} open${ph.counts.ready ? ` · ${ph.counts.ready} ready` : ''}${ph.lanes.length ? ` · ${ph.lanes.length} lane${ph.lanes.length === 1 ? '' : 's'} on it` : ''}${ph.alongside != null ? ` · alongside phase ${ph.alongside}` : ''}${waiting ? ` · ${waiting}` : ''}</div>
+      ${next}</div>`;
+  }).join('');
+  return (phases.length > 1 ? `<div class="steps">${steps}</div><div class="stepnames">${names}</div>` : '') + cards
+    + (data.roadmap ? '' : '<p class="qnote">The roadmap (docs/plans/roadmap.md) isn\'t committed yet: the open plans stand in for its phases.</p>');
+}
+function renderOverview() {
+  const waits = waitingItems();
+  const active = data.lanes.filter((l) => l.activity === 'active');
+  $('kpis').innerHTML = kpisHtml(waits);
+  const cur = (data.roadmap?.phases ?? []).filter((ph) => ph.current);
+  $('roadMeta').textContent = data.roadmap ? (cur.length ? `phase ${cur.map((ph) => ph.n).join(' + ')} of ${data.roadmap.phases.length}` : 'all done') : '';
+  $('road').innerHTML = roadHtml();
+  $('waitMeta').textContent = waits.length ? `${waits.length}` : '';
+  $('waiting').innerHTML = waits.length
+    ? `<ul class="list">${waits.map((i) => `<li ${i.task ? `data-task="${esc(i.task)}"` : ''}><i class="sw ${i.sw}"></i><span class="body">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}<span class="k">${esc(i.k)}</span></span>${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open on PC</button>` : ''}${i.retry ? `<button class="btn small" data-retry="${esc(i.retry)}">Try again</button>` : ''}</li>`).join('')}</ul>`
+    : `<div class="empty">Nothing right now.</div>`;
+  $('workMeta').textContent = active.length ? `${active.length} session${active.length === 1 ? '' : 's'}` : '';
+  const working = data.lanes.filter((l) => l.working);
+  $('atWork').innerHTML = working.length
+    ? `<ul class="list">${working.map((l) => `<li data-task="${esc(`${l.plan}:${l.task}`)}"><i class="sw working"></i><span class="body">${taskName(l.plan, l.task)} ${esc(l.taskTitle)}<span class="k">${esc(laneName(l))}${l.activity === 'active' ? ' · session at work' : ''}</span></span></li>`).join('')}</ul>`
+    : `<div class="empty">No lane is on a task right now.</div>`;
+}
+
+// ---------- lanes ----------
+function laneTask(l) {
+  if (!l.plan || !l.task) return '';
+  const p = planOf(l.plan);
+  const name = `${taskName(l.plan, l.task)} ${esc(l.taskTitle)}`;
+  if (l.ended) return `<div class="task"><i class="sw blocked"></i><span>Work ended from the Project Manager${l.scope ? ` (${l.scope.map((i) => taskName(l.plan, i)).join(', ')})` : ''}</span></div>`;
+  if (l.working) return `<div class="task"><i class="sw working"></i><span>Working on ${name}</span></div>`;
+  if (!l.claims) return l.lastTask ? `<div class="task"><i class="sw blocked"></i><span>Last named task: ${taskName(l.plan, l.lastTask)}</span></div>` : '';
+  const st = p?.tasks[l.task]?.status;
+  if (l.taskWaits?.length) return `<div class="task"><i class="sw owner"></i><span>Next: ${name}, after your OK of ${l.taskWaits.map((g) => taskName(l.plan, g)).join(', ')}</span></div>`;
+  if (l.taskBlocked?.length) return `<div class="task"><i class="sw blocked"></i><span>Next: ${name}, blocked by ${l.taskBlocked.map((b) => esc(b.replace(`${l.plan}:`, '').replace(':', ' '))).join(', ')}</span></div>`;
+  return `<div class="task"><i class="sw ${st === 'ready' ? 'ready' : 'blocked'}"></i><span>Next: ${name}</span></div>`;
+}
+function laneGit(l) {
+  const parts = [];
+  if (l.merging) parts.push('merging');
+  if (l.dirty) parts.push(`${l.dirty} file${l.dirty === 1 ? '' : 's'} changed`);
+  if (l.ahead) parts.push(`${l.ahead} commit${l.ahead === 1 ? '' : 's'} not on ${l.target}`);
+  if (l.behind) parts.push(`${l.behind} behind`);
+  if (!parts.length) parts.push(`in step with ${l.target}`);
+  return parts.join(' · ');
+}
+function laneCard(l) {
+  const act = l.activity === 'active' ? 'Session at work' : l.activity === 'recent' ? `Active ${ago(Math.max(l.session ?? 0, (l.last.time ?? 0) * 1000))}` : 'Idle';
+  const plan = l.plan ? planOf(l.plan)?.name ?? l.plan : 'Other work';
+  return `<div class="lane ${l.activity === 'active' ? 'active' : ''}">
+    <div class="top"><span class="name">${esc(laneName(l))}</span><span class="badge">${esc(plan)}</span></div>
+    <div class="br">${esc(l.branch ?? `detached at ${l.head}`)}${l.locked ? ' · locked' : ''}</div>
+    ${l.app?.title ? `<div class="meta">Session: ${esc(l.app.title)}${l.app.archived ? ' (archived)' : ''}</div>` : ''}
+    ${laneTask(l)}
+    ${l.question ? `<div class="ask"><i class="sw owner"></i><span>Asking you: ${esc(l.question)}</span>${l.app ? `<button class="btn small" data-open="${esc(l.app.id)}">Open on PC</button>` : ''}</div>` : ''}
+    <div class="act"><i class="dot ${l.activity}"></i>${act}</div>
+    ${l.context ? `<div class="ctx">Context ${U.gaugeHtml(l.context, { live: l.activity === 'active' })}</div>` : ''}
+    <div class="meta">${esc(laneGit(l))}</div>
+    <div class="meta">Last commit ${ago((l.last.time ?? 0) * 1000)}: ${esc(l.last.subject)}</div>
+    ${l.pr ? `<div class="meta"><a href="${esc(l.pr.url)}" target="_blank" rel="noopener">PR #${l.pr.number}</a> into ${esc(l.pr.base)}${l.pr.draft ? ' (draft)' : ''}</div>` : ''}
+  </div>`;
+}
+function renderLanes() {
+  const live = (l) => l.activity !== 'idle' || l.dirty || l.merging || l.ahead > 0 || l.main;
+  const rank = (a) => ['active', 'recent', 'idle'].indexOf(a.activity);
+  const order = (a, b) => (rank(a) - rank(b)) || ((b.session ?? b.last.time * 1000) - (a.session ?? a.last.time * 1000));
+  const work = data.lanes.filter(live).sort(order);
+  const parked = data.lanes.filter((l) => !live(l)).sort(order);
+  $('laneSeg').innerHTML = `<button data-lanes="work" aria-pressed="${laneFilter === 'work'}">At work · ${work.length}</button><button data-lanes="parked" aria-pressed="${laneFilter === 'parked'}">Parked · ${parked.length}</button>`
+    + `<button data-lanes="sessions" aria-pressed="${laneFilter === 'sessions'}">Sessions${sessionList ? ` · ${sessionList.length}` : ''}</button>`;
+  if (laneFilter === 'sessions') { $('lanes').innerHTML = sessionsHtml(); return; }
+  const list = laneFilter === 'parked' ? parked : work;
+  $('lanes').innerHTML = list.map(laneCard).join('') || `<div class="empty">${laneFilter === 'parked' ? 'No parked worktrees.' : 'No lanes at work.'}</div>`;
+}
+
+// ---------- sessions ----------
+// Every Claude session of the last three days (/sessions), with its context
+// gauge; read-only here: the desktop board answers them.
+let sessionList = null;
+let sessionsTimer = 0;
+const folderOf = (cwd) => String(cwd ?? '').split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
+function sessionsHtml() {
+  if (!sessionList) return '<div class="empty">Loading sessions…</div>';
+  if (!sessionList.length) return '<div class="empty">No sessions in the last three days.</div>';
+  return `<ul class="list sess">${sessionList.map((s) => {
+    const needs = s.pending.length ? 'Waiting on you' : s.asking ? 'Asking you (in the app)' : '';
+    return `<li><i class="dot ${s.active ? 'active' : 'recent'}"></i><span class="body"><span class="t1"><b>${esc(s.title)}</b>${U.gaugeHtml(s.context, { live: s.active })}</span>
+      <span class="k">${esc(folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</span>${needs ? `<span class="pill">${needs}</span>` : ''}</span>
+      ${needs && s.app ? `<button class="btn small" data-open="${esc(s.app)}">Open on PC</button>` : ''}</li>`;
+  }).join('')}</ul>`;
+}
+async function pollSessions() {
+  clearTimeout(sessionsTimer);
+  if (tab !== 'lanes' || laneFilter !== 'sessions' || document.hidden) return;
+  try {
+    const d = await (await fetch('/sessions', { cache: 'no-store' })).json();
+    if (d.sessions) { sessionList = d.sessions; render(); }
+  } catch { /* the stamp shows the server's state */ }
+  sessionsTimer = setTimeout(pollSessions, 6000);
+}
+$('laneSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-lanes]');
+  if (b) { laneFilter = b.dataset.lanes; store.set('m-lanes', laneFilter); render(); pollSessions(); }
+});
+
+// ---------- plans ----------
+function renderPlan() {
+  if (!planOf(planKey)) planKey = data.plans[0]?.key;
+  const SEG = { rm: 'Roadmap', gr: 'Rebuild', aa: 'Anim.', pm: 'PM' };
+  $('planSeg').innerHTML = data.plans.map((p) => `<button data-plan="${p.key}" aria-pressed="${p.key === planKey}" aria-label="${esc(p.name)}">${esc(SEG[p.key] ?? p.short)} <span style="opacity:.6">${pct(p.counts.done, p.total)}%</span></button>`).join('');
+  const p = planOf(planKey);
+  if (!p) { $('plan').innerHTML = '<div class="empty">No plans found.</div>'; return; }
+  const c = p.counts;
+  const segs = ['done', 'working', 'launched', 'owner', 'ready', 'blocked'].filter((k) => c[k])
+    .map((k) => `<div class="${k}" style="flex:${c[k]}"></div>`).join('');
+  const counts = ['done', 'working', 'launched', 'owner', 'ready', 'blocked', 'retired', 'moved'].filter((k) => c[k])
+    .map((k) => `<span><i class="sw ${k}"></i>${c[k]} ${k === 'owner' ? 'your OK' : k}</span>`).join('');
+  const complete = (s) => s.ids.length > 0 && s.ids.every((id) => ['done', 'retired', 'moved'].includes(p.tasks[id].status));
+  const nComplete = p.stages.filter(complete).length;
+  const stages = p.stages.map((s) => {
+    const live = s.ids.filter((id) => !['retired', 'moved'].includes(p.tasks[id].status));
+    const done = live.filter((id) => p.tasks[id].status === 'done').length;
+    const tiles = s.ids.map((id) => {
+      const t = p.tasks[id];
+      const ref = `${p.key}:${id}`;
+      // A moved task: a muted "M1" tile; its sheet links to the task that took it over.
+      return `<button class="t ${t.status}${t.gate ? ' gate' : ''}${queue.includes(ref) ? ' queued' : ''}" data-task="${esc(ref)}" aria-label="${esc(`${taskName(p.key, id)} ${t.title}: ${statusLabel(t)}`)}">${t.status === 'moved' ? esc(t.moved.toUpperCase()) : ''}</button>`;
+    }).join('');
+    const what = !s.ids.length ? '' : s.ids.every((id) => p.tasks[id].status === 'moved') ? 'moved' : 'retired';
+    return `<div class="stage ${complete(s) ? 'complete' : ''}"><div class="hd"><span class="nm">${s.n != null ? `<span class="n">${s.n}</span>` : ''}${esc(s.name)}</span><span class="ct">${live.length ? `${done}/${live.length}` : what}</span></div>
+      <div class="tiles">${tiles}</div></div>`;
+  }).join('');
+  $('plan').innerHTML = `<div class="pmeta">${esc(p.file)} · ${esc(p.branch)}</div>
+    ${p.closed ? `<div class="pclosed">Closed: kept as history.${c.moved ? ` ${c.moved} of its tasks moved to milestones 1 and 2.` : ''}</div>` : ''}
+    <div class="total">${segs}</div>
+    <div class="counts">${counts}</div>
+    ${nComplete ? `<label class="toggle">Hide finished stages (${nComplete})<span class="switch"><input type="checkbox" id="hideDone" ${hideDone ? 'checked' : ''}><span></span></span></label>` : ''}
+    <div class="${hideDone ? 'hidedone' : ''}">${stages}</div>
+    <p class="qnote">Tap a task for its details. Tasks that haven't started can be queued and launched from there.</p>`;
+}
+$('planSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-plan]');
+  if (b) { planKey = b.dataset.plan; store.set('m-plan', planKey); render(); }
+});
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'hideDone') { hideDone = e.target.checked; store.set('m-hidedone', hideDone); render(); }
+});
+
+// ---------- the launch queue ----------
+function queueNotes(ref) {
+  const [k, id] = ref.split(':');
+  const t = planOf(k).tasks[id];
+  const notes = [];
+  const missing = t.blockers.filter((b) => !b.done && !queue.includes(b.ref));
+  if (missing.length) notes.push(`needs ${missing.map((b) => b.label).join(', ')} first`);
+  if (t.ownerOk.length) notes.push(`launching it counts as your OK of ${t.ownerOk.map((g) => taskName(k, g)).join(', ')}`);
+  return notes;
+}
+function renderQueue() {
+  $('cQueue').textContent = queue.length ? String(queue.length) : '';
+  if (tab !== 'queue') return;
+  if (!queue.length) {
+    $('queue').innerHTML = `<div class="empty">Nothing queued. Open Plans, tap a task that hasn't started, and add it here.</div>`;
+    return;
+  }
+  const byPlan = {};
+  for (const ref of queue) (byPlan[ref.split(':')[0]] ??= []).push(ref);
+  const sessions = Object.keys(byPlan).length;
+  const groups = Object.entries(byPlan).map(([k, refs]) => {
+    const p = planOf(k);
+    const order = p.stages.flatMap((s) => s.ids);
+    refs.sort((a, b) => order.indexOf(a.split(':')[1]) - order.indexOf(b.split(':')[1]));
+    return `<div class="sh"><h2>${esc(p.name)}</h2><span class="m">one session</span></div><ul class="list">${refs.map((ref) => {
+      const id = ref.split(':')[1];
+      const notes = queueNotes(ref);
+      return `<li><i class="sw ${p.tasks[id].status}"></i><span class="body">${taskName(k, id)} ${esc(p.tasks[id].title)}${notes.length ? `<span class="k">${esc(notes.join(' · '))}</span>` : ''}</span>
+        <button class="btn small" data-unqueue="${esc(ref)}" aria-label="Remove ${taskName(k, id)}">Remove</button></li>`;
+    }).join('')}</ul>`;
+  }).join('');
+  $('queue').innerHTML = groups + `<div class="qlaunch"><button class="btn primary block" id="qLaunch">Launch ${sessions === 1 ? 'a session' : `${sessions} sessions`} on the PC</button>
+    <button class="btn block" id="qClear">Clear the queue</button></div>
+    <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app, so nobody needs to be at the PC (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</p>`;
+}
+function setQueued(refs, on) {
+  queue = on ? [...new Set([...queue, ...refs])] : queue.filter((r) => !refs.includes(r));
+  saveQueue(); render();
+}
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  let d = {};
+  try { d = await r.json(); } catch {}
+  if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`);
+  return d;
+}
+let launching = false;
+async function launchQueue() {
+  if (launching || !queue.length) return;
+  launching = true;
+  const btn = $('qLaunch');
+  if (btn) { btn.disabled = true; btn.textContent = 'Launching…'; }
+  try {
+    const d = await post('/launch', { tasks: queue });
+    queue = []; saveQueue();
+    toast(d.launched.map((l) => `Starting a session on the PC for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')}.`).join(' '));
+    poll(true);
+  } catch (e) { toast(`Couldn't launch: ${e.message}`, true); }
+  launching = false;
+  render();
+}
+// The Project Manager opens the launch's link and presses Send again (refused once it started).
+async function retryLaunch(id) {
+  try { await post('/launch/retry', { launch: id }); toast('Trying again: the Project Manager opens the session and presses Send on the PC.'); }
+  catch (e) { toast(`Couldn't try again: ${e.message}`, true); }
+  poll(true);
+}
+
+// ---------- the task sheet ----------
+const sheet = $('sheet'), scrim = $('scrim');
+let sheetRef = null;
+function closeSheet() { sheet.classList.remove('on'); scrim.classList.remove('on'); sheetRef = null; }
+scrim.addEventListener('click', closeSheet);
+function openTask(ref, confirmEnd) {
+  const [k, id] = ref.split(':');
+  const p = planOf(k);
+  const t = p?.tasks[id];
+  if (!t) return;
+  sheetRef = ref;
+  const lane = data.lanes.find((l) => l.working && l.plan === k && l.task === id);
+  const bl = t.blockers.length ? `Blocked by ${t.blockers.map((b) => `<span class="${b.done ? 'ok' : ''}">${esc(b.label)}</span>`).join(', ')}` : 'No blockers';
+  // The task's newest launch: an older one may have lapsed.
+  const launch = (data.launches ?? []).findLast((l) => !l.endedAt && l.tasks.includes(ref));
+  const ended = (data.launches ?? []).findLast((l) => l.endedAt && l.tasks.includes(ref));
+  const launchTasks = launch ? launch.tasks.map((r) => taskName(...r.split(':'))).join(', ') : '';
+  let acts = '';
+  if (confirmEnd && launch) {
+    acts = `<div class="warn">Stop the session working on ${esc(launchTasks)}? It stops at its next step. Its worktree, branch, commits and PR stay; you can message the session later to carry on.</div>
+      <div class="acts"><button class="btn danger block" data-act="end-yes" data-launch="${esc(launch.id)}">Stop the session</button><button class="btn block" data-act="cancel">Cancel</button></div>`;
+  } else {
+    const rows = [];
+    if (STARTABLE.has(t.status)) {
+      const chain = [];
+      const addChain = (r) => {
+        const [pk, pid] = r.split(':');
+        const tt = planOf(pk)?.tasks[pid];
+        if (!tt || !STARTABLE.has(tt.status) || chain.includes(r)) return;
+        for (const b of tt.blockers) if (!b.done && b.ref.startsWith(`${k}:`)) addChain(b.ref);
+        chain.push(r);
+      };
+      addChain(ref);
+      const extra = chain.filter((r) => r !== ref && !queue.includes(r));
+      if (queue.includes(ref)) rows.push(`<button class="btn block" data-act="remove">Remove from launch queue</button>`);
+      else {
+        rows.push(`<button class="btn block" data-act="add">Add to launch queue</button>`);
+        if (extra.length) rows.push(`<button class="btn block" data-act="chain" data-chain="${esc(chain.join(','))}">Add with its ${extra.length} unstarted blocker${extra.length === 1 ? '' : 's'}</button>`);
+      }
+      rows.push(`<button class="btn primary block" data-act="launch">${queue.includes(ref) ? `Launch the queue (${queue.length})` : queue.length ? `Add and launch the queue (${queue.length + 1})` : 'Launch this task now'}</button>`);
+    }
+    if (t.status === 'moved' && t.movedTo && taskOf(t.movedTo)) rows.push(`<button class="btn block" data-act="goto" data-to="${esc(t.movedTo)}">Open ${esc(refName(t.movedTo))}, which took it over</button>`);
+    if (launch?.start?.retry) rows.push(`<button class="btn primary block" data-act="retry" data-launch="${esc(launch.id)}">Try starting it again</button>`);
+    if (launch) rows.push(`<button class="btn block" data-act="end" style="color:var(--critical)">End work on ${esc(launchTasks)}</button>`);
+    else if (ended) rows.push(`<div class="d">Work ended ${ago(ended.endedAt)}${ended.stoppedAt ? ', session stopped' : ', stops at its next step'}.</div>`);
+    const notes = STARTABLE.has(t.status) ? queueNotes(ref) : [];
+    acts = (notes.length ? `<div class="warn">${esc(notes.join(' · '))}</div>` : '') + (rows.length ? `<div class="acts">${rows.join('')}</div>` : '');
+  }
+  sheet.innerHTML = `<div class="grab"></div><h3>${taskName(k, id)} ${esc(t.title)}</h3>
+    <div class="st"><i class="sw ${t.status}"></i>${esc(statusLabel(t))}${t.gate ? ' · review gate' : ''}</div>
+    ${lane ? `<div class="d">In ${esc(laneName(lane))}${lane.activity === 'active' ? ', session at work' : ''}</div>` : ''}
+    ${launch?.start && launch.start.state !== 'started' ? `<div class="d">${esc(U.launchStartText(launch.start))}</div>` : ''}
+    <div class="d">${bl}</div>
+    ${t.ownerOk.length ? `<div class="d">Also needs your OK of ${t.ownerOk.map((g) => taskName(k, g)).join(', ')}</div>` : ''}
+    <div class="d" style="color:var(--muted)">${esc(p.name)} · ${esc(p.file)}</div>
+    ${acts}`;
+  sheet.classList.add('on'); scrim.classList.add('on');
+}
+sheet.addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-act]');
+  if (!b || !sheetRef) return;
+  const ref = sheetRef;
+  const act = b.dataset.act;
+  if (act === 'end') { openTask(ref, true); return; }
+  if (act === 'cancel') { openTask(ref); return; }
+  if (act === 'goto') { openTask(b.dataset.to); return; }
+  closeSheet();
+  if (act === 'add') { setQueued([ref], true); toast(`${taskName(...ref.split(':'))} queued. ${queue.length} in the Launch tab.`); }
+  else if (act === 'remove') setQueued([ref], false);
+  else if (act === 'chain') { setQueued(b.dataset.chain.split(','), true); toast(`${queue.length} queued in the Launch tab.`); }
+  else if (act === 'launch') { if (!queue.includes(ref)) setQueued([ref], true); launchQueue(); }
+  else if (act === 'retry') retryLaunch(b.dataset.launch);
+  else if (act === 'end-yes') {
+    try {
+      const d = await post('/end', { launch: b.dataset.launch });
+      toast(`Ended work on ${d.ended.label}. Its session stops at its next step${d.ended.sessions ? '' : ' (no session found yet: it stops when one works in its worktree)'}.`);
+    } catch (err) { toast(`Couldn't end the work: ${err.message}`, true); }
+    poll(true);
+  }
+});
+// Swipe the sheet down to close it.
+let dragY = null;
+sheet.addEventListener('touchstart', (e) => { dragY = sheet.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+sheet.addEventListener('touchmove', (e) => {
+  if (dragY === null) return;
+  const dy = e.touches[0].clientY - dragY;
+  if (dy > 0) { sheet.style.transition = 'none'; sheet.style.transform = `translateY(${dy}px)`; }
+}, { passive: true });
+sheet.addEventListener('touchend', (e) => {
+  if (dragY === null) return;
+  const dy = e.changedTouches[0].clientY - dragY;
+  sheet.style.transition = ''; sheet.style.transform = '';
+  dragY = null;
+  if (dy > 90) closeSheet();
+});
+
+// ---------- clicks ----------
+document.addEventListener('click', async (e) => {
+  if (e.target.closest('#sheet, nav.tabs, #planSeg, #laneSeg')) return;
+  const b = e.target.closest('button');
+  if (b?.dataset.unqueue) { setQueued([b.dataset.unqueue], false); return; }
+  if (b?.dataset.open) {
+    try { await post('/open', { session: b.dataset.open }); toast('Opened that session in the Claude app on your PC.'); }
+    catch (err) { toast(`Couldn't open it: ${err.message}`, true); }
+    return;
+  }
+  if (b?.dataset.retry) { retryLaunch(b.dataset.retry); return; }
+  if (b?.id === 'qLaunch') { launchQueue(); return; }
+  if (b?.id === 'qClear') { queue = []; saveQueue(); render(); return; }
+  if (b?.dataset.plan) { planKey = b.dataset.plan; store.set('m-plan', planKey); setTab('plans'); return; }
+  if (b?.dataset.goto) { setTab(b.dataset.goto); return; }
+  if (e.target.closest('a')) return;
+  const task = e.target.closest('[data-task]');
+  if (task && data) openTask(task.dataset.task);
+});
+
+// ---------- render and poll ----------
+function render() {
+  if (!data?.plans || !window.U) return;
+  const before = queue.length;
+  queue = queue.filter((ref) => { const [k, id] = ref.split(':'); return STARTABLE.has(planOf(k)?.tasks[id]?.status); });
+  if (queue.length !== before) saveQueue();
+  $('planSeg').hidden = tab !== 'plans';
+  $('laneSeg').hidden = tab !== 'lanes';
+  const waits = waitingItems().length;
+  $('cWait').textContent = waits ? String(waits) : '';
+  if (tab === 'overview') renderOverview();
+  else if (tab === 'lanes') renderLanes();
+  else if (tab === 'plans') renderPlan();
+  renderQueue();
+  // Keep an open sheet in step with the data, unless it's asking to confirm.
+  if (sheetRef && !sheet.querySelector('[data-act="end-yes"]')) openTask(sheetRef);
+}
+function tick() {
+  const el = $('stamp');
+  const stale = Date.now() - lastOk > 20000;
+  el.classList.toggle('err', !lastOk || stale || !!data?.error);
+  $('stampText').textContent = !lastOk ? 'Connecting…' : stale ? 'Not answering' : `Live · ${ago(data.updated)}`;
+}
+let pollTimer = 0;
+async function poll(once) {
+  try {
+    const r = await fetch('/data', { cache: 'no-store' });
+    const d = await r.json();
+    if (d.plans) { data = d; lastOk = Date.now(); render(); }
+  } catch { /* shown by the stamp */ }
+  tick();
+  if (once !== true) { clearTimeout(pollTimer); if (!document.hidden) pollTimer = setTimeout(poll, 4000); }
+}
+// No polling while the phone is locked or the tab is in the background.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); pollSessions(); } else clearTimeout(pollTimer); });
+window.addEventListener('modules-ready', render);
+setInterval(tick, 1000);
+setTab(TITLES[tab] ? tab : 'overview');
+poll();
+</script>
+</body>
+</html>

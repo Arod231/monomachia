@@ -1,0 +1,1582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monomachia Project Manager</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff;
+  --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+  --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
+  --done: #2a78d6; --working: #eb6834; --ready: #1baf7a; --owner: #eda100; --blocked: #d3d1c7;
+  --good: #0ca30c; --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+    --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+    --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+  --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+  --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 20px 16px 48px; }
+body.wide main { max-width: none; padding-bottom: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 16px; }
+h1 { font-size: 20px; font-weight: 600; margin: 0; }
+h2 { font-size: 15px; font-weight: 600; margin: 0; }
+section { margin-top: 26px; }
+[hidden] { display: none !important; }
+.tabs, .seg { display: inline-flex; gap: 2px; background: var(--surface); border-radius: 8px; padding: 2px; }
+.tabs button, .seg button { font: inherit; font-size: 13px; border: 0; background: none; color: var(--text-2); padding: 3px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.tabs button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
+.count { min-width: 18px; height: 18px; border-radius: 9px; background: var(--owner); color: #0b0b0b; font-size: 11px; font-weight: 600; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; }
+.count:empty { display: none; }
+.sh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
+.sh .m { font-size: 12px; color: var(--muted); }
+.stamp { font-size: 12px; color: var(--muted); margin-left: auto; display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.stamp.err { color: var(--critical); }
+.live { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite; }
+.stamp.err .live { background: var(--critical); animation: none; }
+@keyframes pulse { 50% { opacity: .35; } }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.kpi .l { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .v { font-size: 22px; font-weight: 600; }
+.kpi .v small { font-size: 13px; font-weight: 400; color: var(--muted); }
+.kpi .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-2); margin: 18px 0 0; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; flex: none; }
+.total { display: flex; gap: 2px; height: 10px; margin: 2px 0 10px; }
+.total div { height: 100%; }
+.total div:first-child { border-radius: 4px 0 0 4px; } .total div:last-child { border-radius: 0 4px 4px 0; }
+.stage { display: grid; grid-template-columns: minmax(0, 230px) minmax(0, 1fr) 52px; gap: 10px; align-items: start; padding: 4px 0; border-top: 1px solid var(--border); }
+.stage .nm { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 1px; }
+.stage .nm .n { color: var(--muted); display: inline-block; width: 22px; font-variant-numeric: tabular-nums; }
+.stage .ct { font-size: 12px; color: var(--text-2); text-align: right; font-variant-numeric: tabular-nums; padding-top: 2px; }
+.tiles { display: flex; flex-wrap: wrap; gap: 3px; padding: 2px 0; }
+.t { width: 15px; height: 15px; border-radius: 3px; cursor: default; position: relative; }
+.t.gate::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--page); opacity: .9; }
+.t.retired { background: transparent; border: 1px dashed var(--border-strong); }
+.t.working { animation: pulse 1.6s infinite; }
+.t:hover { outline: 2px solid var(--text); outline-offset: 1px; }
+.done { background: var(--done); } .working { background: var(--working); } .ready { background: var(--ready); }
+.owner { background: var(--owner); } .blocked { background: var(--blocked); }
+.sw.retired { background: transparent; border: 1px dashed var(--border-strong); }
+.sw.launched { background: transparent; border: 2px solid var(--working); }
+.wait { list-style: none; margin: 0; padding: 0; }
+.wait li { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.wait li .sw { position: relative; top: 1px; }
+.wait .k { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
+.lanes { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.lane { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; min-width: 0; }
+.lane.active { border-color: var(--good); }
+.lane .top { display: flex; align-items: center; gap: 7px; }
+.lane .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { font-size: 11px; color: var(--text-2); background: var(--surface); border-radius: 4px; padding: 0 6px; white-space: nowrap; margin-left: auto; }
+.act { font-size: 12px; display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blocked); flex: none; display: inline-block; }
+.dot.active { background: var(--good); animation: pulse 2s infinite; } .dot.recent { background: var(--muted); }
+.lane .br { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lane .task { display: flex; gap: 7px; align-items: flex-start; font-size: 13px; margin: 7px 0 5px; }
+.lane .task .sw { margin-top: 4px; }
+.lane .meta { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lane a { color: inherit; }
+details.others { margin-top: 12px; }
+details.others summary { cursor: pointer; font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+#tip { position: fixed; pointer-events: none; background: var(--card); border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 10px; font-size: 12px; max-width: 340px; opacity: 0; transition: opacity .08s; z-index: 5; }
+#tip .h { font-weight: 600; } #tip .d { color: var(--text-2); }
+#tip .ok { color: var(--muted); text-decoration: line-through; }
+.empty { font-size: 13px; color: var(--muted); }
+.t.launched { background: transparent; border: 2px solid var(--working); }
+.t.queued { box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--text); }
+.t.startable { cursor: context-menu; }
+#menu { position: fixed; z-index: 10; background: var(--card); border: 1px solid var(--border-strong); border-radius: 8px; padding: 4px; min-width: 220px; max-width: 320px; display: none; }
+#menu .h { font-size: 12px; color: var(--text-2); padding: 6px 10px 4px; }
+#menu button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 7px 10px; font: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+#menu button:hover, #menu button:focus-visible { background: var(--surface); outline: none; }
+#menu button[disabled] { color: var(--muted); cursor: default; background: none; }
+#queue { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; display: none; }
+#queue .in { max-width: 1040px; margin: 0 auto; background: var(--card); border: 1px solid var(--border-strong); border-bottom: 0; border-radius: 12px 12px 0 0; padding: 12px 16px 14px; max-height: 46vh; overflow: auto; }
+#queue .qh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#queue .qh h2 { margin-right: auto; }
+#queue ul { list-style: none; margin: 8px 0 0; padding: 0; }
+#queue li { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; border-top: 1px solid var(--border); font-size: 13px; }
+#queue li .w { font-size: 12px; color: var(--text-2); }
+#queue li .x { margin-left: auto; }
+.btn { font: inherit; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--card); color: var(--text); padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--text-2); }
+.btn.primary { background: var(--text); color: var(--page); border-color: var(--text); }
+.btn.small { padding: 1px 8px; font-size: 12px; }
+.btn.ghost { border-color: transparent; color: var(--text-2); }
+.btn[disabled] { opacity: .5; cursor: default; }
+#queue .note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+#queue .msg { font-size: 13px; margin-top: 8px; }
+#queue .msg.err { color: var(--critical); }
+body.has-queue main { padding-bottom: 46vh; }
+body.has-queue.queue-collapsed main { padding-bottom: 72px; }
+#queue.collapsed .in { padding-top: 10px; padding-bottom: 10px; }
+#queue .qh h2 { display: flex; align-items: center; gap: 8px; }
+.btn.icon { padding: 2px 8px; line-height: 1; }
+.btn.icon i { display: inline-block; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+#queue.collapsed .btn.icon i { transform: translateY(2px) rotate(-135deg); }
+.ask { display: flex; gap: 7px; align-items: flex-start; font-size: 13px; margin: 6px 0; padding: 6px 8px; border-radius: 6px; background: var(--surface); }
+.ask .sw { margin-top: 4px; }
+.ask span { flex: 1; min-width: 0; }
+input[type="search"], input.text, textarea { font: inherit; font-size: 13px; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--card); color: var(--text); min-width: 0; }
+textarea { width: 100%; resize: vertical; line-height: 1.45; }
+.m { font-size: 12px; color: var(--muted); }
+.t.moved { width: auto; min-width: 22px; padding: 0 3px; font: 600 9px/13px system-ui, sans-serif; text-align: center; color: var(--muted); background: transparent; border: 1px dashed var(--border-strong); }
+.t.moved[data-to] { cursor: pointer; }
+.sw.moved { background: transparent; border: 1px dashed var(--muted); }
+.t.flash { animation: flash .5s 3; }
+@keyframes flash { 50% { outline: 3px solid var(--text); outline-offset: 2px; } }
+details.history { margin-top: 26px; }
+details.history > summary { cursor: pointer; list-style-position: inside; }
+details.history > summary h2 { display: inline; }
+details.history > summary .m { margin-left: 8px; }
+details.history > section { margin-top: 10px; }
+
+/* ---------- context gauge (ui.mjs draws it) ---------- */
+.gauge { --g: var(--done); display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; vertical-align: middle; }
+.gauge.warn { --g: var(--owner); } .gauge.high { --g: var(--critical); }
+.gauge .gm { position: relative; width: 52px; height: 6px; border-radius: 3px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); flex: none; }
+.gauge .gm i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--g); }
+.gauge .gt { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text-2); }
+.gauge:not(.full) .gp { min-width: 3.2ch; text-align: right; }
+.gauge.stale { color: var(--muted); }
+.gauge.stale .gm i { opacity: .4; }
+.gauge.high.fresh .gp { color: var(--critical); }
+.gauge.full { display: flex; flex-wrap: wrap; gap: 3px 10px; white-space: normal; }
+.gauge.full .gm { flex: 1 1 160px; max-width: 280px; height: 8px; border-radius: 4px; }
+.gauge.full .gm i { border-radius: 4px; }
+.gauge.full .gp b { color: var(--text); font-weight: 600; }
+.gauge.full.stale .gp b { color: var(--muted); }
+.gauge.full .gx { font-size: 12px; color: var(--muted); }
+.ctxchart { --g: var(--done); margin-top: 6px; }
+.ctxchart.warn { --g: var(--owner); } .ctxchart.high { --g: var(--critical); } .ctxchart.stale { --g: var(--muted); }
+.spark { display: block; width: 100%; height: 44px; overflow: visible; }
+.spark .sl { fill: none; stroke: var(--g); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.spark .sf { fill: var(--g); opacity: .12; }
+.spark .sa { stroke: var(--critical); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; opacity: .7; }
+.spark .sc { stroke: var(--text); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.spark .sh { fill: transparent; }
+.spark .sh:hover { fill: var(--text); opacity: .08; }
+.lane .ctx { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-2); margin-top: 2px; }
+
+/* ---------- roadmap ---------- */
+.rnote { font-size: 13px; color: var(--text-2); background: var(--surface); border-radius: 8px; padding: 8px 12px; margin-top: 14px; }
+.track { display: flex; align-items: stretch; gap: 4px; margin-top: 18px; overflow-x: auto; padding: 2px 2px 4px; }
+.track .col { display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-width: 132px; }
+.track .arrow { align-self: flex-start; margin-top: 22px; color: var(--muted); flex: none; font-size: 13px; }
+.station { font: inherit; color: inherit; text-align: left; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; cursor: pointer; min-width: 0; }
+.station:hover { border-color: var(--border-strong); }
+.station.current { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.station.done .sn, .station.unwritten .sn, .station.empty .sn { color: var(--text-2); }
+.station .sn { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.station .ss { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.station .al { font-size: 11px; color: var(--muted); }
+.n { color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 400; }
+.pbar { display: flex; gap: 1px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--surface); margin: 6px 0 4px; }
+.pbar div { height: 100%; }
+.phases { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.prow { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+.phase { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; scroll-margin-top: 12px; }
+.phase.current { border-color: var(--text); }
+.phase.done, .phase.unwritten, .phase.empty { background: transparent; }
+.phase .ph { display: flex; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; }
+.phase .ph h2 { font-size: 15px; }
+.phase .ph .ct { margin-left: auto; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.phase .pbar { height: 8px; border-radius: 4px; }
+.tag { font-size: 11px; border-radius: 4px; padding: 0 6px; background: var(--surface); color: var(--text-2); white-space: nowrap; }
+.tag.cur { background: var(--text); color: var(--page); }
+.pcounts { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--text-2); }
+.pcounts span { display: inline-flex; align-items: center; gap: 5px; }
+.phase h4 { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 10px 0 3px; }
+.phase .tiles { margin-top: 6px; }
+.trs { list-style: none; margin: 0; padding: 0; }
+.tr { display: flex; gap: 7px; align-items: baseline; padding: 3px 5px; margin: 0 -5px; border-radius: 5px; font-size: 13px; cursor: pointer; min-width: 0; }
+.tr:hover, .tr:focus-visible { background: var(--surface); outline: none; }
+.tr .sw { position: relative; top: 1px; }
+.tr .id { color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tr .ti { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr.s-done .ti, .tr.s-done .id { color: var(--muted); }
+.tr.queued .sw { box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--text); }
+.lrow { display: flex; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; min-width: 0; }
+.lrow .lt { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lrow .lt .m { margin-left: 4px; }
+
+/* ---------- graph ---------- */
+.gbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; font-size: 13px; }
+.gbar label { display: inline-flex; gap: 5px; align-items: center; color: var(--text-2); }
+.gbar input[type="search"] { width: 220px; }
+.gbar .sp { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; }
+.glegend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
+.glegend span { display: inline-flex; align-items: center; gap: 5px; }
+.glegend svg { overflow: visible; }
+.gbody { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 10px; }
+.gwrap { position: relative; height: calc(100vh - 186px); min-height: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: grab; touch-action: none; user-select: none; }
+.gwrap.dragging { cursor: grabbing; }
+#gsvg { width: 100%; height: 100%; display: block; }
+.band rect { fill: var(--surface); }
+.band text { font-size: 12px; font-weight: 600; fill: var(--text-2); }
+.band .bc { font-weight: 400; fill: var(--muted); }
+.edge { fill: none; stroke: var(--border-strong); stroke-width: 1.2; marker-end: url(#arr); }
+.edge.met { stroke-dasharray: 2 3; }
+.gn { cursor: pointer; }
+.gn .box { fill: var(--card); stroke: var(--border-strong); stroke-width: 1; }
+.gn .gid { font-size: 11px; font-weight: 600; fill: var(--text-2); font-variant-numeric: tabular-nums; }
+.gn .gti { font-size: 12px; fill: var(--text); }
+.gn .gate { fill: var(--card); stroke: var(--text-2); stroke-width: 1.5; }
+.gn .ring { fill: none; stroke: none; }
+.gn.s-done .stripe { fill: var(--done); } .gn.s-working .stripe { fill: var(--working); animation: pulse 1.6s infinite; }
+.gn.s-ready .stripe { fill: var(--ready); } .gn.s-owner .stripe { fill: var(--owner); }
+.gn.s-blocked .stripe { fill: var(--blocked); } .gn.s-retired .stripe, .gn.s-moved .stripe { fill: none; }
+.gn.s-launched .stripe { fill: var(--working); opacity: .45; }
+.gn.s-done .gti, .gn.s-retired .gti, .gn.s-done .gid, .gn.s-retired .gid, .gn.s-moved .gti, .gn.s-moved .gid { fill: var(--muted); }
+.gn.s-retired .box, .gn.s-moved .box { stroke-dasharray: 4 3; fill: none; }
+.gn.s-launched .box { stroke: var(--working); stroke-width: 2; }
+.gn.queued .box { stroke: var(--text); stroke-width: 2.5; }
+.gn.sel .ring { stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.gn.hit .box { stroke: var(--owner); stroke-width: 3; }
+.gn:hover .box { stroke: var(--text); }
+svg.focus .gn:not(.rel) { opacity: .22; }
+svg.focus .edge:not(.rel) { opacity: .1; }
+svg.focus .edge.rel { stroke: var(--text); stroke-width: 2; marker-end: url(#arrHi); stroke-dasharray: none; }
+svg.focus .edge.rel.down { stroke-dasharray: 6 4; }
+#gpanel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 13px; max-height: calc(100vh - 186px); overflow: auto; min-width: 0; }
+#gpanel h3 { font-size: 15px; margin: 2px 0 6px; font-weight: 600; }
+#gpanel h4 { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 14px 0 4px; }
+#gpanel .acts { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+#gpanel .acts .btn { text-align: left; white-space: normal; }
+#gpanel ul { list-style: none; margin: 0; padding: 0; }
+#gpanel li { display: flex; gap: 6px; align-items: baseline; padding: 3px 0; cursor: pointer; border-radius: 4px; }
+#gpanel li:hover { background: var(--surface); }
+#gpanel li .sw { position: relative; top: 1px; }
+#gpanel li.met span { color: var(--muted); text-decoration: line-through; }
+#gpanel .confirm { background: var(--surface); border-radius: 8px; padding: 8px 10px; }
+@media (max-width: 900px) { .gbody { grid-template-columns: 1fr; } #gpanel { max-height: none; } }
+
+/* ---------- sessions ---------- */
+.sbody { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 10px; height: calc(100vh - 92px); min-height: 480px; }
+.slist { background: var(--card); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; }
+.slist .sf { padding: 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.slist .sf label { font-size: 12px; color: var(--text-2); display: inline-flex; gap: 5px; align-items: center; }
+#sList { list-style: none; margin: 0; padding: 4px; overflow: auto; flex: 1; }
+#sList li { display: flex; gap: 8px; padding: 8px; border-radius: 8px; cursor: pointer; align-items: flex-start; }
+#sList li:hover { background: var(--surface); }
+#sList li.on { background: var(--surface); box-shadow: inset 3px 0 0 var(--text); }
+#sList .dot { margin-top: 6px; }
+#sList .sm { min-width: 0; flex: 1; }
+#sList .st { display: flex; gap: 8px; align-items: center; }
+#sList .st b { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+#sList .st .gauge { flex: none; }
+#sList .st .gauge .gm { width: 40px; }
+.shd .ctxrow { margin-top: 6px; }
+#sList .ss { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.pill { font-size: 11px; border-radius: 4px; padding: 0 6px; background: var(--surface); color: var(--text-2); border: 1px solid var(--border); white-space: nowrap; }
+.pill.need { background: var(--owner); color: #0b0b0b; border-color: transparent; }
+.sdetail { background: var(--card); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; min-width: 0; margin: 0; }
+.shd { padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+.shd .row1 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.shd h2 { margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.switch { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; user-select: none; }
+.switch input { appearance: none; width: 32px; height: 18px; border-radius: 9px; background: var(--blocked); position: relative; cursor: pointer; margin: 0; transition: background .15s; }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--card); transition: left .15s; }
+.switch input:checked { background: var(--good); }
+.switch input:checked::after { left: 16px; }
+.switch input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+#sPend:empty { display: none; }
+#sPend { padding: 10px 14px 0; display: flex; flex-direction: column; gap: 8px; max-height: 55%; overflow: auto; flex: none; }
+.pcard { border: 1px solid var(--owner); border-radius: 10px; padding: 10px 12px; background: var(--card); }
+.pcard.info { border-color: var(--border-strong); }
+.pcard .ch { display: flex; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 6px; }
+.pcard .ch .k { margin-left: auto; font-size: 12px; color: var(--muted); }
+.pcard .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.pcard .row input.text { flex: 1; min-width: 160px; }
+pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
+.q { margin-top: 8px; }
+.q .qh { font-size: 13px; margin-bottom: 6px; }
+.chip { font-size: 11px; background: var(--surface); border-radius: 4px; padding: 0 6px; color: var(--text-2); margin-right: 4px; }
+.opts { display: flex; flex-direction: column; gap: 4px; }
+.opt { text-align: left; font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--card); color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.opt span { font-size: 12px; color: var(--text-2); }
+.opt:hover { border-color: var(--text-2); }
+.opt.on { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.opt[disabled] { cursor: default; }
+#sLog { flex: 1; overflow: auto; padding: 10px 14px; min-height: 0; }
+.msg { margin: 8px 0; font-size: 13px; }
+.msg .who { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.msg.u .tx { background: var(--surface); border-radius: 10px; padding: 7px 10px; display: inline-block; max-width: 100%; }
+.msg .tx { overflow-wrap: anywhere; }
+.msg .tx pre { margin: 6px 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-x: auto; }
+.msg .tx code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--surface); border-radius: 4px; padding: 0 4px; }
+.msg .tx a { color: inherit; }
+details.tl { margin: 3px 0; font-size: 12px; }
+details.tl summary { cursor: pointer; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; list-style-position: inside; }
+details.tl summary .tn { font-weight: 600; color: var(--text); }
+details.tl.err summary .tn { color: var(--critical); }
+details.tl .run { color: var(--working); }
+details.tl pre { margin: 4px 0 4px 14px; }
+.sys { font-size: 12px; color: var(--muted); margin: 6px 0; font-style: italic; }
+.comp { border-top: 1px solid var(--border); padding: 10px 14px 12px; flex: none; }
+.comp .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.comp .row .m { margin-right: auto; }
+@media (max-width: 760px) {
+  .sbody { grid-template-columns: 1fr; height: auto; }
+  .slist { max-height: 40vh; }
+  .sdetail { min-height: 70vh; }
+}
+@media (max-width: 620px) {
+  .stage { grid-template-columns: minmax(0, 1fr) 44px; }
+  .stage .tiles { grid-column: 1 / -1; grid-row: 2; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Monomachia Project Manager</h1>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button role="tab" data-view="roadmap">Roadmap</button>
+      <button role="tab" data-view="progress">Progress</button>
+      <button role="tab" data-view="graph">Graph</button>
+      <button role="tab" data-view="sessions">Sessions <span class="count" id="sessCount"></span></button>
+    </nav>
+    <button class="btn small" id="brainBtn" title="The project's knowledge as linked notes: weapons, systems, plans, docs and code (opens in a popup window)">Second brain</button>
+    <span class="stamp" id="stamp"><span class="live"></span><span id="stampText">Loading…</span></span>
+  </header>
+
+  <div id="v-roadmap" class="view">
+    <div class="kpis" id="kpisR"></div>
+    <div id="rNote"></div>
+    <div class="track" id="track" aria-label="Phases in order"></div>
+    <div class="phases" id="phases"></div>
+    <p class="m" style="margin-top:14px">Click or right-click a task to queue, launch or end it. The Progress tab has every plan's tasks; the Graph tab shows what waits on what.</p>
+  </div>
+
+  <div id="v-progress" class="view" hidden>
+    <div class="kpis" id="kpis"></div>
+    <div class="legend">
+      <span><i class="sw done"></i>Done</span>
+      <span><i class="sw working"></i>In progress</span>
+      <span><i class="sw ready"></i>Ready to start</span>
+      <span><i class="sw owner"></i>Waits on your OK</span>
+      <span><i class="sw blocked"></i>Blocked</span>
+      <span><i class="sw retired"></i>Retired</span>
+      <span><i class="sw moved"></i>Moved to milestone 1 or 2 (click: the task that took it over)</span>
+      <span><i class="sw blocked" style="position:relative"><i style="position:absolute;inset:3px;border-radius:50%;background:var(--page)"></i></i>Review gate</span>
+      <span><i class="sw launched"></i>Launched</span>
+      <span><i class="sw ready" style="box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--text)"></i>Queued</span>
+      <span style="color:var(--muted)">Right-click a task that hasn't started to queue it</span>
+    </div>
+    <section id="waiting"></section>
+    <section><div class="sh"><h2>Lanes</h2><span class="m" id="laneMeta"></span></div><div class="lanes" id="lanes"></div><div id="others"></div></section>
+    <div id="plans"></div>
+  </div>
+
+  <div id="v-graph" class="view" hidden>
+    <div class="gbar">
+      <div class="seg" id="gPlans" role="group" aria-label="Plan"></div>
+      <label><input type="checkbox" id="gHideDone"> Hide done</label>
+      <label><input type="checkbox" id="gShowRetired"> Show retired and moved</label>
+      <input type="search" id="gFind" placeholder="Find a task: id or words, Enter jumps" aria-label="Find a task">
+      <span class="sp"><span class="m">Drag or scroll to move · Ctrl+scroll to zoom</span>
+        <button class="btn small" id="gOut" aria-label="Zoom out">−</button><button class="btn small" id="gIn" aria-label="Zoom in">+</button><button class="btn small" id="gFit">Fit</button></span>
+    </div>
+    <div class="glegend">
+      <span><i class="sw done"></i>Done</span><span><i class="sw working"></i>In progress</span><span><i class="sw launched"></i>Launched</span>
+      <span><i class="sw ready"></i>Ready</span><span><i class="sw owner"></i>Waits on your OK</span><span><i class="sw blocked"></i>Blocked</span>
+      <span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="var(--card)" stroke="var(--text-2)" stroke-width="1.5"/></svg>Review gate</span>
+      <span><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="var(--text)" stroke-width="2"/></svg>waits on</span>
+      <span><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="var(--text)" stroke-width="2" stroke-dasharray="6 4"/></svg>waited on by (when a task is picked)</span>
+      <span><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="var(--border-strong)" stroke-width="1.5" stroke-dasharray="2 3"/></svg>blocker already done</span>
+    </div>
+    <div class="gbody">
+      <div class="gwrap" id="gwrap">
+        <svg id="gsvg" role="img" aria-label="Task dependency graph">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" style="fill: var(--border-strong)"/></marker>
+            <marker id="arrHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" style="fill: var(--text)"/></marker>
+          </defs>
+          <g id="gview"></g>
+        </svg>
+      </div>
+      <aside id="gpanel"></aside>
+    </div>
+  </div>
+
+  <div id="v-sessions" class="view" hidden>
+    <div class="sbody">
+      <aside class="slist">
+        <div class="sf">
+          <input type="search" id="sFind" placeholder="Filter by title or folder" aria-label="Filter sessions">
+          <label><input type="checkbox" id="sWaiting"> Only sessions waiting on you</label>
+        </div>
+        <ul id="sList"></ul>
+      </aside>
+      <section class="sdetail" id="sDetail">
+        <div class="shd" id="sHead"><div class="empty">Pick a session on the left.</div></div>
+        <div id="sPend"></div>
+        <div id="sLog"></div>
+        <div class="comp" id="sComp" hidden>
+          <textarea id="sText" rows="3" placeholder="Reply to this session (Ctrl+Enter sends)"></textarea>
+          <div class="row"><span class="m" id="sNote"></span><button class="btn small ghost" id="sUnqueue" hidden>Withdraw queued reply</button><button class="btn primary" id="sSend">Send</button></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<div id="tip"></div>
+<div id="menu" role="menu"></div>
+<div id="queue" aria-live="polite"><div class="in" id="queueIn"></div></div>
+<script type="module">
+// The graph layout (graph.mjs) for the Graph tab, and the context gauge and
+// roadmap summary (ui.mjs); the tests check both.
+import * as G from '/graph.mjs';
+import * as U from '/ui.mjs';
+window.G = G;
+window.U = U;
+window.dispatchEvent(new Event('modules-ready'));
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+// The second brain (tools/second-brain), served by this board under /brain/, in
+// its own popup window; a second click brings the same window back.
+$('brainBtn').addEventListener('click', () => {
+  const w = window.open('', 'second-brain', 'popup,width=1200,height=820');
+  if (!w) { location.href = '/brain/'; return; }
+  let fresh = true;
+  try { fresh = !w.location.pathname.startsWith('/brain/'); } catch { /* another page in that window */ }
+  if (fresh) w.location.href = '/brain/';
+  w.focus();
+});
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`);
+  return d;
+}
+const LABEL = { done: 'Done', working: 'In progress', launched: 'Launched, its session is starting', ready: 'Ready to start', owner: 'Waits on your OK', blocked: 'Blocked', retired: 'Retired', moved: 'Moved' };
+const STARTABLE = new Set(['ready', 'blocked', 'owner']);
+let queue = [];
+try { queue = JSON.parse(localStorage.getItem('al-queue') || '[]'); } catch {}
+const saveQueue = () => { try { localStorage.setItem('al-queue', JSON.stringify(queue)); } catch {} };
+let queueMsg = null;
+let queueCollapsed = false;
+try { queueCollapsed = localStorage.getItem('al-queue-collapsed') === '1'; } catch {}
+function setQueueCollapsed(on) {
+  queueCollapsed = on;
+  try { localStorage.setItem('al-queue-collapsed', on ? '1' : '0'); } catch {}
+  renderQueue();
+}
+let data = null;
+let lastOk = 0;
+let openOthers = false;
+try { openOthers = localStorage.getItem('al-others') === '1'; } catch {}
+
+function ago(ms) {
+  if (!ms) return '';
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 60) return `${s} s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} d ago`;
+}
+const planOf = (k) => data?.plans.find((p) => p.key === k);
+// Plans the board follows but that have no copy yet (milestone 1 today) still get a short name.
+const taskName = (k, id) => `${planOf(k)?.short ?? k.toUpperCase()} ${id}`;
+const taskOf = (ref) => { const [k, id] = ref.split(':'); return planOf(k)?.tasks[id] ?? null; };
+const refName = (ref) => taskName(...ref.split(':'));
+// "Moved → M1, carried on by M1 12" for a moved task, else its status.
+function statusLabel(t) {
+  if (t.status !== 'moved') return LABEL[t.status];
+  return `Moved → ${t.moved.toUpperCase()}${t.movedTo ? `, carried on by ${refName(t.movedTo)}` : ', no task there names it yet'}`;
+}
+const pct = (done, total) => (total ? Math.round((done / total) * 100) : 0);
+
+// ---------- views ----------
+
+const VIEWS = ['roadmap', 'progress', 'graph', 'sessions'];
+let view = 'roadmap';
+function setView(v, push = true) {
+  if (!VIEWS.includes(v)) v = 'roadmap';
+  view = v;
+  for (const b of document.querySelectorAll('.tabs [data-view]')) b.setAttribute('aria-selected', String(b.dataset.view === v));
+  for (const name of VIEWS) $(`v-${name}`).hidden = name !== v;
+  document.body.classList.toggle('wide', v === 'graph' || v === 'sessions');
+  if (push && location.hash !== `#${v}`) history.replaceState(null, '', v === 'roadmap' ? location.pathname : `#${v}`);
+  closeMenu();
+  if (v === 'graph') renderGraph(true);
+  if (v === 'sessions') { renderSessionList(); pollSession(true); }
+  if (v === 'roadmap' || v === 'progress') render();
+}
+document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
+window.addEventListener('hashchange', () => setView(location.hash.slice(1), false));
+
+// ---------- summary tiles (Roadmap and Progress) ----------
+// Rebased on the roadmap's current phase and milestone 1 (ui.mjs roadmapKpis).
+
+const laneLive = (l) => l.activity !== 'idle' || l.dirty || l.merging || l.ahead > 0 || l.main;
+function renderKpis() {
+  const k = U.roadmapKpis(data);
+  const c = k.current;
+  const waits = waitingItems().length;
+  const label = c.fallback ? 'Open plan (no roadmap yet)' : c.names.length > 1 ? 'Current phases' : 'Current phase';
+  const cur = c.names.length
+    ? `<div class="kpi" title="${esc(c.names.join(' + '))}"><div class="l">${label}</div><div class="v">${pct(c.done, c.total)}% <small>${c.done} of ${c.total}</small></div>
+      <div class="s">${esc(c.names.join(' + '))} · ${c.open} open${c.working ? ` · ${c.working} in progress` : ''}</div></div>`
+    : `<div class="kpi"><div class="l">${label}</div><div class="v">Done</div><div class="s">no open task in any phase</div></div>`;
+  const m1 = k.m1
+    ? `<div class="kpi"><div class="l">Milestone 1</div><div class="v">${pct(k.m1.done, k.m1.total)}% <small>${k.m1.done} of ${k.m1.total}</small></div><div class="s">${k.m1.total - k.m1.done} left · ${k.m1.ready} ready</div></div>`
+    : `<div class="kpi"><div class="l">Milestone 1</div><div class="v"><small>plan not written yet</small></div><div class="s">docs/plans/milestone-1.md has no copy</div></div>`;
+  const html = cur + m1
+    + `<div class="kpi"><div class="l">Ready now</div><div class="v">${k.readyRefs.length}</div><div class="s">in the current phase${c.blocked ? ` · ${c.blocked} blocked` : ''}${c.owner ? ` · ${c.owner} wait on your OK` : ''}</div></div>
+    <div class="kpi"><div class="l">Active lanes</div><div class="v">${k.activeLanes} <small>of ${data.lanes.filter(laneLive).length} with work</small></div><div class="s">${k.onTask} on a task · session in the last 3 min</div></div>
+    <div class="kpi"><div class="l">Waiting on you</div><div class="v">${waits}</div><div class="s">prompts, review gates and ready PRs</div></div>`;
+  setHtml(view === 'roadmap' ? 'kpisR' : 'kpis', html);
+}
+
+// ---------- roadmap ----------
+// The roadmap's phases in order (plans.mjs roadmapView), an alongside phase
+// drawn with its partner; until roadmap.md is committed, the open plans stand
+// in for phases (ui.mjs fallbackPhases).
+
+const SEGS = ['done', 'working', 'launched', 'owner', 'ready', 'blocked'];
+const phaseBar = (ph) => SEGS.filter((k) => ph.counts[k]).map((k) => `<div class="${k}" style="flex:${ph.counts[k]}" title="${LABEL[k]}: ${ph.counts[k]}"></div>`).join('');
+function phaseColumns(phases) {
+  const cols = [];
+  phases.forEach((ph, i) => {
+    const partner = ph.alongside != null && cols.find((c) => c[0].ph.n === ph.alongside);
+    if (partner) partner.push({ ph, i }); else cols.push([{ ph, i }]);
+  });
+  return cols;
+}
+const taskTile = (ref) => {
+  const t = taskOf(ref);
+  if (!t) return '';
+  const [k, id] = ref.split(':');
+  return `<i class="t ${t.status}${t.gate ? ' gate' : ''}${queue.includes(ref) ? ' queued' : ''}${STARTABLE.has(t.status) ? ' startable' : ''}" data-p="${k}" data-id="${esc(id)}"></i>`;
+};
+const taskRow = (ref) => {
+  const t = taskOf(ref);
+  if (!t) return '';
+  const [k, id] = ref.split(':');
+  return `<li class="tr s-${t.status}${queue.includes(ref) ? ' queued' : ''}" tabindex="0" data-p="${k}" data-id="${esc(id)}"><i class="sw ${t.status}"></i><span class="id">${esc(taskName(k, id))}</span><span class="ti">${esc(t.title)}</span></li>`;
+};
+function phaseLanes(ph) {
+  return ph.lanes.map((x) => {
+    const l = data.lanes.find((y) => y.folder === x.folder) ?? {};
+    const s = l.contextSession && sessions.list.find((y) => y.id === l.contextSession);
+    const gauge = U.gaugeHtml(l.context, { live: l.activity === 'active' });
+    return `<div class="lrow"><i class="dot ${l.activity ?? 'idle'}"></i><span class="lt" title="${esc(l.path ?? x.folder)}">${esc(l.main ? 'Main checkout' : x.folder.split(/[\\/]/).pop())}<span class="m">${esc(x.branch ?? '')}${x.task ? ` · ${x.working ? 'on' : 'next'} ${esc(refName(x.task))}` : ''}</span></span>${s ? `<a href="#sessions" data-view-session="${esc(s.id)}">${gauge}</a>` : gauge}</div>`;
+  }).join('');
+}
+function waitingNote(ph) {
+  const keys = [...new Set(ph.waiting.map((r) => r.split(':')[0]))];
+  return keys.length ? `<div class="m">${keys.map((k) => `${esc(k.toUpperCase())} plan not written yet`).join(' · ')}</div>` : '';
+}
+function phaseCard(ph, i) {
+  const state = U.phaseState(ph);
+  const tag = state === 'current' ? '<span class="tag cur">Current</span>' : state === 'done' ? '<span class="tag">Done</span>'
+    : state === 'unwritten' ? '<span class="tag">Plan not written yet</span>' : '';
+  const along = ph.alongside != null ? `<span class="tag">alongside phase ${ph.alongside}</span>` : '';
+  const c = ph.counts;
+  const counts = ph.total && state !== 'done' ? `<div class="pcounts">${[
+    c.open ? `<span>${c.open} open</span>` : '',
+    c.working ? `<span><i class="sw working"></i>${c.working} in progress</span>` : '',
+    c.launched ? `<span><i class="sw launched"></i>${c.launched} launched</span>` : '',
+    c.ready ? `<span><i class="sw ready"></i>${c.ready} ready</span>` : '',
+    c.owner ? `<span><i class="sw owner"></i>${c.owner} wait on your OK</span>` : '',
+    c.blocked ? `<span><i class="sw blocked"></i>${c.blocked} blocked</span>` : '',
+    ph.finish ? `<span>Projected finish ${esc(new Date(ph.finish).toLocaleDateString([], { month: 'short', day: 'numeric' }))}</span>` : '',
+  ].join('')}</div>` : '';
+  let body = '';
+  if (state === 'current') {
+    body = `<h4>Next ready</h4>${ph.next.length ? `<ul class="trs">${ph.next.map((x) => taskRow(x.ref)).join('')}</ul>`
+      : `<div class="m">Nothing ready${c.blocked ? `: ${c.blocked} blocked` : ''}${c.owner ? `, ${c.owner} waiting on your OK` : ''}${c.working ? `, ${c.working} in progress` : ''}.</div>`}`;
+  } else if (state === 'later' && (ph.total <= 8 || ph.refs.every((r) => r.startsWith('rm:')))) {
+    // Coarse later tasks (milestone 2, breadth, online): listed compactly.
+    body = `<ul class="trs">${ph.refs.map(taskRow).join('')}</ul>`;
+  }
+  const tiles = ph.total && (state !== 'later' || !body) ? `<div class="tiles">${ph.refs.map(taskTile).join('')}</div>` : '';
+  const lanes = ph.lanes.length ? `<h4>Lanes on it (${ph.lanes.length})</h4>${phaseLanes(ph)}` : '';
+  const unknown = ph.unknown.length ? `<div class="m">Not found in any plan: ${esc(ph.unknown.join(', '))}</div>` : '';
+  const empty = state === 'empty' ? '<div class="m">No tasks named for this phase yet.</div>' : '';
+  return `<div class="phase ${state}" id="phase-${i}"><div class="ph"><h2>${ph.n != null ? `<span class="n">${ph.n}</span> ` : ''}${esc(ph.name)}</h2>${tag}${along}
+      <span class="ct">${ph.total ? `${c.done} of ${ph.total} done` : ''}</span></div>
+    ${ph.total ? `<div class="pbar">${phaseBar(ph)}</div>` : ''}${counts}${tiles}${body}${lanes}${waitingNote(ph)}${unknown}${empty}</div>`;
+}
+// Only when it changed: a rebuilt row would drop its focus and hover every poll.
+const setHtml = (id, html) => { const el = $(id); if (el._html !== html) { el._html = html; el.innerHTML = html; } };
+function renderRoadmap() {
+  const phases = data.roadmap?.phases ?? U.fallbackPhases(data);
+  setHtml('rNote', data.roadmap ? ''
+    : `<div class="rnote">The roadmap (docs/plans/roadmap.md) has no copy on any branch yet, so its phases can't be shown. Until it's committed, the open plans stand in for them.</div>`);
+  const cols = phaseColumns(phases);
+  $('track').hidden = cols.length < 2;
+  setHtml('track', cols.map((col) => `<div class="col">${col.map(({ ph, i }) => {
+    const state = U.phaseState(ph);
+    const sub = state === 'unwritten' ? 'plan not written yet' : state === 'empty' ? 'no tasks yet'
+      : `${ph.counts.done}/${ph.total}${state === 'current' ? ' · current' : state === 'done' ? ' · done' : ''}`;
+    return `<button class="station ${state}" data-phase="${i}" title="${esc(ph.name)}"><div class="sn">${ph.n != null ? `<span class="n">${ph.n}</span> ` : ''}${esc(ph.name)}</div>
+      <div class="pbar">${phaseBar(ph)}</div><div class="ss">${sub}</div>${ph.alongside != null ? `<div class="al">alongside phase ${ph.alongside}</div>` : ''}</button>`;
+  }).join('')}</div>`).join('<span class="arrow" aria-hidden="true">→</span>'));
+  setHtml('phases', cols.map((col) => col.length > 1
+    ? `<div class="prow">${col.map(({ ph, i }) => phaseCard(ph, i)).join('')}</div>`
+    : phaseCard(col[0].ph, col[0].i)).join(''));
+}
+$('track').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-phase]');
+  if (b) $(`phase-${b.dataset.phase}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ---------- progress ----------
+
+function waitingItems() {
+  const items = [];
+  // Sessions switched to "Answer from Project Manager" that wait on the owner.
+  for (const s of sessions.list) {
+    for (const p of s.pending) {
+      const what = p.kind === 'permission' ? `wants to use ${p.tool}` : p.kind === 'question' ? 'asks you a question' : 'finished its turn and waits for your reply';
+      items.push({ sw: 'owner', text: `${s.title} ${what}`, k: ago(p.time), view: s.id });
+    }
+  }
+  for (const p of data.plans) {
+    for (const [id, t] of Object.entries(p.tasks)) {
+      if (t.status === 'owner') items.push({ sw: 'owner', text: `${taskName(p.key, id)} ${t.title} can start once you OK ${t.ownerOk.map((g) => taskName(p.key, g)).join(', ')}`, k: p.name });
+    }
+  }
+  for (const l of data.lanes) {
+    if (l.question) {
+      const s = sessions.list.find((x) => x.app && x.app === l.app?.id);
+      items.push({ sw: 'owner', text: `${l.app?.title || l.folder.split(/[\\/]/).pop()} asks: ${l.question}`, k: 'answer in its session', open: l.app?.id, view: s?.id });
+    }
+  }
+  for (const pr of data.prs ?? []) {
+    if (!pr.isDraft) items.push({ sw: 'ready', text: `PR #${pr.number} ${pr.title} is ready for review`, k: `${pr.headRefName} → ${pr.baseRefName}`, url: pr.url });
+  }
+  return items;
+}
+function renderWaiting() {
+  const items = waitingItems();
+  $('waiting').innerHTML = `<div class="sh"><h2>Waiting on you</h2></div>` + (items.length
+    ? `<ul class="wait">${items.map((i) => `<li><i class="sw ${i.sw}"></i><span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}</span><span class="k">${esc(i.k)}</span>${i.view ? `<button class="btn small" data-view-session="${esc(i.view)}">View</button>` : ''}${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open</button>` : ''}</li>`).join('')}</ul>`
+    : `<div class="empty">Nothing right now.</div>`);
+}
+
+function laneTask(l) {
+  if (!l.plan || !l.task) return '';
+  const p = planOf(l.plan);
+  const name = `${taskName(l.plan, l.task)} ${esc(l.taskTitle)}`;
+  if (l.ended) return `<div class="task"><i class="sw blocked"></i><span>Work ended from the Project Manager${l.scope ? ` (${l.scope.map((i) => taskName(l.plan, i)).join(', ')})` : ''}</span></div>`;
+  if (l.working) return `<div class="task"><i class="sw working"></i><span>Working on ${name}</span></div>`;
+  if (!l.claims) return l.lastTask ? `<div class="task"><i class="sw blocked"></i><span>Last named task: ${taskName(l.plan, l.lastTask)}</span></div>` : '';
+  const st = p?.tasks[l.task]?.status;
+  if (l.taskWaits?.length) return `<div class="task"><i class="sw owner"></i><span>Next: ${name}, after your OK of ${l.taskWaits.map((g) => taskName(l.plan, g)).join(', ')}</span></div>`;
+  if (l.taskBlocked?.length) return `<div class="task"><i class="sw blocked"></i><span>Next: ${name}, blocked by ${l.taskBlocked.map((b) => esc(b.replace(`${l.plan}:`, '').replace(':', ' '))).join(', ')}</span></div>`;
+  return `<div class="task"><i class="sw ${st === 'ready' ? 'ready' : 'blocked'}"></i><span>Next: ${name}</span></div>`;
+}
+function laneGit(l) {
+  const parts = [];
+  if (l.merging) parts.push('merging');
+  if (l.dirty) parts.push(`${l.dirty} file${l.dirty === 1 ? '' : 's'} changed`);
+  if (l.ahead) parts.push(`${l.ahead} commit${l.ahead === 1 ? '' : 's'} not on ${l.target}`);
+  if (l.behind) parts.push(`${l.behind} behind`);
+  if (!parts.length) parts.push(`in step with ${l.target}`);
+  return parts.join(' · ');
+}
+// The context gauge of the lane's session, when it has one; live only while it's at work.
+function laneContext(l) {
+  if (!l.context) return '';
+  const s = l.contextSession && sessions.list.find((x) => x.id === l.contextSession);
+  const gauge = U.gaugeHtml(l.context, { live: l.activity === 'active' });
+  return `<div class="ctx">Context ${s ? `<a href="#sessions" data-view-session="${esc(s.id)}" title="Open this session">${gauge}</a>` : gauge}</div>`;
+}
+function laneCard(l) {
+  const name = l.main ? 'Main checkout' : l.folder.split(/[\\/]/).pop();
+  const act = l.activity === 'active' ? 'Session at work' : l.activity === 'recent' ? `Active ${ago(Math.max(l.session ?? 0, (l.last.time ?? 0) * 1000))}` : 'Idle';
+  const plan = l.plan ? planOf(l.plan)?.name ?? l.plan : 'Other work';
+  const s = l.app && sessions.list.find((x) => x.app === l.app.id);
+  return `<div class="lane ${l.activity === 'active' ? 'active' : ''}">
+    <div class="top"><span class="name" title="${esc(l.path)}">${esc(name)}</span><span class="badge">${esc(plan)}</span></div>
+    <div class="br">${esc(l.branch ?? `detached at ${l.head}`)}${l.locked ? ' · locked' : ''}</div>
+    ${l.app?.title ? `<div class="meta" title="${esc(l.app.title)}">Session: ${s ? `<a href="#sessions" data-view-session="${esc(s.id)}">${esc(l.app.title)}</a>` : esc(l.app.title)}${l.app.archived ? ' (archived)' : ''}</div>` : ''}
+    ${laneTask(l)}
+    ${l.question ? `<div class="ask"><i class="sw owner"></i><span>Asking you: ${esc(l.question)}</span>${l.app ? `<button class="btn small" data-open="${esc(l.app.id)}">Open</button>` : ''}</div>` : ''}
+    <div class="act"><i class="dot ${l.activity}"></i>${act}</div>
+    ${laneContext(l)}
+    <div class="meta" title="${esc(laneGit(l))}">${esc(laneGit(l))}</div>
+    <div class="meta" title="${esc(l.last.subject)}">Last commit ${ago((l.last.time ?? 0) * 1000)}: ${esc(l.last.subject)}</div>
+    ${l.pr ? `<div class="meta"><a href="${esc(l.pr.url)}" target="_blank" rel="noopener">PR #${l.pr.number}</a> into ${esc(l.pr.base)}${l.pr.draft ? ' (draft)' : ''}</div>` : ''}
+  </div>`;
+}
+function renderLanes() {
+  // A lane is a worktree with work going on: a session at work in the last hour,
+  // uncommitted files, or commits of its own not merged yet.
+  const order = (a, b) => (['active', 'recent', 'idle'].indexOf(a.activity) - ['active', 'recent', 'idle'].indexOf(b.activity))
+    || ((b.session ?? b.last.time * 1000) - (a.session ?? a.last.time * 1000));
+  const lanes = data.lanes.filter(laneLive).sort(order);
+  const parked = data.lanes.filter((l) => !laneLive(l)).sort(order);
+  $('laneMeta').textContent = `${lanes.length} with work going on · ${parked.length} parked`;
+  $('lanes').innerHTML = lanes.map(laneCard).join('') || '<div class="empty">No lanes at work.</div>';
+  $('others').innerHTML = parked.length ? `<details class="others" ${openOthers ? 'open' : ''}><summary>Parked worktrees (${parked.length}): clean, idle, nothing unmerged</summary>
+    <div class="lanes">${parked.map(laneCard).join('')}</div></details>` : '';
+  const d = $('others').querySelector('details');
+  if (d) d.addEventListener('toggle', () => { openOthers = d.open; try { localStorage.setItem('al-others', d.open ? '1' : '0'); } catch {} });
+}
+
+// A closed plan (authored animation) is history: folded away unless opened.
+let historyOpen = false;
+try { historyOpen = localStorage.getItem('al-history-open') === '1'; } catch {}
+const gone = (s) => s === 'retired' || s === 'moved';
+function renderPlans() {
+  $('plans').innerHTML = data.plans.map((p) => {
+    const c = p.counts;
+    const segs = SEGS.filter((k) => c[k])
+      .map((k) => `<div class="${k}" style="flex:${c[k]}" title="${LABEL[k]}: ${c[k]}"></div>`).join('');
+    const stages = p.stages.map((s) => {
+      const live = s.ids.filter((id) => !gone(p.tasks[id].status));
+      const done = live.filter((id) => p.tasks[id].status === 'done').length;
+      const tiles = s.ids.map((id) => {
+        const t = p.tasks[id];
+        // A moved task: a muted "M1" tile that leads to the task that took it over.
+        if (t.status === 'moved') return `<i class="t moved" data-p="${p.key}" data-id="${esc(id)}"${t.movedTo ? ` data-to="${esc(t.movedTo)}"` : ''}>${esc(t.moved.toUpperCase())}</i>`;
+        return taskTile(`${p.key}:${id}`);
+      }).join('');
+      // A stage with no tasks (none of this plan's) is neither moved nor retired.
+      const what = !s.ids.length ? '' : s.ids.every((id) => p.tasks[id].status === 'moved') ? 'moved' : 'retired';
+      return `<div class="stage"><div class="nm" title="${esc(s.name)}"><span class="n">${s.n ?? ''}</span>${esc(s.name)}</div>
+        <div class="tiles">${tiles}</div><div class="ct">${live.length ? `${done}/${live.length}` : what}</div></div>`;
+    }).join('');
+    const meta = `${esc(p.file)} · ${esc(p.branch)} · ${c.done} of ${p.total} done${c.retired ? ` · ${c.retired} retired` : ''}${c.moved ? ` · ${c.moved} moved` : ''}`;
+    if (p.closed) {
+      return `<details class="history" data-history ${historyOpen ? 'open' : ''}><summary><h2>${esc(p.name)}</h2><span class="m">closed: history · ${meta}</span></summary>
+        <section><div class="total">${segs}</div>${stages}</section></details>`;
+    }
+    return `<section><div class="sh"><h2>${esc(p.name)}</h2><span class="m">${meta}</span></div>
+      <div class="total">${segs}</div>${stages}</section>`;
+  }).join('');
+  for (const d of $('plans').querySelectorAll('[data-history]')) {
+    d.addEventListener('toggle', () => { historyOpen = d.open; try { localStorage.setItem('al-history-open', d.open ? '1' : '0'); } catch {} });
+  }
+}
+
+// Show a task wherever this view draws it: the graph picks it; the other views
+// scroll its tile into sight (opening the history if it's there) and flash it.
+function jumpTo(ref) {
+  if (view === 'graph') { selectTask(ref, true); return; }
+  const [k, id] = ref.split(':');
+  const find = () => $(`v-${view}`).querySelector(`.t[data-p="${k}"][data-id="${CSS.escape(id)}"]`);
+  let el = find();
+  if (!el && view === 'roadmap') { setView('progress'); el = find(); }
+  if (!el) return;
+  const d = el.closest('details');
+  if (d && !d.open) d.open = true;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+
+function render() {
+  if (!data?.plans || !window.U) return;
+  // Drop queued tasks that started or finished since they were queued.
+  const before = queue.length;
+  queue = queue.filter((ref) => STARTABLE.has(taskOf(ref)?.status));
+  if (queue.length !== before) saveQueue();
+  if (view === 'roadmap') { renderKpis(); renderRoadmap(); }
+  if (view === 'progress') { renderKpis(); renderWaiting(); renderLanes(); renderPlans(); }
+  if (view === 'graph') renderGraph();
+  renderQueue();
+}
+
+// ---------- the launch queue ----------
+
+function queueNotes(ref) {
+  const [k, id] = ref.split(':');
+  const t = planOf(k).tasks[id];
+  const notes = [];
+  const missing = t.blockers.filter((b) => !b.done && !queue.includes(b.ref));
+  if (missing.length) notes.push(`needs ${missing.map((b) => b.label).join(', ')} first`);
+  if (t.ownerOk.length) notes.push(`launching it counts as your OK of ${t.ownerOk.map((g) => taskName(k, g)).join(', ')}`);
+  return notes;
+}
+function renderQueue() {
+  const box = $('queue');
+  document.body.classList.toggle('has-queue', queue.length > 0 || !!queueMsg);
+  if (!queue.length && !queueMsg) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.classList.toggle('collapsed', queueCollapsed);
+  document.body.classList.toggle('queue-collapsed', queueCollapsed);
+  const byPlan = {};
+  for (const ref of queue) (byPlan[ref.split(':')[0]] ??= []).push(ref);
+  const count = Object.keys(byPlan).length;
+  const rows = Object.entries(byPlan).map(([k, refs]) => {
+    const p = planOf(k);
+    const order = p.stages.flatMap((s) => s.ids);
+    refs.sort((a, b) => order.indexOf(a.split(':')[1]) - order.indexOf(b.split(':')[1]));
+    return refs.map((ref) => {
+      const id = ref.split(':')[1];
+      const notes = queueNotes(ref);
+      return `<li><i class="sw ${p.tasks[id].status}"></i><span>${taskName(k, id)} ${esc(p.tasks[id].title)}${notes.length ? `<br><span class="w">${esc(notes.join(' · '))}</span>` : ''}</span>
+        <button class="btn small x" data-unqueue="${esc(ref)}" aria-label="Remove ${taskName(k, id)} from the queue">Remove</button></li>`;
+    }).join('');
+  }).join('');
+  const toggle = `<button class="btn icon" id="qToggle" aria-expanded="${!queueCollapsed}" aria-label="${queueCollapsed ? 'Expand the launch queue' : 'Collapse the launch queue to the bottom'}" title="${queueCollapsed ? 'Expand' : 'Collapse'}"><i></i></button>`;
+  $('queueIn').innerHTML = `<div class="qh"><h2>${toggle}Launch queue · ${queue.length} task${queue.length === 1 ? '' : 's'}</h2>
+      ${queue.length ? `${queueCollapsed ? '' : '<button class="btn" id="qClear">Clear</button>'}<button class="btn primary" id="qLaunch">Launch ${count === 1 ? 'a session' : `${count} sessions`}</button>` : `<button class="btn" id="qClose">Close</button>`}</div>
+    ${queue.length && !queueCollapsed ? `<ul>${rows}</ul><div class="note">Each plan gets its own new session in the Claude app, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</div>` : ''}
+    ${queueMsg ? `<div class="msg ${queueMsg.err ? 'err' : ''}">${esc(queueMsg.text)}</div>` : ''}`;
+}
+function toggleQueued(ref, on) {
+  queue = on ? [...new Set([...queue, ref])] : queue.filter((r) => r !== ref);
+  queueMsg = null;
+  saveQueue(); render();
+}
+async function launchQueue() {
+  const btn = $('qLaunch');
+  if (btn) { btn.disabled = true; btn.textContent = 'Launching…'; }
+  try {
+    const d = await post('/launch', { tasks: queue });
+    queue = []; saveQueue();
+    queueMsg = { text: d.launched.map((l) => `Starting a session for ${l.tasks.map((t) => taskName(...t.split(':'))).join(', ')} on ${l.branch}.`).join(' ') + ' The Project Manager presses Send for it in the Claude app.' };
+    poll(true);
+  } catch (e) {
+    queueMsg = { err: true, text: `Couldn't launch: ${e.message}` };
+  }
+  render();
+}
+async function openSession(id) {
+  try { await post('/open', { session: id }); } catch {}
+}
+document.addEventListener('click', (e) => {
+  const v = e.target.closest('[data-view-session]');
+  if (v) { e.preventDefault(); selectSession(v.dataset.viewSession); setView('sessions'); return; }
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.unqueue) toggleQueued(b.dataset.unqueue, false);
+  else if (b.dataset.open) openSession(b.dataset.open);
+  else if (b.id === 'qToggle') setQueueCollapsed(!queueCollapsed);
+  else if (b.id === 'qClear') { queue = []; saveQueue(); render(); }
+  else if (b.id === 'qClose') { queueMsg = null; render(); }
+  else if (b.id === 'qLaunch') launchQueue();
+});
+
+// ---------- what can be done with a task (right-click menu and graph panel) ----------
+
+// A task's newest launch, live or ended: an older one may have lapsed.
+const liveLaunch = (ref) => (data.launches ?? []).findLast((l) => !l.endedAt && l.tasks.includes(ref)) ?? null;
+const endedLaunch = (ref) => (data.launches ?? []).findLast((l) => l.endedAt && l.tasks.includes(ref)) ?? null;
+const launchLabel = (l) => l.tasks.map((r) => taskName(...r.split(':'))).join(', ');
+// The task and its unstarted blockers in the same plan, blockers first.
+function chainOf(ref) {
+  const k = ref.split(':')[0];
+  const chain = [];
+  const add = (r) => {
+    const t = taskOf(r);
+    if (!t || !STARTABLE.has(t.status) || chain.includes(r)) return;
+    for (const b of t.blockers) if (!b.done && b.ref.startsWith(`${k}:`)) add(b.ref);
+    chain.push(r);
+  };
+  add(ref);
+  return chain;
+}
+// panel: for the graph's side panel, which shows the status line itself.
+function taskActions(ref, { panel = false } = {}) {
+  const t = taskOf(ref);
+  if (!t) return [];
+  const acts = [];
+  if (t.status === 'moved') {
+    if (!panel) acts.push({ disabled: true, label: statusLabel(t) });
+    if (t.movedTo && taskOf(t.movedTo)) acts.push({ act: 'goto', label: `Go to ${refName(t.movedTo)}` });
+    return acts;
+  }
+  if (STARTABLE.has(t.status)) {
+    if (queue.includes(ref)) acts.push({ act: 'remove', label: 'Remove from launch queue' });
+    else {
+      acts.push({ act: 'add', label: 'Add to launch queue' });
+      const extra = chainOf(ref).filter((r) => r !== ref && !queue.includes(r));
+      if (extra.length) acts.push({ act: 'chain', label: `Add with its ${extra.length} unstarted blocker${extra.length === 1 ? '' : 's'}` });
+    }
+    acts.push({ act: 'launch', primary: true, label: queue.includes(ref) ? 'Launch the queue' : queue.length ? `Add and launch the queue (${queue.length + 1})` : 'Launch this task now' });
+  }
+  const live = liveLaunch(ref);
+  const ended = endedLaunch(ref);
+  if (live?.start && live.start.state !== 'started') acts.push({ disabled: true, label: U.launchStartText(live.start) });
+  if (live?.start?.retry) acts.push({ act: 'retry', label: 'Try starting it again' });
+  if (live) acts.push({ act: 'end', label: `End work on ${launchLabel(live)}` });
+  else if (ended) acts.push({ disabled: true, label: `Work ended ${ago(ended.endedAt)}${ended.stoppedAt ? ', session stopped' : ', stops at its next step'}` });
+  if (!acts.length) acts.push({ disabled: true, label: `${statusLabel(t)}: can't be queued` });
+  return acts;
+}
+const endQuestion = (l) => `Stop the session working on ${launchLabel(l)}? It stops at its next step. Its worktree, branch, commits and PR stay; you can message the session later to carry on.`;
+function runAction(act, ref) {
+  if (act === 'add') toggleQueued(ref, true);
+  else if (act === 'remove') toggleQueued(ref, false);
+  else if (act === 'chain') { queue = [...new Set([...queue, ...chainOf(ref)])]; queueMsg = null; saveQueue(); render(); }
+  else if (act === 'launch') { if (!queue.includes(ref)) toggleQueued(ref, true); launchQueue(); }
+  else if (act === 'goto') jumpTo(taskOf(ref).movedTo);
+  else if (act === 'retry') retryLaunch(ref);
+}
+// The Project Manager opens the launch's link and presses Send again (refused once it started).
+async function retryLaunch(ref) {
+  const l = liveLaunch(ref);
+  if (!l) return;
+  try {
+    await post('/launch/retry', { launch: l.id });
+    queueMsg = { text: `Trying again for ${launchLabel(l)}: the Project Manager opens the session and presses Send.` };
+  } catch (err) { queueMsg = { err: true, text: `Couldn't try again: ${err.message}` }; }
+  poll(true); render();
+}
+async function endWork(ref) {
+  const l = liveLaunch(ref);
+  if (!l) return;
+  try {
+    const d = await post('/end', { launch: l.id });
+    queueMsg = { text: `Ended work on ${d.ended.label}. Its session stops at its next step${d.ended.sessions ? '' : ' (no session found yet: it stops when one works in its worktree)'}.` };
+  } catch (err) { queueMsg = { err: true, text: `Couldn't end the work: ${err.message}` }; }
+  poll(true); render();
+}
+
+// ---------- right-click menu ----------
+
+const menu = $('menu');
+function closeMenu() { menu.style.display = 'none'; }
+document.addEventListener('contextmenu', (e) => {
+  const el = e.target.closest('.t, .gn, .tr');
+  if (!el || !data) { closeMenu(); return; }
+  e.preventDefault();
+  openMenu(el, e.clientX, e.clientY);
+});
+// A roadmap task row or tile opens the same menu on a click (a row also on
+// Enter); a moved tile leads to the task that took it over.
+document.addEventListener('click', (e) => {
+  const row = e.target.closest('.tr[data-p], #v-roadmap .t[data-p]:not(.moved)');
+  if (row && data) { e.stopPropagation(); const r = row.getBoundingClientRect(); openMenu(row, e.clientX || r.left + 20, e.clientY || r.bottom); return; }
+  const mv = e.target.closest('.t.moved[data-to]');
+  if (mv && data && taskOf(mv.dataset.to)) jumpTo(mv.dataset.to);
+});
+document.addEventListener('keydown', (e) => {
+  const row = e.key === 'Enter' && e.target.closest?.('.tr[data-p]');
+  if (row && data) { const r = row.getBoundingClientRect(); openMenu(row, r.left + 20, r.bottom); }
+});
+function openMenu(el, x, y) {
+  tip.style.opacity = 0;
+  const k = el.dataset.p, id = el.dataset.id, ref = `${k}:${id}`;
+  const t = taskOf(ref);
+  if (!t) return;
+  const head = `<div class="h">${taskName(k, id)} ${esc(t.title)}</div>`;
+  menu.innerHTML = head + taskActions(ref).map((a) => `<button ${a.act ? `data-act="${a.act}"` : ''} ${a.disabled ? 'disabled' : ''}>${esc(a.label)}</button>`).join('');
+  menu.onclick = (ev) => {
+    const act = ev.target.closest('button')?.dataset.act;
+    if (!act) return;
+    if (act === 'end') {
+      menu.innerHTML = `<div class="h">${esc(endQuestion(liveLaunch(ref)))}</div><button data-act="end-yes">Stop the session</button><button data-act="end-no">Cancel</button>`;
+      menu.querySelector('button')?.focus();
+      return;
+    }
+    closeMenu();
+    if (act === 'end-yes') endWork(ref);
+    else if (act !== 'end-no') runAction(act, ref);
+  };
+  menu.style.display = 'block';
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  menu.style.left = Math.min(x, innerWidth - w - 8) + 'px';
+  menu.style.top = (y + h > innerHeight - 8 ? Math.max(8, y - h) : y) + 'px';
+  menu.querySelector('button:not([disabled])')?.focus();
+}
+document.addEventListener('mousedown', (e) => { if (!e.target.closest('#menu')) closeMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+window.addEventListener('scroll', closeMenu, { passive: true });
+
+// ---------- the graph ----------
+// One plan at a time, laid out by graph.mjs: a band per stage, a node per task,
+// an arrow from each blocker to the task it blocks. Hover or pick a task to
+// light its whole chain; right-click, or the panel, to queue, launch or end it.
+
+const gOpt = { plan: 'gr', hideDone: false, showRetired: false, ...store.get('al-graph', {}) };
+const gView = {}; // plan -> { k, x, y }
+let gLayout = null;
+let gSig = '';
+let gSel = store.get('al-graph-sel', null); // a task ref
+let gHover = null;
+let gFind = '';
+const saveGOpt = () => store.set('al-graph', gOpt);
+const nodeRef = (n) => (n.external ? n.id : `${gOpt.plan}:${n.id}`);
+const nodeKey = (ref) => (ref.startsWith(`${gOpt.plan}:`) ? ref.slice(gOpt.plan.length + 1) : ref);
+const shorten = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+
+function renderGraph(force) {
+  if (!data?.plans || !window.G || view !== 'graph') return;
+  if (!planOf(gOpt.plan)) gOpt.plan = data.plans[0].key;
+  const p = planOf(gOpt.plan);
+  $('gPlans').innerHTML = data.plans.map((x) => `<button data-plan="${x.key}" aria-pressed="${x.key === p.key}" title="${esc(x.name)}">${esc(x.name)}</button>`).join('');
+  $('gHideDone').checked = gOpt.hideDone;
+  $('gShowRetired').checked = gOpt.showRetired;
+  const sig = JSON.stringify([gOpt, Object.entries(p.tasks).map(([id, t]) => [id, t.status, t.blockers.length]), queue, gFind,
+    Object.values(p.tasks).flatMap((t) => t.blockers.filter((b) => !b.ref.startsWith(`${p.key}:`)).map((b) => taskOf(b.ref)?.status))]);
+  if (sig !== gSig || force) {
+    gSig = sig;
+    const hide = [...(gOpt.showRetired ? [] : ['retired', 'moved']), ...(gOpt.hideDone ? ['done'] : [])];
+    gLayout = G.layoutPlan(p, { hide });
+    const byId = new Map(gLayout.nodes.map((n) => [n.id, n]));
+    const q = gFind.trim().toLowerCase();
+    const bands = gLayout.bands.map((b) => {
+      const ids = b.n === null && b.name === 'From other plans' ? [] : (p.stages.find((s) => s.name === b.name && s.n === b.n)?.ids ?? []);
+      const live = ids.filter((id) => !gone(p.tasks[id].status));
+      const done = live.filter((id) => p.tasks[id].status === 'done').length;
+      return `<g class="band"><rect x="4" y="${b.y}" width="${gLayout.width - 8}" height="${b.h}" rx="8"/>
+        <text x="16" y="${b.y + 18}">${b.n !== null ? `${b.n}  ` : ''}${esc(b.name)} <tspan class="bc">${live.length ? `${done}/${live.length} done` : ''}</tspan></text></g>`;
+    }).join('');
+    const edges = gLayout.edges.map((e, i) => {
+      const a = byId.get(e.from), b = byId.get(e.to);
+      return a && b ? `<path class="edge${e.done ? ' met' : ''}" data-e="${i}" d="${G.edgePath(a, b)}"/>` : '';
+    }).join('');
+    const nodes = gLayout.nodes.map((n) => {
+      const ref = nodeRef(n);
+      const [k, id] = ref.split(':');
+      const t = taskOf(ref);
+      const status = t?.status ?? (n.done ? 'done' : 'blocked');
+      const title = t?.title ?? '';
+      const hit = q && (id.toLowerCase().startsWith(q) || title.toLowerCase().includes(q));
+      return `<g class="gn s-${status}${queue.includes(ref) ? ' queued' : ''}${ref === gSel ? ' sel' : ''}${hit ? ' hit' : ''}" data-p="${k}" data-id="${esc(id)}" data-n="${esc(n.id)}" transform="translate(${n.x},${n.y})">
+        <rect class="ring" x="-4" y="-4" width="${n.w + 8}" height="${n.h + 8}" rx="9"/>
+        <rect class="box" width="${n.w}" height="${n.h}" rx="6"/>
+        <rect class="stripe" x="0.5" y="0.5" width="6" height="${n.h - 1}" rx="3"/>
+        <text class="gid" x="14" y="17">${esc(taskName(k, id))}${status === 'working' ? ' · in progress' : status === 'launched' ? ' · launched' : status === 'moved' ? ` · moved → ${esc(t.moved.toUpperCase())}` : ''}</text>
+        <text class="gti" x="14" y="34">${esc(shorten(title, 25))}</text>
+        ${t?.gate ? `<circle class="gate" cx="${n.w - 12}" cy="12" r="4.5"/>` : ''}
+      </g>`;
+    }).join('');
+    $('gview').innerHTML = bands + edges + nodes;
+    if (!gView[p.key]) fitGraph();
+  }
+  applyGraphView();
+  applyFocus();
+  renderPanel();
+}
+
+function applyGraphView() {
+  const v = gView[gOpt.plan];
+  if (v) $('gview').setAttribute('transform', `translate(${v.x},${v.y}) scale(${v.k})`);
+}
+// Fit the width (the plan is tall: scroll down through it), top first; on a
+// narrow screen keep the text readable and start at the left.
+function fitGraph() {
+  if (!gLayout) return;
+  const box = $('gwrap').getBoundingClientRect();
+  if (!box.width) return;
+  const k = Math.max(0.45, Math.min(1, (box.width - 16) / gLayout.width));
+  gView[gOpt.plan] = { k, x: Math.max(8, (box.width - gLayout.width * k) / 2), y: 8 };
+  applyGraphView();
+}
+function zoomGraph(f, cx, cy) {
+  const v = gView[gOpt.plan];
+  if (!v) return;
+  const box = $('gwrap').getBoundingClientRect();
+  cx ??= box.width / 2; cy ??= box.height / 2;
+  const k = Math.max(0.15, Math.min(2.5, v.k * f));
+  v.x = cx - (cx - v.x) * (k / v.k);
+  v.y = cy - (cy - v.y) * (k / v.k);
+  v.k = k;
+  applyGraphView();
+}
+function centerOn(ref) {
+  const n = gLayout?.nodes.find((x) => nodeRef(x) === ref);
+  const v = gView[gOpt.plan];
+  if (!n || !v) return;
+  const box = $('gwrap').getBoundingClientRect();
+  v.x = box.width / 2 - (n.x + n.w / 2) * v.k;
+  v.y = box.height / 2 - (n.y + n.h / 2) * v.k;
+  applyGraphView();
+}
+
+// Light the hovered (else picked) task's chain: what it waits on, and what waits on it.
+function applyFocus() {
+  const svg = $('gsvg');
+  const focus = gHover ?? (gSel && gLayout?.nodes.some((n) => nodeRef(n) === gSel) ? gSel : null);
+  svg.classList.toggle('focus', !!focus);
+  if (!focus || !gLayout) return;
+  const key = nodeKey(focus);
+  const { up, down } = G.related(gLayout.edges, key);
+  for (const el of svg.querySelectorAll('.gn')) {
+    const n = el.dataset.n;
+    el.classList.toggle('rel', n === key || up.has(n) || down.has(n));
+  }
+  for (const el of svg.querySelectorAll('.edge')) {
+    const e = gLayout.edges[Number(el.dataset.e)];
+    const isUp = (e.to === key || up.has(e.to)) && up.has(e.from);
+    const isDown = (e.from === key || down.has(e.from)) && down.has(e.to);
+    el.classList.toggle('rel', isUp || isDown);
+    el.classList.toggle('down', isDown && !isUp);
+  }
+}
+
+function selectTask(ref, center) {
+  gSel = ref;
+  store.set('al-graph-sel', ref);
+  const k = ref?.split(':')[0];
+  if (ref && k !== gOpt.plan && planOf(k)) { gOpt.plan = k; saveGOpt(); renderGraph(true); }
+  for (const el of $('gsvg').querySelectorAll('.gn')) el.classList.toggle('sel', `${el.dataset.p}:${el.dataset.id}` === ref);
+  if (center && ref) centerOn(ref);
+  applyFocus();
+  renderPanel();
+}
+
+let panelConfirm = false;
+// Only when it changed: the page polls every few seconds, and a rebuilt button
+// would lose the click in flight.
+let panelHtml = '';
+const setPanel = (html) => { if (html !== panelHtml) { panelHtml = html; $('gpanel').innerHTML = html; } };
+function renderPanel() {
+  const t = gSel && taskOf(gSel);
+  if (!t) {
+    setPanel(`<div class="empty">Click a task to see what it waits on and what waits on it, and to queue, launch or end it. Right-click works too.</div>
+      <h4>This plan</h4><div class="m">${(() => { const p = planOf(gOpt.plan); return p ? `${p.counts.done} of ${p.total} done · ${p.counts.ready} ready · ${p.counts.blocked} blocked${p.counts.working ? ` · ${p.counts.working} in progress` : ''}` : ''; })()}</div>`);
+    return;
+  }
+  const [k, id] = gSel.split(':');
+  const dependents = [];
+  for (const p of data.plans) for (const [did, dt] of Object.entries(p.tasks)) if (dt.blockers.some((b) => b.ref === gSel)) dependents.push(`${p.key}:${did}`);
+  const row = (ref, met) => { const x = taskOf(ref); const [rk, rid] = ref.split(':'); return `<li data-pick="${esc(ref)}" class="${met ? 'met' : ''}"><i class="sw ${x?.status ?? 'blocked'}"></i><span>${esc(taskName(rk, rid))} ${esc(x?.title ?? '')}</span></li>`; };
+  const acts = taskActions(gSel, { panel: true });
+  const live = liveLaunch(gSel);
+  const lane = data.lanes.find((l) => l.working && l.plan === k && l.task === id);
+  setPanel(`<div class="m">${esc(planOf(k)?.name ?? k)}</div>
+    <h3>${esc(taskName(k, id))} ${esc(t.title)}</h3>
+    <div><i class="sw ${t.status}"></i> ${esc(statusLabel(t))}${t.gate ? ' · review gate' : ''}${lane ? ` · in ${esc(lane.main ? 'the main checkout' : lane.folder.split(/[\\/]/).pop())}` : ''}${queue.includes(gSel) ? ' · queued' : ''}</div>
+    ${t.ownerOk.length ? `<div class="m">Also needs your OK of ${t.ownerOk.map((g) => taskName(k, g)).join(', ')}</div>` : ''}
+    ${panelConfirm && live ? `<div class="acts confirm"><div>${esc(endQuestion(live))}</div><button class="btn primary" data-pact="end-yes">Stop the session</button><button class="btn" data-pact="end-no">Cancel</button></div>`
+      : `<div class="acts">${acts.map((a) => `<button class="btn${a.primary ? ' primary' : ''}" ${a.act ? `data-pact="${a.act}"` : ''} ${a.disabled ? 'disabled' : ''}>${esc(a.label)}</button>`).join('')}</div>`}
+    <h4>Waits on (${t.blockers.length})</h4>${t.blockers.length ? `<ul>${t.blockers.map((b) => row(b.ref, b.done)).join('')}</ul>` : '<div class="m">Nothing: it can start any time.</div>'}
+    <h4>Unlocks (${dependents.length})</h4>${dependents.length ? `<ul>${dependents.map((r) => row(r, false)).join('')}</ul>` : '<div class="m">Nothing waits on it.</div>'}
+    <div class="m" style="margin-top:12px">Its whole chain is lit in the graph: solid arrows lead to what it waits on, dashed ones to what waits on it.</div>`);
+}
+$('gpanel').addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-pick]');
+  if (pick) { selectTask(pick.dataset.pick, true); return; }
+  const act = e.target.closest('[data-pact]')?.dataset.pact;
+  if (!act || !gSel) return;
+  if (act === 'end') { panelConfirm = true; renderPanel(); return; }
+  panelConfirm = false;
+  if (act === 'end-yes') endWork(gSel);
+  else if (act === 'end-no') renderPanel();
+  else runAction(act, gSel);
+});
+$('gPlans').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-plan]');
+  if (!b || b.dataset.plan === gOpt.plan) return;
+  gOpt.plan = b.dataset.plan; saveGOpt(); renderGraph(true);
+});
+$('gHideDone').addEventListener('change', (e) => { gOpt.hideDone = e.target.checked; saveGOpt(); delete gView[gOpt.plan]; renderGraph(true); });
+$('gShowRetired').addEventListener('change', (e) => { gOpt.showRetired = e.target.checked; saveGOpt(); delete gView[gOpt.plan]; renderGraph(true); });
+$('gFit').addEventListener('click', fitGraph);
+$('gIn').addEventListener('click', () => zoomGraph(1.25));
+$('gOut').addEventListener('click', () => zoomGraph(0.8));
+$('gFind').addEventListener('input', (e) => { gFind = e.target.value; renderGraph(); });
+$('gFind').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const hit = $('gsvg').querySelector('.gn.hit');
+  if (hit) selectTask(`${hit.dataset.p}:${hit.dataset.id}`, true);
+});
+window.addEventListener('modules-ready', () => { render(); renderGraph(true); sSigs = {}; renderSessionList(); renderSessionDetail(); });
+window.addEventListener('resize', () => { if (view === 'graph' && !gView[gOpt.plan]) fitGraph(); });
+
+// Pan by dragging or scrolling, zoom with Ctrl+scroll (or a trackpad pinch).
+{
+  const wrap = $('gwrap');
+  let drag = null;
+  wrap.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const v = gView[gOpt.plan];
+    if (!v) return;
+    drag = { x: e.clientX, y: e.clientY, vx: v.x, vy: v.y, moved: false, node: e.target.closest('.gn') };
+    wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true;
+    wrap.classList.add('dragging');
+    const v = gView[gOpt.plan];
+    v.x = drag.vx + dx; v.y = drag.vy + dy;
+    applyGraphView();
+  });
+  const end = () => {
+    if (!drag) return;
+    wrap.classList.remove('dragging');
+    if (!drag.moved) {
+      // A moved task's node leads to the task that took it over.
+      const to = drag.node && taskOf(`${drag.node.dataset.p}:${drag.node.dataset.id}`)?.movedTo;
+      if (to && taskOf(to)) { panelConfirm = false; selectTask(to, true); }
+      else if (drag.node) { panelConfirm = false; selectTask(`${drag.node.dataset.p}:${drag.node.dataset.id}`); }
+      else { panelConfirm = false; selectTask(null); }
+    }
+    drag = null;
+  };
+  wrap.addEventListener('pointerup', end);
+  wrap.addEventListener('pointercancel', end);
+  wrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const v = gView[gOpt.plan];
+    if (!v) return;
+    if (e.ctrlKey || e.metaKey) {
+      const box = wrap.getBoundingClientRect();
+      zoomGraph(Math.exp(-e.deltaY * 0.0025), e.clientX - box.left, e.clientY - box.top);
+    } else {
+      v.x -= e.shiftKey ? e.deltaY : e.deltaX;
+      v.y -= e.shiftKey ? 0 : e.deltaY;
+      applyGraphView();
+    }
+  }, { passive: false });
+  wrap.addEventListener('mouseover', (e) => {
+    const n = e.target.closest('.gn');
+    const ref = n ? `${n.dataset.p}:${n.dataset.id}` : null;
+    if (ref !== gHover) { gHover = ref; applyFocus(); }
+  });
+  wrap.addEventListener('mouseleave', () => { gHover = null; applyFocus(); });
+}
+
+// ---------- sessions ----------
+// Every Claude session active in the last three days. A session switched to
+// "Answer from Project Manager" hands its permission prompts, its questions and the end
+// of each turn to this page (relay-hook.mjs); the others are read-only here.
+
+const sessions = { list: [], detail: null, limit: 300, drafts: {} };
+let sSel = store.get('al-session', null);
+let sSigs = {};
+const sOpenTools = new Set();
+
+function selectSession(id) {
+  if (sSel && $('sText')) sessions.drafts[sSel] = $('sText').value;
+  sSel = id;
+  store.set('al-session', id);
+  sessions.detail = null;
+  sessions.limit = 300;
+  sSigs = {};
+  sOpenTools.clear();
+  $('sText').value = sessions.drafts[id] ?? '';
+  renderSessionList();
+  renderSessionDetail();
+  pollSession(true);
+}
+
+const sessionNeeds = (s) => s.pending.length > 0 || !!s.asking;
+function renderSessionCount() {
+  const n = sessions.list.filter(sessionNeeds).length;
+  $('sessCount').textContent = n ? String(n) : '';
+}
+function sessionPills(s) {
+  const pills = [];
+  for (const p of s.pending) {
+    pills.push(`<span class="pill need">${p.kind === 'permission' ? `Approve ${esc(p.tool)}` : p.kind === 'question' ? 'Asking you' : 'Waiting for your reply'}</span>`);
+  }
+  if (s.asking && !s.pending.some((p) => p.kind === 'question')) pills.push('<span class="pill need">Asking you (in the app)</span>');
+  if (s.queued) pills.push('<span class="pill">Reply queued</span>');
+  if (s.on) pills.push('<span class="pill">Answers from Project Manager</span>');
+  return pills.length ? `<div class="pills">${pills.join('')}</div>` : '';
+}
+const folderOf = (cwd) => String(cwd ?? '').split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
+function renderSessionList() {
+  renderSessionCount();
+  if (view !== 'sessions') return;
+  const q = $('sFind').value.trim().toLowerCase();
+  const only = $('sWaiting').checked;
+  const list = sessions.list.filter((s) => (!only || sessionNeeds(s)) && (!q || `${s.title} ${s.cwd}`.toLowerCase().includes(q)));
+  const sig = JSON.stringify([list.map((s) => [s.id, s.title, s.active, s.pending, s.asking, s.queued, s.on, Math.round((Date.now() - s.activity) / 60000), s.context?.tokens]), sSel, !!window.U]);
+  if (sig === sSigs.list || !window.U) return;
+  sSigs.list = sig;
+  $('sList').innerHTML = list.map((s) => `<li data-sess="${esc(s.id)}" class="${s.id === sSel ? 'on' : ''}" title="${esc(s.cwd ?? '')}">
+      <i class="dot ${s.active ? 'active' : 'recent'}"></i>
+      <div class="sm"><div class="st"><b>${esc(s.title)}</b>${U.gaugeHtml(s.context, { live: s.active })}</div><div class="ss">${esc(folderOf(s.cwd))} · ${s.active ? 'at work' : esc(ago(s.activity))}</div>${sessionPills(s)}</div></li>`).join('')
+    || `<li class="empty">${sessions.list.length ? 'No session matches.' : 'No sessions in the last three days.'}</li>`;
+}
+$('sList').addEventListener('click', (e) => { const li = e.target.closest('[data-sess]'); if (li) selectSession(li.dataset.sess); });
+$('sFind').addEventListener('input', renderSessionList);
+$('sWaiting').addEventListener('change', renderSessionList);
+
+// A little Markdown: code blocks, inline code, bold, links.
+function md(text) {
+  return String(text).split(/```[^\n]*\n?/).map((part, i) => {
+    if (i % 2) return `<pre>${esc(part.replace(/\n$/, ''))}</pre>`;
+    return esc(part)
+      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/\n/g, '<br>');
+  }).join('');
+}
+
+function inputPreview(tool, input) {
+  if (!input || typeof input !== 'object') return String(input ?? '');
+  if (tool === 'Bash' || tool === 'PowerShell') return `${input.command ?? ''}${input.description ? `\n\n# ${input.description}` : ''}`;
+  if (tool === 'Edit') return `${input.file_path}\n\n- ${String(input.old_string ?? '').slice(0, 1500)}\n+ ${String(input.new_string ?? '').slice(0, 1500)}`;
+  if (tool === 'Write') return `${input.file_path}\n\n${String(input.content ?? '').split('\n').slice(0, 40).join('\n')}`;
+  if (tool === 'ExitPlanMode') return String(input.plan ?? JSON.stringify(input, null, 2));
+  const s = JSON.stringify(input, null, 2);
+  return s.length > 3000 ? `${s.slice(0, 3000)}…` : s;
+}
+function ruleText(sug) {
+  return (sug ?? []).map((s) => {
+    if (s.type === 'setMode') return `switch to ${s.mode}`;
+    const rules = (s.rules ?? []).map((r) => `${r.toolName}${r.ruleContent ? `(${r.ruleContent})` : ''}`).join(', ');
+    return `${rules || 'this'}${s.directories ? ` ${s.directories.join(', ')}` : ''}`;
+  }).join('; ');
+}
+function questionsHtml(questions, live) {
+  return questions.map((q, i) => `<div class="q" data-qi="${i}" data-multi="${q.multiSelect ? 1 : 0}">
+      <div class="qh">${q.header ? `<span class="chip">${esc(q.header)}</span>` : ''}${esc(q.question)}${q.multiSelect ? ' <span class="m">(pick any)</span>' : ''}</div>
+      <div class="opts">${(q.options ?? []).map((o) => `<button class="opt" data-label="${esc(o.label)}" ${live ? '' : 'disabled'}><b>${esc(o.label)}</b>${o.description ? `<span>${esc(o.description)}</span>` : ''}</button>`).join('')}
+      ${live ? `<input class="text other" placeholder="Other: type your own answer">` : ''}</div></div>`).join('');
+}
+function pendingCard(p, d) {
+  const when = `<span class="k">${esc(ago(p.time))}</span>`;
+  const back = `<button class="btn small ghost" data-release="${esc(p.id)}" title="Stop waiting for the Project Manager: the app shows its own prompt">Hand back to the app</button>`;
+  if (p.kind === 'permission') {
+    const always = Array.isArray(p.suggestions) && p.suggestions.length;
+    return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Wants to use ${esc(p.tool)}</b>${when}</div>
+      <pre class="code">${esc(inputPreview(p.tool, p.input))}</pre>
+      <div class="row"><button class="btn primary" data-allow="${esc(p.id)}">Allow</button>
+        ${always ? `<button class="btn" data-always="${esc(p.id)}" title="Adds a permission rule">Allow, and don't ask again for ${esc(ruleText(p.suggestions))}</button>` : ''}
+        <button class="btn" data-deny="${esc(p.id)}">Deny</button><input class="text why" placeholder="Why (optional): sent to Claude with a deny"></div>
+      <div class="row">${back}</div></div>`;
+  }
+  if (p.kind === 'question') {
+    return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Asks you</b>${when}</div>
+      ${questionsHtml(p.input?.questions ?? [], true)}
+      <div class="row"><button class="btn primary" data-answer="${esc(p.id)}">Send answer${(p.input?.questions ?? []).length > 1 ? 's' : ''}</button>${back}</div></div>`;
+  }
+  return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Finished its turn and is waiting for your reply</b>${when}</div>
+    <div class="m">Type below and send. It waits up to 20 minutes, then goes idle; meanwhile the app shows it as working.</div>
+    <div class="row">${back}</div></div>`;
+}
+function renderPending(d) {
+  const cards = d.pending.map((p) => pendingCard(p, d));
+  // A question or a step waiting in the app, which this page can't answer.
+  if (d.open?.name === 'AskUserQuestion' && !d.pending.some((p) => p.kind === 'question')) {
+    cards.push(`<div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b><span class="k">${esc(ago(d.open.time))}</span></div>
+      ${questionsHtml(d.open.questions ?? [], false)}
+      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Answer in the app</button>` : ''}<span class="m">${d.on ? 'It was asked before this session was switched on.' : 'Switch on "Answer from Project Manager" to answer its next questions here.'}</span></div></div>`);
+  } else if (d.open && !d.pending.length && !d.active && Date.now() - (d.open.time ?? 0) > 30000) {
+    cards.push(`<div class="pcard info"><div class="ch"><b>Its last step hasn't finished: ${esc(d.open.name)}</b><span class="k">${esc(ago(d.open.time))}</span></div>
+      <pre class="code">${esc(d.open.summary ?? '')}</pre>
+      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Open in the app</button>` : ''}<span class="m">If it's waiting for your approval, answer it in the app${d.on ? '' : ', or switch on "Answer from Project Manager" for the next one'}.</span></div></div>`);
+  }
+  const sig = JSON.stringify([d.pending.map((p) => p.id), d.open?.id, d.open && !d.active, d.on]);
+  if (sig === sSigs.pend) return;
+  sSigs.pend = sig;
+  $('sPend').innerHTML = cards.join('');
+}
+function renderLog(d) {
+  const log = $('sLog');
+  const sig = JSON.stringify([d.id, d.entries.length, d.entries.at(-1)?.time, d.more, sessions.limit]);
+  if (sig === sSigs.log) return;
+  const atBottom = !sSigs.log || log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  sSigs.log = sig;
+  const results = new Map(d.entries.filter((e) => e.kind === 'result').map((e) => [e.tool, e]));
+  const toolIds = new Set(d.entries.filter((e) => e.kind === 'tool').map((e) => e.id));
+  const parts = d.entries.map((e) => {
+    if (e.kind === 'user') return `<div class="msg u"><div class="who">You${e.time ? ` · ${esc(new Date(e.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}` : ''}</div><div class="tx">${md(e.text)}</div></div>`;
+    if (e.kind === 'assistant') return `<div class="msg a"><div class="tx">${md(e.text)}</div></div>`;
+    if (e.kind === 'system') return `<div class="sys">${esc(e.text)}</div>`;
+    if (e.kind === 'tool') {
+      const r = results.get(e.id);
+      const input = typeof e.input === 'string' ? e.input : JSON.stringify(e.input, null, 2);
+      return `<details class="tl${r?.error ? ' err' : ''}" data-tool="${esc(e.id)}" ${sOpenTools.has(e.id) ? 'open' : ''}><summary><span class="tn">${esc(e.name)}</span> ${esc(e.summary)}${r ? '' : ' <span class="run">· no result yet</span>'}</summary>
+        <pre class="code">${esc(input)}</pre>${r ? `<pre class="code">${esc(r.text || '(no output)')}</pre>` : ''}</details>`;
+    }
+    if (e.kind === 'result' && !toolIds.has(e.tool)) return `<details class="tl${e.error ? ' err' : ''}"><summary><span class="tn">Result</span></summary><pre class="code">${esc(e.text)}</pre></details>`;
+    return '';
+  });
+  log.innerHTML = (d.more ? `<div style="text-align:center"><button class="btn small" id="sMore">Show earlier turns</button></div>` : '') + parts.join('');
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+$('sLog').addEventListener('toggle', (e) => {
+  const id = e.target.dataset?.tool;
+  if (id) { if (e.target.open) sOpenTools.add(id); else sOpenTools.delete(id); }
+}, true);
+
+function renderSessionDetail() {
+  const d = sessions.detail;
+  if (!sSel) { $('sHead').innerHTML = '<div class="empty">Pick a session on the left.</div>'; $('sPend').innerHTML = ''; $('sLog').innerHTML = ''; $('sComp').hidden = true; return; }
+  if (!d || d.id !== sSel) {
+    const s = sessions.list.find((x) => x.id === sSel);
+    $('sHead').innerHTML = `<div class="row1"><h2>${esc(s?.title ?? 'Loading…')}</h2></div>`;
+    return;
+  }
+  const headSig = JSON.stringify([d.id, d.title, d.cwd, d.active, d.on, d.app, Math.round((Date.now() - d.activity) / 60000),
+    d.context?.tokens, d.context?.series.length, d.context?.compactions.length, !!window.U]);
+  if (headSig !== sSigs.head && window.U) {
+    // The context gauge and its chart, turn by turn, with compactions ticked.
+    const ctx = d.context;
+    const level = `${U.gaugeLevel(ctx)} ${d.active ? 'fresh' : 'stale'}`;
+    const ctxHtml = ctx ? `<div class="ctxrow">${U.gaugeHtml(ctx, { live: d.active, full: true })}</div>
+      ${ctx.series.length > 1 ? `<div class="ctxchart ${level}">${U.sparkSvg(ctx)}</div>
+      <div class="m">Context turn by turn${ctx.compactions.length ? ` · ${ctx.compactions.length} compaction${ctx.compactions.length === 1 ? '' : 's'} (the ticks)` : ''}${ctx.autoCompactAt < ctx.window ? ' · dashed: where it auto-compacts' : ''}</div>` : ''}`
+      : '<div class="m">No context reading yet: it appears after the first reply.</div>';
+    sSigs.head = headSig;
+    $('sHead').innerHTML = `<div class="row1"><h2 title="${esc(d.title)}">${esc(d.title)}</h2>
+        <label class="switch" title="While on, this session's prompts, questions and turn ends wait for this page"><input type="checkbox" id="sOn" ${d.on ? 'checked' : ''}><span>Answer from Project Manager</span></label>
+        ${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open in app</button>` : ''}</div>
+      <div class="m" title="${esc(d.cwd ?? '')}"><i class="dot ${d.active ? 'active' : 'recent'}"></i> ${d.active ? 'At work' : `Last active ${esc(ago(d.activity))}`} · ${esc(d.cwd ?? '')}</div>
+      ${ctxHtml}
+      <div class="m">${d.on ? 'On: its permission prompts and questions come here instead of the app (for up to 20 minutes each), and when a turn ends it waits for your reply here. Switch off to hand it back to the app.'
+        : 'Off: read-only here. Switch on to approve its commands, answer its questions and reply to it from this page.'}</div>`;
+  }
+  renderPending(d);
+  renderLog(d);
+  // The reply box.
+  $('sComp').hidden = false;
+  const waiting = d.pending.find((p) => p.kind === 'stop');
+  $('sSend').disabled = !d.on;
+  $('sSend').textContent = !d.on || waiting ? 'Send' : 'Queue reply';
+  $('sUnqueue').hidden = !d.queued;
+  $('sNote').textContent = !d.on ? 'Switch on "Answer from Project Manager" to reply from here.'
+    : waiting ? 'It\'s waiting for you: your reply goes straight in.'
+    : d.queued ? `Queued for when its turn next ends: "${shorten(d.queued.text, 60)}". Sending again replaces it.`
+    : d.active ? 'It\'s working: your reply goes in when this turn ends.'
+    : 'It\'s idle: your reply goes in when its turn next ends. To wake it now, type in the app.';
+}
+
+$('sDetail').addEventListener('change', async (e) => {
+  if (e.target.id !== 'sOn') return;
+  try { await post('/relay/on', { session: sSel, on: e.target.checked }); } catch (err) { alert(err.message); }
+  pollSession(true); pollSessions(true);
+});
+$('sDetail').addEventListener('click', async (e) => {
+  const opt = e.target.closest('.opt:not([disabled])');
+  if (opt) {
+    const q = opt.closest('.q');
+    if (q.dataset.multi !== '1') for (const o of q.querySelectorAll('.opt')) if (o !== opt) o.classList.remove('on');
+    opt.classList.toggle('on');
+    return;
+  }
+  const b = e.target.closest('button');
+  if (!b) return;
+  const card = b.closest('.pcard');
+  const send = async (body) => {
+    b.disabled = true;
+    try { await post('/relay/answer', body); card?.remove(); sSigs.pend = null; }
+    catch (err) { alert(`Couldn't answer: ${err.message}`); b.disabled = false; }
+    pollSession(true); pollSessions(true);
+  };
+  if (b.dataset.allow) send({ id: b.dataset.allow, behavior: 'allow' });
+  else if (b.dataset.always) send({ id: b.dataset.always, behavior: 'allow', always: true });
+  else if (b.dataset.deny) send({ id: b.dataset.deny, behavior: 'deny', message: card.querySelector('.why')?.value ?? '' });
+  else if (b.dataset.release) send({ id: b.dataset.release, release: true });
+  else if (b.dataset.answer) {
+    const picks = [...card.querySelectorAll('.q')].map((q) => {
+      const chosen = [...q.querySelectorAll('.opt.on')].map((o) => o.dataset.label);
+      const other = q.querySelector('.other')?.value.trim();
+      if (other) chosen.push(other);
+      return q.dataset.multi === '1' ? chosen : chosen.slice(-1);
+    });
+    if (picks.some((p) => !p.length)) { alert('Pick an answer for each question (or type one under Other).'); return; }
+    send({ id: b.dataset.answer, picks });
+  } else if (b.id === 'sMore') { sessions.limit += 300; sSigs.log = null; pollSession(true); }
+  else if (b.id === 'sUnqueue') { try { await post('/relay/unqueue', { session: sSel }); } catch {} pollSession(true); pollSessions(true); }
+  else if (b.id === 'sSend') sendReply();
+});
+async function sendReply() {
+  const text = $('sText').value.trim();
+  if (!text || !sSel) return;
+  $('sSend').disabled = true;
+  try {
+    const r = await post('/relay/reply', { session: sSel, text });
+    $('sText').value = '';
+    delete sessions.drafts[sSel];
+    $('sNote').textContent = r.delivered ? 'Sent: it carries on with your reply.' : 'Queued: it goes in when the turn ends.';
+  } catch (err) { $('sNote').textContent = `Couldn't send: ${err.message}`; }
+  $('sSend').disabled = false;
+  pollSession(true); pollSessions(true);
+}
+$('sText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendReply(); } });
+
+let sessionsTimer = null;
+async function pollSessions(once) {
+  try {
+    const d = await (await fetch('/sessions', { cache: 'no-store' })).json();
+    if (d.sessions) {
+      sessions.list = d.sessions;
+      renderSessionList();
+      if (view === 'progress' && data && window.U) { renderKpis(); renderWaiting(); }
+      if (view === 'roadmap' && data && window.U) renderKpis();
+    }
+  } catch { /* the stamp shows the server's state */ }
+  if (once !== true) { clearTimeout(sessionsTimer); sessionsTimer = setTimeout(pollSessions, view === 'sessions' ? 3000 : 6000); }
+}
+let sessionTimer = null;
+async function pollSession(once) {
+  if (view === 'sessions' && sSel) {
+    try {
+      const r = await fetch(`/session?id=${encodeURIComponent(sSel)}&limit=${sessions.limit}`, { cache: 'no-store' });
+      const d = await r.json();
+      if (d.id === sSel) { sessions.detail = d; renderSessionDetail(); }
+      else if (d.error) { $('sHead').innerHTML = `<div class="empty">${esc(d.error)}</div>`; }
+    } catch { /* try again */ }
+  }
+  if (once !== true) { clearTimeout(sessionTimer); sessionTimer = setTimeout(pollSession, 2000); }
+}
+
+function tick() {
+  const el = $('stamp');
+  const stale = Date.now() - lastOk > 20000;
+  el.classList.toggle('err', !lastOk || stale || !!data?.error);
+  $('stampText').textContent = !lastOk ? 'Waiting for the server…'
+    : `${stale ? 'Server not answering · ' : ''}Live · updated ${ago(data.updated)}${data.took ? ` · pass ${(data.took / 1000).toFixed(1)} s` : ''}`;
+}
+async function poll(once) {
+  try {
+    const r = await fetch('/data', { cache: 'no-store' });
+    const d = await r.json();
+    if (d.plans) { data = d; lastOk = Date.now(); render(); }
+  } catch { /* shown by the stamp */ }
+  tick();
+  if (once !== true) setTimeout(poll, 4000);
+}
+setInterval(tick, 1000);
+setView(location.hash.slice(1), false);
+poll();
+pollSessions();
+pollSession();
+
+const tip = $('tip');
+document.addEventListener('mouseover', (e) => {
+  const el = e.target.closest('.t, .gn, .tr');
+  if (!el || !data) { tip.style.opacity = 0; return; }
+  const p = planOf(el.dataset.p);
+  const t = p?.tasks[el.dataset.id];
+  if (!t) return;
+  const bl = t.blockers.length ? `Blocked by ${t.blockers.map((b) => `<span class="${b.done ? 'ok' : ''}">${esc(b.label)}</span>`).join(', ')}` : 'No blockers';
+  const owner = t.ownerOk.length ? `<div class="d">Also needs your OK of ${t.ownerOk.map((g) => taskName(p.key, g)).join(', ')}</div>` : '';
+  const lane = data.lanes.find((l) => l.working && l.plan === p.key && l.task === el.dataset.id);
+  tip.innerHTML = `<div class="h">${taskName(p.key, el.dataset.id)} ${esc(t.title)}</div><div class="d">${esc(statusLabel(t))}${t.gate ? ' · review gate' : ''}${lane ? ` · in ${esc(lane.main ? 'the main checkout' : lane.folder.split(/[\\/]/).pop())}` : ''}</div><div class="d">${bl}</div>${owner}`;
+  tip.style.opacity = 1;
+});
+document.addEventListener('mousemove', (e) => {
+  if (tip.style.opacity !== '1') return;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + 'px';
+  tip.style.top = (e.clientY + 16 + h > innerHeight ? e.clientY - h - 10 : e.clientY + 16) + 'px';
+});
+</script>
+</body>
+</html>

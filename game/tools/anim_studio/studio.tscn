@@ -1,0 +1,119 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/anim_studio/studio.gd" id="1_studio"]
+[ext_resource type="Theme" path="res://tools/anim_studio/studio_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://tools/anim_studio/gallery/gallery.tscn" id="3_gallery"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_body"]
+
+[node name="Studio" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_studio")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="TopBar" type="PanelContainer" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TopBar"
+
+[node name="TopRow" type="HBoxContainer" parent="Layout/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Layout/TopBar/TopRow"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "Animation Studio"
+
+[node name="HunterButton" type="Button" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_body")
+text = "Hunter"
+
+[node name="RogueButton" type="Button" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("ButtonGroup_body")
+text = "Rogue"
+
+[node name="PacksNote" type="Label" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"NoteLabel"
+
+[node name="Spacer" type="Control" parent="Layout/TopBar/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChatToggle" type="Button" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "Chat"
+
+[node name="Body" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="Center" type="Control" parent="Layout/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Gallery" parent="Layout/Body/Center" instance=ExtResource("3_gallery")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Editor" type="PanelContainer" parent="Layout/Body/Center"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Placeholder" type="Label" parent="Layout/Body/Center/Editor"]
+layout_mode = 2
+theme_type_variation = &"PlaceholderLabel"
+text = "Editor"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ChatPanel" type="PanelContainer" parent="Layout/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+
+[node name="Placeholder" type="Label" parent="Layout/Body/ChatPanel"]
+layout_mode = 2
+theme_type_variation = &"PlaceholderLabel"
+text = "Chat"
+horizontal_alignment = 1
+vertical_alignment = 1

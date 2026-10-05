@@ -1,5 +1,7 @@
 # Monomachia — MVP Plan & Spec
 
+> **The record of the web demo (Oct 4, 2026).** This spec describes the three.js browser demo as it was finished on Sep 30, 2026, kept at the tag `v0.1-web-mvp` (`git show v0.1-web-mvp:src/…` reads its sources). That demo was rebuilt in Godot and its web code deleted, so nothing below describes the current game: its status, files, commands and workflows are the demo's. For the game as built, read `docs/specs/godot-rebuild.md` and `docs/architecture.md`; for where it is going, `docs/design.md` and `docs/adr/0001-animation-leads-realistic-look.md`.
+
 Sep 30, 2026 · @Andrew Rodriguez
 
 The MVP is a playable browser demo of Monomachia's core duel: you against a computer opponent or a friend on the same screen, first to 3 rounds, with the posture, parry, disarm and ultimate loop from the design doc. It is built in three.js with simple shapes and code-generated sound, so it runs from a single file with nothing to install.
@@ -94,7 +96,7 @@ Unblockables show a red 危 ("danger") mark and the attack type above the attack
 
 #### Defense
 
-- **Block (hold):** no HP damage from blockable attacks, but reduced posture damage still lands (50–70% of the attack's posture value, by weapon). You must face the attacker.
+- **Block (hold):** no HP damage from blockable attacks, but reduced posture damage still lands (60–80% of the attack's posture value, by weapon). You must face the attacker.
 
 - **Parry (tap block just before impact):** works on every attack. Window: Daggers 0.10 s, Katana 0.15 s, Greatsword 0.20 s. The attacker's weapon bounces off with a clang, they take 16 posture damage, and you act first; they can still parry your follow-up. Pressing block repeatedly shrinks the window, so mashing fails, and one press parries only one hit.
 
@@ -140,9 +142,9 @@ Three weapons, one per size class, cover the design doc's full range from fast-a
 
 | Fighter | Class | Speed | HP damage | Posture damage | Reach | Parry window | Posture taken when blocking |
 |---|---|---|---|---|---|---|---|
-| Katana | Medium | Medium | Medium | Medium | 2.3 m | 0.15 s | 60% |
-| Greatsword | Colossal | Slow (moves 20% slower) | High | High | 2.9 m | 0.20 s | 50% |
-| Twin Daggers | Small | Fast (moves 15% faster) | Good over many hits | Low | 1.8 m | 0.10 s | 70% |
+| Katana | Medium | Medium | Medium | Medium | 2.2 m | 0.15 s | 70% |
+| Greatsword | Colossal | Slow (moves 10% slower) | High | High | 3.0 m | 0.20 s | 60% |
+| Twin Daggers | Small | Fast (moves 12% faster) | Good over many hits | Low | 1.8 m | 0.10 s | 80% |
 
 #### Katana — balanced
 

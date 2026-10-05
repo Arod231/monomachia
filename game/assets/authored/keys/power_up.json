@@ -1,0 +1,728 @@
+{
+  "name": "Power_Up",
+  "about": "The recall's power-up burst (authored-animation task 30b, the owner's design, Oct 4, 2026), keyed by eye after the owner's reference (a Super Saiyan power-up: feet planted wide, fists clenched low at the sides, chest out, head thrown back shouting). The gather over frames 0-6, the power stance by 12, the burst at 16 as the weapon returns, the hold and the rise to ready by 26, the rules' recall.",
+  "frames": 26,
+  "base": "Sword_Idle",
+  "keys": [
+    {
+      "f": 0,
+      "note": "set: out of the guard, the feet planted wide where they will stay",
+      "hips": {
+        "y": -0.07,
+        "z": 0,
+        "rot": [
+          4,
+          0,
+          0
+        ]
+      },
+      "spine": [
+        2,
+        0,
+        0
+      ],
+      "chest": [
+        2,
+        0,
+        0
+      ],
+      "upper_chest": [
+        0,
+        0,
+        0
+      ],
+      "neck": [
+        0,
+        0,
+        0
+      ],
+      "head": [
+        0,
+        0,
+        0
+      ],
+      "legs": {
+        "left": {
+          "at": [
+            0.27,
+            0.087,
+            0.06
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        },
+        "right": {
+          "at": [
+            0.27,
+            0.087,
+            -0.04
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "arms": {
+        "left": {
+          "at": [
+            0.22,
+            0.95,
+            0.15
+          ],
+          "pole": [
+            0.6,
+            -1,
+            -0.3
+          ],
+          "blade": [
+            0.1,
+            -1,
+            0.2
+          ]
+        },
+        "right": {
+          "at": [
+            0.22,
+            0.95,
+            0.15
+          ],
+          "pole": [
+            0.6,
+            -1,
+            -0.3
+          ],
+          "blade": [
+            0.1,
+            -1,
+            0.2
+          ]
+        }
+      }
+    },
+    {
+      "f": 6,
+      "note": "gather: curled over, the fists drawn in before the belly, the head down",
+      "hips": {
+        "y": -0.13,
+        "z": 0.01,
+        "rot": [
+          16,
+          0,
+          0
+        ]
+      },
+      "spine": [
+        8,
+        0,
+        0
+      ],
+      "chest": [
+        10,
+        0,
+        0
+      ],
+      "upper_chest": [
+        6,
+        0,
+        0
+      ],
+      "neck": [
+        8,
+        0,
+        0
+      ],
+      "head": [
+        14,
+        0,
+        0
+      ],
+      "legs": {
+        "left": {
+          "at": [
+            0.27,
+            0.087,
+            0.06
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        },
+        "right": {
+          "at": [
+            0.27,
+            0.087,
+            -0.04
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "arms": {
+        "left": {
+          "at": [
+            0.14,
+            0.98,
+            0.2
+          ],
+          "pole": [
+            1,
+            -0.2,
+            0
+          ],
+          "blade": [
+            -0.3,
+            -1,
+            0.2
+          ]
+        },
+        "right": {
+          "at": [
+            0.14,
+            0.98,
+            0.2
+          ],
+          "pole": [
+            1,
+            -0.2,
+            0
+          ],
+          "blade": [
+            -0.3,
+            -1,
+            0.2
+          ]
+        }
+      }
+    },
+    {
+      "f": 12,
+      "note": "power: chest thrown out, the head back shouting, the fists clenched low at the sides, elbows bent out",
+      "hips": {
+        "y": -0.15,
+        "z": -0.02,
+        "rot": [
+          -4,
+          0,
+          0
+        ]
+      },
+      "spine": [
+        -6,
+        0,
+        0
+      ],
+      "chest": [
+        -10,
+        0,
+        0
+      ],
+      "upper_chest": [
+        -8,
+        0,
+        0
+      ],
+      "neck": [
+        -10,
+        0,
+        0
+      ],
+      "head": [
+        -26,
+        0,
+        0
+      ],
+      "legs": {
+        "left": {
+          "at": [
+            0.27,
+            0.087,
+            0.06
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        },
+        "right": {
+          "at": [
+            0.27,
+            0.087,
+            -0.04
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "arms": {
+        "left": {
+          "at": [
+            0.3,
+            0.84,
+            -0.02
+          ],
+          "pole": [
+            1,
+            0.1,
+            -0.7
+          ],
+          "blade": [
+            0.2,
+            -1,
+            0.1
+          ]
+        },
+        "right": {
+          "at": [
+            0.3,
+            0.84,
+            -0.02
+          ],
+          "pole": [
+            1,
+            0.1,
+            -0.7
+          ],
+          "blade": [
+            0.2,
+            -1,
+            0.1
+          ]
+        }
+      }
+    },
+    {
+      "f": 16,
+      "note": "burst: the widest, the aura flares out and the weapon returns to the right hand",
+      "hips": {
+        "y": -0.16,
+        "z": -0.03,
+        "rot": [
+          -6,
+          0,
+          0
+        ]
+      },
+      "spine": [
+        -8,
+        0,
+        0
+      ],
+      "chest": [
+        -13,
+        0,
+        0
+      ],
+      "upper_chest": [
+        -10,
+        0,
+        0
+      ],
+      "neck": [
+        -12,
+        0,
+        0
+      ],
+      "head": [
+        -32,
+        0,
+        0
+      ],
+      "legs": {
+        "left": {
+          "at": [
+            0.27,
+            0.087,
+            0.06
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        },
+        "right": {
+          "at": [
+            0.27,
+            0.087,
+            -0.04
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "arms": {
+        "left": {
+          "at": [
+            0.34,
+            0.82,
+            -0.05
+          ],
+          "pole": [
+            1,
+            0.2,
+            -0.8
+          ],
+          "blade": [
+            0.3,
+            -1,
+            0
+          ]
+        },
+        "right": {
+          "at": [
+            0.34,
+            0.82,
+            -0.05
+          ],
+          "pole": [
+            1,
+            0.2,
+            -0.8
+          ],
+          "blade": [
+            0.3,
+            -1,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "f": 21,
+      "note": "hold: the shout eases, still braced",
+      "hips": {
+        "y": -0.15,
+        "z": -0.02,
+        "rot": [
+          -3,
+          0,
+          0
+        ]
+      },
+      "spine": [
+        -5,
+        0,
+        0
+      ],
+      "chest": [
+        -8,
+        0,
+        0
+      ],
+      "upper_chest": [
+        -6,
+        0,
+        0
+      ],
+      "neck": [
+        -6,
+        0,
+        0
+      ],
+      "head": [
+        -14,
+        0,
+        0
+      ],
+      "legs": {
+        "left": {
+          "at": [
+            0.27,
+            0.087,
+            0.06
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        },
+        "right": {
+          "at": [
+            0.27,
+            0.087,
+            -0.04
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "arms": {
+        "left": {
+          "at": [
+            0.32,
+            0.84,
+            -0.02
+          ],
+          "pole": [
+            1,
+            0.1,
+            -0.7
+          ],
+          "blade": [
+            0.25,
+            -1,
+            0.1
+          ]
+        },
+        "right": {
+          "at": [
+            0.32,
+            0.84,
+            -0.02
+          ],
+          "pole": [
+            1,
+            0.1,
+            -0.7
+          ],
+          "blade": [
+            0.25,
+            -1,
+            0.1
+          ]
+        }
+      }
+    },
+    {
+      "f": 26,
+      "note": "ready: the weapon brought up before the body",
+      "hips": {
+        "y": -0.1,
+        "z": 0,
+        "rot": [
+          4,
+          0,
+          0
+        ]
+      },
+      "spine": [
+        2,
+        0,
+        0
+      ],
+      "chest": [
+        2,
+        0,
+        0
+      ],
+      "upper_chest": [
+        0,
+        0,
+        0
+      ],
+      "neck": [
+        0,
+        0,
+        0
+      ],
+      "head": [
+        -4,
+        0,
+        0
+      ],
+      "legs": {
+        "left": {
+          "at": [
+            0.27,
+            0.087,
+            0.06
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        },
+        "right": {
+          "at": [
+            0.27,
+            0.087,
+            -0.04
+          ],
+          "pole": [
+            0.55,
+            0,
+            1
+          ],
+          "dir": [
+            0.15,
+            0,
+            1
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "arms": {
+        "left": {
+          "at": [
+            0.22,
+            0.92,
+            0.1
+          ],
+          "pole": [
+            0.6,
+            -1,
+            -0.3
+          ],
+          "blade": [
+            0.15,
+            -0.4,
+            1
+          ]
+        },
+        "right": {
+          "at": [
+            0.26,
+            0.88,
+            0.16
+          ],
+          "pole": [
+            0.5,
+            -0.3,
+            -1
+          ],
+          "blade": [
+            0.1,
+            -0.6,
+            0.8
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="WeaponLook" format=3]
+
+[ext_resource type="Script" path="res://weapons/weapon_look.gd" id="1_look"]
+[ext_resource type="PackedScene" path="res://weapons/daggers/dagger.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_look")
+id = &"daggers"
+display_name = "Twin Daggers"
+scene = ExtResource("2_scene")
+paired = true
+grip_radius = 0.0163
+trail_width = 0.2

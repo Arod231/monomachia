@@ -1,0 +1,18 @@
+{
+  "rig": "res://fighters/hunter/hunter.tscn",
+  "rig_note": "Both fighters share the humanoid profile (GeneralSkeleton, facing +Z, +X the fighter's left, T-pose rest, each bone's +Y toward its child). Keys are sized on the Hunter; the hips track is written over the skeleton's motion scale so it fits the Rogue.",
+  "skeleton_prefix": "%GeneralSkeleton",
+  "animation_library": "res://assets/authored/keyed_library.tres",
+  "keys_folder": "res://assets/authored/keys",
+  "builder": "node scripts/godot.mjs script res://tools/build_keyed_clips.gd",
+  "review_sheet": "node scripts/godot.mjs shots res://tools/shot_scenes/keyed_sheet.tscn shots/keyed/<clip>.png 1 --clip=<clip>",
+  "target_fps": 60,
+  "bone_map": {
+    "hips": "Hips", "spine": "Spine", "chest": "Chest", "upper_chest": "UpperChest", "neck": "Neck", "head": "Head",
+    "left_shoulder": "LeftUpperArm", "left_elbow": "LeftLowerArm", "left_wrist": "LeftHand",
+    "right_shoulder": "RightUpperArm", "right_elbow": "RightLowerArm", "right_wrist": "RightHand",
+    "left_hip": "LeftUpperLeg", "left_knee": "LeftLowerLeg", "left_ankle": "LeftFoot",
+    "right_hip": "RightUpperLeg", "right_knee": "RightLowerLeg", "right_ankle": "RightFoot"
+  },
+  "weapon_note": "The weapon stays fixed to the hand bone (FighterRig.fix_weapons()); its blade lies along the right hand's local +X, so a key aims it with the hand's \"blade\" direction."
+}

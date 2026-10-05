@@ -1,0 +1,173 @@
+extends GutTest
+## Weapons fixed to the hands for authored clips (FighterRig.fix_weapons()):
+## each rides its hand at its grip, the handle inside the closed fist on both
+## fighters; the off hand of a two-handed weapon reaches its OffHandGrip on
+## IK over the clip (within 1 cm); the Daggers fill both hands and turn into
+## the reverse grip. The CC0 UAL clips drive these; the local-only test runs
+## the Iglesias clips of task 1 and skips itself without the libraries.
+
+const NEAR: float = 0.01
+## A one-handed CC0 sword clip whose off hand wanders well off the handle.
+const CLIP: StringName = &"Sword_Regular_A"
+## Task 1's Iglesias clips, the ones the off hand must hold the grip through
+## (the catalogue's punches and kicks are bare-handed).
+const TASK1_CLIPS: Array[StringName] = [&"CombatIdle1H01", &"Attack1H01_R", &"Attack2H01", &"Roll01", &"CombatDeath01", &"Dodge01"]
+
+
+func _fighter(id: StringName, weapon: StringName, reverse: bool = false) -> FighterModel:
+	var f: FighterModel = FighterLook.instantiate_fighter(id)
+	f.autoplay_idle = false
+	add_child_autofree(f)
+	f.skeleton.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
+	f.attach_weapon(WeaponLook.load_id(weapon))
+	f.fix_weapons(reverse)
+	return f
+
+
+func _at(f: FighterModel, anim_name: String, time: float) -> void:
+	f.animation_player.play(anim_name, 0.0)
+	f.animation_player.seek(time, true)
+	f.animation_player.pause()
+
+
+## Steps the skeleton once; every bone's pose at the end of the modifier stack.
+func _posed(f: FighterModel) -> Array[Transform3D]:
+	var sk: Skeleton3D = f.skeleton
+	var poses: Array[Transform3D] = []
+	var grab: Callable = func() -> void:
+		poses.clear()
+		for i: int in sk.get_bone_count():
+			poses.append(sk.get_bone_global_pose(i))
+	(sk.get_node(^"RigCarry") as SkeletonModifier3D).modification_processed.connect(grab, CONNECT_ONE_SHOT)
+	sk.advance(1.0 / 60.0)
+	if poses.is_empty():
+		await wait_process_frames(1)
+	return poses
+
+
+func _bone(f: FighterModel, poses: Array[Transform3D], bone: String) -> Transform3D:
+	return poses[f.skeleton.find_bone(bone)]
+
+
+func _grip_centre(f: FighterModel, poses: Array[Transform3D], side: String) -> Vector3:
+	return _bone(f, poses, side + "Hand") * f.rig.fist(side).origin
+
+
+static func _to_line(p: Vector3, a: Vector3, dir: Vector3) -> float:
+	var d: Vector3 = p - a
+	return (d - dir * d.dot(dir)).length()
+
+
+## The gap from the off hand's grip centre to a two-handed weapon's
+## OffHandGrip, after a step.
+func _off_hand_gap(f: FighterModel, poses: Array[Transform3D]) -> float:
+	var w: Node3D = f.weapons[0]
+	var off: Vector3 = w.transform * WeaponLook.marker(w, WeaponLook.OFF_HAND_GRIP).position
+	return _grip_centre(f, poses, "Left").distance_to(off)
+
+
+func test_a_fixed_weapon_rides_the_clips_main_hand() -> void:
+	for id: StringName in FighterLook.IDS:
+		for weapon: StringName in WeaponLook.IDS:
+			var f: FighterModel = _fighter(id, weapon)
+			for time: float in [0.1, 0.45, 0.8]:
+				_at(f, "ual/" + CLIP, time)
+				var poses: Array[Transform3D] = await _posed(f)
+				var want: Transform3D = _bone(f, poses, "RightHand") * f.rig.fixed_grip("Right")
+				if f.rig.is_drawn_in():
+					# drawn in for the off hand: the main hand reaches it on IK
+					assert_lt(_grip_centre(f, poses, "Right").distance_to(f.weapons[0].transform.origin), NEAR, "%s %s at %.2f s: drawn in, still in the right fist" % [id, weapon, time])
+				else:
+					assert_true(f.weapons[0].transform.is_equal_approx(want), "%s %s at %.2f s: in the right fist" % [id, weapon, time])
+			assert_true(f.rig.is_fixed())
+			assert_eq(f.hand_grip.wrists.size(), 0, "the clip keeps the wrists")
+
+
+func test_the_off_hand_reaches_a_two_handed_weapons_grip_over_the_clip() -> void:
+	for id: StringName in FighterLook.IDS:
+		for weapon: StringName in [&"katana", &"greatsword"]:
+			var f: FighterModel = _fighter(id, weapon)
+			assert_true(f.rig.drives("Left"))
+			for time: float in [0.0, 0.3, 0.6, 0.9]:
+				_at(f, "ual/" + CLIP, time)
+				var poses: Array[Transform3D] = await _posed(f)
+				var gap: float = _off_hand_gap(f, poses)
+				assert_lt(gap, NEAR, "%s %s at %.2f s: off hand %.1f cm from the off-hand grip" % [id, weapon, time, gap * 100.0])
+
+
+func test_the_handle_sits_inside_each_fist() -> void:
+	for id: StringName in FighterLook.IDS:
+		for weapon: StringName in WeaponLook.IDS:
+			var f: FighterModel = _fighter(id, weapon)
+			_at(f, "ual/" + CLIP, 0.45)
+			var poses: Array[Transform3D] = await _posed(f)
+			var radius: float = f.weapon_look.grip_radius
+			for side: String in FighterRig.SIDES:
+				var held: Node3D = f.weapons[1 if side == "Left" and f.weapon_look.paired else 0]
+				var axis: Vector3 = held.transform.basis.y.normalized()
+				var centre: Vector3 = _grip_centre(f, poses, side)
+				assert_lt(_to_line(centre, held.transform.origin, axis), 0.005, "%s %s %s: the handle runs through the fist" % [id, weapon, side])
+				var half: float = HandGrip.FINGER_HALF * f.rig.fist(side).origin.y / HandGrip.FIST_ALONG
+				for finger: String in HandGrip.FINGERS:
+					var bone: int = f.skeleton.find_bone(side + finger + "Intermediate")
+					var gap: float = _to_line(poses[bone].origin, centre, axis) - radius
+					assert_almost_eq(gap, half, 0.003, "%s %s %s: %s %.1f cm off the handle" % [id, weapon, side, finger, gap * 100.0])
+
+
+func test_daggers_fill_both_hands_and_turn_into_the_reverse_grip() -> void:
+	var f: FighterModel = _fighter(&"rogue", &"daggers")
+	_at(f, "ual/" + CLIP, 0.45)
+	var poses: Array[Transform3D] = await _posed(f)
+	var forward: Array[Vector3] = []
+	for i: int in 2:
+		var side: String = FighterRig.SIDES[i]
+		assert_lt(_grip_centre(f, poses, side).distance_to(f.weapons[i].transform.origin), NEAR, "the %s dagger in its fist" % side)
+		forward.append(f.weapons[i].transform.basis.y)
+	assert_false(f.rig.drives("Left"), "no IK: each dagger rides its own hand")
+	f.fix_weapons(true)
+	poses = await _posed(f)
+	for i: int in 2:
+		var side: String = FighterRig.SIDES[i]
+		assert_lt(_grip_centre(f, poses, side).distance_to(f.weapons[i].transform.origin), NEAR, "the reversed %s dagger stays in its fist" % side)
+		assert_almost_eq(f.weapons[i].transform.basis.y.dot(forward[i]), -1.0, 0.001, "the %s blade points the other way" % side)
+	# halfway through the flip (task 21): square to the forward blade
+	f.rig.set_reverse_turn(0.5)
+	poses = await _posed(f)
+	for i: int in 2:
+		var side: String = FighterRig.SIDES[i]
+		assert_lt(_grip_centre(f, poses, side).distance_to(f.weapons[i].transform.origin), NEAR, "the turning %s dagger stays in its fist" % side)
+		assert_almost_eq(f.weapons[i].transform.basis.y.dot(forward[i]), 0.0, 0.001, "the %s blade halfway round" % side)
+
+
+func test_posing_or_carrying_unfixes_the_weapons() -> void:
+	var f: FighterModel = _fighter(&"hunter", &"katana")
+	f.carry_weapons()
+	assert_false(f.rig.is_fixed())
+	assert_false(f.rig.drives("Left"))
+	f.fix_weapons()
+	f.pose_weapon(0, FighterRig.weapon_frame(Vector3(-0.06, 1.08, 0.27), Vector3(0.12, 0.5, 0.86), Vector3(0, -1, 0)))
+	assert_false(f.rig.is_fixed())
+	assert_true(f.rig.drives("Right"), "posed: the IK places the hands again")
+
+
+func test_local_the_off_hand_holds_the_grip_through_the_iglesias_clips() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	for pair: Array in [[&"hunter", &"HumanM"], [&"rogue", &"HumanF"]]:
+		for weapon: StringName in [&"katana", &"greatsword"]:
+			var f: FighterModel = _fighter(pair[0], weapon)
+			var lib: AnimationLibrary = ClipLibraries.load_set(pair[1])
+			f.animation_player.add_animation_library(pair[1], lib)
+			var worst: float = 0.0
+			var where: String = ""
+			for clip: StringName in TASK1_CLIPS:
+				var length: float = lib.get_animation(clip).length
+				for i: int in 9:
+					_at(f, "%s/%s" % [pair[1], clip], length * i / 8.0)
+					var poses: Array[Transform3D] = await _posed(f)
+					var gap: float = _off_hand_gap(f, poses)
+					if gap > worst:
+						worst = gap
+						where = "%s at %.2f s" % [clip, length * i / 8.0]
+			assert_lt(worst, NEAR, "%s with the %s: worst off-hand gap %.1f cm (%s)" % [pair[0], weapon, worst * 100.0, where])

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/hud/match_hud.gd" id="1"]
+
+[node name="MatchHud" type="CanvasLayer"]
+script = ExtResource("1")

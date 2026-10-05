@@ -1,0 +1,99 @@
+{
+  "name": "Mikiri_Stomp",
+  "about": "The stomp counter, keyed by eye after Sekiro's mikiri counter (reference: youtube fV_dJx5TRTQ, 11.40-12.73 s). The hop onto the spear over the rules' 8-frame travel, the right foot pinning it at 8, the press held through the impact, the rise to ready by 26.",
+  "frames": 26,
+  "base": "Sword_Idle",
+  "keys": [
+    {
+      "f": 0, "note": "launch: out of the forward dodge, pushing off the left foot",
+      "hips": {"y": -0.16, "z": 0.0, "rot": [20, 0, 0]},
+      "spine": [5, 0, 0], "chest": [5, 0, 0], "upper_chest": [0, 0, 0], "neck": [-10, 0, 0], "head": [-12, 0, 0],
+      "legs": {
+        "left": {"at": [0.1, 0.14, -0.34], "pole": [0, -0.3, 1], "dir": [0, -0.6, 0.8], "up": [0, 0.8, 0.6]},
+        "right": {"at": [0.1, 0.3, 0.16], "pole": [0.1, 0.3, 1]}
+      },
+      "arms": {
+        "left": {"at": [0.24, 1.02, 0.32], "pole": [0.6, -1, -0.2], "blade": [0.2, -0.3, 1]},
+        "right": {"at": [0.32, 0.8, -0.12], "pole": [0.3, 0, -1], "blade": [0.2, -0.5, -1]}
+      }
+    },
+    {
+      "f": 4, "note": "apex: right knee driven high to stomp, left leg tucked",
+      "hips": {"y": -0.12, "z": 0.0, "rot": [16, 0, 0]},
+      "spine": [5, 0, 0], "chest": [4, 0, 0], "upper_chest": [0, 0, 0], "neck": [-8, 0, 0], "head": [-10, 0, 0],
+      "legs": {
+        "left": {"at": [0.1, 0.36, -0.3], "pole": [0, -0.6, 1], "dir": [0, -0.7, 0.7], "up": [0, 0.7, 0.7]},
+        "right": {"at": [0.1, 0.44, 0.3], "pole": [0, 0.3, 1], "dir": [0, -0.2, 1], "up": [0, 1, 0.2]}
+      },
+      "arms": {
+        "left": {"at": [0.26, 1.18, 0.3], "pole": [0.6, -1, -0.2], "blade": [0.2, 0, 1]},
+        "right": {"at": [0.36, 0.92, -0.2], "pole": [0.3, 0, -1], "blade": [0.3, -0.2, -1]}
+      }
+    },
+    {
+      "f": 8, "note": "pin: right foot lands flat on the shaft ahead, left toes down behind",
+      "hips": {"y": -0.22, "z": 0.02, "rot": [25, 0, 0]},
+      "spine": [8, 0, 0], "chest": [5, 0, 0], "upper_chest": [2, 0, 0], "neck": [-10, 0, 0], "head": [-15, 0, 0],
+      "legs": {
+        "left": {"at": [0.1, 0.13, -0.38], "pole": [0, -0.5, 1], "dir": [0, -0.5, 0.87], "up": [0, 0.87, 0.5]},
+        "right": {"at": [0.12, 0.087, 0.32], "pole": [0.15, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+      },
+      "arms": {
+        "left": {"at": [0.3, 1.04, 0.3], "pole": [0.6, -1, -0.2], "blade": [0.3, -0.2, 1]},
+        "right": {"at": [0.33, 0.75, -0.05], "pole": [0.4, 0, -1], "blade": [0.7, 0.0, -0.7]}
+      }
+    },
+    {
+      "f": 11, "note": "press: the weight driven down through the pinned spear, blade thrust low",
+      "hips": {"y": -0.34, "z": -0.03, "rot": [27, 0, 0]},
+      "spine": [10, 0, 0], "chest": [8, 0, 0], "upper_chest": [4, 0, 0], "neck": [-14, 0, 0], "head": [-18, 0, 0],
+      "legs": {
+        "left": {"at": [0.1, 0.12, -0.38], "pole": [0, -0.6, 1], "dir": [0, -0.5, 0.87], "up": [0, 0.87, 0.5]},
+        "right": {"at": [0.12, 0.087, 0.32], "pole": [0.15, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+      },
+      "arms": {
+        "left": {"at": [0.34, 0.86, -0.24], "pole": [0.4, -0.5, -1], "blade": [0.3, -0.6, -0.6]},
+        "right": {"at": [0.28, 0.62, 0.3], "pole": [0.6, 0, -1], "blade": [0.3, -0.35, 1]}
+      }
+    },
+    {
+      "f": 15, "note": "held impact: the press settling",
+      "hips": {"y": -0.32, "z": -0.03, "rot": [25, 0, 0]},
+      "spine": [10, 0, 0], "chest": [7, 0, 0], "upper_chest": [4, 0, 0], "neck": [-14, 0, 0], "head": [-17, 0, 0],
+      "legs": {
+        "left": {"at": [0.1, 0.12, -0.38], "pole": [0, -0.6, 1], "dir": [0, -0.5, 0.87], "up": [0, 0.87, 0.5]},
+        "right": {"at": [0.12, 0.087, 0.32], "pole": [0.15, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+      },
+      "arms": {
+        "left": {"at": [0.33, 0.88, -0.22], "pole": [0.4, -0.5, -1], "blade": [0.3, -0.6, -0.6]},
+        "right": {"at": [0.28, 0.64, 0.28], "pole": [0.6, 0, -1], "blade": [0.2, -0.35, 1]}
+      }
+    },
+    {
+      "f": 20, "note": "rise: weight back over both feet",
+      "hips": {"y": -0.15, "z": 0.03, "rot": [14, 0, 0]},
+      "spine": [4, 0, 0], "chest": [3, 0, 0], "upper_chest": [0, 0, 0], "neck": [-5, 0, 0], "head": [-8, 0, 0],
+      "legs": {
+        "left": {"at": [0.1, 0.087, -0.36], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.12, 0.087, 0.32], "pole": [0.15, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+      },
+      "arms": {
+        "left": {"at": [0.25, 0.95, 0.05], "pole": [0.6, -1, -0.3], "blade": [0.2, -0.4, 1]},
+        "right": {"at": [0.3, 0.8, 0.12], "pole": [0.5, -0.3, -1], "blade": [0.15, -0.7, 0.7]}
+      }
+    },
+    {
+      "f": 26, "note": "ready: the blade low, set to act",
+      "hips": {"y": -0.08, "z": 0.02, "rot": [6, 0, 0]},
+      "spine": [2, 0, 0], "chest": [1, 0, 0], "upper_chest": [0, 0, 0], "neck": [0, 0, 0], "head": [-4, 0, 0],
+      "legs": {
+        "left": {"at": [0.11, 0.087, -0.24], "pole": [0.1, 0, 1], "dir": [0.1, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.12, 0.087, 0.32], "pole": [0.15, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+      },
+      "arms": {
+        "left": {"at": [0.22, 0.92, 0.08], "pole": [0.6, -1, -0.3], "blade": [0.15, -0.4, 1]},
+        "right": {"at": [0.28, 0.85, 0.15], "pole": [0.5, -0.3, -1], "blade": [0.1, -0.6, 0.8]}
+      }
+    }
+  ]
+}

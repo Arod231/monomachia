@@ -1,0 +1,10 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://arenas/moonlit_shrine/moonlit_shrine.gd" id="1"]
+[ext_resource type="Resource" path="res://arenas/moonlit_shrine/moonlit_shrine.tres" id="2"]
+[ext_resource type="Resource" path="res://arenas/moonlit_shrine/moonlit_shrine_layout.tres" id="3"]
+
+[node name="MoonlitShrine" type="Node3D"]
+script = ExtResource("1")
+def = ExtResource("2")
+layout = ExtResource("3")

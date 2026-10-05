@@ -1,0 +1,861 @@
+{
+  "$comment": "Recordings chosen from the Sonniss GDC 2026 Game Audio Bundle (Part 9) and how each game sound is cut from them. Read by scripts/audio/extract-sonniss.mjs. Times are seconds in the source recording; 'take' is a 1-based index into the separate takes found at the source's 'takes' settings, measured from the take's start or, with anchor 'peak', from its loudest moment. 'peakIn': [a, b] cuts 'length' seconds starting 'from' seconds (default -0.005, a 5 ms lead-in) relative to the loudest sample between a and b, so an impact lands at the start of the sound. 'pitch' is in semitones (by resampling, so it also changes the length). 'decay' shapes a layer to fall 20 dB every that many seconds from its start, so its first hit stays the loudest. Layers are mixed at 'offset' seconds. Each output's level is set by its variation pool in lib/pools.mjs, if it has one.",
+  "licence": "Sonniss #GameAudioGDC Bundle licence: royalty-free, commercial use allowed, no attribution required; the sounds may not be sold or redistributed as they come, and may not be used to train or develop AI. Only processed derivatives are committed.",
+  "sampleRate": 44100,
+  "sources": {
+    "hw_slide": {
+      "part": 1,
+      "library": "344 Audio - Historical Weapons Vol. 2",
+      "entry": "344 Audio - Historical Weapons Vol. 2/WEAPSwrd_Sword Slide Cuts, Metallic, Impact CM4 2_344 Audio_Medieval Weapons Vol 2.wav",
+      "takes": { "floorDb": -50, "minSilence": 0.15 }
+    },
+    "hw_shield_spin": {
+      "part": 1,
+      "library": "344 Audio - Historical Weapons Vol. 2",
+      "entry": "344 Audio - Historical Weapons Vol. 2/WEAPArmr_Metal Shield Spin On Floor, Buckler MKH_344 Audio_Medieval Weapons Vol 2.wav"
+    },
+    "hw_wood": {
+      "part": 1,
+      "library": "344 Audio - Historical Weapons Vol. 2",
+      "entry": "344 Audio - Historical Weapons Vol. 2/WEAPBlnt_Spear And Stick Impact, Wooden MKH 2_344 Audio_Medieval Weapons Vol 2.wav",
+      "takes": { "floorDb": -45, "minSilence": 0.12 }
+    },
+    "cf_punch": {
+      "part": 1,
+      "library": "344 Audio - Cinematic Fight Vol. 1",
+      "entry": "344 Audio - Cinematic Fight Vol. 1/FGHTImpt_4 x Punch, Body 02_344 Audio_Cinematic Fight Vol 1.wav",
+      "takes": { "floorDb": -50, "minSilence": 0.15 }
+    },
+    "ep_wind_whoosh": {
+      "part": 1,
+      "library": "344 Audio - Elemental Palette Designed Vol. 1",
+      "entry": "344 Audio - Elemental Palette Designed Vol. 1/WINDDsgn_Wind, Rush, Whoosh, Long x5 01_344 Audio_Elemental Palette Designed Vol 1.wav"
+    },
+    "ep_metal_whoosh": {
+      "part": 1,
+      "library": "344 Audio - Elemental Palette Designed Vol. 1",
+      "entry": "344 Audio - Elemental Palette Designed Vol. 1/METLMisc_Metal, Slow Whoosh, Rattle, Pass By x4 01_344 Audio_Elemental Palette Designed Vol 1.wav"
+    },
+    "air_blast": {
+      "part": 1,
+      "library": "344 Audio - Air Designed",
+      "entry": "344 Audio - Air Designed/AEROJet_Blast Off Clean_344 Audio_Air Designed.wav"
+    },
+    "wind_storm": {
+      "part": 1,
+      "library": "344 Audio - Extreme Winds Vol. 1",
+      "entry": "344 Audio - Extreme Winds Vol. 1/WINDDsgn_EXT, Eye Of The Storm_344 Audio_Extreme Winds Vol 1.wav",
+      "until": 70
+    },
+    "dd_metal_hit": {
+      "part": 2,
+      "library": "David Dumais Audio - Melee Weapons Sound Effects Pack 2",
+      "entry": "David Dumais Audio - Melee Weapons Sound Effects Pack 2/METLImpt_METAL SWING HIT Weapon Swing To Metallic Body Impact And Resonant Tail 01_DDUMAIS_MWP2.wav"
+    },
+    "dd_swing_thud": {
+      "part": 2,
+      "library": "David Dumais Audio - Melee Weapons Sound Effects Pack 2",
+      "entry": "David Dumais Audio - Melee Weapons Sound Effects Pack 2/SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav",
+      "takes": { "floorDb": -50, "minSilence": 0.3 }
+    },
+    "dd_swing_scrape": {
+      "part": 2,
+      "library": "David Dumais Audio - Melee Weapons Sound Effects Pack 2",
+      "entry": "David Dumais Audio - Melee Weapons Sound Effects Pack 2/METLFric_SWING SCRAPE Swift Melee Weapon Swing With A Long Blade 14_DDUMAIS_MWP2.wav"
+    },
+    "dd_whip": {
+      "part": 2,
+      "library": "David Dumais Audio - Melee Weapons Sound Effects Pack 2",
+      "entry": "David Dumais Audio - Melee Weapons Sound Effects Pack 2/WEAPWhip_WHIP Snap Crack 05_DDUMAIS_MWP2.wav"
+    },
+    "esm_metal_tap": {
+      "part": 2,
+      "library": "Epic Stock Media - HD Game Materials",
+      "entry": "Epic Stock Media - HD Game Materials/METLImpt_Metal Old File Impact Tap Against Tire Iron Metallic Hit 01_ESM_HDGM.wav"
+    },
+    "esm_sword_slice": {
+      "part": 2,
+      "library": "Epic Stock Media - Tower Defense Game",
+      "entry": "Epic Stock Media - Tower Defense Game/DSGNStngr_Action Deploy Units Sword Slice Special Move Layered Swish 04_ESM_TDG.wav"
+    },
+    "esm_blood_splat": {
+      "part": 2,
+      "library": "Epic Stock Media - Tower Defense Game",
+      "entry": "Epic Stock Media - Tower Defense Game/WOODImpt_Hit Blood Spill Splat Wood Impact Light Hit Squelch Small Thump 03_ESM_TDG.wav"
+    },
+    "esm_gore": {
+      "part": 2,
+      "library": "Epic Stock Media - Halloween Game - Haunted House and Horror Audio Scare Kit",
+      "entry": "Epic Stock Media - Halloween Game - Haunted House and Horror Audio Scare Kit/GORESplt_Gore Designed Transient Heavy Impact Smash 01_ESM_HALG.wav"
+    },
+    "esm_punch": {
+      "part": 2,
+      "library": "Epic Stock Media - Anime Game",
+      "entry": "Epic Stock Media - Anime Game/FGHTImpt_Combat Punch Impact Light Hit Delay Crunchy Vintage Quick Smack 05_ESM_AG.wav"
+    },
+    "esm_cards": {
+      "part": 2,
+      "library": "Epic Stock Media - Board Game - Sound Set Kit for Tabletop and Digital Games",
+      "entry": "Epic Stock Media - Board Game - Sound Set Kit for Tabletop and Digital Games/PAPRHndl_Game Play Cards Dry Show Flip Toss Disgard Near 12_ESM_BG.wav"
+    },
+    "esm_latch": {
+      "part": 2,
+      "library": "Epic Stock Media - HD Lock And Mechanism Sound Design Kit",
+      "entry": "Epic Stock Media - HD Lock And Mechanism Sound Design Kit/MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav"
+    },
+    "esm_cloth_flip": {
+      "part": 2,
+      "library": "Epic Stock Media - Fantasy Game 2 - Sound Kit for Enchanted Realms",
+      "entry": "Epic Stock Media - Fantasy Game 2 - Sound Kit for Enchanted Realms/CLOTHFlp_Action Inventory Open Flip Cloth Canvas Bag Slide Light 02_ESM_FG2.wav"
+    },
+    "esm_glass_whoosh": {
+      "part": 2,
+      "library": "Epic Stock Media - Elemental Mutation Whooshes and Impacts",
+      "entry": "Epic Stock Media - Elemental Mutation Whooshes and Impacts/GLASMvmt_Whoosh Glass Crystal Fragments Sharp Shards Dry 05_ESM_EMWI.wav"
+    },
+    "esm_elec_impact": {
+      "part": 2,
+      "library": "Epic Stock Media - Elemental Mutation Whooshes and Impacts",
+      "entry": "Epic Stock Media - Elemental Mutation Whooshes and Impacts/ELECMisc_Impact Electric Tonal Deep Movement Motion Hiss Glitch 01_ESM_EMWI.wav"
+    },
+    "esm_thunder": {
+      "part": 2,
+      "library": "Epic Stock Media - Public Spaces - Storms Lakes Parks and Rural Nature Exteriors",
+      "entry": "Epic Stock Media - Public Spaces - Storms Lakes Parks and Rural Nature Exteriors/STORM_Texas Rain Thunder Initial Crash Boom Storm 01 Clap Lightning_ESM_CPS.wav",
+      "until": 8
+    },
+    "csd_woosh_slide": {
+      "part": 2,
+      "library": "Cinematic Sound Design - Ultra Transitions & Impacts",
+      "entry": "Cinematic Sound Design - Ultra Transitions & Impacts/Woosh Sweep Slide Infographics Basic.wav"
+    },
+    "csd_woosh_debris": {
+      "part": 2,
+      "library": "Cinematic Sound Design - Colossal Impacts",
+      "entry": "Cinematic Sound Design - Colossal Impacts/Woosh Debris.wav"
+    },
+    "csd_cut_sweep": {
+      "part": 2,
+      "library": "Cinematic Sound Design - Colossal Impacts",
+      "entry": "Cinematic Sound Design - Colossal Impacts/Impact Cut Sweep.wav"
+    },
+    "csd_page_muted": {
+      "part": 2,
+      "library": "Cinematic Sound Design - Paper Foley",
+      "entry": "Cinematic Sound Design - Paper Foley/Encyclopedia Glossy Page Turn Muted.wav"
+    },
+    "csd_page_a4": {
+      "part": 2,
+      "library": "Cinematic Sound Design - Paper Foley",
+      "entry": "Cinematic Sound Design - Paper Foley/A4 Printing Paper Rattle Page Turn Tail.wav"
+    },
+    "ice_crush": {
+      "part": 2,
+      "library": "Alexander Kopeikin - 100 kHz Designed Ice",
+      "entry": "Alexander Kopeikin - 100 kHz Designed Ice/ice, block of ice crushed, heavy-015.wav"
+    },
+    "ice_snap": {
+      "part": 2,
+      "library": "Alexander Kopeikin - 100 kHz Designed Ice",
+      "entry": "Alexander Kopeikin - 100 kHz Designed Ice/ice, crack, ice block snapping-001.wav"
+    },
+    "ice_fissure": {
+      "part": 2,
+      "library": "Alexander Kopeikin - 100 kHz Designed Ice",
+      "entry": "Alexander Kopeikin - 100 kHz Designed Ice/ice, surface cracking, fissure, fast, hard-003.wav"
+    },
+    "boom_011": {
+      "part": 2,
+      "library": "Federico Soler - Effective Trailer Booms Vol. 2",
+      "entry": "Federico Soler - Effective Trailer Booms Vol. 2/EffectiveTrailer_Booms_Vol2_011.wav",
+      "until": 5
+    },
+    "boom_075": {
+      "part": 2,
+      "library": "Federico Soler - Effective Trailer Booms Vol. 2",
+      "entry": "Federico Soler - Effective Trailer Booms Vol. 2/EffectiveTrailer_Booms_Vol2_075.wav",
+      "until": 5
+    },
+    "boom_214": {
+      "part": 2,
+      "library": "Federico Soler - Effective Trailer Booms Vol. 2",
+      "entry": "Federico Soler - Effective Trailer Booms Vol. 2/EffectiveTrailer_Booms_Vol2_214.wav",
+      "until": 5
+    },
+    "ima_arc": {
+      "part": 3,
+      "library": "InMotionAudio - Arc",
+      "entry": "InMotionAudio - Arc/ELECArc_ArcDesign15_InMotionAudio_Arc.wav"
+    },
+    "ima_case_down": {
+      "part": 3,
+      "library": "InMotionAudio - Instrument Case",
+      "entry": "InMotionAudio - Instrument Case/OBJLug_CaseDown_Concrete12_InMotionAudio_InstrumentCase.wav"
+    },
+    "ima_cloth_24": {
+      "part": 3,
+      "library": "InMotionAudio - Foley T-Shirt",
+      "entry": "InMotionAudio - Foley T-Shirt/FOLYClth_ClothMovement24_InMotionAudio_FoleyT-Shirt.wav"
+    },
+    "ima_cloth": {
+      "part": 3,
+      "library": "InMotionAudio - Foley T-Shirt",
+      "entry": "InMotionAudio - Foley T-Shirt/FOLYClth_ClothMovement29_InMotionAudio_FoleyT-Shirt.wav"
+    },
+    "jse_soft_waves": {
+      "part": 3,
+      "library": "Just Sound Effects - Rocky Coast of Norway",
+      "entry": "Just Sound Effects - Rocky Coast of Norway/WATRWave_Soft Waves Cliffs_JSE_RCoN_Stereo.wav",
+      "until": 75
+    },
+    "iv_campfire": {
+      "part": 3,
+      "library": "Ivo Vicic - Campfire - Bonfire FX",
+      "entry": "Ivo Vicic - Campfire - Bonfire FX/24 Campfire, Dropping Fresh Pine Branches in Fire, Crackling, Sizzling Strong, Close 02.wav",
+      "until": 90
+    },
+    "nm_low_ring": {
+      "part": 5,
+      "library": "The Noisery - Moaning Metal",
+      "entry": "The Noisery - Moaning Metal/DSGNImpt_Metal Hit Thud Thump Low Ring Geofon 1_The Noisery_Moaning Metal.wav"
+    }
+  },
+  "outputs": [
+    {
+      "file": "clang_light_01.wav",
+      "use": "Block clang (light attacks): sword impact plus a bright metal tap",
+      "layers": [
+        { "source": "hw_slide", "take": 3, "from": -0.004, "length": 0.34, "pitch": 2, "fadeOut": 0.14 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.42, "pitch": 3, "gainDb": -7 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "clang_light_02.wav",
+      "use": "Block clang (light attacks)",
+      "layers": [
+        { "source": "hw_slide", "take": 6, "from": -0.004, "length": 0.34, "pitch": 3, "fadeOut": 0.14 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.42, "pitch": 6, "gainDb": -8 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "clang_light_03.wav",
+      "use": "Block clang (light attacks)",
+      "layers": [
+        { "source": "hw_slide", "take": 4, "from": -0.004, "length": 0.34, "pitch": 1, "fadeOut": 0.14 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.42, "pitch": 1, "gainDb": -6 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "clang_light_04.wav",
+      "use": "Block clang (light attacks): sword impact with a short resonant ring",
+      "layers": [
+        { "source": "hw_slide", "take": 1, "from": -0.004, "length": 0.34, "pitch": 4, "fadeOut": 0.14 },
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 0.4, "pitch": 7, "gainDb": -8, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "clang_heavy_01.wav",
+      "use": "Block clang (heavy attacks): metal impact with a resonant tail and a low ring",
+      "layers": [
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 1.18, "fadeOut": 0.5 },
+        { "source": "nm_low_ring", "peakIn": [0, 0.3], "length": 1.33, "pitch": 2, "gainDb": -9, "fadeOut": 0.6 },
+        { "source": "hw_slide", "take": 3, "from": -0.004, "length": 0.2, "pitch": -2, "gainDb": -6, "fadeOut": 0.08 }
+      ],
+      "process": { "highpass": 60, "maxLength": 1.3, "fadeOut": 0.4 }
+    },
+    {
+      "file": "clang_heavy_02.wav",
+      "use": "Block clang (heavy attacks)",
+      "layers": [
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 1.18, "pitch": -2, "fadeOut": 0.5 },
+        { "source": "nm_low_ring", "peakIn": [0, 0.3], "length": 1.33, "gainDb": -8, "fadeOut": 0.6 },
+        { "source": "hw_slide", "take": 5, "from": -0.004, "length": 0.2, "pitch": -3, "gainDb": -6, "fadeOut": 0.08 }
+      ],
+      "process": { "highpass": 60, "maxLength": 1.3, "fadeOut": 0.4 }
+    },
+    {
+      "file": "clang_heavy_03.wav",
+      "use": "Block clang (heavy attacks)",
+      "layers": [
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 1.18, "pitch": -3.5, "fadeOut": 0.5 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.42, "pitch": -4, "gainDb": -4 },
+        { "source": "nm_low_ring", "peakIn": [0, 0.3], "length": 1.33, "pitch": -2, "gainDb": -10, "fadeOut": 0.6 }
+      ],
+      "process": { "highpass": 60, "maxLength": 1.3, "fadeOut": 0.4 }
+    },
+    {
+      "file": "clang_heavy_04.wav",
+      "use": "Block clang (heavy attacks)",
+      "layers": [
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 1.18, "pitch": 1.5, "fadeOut": 0.5 },
+        { "source": "hw_slide", "take": 2, "from": -0.004, "length": 0.22, "pitch": -1, "gainDb": -5, "fadeOut": 0.08 }
+      ],
+      "process": { "highpass": 60, "maxLength": 1.3, "fadeOut": 0.4 }
+    },
+    {
+      "file": "parry_contact_01.wav",
+      "use": "Parry: the bright contact of the two blades, played under the generated parry ring",
+      "layers": [
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 0.6, "pitch": 4, "fadeOut": 0.35 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.42, "pitch": 5, "gainDb": -4 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "parry_contact_02.wav",
+      "use": "Parry blade contact",
+      "layers": [
+        { "source": "hw_slide", "take": 3, "from": -0.004, "length": 0.25, "pitch": 5, "fadeOut": 0.1 },
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 0.5, "pitch": 6, "gainDb": -5, "fadeOut": 0.3 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "parry_contact_03.wav",
+      "use": "Parry blade contact",
+      "layers": [
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.42, "pitch": 2 },
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 0.5, "pitch": 3, "gainDb": -4, "fadeOut": 0.3 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "hit_blade_01.wav",
+      "use": "Blade into flesh (Katana hits): wet splat, the tail of a sword slice and a body thump",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "decay": 0.15 },
+        { "source": "esm_sword_slice", "start": 0.414, "length": 0.3, "fadeIn": 0.004, "fadeOut": 0.18, "gainDb": -5 },
+        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.012, "length": 0.3, "pitch": 2, "gainDb": -8, "lowpass": 1500 }
+      ],
+      "process": { "highpass": 70 }
+    },
+    {
+      "file": "hit_blade_02.wav",
+      "use": "Blade into flesh (Katana hits)",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": 1.5, "decay": 0.15 },
+        { "source": "esm_sword_slice", "start": 0.52, "length": 0.3, "pitch": 2, "fadeIn": 0.004, "fadeOut": 0.18, "gainDb": -4 },
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.012, "length": 0.3, "gainDb": -9, "lowpass": 1500 }
+      ],
+      "process": { "highpass": 70 }
+    },
+    {
+      "file": "hit_blade_03.wav",
+      "use": "Blade into flesh (Katana hits)",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": -1.5, "decay": 0.15 },
+        { "source": "esm_sword_slice", "start": 0.62, "length": 0.3, "pitch": -1, "fadeIn": 0.004, "fadeOut": 0.18, "gainDb": -5 },
+        { "source": "esm_gore", "start": 0.066, "length": 0.3, "gainDb": -9, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 70 }
+    },
+    {
+      "file": "hit_blade_heavy_01.wav",
+      "use": "Heavy blade into flesh: gore smash, splat, slice and body thump",
+      "layers": [
+        { "source": "esm_gore", "start": 0.08, "length": 0.62, "decay": 0.2, "fadeOut": 0.3 },
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": -2, "gainDb": -3, "decay": 0.15 },
+        { "source": "esm_sword_slice", "start": 0.45, "length": 0.4, "pitch": -2, "fadeIn": 0.004, "fadeOut": 0.2, "gainDb": -5 },
+        { "source": "cf_punch", "take": 3, "anchor": "peak", "from": -0.006, "length": 0.35, "pitch": -3, "gainDb": -6, "lowpass": 1200, "decay": 0.4 }
+      ],
+      "process": { "highpass": 50 }
+    },
+    {
+      "file": "hit_blade_heavy_02.wav",
+      "use": "Heavy blade into flesh",
+      "layers": [
+        { "source": "esm_gore", "start": 0.08, "length": 0.62, "pitch": -2, "decay": 0.2, "fadeOut": 0.3 },
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "decay": 0.15 },
+        { "source": "esm_sword_slice", "start": 0.55, "length": 0.4, "pitch": -3, "fadeIn": 0.004, "fadeOut": 0.2, "gainDb": -6 },
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.008, "length": 0.35, "pitch": -2, "gainDb": -6, "lowpass": 1200, "decay": 0.3 }
+      ],
+      "process": { "highpass": 50 }
+    },
+    {
+      "file": "hit_dagger_01.wav",
+      "use": "Dagger stab and slice: a smaller, higher splat",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": 3 },
+        { "source": "esm_sword_slice", "start": 0.42, "length": 0.18, "pitch": 4, "fadeIn": 0.003, "fadeOut": 0.1, "gainDb": -5 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "hit_dagger_02.wav",
+      "use": "Dagger stab and slice",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": 4.5, "decay": 0.15 },
+        { "source": "esm_sword_slice", "start": 0.55, "length": 0.18, "pitch": 5, "fadeIn": 0.003, "fadeOut": 0.1, "gainDb": -5 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "hit_dagger_03.wav",
+      "use": "Dagger stab and slice",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": 2, "decay": 0.15 },
+        { "source": "esm_punch", "start": 0.03, "length": 0.2, "pitch": 3, "gainDb": -8, "fadeOut": 0.1 },
+        { "source": "esm_sword_slice", "start": 0.6, "length": 0.18, "pitch": 3, "fadeIn": 0.003, "fadeOut": 0.1, "gainDb": -6 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "hit_fist_01.wav",
+      "use": "Bare-hand punch to the body",
+      "layers": [{ "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.012, "length": 0.45, "fadeOut": 0.15 }],
+      "process": { "highpass": 50 }
+    },
+    {
+      "file": "hit_fist_02.wav",
+      "use": "Bare-hand punch to the body",
+      "layers": [{ "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.012, "length": 0.45, "pitch": -1, "decay": 0.25, "fadeOut": 0.15 }],
+      "process": { "highpass": 50 }
+    },
+    {
+      "file": "hit_fist_03.wav",
+      "use": "Bare-hand punch to the body",
+      "layers": [{ "source": "cf_punch", "start": 2.276, "length": 0.4, "pitch": 1, "decay": 0.35, "fadeOut": 0.15 }],
+      "process": { "highpass": 50 }
+    },
+    {
+      "file": "hit_fist_04.wav",
+      "use": "Bare-hand punch to the body",
+      "layers": [
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.012, "length": 0.45, "pitch": -2, "fadeOut": 0.15 },
+        { "source": "esm_punch", "start": 0.03, "length": 0.3, "pitch": -2, "gainDb": -9, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 50 }
+    },
+    {
+      "file": "hit_fist_heavy_01.wav",
+      "use": "Heavy bare-hand blow (leap counter, heavy palm strikes)",
+      "layers": [
+        { "source": "cf_punch", "start": 2.276, "length": 0.45, "pitch": -3, "decay": 0.4, "fadeOut": 0.2 },
+        { "source": "esm_punch", "start": 0.034, "length": 0.45, "pitch": -3, "gainDb": -5, "decay": 0.12, "fadeOut": 0.2 },
+        { "source": "dd_swing_thud", "peakIn": [12.15, 12.3], "length": 0.4, "gainDb": -10, "lowpass": 800, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "hit_colossal_01.wav",
+      "use": "Greatsword hit: heavy thud, pitched-down ice crunch for bone and rock, and a sub boom",
+      "layers": [
+        { "source": "dd_swing_thud", "peakIn": [3.15, 3.3], "length": 0.9, "decay": 0.35, "fadeOut": 0.5 },
+        { "source": "ice_crush", "peakIn": [1.25, 1.5], "length": 0.5, "pitch": -5, "gainDb": -5, "decay": 0.3, "fadeOut": 0.3 },
+        { "source": "boom_214", "start": 0.29, "length": 0.7, "lowpass": 180, "gainDb": -7.5, "decay": 0.35, "fadeOut": 0.5 }
+      ],
+      "process": { "highpass": 35, "maxLength": 1.1, "fadeOut": 0.3 }
+    },
+    {
+      "file": "hit_colossal_02.wav",
+      "use": "Greatsword hit",
+      "layers": [
+        { "source": "dd_swing_thud", "peakIn": [15.15, 15.3], "length": 0.9, "decay": 0.35, "fadeOut": 0.5 },
+        { "source": "ice_snap", "peakIn": [0.6, 0.7], "length": 0.5, "pitch": -6, "gainDb": -6, "decay": 0.2, "fadeOut": 0.3 },
+        { "source": "boom_075", "start": 0.295, "length": 0.7, "lowpass": 180, "gainDb": -7.5, "decay": 0.25, "fadeOut": 0.5 }
+      ],
+      "process": { "highpass": 35, "maxLength": 1.1, "fadeOut": 0.3 }
+    },
+    {
+      "file": "hit_colossal_03.wav",
+      "use": "Greatsword hit",
+      "layers": [
+        { "source": "dd_swing_thud", "peakIn": [30.15, 30.3], "length": 0.9, "decay": 0.35, "fadeOut": 0.5 },
+        { "source": "ice_fissure", "peakIn": [0.3, 0.4], "from": -0.004, "length": 0.55, "pitch": -5, "gainDb": -6, "decay": 0.3, "fadeOut": 0.3 },
+        { "source": "boom_011", "start": 0.305, "length": 0.7, "lowpass": 180, "gainDb": -8, "decay": 0.35, "fadeOut": 0.5 }
+      ],
+      "process": { "highpass": 35, "maxLength": 1.1, "fadeOut": 0.3 }
+    },
+    {
+      "file": "hit_colossal_04.wav",
+      "use": "Greatsword hit",
+      "layers": [
+        { "source": "dd_swing_thud", "peakIn": [48.15, 48.3], "length": 0.9, "decay": 0.35, "fadeOut": 0.5 },
+        { "source": "ice_crush", "start": 0.87, "length": 0.5, "pitch": -7, "gainDb": -5, "decay": 0.25, "fadeOut": 0.3 },
+        { "source": "boom_214", "start": 0.29, "length": 0.7, "lowpass": 150, "gainDb": -7.5, "decay": 0.35, "fadeOut": 0.5 }
+      ],
+      "process": { "highpass": 35, "maxLength": 1.1, "fadeOut": 0.3 }
+    },
+    {
+      "file": "crunch_01.wav",
+      "use": "Bone-and-rock crunch layer (stomp counter, Impaler, colossal extras)",
+      "layers": [
+        { "source": "ice_snap", "peakIn": [0.6, 0.7], "length": 0.7, "pitch": -4, "decay": 0.3, "fadeOut": 0.4 },
+        { "source": "ice_crush", "peakIn": [1.25, 1.5], "length": 0.5, "pitch": -7, "gainDb": -4, "decay": 0.35, "fadeOut": 0.3 }
+      ],
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "crunch_02.wav",
+      "use": "Bone-and-rock crunch layer",
+      "layers": [{ "source": "ice_fissure", "peakIn": [0.3, 0.4], "from": -0.002, "length": 0.65, "pitch": -6, "decay": 0.15, "fadeOut": 0.35 }],
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "crunch_03.wav",
+      "use": "Bone-and-rock crunch layer",
+      "layers": [
+        { "source": "ice_crush", "peakIn": [1.25, 1.5], "length": 0.6, "pitch": -5, "decay": 0.35, "fadeOut": 0.35 },
+        { "source": "ice_fissure", "peakIn": [0.5, 0.6], "length": 0.45, "pitch": -8, "gainDb": -6, "decay": 0.3, "fadeOut": 0.25 }
+      ],
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "whoosh_light_01.wav",
+      "use": "Swing whoosh, light attacks with a medium weapon (Katana)",
+      "layers": [{ "source": "dd_swing_scrape", "start": 0, "length": 0.55, "fadeOut": 0.25 }],
+      "process": { "highpass": 150, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "whoosh_light_02.wav",
+      "use": "Swing whoosh, light",
+      "layers": [{ "source": "dd_swing_scrape", "start": 0, "length": 0.55, "pitch": 2, "fadeOut": 0.25 }],
+      "process": { "highpass": 150, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "whoosh_light_03.wav",
+      "use": "Swing whoosh, light",
+      "layers": [
+        { "source": "ep_wind_whoosh", "start": 0.04, "length": 0.6, "pitch": 2, "highpass": 300, "fadeOut": 0.25 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.3, "pitch": -2, "gainDb": -6, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 150, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "whoosh_light_04.wav",
+      "use": "Swing whoosh, light",
+      "layers": [
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.3, "pitch": -3, "fadeOut": 0.12 },
+        { "source": "dd_swing_scrape", "start": 0, "length": 0.45, "pitch": -1, "gainDb": -6, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 150, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "whoosh_small_01.wav",
+      "use": "Swing whoosh, small weapons (Twin Daggers, bare hands)",
+      "layers": [{ "source": "csd_woosh_slide", "start": 0, "end": 0.3, "pitch": 3, "fadeOut": 0.1 }],
+      "process": { "highpass": 250, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "whoosh_small_02.wav",
+      "use": "Swing whoosh, small weapons",
+      "layers": [{ "source": "dd_swing_scrape", "start": 0, "length": 0.3, "pitch": 6, "fadeOut": 0.15 }],
+      "process": { "highpass": 250, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "whoosh_small_03.wav",
+      "use": "Swing whoosh, small weapons",
+      "layers": [
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.3, "pitch": 1, "fadeOut": 0.1 },
+        { "source": "ep_wind_whoosh", "start": 0.04, "length": 0.35, "pitch": 6, "highpass": 600, "gainDb": -4, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 250, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "whoosh_heavy_01.wav",
+      "use": "Swing whoosh, heavy attacks with a medium weapon",
+      "layers": [
+        { "source": "dd_swing_scrape", "start": 0, "length": 0.6, "pitch": -6, "fadeOut": 0.3 },
+        { "source": "ep_metal_whoosh", "start": 0.4, "length": 0.7, "pitch": -2, "gainDb": -6, "fadeIn": 0.03, "fadeOut": 0.3 }
+      ],
+      "process": { "highpass": 80, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "whoosh_heavy_02.wav",
+      "use": "Swing whoosh, heavy",
+      "layers": [
+        { "source": "dd_swing_scrape", "start": 0, "length": 0.7, "pitch": -4, "fadeOut": 0.3 },
+        { "source": "ep_wind_whoosh", "start": 0.04, "length": 0.6, "pitch": -3, "gainDb": -6, "fadeOut": 0.25 }
+      ],
+      "process": { "highpass": 80, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "whoosh_heavy_03.wav",
+      "use": "Swing whoosh, heavy",
+      "layers": [
+        { "source": "csd_woosh_debris", "start": 0.3, "length": 0.5, "fadeIn": 0.02, "fadeOut": 0.25 },
+        { "source": "dd_swing_scrape", "start": 0, "length": 0.55, "pitch": -2, "gainDb": -4, "fadeOut": 0.25 }
+      ],
+      "process": { "highpass": 80, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "whoosh_colossal_01.wav",
+      "use": "Swing whoosh, colossal weapons (Greatsword)",
+      "layers": [
+        { "source": "csd_woosh_debris", "start": 0.28, "length": 0.7, "pitch": -2, "fadeIn": 0.04, "fadeOut": 0.35 },
+        { "source": "ep_metal_whoosh", "start": 0.42, "length": 0.6, "pitch": -5, "gainDb": -5, "fadeIn": 0.03, "fadeOut": 0.3 }
+      ],
+      "process": { "highpass": 45, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "whoosh_colossal_02.wav",
+      "use": "Swing whoosh, colossal",
+      "layers": [
+        { "source": "ep_metal_whoosh", "start": 0.42, "length": 0.65, "pitch": -6, "fadeIn": 0.03, "fadeOut": 0.35 },
+        { "source": "dd_swing_scrape", "start": 0, "length": 0.7, "pitch": -7, "gainDb": -4, "fadeOut": 0.3 }
+      ],
+      "process": { "highpass": 45, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "whoosh_colossal_03.wav",
+      "use": "Swing whoosh, colossal",
+      "layers": [
+        { "source": "csd_woosh_debris", "start": 0.3, "length": 0.7, "pitch": -4, "fadeIn": 0.04, "fadeOut": 0.35 },
+        { "source": "ep_wind_whoosh", "start": 0.04, "length": 0.7, "pitch": -5, "gainDb": -4, "fadeOut": 0.3 }
+      ],
+      "process": { "highpass": 45, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "whip_crack_01.wav",
+      "use": "Whip snap (for the Bladed Whip, later)",
+      "layers": [{ "source": "dd_whip", "start": 0.1, "end": 1.1, "fadeOut": 0.4 }],
+      "process": { "highpass": 80 }
+    },
+    {
+      "file": "weapon_clatter_01.wav",
+      "use": "A dropped weapon clattering and spinning on stone",
+      "layers": [{ "source": "hw_shield_spin", "start": 27.3, "length": 2.2, "fadeOut": 0.8 }],
+      "process": { "highpass": 100 }
+    },
+    {
+      "file": "weapon_clatter_02.wav",
+      "use": "A dropped weapon clattering",
+      "layers": [{ "source": "hw_shield_spin", "start": 1.55, "length": 2.0, "pitch": 1, "fadeOut": 0.8 }],
+      "process": { "highpass": 100 }
+    },
+    {
+      "file": "weapon_clatter_03.wav",
+      "use": "A dropped weapon clattering",
+      "layers": [{ "source": "hw_shield_spin", "start": 13.5, "length": 2.2, "pitch": -1, "fadeOut": 0.8 }],
+      "process": { "highpass": 100 }
+    },
+    {
+      "file": "weapon_bounce_01.wav",
+      "use": "A dropped weapon bouncing on the floor",
+      "layers": [
+        { "source": "hw_shield_spin", "start": 6.22, "end": 6.42, "fadeOut": 0.08 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.35, "pitch": 7, "gainDb": -12 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "weapon_bounce_02.wav",
+      "use": "A dropped weapon bouncing",
+      "layers": [
+        { "source": "hw_shield_spin", "start": 24.87, "end": 25.1, "fadeOut": 0.08 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.35, "pitch": 4, "gainDb": -12 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "weapon_bounce_03.wav",
+      "use": "A dropped weapon bouncing",
+      "layers": [
+        { "source": "hw_shield_spin", "start": 33.62, "end": 33.82, "fadeOut": 0.08 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.35, "pitch": 9, "gainDb": -12 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "ui_move_01.wav",
+      "use": "Menu cursor move: a short, dry card tick",
+      "layers": [{ "source": "esm_cards", "peakIn": [0.095, 0.105], "from": -0.003, "length": 0.036, "pitch": 2, "lowpass": 6000, "fadeOut": 0.02 }],
+      "process": { "highpass": 200, "normalize": { "peakDb": -6 } }
+    },
+    {
+      "file": "ui_move_02.wav",
+      "use": "Menu cursor move: a muted page edge",
+      "layers": [{ "source": "csd_page_muted", "peakIn": [0.15, 0.25], "length": 0.13, "fadeOut": 0.06 }],
+      "process": { "highpass": 200, "normalize": { "peakDb": -6 } }
+    },
+    {
+      "file": "ui_move_03.wav",
+      "use": "Menu cursor move",
+      "layers": [{ "source": "esm_cards", "peakIn": [0.095, 0.105], "from": -0.003, "length": 0.036, "pitch": -1, "lowpass": 4500, "fadeOut": 0.02 }],
+      "process": { "highpass": 200, "normalize": { "peakDb": -6 } }
+    },
+    {
+      "file": "ui_select_01.wav",
+      "use": "Menu select: a crisp wooden clack (like hyoshigi clappers) over a soft latch",
+      "layers": [
+        { "source": "hw_wood", "take": 2, "anchor": "peak", "from": -0.003, "length": 0.2, "pitch": 4, "fadeOut": 0.08 },
+        { "source": "esm_latch", "start": 0.008, "end": 0.11, "gainDb": -6 }
+      ],
+      "process": { "highpass": 120, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "ui_select_02.wav",
+      "use": "Menu select",
+      "layers": [
+        { "source": "hw_wood", "take": 4, "anchor": "peak", "from": -0.003, "length": 0.2, "pitch": 5, "fadeOut": 0.08 },
+        { "source": "esm_latch", "start": 0.008, "end": 0.11, "pitch": 2, "gainDb": -8 }
+      ],
+      "process": { "highpass": 120, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "ui_confirm_01.wav",
+      "use": "Confirm (lock in, start a match): a double wooden clack and a deep latch",
+      "layers": [
+        { "source": "hw_wood", "take": 8, "from": -0.003, "length": 0.3, "fadeOut": 0.12 },
+        { "source": "hw_wood", "take": 10, "from": -0.003, "length": 0.3, "pitch": 3, "offset": 0.09, "fadeOut": 0.12 },
+        { "source": "esm_latch", "start": 0, "end": 0.11, "pitch": -3, "gainDb": -4 }
+      ],
+      "process": { "highpass": 90, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "ui_back_01.wav",
+      "use": "Menu back: a page turning away",
+      "layers": [
+        { "source": "csd_page_a4", "start": 0.1, "end": 0.4, "pitch": -1, "fadeOut": 0.15 },
+        { "source": "hw_wood", "take": 5, "anchor": "peak", "from": -0.003, "length": 0.15, "pitch": -2, "gainDb": -9, "fadeOut": 0.06 }
+      ],
+      "process": { "highpass": 150, "normalize": { "peakDb": -5 } }
+    },
+    {
+      "file": "ui_back_02.wav",
+      "use": "Menu back",
+      "layers": [
+        { "source": "csd_page_muted", "peakIn": [0.15, 0.25], "length": 0.13, "pitch": -3, "fadeOut": 0.06 },
+        { "source": "hw_wood", "take": 7, "anchor": "peak", "from": -0.003, "length": 0.15, "pitch": -3, "gainDb": -8, "fadeOut": 0.06 }
+      ],
+      "process": { "highpass": 150, "normalize": { "peakDb": -5 } }
+    },
+    {
+      "file": "amb_shrine_loop.wav",
+      "use": "Arena ambience for the floating Moonlit Shrine: high wind, distant water below, a faint brazier crackle (stereo, seamless 60 s loop)",
+      "layers": [
+        { "source": "wind_storm", "start": 2, "length": 64, "lowpass": 3500, "order": 1, "fadeIn": 0, "fadeOut": 0 },
+        { "source": "jse_soft_waves", "start": 5, "length": 64, "lowpass": 1600, "gainDb": -9, "width": 0.8, "fadeIn": 0, "fadeOut": 0 },
+        { "source": "iv_campfire", "start": 20, "length": 64, "highpass": 500, "lowpass": 7000, "gainDb": -12, "width": 0.4, "fadeIn": 0, "fadeOut": 0 }
+      ],
+      "process": { "channels": 2, "highpass": 30, "normalize": { "rmsDb": -24, "ceilingDb": -3 }, "loop": { "seconds": 60, "crossfade": 4 } }
+    },
+    {
+      "file": "ult_wave_01.wav",
+      "use": "Moonsplitter: the crescent wave tearing through the air",
+      "layers": [
+        { "source": "esm_glass_whoosh", "start": 0.6, "end": 2.45, "fadeIn": 0.05, "fadeOut": 0.4 },
+        { "source": "dd_swing_scrape", "start": 0, "length": 0.8, "pitch": -5, "offset": 0.75, "gainDb": -3, "fadeOut": 0.35 },
+        { "source": "ep_wind_whoosh", "start": 0.04, "length": 0.9, "pitch": -2, "offset": 0.8, "gainDb": -6, "fadeOut": 0.4 }
+      ],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "lightning_01.wav",
+      "use": "Lightning Tempest: thunder clap, electric arc and a deep electric hit",
+      "layers": [
+        { "source": "esm_thunder", "start": 3.18, "length": 3.0, "fadeIn": 0.004, "fadeOut": 1.5 },
+        { "source": "ima_arc", "start": 0, "length": 0.7, "gainDb": -4, "fadeOut": 0.2 },
+        { "source": "esm_elec_impact", "start": 0.03, "length": 1.2, "gainDb": -6, "fadeOut": 0.6 }
+      ],
+      "process": { "highpass": 60, "maxLength": 2.6, "fadeOut": 0.8 }
+    },
+    {
+      "file": "lightning_02.wav",
+      "use": "Lightning Tempest",
+      "layers": [
+        { "source": "esm_thunder", "start": 3.18, "length": 3.0, "pitch": 2, "fadeIn": 0.004, "fadeOut": 1.5 },
+        { "source": "ima_arc", "start": 0, "length": 0.7, "pitch": 3, "gainDb": -4, "fadeOut": 0.2 },
+        { "source": "esm_elec_impact", "start": 0.03, "length": 1.2, "pitch": -2, "gainDb": -6, "fadeOut": 0.6 }
+      ],
+      "process": { "highpass": 60, "maxLength": 2.6, "fadeOut": 0.8 }
+    },
+    {
+      "file": "ult_dash_01.wav",
+      "use": "Impaler dash: a burst of air and debris",
+      "layers": [
+        { "source": "csd_woosh_debris", "peakIn": [0.3, 0.5], "from": -0.02, "length": 0.55, "pitch": 1, "fadeIn": 0.01, "fadeOut": 0.3 },
+        { "source": "air_blast", "start": 6.9, "length": 0.8, "gainDb": -3, "fadeIn": 0.01, "fadeOut": 0.4 }
+      ],
+      "process": { "highpass": 50 }
+    },
+    {
+      "file": "boom_01.wav",
+      "use": "Heavy boom for the KO and the ultimate burst",
+      "layers": [{ "source": "boom_214", "start": 0.25, "length": 3.2, "fadeOut": 2.0 }],
+      "process": { "highpass": 25 }
+    },
+    {
+      "file": "boom_02.wav",
+      "use": "Heavy boom with a debris impact",
+      "layers": [
+        { "source": "boom_075", "start": 0.24, "length": 3.0, "fadeOut": 1.8 },
+        { "source": "csd_cut_sweep", "start": 0.95, "length": 1.5, "gainDb": -5, "fadeOut": 0.8 }
+      ],
+      "process": { "highpass": 25 }
+    },
+    {
+      "file": "boom_03.wav",
+      "use": "Heavy boom",
+      "layers": [{ "source": "boom_011", "start": 0.25, "length": 3.0, "pitch": -2, "fadeOut": 1.8 }],
+      "process": { "highpass": 25 }
+    },
+    {
+      "file": "body_drop_01.wav",
+      "use": "A body hitting the stone floor (layered with the generated body fall)",
+      "layers": [
+        { "source": "ima_case_down", "start": 0.02, "length": 0.5, "pitch": -5, "fadeOut": 0.2 },
+        { "source": "cf_punch", "take": 3, "anchor": "peak", "from": -0.012, "length": 0.4, "pitch": -6, "gainDb": -4, "lowpass": 1200, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "body_drop_02.wav",
+      "use": "A body hitting the stone floor",
+      "layers": [
+        { "source": "ima_case_down", "start": 0.02, "length": 0.5, "pitch": -3, "fadeOut": 0.2 },
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.012, "length": 0.4, "pitch": -5, "gainDb": -4, "lowpass": 1200, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "dodge_cloth_01.wav",
+      "use": "Dodge: a quick cloth flap (layered with the generated dodge swish)",
+      "layers": [{ "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.02, "length": 0.3, "fadeOut": 0.2 }],
+      "process": { "highpass": 150, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "dodge_cloth_02.wav",
+      "use": "Dodge cloth flap",
+      "layers": [{ "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.02, "length": 0.3, "pitch": 2, "fadeOut": 0.2 }],
+      "process": { "highpass": 150, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "dodge_cloth_03.wav",
+      "use": "Dodge cloth flap",
+      "layers": [{ "source": "ima_cloth", "peakIn": [0.9, 1.15], "from": -0.02, "length": 0.3, "pitch": 1, "fadeIn": 0.01, "fadeOut": 0.2 }],
+      "process": { "highpass": 150, "normalize": { "peakDb": -3 } }
+    },
+    {
+      "file": "roll_01.wav",
+      "use": "Roll: a cloth tumble and a thump on the stone as the shoulder takes the ground (authored-animation task 30)",
+      "layers": [
+        { "source": "ima_cloth", "peakIn": [0.9, 1.15], "from": -0.12, "length": 0.45, "fadeIn": 0.03, "fadeOut": 0.2 },
+        { "source": "ima_case_down", "start": 0.02, "length": 0.3, "pitch": -2, "gainDb": -6, "offset": 0.1, "lowpass": 1500, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "roll_02.wav",
+      "use": "Roll: cloth tumble and thump",
+      "layers": [
+        { "source": "ima_cloth_24", "peakIn": [0.0, 3.0], "from": -0.12, "length": 0.45, "fadeIn": 0.03, "fadeOut": 0.2 },
+        { "source": "ima_case_down", "start": 0.02, "length": 0.3, "pitch": 0, "gainDb": -7, "offset": 0.12, "lowpass": 1500, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "roll_03.wav",
+      "use": "Roll: cloth tumble and thump",
+      "layers": [
+        { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.1, "length": 0.4, "pitch": -2, "fadeIn": 0.02, "fadeOut": 0.2 },
+        { "source": "ima_case_down", "start": 0.02, "length": 0.3, "pitch": -4, "gainDb": -6, "offset": 0.09, "lowpass": 1500, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 60 }
+    }
+  ]
+}

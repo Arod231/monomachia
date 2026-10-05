@@ -1,0 +1,58 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/anim_studio/gallery/anim_tile.gd" id="1_tile"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tile"]
+bg_color = Color(0.105, 0.11, 0.125, 1)
+border_color = Color(0.2, 0.21, 0.235, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[node name="AnimTile" type="PanelContainer"]
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tile")
+script = ExtResource("1_tile")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="ViewportBox" type="SubViewportContainer" parent="Layout"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Viewport" type="SubViewport" parent="Layout/ViewportBox"]
+unique_name_in_owner = true
+own_world_3d = true
+handle_input_locally = false
+size = Vector2i(256, 256)
+render_target_update_mode = 4
+
+[node name="NameLabel" type="Label" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text_overrun_behavior = 3
+
+[node name="IdLabel" type="Label" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.62, 0.65, 0.72, 1)
+theme_override_font_sizes/font_size = 11
+text_overrun_behavior = 3
+
+[node name="Badges" type="HFlowContainer" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4

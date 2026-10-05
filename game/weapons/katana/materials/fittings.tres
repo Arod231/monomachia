@@ -1,0 +1,7 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "fittings"
+albedo_color = Color(0.42, 0.28, 0.13, 1)
+metallic = 0.8
+roughness = 0.42

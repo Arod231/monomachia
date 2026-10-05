@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second brain</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff;
+  --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+  --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
+  --link: #2a78d6; --broken: #d03b3b; --accent: #eb6834;
+  --g-hand: #eb6834; --g-glossary: #1baf7a; --g-plan: #2a78d6; --g-docs: #8a63d2; --g-code: #c98500; --g-other: #898781;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+    --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+    --link: #5b9df0; --broken: #e06666; --accent: #f07a48;
+    --g-hand: #f07a48; --g-glossary: #2bc28c; --g-plan: #5b9df0; --g-docs: #a585e6; --g-code: #e0a020; --g-other: #898781;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
+  --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
+  --link: #5b9df0; --broken: #e06666; --accent: #f07a48;
+  --g-hand: #f07a48; --g-glossary: #2bc28c; --g-plan: #5b9df0; --g-docs: #a585e6; --g-code: #e0a020; --g-other: #898781;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; display: flex; flex-direction: column; }
+button, input { font: inherit; color: inherit; }
+header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; }
+header h1 { font-size: 15px; font-weight: 600; margin: 0; white-space: nowrap; }
+header h1 span { color: var(--muted); font-weight: 400; }
+#search { flex: 1 1 220px; max-width: 420px; padding: 5px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--card); }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 4px 10px; cursor: pointer; color: var(--text-2); }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--text); font-weight: 600; }
+.nav { border: 1px solid var(--border-strong); background: transparent; border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+.meta { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+#layout { flex: 1; display: grid; grid-template-columns: 270px minmax(0, 1fr) var(--graph-w, 0px); grid-template-rows: minmax(0, 1fr); min-height: 0; }
+#layout.graph-on { --graph-w: 380px; }
+aside { border-right: 1px solid var(--border); overflow: auto; padding: 8px 6px 24px; font-size: 13px; }
+aside details { margin-left: 8px; }
+aside summary { cursor: pointer; color: var(--text-2); padding: 1px 4px; border-radius: 4px; list-style-position: outside; }
+aside summary:hover { background: var(--surface); }
+aside a { display: block; padding: 1px 6px 1px 14px; color: var(--text); text-decoration: none; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+aside a:hover { background: var(--surface); }
+aside a.cur { background: var(--surface); font-weight: 600; }
+aside .count { color: var(--muted); font-size: 11px; }
+.result { padding: 4px 6px; border-radius: 4px; }
+.result a { padding-left: 0; font-weight: 500; }
+.result .snip { color: var(--muted); font-size: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.result mark { background: color-mix(in srgb, var(--accent) 30%, transparent); color: inherit; border-radius: 2px; }
+.empty { color: var(--muted); padding: 8px; }
+main { overflow: auto; padding: 18px 28px 60px; }
+#note { max-width: 760px; margin: 0 auto; }
+.crumbs { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.crumbs a { color: var(--muted); }
+.tag { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 10px; background: var(--surface); color: var(--text-2); }
+#body h1 { font-size: 24px; margin: 6px 0 12px; line-height: 1.25; }
+#body h2 { font-size: 18px; margin: 22px 0 8px; }
+#body h3 { font-size: 15px; margin: 18px 0 6px; }
+#body a { color: var(--link); text-decoration: none; }
+#body a:hover { text-decoration: underline; }
+#body a.broken { color: var(--broken); text-decoration: line-through; cursor: help; }
+#body blockquote { margin: 10px 0; padding: 4px 12px; border-left: 3px solid var(--border-strong); color: var(--text-2); font-size: 13px; }
+#body code { font: 12.5px/1.4 ui-monospace, "Cascadia Code", Consolas, monospace; background: var(--surface); padding: 1px 4px; border-radius: 4px; }
+#body pre { background: var(--surface); padding: 10px 12px; border-radius: 6px; overflow: auto; }
+#body pre code { background: none; padding: 0; }
+#body table { border-collapse: collapse; margin: 10px 0; font-size: 13px; display: block; overflow-x: auto; }
+#body th, #body td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; }
+#body th { background: var(--surface); }
+#body img { max-width: 100%; }
+#body hr { border: 0; border-top: 1px solid var(--border); }
+#backlinks { margin-top: 36px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; }
+#backlinks h2 { font-size: 13px; color: var(--text-2); margin: 0 0 6px; font-weight: 600; }
+#backlinks a { color: var(--link); text-decoration: none; margin-right: 12px; display: inline-block; }
+#graph { border-left: 1px solid var(--border); position: relative; min-width: 0; overflow: hidden; display: none; }
+#layout.graph-on #graph { display: block; }
+#graph canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+#graph .legend { position: absolute; left: 8px; bottom: 6px; font-size: 11px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 2px 10px; pointer-events: none; }
+#graph .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+#graph .hint { position: absolute; right: 8px; top: 6px; font-size: 11px; color: var(--muted); pointer-events: none; }
+#status { padding: 30px; color: var(--muted); }
+@media (max-width: 760px) {
+  #layout, #layout.graph-on { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto; }
+  aside { max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--border); }
+  #layout.graph-on #graph { height: 320px; border-left: 0; border-top: 1px solid var(--border); }
+  main { padding: 14px 16px 40px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Second brain <span>· Monomachia</span></h1>
+  <button class="nav" id="back" title="Back (Alt+Left)" aria-label="Back">←</button>
+  <button class="nav" id="home" title="Home">Home</button>
+  <input id="search" type="search" placeholder="Search notes…  ( / )" aria-label="Search notes" autocomplete="off">
+  <span class="seg" role="group" aria-label="Graph">
+    <button data-graph="off" aria-pressed="true">No graph</button>
+    <button data-graph="local" aria-pressed="false">Local graph</button>
+    <button data-graph="all" aria-pressed="false">Whole vault</button>
+  </span>
+  <span class="meta" id="meta"></span>
+</header>
+<div id="layout">
+  <aside id="side" aria-label="Notes"></aside>
+  <main><div id="status">Building the vault…</div><article id="note" hidden>
+    <div class="crumbs" id="crumbs"></div>
+    <div id="body"></div>
+    <section id="backlinks"></section>
+  </article></main>
+  <div id="graph"><canvas id="cv"></canvas><div class="hint" id="ghint"></div><div class="legend" id="glegend"></div></div>
+</div>
+<script src="vendor/marked.umd.js"></script>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let notes = [], byName = new Map(), outLinks = new Map(), inLinks = new Map(), current = null, meta = {};
+
+// ---------------------------------------------------------------- data
+const GROUPS = [
+  ['hand', 'Hand-written', (p) => !p.startsWith('brain/generated/')],
+  ['glossary', 'Glossary', (p) => p.startsWith('brain/generated/glossary/')],
+  ['plan', 'Plans', (p) => p.startsWith('brain/generated/plan/')],
+  ['docs', 'Docs', (p) => p.startsWith('brain/generated/docs/')],
+  ['code', 'Code', (p) => p.startsWith('brain/generated/code/')],
+];
+const groupOf = (p) => (GROUPS.find((g) => g[2](p)) ?? ['other'])[0];
+
+function splitFrontmatter(text) {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+  if (!m) return { tags: [], body: text };
+  const tags = (/^tags:\s*\[([^\]]*)\]/m.exec(m[1])?.[1] ?? '').split(',').map((t) => t.trim()).filter(Boolean);
+  return { tags, body: text.slice(m[0].length) };
+}
+const WIKI = /(!?)\[\[([^\]|#]*)(#[^\]|]*)?(?:\|([^\]]*))?\]\]/g;
+const resolve = (target) => byName.get(target.split('/').pop().replace(/\.md$/i, '').trim().toLowerCase()) ?? null;
+// Wikilinks outside code fences and code spans.
+function eachProse(text, fn) {
+  return text.split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => (i % 2 ? part : fn(part))).join('');
+}
+
+async function load() {
+  const res = await fetch(new URL('notes.json', location.href), { cache: 'no-store' });
+  if (!res.ok) throw new Error(`notes.json: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  meta = data;
+  notes = data.notes.map((n) => ({ ...n, group: groupOf(n.path), ...splitFrontmatter(n.text) }));
+  byName = new Map(notes.map((n) => [n.name.toLowerCase(), n]));
+  outLinks = new Map(); inLinks = new Map(notes.map((n) => [n, new Set()]));
+  for (const n of notes) {
+    const out = new Set();
+    eachProse(n.body, (s) => { for (const m of s.matchAll(WIKI)) { const t = !m[1] && resolve(m[2]); if (t && t !== n) out.add(t); } return s; });
+    outLinks.set(n, out);
+    for (const t of out) inLinks.get(t).add(n);
+  }
+  $('meta').textContent = `${notes.length} notes${data.label ? ` · ${data.label}` : ''}`;
+  $('meta').title = data.key ? `Built from ${data.key} in ${data.builtMs} ms` : `Built in ${data.builtMs} ms`;
+}
+
+// ---------------------------------------------------------------- tree and search
+function renderTree() {
+  const root = { dirs: new Map(), files: [] };
+  for (const n of notes) {
+    const parts = n.path.replace(/^brain\//, '').split('/').slice(0, -1);
+    let node = root;
+    for (const p of parts) node = node.dirs.get(p) ?? node.dirs.set(p, { dirs: new Map(), files: [] }).get(p);
+    node.files.push(n);
+  }
+  const count = (d) => d.files.length + [...d.dirs.values()].reduce((s, x) => s + count(x), 0);
+  const order = (name) => (name === 'generated' ? 'zz' : name);
+  const html = (d, depth) => {
+    const dirs = [...d.dirs.entries()].sort((a, b) => order(a[0]).localeCompare(order(b[0])));
+    const files = d.files.slice().sort((a, b) => (a.name === 'Home' ? -1 : b.name === 'Home' ? 1 : a.name.localeCompare(b.name, undefined, { numeric: true })));
+    return files.map((n) => `<a href="#/${encodeURIComponent(n.name)}" data-name="${esc(n.name)}" title="${esc(n.name)}">${esc(n.name)}</a>`).join('')
+      + dirs.map(([name, sub]) => `<details${depth === 0 && name !== 'generated' ? ' open' : ''} data-dir="${esc(name)}"><summary>${esc(name)} <span class="count">${count(sub)}</span></summary>${html(sub, depth + 1)}</details>`).join('');
+  };
+  $('side').innerHTML = html(root, 0);
+  markCurrent();
+}
+
+function markCurrent() {
+  for (const a of $('side').querySelectorAll('a.cur')) a.classList.remove('cur');
+  if (!current) return;
+  const a = $('side').querySelector(`a[data-name="${CSS.escape(current.name)}"]`);
+  if (!a) return;
+  a.classList.add('cur');
+  for (let d = a.parentElement.closest('details'); d; d = d.parentElement.closest('details')) d.open = true;
+  a.scrollIntoView({ block: 'nearest' });
+}
+
+function search(q) {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) { renderTree(); return; }
+  const scored = [];
+  for (const n of notes) {
+    const name = n.name.toLowerCase(), body = n.body.toLowerCase();
+    if (!words.every((w) => name.includes(w) || body.includes(w))) continue;
+    let score = 0;
+    for (const w of words) score += (name === w ? 50 : name.startsWith(w) ? 20 : name.includes(w) ? 10 : 0) + Math.min(5, body.split(w).length - 1);
+    if (n.group === 'hand') score += 3;
+    scored.push({ n, score });
+  }
+  scored.sort((a, b) => b.score - a.score || a.n.name.localeCompare(b.n.name));
+  const re = new RegExp(words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
+  const snippet = (n) => {
+    const plain = n.body.replace(WIKI, (m, b, t, h, l) => l || t).replace(/[#*_>`|-]+/g, ' ').replace(/\s+/g, ' ');
+    const i = plain.toLowerCase().indexOf(words[0]);
+    const s = plain.slice(Math.max(0, i - 50), i + 130);
+    return esc(s).replace(re, (m) => `<mark>${m}</mark>`);
+  };
+  $('side').innerHTML = scored.length
+    ? `<div class="empty">${scored.length} match${scored.length === 1 ? '' : 'es'}</div>` + scored.slice(0, 80).map(({ n }) => `<div class="result"><a href="#/${encodeURIComponent(n.name)}" data-name="${esc(n.name)}">${esc(n.name)}</a><div class="snip">${snippet(n)}</div></div>`).join('')
+    : '<div class="empty">No notes match.</div>';
+}
+
+// ---------------------------------------------------------------- notes
+function renderMarkdown(n) {
+  const md = eachProse(n.body, (s) => s.replace(WIKI, (m, embed, target, heading, label) => {
+    const t = resolve(target);
+    const text = esc(label ?? (target + (heading ?? '')));
+    if (embed) return t ? `<a class="wl" href="#/${encodeURIComponent(t.name)}">${text}</a>` : text;
+    return t
+      ? `<a class="wl" href="#/${encodeURIComponent(t.name)}${heading ? `/${encodeURIComponent(heading.slice(1))}` : ''}">${text}</a>`
+      : `<a class="broken" title="No note named “${esc(target)}”">${text}</a>`;
+  }));
+  return marked.parse(md, { gfm: true });
+}
+
+function crumbs(n) {
+  const folders = n.path.replace(/^brain\//, '').split('/').slice(0, -1);
+  const vaultPath = n.path.replace(/^brain\//, '').replace(/\.md$/, '');
+  const obsidian = `obsidian://open?vault=brain&file=${encodeURIComponent(vaultPath)}`;
+  return `<span>${esc(folders.join(' / ') || 'brain')}</span>${n.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}`
+    + `<a href="${obsidian}" title="Opens this note in the Obsidian app, if it's installed (run npm run brain first so the generated notes exist on disk)">Open in Obsidian</a>`;
+}
+
+function show(name, heading) {
+  const n = byName.get(String(name).toLowerCase());
+  $('status').hidden = !!n;
+  $('note').hidden = !n;
+  if (!n) { $('status').textContent = `No note named “${name}”.`; return; }
+  current = n;
+  document.title = `${n.name} · Second brain`;
+  $('crumbs').innerHTML = crumbs(n);
+  $('body').innerHTML = renderMarkdown(n);
+  for (const a of $('body').querySelectorAll('a[href^="http"]')) { a.target = '_blank'; a.rel = 'noopener'; }
+  const back = [...inLinks.get(n)].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  $('backlinks').innerHTML = back.length
+    ? `<h2>Linked from ${back.length} note${back.length === 1 ? '' : 's'}</h2>${back.map((b) => `<a href="#/${encodeURIComponent(b.name)}">${esc(b.name)}</a>`).join('')}`
+    : '<h2>No notes link here</h2>';
+  const main = document.querySelector('main');
+  main.scrollTop = 0;
+  if (heading) {
+    const h = [...$('body').querySelectorAll('h1,h2,h3,h4,h5,h6')].find((x) => x.textContent.trim().toLowerCase() === heading.toLowerCase());
+    if (h) h.scrollIntoView();
+  }
+  if (!$('search').value) markCurrent();
+  graph.focus(n);
+}
+
+function route() {
+  const [, name, heading] = /^#\/([^/]*)(?:\/(.*))?$/.exec(location.hash) ?? [];
+  show(name ? decodeURIComponent(name) : 'Home', heading ? decodeURIComponent(heading) : null);
+}
+
+// ---------------------------------------------------------------- graph
+const graph = (() => {
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  let mode = 'off', nodes = [], edges = [], focusNote = null, hover = null, alpha = 0, raf = 0;
+  let view = { x: 0, y: 0, k: 1 }, drag = null, autoFit = true;
+  const color = (g) => getComputedStyle(document.documentElement).getPropertyValue(`--g-${g}`).trim() || '#888';
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  function build() {
+    let set;
+    if (mode === 'all') set = new Set(notes);
+    else if (focusNote) set = new Set([focusNote, ...outLinks.get(focusNote), ...inLinks.get(focusNote)]);
+    else set = new Set();
+    const old = new Map(nodes.map((n) => [n.note, n]));
+    nodes = [...set].map((note, i) => old.get(note) ?? { note, x: Math.cos(i * 2.4) * (40 + i * 1.5), y: Math.sin(i * 2.4) * (40 + i * 1.5), vx: 0, vy: 0 });
+    const idx = new Map(nodes.map((n, i) => [n.note, i]));
+    const seen = new Set();
+    edges = [];
+    for (const n of nodes) for (const t of outLinks.get(n.note)) {
+      if (!idx.has(t)) continue;
+      const a = idx.get(n.note), b = idx.get(t), key = a < b ? `${a},${b}` : `${b},${a}`;
+      if (!seen.has(key)) { seen.add(key); edges.push([a, b]); }
+    }
+    for (const n of nodes) n.deg = 0;
+    for (const [a, b] of edges) { nodes[a].deg++; nodes[b].deg++; }
+    if (mode === 'local' && focusNote) { const f = nodes[idx.get(focusNote)]; f.x = 0; f.y = 0; }
+    view = { x: 0, y: 0, k: 1 };
+    autoFit = true;
+    alpha = 1;
+    // Settle most of the layout at once, so the graph doesn't shift under the pointer;
+    // the rest animates in.
+    while (alpha > 0.25) step();
+    legend();
+    kick();
+  }
+
+  function step() {
+    const n = nodes.length, rep = mode === 'all' ? 900 : 5000, len = mode === 'all' ? 34 : 120;
+    for (let i = 0; i < n; i++) {
+      const a = nodes[i];
+      for (let j = i + 1; j < n; j++) {
+        const b = nodes[j];
+        let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy + 0.01;
+        if (d2 > 250000) continue;
+        const f = rep / d2;
+        dx *= f; dy *= f;
+        a.vx += dx; a.vy += dy; b.vx -= dx; b.vy -= dy;
+      }
+    }
+    for (const [i, j] of edges) {
+      const a = nodes[i], b = nodes[j];
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const f = (d - len) * 0.02;
+      a.vx += dx / d * f; a.vy += dy / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f;
+    }
+    for (const a of nodes) {
+      a.vx -= a.x * 0.004; a.vy -= a.y * 0.004;
+      if (a === drag?.node) { a.vx = a.vy = 0; continue; }
+      if (mode === 'local' && a.note === focusNote) { a.x = a.y = 0; a.vx = a.vy = 0; continue; }
+      const max = 12;
+      a.x += Math.max(-max, Math.min(max, a.vx * alpha)); a.y += Math.max(-max, Math.min(max, a.vy * alpha));
+      a.vx *= 0.55; a.vy *= 0.55;
+    }
+    alpha = Math.max(0, alpha - 0.004);
+  }
+
+  function size() {
+    const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+    if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+    return { w: r.width, h: r.height, dpr };
+  }
+  const radius = (n) => Math.min(14, 3 + Math.sqrt(n.deg) * (mode === 'all' ? 0.9 : 1.4));
+  function toScreen(n, w, h) { return [w / 2 + (n.x + view.x) * view.k, h / 2 + (n.y + view.y) * view.k]; }
+
+  // Until the user zooms or pans, keep every node in view.
+  function fit(w, h) {
+    if (!autoFit || !nodes.length) return;
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const n of nodes) { x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y0 = Math.min(y0, n.y); y1 = Math.max(y1, n.y); }
+    const px = mode === 'local' ? 64 : 24, py = mode === 'local' ? 30 : 24;
+    const k = Math.min(2, (w - px * 2) / Math.max(1, x1 - x0), (h - py * 2) / Math.max(1, y1 - y0));
+    view = { x: -(x0 + x1) / 2, y: -(y0 + y1) / 2, k };
+  }
+
+  function draw() {
+    const { w, h, dpr } = size();
+    fit(w, h);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const near = hover ? new Set([hover, ...outLinks.get(hover.note), ...inLinks.get(hover.note)].map((x) => x.note ?? x)) : null;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = css('--border-strong');
+    ctx.globalAlpha = mode === 'all' && !near ? 0.35 : 1;
+    ctx.beginPath();
+    for (const [i, j] of edges) {
+      if (near && !(near.has(nodes[i].note) && near.has(nodes[j].note))) continue;
+      const [x1, y1] = toScreen(nodes[i], w, h), [x2, y2] = toScreen(nodes[j], w, h);
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    const showLabels = mode === 'local' || view.k > 1.6;
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    for (const n of nodes) {
+      const [x, y] = toScreen(n, w, h), r = radius(n) * Math.sqrt(view.k);
+      const dim = near && !near.has(n.note);
+      ctx.globalAlpha = dim ? 0.18 : 1;
+      ctx.fillStyle = color(n.note.group);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      if (n.note === focusNote) { ctx.strokeStyle = css('--text'); ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
+      if ((showLabels && !dim) || n === hover || n.note === focusNote) {
+        ctx.fillStyle = css('--text-2');
+        const label = n.note.name.length > 34 ? `${n.note.name.slice(0, 33)}…` : n.note.name;
+        ctx.fillText(label, x, y + r + 11);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function frame() {
+    raf = 0;
+    if (mode === 'off') return;
+    const steps = mode === 'all' && alpha > 0.5 ? 2 : 1;
+    for (let i = 0; i < steps && alpha > 0; i++) step();
+    draw();
+    if (alpha > 0 || drag) raf = requestAnimationFrame(frame);
+  }
+  function kick() { if (!raf && mode !== 'off') raf = requestAnimationFrame(frame); }
+
+  function pick(ev) {
+    const r = cv.getBoundingClientRect(), { w, h } = { w: r.width, h: r.height };
+    const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    let best = null, bd = 1e9;
+    for (const n of nodes) {
+      const [x, y] = toScreen(n, w, h), r = radius(n) * Math.sqrt(view.k), d = (x - mx) ** 2 + (y - my) ** 2;
+      const onLabel = (mode === 'local' || view.k > 1.6) && Math.abs(mx - x) < 60 && my > y + r && my < y + r + 15;
+      if ((d < (r + 8) ** 2 || onLabel) && d < bd) { best = n; bd = d; }
+    }
+    return best;
+  }
+  cv.addEventListener('mousemove', (ev) => {
+    if (drag) {
+      if (!drag.moved && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 4) return;
+      const dx = (ev.clientX - drag.x) / view.k, dy = (ev.clientY - drag.y) / view.k;
+      drag.x = ev.clientX; drag.y = ev.clientY; drag.moved = true;
+      if (drag.node) { drag.node.x += dx; drag.node.y += dy; alpha = Math.max(alpha, 0.3); } else { autoFit = false; view.x += dx; view.y += dy; }
+      kick(); draw(); return;
+    }
+    const h = pick(ev);
+    if (h !== hover) { hover = h; cv.style.cursor = h ? 'pointer' : 'grab'; cv.title = h ? h.note.name : ''; draw(); }
+  });
+  cv.addEventListener('mousedown', (ev) => { drag = { x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, node: pick(ev), moved: false }; });
+  addEventListener('mouseup', () => {
+    if (drag && !drag.moved && drag.node) location.hash = `#/${encodeURIComponent(drag.node.note.name)}`;
+    drag = null;
+  });
+  cv.addEventListener('mouseleave', () => { hover = null; draw(); });
+  cv.addEventListener('wheel', (ev) => { ev.preventDefault(); autoFit = false; view.k = Math.max(0.2, Math.min(5, view.k * (ev.deltaY < 0 ? 1.15 : 1 / 1.15))); draw(); }, { passive: false });
+  addEventListener('resize', () => mode !== 'off' && draw());
+
+  function legend() {
+    $('glegend').innerHTML = GROUPS.filter(([g]) => nodes.some((n) => n.note.group === g)).map(([g, label]) => `<span><i style="background:${color(g)}"></i>${label}</span>`).join('');
+    $('ghint').textContent = `${nodes.length} notes · ${edges.length} links · scroll to zoom, drag to pan`;
+  }
+
+  return {
+    setMode(m) { mode = m; $('layout').classList.toggle('graph-on', m !== 'off'); if (m !== 'off') requestAnimationFrame(build); },
+    focus(n) { focusNote = n; if (mode === 'local') build(); else if (mode === 'all') { draw(); } },
+  };
+})();
+
+// ---------------------------------------------------------------- wiring
+function setGraph(m) {
+  for (const b of document.querySelectorAll('[data-graph]')) b.setAttribute('aria-pressed', String(b.dataset.graph === m));
+  try { localStorage.setItem('brain.graph', m); } catch {}
+  graph.setMode(m);
+}
+for (const b of document.querySelectorAll('[data-graph]')) b.addEventListener('click', () => setGraph(b.dataset.graph));
+$('back').addEventListener('click', () => history.back());
+$('home').addEventListener('click', () => { location.hash = '#/Home'; });
+let searchTimer = 0;
+$('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => search($('search').value), 80); });
+$('search').addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') { const a = $('side').querySelector('a[data-name]'); if (a) location.hash = a.getAttribute('href'); }
+});
+addEventListener('keydown', (ev) => {
+  if (ev.key === '/' && document.activeElement !== $('search')) { ev.preventDefault(); $('search').focus(); $('search').select(); }
+  if (ev.key === 'Escape' && $('search').value) { $('search').value = ''; search(''); }
+});
+addEventListener('hashchange', route);
+
+load().then(() => {
+  renderTree();
+  let g = 'off';
+  try { g = localStorage.getItem('brain.graph') || 'off'; } catch {}
+  setGraph(['off', 'local', 'all'].includes(g) ? g : 'off');
+  route();
+}).catch((err) => { $('status').textContent = `Couldn't load the vault: ${err.message}`; });
+</script>
+</body>
+</html>

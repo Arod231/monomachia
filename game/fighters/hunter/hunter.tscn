@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://fighters/fighter_model.gd" id="1_model"]
+[ext_resource type="Resource" path="res://fighters/hunter/hunter.tres" id="2_look"]
+
+[node name="Hunter" type="Node3D"]
+script = ExtResource("1_model")
+look = ExtResource("2_look")

@@ -1,9 +1,38 @@
 node_modules/
-dist/
 shots/
-coverage/
 *.log
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
+# Godot
+game/.godot/
+game/reports/
+build/
+audio_src/
+Sonniss*.zip
+
+# Temporary git worktrees made by Claude Code workflows
+.claude/worktrees/
+.godot-path
+
+# Where the raw asset packs are unzipped (outside the repo), and the fallback folder
+.assets-src-path
+assets_src/
+
+# Converted Iglesias clips and their staged FBX copies: never committed (licence)
+game/assets/kevin_iglesias/library/
+game/assets/kevin_iglesias/staging/
+
+# Scratch for prototypes; may hold converted Iglesias clips, which must never be committed
+game/_scratch/
+
+# Animation Studio: the refinement log and the chat panel's context folder (may hold screenshots of Iglesias clips)
+.anim-refine/
+game/tools/anim_studio/.refinements.json
+
+# Second brain: generated notes and Obsidian workspace state
+brain/generated/
+brain/.obsidian/workspace*.json
+brain/.obsidian/cache

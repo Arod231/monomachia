@@ -1,5 +1,9 @@
-# Runs the rule tests and builds the game on every push and pull request.
-# The built game is kept for 30 days as a download on the run's page.
+# On every push and pull request: checks that no tracked file is too large,
+# runs the tests (the Node tools' and the game's) and the typecheck, and a
+# short computer-vs-computer soak; then exports a stand-in Windows build, kept
+# for 30 days as a download on the run's page. Releases are never built here:
+# CI has no licensed animation clips, so they're exported on the developer's
+# PC with `npm run release -- <tag>` (scripts/godot.mjs).
 name: CI
 
 on:
@@ -10,20 +14,47 @@ permissions:
   contents: read
 
 jobs:
-  test-and-build:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
       - run: npm ci
+      - run: npm run check:sizes
       - run: npm test
+      - run: npm run typecheck
+      - run: npm run soak -- 4
+
+  # A stand-in Windows build, exported headless: CI has no GPU, so the
+  # shaders aren't baked and compile on first use (a PC's export bakes them),
+  # and it has no Kevin Iglesias clip libraries, so the build plays the CC0
+  # stand-in clips and carries STAND-IN.txt saying so. The export templates
+  # come with Godot and are cached.
+  export-windows:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
       - run: npm run build
-      - run: cp dist/index.html Monomachia.html
       - uses: actions/upload-artifact@v7
         with:
-          name: Monomachia
-          path: Monomachia.html
+          name: Monomachia-windows-stand-in
+          path: build/windows/
           retention-days: 30

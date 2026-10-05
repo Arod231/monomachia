@@ -1,0 +1,716 @@
+# Plan: Milestone 1
+
+Spec: `docs/specs/milestone-1.md` · branch `feature/milestone-1` · pull request #33
+
+## Destination
+
+The Hunter (crimson against indigo) with the Katana, and bare hands when disarmed, on the Moonlit Shrine, at final quality: everything a milestone-1 match can show, from the draw at the round intro to the match-winning KO shot and the victory pose. Every Katana and bare-hands clip plays at its own speed, lands in its timing band and connects from its distance band; frame data and footwork are generated from the clips into a committed table; protected timings are retuned once and frozen. The realistic look replaces the toon and ink-wash style, the effects are sparks, blood, dust, smoke and air smears, and the HUD, round calls and menus take the new theme. A private asset repository holds the paid packs and the Blender sources, and a scripted export is the only way art reaches the game. The rules can be snapshotted, restored, hashed and replayed from an input log. The milestone ends when every move passes its checklist, both performance gates hold, a balance run of mirror matches comes out clean, every check is green, and the owner plays the real build with the asset repository and signs off.
+
+## Notes
+
+- **One task at a time per lane.** The main lane takes the pipeline, then the pilot family, then the other families in order. Side lanes (below) take the look, the Studio, the computer opponent, sound and screens. Before each task, merge `origin/feature/milestone-1` in (and, while the master follow-ups are open, `origin/master` into `feature/milestone-1`), and run the full tests. After each task:
+  - tick it here;
+  - update Progress;
+  - in the spec, update the status line, any numbers the task changed, and tick each user story the build now fully delivers.
+- **Every task ends with** `npm test` and `npm run typecheck` passing, a commit and a push. Visual tasks also end with contact sheets or screenshots reviewed by eye. Tasks that change rules data (move data, the frame-data table, protected timings, gait speeds, the soak) also end with a clean 40-match soak, and each family's review adds a 300-match `soak:tune`.
+- **Owner reviews don't hold tasks open**, except the named gates: the owner's approval of the spec and this plan, the band tables included (task 1), the mood board (3), the look test scene (30), the pilot family's review (41), the Godot check (42), each later family's review (62, 68, 74, 78, 85, 92, 96, 102, 109, 112), the owner's Cascadeur polish of the signature clips (126, 127, 128, 129, 130), the performance gates' laptop bench (119), the finisher share (120), the spending review (124) and the sign-off (125). Every task blocked by a gate names it as `N (and the owner's OK)`. Anything else the owner looks at (sheets, shots) is noted in Progress and work goes on.
+- **Blockers list direct needs.** A Blocked by line names every task whose result the task itself uses, even when another blocker already implies it.
+- **Where the work starts.** Nothing starts before the owner approves the spec and this plan (task 1), and milestone 1's code waits on the consolidation: every task from 4 on is blocked, directly or through another task, by task 1 and by `docs/plans/godot-rebuild.md` task 26.4, right after which `feature/milestone-1` is cut from `master` (`docs/plans/roadmap.md` task R4). Three tasks start earlier, since they need neither `master` nor this repository's code: task 1 runs on `docs/milestone-1-spec` during the roadmap's phase 1, and tasks 2 (the asset repository) and 3 (the mood board) happen outside this repository. The spec lets both start at once, in parallel with the consolidation, once the owner has approved the spec and this plan.
+- **Side lanes.** A side lane is a worktree on its own branch from `feature/milestone-1`, taking one task at a time and merging back through a pull request into `feature/milestone-1`. Side-lane tasks are those whose blockers are done and that touch no file the main lane's open task touches. Only the main lane writes the move data, the frame-data table, the band tables, the clip manifest's markers and the protected timings; a side lane that needs a change there asks for it in the main lane's next task. The usual side lanes:
+  - **the look:** 29, 30, then 43–54, 131 and 132 after the Godot check, 97, 115;
+  - **the Studio:** 11, 25, 26, 27;
+  - **the computer opponent:** 24, 66, 101;
+  - **sound and screens:** 113, 114, 116, 117.
+- **Side-lane pull requests target `feature/milestone-1`**, an exception to CLAUDE.md for this milestone, like the spec's branch exception. Each one still merges only on the owner's approval, as CLAUDE.md requires; waiting for that approval holds only the side lane's next task, not the main lane.
+- **If the look test runs late** (spec P51), the owner decides at a look at the pilot's motion (tasks 31–36) whether family 2 starts before the pilot's effects are final. If the owner says yes, the Blocked by lines of tasks 55, 58 and 59 change from `41 (and the owner's OK)` to `36`, task 62 gains `41 (and the owner's OK)` so the pilot's review still comes before family 2's, and Progress records the owner's word.
+- **The Animation Studio plan** (`docs/plans/animation-studio.md`) is not followed as its own plan; this plan absorbs what is left of it:
+  - task 11 closes the dropped tasks 13 (the frame-data panel), 14 (the state timings panel), 16 (the refinement launcher), 17 (the chat panel), 18 (correctives), 19 (bone posing), 20 (IK handles) and 21 (keyed clip editing);
+  - task 25 carries Studio tasks 7 (the timeline), 8 (rules frames, bands, markers and layers) and 9 (only the distance band's hit-or-miss check);
+  - task 26 carries Studio tasks 10 (the edit session) and 11 (marker editing);
+  - task 27 carries Studio tasks 12 (the chain panel) and 15 (save, slimmed);
+  - task 41 carries Studio task 22 (the owner's review, re-scoped to a try of the slimmed Studio on the pilot family) and the gallery's open gate 6.
+- **Master follow-ups this plan builds on** (`docs/plans/godot-rebuild.md`, finished on `master` alongside): the finisher prompt (106) builds on 24.4's prompts; task 117 restyles what the follow-ups built (22.7's select preview, 23.7's Versus HUD, 24.3's toasts and 24.5's off-screen marker) and reruns 22.17's walks; the effects parity check (118) confirms Reduce flashes (18.11) covers every new effect; the performance gates (119) bench 23.5's Watch and 23.6's split screen. 24.4 should finish early on `master`, since the finishers family waits on it. Merge `origin/master` in to pick them up.
+- **Licence.**
+  - Never commit an Iglesias file, a clip converted from one, or a clip re-keyed from one. They live in the asset repository and in the gitignored clip libraries.
+  - Committed: the bone map, the clip manifest and its markers, the frame-data table, the swing files, the band tables, and the exports of self-made and CC0 models and materials that fit the public size budget (spec P23).
+  - Clips keyed from scratch and new models are the project's own art (all rights reserved); their Blender sources live in the asset repository.
+  - Generative AI only for the mood board, never for shipped or committed art.
+  - Before each commit, check `git status` for anything under the gitignored library folder or with an Iglesias clip name.
+- **CI has neither the asset repository nor the packs.** Every test that needs them is a `test_local_` test that skips itself with a message; every other test passes on the committed table and the labelled CC0 stand-ins. A new animation test is pure data, uses the packs-missing mode, or is local-only.
+- **The rules stay free of graphics** (`game/sim`): no clip, AnimationTree or node. The generator, the export and the import are tools that write data the rules read.
+- **Who keys.** Claude makes the first passes by script in Blender (longer wind-ups, re-gripped hands, travel, block-outs of new clips). The owner polishes the signature moves (the Iai, the deflect pairs, the finishers) in Cascadeur, bought when the first polish starts (task 126). Each polish is its own small owner task (126, 127, 128, 129, 130), blocked by Claude's pass and blocking only its family's review, so the family's other tasks go on with Claude's pass meanwhile.
+- **Re-slicing after the pilot.** The pilot re-keys two moves per task (31, 32). The later families' re-key tasks that hold four moves (75, 76, 93, 94) are re-sliced to the per-move cost the pilot measures (spec Risks), as new tasks with new numbers, before their family starts.
+- **Tuning.** Each family rebalances the Katana and bare hands around its clips, changing only damage, posture, parry and computer numbers, one change per commit; after five changes in a row with a target still out, ask the owner. The old "within 5 points of the baseline" rule is retired.
+- **Docs as the work lands.** `docs/architecture.md` is updated in the task that adds or retires a module (story 219). `brain/project/Key decisions.md` is updated by the first task that touches each of its stale rows (the sound, the blocking walk, the roster, finishers, weather, blood, Warrior Slain), as the spec's Further Notes say.
+- Use the glossary's terms (Move family, Move kind, Marker, Branch point, Inertial blending, Transition clip, Physical reaction layer, Cinematic shot, Blood setting, Balance run, Stand-in, Procedural pose, Warrior Slain, Timing band, Distance band, Protected timing) in code names.
+
+## Decisions so far
+
+- [Spec](../specs/milestone-1.md), drafted on Oct 4, 2026, with this plan; the owner reviews both once. Its "Defaults the owner confirmed (Oct 4)" (P1–P56, confirmed as written) are built on as written; a changed answer becomes a change to this plan.
+- The order follows the spec's Implementation Decisions (Order of work and branches): the pipeline, the mood board at once, the pilot family with the look test alongside, the pilot's effects and review and the first Godot check, the art conversion, the other families one at a time in the spec's order (P33), then the closing checks and the sign-off.
+- The moved tasks of the older plans live here; the task that finishes each one names it in its `Replaces:` line, and tasks that carry part of one say so in their Delivers. `docs/plans/godot-rebuild.md` 12.6, 12.7 and the Greatsword and Daggers half of 12.9, and `docs/plans/authored-animation.md` 34, are milestone 2's (`docs/plans/roadmap.md`).
+- Values the tasks use (timing and distance bands, protected timings, momentum and gaits, the balance-run targets, the computer's finisher rates, the performance gates, the size budgets, the Godot check, the per-move checklist) are the spec's tables; the tasks don't repeat them.
+
+## Progress
+
+- Oct 4, 2026: drafted with the spec; awaiting the owner's review.
+- Oct 4, 2026: the owner confirmed all 56 defaults and approved the spec and this plan (task 1). Milestone-1 work starts once the consolidation merges into `master` (`docs/plans/godot-rebuild.md` task 26.4) and `feature/milestone-1` is cut (roadmap R4).
+- Oct 4, 2026: task 2 done: the private asset repository (`Arod231/monomachia-assets`) replaces the packs' folder, and the clip libraries build from it byte for byte. Task 3 started: the mood board is in the asset repository's `moodboard/` (open `index.html`), waiting on the owner's approval and five choices (the look, the two palettes, the ultimates' energy, the camera's framing, the UI style).
+- Oct 4, 2026: task 3 done: the owner approved the mood board, subject to change, with For Honor's camera framing (the board's Camera 2) in place of the recommended one. The look test (task 30) no longer waits on it, only on tasks 28 and 29.
+
+## Build order
+
+1. **Before the merge, on the docs branch and outside this repository:** 1, 2, 3
+2. **Groundwork on the milestone branch:** 4, 5, 134, 6, 7, 8, 9, 10, 11, 14, 113
+3. **The pipeline:** 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
+4. **The pilot's motion, with the look test alongside:** 30, 31, 32, 135, 33, 34, 35, 36, 126, 114
+5. **The pilot's effects and review:** 37, 38, 39, 40, 41, 42
+6. **The art conversion, after the Godot check:** 43, 44, 45, 46, 47, 48, 131, 132, 49, 50, 51, 52, 53, 54, 115
+7. **Family 2, guard movement and dodges, after the pilot's review:** 55, 56, 57, 58, 59, 60, 61, 62
+8. **Family 3, the Katana's heavies and the Iai:** 63, 64, 65, 66, 67, 127, 68
+9. **Family 4, reactions, knockdown and KO:** 69, 70, 71, 72, 73, 74
+10. **Family 5, the Katana's movement attacks:** 75, 76, 77, 78
+11. **Family 6, block abilities and counters:** 79, 80, 81, 82, 83, 84, 128, 85
+12. **Family 7, the disarm and bare hands' core:** 86, 87, 88, 89, 133, 90, 91, 129, 92
+13. **Family 8, bare hands' movement attacks:** 93, 94, 95, 96
+14. **Family 9, the ultimates:** 97, 98, 99, 100, 101, 102
+15. **Family 10, the finishers:** 103, 104, 105, 106, 107, 108, 130, 109, 116
+16. **Family 11, round flow:** 110, 111, 112
+17. **Closing checks and sign-off:** 117, 118, 119, 120, 121, 122, 123, 124, 125
+
+## Tasks
+
+### Phase A: before the merge
+
+- [x] **1. The owner's approval, and the design docs brought in line with the spec.** The owner reviews the spec and this plan once; then the docs the spec changes are updated on `docs/milestone-1-spec`, before its pull request merges.
+  - Delivers: the owner's answers to the proposed defaults written into the spec (and into this plan where a task changes); the five differences listed under "Where this differs from `docs/design.md`" (the unblockable's reach, the cinematic shots, the protected timings, movement, the blade length) written into `docs/design.md`; the spec's notes on `docs/specs/godot-rebuild.md` and `docs/specs/authored-animation.md` added there as "Superseded by milestone 1" lines; the spec's status line set to approved.
+  - Check: every "Where this differs" item has its line in the doc it names; the second brain's tests pass (no unresolved link); the docs pull request is ready for the owner.
+  - Blocked by: none · Stories: 218
+  - **Owner:** reviews the spec and this plan, answers or confirms the proposed defaults, approves the timing band and distance band tables (story 33), and approves both. Nothing below starts until then.
+  - Done Oct 4: the owner confirmed P1–P56 as written (the timing and distance band tables among them) and approved the spec and this plan. The spec's five differences from design.md are written there, and docs/specs/godot-rebuild.md and docs/specs/authored-animation.md carry "Superseded by milestone 1" notes.
+- [x] **2. The private asset repository.** A private GitHub repository with Git LFS holds the packs, the Quaternius sources, the Blender sources and the exports; the import tools read it through today's asset-source setting.
+  - Delivers: the repository (the owner creates it on GitHub; Claude lays it out and pushes): `.gitattributes` tracking FBX, glTF, blend and texture files through LFS, folders for the Kevin Iglesias packs, the Quaternius sources the game uses, Blender sources (fighters, weapons, the Shrine, clips) and exports, and a README with each folder's licence terms. The raw Sonniss zips stay outside it. `.assets-src-path` on the owner's PC points at its checkout in place of `Desktop/Monomachia-assets`.
+  - Check: a fresh clone with LFS, named in `.assets-src-path`, stages and builds the clip libraries byte for byte as the old folder did (`godot.mjs clips`), and its size is inside the asset repository's budget in the spec's size budget table.
+  - Blocked by: 1 (and the owner's OK) · Stories: 9, 10, 11
+  - Done Oct 4: `Arod231/monomachia-assets` on GitHub, private. LFS takes every binary art type in any letter case, and no file has its line endings converted. It holds the four Kevin Iglesias packs, the Quaternius packs the game uses with the LowPoly Medieval Weapons pack (the `--weapons` folder of `import_assets.gd`), the effects packs, empty `blender/` and `exports/` folders (fighters, weapons, shrine, clips) and a README with each folder's licence and the size budget: about 1.9 GB on disk, 1.6 GiB of LFS. The Sonniss zips stay outside it. A fresh clone at `Desktop/Monomachia-asset-repo` is named in `.assets-src-path`, and `godot.mjs clips` from it staged and built the clip libraries byte for byte as the old folder did (all 358 staged and built files identical). The old `Desktop/Monomachia-assets` folder is left for the owner to delete.
+- [x] **3. The mood board.** A mood board for the realistic look, with a UI page, the ultimates' energy and the gameplay camera's framing.
+  - Delivers: reference images (Ghost of Tsushima's darker side, For Honor, the wisteria Shrine at night, the crimson and indigo dyes, Katana and saya references, the UI page with brushed calligraphy, Moonsplitter's and the disarmed ultimate's energy, the gameplay camera's framing); generated images allowed here only. It lives in the asset repository (or beside it until task 2 lands), never in this repository.
+  - Check: the board covers every heading of the spec's look stories (137–155) and the UI page; the owner has it.
+  - Blocked by: 1 (and the owner's OK) · Stories: 137, 139, 147
+  - **Owner:** approves the mood board. Nothing in the art conversion starts until then.
+  - Done Oct 4: `moodboard/index.html` in the asset repository: nine sections over 53 reference images (the Met's CC0 collection, Wikimedia Commons, official Ghost of Tsushima and For Honor screenshots; sources in `moodboard/SOURCES.md`), the palettes with their grey check, camera frames computed from the camera's numbers, and three UI mock-ups. No generated images. The owner approved it on Oct 4, subject to change: the look and grade as drawn, crimson #9e2b25 against indigo #1d2a4d, Moonsplitter as moonlight, bare hands as a spirit shockwave, the UI in lacquer and gold, and, in place of the recommended camera (today's), For Honor's framing (Camera 2: about 3.4 m back, 1.0 m to the right (swinging out 0.6 m for each metre closer than 3.5 m), 1.75 m up, a 55° field of view), which the look test (task 30) confirms in Godot. design.md and the spec's story 134 now say so.
+
+### Phase B: groundwork
+
+- [ ] **4. The roster filter and the Hunter mirror defaults.** The menus offer only the Hunter and the Katana; a dev flag shows the Rogue, the Greatsword and the Twin Daggers.
+  - Delivers: a roster filter read by every place that lists fighters or weapons (the fighter grid, the weapon cards, the random weapon at lock in, How to play's tabs, Training's weapon-for-drill fallback, the soak); a `--full-roster` command-line flag, settable in tests; the defaults (Duel, Training, Watch, the attract duel, the select draft) become the Hunter in crimson against the Hunter in indigo, both with the Katana and Flash and Piercing Thrust; Training's slam drill is unavailable while the Greatsword is hidden; bare hands stay the disarmed state.
+  - Check: `test_match_selection.gd`'s defaults tests rewritten for the mirror; a test that no default, drill or random pick reaches a hidden fighter or weapon without the flag, and that the flag brings all three back; the hidden weapons' tests still pass with the flag; How to play shows only the Katana's and bare hands' tabs; shots of the select and How to play reviewed; a clean soak.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 1, 3, 4, 5, 6, 7, 8, 194
+- [ ] **5. A state hash and the replay test.** A seeded match run twice gives the same state hash on every step.
+  - Delivers: `World.state_hash()` over everything the rules own (the world, both fighters, the match, any dropped weapon, the generator and each `AIBrain`'s state); the replay test at the match seam.
+  - Check: two seeded runs of a full match give equal hashes on every step; a test that changing one rules field changes the hash; `test_the_host_plays_exactly_the_soak_loop` still passes.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 23
+- [ ] **134. Snapshot and restore; the save-and-restore test.** The rules can be saved mid-match and restored, and step on identically.
+  - Delivers: `snapshot()` and `restore()` on `World`, `Fighter`, `Match`, `DroppedWeapon` and `Rng`; the save-and-restore test (save mid-match, restore, step again, compare hashes).
+  - Check: a restored world's hash equals the saved one's; the save-and-restore test passes at several points of a seeded match, through a disarm and a KO.
+  - Blocked by: 5 · Stories: 24
+- [ ] **6. The computer's snapshot, the input log and `--replay`.** The computer's brains save and restore with the rules, and matches record as input logs that replay to the same result.
+  - Delivers: `snapshot()` and `restore()` on each `AIBrain` (with its own generator), so the save-and-restore test covers matches against the computer; an input log (each step's `RawInput` per side) the match host records and replays; `--replay=<log>` on the match host for the performance replay and bug reports.
+  - Check: a recorded match replays to the same winner and hash; the save-and-restore test passes in a match against the computer at each difficulty.
+  - Blocked by: 134 · Stories: 24, 26
+- [ ] **7. The soak plays the milestone's mirror matches.** The soak checks what milestone 1 promises instead of the demo's targets.
+  - Delivers: `tools/soak.gd` plays Hunter-against-Hunter Katana mirrors at random difficulties, each fighter's two block abilities picked at random (seeded) from Flash, Piercing Thrust and Swallow Sweep; `TARGET_ROUND_S` becomes 60–90 s; it reports the finisher share (zero until task 103) and the appear-list (the stomp, the leap, Flash, Moonsplitter, Breaker Palm, the recall, a pick-up); win rates are off. It is part of godot-rebuild 12.8, which task 121 finishes.
+  - Check: `test_soak.gd` covers the mirror mode, the seeded ability pick and the report; a 40-match soak is clean on failures and stalls and prints the new targets block.
+  - Blocked by: 4 · Stories: 199
+- [ ] **8. Size budgets per place.** The size checks follow the spec's size budget table instead of the 110 MB art cap.
+  - Delivers: `check-sizes` keeps the 10 MB per-file guard and adds the public repository's 150 MB art budget (committed CC0 and self-made art, stand-ins and the exports copied from the asset repository) and 40 MB audio budget; a script in the asset repository checks its own budgets (the total, per fighter, per weapon, per exported clip, the arena, texture sizes); `test_asset_budget.gd`'s 110 MB cap goes.
+  - Check: the Node size tests cover each new budget, including a file over it failing; both checks pass today.
+  - Blocked by: 2, `docs/plans/godot-rebuild.md` task 26.4 · Stories: 15, 205
+- [ ] **9. PoseCheck measures foot slide and blade clearance on every rules frame.** The per-move checklist's foot and blade items get a measure that skips no frame.
+  - Delivers: a foot-slide measure in `PoseCheck` (a planted foot's travel over its contact, limit 1 cm); `MoveBench` runs PoseCheck's foot slide and blade clearance on every rules frame of a clip, not only the sheet's chosen frames, and reports the worst frame.
+  - Check: unit tests on a sliding and a planted foot; a local-only test runs every Katana move through it and prints today's worst values into Progress as the baseline.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 101, 103
+- [ ] **10. The per-move checklist.** A committed record of the spec's 17 checklist items for every milestone-1 move and clip.
+  - Delivers: `docs/reviews/milestone-1-checklist.md`, one row per Katana and bare-hands move and per clip that sets a rules length or shows a protected timing, one column per item; a tool fills the CI-checked columns from the test results and the owner's columns are ticked at each family's review.
+  - Check: a test that every move in the frame-data readers' list has a row; the tool fills a row from a test run.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 208
+- [ ] **11. The Studio sheds what milestone 1 drops.** The Animation Studio keeps its gallery and loses its chat area and the plans for its dropped parts.
+  - Delivers: the chat area placeholder removed from `AnimStudio`; the editor area kept for the timeline; `docs/plans/animation-studio.md`'s tasks 13, 14 and 16–21 marked dropped (frame data are generated, protected timings stay rules numbers, bone posing moves to Blender); **Corrective** and **Refinement** removed from `GLOSSARY.md`.
+  - Check: `test_studio_smoke.gd` and the gallery tests pass; a shot of the Studio's layout reviewed.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 27, 31
+- [ ] **14. The markers grow.** Clips carry the markers frame data will be generated from; the Katana's and bare hands' keep today's frame data until their family re-keys them.
+  - Delivers: beside today's wind-up, contact, contact-end and settle markers, the manifest and the per-move chain entries gain active start and end, the dodge-cancel window, each follow-up's branch point, foot plant and lift, and, on clips that set a rules length, ready, in-hand, strike and kill. The Greatsword's, the Daggers' and both Counter Lunges' markers sit at their clips' real events, so their frame data change at task 17 (spec P10, P48). The Katana's and bare hands' other moves get stand-in markers that give today's frame data; they stay on task 18's waiting list, which keeps them out of the checklist, until their family re-keys them with real markers.
+  - Check: `test_clip_manifest.gd` checks the new markers' order and presence; a test that the frame data computed from the stand-in markers equal today's within one rules frame (a 30 fps clip's marker lands on every other rules frame) for every Katana and bare-hands move; sheets of the hidden weapons' markers on their contact frames reviewed.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 28, 45
+
+### Phase C: the pipeline
+
+- [ ] **12. The Blender export.** A headless script turns each Blender source in the asset repository into the file the game imports.
+  - Delivers: a Blender script run headless from `scripts/` (with the asset repository's path from the asset-source setting) exporting clips and models to glTF in the asset repository's exports folder, recording each export's source file and its checksum beside it; models that are self-made or CC0 and fit the public budget are also copied into the game's assets.
+  - Check: a test Blender source (a block-out clip and a box model) exports to the same bytes on two runs; the export refuses a source without the expected armature; the copy step respects task 8's budget.
+  - Blocked by: 2, 8, `docs/plans/godot-rebuild.md` task 26.4 · Stories: 13, 15
+- [ ] **13. Exported clips import beside the pack clips.** A clip edited in Blender or Cascadeur replaces its pack clip in the game through the same retarget, mirroring and library build.
+  - Delivers: `ClipManifest` entries may name an exported clip by asset-repository path instead of pack, set and source, keeping the pack clip as its recorded origin; `tools/import_clips.gd` stages both kinds; the prop bones (`B-handProp.L/R`) are kept where a clip needs the weapon's own motion; the labelled CC0 stand-ins stay what clones and CI play.
+  - Check: a local-only test round-trips task 12's block-out clip from Blender to the library with no hand step, and two runs write identical libraries (Godot check 3); the content tests on the manifest cover the new entry kind; CI stays green without the asset repository.
+  - Blocked by: 12 · Stories: 12, 14, 16
+- [ ] **15. The frame-data generator.** Today's bake turned round: it reads a clip at 1.0× with its markers and writes the move's frame data, travel and swing.
+  - Delivers: a pure generator (in `tools/`, beside `SwingBake`) that takes a sampled clip or chain and its markers and returns startup, active and recovery in rules frames, the dodge-cancel window, each follow-up's branch point and window, per-frame travel (forward, sideways, turn) from the hips and foot plants, and the swing sampled relative to the moving body; no speed parameter.
+  - Check: generator-seam tests on a committed CC0 clip: deterministic, refuses a missing marker, travel isn't counted twice (the swing's grip path minus the body's travel matches the clip in place), a 30 fps marker lands on the right rules frame.
+  - Blocked by: 14 · Stories: 17, 19
+- [ ] **16. The committed frame-data table.** One run writes every move's row and swing file; CI checks the table is complete and generated, and a local test checks it against the clips.
+  - Delivers: the table beside the swing files in `game/sim/moves/`, one row per move of every weapon (kind, source clip or chain with source frames, startup, active, recovery, dodge cancel, branch points, per-frame travel, the two checksums) and per gait, start, stop, pivot and rules-length clip; `godot.mjs bake` writes the table and the swing files in one run, and `--check` exits 1 on any change; the hit paths stay in the swing files.
+  - Check: CI tests that every move and every rules-length clip that exists has a row and a source clip, the rest (the starts, stops and pivots, the paired clips, the pull-out, the disarmed gaits, the finishers, the draw, the round-end beats and the victory poses) sitting on a "not keyed yet" list that holds only clips this plan adds, and that each row's digest matches its row and swing file (a hand edit fails); `test_local_every_move_matches_a_fresh_bake` re-bakes every move from the real clips and fails on any drift. Each task that adds such a clip takes it off the list, and task 112's Check finds the list empty.
+  - Blocked by: 13, 15 · Stories: 16, 17, 20, 21, 104
+- [ ] **17. Every reader reads frame data from the table.** The move data keep only what design sets; startup, active, recovery, dodge cancel and travel come from the table.
+  - Delivers: `AttackDef` fills its frame fields from the table when the moves load, for every weapon (the Greatsword's, the Daggers' and both Counter Lunges from their current clips at 1.0×, with no band test, so their frame data change here); the frame fields leave `KatanaMoves`, `FistsMoves` and the other weapons' move data; `test_moves.gd`'s parity with the TypeScript retires; the pinned frames in `test_katana_strings.gd`, `test_greatsword_strings.gd` and `test_daggers_strings.gd` become reads of the table.
+  - Check: every frame-data reader (`AIBrain`, `MoveList`, `TrailState`, `SwingCheck`, `SwingReach`, `ClipDirector`, `MoveBench`, the sheets) passes its tests on table values; a clean 40-match soak, a clean 40-match soak with `--full-roster` for the hidden weapons' new frame data, and a 300-match `soak:tune` of task 7's mirror matches recorded in Progress as the new baseline.
+  - Blocked by: 7, 16 · Stories: 18, 22, 65, 80, 206
+- [ ] **18. The band tables and the band tests.** The timing bands and the distance bands are committed data, and CI holds every Katana and bare-hands attack to them as its family lands.
+  - Delivers: the spec's timing band table and distance band table, as the owner approved them at task 1, as committed data, one row per move kind per weapon, with each move's kind; a timing-band test and a distance-band test (touches from, misses from, the lights' 15–20 cm, bare hands' 6 m miss) over the table, built like `test_duel_reach.gd` and `test_move_reach.gd`; a "waiting for its family" list that each keying task shrinks, empty by the end.
+  - Check: both tests pass with every move on the waiting list, and fail for a move taken off the list while out of band; a test that the waiting list holds only Katana and bare-hands moves.
+  - Blocked by: 16 · Stories: 20, 33, 34, 38
+- [ ] **19. Clips play at their own speed.** The clip director plays every Katana and bare-hands clip at 1.0× of the world's time; hit-stop and slow motion slow every clip alike.
+  - Delivers: `ClipTiming`'s 1.0–2.0× retime, `MoveClips.speed` and `ClipDirector.fitted_time()` go for the Katana and bare hands; a held charge or stance plays its authored loop; a state longer than its clip holds its loop or hands to the next clip, never freezes or stretches it; the view keeps blending frames between rules steps on faster displays.
+  - Check: director tests that every Katana and bare-hands clip plays at 1.0× of the world's time, under hit-stop and slow motion alike, and that holds loop; the frozen bout in `test_state_clips.gd` re-recorded once; sheets of the Katana's string reviewed.
+  - Blocked by: 17 · Stories: 35, 36, 49
+- [ ] **20. Follow-ups and dodge cancels open at markers.** A follow-up starts from its branch point and a dodge cancel opens at its marker.
+  - Delivers: the rules start a follow-up at its branch point instead of the end of the active frames plus two, and open a dodge cancel at the table's window instead of today's formula; every follow-up stays optional.
+  - Check: rules tests that a follow-up pressed early starts at its branch point, a late one inside its window, none outside; stopping after any hit recovers normally; a clean soak.
+  - Blocked by: 17 · Stories: 45, 46
+- [ ] **21. Travel comes from the clips.** The rules move a Katana or bare-hands fighter only as the table's travel says.
+  - Delivers: for the Katana and bare hands, the rules-set lunges, the recovery slide, the reach push (`SwingBake.correct_reach()` and the view's hips offset) and the run speed carried into attacks (`ATTACK_MOMENTUM_KEEP`) retire; attacks move by the table's per-frame travel. The Greatsword and the Daggers keep their lunges, the colossal slide and the shoulder carry until milestone 2.
+  - Check: rules tests that an attack's displacement equals its table travel, that an attack out of a run keeps none of the run's speed, and that the hidden weapons' lunges are unchanged; `test_fluid_combat.gd`'s momentum-keep test retired; a clean soak.
+  - Blocked by: 17 · Stories: 19, 37, 90, 217
+- [ ] **22. The protected-timing retune and the frozen-timings test.** The Katana's and bare hands' protected timings take the spec's retuned values, and a test pins them and the free-frame rule.
+  - Delivers: the protected-timing table's values for the Katana and bare hands (hitstun, blockstun, hit-stop by kind and outcome, the full-charge bonus, the counters' stuns, the disarm's stagger and daze, the knockdown phases and guard window), the roll, backstep, parry windows, buffer, parry recoil and parry-spam rules kept; the Greatsword and the Daggers keep today's.
+  - Check: a data-seam test pins every value; the free-frame test (the defender free at least 1 frame between the hits of a follow-up pair, 1–2 in a light string at the band floors, and the earliest branch points) and rules tests that a defender can block or parry the next hit of a light string run over every pair whose moves are both off task 18's waiting list, and fail for a pair taken off the list while it breaks the rule; each keying task brings its pairs in; a clean soak.
+  - Blocked by: 18, 20 · Stories: 39, 40, 41, 42, 43, 44
+- [ ] **23. Inertial blending.** Every hand-off starts the new motion at once and fades what is left of the old pose over a few frames, hit reactions included.
+  - Delivers: an inertial-blending skeleton modifier in the fighter's rig, after the clip and before foot locking and the hands' grip; the director requests an inertial blend on every hand-off in place of a crossfade, the hitstun cut included; picture only.
+  - Check: modifier tests (a step change in a bone decays to the new pose within the blend's frames with no overshoot past the limit); director tests that every hand-off requests a blend; a rules test that the match is identical with the modifier off; sheets of a string and a hit reviewed.
+  - Blocked by: 19 · Stories: 94, 96
+- [ ] **24. The computer defends from the swing's first touch.** The computer predicts impact from the table and the swing, and ignores moves that can't reach.
+  - Delivers: `AIBrain._respond_to` times its defence with `SwingReach.first_contact` on the table's frames and ignores a move that can't reach from where it is.
+  - Check: over seeded runs Hard parries a late-touching swing about as often as an early one, and ignores a move that can't reach; a clean soak.
+  - Blocked by: 17 · Stories: 187, 188
+  - Replaces: `docs/plans/godot-rebuild.md` task 12.2
+- [ ] **25. The Studio's timeline and the frames-and-bands view.** The Studio shows a clip over its source frames, its generated frame data against its timing band, and whether it connects from its distance band.
+  - Delivers: the editor viewport, its camera and a timeline over source frames; a frames-and-bands view (startup, active and recovery from the table against the move kind's band) and the distance band's hit-or-miss check; layer toggles only for foot locking, inertial blending and the reaction layer.
+  - Check: headless tests of the view's model (a move in band, one out, one that misses from its band); shots of the editor on a Katana light reviewed.
+  - Blocked by: 11, 18 · Stories: 27, 29
+- [ ] **26. Marker editing in the Studio.** Markers are set on the timeline, with undo and redo.
+  - Delivers: the edit session (pending edits, undo and redo) and marker editing for every marker kind of task 14, written through `SourceEdit` to the manifest and the chain entries. Tested on fixture copies: this task commits no marker or table change, and the first real marker edits through the Studio happen in the main lane, at task 41.
+  - Check: save-seam tests: a marker edit writes only its value, byte-identical elsewhere; undo restores it; an out-of-order marker is refused.
+  - Blocked by: 14, 25 · Stories: 28, 45
+- [ ] **27. Chains without speeds, and save regenerating the table.** The chain panel edits parts and ranges only; saving writes markers and chains, regenerates the table and reports any move out of band.
+  - Delivers: the chain panel (parts and from-to ranges; no speed field and no held frames); save with the clobber check and an atomic write, then the generator's run and an out-of-band report. Tested on fixture copies: this task commits no marker or table change.
+  - Check: save-seam tests: markers in, the regenerated table and the out-of-band report out; a saved chain has no speed or hold; `test_studio_smoke.gd` passes.
+  - Blocked by: 26 · Stories: 28, 30
+- [ ] **28. The frame-time harness and the worst-case replay.** A recorded worst-case match plays in a window after a shader warm-up and writes every frame's time.
+  - Delivers: a harness scene that warms the shaders, plays an input log with `--replay`, writes each frame's time and prints the 99th percentile; the worst-case input log (both ultimates, a finisher once task 103 lands, blood and petals, the fighters at the wall, about 90 s) recorded and committed, re-recorded as the rules change.
+  - Check: a headless test of the percentile maths and the log's replay; one run on the RTX 3090 recorded in Progress as today's baseline.
+  - Blocked by: 6 · Stories: 201, 202
+- [ ] **29. Four graphics presets, with Ultra the reference.** Ultra, High, Medium and Low as data files, a first-launch pick from the graphics card, and FSR 2.2 on Ultra.
+  - Delivers: four preset files (Ultra rendering at about 1440p–1800p and upscaling to 4K with FSR 2.2; Low dropping only atmosphere: height fog for volumetric fog, petals casting no light, no ambient occlusion, fewer decals); the first launch maps the detected graphics card to a preset; Settings lists the four; `test_graphics_presets.gd` rewritten.
+  - Check: preset data tests (four load, Ultra is the reference, a card name maps to a preset, Low keeps the palettes, rim lights, blood, the 危 and the shots); shots at each preset reviewed.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 182, 183, 184
+
+### Phase D: the pilot's motion, with the look test alongside
+
+- [ ] **30. The look test scene.** One fighter with the Katana in a corner of the Moonlit Shrine at Ultra on the RTX 3090, in the realistic look, showing the pilot's moves.
+  - Delivers: a test scene with physically based materials on the Hunter and the Katana, volumetric fog, the dark lighting and the painterly grade, key and rim lights on the fighter, the clean-play camera effects (temporal anti-aliasing, subtle bloom, ambient occlusion, fog, grade, light grain) and the gameplay camera's framing; it plays the pilot's moves as they stand.
+  - Check: shots beside the mood board; the harness's 99th percentile at 14 ms or less on the RTX 3090 (Godot check 5); the features list of Godot check 6 working under Forward+ on Windows.
+  - Blocked by: 3 (and the owner's OK), 28, 29 · Stories: 134, 135, 138, 139
+  - **Owner:** approves the look test scene, its lighting and camera effects, and the gameplay camera's framing.
+- [ ] **31. Right Cut and Return Cut re-keyed.** The string's first two lights become two-handed cuts with longer wind-ups and real steps, inside the light band.
+  - Delivers: Claude's scripted Blender passes of both clips (longer wind-ups, both hands on the grip, steps from the hips), exported and imported, markers set, the table regenerated; both moves leave the band tests' waiting list.
+  - Check: both pass the timing-band and distance-band tests, and the free-frame test passes for Right Cut into Return Cut; PoseCheck's foot slide under 1 cm and blade clearance on every frame; the weapon-in-hand test; sheets of both, both sides, reviewed; a clean soak.
+  - Blocked by: 9, 18, 19, 21 · Stories: 34, 52, 53, 211
+- [ ] **32. Kesa Cut and Crown Cut re-keyed.** The string's last two lights, the vertical cuts stepping into the cut.
+  - Delivers: as task 31, for Kesa Cut and Crown Cut.
+  - Check: as task 31; the free-frame and block-the-next-hit tests pass for the four lights; the string-continuity test (each swing starts on the side the last ended) across the four lights.
+  - Blocked by: 31 · Stories: 52, 59
+- [ ] **135. The weapon rides the clip's hands in every state.** The weapon stays fixed to the clip's hands in guard and free movement as well as in attacks.
+  - Delivers: `FighterView` fixes the weapon to the clip's hands (the prop bone where a clip has one) in every state, with the libraries or with the CC0 stand-ins, building on what `docs/plans/roadmap.md` task R1 did for CI.
+  - Check: the weapon-in-hand test in guard, free movement and every string hit, with and without the libraries; `test_the_guard_puts_the_weapon_in_both_hands` rewritten for clips.
+  - Blocked by: 23 · Stories: 102
+- [ ] **33. The guard idle and the string's bridges.** The Katana's guard idle and the transition clips between the hits are keyed.
+  - Delivers: the Katana's guard idle and the bridges between the string's hits as transition clips; the CC0 stand-in guard that `docs/plans/authored-animation.md` task 31's review found wanting retired.
+  - Check: the weapon-in-hand test through the guard idle and the bridges; sheets of the string with its bridges reviewed.
+  - Blocked by: 32, 135 · Stories: 47, 95
+- [ ] **34. The light string's deflect pairs.** Each light's direction has a deflect pair, the parrier's deflect and the attacker's recoil, played from the contact frame where the blades meet.
+  - Delivers: deflect-pair clips for the four lights' directions (Claude's block-outs; the owner's polish lands in task 126); the parry event carries the contact point and direction; both fighters play their half from the contact frame; the rebound (the attack clip run backwards) retires. It is part of godot-rebuild 18.5, which task 39 finishes.
+  - Check: director tests that a parry of each light picks its pair and plays both halves from the contact frame; the blades within 2 cm at contact on the sheets; rules unchanged (the parry recoil's frames); sheets reviewed.
+  - Blocked by: 22, 32 · Stories: 105, 106
+- [ ] **35. Light hit and block reactions.** A light hit plays a reaction by where it landed, and a block shows the guard taking a light impact.
+  - Delivers: light hit reactions front, left, right and back, high and low, picked from the hit's contact point; a light block reaction; each fits the retuned light hitstun and blockstun at its own speed.
+  - Check: director tests of the pick by contact point; the state-clip fit test for each; sheets reviewed.
+  - Blocked by: 22, 33 · Stories: 97, 107
+- [ ] **36. The pilot's sound.** The light string sounds physical: swings, metal impacts by weapon pair, flesh and bone, the parry ring, the deflect pairs, and the Hunter's cloth and gear.
+  - Delivers: `SoundBank` entries for the four lights' swings, Katana-on-Katana impacts, flesh and bone layers keyed to the hit, a distinct parry ring, the deflect pairs' sounds, the Hunter's cloth and gear movement, and hooks for the effort vocals (task 114).
+  - Check: sound-bank tests that a Katana-on-Katana block picks the Katana-pair impact, that a blade hit adds the flesh and bone layers, that a parry plays the ring distinct from a block, and that each deflect pair and the Hunter's cloth and gear movement have entries; `test_every_event_type_has_an_entry`; `test_sound_playback.gd`'s whole match; the listening pass happens at the pilot's review.
+  - Blocked by: 34, 35 · Stories: 170, 171, 176
+- [ ] **126. The owner's polish of the light string's deflect pairs.** The owner polishes Claude's block-outs in Cascadeur, and the polished clips replace them.
+  - Delivers: Cascadeur Indie bought; the four lights' deflect pairs polished, exported to the asset repository and imported; their markers checked and the table regenerated.
+  - Check: task 34's director tests pass on the polished clips; the blades within 2 cm at contact on the sheets; rules unchanged.
+  - Blocked by: 34 · Stories: 105, 211
+  - **Owner:** buys Cascadeur Indie and polishes the light string's deflect pairs.
+
+### Phase E: the pilot's effects and review
+
+- [ ] **37. Sparks and air smears in the approved look.** Blocks and blade clashes throw realistic sparks at the contact point, and fast swings leave air smears in place of the brush trails.
+  - Delivers: spark effects by outcome and weapon pair at the contact point (block, parry, blade clash); air smears on the string's fast swings; the brush-stroke trails, the ink splash, the stylised parry ring and the weapon-bounce sparks retire; `test_trail_state.gd` and `test_weapon_trail.gd` rewritten. It is part of godot-rebuild 18.4 and 18.5, which tasks 38 and 39 finish.
+  - Check: effect-table tests (counts by outcome and weight); shots of a block, a parry and a hit, beside the look test, reviewed.
+  - Blocked by: 30 (and the owner's OK), 34 · Stories: 156, 159
+- [ ] **38. Blood and the Blood setting.** Blade hits draw blood that lasts the match, and Settings offers On, Reduced or Off.
+  - Delivers: a burst on each blade hit, blood on blades and clothes for the whole match, floor splatter that fades; `GameSettings.blood` (On by default) with its Settings row; Reduced scales and Off removes every blood effect.
+  - Check: settings tests (saves and loads, default On); effect tests under each value; shots of a hit at each value reviewed.
+  - Blocked by: 37 · Stories: 157, 161, 185
+  - Replaces: `docs/plans/godot-rebuild.md` task 18.4
+- [ ] **39. The parry push-in.** Every parry, Flash and redirect gives a short camera push-in, frozen in hit-stop and off under Reduce flashes.
+  - Delivers: `CameraRig.push_in` toward the look point, easing back, frozen in hit-stop, depth of field allowed during it; Reduce flashes (`GameSettings.reduce_flashes`, already saved) turns it off; camera shake and kicks checked at the new pace.
+  - Check: `test_camera_rig.gd` tests of the push-in, the hit-stop freeze and Reduce flashes; a parry shot reviewed.
+  - Blocked by: 34 · Stories: 109, 136
+  - Replaces: `docs/plans/godot-rebuild.md` task 18.5
+- [ ] **40. The pilot's review package.** Everything the owner needs to judge the light string as a player would.
+  - Delivers: contact sheets of the four lights, their deflect pairs and reactions; a side-by-side video against For Honor, Ghost of Tsushima and Tekken 8 or Mortal Kombat 1 (the footage stays on the owner's machine); the light string's checklist rows filled; a build for the play session with the licensed clips loaded; the Katana's lights rebalanced (damage and posture) and a 300-match `soak:tune` recorded.
+  - Check: every CI-checked checklist item passes for the four lights; the package is in Progress.
+  - Blocked by: 9, 10, 36, 38, 39, 126 (and the owner's OK) · Stories: 50, 209, 210
+- [ ] **41. The pilot family's review.** The owner plays the light string at final quality, tries the slimmed Studio on it, and ends the protected-timing retune.
+  - Delivers: the owner's verdict on the pilot recorded in Decisions so far; any changes to the protected timings written into the spec's table and the frozen-timings test, then frozen; the slimmed Studio tried on the pilot's markers and chains.
+  - Check: the owner's notes are answered by fixes or by new tasks; the pilot's checklist rows all ticked.
+  - Blocked by: 27, 40 · Stories: 32, 40, 51, 176
+  - **Owner:** plays and reviews the pilot family (sheets, the side-by-side video, a listening pass, a play session), adjusts and then freezes the protected timings, and tries the slimmed Studio. Its OK gates family 2.
+- [ ] **42. The Godot check at the pilot and the look test.** The written criteria judged on evidence: the pilot for animation, the look test for the look and performance.
+  - Delivers: a short record in `docs/reviews/` of each Godot check criterion (1–6) with its evidence (the pilot's checklist, the rig's modifier order with the rules unaffected, the export round trip, the look test beside the mood board, the look test's frame times, the features under Forward+).
+  - Check: every criterion has evidence; any clear failure is raised to the owner with the fixes tried.
+  - Blocked by: 30 (and the owner's OK), 41 (and the owner's OK) · Stories: 212
+  - **Owner:** judges the Godot check. Godot stays unless a criterion clearly fails and no fix inside Godot is in sight; the art conversion waits on this.
+
+### Phase F: the art conversion
+
+- [ ] **43. Physically based materials and the grade replace the toon look.** The game's look becomes the look test's: no toon shading, outlines or ink-wash.
+  - Delivers: `ToonMaterials`, the outline shader, `InkWashPass` and `InkGrade` retire; physically based materials and one colour grade replace them in every scene; the clean-play camera effects as the look test settled them; `test_look.gd`, `test_ink_wash.gd` and the toon assertion in `test_weapons.gd` replaced.
+  - Check: look tests (no toon or outline material on any fighter, weapon or arena node; the grade on every camera); shots of the gameplay, Watch and menu views reviewed beside the look test.
+  - Blocked by: 42 (and the owner's OK) · Stories: 135, 140, 206
+- [ ] **44. Key and rim lights on the fighters only.** The fighters stand out of the dark without outlines.
+  - Delivers: a key and a rim light per fighter on the fighters' light layer only; `LookPalette.FIGHTER_LAYER` kept.
+  - Check: a test that the lights touch only the fighter layer; shots in the dark corners of the Shrine reviewed.
+  - Blocked by: 43 · Stories: 142
+- [ ] **45. The Hunter re-dyed crimson and indigo.** The Hunter's two palettes become realistic dyed materials with wear and oriental patterns, reading apart in colour and in grey.
+  - Delivers: two physically based palettes (crimson, indigo) on the re-textured body, with wear and patterns; a grey-readability test; a neutral face; no remodel of the body.
+  - Check: the grey test (prior art `test_palettes.gd`'s area test) passes from every side; shots of both sides at Ultra and Low reviewed.
+  - Blocked by: 43 · Stories: 141, 143, 145
+- [ ] **46. The tricorn and the scarf, the scarf on spring bones.** Both are remodelled in Blender with oriental touches; the scarf's ends swing.
+  - Delivers: Blender sources and exports for the tricorn and the scarf replacing `tools/build_headwear.gd`'s; spring bones on the scarf's ends.
+  - Check: content tests that both load on the Hunter and the spring bones settle at rest; sheets of a sprint and a roll reviewed.
+  - Blocked by: 12, 45 · Stories: 144
+- [ ] **47. The Katana and its saya modelled.** The weapon the player watches most, real, keeping today's 0.72 m blade within 2 cm.
+  - Delivers: Blender sources and exports for the Katana and the saya replacing `tools/build_katana.gd` and the coded `Saya`; the grip, blade and off-hand markers kept.
+  - Check: `test_the_katana_blade_is_072_m_and_curved_back` within 2 cm; the distance-band and weapon-in-hand tests pass; shots in hand and at the hip reviewed.
+  - Blocked by: 12, 43 · Stories: 146, 147
+- [ ] **48. The wisteria.** Huge ancient wisteria replace the pines and dead trees, their blossoms lighting the fight.
+  - Delivers: wisteria with dark bark in place of the pines and dead trees, glowing purple blossoms that light the fight, a canopy that never hides the moon or the fighters, glowing petals falling; Blender and CC0 sources, partly built by script.
+  - Check: `test_moonlit_shrine.gd` updated for the trees; the camera's view of both fighters never blocked (shots from the gameplay and Watch cameras at the wall); size budget kept.
+  - Blocked by: 12, 43 · Stories: 147, 149
+- [ ] **131. Banners and grass.** Banners hang about the Shrine and grass grows in the broken paving.
+  - Delivers: banner and grass models and their placements, from Blender and CC0 sources.
+  - Check: `test_moonlit_shrine.gd` covers them; the fighters' view never blocked; size budget kept; shots reviewed.
+  - Blocked by: 12, 43 · Stories: 152
+- [ ] **132. The Shrine's buildings remodelled.** The lanterns, the torii with their shimenawa, the pillars, the pagoda and the temple hall are remodelled in place, keeping the layout.
+  - Delivers: Blender sources and exports for each, partly built by script, in today's places.
+  - Check: `test_moonlit_shrine.gd` and the layout tests pass; shots from the gameplay and Watch cameras reviewed; size budget kept.
+  - Blocked by: 12, 43 · Stories: 147, 148
+- [ ] **49. The Shrine's materials, mist and sky.** Worn, weathered, uneven and broken paving, mist drifting through the moon shafts, a blood moon and a starry sky.
+  - Delivers: CC0 scanned materials on the stone and wood; mist through the moon shafts; the blood moon and the stars.
+  - Check: shots at Ultra and Low reviewed; the size budget kept.
+  - Blocked by: 48, 131, 132 · Stories: 150
+- [ ] **50. The Shrine's platform.** The platform is replaced with a modelled one, last, keeping the arena's definition.
+  - Delivers: a modelled platform, parapet and gates in place of `ShrinePlatform`'s code-built ones; `ArenaDef` unchanged.
+  - Check: `test_shrine_as_arena.gd` and the arena tests pass; shots at the wall reviewed.
+  - Blocked by: 49 · Stories: 148
+- [ ] **51. The distant landscape in real 3D.** Sculpted mountains and cliffs, pagodas and temples, volumetric fog and clouds, simpler on Low.
+  - Delivers: a modelled backdrop replacing `ShrineBackdrop`'s painted pieces, with a Low version.
+  - Check: shots of the establishing view at Ultra and Low reviewed; a bench on Low inside budget.
+  - Blocked by: 49 · Stories: 151, 184
+- [ ] **52. One wind.** One wind moves the clouds, the branches, the petals, the grass, the banners and the scarf, on the clear night only.
+  - Delivers: a wind object in place of `ShrineLayout.wind`, presentation only, driving every one of them; the weather system isn't built.
+  - Check: a test that each of them reads the one wind; a rules test that the match is identical with the wind changed; a short video reviewed.
+  - Blocked by: 46, 48, 51, 131 · Stories: 153, 154
+- [ ] **53. The new UI theme on the menus.** The menus take the mood board's UI page's colours, fonts and panels, so nothing looks ink-wash; their layouts stay.
+  - Delivers: a new theme in place of `ink_wash.tres` and `UiPalette`'s ink values; fonts kept or replaced as the UI page says; `test_ui_theme.gd` rewritten.
+  - Check: theme tests; shots of every screen reviewed.
+  - Blocked by: 42 (and the owner's OK) · Stories: 181
+- [ ] **54. The HUD and the round calls redesigned.** HP bars, the posture bar, round pips and the ultimate badge in the new style, keeping their layout; the round calls in brushed calligraphy.
+  - Delivers: `MatchHud`, `HudBar`, `HudPips` and `HudBadge` restyled; the round calls redrawn in brushed calligraphy, in a style task 72 follows for Warrior Slain; the master follow-ups' toasts, prompts and Versus HUD are restyled in task 117, once they have landed.
+  - Check: `test_hud_state.gd` and `test_hud_announcements.gd` pass; shots of each HUD state reviewed.
+  - Blocked by: 53 · Stories: 177, 178
+
+### Phase G: family 2, guard movement and dodges
+
+- [ ] **55. Gait speeds from the clips.** The rules move a fighter at the walk, run, strafe and sprint clips' own measured speeds, and the clips play at 1.0×.
+  - Delivers: a walk speed in the rules; the run per direction and the sprint from the table's measured speeds; the stick picks a blend of gait clips and the rules move at the blended speed, kept in step; `Locomotion`'s stride-matched playback rate (PR #21) retires; running fighters lean forward in their clips.
+  - Check: rules tests that each gait moves at its table speed and a blend at the blended speed; locomotion tests that every gait clip plays at 1.0×; foot slide under 1 cm in every gait; a clean soak.
+  - Blocked by: 16, 41 (and the owner's OK) · Stories: 81, 82, 91, 217
+- [ ] **56. Guarded strafe and shuffle cycles.** The Katana and bare hands get guarded strafe and shuffle clips, and the blocking walk becomes their speed.
+  - Delivers: guarded strafe and shuffle cycles per weapon class (chosen or keyed to about 55–65% of the run); the 0.6 multiplier retires.
+  - Check: `test_fluid_combat.gd`'s 60% blocking-walk test becomes a clip-speed test; sheets reviewed; a clean soak.
+  - Blocked by: 55 · Stories: 83, 84
+- [ ] **57. Starts, stops and pivots.** Starting, stopping and turning take their clips' time and distance; actions still cut in at once.
+  - Delivers: short rules states driven by clip travel for guarded starts and stops, run stops, plant-and-reverse pivots and sprint stops, as the momentum and gait table says; any attack, dodge, backstep, parry or block cuts in at once with the leftover momentum only in the blend; the tap step keeps its instant start, its clip chosen or keyed to cover 0.55 m in 8 frames at 1.0×; the starts, stops, pivots and the tap step come off the frame-data table's not-keyed list.
+  - Check: rules tests of each state's length and travel against the table, of an action cutting in on the first frame, and of the tap step; the state-clip fit test for the tap step; sheets reviewed; a clean soak.
+  - Blocked by: 56 · Stories: 85, 86, 87, 88, 89, 95
+- [ ] **58. The roll and the backstep re-keyed.** Both fit their protected frames at their own speed, and the dodge's travel curve comes from the new roll.
+  - Delivers: re-keyed roll and backstep clips (16 + 9 frames over 2.8 m; 14 + 9 over 2.1 m) and the dodge curve regenerated from the roll.
+  - Check: the state-clip fit test; `test_roll_travel.gd`; foot slide; sheets reviewed; a clean soak.
+  - Blocked by: 22, 41 (and the owner's OK) · Stories: 43, 92
+- [ ] **59. The jump and the landing; jump attacks fit the airtime.** The jump clips match the rules' arcs, a jump attack starts only while it fits the airtime left, and a landing never skips its frames.
+  - Delivers: jump and landing clips keyed to the arcs (armed and disarmed); the rules refuse a jump attack whose startup and active frames no longer fit the airtime left; landing plays the attack's landing recovery from its clip instead of skipping forward.
+  - Check: rules tests of the refusal and of a landing mid-attack; sheets of the jump reviewed; a clean soak.
+  - Blocked by: 41 (and the owner's OK) · Stories: 48, 93
+- [ ] **60. The procedural poses retire.** The stick poses, the swing player, the weapon-hold idles, the demo swings and the posing of weapons in space go, for every weapon.
+  - Delivers: `StickPose`, `SwingPlayer`, `WeaponHold`, `tools/swings/katana_demo.json` and `scripts/swings` deleted; the Greatsword and the Daggers ride their current clips' hands; a director test that every move of every weapon resolves to a clip; the labelled stand-ins stay; `test_stick_pose.gd`, `test_swing_player.gd` and the procedural-pose tests in `test_fighter_view.gd` go.
+  - Check: the director test; the weapon-in-hand test for every weapon; CI green without the packs; the scene smoke test; a clean soak.
+  - Blocked by: 33, 57 · Stories: 102, 206, 215, 216
+  - Replaces: `docs/plans/authored-animation.md` task 35
+- [ ] **61. Family 2's sound and effects.** Footsteps where the clips' feet land, and dust and smoke where feet, rolls and landings meet the ground.
+  - Delivers: stone footsteps at the clips' foot contacts (`FootstepCadence` kept for matches stepped without drawing); the roll's sound; dust and smoke at foot plants, rolls and landings in the realistic look. It is part of godot-rebuild 18.9, which task 118 finishes.
+  - Check: audio tests of footfalls at contacts; effect tests; shots and a listening pass at the review.
+  - Blocked by: 43, 57, 58, 59 · Stories: 160, 169
+- [ ] **62. Family 2's review.** Guard movement and dodges go to the owner.
+  - Delivers: the review package as in task 40 (sheets, the side-by-side video, the checklist rows, a play session build, a 300-match `soak:tune`).
+  - Check: every CI-checked checklist item passes for the family's clips.
+  - Blocked by: 10, 60, 61 · Stories: 209
+  - **Owner:** reviews family 2. Its OK gates family 3.
+
+### Phase H: family 3, the Katana's heavies and the Iai
+
+- [ ] **63. The Iai Slash re-keyed.** Heavy sheathes the blade, the stance strafes on an authored loop, and letting go draws a vertical or horizontal cut, landing from the Iai's distance band.
+  - Delivers: the sheathe, the stance loop and its strafe at the clip's measured speed, both draws (the stick picks), the drift from the draw clip's travel, the held release at 2.5 s out of the loop; the prop bones carry the blade's draw; Claude's passes; the owner's polish lands in task 127.
+  - Check: band tests for the tapped and the stance draws; the distance-band test from 3.6 m; rules tests of the release and the stance speed; sheets reviewed; a clean soak.
+  - Blocked by: 62 (and the owner's OK) · Stories: 36, 53, 54, 56, 57, 211
+- [ ] **64. Rising Heaven, Returning Draw and Heaven Splitter.** The Iai's follow-ups and the string heavy, optional and flowing.
+  - Delivers: the three re-keyed in their bands; two lights flowing into a heavy as the third hit.
+  - Check: band and distance tests; the string-continuity test; rules tests that each follow-up is optional; sheets reviewed; a clean soak.
+  - Blocked by: 63 · Stories: 46, 47, 55, 58
+- [ ] **65. Heavy reactions, the heavies' deflect pairs and the power attack's knockdown.** Heavy hits and blocks react heavily, and each heavy direction has its deflect pair.
+  - Delivers: heavy hit reactions by direction and height, the heavy block reaction, deflect pairs for the heavies' directions (Claude's block-outs; the owner's polish lands in task 127), the knockdown triggered by a power attack.
+  - Check: director tests of the picks; the state-clip fit test; sheets reviewed.
+  - Blocked by: 64 · Stories: 97, 105
+- [ ] **66. The computer uses and answers the Iai.** It draws, walks in sheathed, takes the follow-ups and dodges out; against a sheathed opponent it keeps out of range, punishes or parries the release.
+  - Delivers: the brain's Iai play, landing it from the Iai's distance band, not a fixed 3.2 m.
+  - Check: seeded tests: it lands an Iai from its band, releases both variants, dodge-cancels when attacked, and Hard parries a held Iai at a set rate; a clean soak.
+  - Blocked by: 24, 63 · Stories: 191
+  - Replaces: `docs/plans/godot-rebuild.md` task 12.5
+- [ ] **67. Family 3's sound and effects.** The heavies' swings, impacts and sparks, the sheathe and the draw.
+  - Delivers: sound-bank entries and effects for every family-3 event.
+  - Check: sound-bank entries for the sheathe, both draws and each heavy's swing and impact; an effect-table row for each family-3 event; shots reviewed.
+  - Blocked by: 65 · Stories: 156, 170
+- [ ] **127. The owner's polish of the Iai and the heavies' deflect pairs.** The owner polishes Claude's passes in Cascadeur, and the polished clips replace them.
+  - Delivers: the Iai's sheathe and both draws, and the heavies' deflect pairs, polished, exported and imported; their markers checked and the table regenerated.
+  - Check: the Iai's band and distance tests and task 65's director tests pass on the polished clips; sheets reviewed.
+  - Blocked by: 63, 65 · Stories: 53, 105, 211
+  - **Owner:** polishes the Iai and the heavies' deflect pairs.
+- [ ] **68. Family 3's review.** The Katana's heavies and the Iai go to the owner.
+  - Delivers: the review package as in task 40.
+  - Check: every CI-checked checklist item passes for the family's moves.
+  - Blocked by: 66, 67, 127 (and the owner's OK) · Stories: 209
+  - **Owner:** reviews family 3. Its OK gates family 4.
+
+### Phase I: family 4, reactions, knockdown and KO
+
+- [ ] **69. The rest of the hit and block reactions.** Every hit reaction picks its clip by direction, height and weight, and blocks by weight, armed or disarmed.
+  - Delivers: the reactions tasks 35 and 65 left: the disarmed fighters' light and heavy hit reactions and their block reactions, and any armed direction or height still missing; the pick by direction, height and weight in one table.
+  - Check: director tests of every pick, armed and disarmed; the state-clip fit test; sheets reviewed.
+  - Blocked by: 68 (and the owner's OK) · Stories: 97, 107
+- [ ] **70. The physical reaction layer.** A physical layer on the spine, head and arms, pushed from where and how hard the hit landed.
+  - Delivers: a skeleton modifier in the rig's order after inertial blending, picture only.
+  - Check: modifier tests (a push decays and settles; zero push leaves the pose); a rules test that the match is identical with the layer off; a short video reviewed.
+  - Blocked by: 23, 69 · Stories: 96, 98
+- [ ] **71. The knockdown, the stuns and the staggers re-keyed.** The biggest hits fit their retuned frames at their own speed, and knockback comes from the reaction clips' travel.
+  - Delivers: the knockdown's fall, down and rise (30, 30, 40 with a 20-frame guard window), the stuns and the staggers re-keyed; knockback and pushback from the reaction clips' travel; invulnerable while down, blocking or parrying while rising as today.
+  - Check: the state-clip fit test; `test_knockdown.gd`; rules tests of the travel; sheets reviewed; a clean soak.
+  - Blocked by: 69 · Stories: 99, 100, 113
+- [ ] **72. Deaths, the KO and Warrior Slain.** A round's KO plays on the gameplay camera with the slow motion, the sound drain and the Warrior Slain call.
+  - Delivers: death clips; 討死 Warrior Slain, drawn in task 54's brushed calligraphy, in place of 一本 K.O. in every mode (the double KO keeps 相打ち); the final hit ringing out as the slow motion drains the arena and music buses, a deep drum under the call; hit-stop, shake and the KO's slow motion at the new pace; the KO's effect leading into the call. It is part of godot-rebuild 18.9, which task 118 finishes.
+  - Check: HUD announcement tests; bus tests of the drain; a rules test that every round-ending KO calls Warrior Slain; shots and a listening pass reviewed.
+  - Blocked by: 54, 71 · Stories: 125, 128, 132, 136, 172
+- [ ] **73. Family 4's sound and effects.** Hits, falls and knockdowns sound and look physical.
+  - Delivers: flesh and bone layers for every reaction, falls and knockdowns' sounds, dust from falls.
+  - Check: sound-bank tests that every reaction has its flesh and bone layers by weight and that falls and knockdowns have entries; effect tests of the dust from falls; shots reviewed.
+  - Blocked by: 72 · Stories: 160, 170
+- [ ] **74. Family 4's review.** Reactions, knockdown and KO go to the owner.
+  - Delivers: the review package as in task 40.
+  - Check: every CI-checked checklist item passes for the family's clips.
+  - Blocked by: 70, 73 · Stories: 209
+  - **Owner:** reviews family 4. Its OK gates family 5.
+
+### Phase J: family 5, the Katana's movement attacks
+
+- [ ] **75. Running Draw, Leaping Cleave, Wind Cut and Whirl Cut.** The sprint and dodge attacks re-keyed, each in its own band.
+  - Delivers: the four re-keyed, exported and in band.
+  - Check: band and distance tests; sheets reviewed; a clean soak.
+  - Blocked by: 74 (and the owner's OK) · Stories: 60
+- [ ] **76. Rising Cut, Lunging Cut, Aerial Cut and Falling Crown.** The backstep and jump attacks re-keyed, the jump attacks fitting the airtime.
+  - Delivers: the four re-keyed, exported and in band.
+  - Check: band and distance tests; the airtime rules tests for both jump attacks; sheets reviewed; a clean soak.
+  - Blocked by: 59, 75 · Stories: 60, 93
+- [ ] **77. Family 5's sound and effects.** Swings, impacts and air smears for the eight movement attacks.
+  - Delivers: sound-bank entries and effects for the eight.
+  - Check: sound-bank entries for each of the eight's swings and impacts; effect tests that each of the eight leaves its air smear; shots reviewed.
+  - Blocked by: 76 · Stories: 159, 170
+- [ ] **78. Family 5's review.** The Katana's movement attacks go to the owner.
+  - Delivers: the review package as in task 40.
+  - Check: every CI-checked checklist item passes for the eight.
+  - Blocked by: 77 · Stories: 209
+  - **Owner:** reviews family 5. Its OK gates family 6.
+
+### Phase K: family 6, block abilities and counters
+
+- [ ] **79. Flash re-keyed.** A two-handed parry stance with its wide window, stunning the attacker, with its own deflect pair.
+  - Delivers: the Flash stance and its deflect pair (Claude's block-out; the owner's polish lands in task 128).
+  - Check: band test for its stance; rules tests of its window and stun; director tests of its pair; sheets reviewed.
+  - Blocked by: 78 (and the owner's OK) · Stories: 61, 108
+- [ ] **80. Piercing Thrust and the stomp's paired clip.** The thrust re-keyed in the unblockable band, and the stomp played as a paired clip.
+  - Delivers: Piercing Thrust re-keyed with a long, readable wind-up; the stomp's paired clip with the rules lining the two fighters up over a few frames, its length and placement in the table, off the not-keyed list.
+  - Check: band and distance tests; rules tests of the line-up; sheets reviewed; a clean soak.
+  - Blocked by: 78 (and the owner's OK) · Stories: 62, 110
+- [ ] **81. Swallow Sweep and the leap's paired clip.** The sweep re-keyed in the unblockable band, and the leap played as a paired clip.
+  - Delivers: as task 80, for Swallow Sweep and the leap.
+  - Check: as task 80; the sweep still jumpable.
+  - Blocked by: 80 · Stories: 62, 110
+- [ ] **82. The 危, the glint and Training-only labels.** As an unblockable's wind-up starts, a red 危 flashes with its sound and the blade glints red; labels and the floor marker show only in Training.
+  - Delivers: the 危 and its distinct warning sound; the blade's red glint; the THRUST and SWEEP labels and a floor reach marker in Training only; the gold 奥義 ULTIMATE mark and the floor ink arc retire in matches.
+  - Check: effect tests by mode; a sound-bank test; shots in a match and in Training reviewed.
+  - Blocked by: 37, 81 · Stories: 111, 112, 173, 196
+  - Replaces: `docs/plans/godot-rebuild.md` task 18.6
+- [ ] **83. Training's routes and counterlab's stomp and leap.** The dummy performs every milestone-1 unblockable through one routes table, and counterlab proves the stomp and the leap reachable.
+  - Delivers: an `UnblockableRoutes` table replacing `TrainingBrain.weapon_ability_for` and `TrainingUpkeep.can_perform`; the Katana dummy's heavies alternate both Iai variants; counterlab's stomp and leap cases (the evade's waits for milestone 2).
+  - Check: Training tests that the dummy telegraphs both unblockables and both Iai variants; a short GUT counterlab counters each at least once; the full table goes in the commit.
+  - Blocked by: 81 · Stories: 6, 189, 190, 196
+  - Replaces: `docs/plans/godot-rebuild.md` tasks 12.3 and 12.4
+- [ ] **84. Family 6's sound and effects.** A plain parry, a Flash and a redirect read apart, and the counters' effects land on their paired clips.
+  - Delivers: a parry's sparks, a Flash's brighter burst and longer ring-out, a redirect's hand-on-arm impact with no sparks; the stomp's and the leap's effects on their paired clips; the status flashes (evade, stagger, counter-ready, pick-up) retire. It is part of godot-rebuild 18.9, which task 118 finishes.
+  - Check: the sound-bank and effect tests; shots of each reviewed.
+  - Blocked by: 79, 82 · Stories: 108, 167
+- [ ] **128. The owner's polish of Flash's deflect pair.** The owner polishes Claude's block-out in Cascadeur, and the polished clip replaces it.
+  - Delivers: Flash's deflect pair polished, exported and imported; its markers checked and the table regenerated.
+  - Check: task 79's director tests pass on the polished clip; sheets reviewed.
+  - Blocked by: 79 · Stories: 108, 211
+  - **Owner:** polishes Flash's deflect pair.
+- [ ] **85. Family 6's review.** Block abilities and counters go to the owner.
+  - Delivers: the review package as in task 40.
+  - Check: every CI-checked checklist item passes for the family's moves.
+  - Blocked by: 83, 84, 128 (and the owner's OK) · Stories: 209
+  - **Owner:** reviews family 6. Its OK gates family 7.
+
+### Phase L: family 7, the disarm and bare hands' core
+
+- [ ] **86. The deterministic stuck weapon.** A disarmed weapon flies along the knock or deflect direction and sticks blade-first in the ground inside the walls, the same way every run.
+  - Delivers: `DroppedWeapon` stops drawing from the world's generator: a fixed arc along the knock or deflect direction, shortened to land inside the walls, stuck at an angle that is rules state; the bounce, its event and the bounce sparks retire; the replay and save-and-restore tests cover a disarm.
+  - Check: rules tests of the direction, the walls and the same landing every run; the replay and save-and-restore tests through a disarm; `test_shrine_as_arena.gd`'s wall test rewritten; a clean soak.
+  - Blocked by: 6, 85 (and the owner's OK) · Stories: 25, 66, 67
+- [ ] **87. The pull-out and the stuck weapon on screen.** Picking up means pulling the weapon out of the ground, and the stuck weapon shows in the realistic look with a faint glint.
+  - Delivers: the pull-out pick-up taking its clip's length, the weapon in hand at its in-hand marker; the stuck Katana model with a faint glint; the beam and ring retire; the stuck weapon removed on pull-out, recall and round start; the pull-out off the not-keyed list. 24.5's off-screen marker is restyled in task 117.
+  - Check: rules tests of the pull-out's length; a test that standing over the weapon blocks the owner's way; effect tests; shots after a disarm reviewed.
+  - Blocked by: 47, 86 · Stories: 68, 69, 166
+  - Replaces: `docs/plans/godot-rebuild.md` task 18.10
+- [ ] **88. The disarmed gaits and the longer disarmed roll.** Disarmed fighters move faster and dodge farther through their own clips.
+  - Delivers: disarmed gait clips at about 1.2× the armed run; a longer disarmed roll covering 1.5× the distance in the same protected frames; the disarmed jump stays a rules number; the disarmed gaits off the not-keyed list.
+  - Check: rules tests of the speeds and the roll's distance; the state-clip fit test; sheets reviewed; a clean soak.
+  - Blocked by: 55, 58, 86 · Stories: 70, 71
+- [ ] **89. Jab, Cross and Hook.** Bare hands' light string re-keyed in its bands, one shared moveset for every fighter.
+  - Delivers: the three re-keyed, exported and in band.
+  - Check: band and distance tests (bare hands' 6 m miss kept); the free-frame test for the string; sheets reviewed; a clean soak.
+  - Blocked by: 86 · Stories: 72, 79
+- [ ] **133. Roundhouse and Spinning Heel.** Bare hands' heavies re-keyed in their bands.
+  - Delivers: the two re-keyed, exported and in band.
+  - Check: band and distance tests; sheets reviewed; a clean soak.
+  - Blocked by: 89 · Stories: 72
+- [ ] **90. The redirect's deflect pair, and a blade parrying a fist or foot.** The redirect turns an attack aside by hand, and a parried fist or foot recoils without a cut.
+  - Delivers: the redirect's deflect pair (Claude's block-out; the owner's polish lands in task 129); a recoil with no cut when a blade parries a fist or foot.
+  - Check: director tests of both; sheets reviewed.
+  - Blocked by: 89 · Stories: 74, 75
+- [ ] **91. Family 7's sound and effects.** A bare-hand hit shows its own impact, and the disarm's effect follows the weapon into the ground.
+  - Delivers: a dust-and-cloth impact and the physical layer's push for bare-hand hits, not a blood burst; the disarm's effect along the weapon's flight; sounds for the stuck weapon, the pull-out and the redirect. It is part of godot-rebuild 18.9, which task 118 finishes.
+  - Check: the sound-bank and effect tests; shots and a listening pass reviewed.
+  - Blocked by: 87, 90, 133 · Stories: 158, 167, 171
+- [ ] **129. The owner's polish of the redirect's deflect pair.** The owner polishes Claude's block-out in Cascadeur, and the polished clip replaces it.
+  - Delivers: the redirect's deflect pair polished, exported and imported; its markers checked and the table regenerated.
+  - Check: task 90's director tests pass on the polished clip; sheets reviewed.
+  - Blocked by: 90 · Stories: 74, 211
+  - **Owner:** polishes the redirect's deflect pair.
+- [ ] **92. Family 7's review.** The disarm and bare hands' core go to the owner.
+  - Delivers: the review package as in task 40.
+  - Check: every CI-checked checklist item passes for the family's moves and clips.
+  - Blocked by: 88, 91, 129 (and the owner's OK) · Stories: 209
+  - **Owner:** reviews family 7. Its OK gates family 8.
+
+### Phase M: family 8, bare hands' movement attacks
+
+- [ ] **93. Flying Knee, Dragon Kick, Slip Jab and Spinning Backfist.** The sprint and dodge attacks re-keyed.
+  - Delivers: the four re-keyed, exported and in band.
+  - Check: band and distance tests; sheets reviewed; a clean soak.
+  - Blocked by: 92 (and the owner's OK) · Stories: 73
+- [ ] **94. Snap Kick, Lunging Palm, Air Kick and Axe Kick.** The backstep and jump attacks re-keyed, the jump attacks fitting the disarmed airtime.
+  - Delivers: the four re-keyed, exported and in band.
+  - Check: band and distance tests; the airtime rules tests; sheets reviewed; a clean soak.
+  - Blocked by: 59, 93 · Stories: 73, 93
+- [ ] **95. Family 8's sound and effects.** Impacts and air smears for the eight.
+  - Delivers: sound-bank entries and effects for the eight.
+  - Check: sound-bank entries for each of the eight's impacts; effect tests of the dust-and-cloth impact and an air smear for each; shots reviewed.
+  - Blocked by: 94 · Stories: 158, 170
+- [ ] **96. Family 8's review.** Bare hands' movement attacks go to the owner.
+  - Delivers: the review package as in task 40.
+  - Check: every CI-checked checklist item passes for the eight.
+  - Blocked by: 95 · Stories: 209
+  - **Owner:** reviews family 8. Its OK gates family 9.
+
+### Phase N: family 9, the ultimates
+
+- [ ] **97. The shot director.** Authored camera shots play from data on the presentation side, never in the rules.
+  - Delivers: a shot director reading shot data (a camera path, a lens, the camera effects allowed) and choosing shots from rules events: the ultimates once they connect, both finishers, the match-winning KO; the recall gets a push-in only.
+  - Check: director-seam tests (events in, the chosen shot out; no shot for an ultimate's wind-up; a round-ending finisher's shot; a match-winning finisher's shot replacing the KO shot); a test shot reviewed.
+  - Blocked by: 43 · Stories: 133, 135
+- [ ] **98. Moonsplitter re-keyed, with its shot.** The fighter sheathes, the stick picks vertical or horizontal, and the wave crosses the stage; its shot plays once it connects.
+  - Delivers: Moonsplitter's clips; the wind-up on the gameplay camera with the roar and a push-in; its shot on connecting; the wave still a scripted rules hit.
+  - Check: band test to the wave; rules tests that the horizontal wave is jumpable and the vertical avoidable by stepping aside; shot tests; sheets reviewed; a clean soak.
+  - Blocked by: 96 (and the owner's OK), 97 · Stories: 63, 64, 133
+- [ ] **99. The disarmed choice, the recall and Breaker Palm.** Bare hands' ultimate at final quality, with Breaker Palm's shot.
+  - Delivers: the choice's clip; the recall's power-up (roar, golden burst, weapon flying back into the hands, a nearby opponent knocked about 2.0 m through the reaction clip's travel); Breaker Palm re-keyed with its crouch into the uppercut as travel, and its shot.
+  - Check: band tests; rules tests of the burst's reach and knock-back and of the lunge from travel; `test_recall_burst.gd`; sheets reviewed; a clean soak.
+  - Blocked by: 98 · Stories: 76, 77, 78, 100
+- [ ] **100. The ultimates' effects and the ready aura.** Moonsplitter's wave, the choice, Breaker Palm's blow and the recall's burst rendered realistically, and the ultimate-ready aura.
+  - Delivers: the wave's supernatural energy standing where the rules put it each frame; the choice moment's, Breaker Palm's and the restyled recall burst's effects; a smouldering aura of embers and heat haze in the side's colour while the ultimate is ready and the fighter isn't knocked out.
+  - Check: effect tests (the wave's position each frame, the aura's on and off states); shots of each reviewed.
+  - Blocked by: 99 · Stories: 163, 164, 165
+  - Replaces: `docs/plans/godot-rebuild.md` tasks 18.7 and 18.8
+- [ ] **101. The computer uses its ultimates and plays the stuck weapon.** It uses the ultimates by today's rules at the new pace and keeps the disarm game live.
+  - Delivers: Moonsplitter at 2.5–14 m, the recall beyond 2.5 m and Breaker Palm closer, those distances rechecked against the distance bands; standing in the way of a disarmed opponent; running for its own stuck weapon and pulling it out.
+  - Check: seeded tests of each; a clean soak with the appear-list showing both ultimates, the recall and a pick-up.
+  - Blocked by: 24, 87, 99 · Stories: 192, 193
+- [ ] **102. Family 9's review.** The ultimates go to the owner.
+  - Delivers: the review package as in task 40, with the shots.
+  - Check: every CI-checked checklist item passes for the family's moves.
+  - Blocked by: 100, 101 · Stories: 209
+  - **Owner:** reviews family 9. Its OK gates family 10.
+
+### Phase O: family 10, the finishers
+
+- [ ] **103. The finisher's rules.** A disarm at 5% HP or less opens one timed heavy prompt; a fresh press inside it starts a paired finisher that ends the round as a KO.
+  - Delivers: the prompt (18 rules frames, stepped at 0.3×), only a fresh heavy press inside it counting, the buffer carrying none in; a miss plays the disarm out; the finisher a paired state with the victim's inputs ignored and the round ending at the kill marker; the new events; the replay and save-and-restore tests through a finisher.
+  - Check: rules-seam tests of every case in the spec's Testing Decisions; the replay and save-and-restore tests; a clean soak with the finisher share reported.
+  - Blocked by: 86, 102 (and the owner's OK) · Stories: 25, 114, 116, 117, 118, 125
+- [ ] **104. The Katana's finisher.** The iai slash through to stand behind the opponent, the re-sheathe, and the diagonal cut, with its shot.
+  - Delivers: the paired clip (Claude's block-out; the owner's polish lands in task 130), its kill marker and placement in the table, off the not-keyed list; its shot; with Blood On the opponent falls in two halves with blood along the cut; Reduced shows less blood and the body whole; Off no blood.
+  - Check: table and director tests; shot tests; shots at each Blood value reviewed.
+  - Blocked by: 38, 97, 103 · Stories: 119, 121, 122, 211
+- [ ] **105. Bare hands' finisher.** The turn-aside and the crushing strike, or the strike alone after a blocked Breaker Palm or a fully charged Roundhouse, with its shot.
+  - Delivers: the paired clip with its strike marker (Claude's block-out; the owner's polish lands in task 130), off the not-keyed list; the line-up to the strike's placement when there is no attack to turn aside; its shot.
+  - Check: rules tests of both openings; table and director tests; shots reviewed.
+  - Blocked by: 89, 90, 99, 103, 133 · Stories: 120, 121
+- [ ] **106. The finisher prompt on screen.** The heavy button's glyph from the device last used, over the disarmed fighter, readable in the slow motion.
+  - Delivers: the prompt drawn on 24.4's prompts in the new HUD style.
+  - Check: HUD tests of when it shows and which glyph; shots with keyboard and controller reviewed.
+  - Blocked by: 54, 103, `docs/plans/godot-rebuild.md` task 24.4 · Stories: 115, 179
+- [ ] **107. The computer and Training finish.** The computer presses the prompt at its difficulty's rate, and Training plays a finisher in full, then refills HP.
+  - Delivers: the computer's finisher rates (Easy 30%, Normal 60%, Hard 90%, at frames from its own generator); `TrainingUpkeep` plays the finisher, then refills.
+  - Check: seeded tests of the rates; Training tests of the refill after a finisher.
+  - Blocked by: 104, 105 · Stories: 123, 124
+- [ ] **108. The finishers' sound and effects.** The prompt, both finishers and the kill have their own sounds and effects.
+  - Delivers: sound-bank entries for the prompt opening and closing, both finishers and the kill; their effects.
+  - Check: sound-bank tests that the prompt's opening and closing, each finisher and the kill have entries, and that a match-winning finisher plays its kill once; effect tests of each finisher's events; a listening pass at the review.
+  - Blocked by: 106, 107 · Stories: 171
+- [ ] **130. The owner's polish of both finishers.** The owner polishes Claude's block-outs in Cascadeur, and the polished clips replace them.
+  - Delivers: the Katana's and bare hands' finishers polished, exported and imported; their kill and strike markers checked and the table regenerated.
+  - Check: tasks 104's and 105's table and director tests pass on the polished clips; shots reviewed.
+  - Blocked by: 104, 105 · Stories: 119, 120, 211
+  - **Owner:** polishes both finishers.
+- [ ] **109. Family 10's review.** The finishers go to the owner.
+  - Delivers: the review package as in task 40, with the shots.
+  - Check: every CI-checked checklist item passes for both finishers.
+  - Blocked by: 108, 130 (and the owner's OK) · Stories: 209
+  - **Owner:** reviews family 10. Its OK gates family 11.
+
+### Phase P: family 11, round flow
+
+- [ ] **110. The draw at the round intro.** The Hunter draws the Katana from the saya at the left hip, and "Fight!" is called when both draws reach their ready marker.
+  - Delivers: the draw clip at final quality and its own speed, the ready marker in the table and the draw off the not-keyed list; the intro lasting as long as the draws; bare hands' combat entry dropped.
+  - Check: director tests of the intro clip; rules tests of the call's frame from the table; sheets reviewed.
+  - Blocked by: 47, 109 (and the owner's OK) · Stories: 126, 127
+  - Replaces: `docs/plans/authored-animation.md` task 32
+- [ ] **111. The round-end beat, the match-winning KO shot and the victory poses.** Other KOs close with a short beat; the match-winning KO gets the authored shot and the full victory pose.
+  - Delivers: the round-end beat (sheathe, or shake out the hands if disarmed); the authored KO shot and the victory poses (the Katana's sheathe and bow, bare hands' cheer) only for the match-winning KO; neither sheathes again after a Katana finisher; the round end's length from its clips; the round-end beats and the victory poses off the not-keyed list.
+  - Check: director tests of the round-end beat against the match-winning victory and of the skipped sheathe; rules tests of the lengths; sheets and shots reviewed.
+  - Blocked by: 97, 110 · Stories: 128, 129, 130, 131
+  - Replaces: `docs/plans/authored-animation.md` task 33
+- [ ] **112. Round flow's review.** The round flow goes to the owner, closing the families.
+  - Delivers: the review package as in task 40, with the sounds of the draw, the sheathes and the bow.
+  - Check: every CI-checked checklist item passes for the round-flow clips; the checklist has no empty row; the frame-data table's not-keyed list is empty.
+  - Blocked by: 111 · Stories: 209
+  - **Owner:** reviews round flow.
+
+### Phase Q: side lanes, alongside the families
+
+- [ ] **113. The score's new instruments.** The generated score gains the shakuhachi, the biwa and a low choir, and match-point electronic and metal layers; the menus keep the fusion.
+  - Delivers: the instruments in `scripts/audio/lib/instruments.mjs`, the battle and match-point loops regenerated inside the design's tempos.
+  - Check: the music tests (tempos, loops lasting their bars, deterministic renders, the audio budget); a listening pass noted in Progress.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 175
+- [ ] **114. Placeholder effort vocals.** Breaths, kiai shouts on heavies, pain on hits and death cries from the Sonniss bundle and generated sounds.
+  - Delivers: vocal cues on the hooks of task 36, and on hits and deaths.
+  - Check: sound-bank tests; the audio budget; a listening pass noted in Progress.
+  - Blocked by: 36 · Stories: 174
+- [ ] **115. Arena reactions.** Cut marks and scorch on stone, sparks off pillars, dust and cracks where blows hit the ground, banners and grass pushed, all lasting the match and picture only.
+  - Delivers: decals and pushes from the rules' contact events, Moonsplitter's wave cracking the floor along its path.
+  - Check: a rules test that the match is identical with reactions off; effect tests; shots after a long match reviewed.
+  - Blocked by: 38, 50, 52 · Stories: 155
+- [ ] **116. How to play for finishers, Warrior Slain and the slower pace.** The text matches the game.
+  - Delivers: How to play's rule blocks rewritten for finishers, Warrior Slain and the pace.
+  - Check: `test_how_to_play.gd`; shots reviewed.
+  - Blocked by: 72, 103 · Stories: 186
+- [ ] **117. The master follow-ups restyled, and the whole-flow walks and every screen's shots after the redesign.** The new theme reaches what the master follow-ups built, and breaks no screen.
+  - Delivers: the master follow-ups' screens and HUD elements that landed after task 54 restyled in the new theme (22.7's fighter-select preview, 23.7's Versus HUD, 24.3's toasts, and 24.5's off-screen marker, lifted to clear the stuck weapon's hilt); the keys-only and controller-only walks and every screen's shot scene run again.
+  - Check: `test_hud_state.gd` passes; a test that the off-screen marker clears the stuck weapon's hilt; both walks pass; shots of the toasts, the Versus HUD, the select preview, the marker and every screen reviewed.
+  - Blocked by: 54, 87, `docs/plans/godot-rebuild.md` tasks 22.7, 22.17, 23.7, 24.3 and 24.5 · Stories: 177, 180, 220
+
+### Phase R: closing checks and sign-off
+
+- [ ] **118. Effects parity and the effects shot series.** Every rules event has an effect or sits on the no-visual list, and every effect follows Reduce flashes.
+  - Delivers: a parity test built like the sound bank's (shake and kick amounts included), with Reduce flashes (18.11) covering every new effect; the effects shot series at Ultra and Low. It is part of godot-rebuild 18.12, which task 119 finishes.
+  - Check: the parity test passes; the shot series reviewed.
+  - Blocked by: 112 (and the owner's OK), 115, `docs/plans/godot-rebuild.md` task 18.11 · Stories: 168, 185
+  - Replaces: `docs/plans/godot-rebuild.md` task 18.9
+- [ ] **119. The performance gates.** Ultra holds 4K at 60 fps on the RTX 3090 and Low 60 fps at 1080p on the laptop, on the clear night, by the spec's definition.
+  - Delivers: the worst-case replay re-recorded with every effect and the finisher; benches of the Duel, Training and Watch at Ultra on the RTX 3090 and at Low on the laptop, and Versus split screen at High on the RTX 3090; Low's upscaler chosen at its first bench; results recorded in Progress.
+  - Check: 99% of frames at 16.7 ms or less in each bench; any miss tuned in the presets until it holds.
+  - Blocked by: 44, 51, 118, `docs/plans/godot-rebuild.md` tasks 23.5 and 23.6 · Stories: 154, 195, 201, 202, 203, 204
+  - Replaces: `docs/plans/godot-rebuild.md` task 18.12
+  - **Owner:** runs the Low bench on the laptop (or lends it), and accepts the recorded results.
+- [ ] **120. The first balance run, and the finisher share.** A 300-match run of mirror matches reports every target, and the owner sets the finisher share.
+  - Delivers: the run's targets block (failures, round length, disarms, finishers, the appear-list) recorded in Progress; the finisher share written into the spec's balance-run table. It is part of godot-rebuild 12.8 and 12.9, which task 121 finishes.
+  - Check: no failures; the report complete.
+  - Blocked by: 7, 101, 107, 112 (and the owner's OK) · Stories: 197, 198
+  - **Owner:** sets the finisher share from the first run.
+- [ ] **121. Tuning until the balance run is clean.** Only damage, posture, parry and computer numbers change, one per commit, until every target is in range.
+  - Delivers: the tuning commits; a clean 300-match run and a clean 40-match soak and counterlab; if finishers are near zero, posture pressure is raised, not the threshold.
+  - Check: the targets block in range; the frozen-timings and band tests untouched.
+  - Blocked by: 120 (and the owner's OK) · Stories: 50, 197, 200
+  - Replaces: `docs/plans/godot-rebuild.md` tasks 12.8 and 12.9
+- [ ] **122. The leftovers swept.** Every test the spec replaces is gone, and the docs describe the game as built.
+  - Delivers: the last of the replaced tests (the spec's Testing Decisions list) gone or rewritten; `docs/architecture.md` and the brain's hand-written notes updated for the new modules; the GLOSSARY's terms checked against the code.
+  - Check: a grep for every retired module and test name finds only history; the second brain's tests pass.
+  - Blocked by: 60, 112 (and the owner's OK) · Stories: 206, 219
+- [ ] **123. Every check green.** The milestone ends on a clean build.
+  - Delivers: the tests and the typecheck, the frame-data and band checks, the replay and save-and-restore tests, the grey-palette test, the size budgets, the smoke run, both whole-flow walks and the local-only re-bake on the owner's PC, all run and recorded; CI green with stand-ins.
+  - Check: each listed check passes, with its output in Progress.
+  - Blocked by: 113, 114, 116, 117, 119 (and the owner's OK), 121, 122 · Stories: 12, 207
+- [ ] **124. The spending review.** What milestone 1 spent and what is missing, inside the roughly $300 for both milestones.
+  - Delivers: a short note in Progress of the spending (Cascadeur Indie, any Git LFS storage) and the proposed next purchases (a vocals pack among them).
+  - Check: the note lists every purchase with its licence.
+  - Blocked by: 112 (and the owner's OK) · Stories: 214
+  - **Owner:** reviews the spending and decides the next purchases.
+- [ ] **125. The owner's sign-off.** The owner plays the real build with the asset repository and signs off milestone 1.
+  - Delivers: a build made with the asset repository; the Godot check confirmed (criteria 7 and 8: no shader stutter after the warm-up, no crash over a 40-match soak with the look loaded, and the earlier criteria still holding); the age-rating questionnaire answered; the pull request into `master` marked ready.
+  - Check: the owner's sign-off recorded in Decisions so far; the spec's status line set to done.
+  - Blocked by: 42 (and the owner's OK), 123, 124 (and the owner's OK) · Stories: 2, 162, 212, 213
+  - **Owner:** plays the real build, answers the IARC questionnaire (no higher than PEGI 18 and ESRB Mature 17+), signs off, and approves the merge into `master`.

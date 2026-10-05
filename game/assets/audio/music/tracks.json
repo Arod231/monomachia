@@ -1,0 +1,29 @@
+{
+  "$comment": "Placeholder music written by scripts/audio/music.mjs. Every track is a seamless loop of exactly `bars` bars of 4/4 at `bpm`.",
+  "tracks": {
+    "menu": {
+      "file": "menu_110.wav",
+      "bpm": 110,
+      "bars": 16,
+      "beats_per_bar": 4,
+      "seconds": 34.909091,
+      "loop": true
+    },
+    "battle": {
+      "file": "battle_140.wav",
+      "bpm": 140,
+      "bars": 16,
+      "beats_per_bar": 4,
+      "seconds": 27.428571,
+      "loop": true
+    },
+    "match_point": {
+      "file": "match_point_160.wav",
+      "bpm": 160,
+      "bars": 16,
+      "beats_per_bar": 4,
+      "seconds": 24,
+      "loop": true
+    }
+  }
+}
