@@ -2590,10 +2590,18 @@ Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 
     - Owner: playtests Versus with two controllers and with a shared keyboard.
     - Blocked by: 22.6, 22.12, 23.7 · Stories: 3, 55, 56
     - Kept (Oct 4), finished on `master` after the merge: function only, in today's theme. The owner still playtests Versus with two controllers and with a shared keyboard.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 5, 2026), in the lane `lane/gr-23.7-22.16-22.17` with 23.7 and 22.17.
+    - Decided with the owner (Oct 5, 2026):
+      - a controller that isn't connected refuses lock in, with a warning, as a clash does ("Controller 2 is not connected"), so nobody starts a match unable to move;
+      - any device drives both players' steps of the select, as every other menu and the demo's;
+      - in Versus either player's pause binding (or Esc) pauses, any device works the pause menu, and Move list opens on the Rules;
+      - Versus sits on the main menu after Training, "two players, one screen", in the demo's order.
   - [ ] **22.17 Whole-flow walks with keys only and with a controller only; task 22 ticked.** Two walks through every screen, every mode's select to a started match, the pause and its sub-screens, Controls with capture, Settings, How to play and the results; the stand-in menus retired; a shot scene for every screen.
     - Check: both walks pass; shots of every screen reviewed.
     - Blocked by: 22.16 · Stories: 3, 9
     - Kept (Oct 4), finished on `master` after the merge: walk today's screens in today's theme. When it rereads How to play, check the text against the rules as they stand at the merge. The Oct 4 additions (finishers, the Warrior Slain call, the slower pace) go into the text when milestone 1 builds them. Run the walks and shot scenes again after the milestone-1 UI redesign.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 5, 2026), in the lane `lane/gr-23.7-22.16-22.17` with 23.7 and 22.16.
+    - Decided with the owner (Oct 5, 2026): the `skeleton_title`, `skeleton_main_menu`, `skeleton_select_*` and `skeleton_results` shot scenes, which already show the real screens, are renamed into the `menu_*` set, and the screens with no shot get one, so every screen has one shot scene under one naming.
 - [ ] **23. Training, Watch and Versus.** The training panel with dummy behaviours, refill and parry timing feedback; Watch with the side-on camera; Versus split screen with per-player cameras and prompts.
   - Check: screenshots of each mode; Versus runs smoothly with two controllers or a shared keyboard.
   - Kept (Oct 4), finished on `master` after the merge: PR #25 built 23.1–23.3, and the modes' panels and HUD are restyled with the milestone-1 UI redesign. 23.3, 23.4, 23.5 and 23.7 wait on toasts (24.3), and 23.7 also on prompts and the dropped-weapon marker (24.4, 24.5).
@@ -2681,6 +2689,11 @@ Order: 8, then 9–11 (still hitting with the demo's range-and-arc cones), then 
     - Check: each player's prompts use their own device's labels; markers project through the right camera; toasts name the player; shots reviewed.
     - Blocked by: 23.6, 24.2, 24.3, 24.4, 24.5 · Stories: 55, 56
     - Kept (Oct 4), finished on `master` after the merge: function only, in today's theme, in the demo's Versus wording ("Player 1 wins the round", "Player 2 lost their weapon", toasts naming the player). Keep one K.O. call for every mode; don't copy it into the Versus wording. Milestone 1 replaces 一本 K.O. with Warrior Slain (討死) in every mode at once.
+    - Built on `feature/godot-rebuild` before the merge after all, on the owner's word (Oct 5, 2026), in the lane `lane/gr-23.7-22.16-22.17` with 22.16 and 22.17. 23.6 was still in PR #47, so the lane is built on that PR's branch.
+    - Decided with the owner (Oct 5, 2026):
+      - the plates read "Player 1" and "Player 2", and the line under each names the fighter and the weapon ("ROGUE · KATANA"); each half's marker reads "Player 1's weapon"; toasts, calls and the results name the player, as the demo's Versus did;
+      - the toasts take Watch's set and colours, naming the player ("Player 2: Parry"; red for Player 1's 赤, blue for Player 2's 青), plus the demo's dim "Player 1: behind them"; the round's winner is named in the side's colour, as in Watch;
+      - one stack of toasts, centred across the divider, as the demo's and the other modes'; the announcements stay centred too.
 - [x] **24. The full HUD.** Bars with a lag bar, posture hot and full states, pips, the ultimate badge, announcements timed on the rules' frames, toasts, prompts and the dropped-weapon marker.
   - Check: screenshots of each HUD state; announcements freeze during pause.
   - Kept (Oct 4), finished on `master` after the merge: function only, in 22.1's current theme with no new ink styling. The HUD's restyle for the realistic look (see task 22's note) comes with milestone 1's UI redesign and keeps the layout. 24.2's 一本 K.O. call becomes Warrior Slain (討死) in milestone 1, along with the KO's drum and cinematic shot. A double KO keeps its own call.
