@@ -5,7 +5,7 @@
 // The tests drive the server's API the way the pages do.
 
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -53,12 +53,16 @@ export async function startBoard() {
     return transcriptOf(id);
   };
   addSession(SESSION, 'Fixture session');
+  // An assistant reply in a session's transcript, with its line's uuid.
+  const say = (id, text, uuid) => appendFileSync(transcriptOf(id), `${JSON.stringify({ sessionId: id, uuid, timestamp: new Date().toISOString(),
+    type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text }] } })}
+`);
   // The desktop app's record of a session, as it keeps one per Code session.
-  const appRecord = (id, title) => {
+  const appRecord = (id, title, extra = {}) => {
     const dir = path.join(dirs.appdata, 'Claude', 'claude-code-sessions', 'fixture');
     mkdirSync(dir, { recursive: true });
     const file = path.join(dir, `local_${id}.json`);
-    writeFileSync(file, JSON.stringify({ sessionId: `local_${id}`, cliSessionId: id, title, cwd: dirs.repo, createdAt: Date.now(), lastActivityAt: Date.now() }));
+    writeFileSync(file, JSON.stringify({ sessionId: `local_${id}`, cliSessionId: id, title, cwd: dirs.repo, createdAt: Date.now(), lastActivityAt: Date.now(), ...extra }));
     return file;
   };
 
@@ -76,7 +80,7 @@ export async function startBoard() {
 
   const base = `http://localhost:${port}`;
   const board = {
-    port, root, ...dirs, log: () => log, addSession, appRecord, transcriptOf,
+    port, root, ...dirs, log: () => log, addSession, appRecord, transcriptOf, say,
     async get(p) {
       const r = await fetch(base + p, { headers: { 'accept-encoding': 'identity' } });
       return { status: r.status, body: await r.json().catch(() => null) };
@@ -89,17 +93,11 @@ export async function startBoard() {
     },
     // Runs the relay hook with a fixture event, as Claude Code would.
     hook(event, { waitMs = 8000, session = SESSION } = {}) {
-      const child = spawn(process.execPath, [path.join(BOARD, 'relay-hook.mjs')], {
-        env: { ...process.env, LANES_RELAY: dirs.relay, LANES_RELAY_WAIT_MS: String(waitMs) }, windowsHide: true,
-      });
-      let out = '';
-      child.stdout.on('data', (c) => { out += c; });
-      const done = new Promise((resolve, reject) => {
-        child.on('error', reject);
-        child.on('close', () => resolve(out ? JSON.parse(out) : null));
-      });
-      child.stdin.end(JSON.stringify({ session_id: session, cwd: dirs.repo, transcript_path: transcriptOf(session), ...event }));
-      return { done, child };
+      return runHook('relay-hook.mjs', event, session, { LANES_RELAY_WAIT_MS: String(waitMs) });
+    },
+    // Runs the stop hook (PreToolUse and Stop) the same way.
+    stopHook(event, { session = SESSION } = {}) {
+      return runHook('stop-hook.mjs', event, session, {});
     },
     async stop() {
       server.kill();
@@ -107,5 +105,19 @@ export async function startBoard() {
       rmSync(root, { recursive: true, force: true, maxRetries: 5 });
     },
   };
+  // A hook run as Claude Code runs it: the event on stdin, its JSON answer (or null) when it exits.
+  function runHook(file, event, session, env) {
+    const child = spawn(process.execPath, [path.join(BOARD, file)], {
+      env: { ...process.env, LANES_RELAY: dirs.relay, LANES_STOP_FILE: path.join(root, 'stop.json'), ...env }, windowsHide: true,
+    });
+    let out = '';
+    child.stdout.on('data', (c) => { out += c; });
+    const done = new Promise((resolve, reject) => {
+      child.on('error', reject);
+      child.on('close', () => resolve(out ? JSON.parse(out) : null));
+    });
+    child.stdin.end(JSON.stringify({ session_id: session, cwd: dirs.repo, transcript_path: transcriptOf(session), ...event }));
+    return { done, child };
+  }
   return board;
 }

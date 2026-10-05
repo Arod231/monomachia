@@ -139,7 +139,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: round-trip cases for allow, always (the rule is passed back), deny with a reason, and plan approve and reject.
   - Blocked by: 6 · Stories: 21, 22
   - Owner's answers (Oct 4, lane `lane/pm-7-8-9-10`, with tasks 8, 9 and 10; side-lane rule as in task 4): a plan card offers the app's own choices, a plain Approve plus one button per mode the prompt suggests (such as "Approve, auto-accept edits"), read from the prompt's suggestions.
-- [ ] **8. Turn ends, replies and the inbox.** With Away on, a session that finishes its turn waits for the owner, and messages reach a session wherever it is.
+- [x] **8. Turn ends, replies and the inbox.** With Away on, a session that finishes its turn waits for the owner, and messages reach a session wherever it is.
   - Delivers:
     - **Held turn ends:** while Away is on, the relay hook holds each turn end with the session's last message, continued by a reply, Approve & continue or Show me. A reply already queued goes in at once. With Away off, it records "turn finished".
     - **The inbox:** a per-session inbox in the relay folder. The PreToolUse hook adds the oldest message as context before the session's next tool, and a turn end takes what's left. Replies to sessions no hook can reach are queued for their next turn end.

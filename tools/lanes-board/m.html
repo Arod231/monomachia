@@ -91,6 +91,9 @@ h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .plan hr { border: 0; border-top: 0.5px solid var(--border-strong); margin: 10px 0; }
 .plan pre { margin: 6px 0; padding: 8px 10px; background: var(--card); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-x: auto; }
 .plan code { font: 13px ui-monospace, Menlo, monospace; }
+.pcard .sum { font-size: 15px; margin-bottom: 8px; }
+.pcard .plan.last { max-height: 40vh; margin-bottom: 4px; }
+.pcard textarea.turnreply { margin-top: 10px; }
 pre.code { margin: 0; padding: 9px 11px; background: var(--surface); border-radius: 8px; font: 13px/1.45 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 pre.code.pv { margin-top: 6px; font-size: 12px; background: var(--page); text-align: left; }
 .q { margin-top: 10px; }
@@ -150,6 +153,8 @@ h2 { font-size: 17px; font-weight: 650; margin: 0; }
 .filter { display: flex; gap: 8px; margin: 4px 0 12px; }
 .chip { border: 0.5px solid var(--border-strong); background: var(--card); border-radius: 999px; padding: 0 14px; min-height: 34px; font-size: 14px; }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--page); border-color: var(--text); }
+/* A card's chips (a question's header, a turn's summary) stay small. */
+.pcard .chip { min-height: 0; border: 0; background: var(--surface); border-radius: 5px; padding: 1px 7px; font-size: 12px; }
 .lanes { display: grid; gap: 10px; }
 .lane { background: var(--card); border: 0.5px solid var(--border); border-radius: 14px; padding: 13px 14px; min-width: 0; }
 .lane.active { border: 1.5px solid var(--good); padding: 12px 13px; }
@@ -850,7 +855,8 @@ $('qList').addEventListener('click', async (e) => {
     await post('/relay/answer', body);
     card?.remove();
     qSig = null;
-    toast(body.release ? 'Handed back: it waits in the app now.' : 'Sent: the session carries on.');
+    const turnEnd = !!card?.querySelector('[data-turn]');
+    toast(body.release ? (turnEnd ? 'Handed back: its turn ends, and it waits in the app.' : 'Handed back: it waits in the app now.') : 'Sent: the session carries on.');
   } catch (err) { toast(`Couldn't answer: ${err.message}`, true); b.disabled = false; }
   pollQuestions();
 });

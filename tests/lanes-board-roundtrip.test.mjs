@@ -1,7 +1,7 @@
 // The round trip: a session's hook, the real Project Manager server and the
 // owner's answer from a page, end to end (harness in lanes-board-harness.mjs).
 
-import { readdirSync, readFileSync, rmSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync, utimesSync } from 'node:fs';
 import path from 'node:path';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -214,5 +214,125 @@ describe('the round trip: Away and the Questions tab', () => {
     const r = await board.post('/relay/away', { on: true }, { origin: 'http://evil.example' });
     assert.equal(r.status, 403);
     assert.equal((await board.get('/questions')).body.away.on, false);
+  });
+});
+
+describe('the round trip: turn ends, replies and the inbox', () => {
+  let board;
+  before(async () => { board = await startBoard(); });
+  after(async () => { await board?.stop(); });
+  beforeEach(async () => {
+    await board.post('/relay/away', { on: false });
+    await board.post('/relay/unqueue', { session: SESSION });
+  });
+
+  const STOP = (last = 'Task 6 is done. Shall I go on to task 7?') => ({ hook_event_name: 'Stop', last_assistant_message: last, stop_hook_active: false });
+  const TOOL = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'ls' } };
+  const SHOW = 'The owner asks from the Project Manager: show me what you\'re working on. Capture a shot or a short clip of it and give its path '
+    + 'with a one-line caption, or say in one line that there\'s nothing to show yet.';
+  const heldTurn = () => waitFor(async () => (await board.get('/questions')).body.groups[0]?.items.find((p) => p.kind === 'stop'), 8000, 'a held turn end');
+  const inbox = () => { try { return readdirSync(path.join(board.relay, 'inbox', SESSION)); } catch { return []; } };
+  // How long ago the session last wrote its transcript: recent means at work.
+  const lastWrote = (msAgo) => { const t = new Date(Date.now() - msAgo); utimesSync(board.transcriptOf(SESSION), t, t); };
+
+  it('holds a turn end with its last message while Away is on, and a reply continues it', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(STOP());
+    assertMatches(await heldTurn(), { kind: 'stop', last: 'Task 6 is done. Shall I go on to task 7?' });
+    assertMatches(await board.post('/relay/reply', { session: SESSION, text: 'Yes, go on' }), { status: 200, body: { delivered: true, when: 'now' } });
+    assert.deepEqual(await done, { decision: 'block', reason: 'The owner replied from the Project Manager:\n\nYes, go on' });
+  });
+
+  it('continues a held turn with Approve & continue, or with Show me', async () => {
+    await board.post('/relay/away', { on: true });
+    let { done } = board.hook(STOP());
+    await board.post('/relay/answer', { id: (await heldTurn()).id, command: 'approve' });
+    assert.deepEqual(await done, { decision: 'block', reason: 'Approved from the Project Manager: go on with the next task.' });
+    ({ done } = board.hook(STOP()));
+    await board.post('/relay/answer', { id: (await heldTurn()).id, command: 'show' });
+    assert.deepEqual(await done, { decision: 'block', reason: SHOW });
+  });
+
+  it('shows the app\'s turn summary on a held turn end once the app has written it for this turn', async () => {
+    await board.post('/relay/away', { on: true });
+    const summary = (uuid) => ({ postTurnSummary: { status_category: 'review_ready', status_detail: 'Task 6 built', needs_action: 'approve task 7', summarizes_uuid: uuid } });
+    board.say(SESSION, 'An older turn', 'aaaaaaaa-0000-4000-8000-000000000001');
+    const record = board.appRecord(SESSION, 'Fixture session', summary('aaaaaaaa-0000-4000-8000-000000000001'));
+    board.say(SESSION, 'Task 6 is done.', 'aaaaaaaa-0000-4000-8000-000000000002');
+    const { done } = board.hook(STOP('Task 6 is done.'));
+    const item = await heldTurn();
+    assert.equal(item.summary, null, 'the summary of an older turn is not this one\'s');
+    board.appRecord(SESSION, 'Fixture session', summary('aaaaaaaa-0000-4000-8000-000000000002'));
+    assert.deepEqual(await waitFor(async () => (await heldTurn()).summary, 8000, 'the summary'),
+      { status: 'review_ready', label: 'Ready for review', detail: 'Task 6 built', action: 'approve task 7' });
+    await board.post('/relay/answer', { id: item.id, release: true });
+    assert.equal(await done, null);
+    rmSync(record);
+  });
+
+  it('queues a reply for a session no hook holds, and its next turn end takes it, Away or not', async () => {
+    lastWrote(60 * 60 * 1000);
+    assertMatches((await board.post('/relay/reply', { session: SESSION, text: 'Then rename it' })).body, { delivered: false, when: 'turn-end' });
+    assertMatches((await board.get('/sessions')).body.sessions.find((s) => s.id === SESSION), { queued: 1 });
+    assert.deepEqual((await board.get(`/session?id=${SESSION}`)).body.queued.map((m) => m.text), ['The owner replied from the Project Manager:\n\nThen rename it']);
+    assert.deepEqual(await board.hook(STOP()).done, { decision: 'block', reason: 'The owner replied from the Project Manager:\n\nThen rename it' });
+    assert.deepEqual(inbox(), []);
+  });
+
+  it('gives a working session the oldest message before its next tool, one per call, and the turn end the rest', async () => {
+    lastWrote(0);
+    assertMatches((await board.post('/relay/reply', { session: SESSION, text: 'First' })).body, { delivered: false, when: 'next-step' });
+    await board.post('/relay/reply', { session: SESSION, text: 'Second' });
+    await board.post('/relay/reply', { session: SESSION, text: 'Third' });
+    assert.deepEqual(await board.stopHook(TOOL).done,
+      { hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: 'The owner replied from the Project Manager:\n\nFirst' } });
+    assert.equal(inbox().length, 2);
+    assert.deepEqual(await board.hook(STOP()).done, { decision: 'block',
+      reason: 'The owner replied from the Project Manager:\n\nSecond\n\nThe owner replied from the Project Manager:\n\nThird' });
+    assert.equal(await board.stopHook(TOOL).done, null);
+  });
+
+  it('clears what was queued', async () => {
+    await board.post('/relay/reply', { session: SESSION, text: 'Never mind' });
+    assert.equal(inbox().length, 1);
+    await board.post('/relay/unqueue', { session: SESSION });
+    assert.deepEqual(inbox(), []);
+    assertMatches((await board.get('/sessions')).body.sessions.find((s) => s.id === SESSION), { queued: 0 });
+  });
+
+  it('hands every held item back when Away goes off: questions to the app, turn ends simply end', async () => {
+    await board.post('/relay/away', { on: true });
+    const question = board.hook(ASK(ONE));
+    const turn = board.hook(STOP());
+    await waitFor(async () => (await board.get('/questions')).body.count === 2, 8000, 'both items held');
+    await board.post('/relay/away', { on: false });
+    assert.equal(await question.done, null);
+    assert.equal(await turn.done, null);
+    assert.deepEqual(readdirSync(path.join(board.relay, 'pending')), []);
+  });
+
+  it('hands a held turn end back, ending the turn, and refuses a late command to it', async () => {
+    await board.post('/relay/away', { on: true });
+    const { done } = board.hook(STOP());
+    const item = await heldTurn();
+    await board.post('/relay/answer', { id: item.id, release: true });
+    assert.equal(await done, null);
+    const late = await board.post('/relay/answer', { id: item.id, command: 'approve' });
+    assert.equal(late.status, 400);
+    assert.match(late.body.error, /already answered, handed back or timed out/);
+  });
+
+  it('gives up a hold at its time limit (shortened here from 24 hours)', async () => {
+    await board.post('/relay/away', { on: true });
+    const started = Date.now();
+    assert.equal(await board.hook(STOP(), { waitMs: 400 }).done, null);
+    assert.ok(Date.now() - started < 5000);
+    assert.deepEqual(readdirSync(path.join(board.relay, 'pending')), []);
+  });
+
+  it('records a finished turn for the bell while Away is off, and lets the turn end', async () => {
+    assert.equal(await board.hook(STOP('All done.')).done, null);
+    const events = readFileSync(path.join(board.relay, 'events.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assertMatches(events.at(-1), { kind: 'turn-finished', session: SESSION, last: 'All done.' });
   });
 });

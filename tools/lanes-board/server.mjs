@@ -233,7 +233,8 @@ async function appSessions() {
         try {
           const r = JSON.parse(await readFile(p, 'utf8'));
           out.push({ id: r.sessionId, cli: r.cliSessionId, title: r.title ?? '', archived: !!r.isArchived,
-            dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0 });
+            dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0,
+            summary: r.postTurnSummary ?? null }); // the app's turn summary (sessions.mjs turnSummary)
         } catch { /* being written */ }
       }
     }

@@ -31,19 +31,23 @@ function userText(raw) {
 
 // lines: the transcript's lines (the first may be cut off, when only its tail
 // was read). Returns the turns, newest last, plus the session's title and folder
-// when the transcript names them, and the tool call still waiting on a result.
+// when the transcript names them, the tool call still waiting on a result, and
+// lastReply: the uuid of the newest main-chain reply's line, which the app's
+// turn summary names when it is about that turn (turnSummary).
 export function parseTranscript(lines, { limit = 400 } = {}) {
   const entries = [];
   const results = new Map(); // tool_use id -> result entry
   let title = null;
   let cwd = null;
   let firstPrompt = null;
+  let lastReply = null;
   for (const line of lines) {
     let o;
     try { o = JSON.parse(line); } catch { continue; }
     if (o.type === 'custom-title' && o.customTitle) title = o.customTitle;
     if (o.cwd) cwd = o.cwd;
     if (o.isSidechain || o.isMeta) continue;
+    if (o.type === 'assistant' && o.uuid) lastReply = o.uuid;
     const time = o.timestamp ? Date.parse(o.timestamp) : null;
     if (o.type === 'user' && o.message) {
       const c = o.message.content;
@@ -77,6 +81,7 @@ export function parseTranscript(lines, { limit = 400 } = {}) {
     more: entries.length - shown.length,
     title: title ?? (firstPrompt ? firstPrompt.split(/\r?\n/)[0].slice(0, 80) : null),
     cwd,
+    lastReply,
     open: open && { id: open.id, name: open.name, summary: open.summary, time: open.time,
       questions: open.name === 'AskUserQuestion' ? open.input.questions ?? [] : null },
   };
@@ -263,10 +268,8 @@ export const QUESTION_ANSWER = 'allow';
 // message? } for a plan.
 export function relayAnswer(pending, body, { questionAnswer = QUESTION_ANSWER } = {}) {
   if (pending.kind === 'stop') {
-    const text = String(body.reply ?? '').trim();
     if (body.release) return { release: true };
-    if (!text) throw new Error('Type a reply first');
-    return { reply: text.slice(0, 20000) };
+    return { reply: ownerMessage(body.command ? { command: body.command } : { text: body.reply }) };
   }
   if (body.release) return { release: true };
   if (pending.kind === 'question') {
@@ -311,6 +314,50 @@ function planAnswer(pending, body) {
       : 'The owner rejected this plan from the Project Manager. Keep planning, and ask what to change.' };
   }
   throw new Error('Approve or reject?');
+}
+
+// ---------- turn ends and the inbox ----------
+// What the owner sends a session (a reply, or a command's fixed words) reaches
+// it whole: the hooks pass it on as it is, so they stay free of the wording.
+// A held turn end takes it at once; otherwise it waits in the session's inbox
+// (inbox/<session>/ in the relay folder), where the stop hook hands the oldest
+// over before the session's next tool and the relay hook the rest at its next
+// turn end.
+
+export const COMMANDS = {
+  approve: 'Approved from the Project Manager: go on with the next task.',
+  // Until task 15 brings `npm run post`, the session gives the shot's path.
+  show: "The owner asks from the Project Manager: show me what you're working on. Capture a shot or a short clip of it and give its path "
+    + "with a one-line caption, or say in one line that there's nothing to show yet.",
+};
+
+// { text } (the owner's own words) or { command } (a key of COMMANDS), worded for the session.
+export function ownerMessage({ text, command } = {}) {
+  if (command != null) {
+    if (!Object.hasOwn(COMMANDS, command)) throw new Error('No such command');
+    return COMMANDS[command];
+  }
+  const t = String(text ?? '').trim();
+  if (!t) throw new Error('Type a reply first');
+  return `The owner replied from the Project Manager:\n\n${t.slice(0, 20000)}`;
+}
+
+// When a message reaches its session: now (a turn end is held for it), before
+// its next step (it is at work, so the stop hook sees its next tool call), or
+// at its next turn end (it is idle, or asleep in the app).
+export function deliveryOf({ held, active }) {
+  return held ? 'now' : active ? 'next-step' : 'turn-end';
+}
+
+// The app's turn summary (a session record's postTurnSummary), when it is about
+// the turn that just ended: it names that turn's last reply (lastReply from
+// parseTranscript). The app writes it a moment after the turn ends, so until
+// then the record still holds the turn before's.
+const SUMMARY_LABELS = { completed: 'Done', review_ready: 'Ready for review', blocked: 'Blocked', needs_input: 'Needs input', failed: 'Failed' };
+export function turnSummary(raw, lastReply) {
+  if (!raw?.summarizes_uuid || raw.summarizes_uuid !== lastReply) return null;
+  const status = String(raw.status_category ?? '');
+  return { status, label: SUMMARY_LABELS[status] ?? status.replace(/_/g, ' '), detail: String(raw.status_detail ?? ''), action: raw.needs_action || null };
 }
 
 // ---------- the Away switch ----------

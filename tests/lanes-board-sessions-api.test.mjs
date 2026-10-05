@@ -1,6 +1,6 @@
 // The Project Manager's Sessions and relay routes (tools/lanes-board/sessions-api.mjs),
 // run against throwaway relay and projects folders.
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
@@ -33,9 +33,9 @@ describe('sessions api', () => {
   it('lists recent sessions and shows one', async () => {
     const { sessions } = await get('/sessions');
     assert.equal(sessions.length, 1);
-    assertMatches(sessions[0], { id: ID, title: 'Board work', cwd: 'C:/repo', queued: false, pending: [], lastText: 'Done.' });
+    assertMatches(sessions[0], { id: ID, title: 'Board work', cwd: 'C:/repo', queued: 0, pending: [], lastText: 'Done.' });
     const d = await get(`/session?id=${ID}`);
-    assertMatches(d, { id: ID, title: 'Board work', pending: [], queued: null });
+    assertMatches(d, { id: ID, title: 'Board work', pending: [], queued: [] });
     assert.deepEqual(d.entries.map((e) => e.kind), ['user', 'assistant']);
   });
 
@@ -49,13 +49,15 @@ describe('sessions api', () => {
     assert.equal(api.post('/launch', {}), undefined);
   });
 
-  it('queues a reply for a session\'s turn end, and takes it back', async () => {
+  it('queues a reply for a session at work, before its next step, and takes it back', async () => {
     await assert.rejects(api.post('/relay/reply', { session: ID, text: ' ' }), /Type a reply/);
-    assert.deepEqual(await api.post('/relay/reply', { session: ID, text: ' Go on ' }), { delivered: false });
-    assertMatches(JSON.parse(readFileSync(path.join(relay, 'replies', `${ID}.json`), 'utf8')), { text: 'Go on' });
-    assert.equal((await get('/sessions')).sessions[0].queued, true);
+    assert.deepEqual(await api.post('/relay/reply', { session: ID, text: ' Go on ' }), { delivered: false, when: 'next-step' });
+    const inbox = path.join(relay, 'inbox', ID);
+    const [name] = readdirSync(inbox);
+    assertMatches(JSON.parse(readFileSync(path.join(inbox, name), 'utf8')), { text: 'The owner replied from the Project Manager:\n\nGo on' });
+    assert.equal((await get('/sessions')).sessions[0].queued, 1);
     await api.post('/relay/unqueue', { session: ID });
-    assert.equal(existsSync(path.join(relay, 'replies', `${ID}.json`)), false);
+    assert.equal(existsSync(inbox), false);
   });
 
   it('answers a waiting prompt, and refuses one that has gone', async () => {

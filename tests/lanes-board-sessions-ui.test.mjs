@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 import {
-  ago, answerFor, approveLabel, awayHtml, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
+  ago, answerFor, approveLabel, awayHtml, deliveredNote, waitingText, folderOf, inputPreview, md, needsLabel, pendingCard, questionsHtml, questionsTabHtml, ruleText, sessionNeeds,
   sessionPills,
 } from '../tools/lanes-board/sessions-ui.mjs';
 
@@ -89,8 +89,23 @@ describe('pendingCard', () => {
     assert.equal(approveLabel({ type: 'setMode', mode: 'default' }), 'Approve, ask before edits');
     assert.equal(approveLabel({ type: 'setMode', mode: 'somethingNew' }), 'Approve, somethingNew');
   });
-  it('draws a turn end waiting for a reply', () => {
-    assert.match(pendingCard({ id: 'ab12-cd34', kind: 'stop', time: Date.now() }), /waiting for your reply/);
+  it('draws a turn end with its summary, its last message, Approve & continue, Show me, a reply box and Hand back', () => {
+    const html = pendingCard({ id: 'ab12-cd34', kind: 'stop', time: Date.now(), last: 'Task 6 is **done**. <Go on?>',
+      summary: { status: 'review_ready', label: 'Ready for review', detail: 'Task <6> built', action: 'approve task 7' } });
+    assert.match(html, /Finished its turn/);
+    assert.match(html, /<span class="chip">Ready for review<\/span> Task &lt;6&gt; built/);
+    assert.match(html, /Next: approve task 7/);
+    assert.match(html, /Task 6 is <b>done<\/b>\. &lt;Go on\?&gt;/);
+    assert.match(html, /data-turn="ab12-cd34" data-cmd="approve">Approve &amp; continue</);
+    assert.match(html, /data-turn="ab12-cd34" data-cmd="show">Show me</);
+    assert.match(html, /<textarea class="text turnreply"/);
+    assert.match(html, /data-send="ab12-cd34"/);
+    assert.match(html, /data-release="ab12-cd34"/);
+  });
+  it('draws a turn end with no summary yet', () => {
+    const html = pendingCard({ id: 'ab12-cd34', kind: 'stop', time: Date.now(), last: 'Done.', summary: null });
+    assert.doesNotMatch(html, /class="chip"/);
+    assert.match(html, /Done\./);
   });
 });
 
@@ -192,6 +207,18 @@ describe('answerFor', () => {
     assert.deepEqual(answerFor(button({ deny: 'p' }), card()), { id: 'p', behavior: 'deny', message: 'no' });
     assert.deepEqual(answerFor(button({ release: 'p' }), card()), { id: 'p', release: true });
     assert.equal(answerFor(button({}), card()), null);
+  });
+  it('turns a turn end\'s buttons into their answers', () => {
+    const c = { querySelector: (sel) => (sel === '.turnreply' ? el({ value: ' Rename it ' }) : null) };
+    assert.deepEqual(answerFor(button({ turn: 't', cmd: 'approve' }), card()), { id: 't', command: 'approve' });
+    assert.deepEqual(answerFor(button({ turn: 't', cmd: 'show' }), card()), { id: 't', command: 'show' });
+    assert.deepEqual(answerFor(button({ send: 't' }), c), { id: 't', reply: 'Rename it' });
+    assert.match(answerFor(button({ send: 't' }), { querySelector: () => el({ value: ' ' }) }).error, /Type a reply/);
+  });
+  it('says when what was sent reaches the session', () => {
+    assert.equal(deliveredNote('now'), 'Sent: it carries on with it now.');
+    assert.equal(deliveredNote('next-step'), 'Sent: it gets this before its next step.');
+    assert.equal(deliveredNote('turn-end'), 'Queued: it gets this when its turn next ends.');
   });
   it('turns plan buttons into their answers', () => {
     assert.deepEqual(answerFor(button({ approve: 'p' }), card()), { id: 'p', behavior: 'allow' });

@@ -141,9 +141,22 @@ export function pendingCard(p) {
       <textarea class="text freeform" rows="2" placeholder="Or reply in your own words instead of picking"></textarea>
       <div class="row"><button class="btn primary" data-answer="${esc(p.id)}">Send answer${(p.input?.questions ?? []).length > 1 ? 's' : ''}</button>${back}</div></div>`;
   }
-  return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Finished its turn and is waiting for your reply</b>${when}</div>
-    <div class="m">Type below and send. It waits up to 20 minutes, then goes idle; meanwhile the app shows it as working.</div>
-    <div class="row">${back}</div></div>`;
+  // A turn end: the app's summary of the turn once written, the session's last
+  // message, two quick replies and a reply box.
+  const s = p.summary;
+  return `<div class="pcard" data-pid="${esc(p.id)}"><div class="ch"><i class="sw owner"></i><b>Finished its turn</b>${when}</div>
+    ${s ? `<div class="sum"><span class="chip">${esc(s.label)}</span> ${esc(s.detail)}${s.action ? `<div class="m">Next: ${esc(s.action)}</div>` : ''}</div>` : ''}
+    ${p.last ? `<div class="plan last">${md(p.last)}</div>` : ''}
+    <div class="row"><button class="btn primary" data-turn="${esc(p.id)}" data-cmd="approve">Approve &amp; continue</button>
+      <button class="btn" data-turn="${esc(p.id)}" data-cmd="show">Show me</button></div>
+    <textarea class="text turnreply" rows="2" placeholder="Or reply: it carries on with your words"></textarea>
+    <div class="row"><button class="btn" data-send="${esc(p.id)}">Send reply</button>${back}</div></div>`;
+}
+
+// What the page says once a reply or command is sent (`when` from the server).
+export function deliveredNote(when) {
+  return { now: 'Sent: it carries on with it now.', 'next-step': 'Sent: it gets this before its next step.' }[when]
+    ?? 'Queued: it gets this when its turn next ends.';
 }
 
 // ---------- the Away switch and the Questions tab ----------
@@ -189,6 +202,11 @@ export function answerFor(b, card) {
   if (d.deny) return { id: d.deny, behavior: 'deny', message: card?.querySelector('.why')?.value ?? '' };
   if (d.approve) return d.sug == null || d.sug === '' ? { id: d.approve, behavior: 'allow' } : { id: d.approve, behavior: 'allow', suggestion: Number(d.sug) };
   if (d.reject) return { id: d.reject, behavior: 'deny', message: card?.querySelector('.why')?.value ?? '' };
+  if (d.turn) return { id: d.turn, command: d.cmd };
+  if (d.send) {
+    const reply = card?.querySelector('.turnreply')?.value.trim();
+    return reply ? { id: d.send, reply } : { error: 'Type a reply first, or tap Approve & continue.' };
+  }
   if (d.release) return { id: d.release, release: true };
   if (!d.answer) return null;
   const reply = card?.querySelector('.freeform')?.value.trim();

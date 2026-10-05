@@ -15,7 +15,7 @@ import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
   PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldOrphaned,
-  parseTranscript, questionAnswers, relayAnswer, toolSummary,
+  deliveryOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, toolSummary, turnSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 
@@ -137,6 +137,18 @@ describe('parseTranscript', () => {
 
   it('falls back to the first prompt for a title', () => {
     assert.equal(parseTranscript(TRANSCRIPT.slice(2)).title, 'Build the graph');
+  });
+
+  it('names the newest main-chain reply\'s line, which the app\'s turn summary points at', () => {
+    const line = (o) => JSON.stringify(o);
+    const lines = [
+      line({ type: 'assistant', uuid: 'u1', message: { content: [{ type: 'text', text: 'One' }] } }),
+      line({ type: 'assistant', uuid: 'u2', message: { content: [{ type: 'text', text: 'Two' }] } }),
+      line({ type: 'assistant', uuid: 'side', isSidechain: true, message: { content: [{ type: 'text', text: 'Agent' }] } }),
+      line({ type: 'system', uuid: 'sys', subtype: 'stop_hook_summary' }),
+    ];
+    assert.equal(parseTranscript(lines).lastReply, 'u2');
+    assert.equal(parseTranscript([]).lastReply, null);
   });
 });
 
@@ -366,9 +378,36 @@ describe('relay answers', () => {
     assert.throws(() => relayAnswer(pending, {}), /Approve or reject/);
   });
 
-  it('takes a reply at a turn\'s end, but not an empty one', () => {
-    assert.deepEqual(relayAnswer({ kind: 'stop' }, { reply: ' Go on ' }), { reply: 'Go on' });
-    assert.throws(() => relayAnswer({ kind: 'stop' }, { reply: ' ' }));
+  it('continues a turn end with the owner\'s reply, Approve & continue or Show me, but not with nothing', () => {
+    assert.deepEqual(relayAnswer({ kind: 'stop' }, { reply: ' Go on ' }), { reply: 'The owner replied from the Project Manager:\n\nGo on' });
+    assert.deepEqual(relayAnswer({ kind: 'stop' }, { command: 'approve' }), { reply: 'Approved from the Project Manager: go on with the next task.' });
+    assert.match(relayAnswer({ kind: 'stop' }, { command: 'show' }).reply, /^The owner asks from the Project Manager: show me what you're working on\. .*path.*nothing to show yet\.$/);
+    assert.throws(() => relayAnswer({ kind: 'stop' }, { reply: ' ' }), /Type a reply first/);
+    assert.throws(() => relayAnswer({ kind: 'stop' }, { command: 'merge' }), /No such command/);
+    assert.deepEqual(relayAnswer({ kind: 'stop' }, { release: true }), { release: true });
+  });
+
+  it('words what the owner sends a session, ready to deliver', () => {
+    assert.equal(ownerMessage({ text: ' Rename it ' }), 'The owner replied from the Project Manager:\n\nRename it');
+    assert.equal(ownerMessage({ command: 'approve' }), 'Approved from the Project Manager: go on with the next task.');
+    assert.equal(ownerMessage({ text: 'x'.repeat(30000) }).length, 'The owner replied from the Project Manager:\n\n'.length + 20000);
+    assert.throws(() => ownerMessage({}), /Type a reply first/);
+  });
+
+  it('says when a message reaches its session: now, before its next step, or at its next turn end', () => {
+    assert.equal(deliveryOf({ held: true, active: false }), 'now');
+    assert.equal(deliveryOf({ held: false, active: true }), 'next-step');
+    assert.equal(deliveryOf({ held: false, active: false }), 'turn-end');
+  });
+
+  it('reads the app\'s turn summary only when it is about the turn that just ended', () => {
+    const raw = { status_category: 'needs_input', status_detail: 'Asked about the camera', needs_action: 'pick one', summarizes_uuid: 'u2' };
+    assert.deepEqual(turnSummary(raw, 'u2'), { status: 'needs_input', label: 'Needs input', detail: 'Asked about the camera', action: 'pick one' });
+    assert.equal(turnSummary(raw, 'u1'), null);
+    assert.equal(turnSummary(null, 'u2'), null);
+    assert.equal(turnSummary({ ...raw, status_category: 'odd_new_kind', needs_action: '' }, 'u2').label, 'odd new kind');
+    assert.deepEqual(['completed', 'review_ready', 'blocked', 'failed'].map((c) => turnSummary({ ...raw, status_category: c }, 'u2').label),
+      ['Done', 'Ready for review', 'Blocked', 'Failed']);
   });
 
   it('checks ids before they name a file', () => {
@@ -455,11 +494,12 @@ describe('relay hook', () => {
     const asked = await run(ASK);
     assert.equal(asked.out, '');
     assert.equal(asked.pending, null);
-    assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
+    assert.equal((await run({ hook_event_name: 'Stop', last_assistant_message: 'Done.' })).out, '');
     const ev = events();
-    assert.equal(ev.length, 1);
+    assert.equal(ev.length, 2);
     assertMatches(ev[0], { kind: 'asked-in-app', session: ID, cwd: 'C:/repo', questions: ['Which?'] });
     assert.equal(typeof ev[0].time, 'number');
+    assertMatches(ev[1], { kind: 'turn-finished', session: ID, cwd: 'C:/repo', last: 'Done.' });
   });
 
   it('hands a permission prompt to the board while Away is on and returns its decision', async () => {
@@ -492,24 +532,32 @@ describe('relay hook', () => {
 
   it('carries on with the owner\'s reply when a turn ends while Away is on', async () => {
     setAway();
-    const { out, pending } = await run({ hook_event_name: 'Stop', last_assistant_message: 'Done.' }, (p) => reply(p, { reply: 'Now test it' }));
+    const { out, pending } = await run({ hook_event_name: 'Stop', last_assistant_message: 'Done.' }, (p) => reply(p, relayAnswer(p, { reply: 'Now test it' })));
     assertMatches(pending, { kind: 'stop', last: 'Done.' });
-    const decision = JSON.parse(out);
-    assert.deepEqual(Object.keys(decision).sort(), ['decision', 'reason']);
-    assert.equal(decision.decision, 'block');
-    assert.match(decision.reason, /Now test it$/);
+    assert.deepEqual(JSON.parse(out), { decision: 'block', reason: 'The owner replied from the Project Manager:\n\nNow test it' });
   });
 
-  it('hands over a queued reply when a turn ends, without waiting, Away on or off', async () => {
+  it('hands over everything in its inbox when a turn ends, oldest first, without waiting, Away on or off', async () => {
     for (const on of [true, false]) {
       setAway(on);
-      mkdirSync(path.join(dir, 'replies'), { recursive: true });
-      writeFileSync(path.join(dir, 'replies', `${ID}.json`), JSON.stringify({ text: 'Queued words' }));
+      const inbox = path.join(dir, 'inbox', ID);
+      mkdirSync(inbox, { recursive: true });
+      writeFileSync(path.join(inbox, '000000000000002-000001.json'), JSON.stringify({ text: 'Newer words' }));
+      writeFileSync(path.join(inbox, '000000000000001-000000.json'), JSON.stringify({ text: 'Queued words' }));
       const { out, pending } = await run({ hook_event_name: 'Stop' });
       assert.equal(pending, null);
-      assert.match(JSON.parse(out).reason, /Queued words$/);
-      assert.equal(existsSync(path.join(dir, 'replies', `${ID}.json`)), false);
+      assert.deepEqual(JSON.parse(out), { decision: 'block', reason: 'Queued words\n\nNewer words' });
+      assert.deepEqual(readdirSync(inbox), []);
     }
+  });
+
+  it('takes a message that arrives while a turn end is held', async () => {
+    setAway();
+    const { out } = await run({ hook_event_name: 'Stop' }, () => {
+      mkdirSync(path.join(dir, 'inbox', ID), { recursive: true });
+      writeFileSync(path.join(dir, 'inbox', ID, '000000000000001-000000.json'), JSON.stringify({ text: 'Sent meanwhile' }));
+    });
+    assert.deepEqual(JSON.parse(out), { decision: 'block', reason: 'Sent meanwhile' });
   });
 
   it('never blocks on a broken Away file', async () => {

@@ -333,6 +333,9 @@ textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px
 .plan hr { border: 0; border-top: 1px solid var(--border-strong); margin: 8px 0; }
 .plan pre { margin: 6px 0; padding: 8px 10px; background: var(--card); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-x: auto; }
 .plan code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.pcard .sum { font-size: 13px; margin-bottom: 6px; }
+.pcard .plan.last { max-height: 220px; margin-bottom: 4px; }
+.pcard textarea.turnreply { width: 100%; margin-top: 8px; }
 pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 .q { margin-top: 8px; }
 .q .qh { font-size: 13px; margin-bottom: 6px; }
@@ -1411,8 +1414,8 @@ function renderSessionDetail() {
         ${d.app ? `<button class="btn small" data-open="${esc(d.app)}">Open in app</button>` : ''}</div>
       <div class="m" title="${esc(d.cwd ?? '')}"><i class="dot ${d.active ? 'active' : 'recent'}"></i> ${d.active ? 'At work' : `Last active ${esc(ago(d.activity))}`} · ${esc(d.cwd ?? '')}</div>
       ${ctxHtml}
-      <div class="m">${d.away?.on ? 'Away is on: its permission prompts and questions wait here (for up to 20 minutes each), and when a turn ends it waits for your reply.'
-        : "Away is off: it asks in the app's own dialogs. A reply sent from here goes in when its turn next ends."}</div>`;
+      <div class="m">${d.away?.on ? 'Away is on: its permission prompts, plans and questions wait here (for up to 24 hours each), and when a turn ends it waits for your reply.'
+        : "Away is off: it asks in the app's own dialogs. A reply sent from here reaches it before its next step, or when its turn next ends."}</div>`;
   }
   if (!window.S) return;
   renderPending(d);
@@ -1420,11 +1423,13 @@ function renderSessionDetail() {
   // The reply box.
   $('sComp').hidden = false;
   const waiting = d.pending.find((p) => p.kind === 'stop');
+  const queued = d.queued ?? [];
   $('sSend').textContent = waiting ? 'Send' : 'Queue reply';
-  $('sUnqueue').hidden = !d.queued;
+  $('sUnqueue').hidden = !queued.length;
+  $('sUnqueue').textContent = queued.length > 1 ? `Withdraw ${queued.length} queued messages` : 'Withdraw queued reply';
   $('sNote').textContent = waiting ? 'It\'s waiting for you: your reply goes straight in.'
-    : d.queued ? `Queued for when its turn next ends: "${shorten(d.queued.text, 60)}". Sending again replaces it.`
-    : d.active ? 'It\'s working: your reply goes in when this turn ends.'
+    : queued.length ? `Queued: "${shorten(queued[0].text.replace(/^The owner replied from the Project Manager:\s*/, ''), 60)}"${queued.length > 1 ? ` and ${queued.length - 1} more` : ''}. ${d.active ? 'It gets them before its next step.' : 'It gets them when its turn next ends.'}`
+    : d.active ? 'It\'s working: your reply reaches it before its next step.'
     : 'It\'s idle: your reply goes in when its turn next ends. To wake it now, type in the app.';
 }
 
@@ -1461,7 +1466,7 @@ async function sendReply() {
     const r = await post('/relay/reply', { session: sSel, text });
     $('sText').value = '';
     delete sessions.drafts[sSel];
-    $('sNote').textContent = r.delivered ? 'Sent: it carries on with your reply.' : 'Queued: it goes in when the turn ends.';
+    $('sNote').textContent = S.deliveredNote(r.when);
   } catch (err) { $('sNote').textContent = `Couldn't send: ${err.message}`; }
   $('sSend').disabled = false;
   pollSession(true); pollSessions(true);
