@@ -248,7 +248,7 @@ Each weapon supplies what its swings strike with, a strike segment in its own fr
 - The counters (stomp, leap, evade), which the demo made deliberately generous, keep their generous cone checks, now measured from each move's path.
 - Each move's reach and arc, which the computer opponent and the move list use, are computed from its path at load. The reach is how far the blade gets across the ground from the fighter's feet through the active frames, plus half the thickness its sweep tests, without the lunge, as the demo's range was. The arc is twice the blade's widest bearing from the facing over those frames, or 360 when it passes behind. The weapon's reach, which the computer keeps to, comes from its light starter's, and the training dummy keeps that distance once the starter has a swing. The rules can also play a move at a standing defender at any distance and bearing, lunge and turning included, for the frame it would first touch and how deep.
 - Ultimate projectiles and scripted hits (the Moonsplitter wave, Impaler, Tempest) keep their own checks.
-- A debug view draws, over the match, each fighter's hurt capsule, the blades where the rules hold them, each active tick's sweep (kept for about a second) and where each hit, block, parry or whiff landed, coloured by outcome. It is turned on by F3 in a debug build or by `npm run godot:run -- --swing-debug`, and the `swing_debug` shot scene shows a hit, a block and a whiff.
+- A debug view draws, over the match, each fighter's hurt capsule, the blades where the rules hold them, each active tick's sweep (kept for about a second) and where each hit, block, parry or whiff landed, coloured by outcome. It is turned on by F3 in a debug build or by `npm run play -- --swing-debug`, and the `swing_debug` shot scene shows a hit, a block and a whiff.
 
 **Test distances.** How far apart, centre to centre, each kind of move is tested from, played from standing at a standing defender (task 7.14; `game/tests/sim/reach_table.gd` holds the same table). D is the weapon's duelling distance. A kind's offset is how much further the demo's moves of that kind reached from standing (range, a fighter's radius and the lunge) than their weapon's first light, the median over the four weapons to the half-metre, so each kind keeps its place in its weapon's range as real blades replace the demo's cones. In play, sprint, dodge and backstep attacks start out of movement and reach further.
 
@@ -354,15 +354,24 @@ The bullets below describe the build up to that feature.
 - Choosing the dummy's behaviour (`MatchHost.set_training_behaviour`) swaps its weapon in the rules when it can't perform it: to the first weapon in the select's order that can (Thrust: the Katana; Slam: the Greatsword), worked out from the abilities' counter kinds, and back to the weapon picked in the select whenever that one can. The swap lets go of an impale, ends any state of the old weapon, arms the dummy with the new weapon's default abilities and takes its old weapon off the floor; the dummy's model and its HUD plate follow. Restart keeps the behaviour.
 - Training is chosen on the main menu and set up through the select, where the dummy picks only a fighter and a weapon. In the match, a panel at the bottom left shows "Dummy · <weapon>", the nine behaviours numbered 1–9 and refill numbered 0; the top-row digit keys and clicks change them, unless the player's profile binds that digit to an action. The panel hides while paused, where two rows at the top of the pause menu (the dummy's behaviour, Refill health) do the same for controller players.
 
-**Build and tools.** The npm scripts become a task runner (`scripts/godot.mjs`). It finds Godot through a `GODOT` environment variable, then `godot` or `godot4` on PATH, then an untracked `.godot-path` file holding the executable's path. Until the web code is deleted, `test` and `typecheck` run the web and Godot checks side by side, and the Godot soak, run and editor commands are `soak:godot`, `godot:run` and `godot:dev`. At the end the scripts are:
+**Build and tools.** The npm scripts become a task runner (`scripts/godot.mjs`). It finds Godot through a `GODOT` environment variable, then `godot` or `godot4` on PATH, then an untracked `.godot-path` file holding the executable's path. Until the web code was deleted, `test` and `typecheck` ran the web and Godot checks side by side, and the Godot soak, run and editor commands were `soak:godot`, `godot:run` and `godot:dev`. Since then (plan task 26.3) the scripts are:
 
-- `test`: GUT, headless.
+- `test`: the Node tools' tests (`test:node`, on `node --test`), then GUT headless (`test:godot`).
 - `typecheck`: loads every script and fails on any error.
 - `soak`: headless computer-vs-computer matches with balance numbers and the targets; `soak:tune` runs 300 for tuning.
-- `build`: Windows export.
+- `counterlab`: how often the computer lands each unblockable's counter.
+- `build`: Windows export, with the licence, credits and notices beside the exe.
+- `release`: on the PC with the clip libraries, exports, plays `--smoke`, zips and attaches the build to the tag's GitHub release.
+- `play`: plays the game.
 - `dev`: opens the editor.
+- `studio`: opens the Animation Studio.
 - `shots`: renders chosen scenes to PNG in a window, and fails on any shader or script error.
+- `godot`: the runner itself, for its other commands (`npm run godot -- help`).
 - `check:sizes`: fails on any tracked file over 10 MB that isn't allow-listed, and prints the asset and repo sizes.
+- `audio:sonniss`, `audio:synth` and `audio:music`: rebuild the sound effects and music.
+- `brain`, `brain:serve` and `board`: the second brain and the Project Manager, which are Node tools.
+
+`package.json`'s version follows `project.godot`'s.
 
 The exported game takes a `--smoke` flag: it plays a Watch match to the results and exits 0, or 1 on any error, stall or timeout.
 

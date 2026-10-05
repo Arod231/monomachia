@@ -6,7 +6,7 @@ extends SceneTree
 ## occurs, each weapon's win rate against the other weapons, and whether the
 ## spec's balance targets are met (plan task 12.1).
 ##
-## usage: node scripts/godot.mjs soak [matches]     (or: npm run soak:godot -- 40)
+## usage: node scripts/godot.mjs soak [matches]     (or: npm run soak -- 40)
 ##        npm run soak:tune                         (300 matches, for tuning)
 ##
 ## Port notes:

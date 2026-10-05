@@ -31,7 +31,7 @@ jobs:
       - run: npm run check:sizes
       - run: npm test
       - run: npm run typecheck
-      - run: npm run soak:godot -- 4
+      - run: npm run soak -- 4
 
   # A stand-in Windows build, exported headless: CI has no GPU, so the
   # shaders aren't baked and compile on first use (a PC's export bakes them),
@@ -52,7 +52,7 @@ jobs:
           version: 4.7.2
           use-dotnet: false
           include-templates: true
-      - run: npm run godot -- build
+      - run: npm run build
       - uses: actions/upload-artifact@v7
         with:
           name: Monomachia-windows-stand-in
