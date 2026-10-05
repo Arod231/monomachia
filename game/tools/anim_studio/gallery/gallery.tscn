@@ -62,12 +62,6 @@ layout_mode = 2
 toggle_mode = true
 text = "provisional"
 
-[node name="Badge_corrective" type="Button" parent="Layout/Toolbar/BadgeChips"]
-unique_name_in_owner = true
-layout_mode = 2
-toggle_mode = true
-text = "corrective"
-
 [node name="Badge_unsaved" type="Button" parent="Layout/Toolbar/BadgeChips"]
 unique_name_in_owner = true
 layout_mode = 2

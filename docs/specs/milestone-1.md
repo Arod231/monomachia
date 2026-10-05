@@ -71,7 +71,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 28. As the owner, I want markers set on the Studio's timeline to give each clip's active frames, cancel windows and branch points, and saving to regenerate the frame-data table and report any move outside its band, so that a marker edit is the only way frame data change. **(P12, confirmed Oct 4)**
 29. As the owner, I want the Studio's timeline to show each move's generated frame data against its timing band, and whether it connects from its distance band, so that I see at once whether a clip fits.
 30. As the owner, I want the Studio's chains kept without their speed field or held frames, so that nothing in the Studio can speed up, slow down or freeze a clip.
-31. As a developer, I want bone posing, correctives, IK handles, keyed-clip editing, the refinement launcher and the chat panel dropped from the Studio in favour of Blender, so that the tool stays small.
+31. [x] As a developer, I want bone posing, correctives, IK handles, keyed-clip editing, the refinement launcher and the chat panel dropped from the Studio in favour of Blender, so that the tool stays small. (Ticked with task 11.)
 32. As the owner, I want to try the slimmed Studio on the pilot family before the other families start, so that the marker workflow is proven early.
 
 ### Timing, distance and pace
