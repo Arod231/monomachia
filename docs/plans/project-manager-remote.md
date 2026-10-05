@@ -93,12 +93,14 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a page module, served like the existing UI and graph modules, holding the question, permission and session rendering both pages use.
   - Check: every board test passes unchanged; both pages behave as before in the Browser pane.
   - Blocked by: 1 · Stories: 83
+  - Owner's answers (Oct 4, lane `lane/pm-4-5-6`, with tasks 5 and 6): the lane follows the side-lane rule, so it ticks its tasks and leaves Progress to this plan's own branch.
 - [ ] **5. Actions from the HTTPS address.** The Project Manager accepts its own pages' actions from `https://<pc>.<tailnet>.ts.net` through Tailscale Serve.
   - Delivers: the same-origin rule accepts an https origin whose host is one of the PC's tailnet names (requests through Serve arrive from loopback); everything else is refused as today.
   - Check:
     - access tests: the tailnet name over https is allowed; another https site, a plain form post and a wrong host are refused;
     - a harmless action (clearing a queued reply) succeeds through https://desktop-jk5bn8g.tailec6188.ts.net.
   - Blocked by: 1 · Stories: 41, 78, 79
+  - Owner's answer (Oct 4): the HTTPS check is simulated now, on a test board sent the exact request Tailscale Serve sends (from loopback, the ts.net Host, an https Origin); the live check through the HTTPS address happens at task 9's preview.
 
 ### Phase B: Away and the Questions tab
 
@@ -114,6 +116,10 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - unit tests of the answer rules;
     - both pages answer a fixture session by hand.
   - Blocked by: 3, 4 · Stories: 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 24, 25, 26, 27, 84
+  - Owner's answers (Oct 4), taken before the spike had run:
+    - built ahead of task 3 on the spec's shape (allow, with the input passed back plus an `answers` map), with the fallback (decline, carrying the answers as the reason) one switch away in the rule module; the spike decides which one ships before task 9 installs the hooks;
+    - a free-form reply reaches the session as a decline carrying the owner's words ("The owner answered from the Project Manager: …"), which hooks already deliver, rather than the spec's `response`;
+    - turn ends are held while Away is on from this task, as switched-on sessions' are today (20 minutes, a reply continues them); task 8 adds the inbox, release, the 24 hours and the Questions-tab cards.
 - [ ] **7. Permission prompts and plan approvals.** With Away on, a session's permission prompts and plans wait in the Questions tab too.
   - Delivers: on both pages,
     - held permissions showing the command or edit, with Allow, Always allow (naming the rule it adds) and Deny with a reason;
