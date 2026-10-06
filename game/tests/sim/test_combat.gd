@@ -420,6 +420,6 @@ func test_a_thruster_stomped_up_close_is_jolted_back() -> void:
 func test_other_stuns_have_no_stomp_cause() -> void:
 	var W: World = H.make_world()
 	var a: Fighter = W.fighters[0]
-	a.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
+	a.enter_stun(ProtectedTimings.today().stomp_stun, &"stunned", &"stomp")
 	a.enter_stun(SimConst.LEAP_STUN)
 	assert_eq(a.stun_cause, &"", "a later stun clears the cause")

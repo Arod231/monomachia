@@ -209,7 +209,7 @@ func update_from(f: Fighter, pos: Vector3, yaw: float, alpha: float, _delta: flo
 		if f.state == &"ko":
 			_fall(maxf(0.0, float(f.sf) - 1.0 + alpha))
 		else:
-			_knocked_down(maxf(0.0, float(f.sf) - 1.0 + alpha))
+			_knocked_down(maxf(0.0, float(f.sf) - 1.0 + alpha), f.knockdown_timings())
 	else:
 		_show_authored(f, alpha)
 		locomotion.update(f, StringName(shot.idle), seconds, alpha)
@@ -515,17 +515,18 @@ func _fall(frames: float) -> void:
 
 
 ## A knocked-down fighter (task 16), `frames` rules frames into the
-## knockdown: until task 28's clips, the fallback's stand-in. The fall plays
-## KNOCKDOWN_FALL_CLIP over the fall's frames, then the fighter lies in
-## KNOCKDOWN_RISE_CLIP's first pose and rises with it over the stand-up.
-func _knocked_down(frames: float) -> void:
+## knockdown, its phases those of `kd`: until task 28's clips, the
+## fallback's stand-in. The fall plays KNOCKDOWN_FALL_CLIP over the fall's
+## frames, then the fighter lies in KNOCKDOWN_RISE_CLIP's first pose and
+## rises with it over the stand-up.
+func _knocked_down(frames: float, kd: ProtectedTimings) -> void:
 	_let_go()
-	var fall: float = float(SimConst.KNOCKDOWN_FALL_FRAMES)
-	var standup_from: float = fall + float(SimConst.KNOCKDOWN_GROUND_FRAMES)
+	var fall: float = float(kd.knockdown_fall)
+	var standup_from: float = fall + float(kd.knockdown_ground)
 	if frames < fall:
 		_play_share(KNOCKDOWN_FALL_CLIP, frames / fall)
 	else:
-		_play_share(KNOCKDOWN_RISE_CLIP, maxf(0.0, frames - standup_from) / float(SimConst.KNOCKDOWN_STANDUP_FRAMES))
+		_play_share(KNOCKDOWN_RISE_CLIP, maxf(0.0, frames - standup_from) / float(kd.knockdown_rise))
 
 
 ## Shows the share `t` (0 to 1) of clip `clip`.

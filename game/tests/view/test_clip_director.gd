@@ -716,8 +716,8 @@ func test_the_stomped_thruster_plays_its_pin_fitted_to_the_stun() -> void:
 	var ctx: ClipDirector.Context = _ctx()
 	var pinned: String = KeyedClips.anim_name(KeyedClips.PINNED)
 	ctx.lengths[pinned] = 70.0 / 60.0
-	f.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
-	f.sf = 35
+	f.enter_stun(ProtectedTimings.for_weapon(&"katana").stomp_stun, &"stunned", &"stomp")
+	f.sf = f.state_dur / 2
 	var clip: ClipDirector.Clip = ClipDirector.state_clip(f, ctx)
 	assert_not_null(clip)
 	assert_eq(clip.name, pinned, "the stomp's stun plays Mikiri_Pinned")
@@ -880,8 +880,8 @@ func test_the_long_stuns_play_stun01_timed_to_them() -> void:
 	var W: World = SimHelpers.make_world()
 	var f: Fighter = W.fighters[0]
 	var length: float = ctx.lengths["HumanM/Stun01"]
-	for case: Array in [[&"stunned", SimConst.LEAP_STUN], [&"stunned", SimConst.REDIRECT_STUN], [&"stagger", SimConst.DISARMED_STAGGER],
-			[&"disarmStagger", SimConst.DISARM_STAGGER], [&"impaled", 60]]:
+	for case: Array in [[&"stunned", SimConst.LEAP_STUN], [&"stunned", ProtectedTimings.for_weapon(&"katana").redirect_stun], [&"stagger", ProtectedTimings.for_weapon(&"katana").disarmed_daze],
+			[&"disarmStagger", ProtectedTimings.for_weapon(&"katana").disarm_stagger], [&"impaled", 60]]:
 		f.enter_stun(case[1], case[0])
 		f.sf = case[1] / 2
 		assert_eq(ClipDirector.reaction_of(f), &"stun", String(case[0]))
@@ -893,7 +893,7 @@ func test_the_long_stuns_play_stun01_timed_to_them() -> void:
 	# the stomped thruster keeps its keyed pin
 	var pinned: String = KeyedClips.anim_name(KeyedClips.PINNED)
 	ctx.lengths[pinned] = 70.0 / 60.0
-	f.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
+	f.enter_stun(ProtectedTimings.for_weapon(&"katana").stomp_stun, &"stunned", &"stomp")
 	W.frame += 1
 	shot = ClipDirector.step(shot, f, ctx)
 	assert_eq(shot.clip.name, pinned, "the stomp's stun: Mikiri_Pinned")
@@ -988,7 +988,7 @@ func test_a_parried_attack_runs_back_then_staggers() -> void:
 
 func test_a_flash_or_redirect_stun_rebounds_too_but_not_a_stomp() -> void:
 	var ctx: ClipDirector.Context = _reaction_ctx()
-	for stun: int in [SimConst.FLASH_STUN, SimConst.REDIRECT_STUN]:
+	for stun: int in [ProtectedTimings.for_weapon(&"katana").flash_stun, ProtectedTimings.for_weapon(&"katana").redirect_stun]:
 		var got: Array = _attacking(ctx, 12)
 		var W: World = got[0]
 		var f: Fighter = W.fighters[0]
@@ -1007,7 +1007,7 @@ func test_a_flash_or_redirect_stun_rebounds_too_but_not_a_stomp() -> void:
 	var f2: Fighter = (got2[0] as World).fighters[0]
 	var pinned: String = KeyedClips.anim_name(KeyedClips.PINNED)
 	ctx.lengths[pinned] = 70.0 / 60.0
-	f2.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
+	f2.enter_stun(ProtectedTimings.for_weapon(&"katana").stomp_stun, &"stunned", &"stomp")
 	f2.atk = null
 	(got2[0] as World).frame += 1
 	var shot2: ClipDirector.Shot = ClipDirector.step(got2[1], f2, ctx)
@@ -1049,9 +1049,9 @@ func test_a_knockdown_fits_knockdown01_to_its_three_phases() -> void:
 	var W: World = SimHelpers.make_world()
 	var f: Fighter = W.fighters[0]
 	f.enter_knockdown()
-	var fall: int = SimConst.KNOCKDOWN_FALL_FRAMES
-	var ground: int = SimConst.KNOCKDOWN_GROUND_FRAMES
-	var up: int = SimConst.KNOCKDOWN_STANDUP_FRAMES
+	var fall: int = f.knockdown_timings().knockdown_fall
+	var ground: int = f.knockdown_timings().knockdown_ground
+	var up: int = f.knockdown_timings().knockdown_rise
 	var shot: ClipDirector.Shot = null
 	var fall_len: float = ctx.lengths["HumanM/Knockdown01_Fall"]
 	var ground_len: float = ctx.lengths["HumanM/Knockdown01_Ground"]
@@ -1087,10 +1087,10 @@ func test_without_the_packs_a_knockdown_plays_the_stand_ins() -> void:
 	f.enter_knockdown()
 	f.sf = 10
 	assert_eq(ClipDirector.down_clip(f, ctx).name, "ual/Hit_Knockback", "falling")
-	f.sf = SimConst.KNOCKDOWN_FALL_FRAMES + 5
+	f.sf = f.knockdown_timings().knockdown_fall + 5
 	var lying: ClipDirector.Clip = ClipDirector.down_clip(f, ctx)
 	assert_eq([lying.name, lying.time], ["ual/LayToIdle", 0.0], "lying in the rise's first pose")
-	f.sf = SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES + 5
+	f.sf = f.knockdown_timings().knockdown_fall + f.knockdown_timings().knockdown_ground + 5
 	assert_eq(ClipDirector.down_clip(f, ctx).name, "ual/LayToIdle", "rising")
 
 

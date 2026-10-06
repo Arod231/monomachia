@@ -258,6 +258,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `raw_input.gd` | `RawInput` | One frame of input: stick `mx`, `my` and a button bitmask. |
 | `btn.gd` | `Btn` | Button indices: LIGHT, HEAVY, BLOCK, DODGE, JUMP, INTERACT, ULTIMATE, SPRINT. |
 | `constants.gd` | `SimConst` | Global tuning. |
+| `protected_timings.gd` | `ProtectedTimings` | The protected timings (milestone-1 task 22), frozen: hitstun, blockstun and hit-stop by move kind, the charge bonus, the outcome hit-stops, the counters' stuns, the disarm's stagger and daze, and the knockdown's phases; the Katana's and bare hands' retuned set and today's, which the Greatsword and the Daggers keep. `for_weapon()` gives the set a move's weapon decides (the outcomes, at once); `for_move()` the set its own values come from (retuned once its family re-keys it). Pinned by `test_protected_timings.gd`. |
 | `sim_math.gd` | `SimMath` | Angles, easing, `js_round`. |
 | `js_math.gd` | `JsMath` | V8-exact `sin`, `cos`, `atan2`, `hypot` (see [Traps](#20-traps)). |
 | `rng.gd` | `Rng` | Mulberry32, bit-exact with the TypeScript. |
@@ -266,6 +267,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `moves/attack_def.gd` | `AttackDef` | One move's frame data and flags; `finalize_moves()` fills defaults. |
 | `moves/frame_data_table.gd` | `FrameDataTable` | The committed frame-data table (milestone-1 task 16): each move's band kind, chain, generated frame data and per-frame travel, each gait clip's measured speed, each rules-length clip's length, the clips not keyed yet, and per row the source clips' checksum and a digest of the row with its swing (`digest()`), which CI recomputes. |
 | `moves/move_bands.gd` | `MoveBands` | The band tables (milestone-1 task 18): the spec's timing bands and distance bands per weapon and move kind, and the moves waiting for their family's re-key; `timing_problems()` holds a table row to its timing band, `distance_check()` plays a move from standing (`SwingReach`) at each distance its band names. Read by `test_move_bands.gd` and the Studio, never by the rules. |
+| `moves/follow_up_check.gd` | `FollowUpCheck` | The free-frame rule over the follow-up pairs (milestone-1 task 22): how many frames a defender hit on a move's last active frame is free before its follow-up lands from its branch point, and each branch point against the earliest its kind allows, over the pairs off the band tests' waiting list. Read by tests, never by the rules. |
 | `moves/weapon_def.gd` | `WeaponDef` | One weapon: class, speed, parry window, block mitigation, its moves and which move starts each context. |
 | `moves/moves.gd` | `Moves` | The registry: `WEAPONS`, `PLAYABLE_WEAPONS`, `COUNTER_LUNGE`, `ULT_HITS`, `get_move()`. |
 | `moves/katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd` | `KatanaMoves` and so on | Each weapon's `MOVES` table and `build()`: what design sets (damage, posture, kind, type, follow-ups, lunges and the like). Since milestone-1 task 17 the frames (startup, active, recovery, the dodge cancel, the travel) come from the frame-data table (`AttackDef.finalize_moves()` given the weapon, `TABLE_FIELDS`). Fists is the bare-hands moveset. |
@@ -625,7 +627,7 @@ Global tuning lives in `game/sim/constants.gd` (`SimConst`), weapon frame data i
 | `PARRY_POSTURE`, `HIT_POSTURE_MULT` | 16, 1.5 | |
 | Parry windows | Katana 9, Greatsword 12, Daggers 6, Fists 8 frames | In each weapon's `WeaponDef` |
 
-`finalize_moves()` in `attack_def.gd` fills each move's defaults (hitstun light 14, heavy 26; heavies dodge-cancel from the middle of their recovery; unblockables become undodgeable). When you change tuning, add or update a test in `game/tests/sim` and update `docs/mvp-spec.md` or the rebuild spec if it records the number.
+`finalize_moves()` in `attack_def.gd` fills each move's defaults (its hitstun, blockstun and hit-stop from `ProtectedTimings`: today's, lights' hitstun 14 and heavies' 26, until its family re-keys a Katana or bare-hands move, then the retuned set, lights 24 (bare hands 18) and heavies 41 (35); heavies dodge-cancel from the middle of their recovery; unblockables become undodgeable). The protected timings are frozen: changing one needs the owner's OK. When you change tuning, add or update a test in `game/tests/sim` and update `docs/mvp-spec.md` or the rebuild spec if it records the number.
 
 ## 7. Input (`game/input`)
 

@@ -68,12 +68,11 @@ const POSTURE_RECOVER_MOVE: float = 5.0 # points / second (full HP, moving, bloc
 const POSTURE_RECOVER_HP_FLOOR: float = 0.35 # multiplier at 0 HP
 const DISARMED_POSTURE_RECOVER: float = 6.0 # passive drain while disarmed
 const DISARMED_POSTURE_DELAY: int = 60
-const DISARMED_STAGGER: int = 60 # dazed when a disarmed fighter's meter fills
+# the daze when a disarmed fighter's meter fills: ProtectedTimings (task 22)
 const DISARMED_STAGGER_RESET: float = 50.0 # posture after the daze
 
 # --- Counters --------------------------------------------------------------
 const STOMP_POSTURE: float = 30.0
-const STOMP_STUN: int = 70
 # Where a stomp lands, by the thruster's weapon: this far in front of the
 # thruster, so the stomping foot comes down on the blade's tip as the blade
 # is driven into the floor (the mikiri counter's pin). A thruster nearer than
@@ -88,27 +87,23 @@ const EVADE_POSTURE: float = 15.0
 const EVADE_EXTRA_RECOVERY: int = 40
 const COUNTER_LUNGE_WINDOW: int = 45
 const REDIRECT_POSTURE: float = 35.0
-const REDIRECT_STUN: int = 50
-const FLASH_STUN: int = 60
+# the stomp's, Flash's and the redirect's stuns are protected timings:
+# ProtectedTimings (milestone-1 task 22); the leap's stays here
 
 # --- Knockdown (authored-animation task 16) ---------------------------------
 # A hit from an unblockable (not an ultimate), a heavy released at full charge,
 # or one of KNOCKDOWN_MOVES knocks the defender down instead of into hitstun:
-# a fall, a time on the ground and a stand-up. Provisional lengths, for the
-# knockdown clips' markers and soak runs to settle.
-const KNOCKDOWN_FALL_FRAMES: int = 20
-const KNOCKDOWN_GROUND_FRAMES: int = 30
-const KNOCKDOWN_STANDUP_FRAMES: int = 25
-## The stand-up's last frames, in which the fighter is no longer invulnerable
-## and can block or parry (but not attack, dodge or move); before them the
-## fighter is invulnerable from the fall's first frame.
-const KNOCKDOWN_GUARD_FRAMES: int = 15
+# a fall, a time on the ground and a stand-up, whose lengths and guard window
+# (the stand-up's last frames, in which the fighter is no longer invulnerable
+# and can block or parry, but not attack, dodge or move) are protected
+# timings: ProtectedTimings (milestone-1 task 22), by the weapon of the move
+# that knocked the fighter down (Fighter.knockdown_timings()).
 ## The Greatsword's slams, which knock down though they aren't all
 ## unblockable: Mountain Slam, Meteor Drop and Leaping Smash.
 const KNOCKDOWN_MOVES: Array[StringName] = [&"g_slam", &"g_jh", &"g_sh"]
 
 # --- Disarm ----------------------------------------------------------------
-const DISARM_STAGGER: int = 26 # the disarmed fighter reels back
+# the disarmed fighter's stagger: ProtectedTimings (milestone-1 task 22)
 const PICKUP_RANGE: float = 1.25
 const PICKUP_FRAMES: int = 24
 const PICKUP_ATTACH_FRAME: int = 14

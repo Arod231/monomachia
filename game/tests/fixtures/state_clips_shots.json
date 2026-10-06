@@ -736,15 +736,15 @@
 		[28,"state",["keyed/Mikiri_Stomp",0.0],"=",null,false,false,2,0,"","","stomp","",null,1.0,1.0],
 		[28,"state",["keyed/Mikiri_Stomp",0.0],"=",null,false,false,2,0,"","","stomp","",null,1.0,1.0],
 		[28,"state",["keyed/Mikiri_Stomp",0.0],"=",null,false,false,2,0,"","","stomp","",null,1.0,1.0],
-		[39,"state",["keyed/Mikiri_Stomp",0.183333],["keyed/Mikiri_Stomp",0.166667],null,false,false,2,11,"","","stomp","",null,1.0,1.0],
-		[51,"state",["keyed/Mikiri_Stomp",0.383333],["keyed/Mikiri_Stomp",0.366667],null,false,false,2,23,"","","stomp","",null,1.0,1.0],
+		[37,"state",["keyed/Mikiri_Stomp",0.15],["keyed/Mikiri_Stomp",0.133333],null,false,false,2,9,"","","stomp","",null,1.0,1.0],
+		[49,"state",["keyed/Mikiri_Stomp",0.35],["keyed/Mikiri_Stomp",0.333333],null,false,false,2,21,"","","stomp","",null,1.0,1.0],
 		[52,"state",["keyed/Mikiri_Stomp",0.4],["keyed/Mikiri_Stomp",0.383333],null,false,false,2,24,"","","stomp","",null,1.0,1.0],
 		[53,"state",["keyed/Mikiri_Stomp",0.416667],["keyed/Mikiri_Stomp",0.4],null,false,false,2,25,"","","stomp","",null,1.0,1.0],
 		[54,"legs",null,"=",["keyed/Mikiri_Stomp",0.416667],false,false,6,0,"","","free","",null,1.0,1.0],
 		[55,"legs",null,"=",["keyed/Mikiri_Stomp",0.416667],false,false,6,1,"","","free","",null,1.0,1.0],
 		[56,"legs",null,"=",["keyed/Mikiri_Stomp",0.416667],false,false,6,2,"","","free","",null,1.0,1.0],
-		[63,"legs",null,"=",null,false,false,6,9,"","","free","",null,1.0,1.0],
-		[70,"legs",null,"=",null,false,false,6,16,"","","free","",null,1.0,1.0]
+		[61,"legs",null,"=",null,false,false,6,7,"","","free","",null,1.0,1.0],
+		[68,"legs",null,"=",null,false,false,6,14,"","","free","",null,1.0,1.0]
 	],
 	"stomped thruster libs=true": [
 		[0,"legs",null,"=",null,false,false,0,0,"","","free","",null,1.0,1.0],
@@ -771,15 +771,15 @@
 		[28,"state",["keyed/Mikiri_Stomp",0.0],"=",null,false,false,2,0,"","","stomp","",null,1.0,1.0],
 		[28,"state",["keyed/Mikiri_Stomp",0.0],"=",null,false,false,2,0,"","","stomp","",null,1.0,1.0],
 		[28,"state",["keyed/Mikiri_Stomp",0.0],"=",null,false,false,2,0,"","","stomp","",null,1.0,1.0],
-		[39,"state",["keyed/Mikiri_Stomp",0.183333],["keyed/Mikiri_Stomp",0.166667],null,false,false,2,11,"","","stomp","",null,1.0,1.0],
-		[51,"state",["keyed/Mikiri_Stomp",0.383333],["keyed/Mikiri_Stomp",0.366667],null,false,false,2,23,"","","stomp","",null,1.0,1.0],
+		[37,"state",["keyed/Mikiri_Stomp",0.15],["keyed/Mikiri_Stomp",0.133333],null,false,false,2,9,"","","stomp","",null,1.0,1.0],
+		[49,"state",["keyed/Mikiri_Stomp",0.35],["keyed/Mikiri_Stomp",0.333333],null,false,false,2,21,"","","stomp","",null,1.0,1.0],
 		[52,"state",["keyed/Mikiri_Stomp",0.4],["keyed/Mikiri_Stomp",0.383333],null,false,false,2,24,"","","stomp","",null,1.0,1.0],
 		[53,"state",["keyed/Mikiri_Stomp",0.416667],["keyed/Mikiri_Stomp",0.4],null,false,false,2,25,"","","stomp","",null,1.0,1.0],
 		[54,"legs",null,"=",["keyed/Mikiri_Stomp",0.416667],false,false,6,0,"","","free","",null,1.0,1.0],
 		[55,"legs",null,"=",["keyed/Mikiri_Stomp",0.416667],false,false,6,1,"","","free","",null,1.0,1.0],
 		[56,"legs",null,"=",["keyed/Mikiri_Stomp",0.416667],false,false,6,2,"","","free","",null,1.0,1.0],
-		[63,"legs",null,"=",null,false,false,6,9,"","","free","",null,1.0,1.0],
-		[70,"legs",null,"=",null,false,false,6,16,"","","free","",null,1.0,1.0]
+		[61,"legs",null,"=",null,false,false,6,7,"","","free","",null,1.0,1.0],
+		[68,"legs",null,"=",null,false,false,6,14,"","","free","",null,1.0,1.0]
 	],
 	"stomped thruster libs=false": [
 		[0,"legs",null,"=",null,false,false,0,0,"","","free","",null,1.0,1.0],

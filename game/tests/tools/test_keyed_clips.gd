@@ -155,7 +155,7 @@ func _tip(sk: Skeleton3D, weapon: StringName) -> Vector3:
 func test_the_library_holds_the_thrusters_pin_fitted_to_the_stomps_stun() -> void:
 	var lib: AnimationLibrary = KeyedClips.load_library()
 	assert_true(lib.has_animation(KeyedClips.PINNED))
-	assert_almost_eq(lib.get_animation(KeyedClips.PINNED).length * SimConst.FPS, float(SimConst.STOMP_STUN), 0.001, "the stomp's 70-frame stun")
+	assert_almost_eq(lib.get_animation(KeyedClips.PINNED).length * SimConst.FPS, float(ProtectedTimings.today().stomp_stun), 0.001, "built for today's 70-frame stun (family 6 re-keys it to the retuned 90)")
 
 
 func test_the_held_blades_stay_above_the_floor() -> void:

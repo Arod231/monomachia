@@ -657,8 +657,9 @@ static func down_clip(f: Fighter, ctx: Context) -> Clip:
 	if length <= 0.0:
 		return null
 	var fps: float = float(SimConst.FPS)
-	var fall: int = SimConst.KNOCKDOWN_FALL_FRAMES
-	var ground: int = SimConst.KNOCKDOWN_GROUND_FRAMES
+	var kd: ProtectedTimings = f.knockdown_timings()
+	var fall: int = kd.knockdown_fall
+	var ground: int = kd.knockdown_ground
 	match phase:
 		&"fall":
 			var at: float = state_time(id if ctx.libraries else fallback, f.sf, fall, length)
@@ -669,7 +670,7 @@ static func down_clip(f: Fighter, ctx: Context) -> Clip:
 			return Clip.make(anim_name, fmod(float(f.sf - fall) / fps, length))
 		&"standUp":
 			var from: float = sc.knockdown_standup_from / float(ClipManifest.SOURCE_FPS) if ctx.libraries else 0.0
-			var up: float = state_time(id if ctx.libraries else fallback, f.sf - fall - ground, SimConst.KNOCKDOWN_STANDUP_FRAMES, length - from)
+			var up: float = state_time(id if ctx.libraries else fallback, f.sf - fall - ground, kd.knockdown_rise, length - from)
 			return null if up < 0.0 else Clip.make(anim_name, from + up)
 	return Clip.make(anim_name, minf(float(f.sf) / fps, length))
 

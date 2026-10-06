@@ -2,22 +2,26 @@ extends GutTest
 ## Knockdown (authored-animation plan task 16, spec "Rules changes"): an
 ## unblockable, a heavy released at full charge and the Greatsword's slams
 ## knock the defender down on a hit, in place of hitstun. The downed fighter
-## falls, lies and stands up on a fixed timer, invulnerable until stand-up
-## frame 10, then able to block or parry (but not attack, dodge or move) for
-## the stand-up's last 15 frames. Expected numbers come from the spec.
+## falls, lies and stands up on a fixed timer, invulnerable until the
+## stand-up's guard window, then able to block or parry (but not attack, dodge
+## or move) through it. Expected numbers come from the milestone-1 spec's
+## protected-timing table: the knockdowns here are the Katana's, retuned by
+## milestone-1 task 22 (a Greatsword's keeps today's 20, 30, 25 and 15; see
+## test_protected_timings.gd).
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 const CLOSE: float = 0.005
 
-## The spec's provisional phases: fall 20, ground 30, stand-up 25.
-const FALL: int = 20
+## The Katana's retuned phases: fall 30, ground 30, stand-up 40.
+const FALL: int = 30
 const GROUND: int = 30
-const STANDUP: int = 25
+const STANDUP: int = 40
 const TOTAL: int = FALL + GROUND + STANDUP
-## Invulnerable from the fall's first frame until stand-up frame 10.
-const INVULN_LAST: int = FALL + GROUND + 10
-## The stomp keeps its 70-frame stun.
-const STOMP_STUN: int = 70
+## Invulnerable from the fall's first frame until stand-up frame 20, where
+## the 20-frame guard window opens.
+const INVULN_LAST: int = FALL + GROUND + 20
+## The stomp's retuned stun.
+const STOMP_STUN: int = 90
 
 ## Piercing Thrust's numbers (the Katana's block-heavy ability).
 const THRUST_DAMAGE: float = 12.0
@@ -220,7 +224,7 @@ func test_a_knocking_out_hit_plays_the_ko_instead() -> void:
 	assert_eq(b.state, &"ko")
 
 
-func test_the_stomp_still_stuns_for_70_and_doesnt_knock_down() -> void:
+func test_the_stomp_stuns_for_its_retuned_90_and_doesnt_knock_down() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
 	var a: Fighter = W.fighters[0]
@@ -240,7 +244,7 @@ func test_the_stomp_still_stuns_for_70_and_doesnt_knock_down() -> void:
 
 # ------------------------------------------------------------------ the downed fighter
 
-func test_the_downed_fighter_is_invulnerable_until_stand_up_frame_10() -> void:
+func test_the_downed_fighter_is_invulnerable_until_its_guard_window() -> void:
 	var W: World = _knocked_down()
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
@@ -365,7 +369,7 @@ func _brain_presses(down: bool, frames: int) -> Array[int]:
 	params.guard = 0.0
 	var brain: AIBrain = AIBrain.new(a, params, 5)
 	if down:
-		b.enter_knockdown()
+		b.enter_knockdown(ProtectedTimings.for_weapon(&"katana"))
 	var presses: Array[int] = []
 	for i: int in frames:
 		var inp: RawInput = brain.think()

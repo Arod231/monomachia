@@ -223,7 +223,7 @@ func test_a_knockdown_falls_lies_and_rises_with_its_clips() -> void:
 	_step(W, 20)
 	_update(v, b, 0.5)
 	assert_eq([v.shot.phase, v.shot.clip.name], [&"ground", "HumanF/Knockdown01_Ground" if packs else "ual/LayToIdle"])
-	var rise_from: int = SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES
+	var rise_from: int = b.knockdown_timings().knockdown_fall + b.knockdown_timings().knockdown_ground
 	_step(W, rise_from + 10 - b.sf)
 	_update(v, b, 1.0)
 	assert_eq([v.shot.phase, v.shot.clip.name], [&"standUp", "HumanF/Knockdown01_StandUp" if packs else "ual/LayToIdle"])
