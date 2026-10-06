@@ -800,3 +800,42 @@ describe('findBatches', () => {
     assert.deepEqual(findBatches(p), [['1', '2']]);
   });
 });
+
+describe('owner OKs', () => {
+  const OKS = `# Plan
+
+## Tasks
+
+- [x] **1. The approval.** Text.
+  - Blocked by: none
+  - **Owner:** approves the spec.
+  - Done Oct 4: The owner confirmed the defaults and approved the spec and this plan.
+- [x] **2. The look test.** Text.
+  - Blocked by: none
+  - **Owner:** approves the scene.
+  - Done Oct 6, approved by the owner as built.
+- [x] **3. A review.** Text.
+  - Blocked by: none
+  - Owner's OK: Oct 6, 2026.
+- [x] **4. Built, not yet approved.** Text.
+  - Delivers: a scene approved by the owner later.
+  - Blocked by: none
+  - Done Oct 6: built and handed to the owner.
+- [ ] **5. Gated.** Text.
+  - Blocked by: 2 (and the owner's OK), 4 (and the owner's OK)
+- [x] **6. Built from an earlier approval.** Text.
+  - Blocked by: none
+  - Done Oct 5: the tables as approved at task 1. Reviewed later by the owner.
+`;
+  const { tasks } = parseFlat(OKS, M1);
+
+  it('reads an OK from a Done note naming the owner\'s approval, or an Owner\'s OK line', () => {
+    assert.deepEqual(['1', '2', '3', '4', '5', '6'].map((id) => tasks.get(id).okd), [true, true, true, false, false, false]);
+  });
+
+  it('counts a task OK\'d when any copy says so', () => {
+    const before = parseFlat(OKS.replace('  - Done Oct 6, approved by the owner as built.\n', ''), M1);
+    const m = mergeCopies([{ time: 1, p: parseFlat(OKS, M1) }, { time: 2, p: before }]);
+    assert.deepEqual([...m.okd].sort(), ['1', '2', '3']);
+  });
+});

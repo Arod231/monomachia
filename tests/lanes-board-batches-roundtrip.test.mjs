@@ -58,4 +58,36 @@ describe('the round trip: batches as tasks clear', () => {
     assert.deepEqual(now.tasks[4].batch, { n: now.batches[0].n, at: 2, of: 3 });
     assert.equal(now.tasks[1].batch, undefined);
   });
+
+  it('stops a task waiting on the owner\'s OK once the gate\'s Done note records it', async () => {
+    const gated = (okd) => `# Plan: Milestone 1
+
+## Build order
+
+1. **All:** 7, 8.
+
+## Tasks
+
+- [x] **7. The look test.** Text.
+  - Blocked by: none
+  - **Owner:** approves the scene.
+  - Done Oct 6${okd ? ', approved by the owner as built' : ': built'}.
+- [ ] **8. Blood.** Text.
+  - Blocked by: 7 (and the owner's OK)
+`;
+    const commit = (text, msg) => {
+      writeFileSync(path.join(board.repo, 'docs', 'plans', 'milestone-1.md'), text);
+      const git = (...args) => execFileSync('git', args, { cwd: board.repo, windowsHide: true, stdio: 'ignore' });
+      git('add', '-A');
+      git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-q', '-m', msg);
+    };
+    commit(gated(false), 'Build the look test');
+    const waiting = await waitFor(async () => { const p = await m1(); return p?.tasks[8] ? p : null; }, 15000, 'task 8 on /data');
+    assert.equal(waiting.tasks[8].status, 'owner');
+    assert.deepEqual(waiting.tasks[8].ownerOk, ['7']);
+
+    commit(gated(true), 'Record the owner\'s OK of the look test');
+    const ready = await waitFor(async () => { const p = await m1(); return p?.tasks[8]?.status === 'ready' ? p : null; }, 15000, 'task 8 ready on /data');
+    assert.deepEqual(ready.tasks[8].ownerOk, []);
+  });
 });

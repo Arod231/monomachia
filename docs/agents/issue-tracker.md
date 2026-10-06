@@ -14,7 +14,7 @@ The owner launches sessions that each take a batch of tasks in order (x, then y,
 
 - **Real needs only.** Name every task whose result this task uses (code, data, a test, a clip, an event it listens for), even when another blocker implies it, and no other. Ask of each blocker: "what does this task use from it?" If there's no answer, drop it.
 - **Order isn't a need.** Coming later in the build order, the same stage or the same family is not a reason to block. The stages are a reading order; the board runs on the Blocked by lines.
-- **Gates are written as gates.** An owner's decision to hold work back (a review, an approval, a "one family at a time" order) is written `N (and the owner's OK)` and gates only the work the decision is about, never unrelated systems that happen to sit near it in the plan.
+- **Gates are written as gates.** An owner's decision to hold work back (a review, an approval, a "one family at a time" order) is written `N (and the owner's OK)` and gates only the work the decision is about, never unrelated systems that happen to sit near it in the plan. Once the owner gives the OK, record it in task N's block, as a Done note saying the owner approved it ("Done Oct 6, approved by the owner …") or as a line `- Owner's OK: <date>`; the Project Manager then stops showing the tasks gated on N as waiting on the owner.
 - **Shared files aren't blockers.** Two tasks that edit the same files without using each other's result go to one lane, in order (say so in the plan's Notes), rather than blocking one on the other.
 - **Dropping a blocker.** A later task that reached a gate only through the dropped blocker names that gate itself.
 
