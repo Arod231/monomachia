@@ -68,6 +68,8 @@ const HEAVY_KICK: float = 1.5
 ## Reduce flashes and shaking: the shake's scale, and the flashes' brightness.
 const REDUCED_SHAKE: float = 0.15
 const REDUCED_FLASH: float = 0.45
+## How deep a stuck weapon's point sits in the ground (milestone-1 task 86).
+const STUCK_EMBED: float = 0.12
 
 ## Draws blade sweeps and hurt capsules over the match (SwingDebugView, task
 ## 7.15). F3 turns it on and off in a debug build, and --swing-debug on the
@@ -498,7 +500,13 @@ func _update_dropped() -> void:
 			_dropped[w.owner] = node
 		node.position = Vector3(w.pos.x, w.pos.y, w.pos.z)
 		var stick: Node3D = node.get_node("Stick")
-		stick.rotation = Vector3(PI / 2.0 + w.tumble, w.yaw, 0.0)
+		stick.rotation = Vector3(w.pitch, w.yaw, 0.0)
+		# centred on the rules' position as it leaves the hands, its point
+		# STUCK_EMBED into the ground there once it sticks (milestone-1 task 86)
+		var flown: float = 1.0 if w.grounded else float(w.flown) / float(w.flight_frames)
+		for model: Node in stick.get_children():
+			var m: Node3D = model
+			m.position.y = lerpf(-float(m.get_meta(&"middle")), STUCK_EMBED - float(m.get_meta(&"tip")), flown)
 		var beam: Node3D = node.get_node("Beam")
 		beam.visible = w.grounded
 		beam.position = Vector3(0.0, 1.75 - w.pos.y, 0.0)
@@ -522,14 +530,17 @@ func _make_dropped(side_id: int, weapon_id: StringName) -> Node3D:
 	stick.name = "Stick"
 	root.add_child(stick)
 	# the weapon's own model (both of a pair), in the toon look like a held
-	# one, centred on the rules' position along its length
+	# one, its middle and point along its length kept for _update_dropped()
 	var look: WeaponLook = WeaponLook.load_id(weapon_id) if WeaponLook.IDS.has(weapon_id) else null
 	if look != null:
 		for k: int in 2 if look.paired else 1:
 			var w: Node3D = look.instantiate()
 			w.name = "Weapon%d" % k
 			stick.add_child(w)
-			w.position = Vector3(0.12 * float(k), -_middle(w), 0.0)
+			var span: Vector2 = _span(w)
+			w.set_meta(&"middle", (span.x + span.y) * 0.5)
+			w.set_meta(&"tip", span.y)
+			w.position = Vector3(0.12 * float(k), -float(w.get_meta(&"middle")), 0.0)
 	# a pillar of light in the owner's colour over a weapon on the ground
 	var beam_mat: StandardMaterial3D = StandardMaterial3D.new()
 	beam_mat.albedo_color = LookPalette.side_color(_side_palette[side_id])
@@ -551,8 +562,9 @@ func _make_dropped(side_id: int, weapon_id: StringName) -> Node3D:
 	return root
 
 
-## Halfway along a weapon model's length (its +Y), from its meshes' bounds.
-static func _middle(w: Node3D) -> float:
+## A weapon model's extent along its length (its +Y, toward the point), from
+## its meshes' bounds: (pommel end, point).
+static func _span(w: Node3D) -> Vector2:
 	var lo: float = INF
 	var hi: float = -INF
 	for node: Node in w.find_children("*", "MeshInstance3D", true, false):
@@ -560,4 +572,4 @@ static func _middle(w: Node3D) -> float:
 		var box: AABB = mi.transform * mi.get_aabb()
 		lo = minf(lo, box.position.y)
 		hi = maxf(hi, box.end.y)
-	return (lo + hi) * 0.5 if lo <= hi else 0.0
+	return Vector2(lo, hi) if lo <= hi else Vector2.ZERO

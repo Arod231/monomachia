@@ -4,10 +4,17 @@ extends GutTest
 ## defender standing at its distance in the spec's table of test distances
 ## (reach_table.gd), played from standing by SwingReach.first_contact().
 ## Empty until the moves have swings; the check and the table are tested on
-## their own.
+## their own. Since milestone-1 task 17 the Greatsword's and the Daggers'
+## moves play their clips at 1.0x with no band test until milestone 2
+## re-keys them (the spec's P10): what they get wrong is printed, not failed
+## (test_duel_reach.gd's MILESTONE_2). Since milestone-1 task 18 a Katana or
+## bare-hands move off the band tables' waiting list is held by the
+## distance-band test (test_move_bands.gd) instead, so this guards today's
+## reach only for the moves still waiting (DuelReach.still_waits()).
 
 const RT := preload("res://tests/sim/reach_table.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
+const DuelReach := preload("res://tests/sim/test_duel_reach.gd")
 
 
 ## What move `id` of `w` gets wrong against its row of the table, or nothing.
@@ -23,7 +30,7 @@ static func _weapon_problems(w: WeaponDef) -> Array[String]:
 	var out: Array[String] = []
 	for id: StringName in w.moves:
 		var m: AttackDef = w.moves[id]
-		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) != &"string_light":
+		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) != &"string_light" and DuelReach.still_waits(w, id):
 			out.append_array(_problems(w, id))
 	return out
 
@@ -31,6 +38,10 @@ static func _weapon_problems(w: WeaponDef) -> Array[String]:
 func test_every_other_move_with_a_swing_touches_from_its_test_distance() -> void:
 	var problems: Array[String] = []
 	for id: StringName in Moves.WEAPONS:
+		if DuelReach.MILESTONE_2.has(id):
+			for p: String in _weapon_problems(Moves.WEAPONS[id]):
+				gut.p("milestone 2: " + p)
+			continue
 		problems.append_array(_weapon_problems(Moves.WEAPONS[id]))
 	assert_eq(problems, [] as Array[String])
 

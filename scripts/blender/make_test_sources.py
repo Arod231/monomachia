@@ -2,8 +2,8 @@
 # (tests/blender-export.test.mjs): builds three test sources in a folder,
 # nothing committed:
 #   block_out.blend   a block-out clip: an armature with the Kevin Iglesias
-#                     rig's bones (from --bones), its hips and right arm keyed
-#                     over 10 frames;
+#                     rig's bones (from --bones) and its prop sockets, its
+#                     hips, right arm and right prop keyed over 10 frames;
 #   box.blend         a box model with a material;
 #   no_rig.blend      a clip keyed on an empty, with no armature.
 #
@@ -48,13 +48,24 @@ for i, name in enumerate(bones):
         b.parent = parent
     if name in ("B-root", "B-hips", "B-spine", "B-chest"):
         parent = b
+# the prop sockets, on the hands, which the import keeps for a clip flagged
+# "props" (task 13)
+for side in ("L", "R"):
+    b = data.edit_bones.new("B-handProp." + side)
+    hand = data.edit_bones["B-hand." + side]
+    b.head = hand.head
+    b.tail = (hand.head[0], hand.head[1] + 0.08, hand.head[2])
+    b.parent = hand
 bpy.ops.object.mode_set(mode="POSE")
 for frame, turn in ((0, 0.0), (5, 0.6), (10, 0.0)):
-    for name in ("B-hips", "B-upperArm.R"):
+    for name in ("B-hips", "B-upperArm.R", "B-handProp.R"):
         pb = rig.pose.bones[name]
         pb.rotation_mode = "XYZ"
         pb.rotation_euler = (turn, 0.0, turn * 0.5)
         pb.keyframe_insert("rotation_euler", frame=frame)
+    prop = rig.pose.bones["B-handProp.R"]
+    prop.location = (0.0, turn * 0.1, 0.0)
+    prop.keyframe_insert("location", frame=frame)
 bpy.ops.object.mode_set(mode="OBJECT")
 rig.animation_data.action.name = "BlockOut"
 save("block_out.blend")

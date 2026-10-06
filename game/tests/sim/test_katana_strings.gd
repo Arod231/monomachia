@@ -5,40 +5,40 @@ extends WeaponStringsTest
 ## The spec's Katana table, all nine rows (see WeaponStringsTest.rows).
 const ROWS: Dictionary[StringName, Dictionary] = {
 	&"k_l1": {
-		"name": "Right Cut", "frames": [11, 3, 16], "damage": 6, "posture": 7,
+		"name": "Right Cut", "damage": 6, "posture": 7,
 		"light": &"k_l2", "heavy": &"k_h2", "sides": [&"right", &"left"],
 	},
 	&"k_l2": {
-		"name": "Return Cut", "frames": [10, 3, 16], "damage": 6, "posture": 7,
+		"name": "Return Cut", "damage": 6, "posture": 7,
 		"light": &"k_l3", "heavy": &"k_h1f", "sides": [&"left", &"right"],
 	},
 	&"k_l3": {
-		"name": "Kesa Cut", "frames": [11, 3, 17], "damage": 7, "posture": 8,
+		"name": "Kesa Cut", "damage": 7, "posture": 8,
 		"light": &"k_l4", "heavy": &"k_h2", "sides": [&"right", &"left"],
 	},
 	&"k_l4": {
-		"name": "Crown Cut", "frames": [14, 4, 22], "damage": 8, "posture": 10,
+		"name": "Crown Cut", "damage": 8, "posture": 10,
 		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
 	},
 	# the data counts the sheathe in the startup: 9 + 14 = 23
 	&"k_iai": {
-		"name": "Iai Slash (vertical)", "frames": [23, 4, 24], "damage": 13, "posture": 16,
+		"name": "Iai Slash (vertical)", "damage": 13, "posture": 16,
 		"light": &"", "heavy": &"k_h1f", "sides": [&"left", &"right"],
 	},
 	&"k_iai_h": {
-		"name": "Iai Slash (horizontal)", "frames": [23, 4, 24], "damage": 13, "posture": 16,
+		"name": "Iai Slash (horizontal)", "damage": 13, "posture": 16,
 		"light": &"k_l2", "heavy": &"k_rdraw", "sides": [&"right", &"left"],
 	},
 	&"k_h1f": {
-		"name": "Rising Heaven", "frames": [16, 4, 24], "damage": 12, "posture": 15,
+		"name": "Rising Heaven", "damage": 12, "posture": 15,
 		"light": &"", "heavy": &"k_h2", "sides": [&"right", &"left"],
 	},
 	&"k_rdraw": {
-		"name": "Returning Draw", "frames": [16, 4, 24], "damage": 12, "posture": 15,
+		"name": "Returning Draw", "damage": 12, "posture": 15,
 		"light": &"", "heavy": &"", "sides": [&"left", &"right"],
 	},
 	&"k_h2": {
-		"name": "Heaven Splitter", "frames": [22, 4, 28], "damage": 15, "posture": 18,
+		"name": "Heaven Splitter", "damage": 15, "posture": 18,
 		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
 	},
 }
@@ -48,18 +48,12 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 ## (authored-animation task 12), to reach the duelling distance.
 const WIND_CUT_LUNGE: float = 0.5
 
-## Kesa Cut dodge-cancels from frame 20 (the plan's decisions: startup +
-## active + 6, as Right Cut and Return Cut).
-const KESA_CUT_CANCEL: int = 20
 
 ## The Iai Slash sheathes for 9 frames (a held heavy then stays sheathed, as
 ## a charge) and draws in 14, so a tapped heavy draws on frame 23 (the
 ## plan's decisions).
 const IAI_SHEATHE: int = 9
 const IAI_DRAW: int = 14
-## A tapped Iai dodge-cancels from frame 39: startup + active + half its
-## recovery, rounded up, as every heavy (23 + 4 + 12).
-const IAI_CANCEL: int = 39
 
 ## The spec's blocking walk, 60% of running speed (m/s), at which a sheathed
 ## fighter walks: running speeds kept from the demo, the Katana's unchanged.
@@ -129,7 +123,7 @@ func test_wind_cut_out_of_a_dodge_still_lunges_toward_the_defender() -> void:
 
 
 func test_kesa_cut_dodge_cancels_from_frame_20() -> void:
-	_assert_dodge_cancels_from([Btn.LIGHT, Btn.LIGHT, Btn.LIGHT], &"k_l3", KESA_CUT_CANCEL)
+	_assert_dodge_cancels_from([Btn.LIGHT, Btn.LIGHT, Btn.LIGHT], &"k_l3", _cancel(&"k_l3"))
 
 
 # ------------------------------------------------------------------ the Iai Slash
@@ -221,7 +215,7 @@ func test_a_sheathed_fighter_cannot_block() -> void:
 
 
 func test_the_iai_dodge_cancels_late_in_its_recovery() -> void:
-	_assert_dodge_cancels_from([Btn.HEAVY], &"k_iai", IAI_CANCEL)
+	_assert_dodge_cancels_from([Btn.HEAVY], &"k_iai", _cancel(&"k_iai"))
 
 
 # ------------------------------------------------------------------ the Iai stance

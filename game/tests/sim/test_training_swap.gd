@@ -1,20 +1,11 @@
 extends GutTest
-## The dummy's weapon for a behaviour (task 23.2), in the rules: which weapon
-## can perform each behaviour, the owner's order for a swap (the first in the
-## select's order that can, back to the picked weapon whenever it can), and a
-## clean swap: free, armed, the new weapon's abilities, no dropped weapon and
-## no impale left behind.
+## The dummy's weapon for a behaviour (task 23.2), in the rules: the owner's
+## order for a swap (the first in the select's order that can, back to the
+## picked weapon whenever it can), and a clean swap: free, armed, the new
+## weapon's abilities, no dropped weapon and no impale left behind. Which
+## weapon can perform each behaviour is test_unblockable_routes.gd's.
 
 const H := preload("res://tests/sim/sim_helpers.gd")
-
-## The unblockable counter kind each behaviour practises (the others need none).
-const NEEDS: Dictionary[StringName, StringName] = {&"thrust": &"thrust", &"sweep": &"sweep", &"slam": &"slam"}
-## The weapons that can perform the unblockable drills (the demo's table).
-const CAN: Dictionary[StringName, Array] = {
-	&"thrust": [&"katana", &"daggers"],
-	&"sweep": [&"katana", &"greatsword", &"daggers"],
-	&"slam": [&"greatsword"],
-}
 
 
 func after_each() -> void:
@@ -26,20 +17,13 @@ func _upkeep(dummy_weapon: WeaponDef, player_weapon: WeaponDef = Moves.KATANA, g
 	return TrainingUpkeep.new(W)
 
 
-func test_which_weapons_can_perform_each_behaviour() -> void:
-	for b: StringName in TrainingBrain.BEHAVIOURS:
-		for w: StringName in Moves.PLAYABLE_WEAPONS:
-			var expected: bool = not CAN.has(b) or CAN[b].has(w)
-			assert_eq(TrainingUpkeep.can_perform(Moves.WEAPONS[w], b), expected, "%s with the %s" % [b, w])
-
-
 func test_every_behaviour_on_every_dummy_weapon_gets_a_weapon_that_can_do_it() -> void:
 	for picked: StringName in Moves.PLAYABLE_WEAPONS:
 		var up: TrainingUpkeep = _upkeep(Moves.WEAPONS[picked])
 		for b: StringName in TrainingBrain.BEHAVIOURS:
 			var w: WeaponDef = up.weapon_for(b)
-			assert_true(TrainingUpkeep.can_perform(w, b), "%s from the %s: the %s" % [b, picked, w.id])
-			if TrainingUpkeep.can_perform(Moves.WEAPONS[picked], b):
+			assert_true(UnblockableRoutes.can_perform(w, b), "%s from the %s: the %s" % [b, picked, w.id])
+			if UnblockableRoutes.can_perform(Moves.WEAPONS[picked], b):
 				assert_eq(w.id, picked, "%s: the picked %s can, so it stays" % [b, picked])
 
 

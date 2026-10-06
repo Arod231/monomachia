@@ -15,7 +15,6 @@ const CENTRE_LIMIT: float = WALL - FIGHTER_RADIUS
 ## The Impaler's dash ends 0.7 m inside the wall.
 const IMPALER_STOP: float = WALL - 0.7
 ## Dropped weapons bounce off a ring 0.8 m inside the wall.
-const BOUNCE_RING: float = WALL - 0.8
 ## The Impaler dashes 24 m/s: 0.4 m a frame.
 const DASH_STEP: float = 0.4
 
@@ -67,22 +66,6 @@ func test_backing_away_stops_a_fighters_centre_at_the_15_m_wall() -> void:
 	assert_gt(furthest, 12.0, "past the demo's 11.08 m")
 	assert_almost_eq(furthest, CENTRE_LIMIT, 1e-9, "no further than the wall less a fighter's radius")
 	assert_almost_eq(_r(a.pos), CENTRE_LIMIT, 1e-9, "held against the wall")
-
-
-func test_a_weapon_dropped_near_the_wall_bounces_off_it_and_rests_inside() -> void:
-	var W: World = H.make_world()
-	var victim: Fighter = W.fighters[1]
-	victim.pos = V3.make(0.0, 0.0, 14.0)
-	W.fighters[0].pos = V3.make()
-	W.spawn_dropped_weapon(victim, W.fighters[0])
-	var furthest: float = 0.0
-	for _i: int in 300:
-		W.step([H.idle(), H.idle()])
-		furthest = maxf(furthest, _r(W.weapons[0].pos))
-	var w: DroppedWeapon = W.weapons[0]
-	assert_true(w.grounded, "it comes to rest")
-	assert_almost_eq(furthest, BOUNCE_RING, 1e-9, "it flies out to its bounce ring and no further")
-	assert_lt(_r(w.pos), BOUNCE_RING - 1.0, "it bounces back off the ring and rests well inside")
 
 
 func test_the_impaler_dash_stops_0_7_m_inside_the_wall() -> void:
@@ -486,24 +469,29 @@ func test_a_charged_heavy_opens_its_cancel_later_by_half_its_extra_recovery() ->
 
 
 func test_mountain_slam_cannot_be_dodge_cancelled() -> void:
-	# a block ability, 32 frames of startup, 5 active and 36 of recovery: a
-	# heavy with those frames would cancel from 55
+	# a block ability: a dodge late in its recovery (frame 62 of its clip's
+	# 74, the table's) does nothing
+	var slam: AttackDef = Moves.GREATSWORD.moves[&"g_slam"]
+	assert_gt(slam.total_frames(), 62, "frame 62 is in its recovery")
 	var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 10.0, {"a": [&"g_slam", &"g_sweep"]})
 	var r: CancelRun = _cancel_run(W, H.btn(Btn.BLOCK, Btn.LIGHT), 1, 62, H.idle())
 	assert_eq(r.attack, &"g_slam")
 	assert_true(r.pressed)
 	assert_eq(r.dodge_frame, -1, "a dodge late in its recovery does nothing")
-	assert_eq(r.last_frame, 32 + 5 + 36 - 1, "the slam runs to its end")
+	assert_eq(r.last_frame, slam.total_frames() - 1, "the slam runs to its end")
 
 
 func test_a_jump_heavy_cannot_dodge_cancel_in_the_air() -> void:
-	# the Daggers' Dive Stab (12/4/18) opens its cancel on frame 25
-	var W: World = H.make_world(Moves.DAGGERS, Moves.KATANA, 10.0)
+	# bare hands' Axe Kick opens its cancel while a disarmed jump is still in
+	# the air (the Daggers' Dive Stab did, until its frames came from its clip
+	# at 1.0x, milestone-1 task 17)
+	var kick: AttackDef = Moves.FISTS.moves[&"f_jh"]
+	var W: World = H.make_world(Moves.FISTS, Moves.KATANA, 10.0)
 	W.step([H.btn(Btn.JUMP), H.idle()])
-	var r: CancelRun = _cancel_run(W, H.btn(Btn.HEAVY), 1, 25, H.idle())
-	assert_eq(r.attack, &"d_jh")
+	var r: CancelRun = _cancel_run(W, H.btn(Btn.HEAVY), 1, kick.dodge_cancel_from, H.idle())
+	assert_eq(r.attack, &"f_jh")
 	assert_true(r.pressed_in_the_air, "thrown straight after the jump, it is still in the air there")
-	assert_gt(r.dodge_frame, 25, "the dodge comes after the cancel frame")
+	assert_gt(r.dodge_frame, kick.dodge_cancel_from, "the dodge comes after the cancel frame")
 	assert_false(r.dodged_in_the_air, "once the fighter has landed")
 
 
@@ -513,10 +501,11 @@ func test_a_jump_heavy_cannot_dodge_cancel_in_the_air() -> void:
 ## recovery frames, eased out.
 const SLIDE: float = 0.35
 const SLIDE_FRAMES: int = 10
-## Heavy Swing, from its move data: 14 frames of startup and 4 active, so its
-## recovery starts on frame 19, and it dodge-cancels from frame 26.
-const SWING_ACTIVE_END: int = 14 + 4
-const SWING_CANCEL: int = 26
+## Heavy Swing's last active frame and the frame it dodge-cancels from, its
+## frame data the table's (milestone-1 task 17; 18 and 26 while the move data
+## set them).
+static var SWING_ACTIVE_END: int = (Moves.GREATSWORD.moves[&"g_l1"] as AttackDef).startup + (Moves.GREATSWORD.moves[&"g_l1"] as AttackDef).active
+static var SWING_CANCEL: int = (Moves.GREATSWORD.moves[&"g_l1"] as AttackDef).dodge_cancel_from
 
 
 ## How far fighter 0 moves on each of attack id's recovery frames (frames

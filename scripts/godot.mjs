@@ -14,6 +14,8 @@
 //   clip <scene> [--seconds N] [--out shots/<name>.mp4] [scene args...]   record a scene the
 //                          shots tool runs as a looping MP4 (6 s, at most 20) and a still in
 //                          shots/, with Movie Maker and ffmpeg (rules in clip.mjs)
+//   bench [scene args...]  the frame-time harness: plays the worst-case replay in a window
+//                          and writes every frame's time to build/bench/ (tools/bench/frame_time_bench.gd)
 //   run                    play the game
 //   studio                 open the Animation Studio (gallery and editor; dev tool)
 //   dev                    open the editor
@@ -22,15 +24,19 @@
 //   release <tag> [--no-upload]   on the PC with the clips: export, --smoke the exe, zip
 //                          Monomachia-<tag>-windows.zip and attach it to the tag's GitHub
 //                          release, a draft made if needed (scripts/release.mjs)
-//   clips                  convert the clip manifest's Iglesias clips into the
-//                          gitignored clip libraries (needs the packs; see findAssetsSrc)
+//   clips [--manifest=<file>] [--staging=<res://folder>] [--library=<folder>]
+//                          convert the clip manifest's clips (the packs' and the asset
+//                          repository's exported ones) into the gitignored clip libraries
+//                          (see findAssetsSrc; the options, for tests, read another manifest
+//                          and write elsewhere, tools/import_clips.gd)
 //   bake [--weapon=<id>] [--check]   bake the swings of the moves in the move-clip
 //                          table from the clip libraries (tools/bake_swings.gd)
 //
 // package.json's scripts call most of these by their own names (plan task
 // 26.3): test:godot, typecheck, soak (soak:tune runs 300), build, release,
-// play (= run), dev, studio, shots, clip and counterlab (= script
-// res://tools/counterlab.gd); `npm run godot -- <command>` reaches the rest.
+// play (= run), dev, studio, shots, clip, bench, counterlab (= script
+// res://tools/counterlab.gd) and bench:record (= script
+// res://tools/bench/record_worst_case.gd); `npm run godot -- <command>` reaches the rest.
 //
 // Godot is found through the GODOT environment variable, then `godot` or
 // `godot4` on PATH, then a local `.godot-path` file (see findGodot).
@@ -194,8 +200,8 @@ async function exportWindows(godot) {
 async function main() {
   const [cmd = 'help', ...rest] = process.argv.slice(2);
   if (cmd === 'help' || cmd === '--help') {
-    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|clip|run|studio|dev|build|release|clips|bake');
-    console.log('npm scripts: test:godot, typecheck, soak, soak:tune, build, release, play (run), dev, studio, shots, clip, counterlab;');
+    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|clip|bench|run|studio|dev|build|release|clips|bake');
+    console.log('npm scripts: test:godot, typecheck, soak, soak:tune, build, release, play (run), dev, studio, shots, clip, bench, bench:record, counterlab;');
     console.log('the rest through npm run godot -- <command> (see the top of scripts/godot.mjs).');
     return;
   }
@@ -312,15 +318,35 @@ async function main() {
       console.log(`clip: wrote ${rel(mp4)} (${args.seconds} s) and its still ${rel(still)}. Post them with: npm run post -- ${rel(mp4)} --caption "…"`);
       return;
     }
+    case 'bench': {
+      // The frame-time harness (milestone-1 task 28) in a real window: the
+      // match renders into its own 4K target, so the window's size doesn't
+      // matter. --fixed-fps 60 moves the view 1/60 s a frame, one rules step
+      // a frame, without capping the frame rate.
+      const outDir = join(ROOT, 'build', 'bench');
+      mkdirSync(outDir, { recursive: true });
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+      const args = rest.some((a) => a.startsWith('--out=')) ? rest : [`--out=${join(outDir, `frame-times-${stamp}.csv`)}`, ...rest];
+      await importProject(godot);
+      const r = await runGodot(
+        godot,
+        ['--path', PROJECT, '--resolution', '1600x900', '--fixed-fps', '60', 'res://tools/bench/frame_time_bench.tscn', '--', ...args],
+        { timeoutMs: 1800000, env: DEFAULT_SETTINGS_ENV },
+      );
+      if (r.code === 0 && hasShaderErrors(r.output)) die('godot.mjs: a shader failed to compile (see SHADER ERROR above).');
+      if (r.code === 0 && hasScriptErrors(r.output)) die('godot.mjs: the bench reported script errors.');
+      process.exit(r.code);
+      return;
+    }
     case 'clips': {
       // Stage the manifest's clips from the packs, import them, then build the
       // libraries (tools/import_clips.gd).
       await importProject(godot);
-      const staged = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--stage']);
+      const staged = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--stage', ...rest]);
       if (staged.code === 2) die('godot.mjs: no clips converted: the Iglesias packs were not found (see above).');
       if (staged.code !== 0 || hasScriptErrors(staged.output)) die('godot.mjs: staging the clips failed.');
       await importProject(godot);
-      const built = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--build']);
+      const built = await runGodot(godot, ['--headless', '--path', PROJECT, '--script', 'res://tools/import_clips.gd', '--', '--build', ...rest]);
       if (built.code !== 0 || hasScriptErrors(built.output)) die('godot.mjs: building the clip libraries failed.');
       return;
     }

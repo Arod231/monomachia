@@ -5,4 +5,4 @@
 [node name="ArenaBenchShot" type="Node3D"]
 script = ExtResource("1")
 view = 0
-bench = PackedStringArray("low", "medium", "high")
+bench = PackedStringArray("low", "medium", "high", "ultra")

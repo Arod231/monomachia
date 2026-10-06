@@ -7,10 +7,10 @@ extends Control
 ## across the whole width. Open it with `node scripts/godot.mjs studio`.
 ##
 ## The gallery fills the area (the Hunter/Rogue switch above re-sets up its
-## tiles, and a click on a tile opens the editor); the editor is still an
-## empty placeholder that milestone-1 tasks 25-27 fill with the timeline,
-## markers and chains. Their nodes keep these unique names so those tasks (and
-## the smoke test) can find them: %Gallery, %Editor.
+## tiles, and a click on a tile opens the editor); the editor (StudioEditor,
+## milestone-1 task 25) shows the entry on a timeline with its frames and
+## bands, and tasks 26-27 add marker editing, chains and save. The areas keep
+## these unique names: %Gallery, %Editor (the editor's panel).
 
 ## The gallery-wide body changed: `fighter_id` is &"hunter" (the HumanM clips) or
 ## &"rogue" (the HumanF clips).
@@ -22,6 +22,11 @@ var fighter_id: StringName = &"hunter"
 var catalogue: StudioCatalogue = null
 ## The catalogue entry open in the editor, or null while the gallery shows.
 var current_entry: StudioCatalogue.Entry = null
+## The editor, in the editor's panel.
+var editor: StudioEditor = null
+## The pending edits, shared by the editor and the gallery's "unsaved" badges.
+var session: EditSession = EditSession.new()
+var _quit_question: ConfirmationDialog = null
 
 @onready var _gallery: Gallery = %Gallery
 @onready var _editor: Control = %Editor
@@ -40,12 +45,28 @@ func _ready() -> void:
 	_gallery.setup(catalogue, fighter_id)
 	_gallery.opened.connect(open_editor)
 	body_changed.connect(_gallery.set_fighter)
+	editor = StudioEditor.new()
+	editor.name = "StudioEditor"
+	_editor.add_child(editor)
+	editor.back_requested.connect(show_gallery)
+	editor.session = session
+	session.changed.connect(_on_session_changed)
+	body_changed.connect(_on_body_changed)
+	_quit_question = ConfirmationDialog.new()
+	_quit_question.ok_button_text = "Quit without saving"
+	_quit_question.confirmed.connect(func() -> void: get_tree().quit())
+	add_child(_quit_question)
+	if get_tree().current_scene == self:
+		# closing the window with unsaved edits asks first
+		get_tree().auto_accept_quit = false
 	show_gallery()
 
 
 ## Show the gallery in the central area and close the editor.
 func show_gallery() -> void:
 	current_entry = null
+	if editor != null:
+		editor.close()
 	_gallery.visible = true
 	_editor.visible = false
 
@@ -55,6 +76,8 @@ func open_editor(entry: StudioCatalogue.Entry) -> void:
 	current_entry = entry
 	_gallery.visible = false
 	_editor.visible = true
+	if entry != null:
+		editor.open(entry, fighter_id)
 
 
 ## Choose the body (&"hunter" or &"rogue"); says so only when it changes.
@@ -65,6 +88,40 @@ func set_fighter(id: StringName) -> void:
 	_hunter_button.set_pressed_no_signal(id == &"hunter")
 	_rogue_button.set_pressed_no_signal(id == &"rogue")
 	body_changed.emit(id)
+
+
+## Marks each entry with pending edits "unsaved" (a move's entry in the
+## move-clip table, a clip's in the manifest) and shows the tiles' badges
+## again.
+func _on_session_changed() -> void:
+	for e: StudioCatalogue.Entry in catalogue.entries:
+		var dirty: bool = false
+		if e.kind == StudioCatalogue.KIND_MOVE:
+			dirty = session.touches(editor.moves_file, [String(e.group), "moves", String(e.id)] as Array[String])
+		for c: String in e.clips:
+			dirty = dirty or session.touches(editor.manifest_file, ["clips", c] as Array[String])
+		e.badges[&"unsaved"] = dirty
+	for g: StringName in _gallery.groups():
+		for t: AnimTile in _gallery.tiles_in(g):
+			t.refresh_badges()
+	_gallery.refresh_filter()
+
+
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_WM_CLOSE_REQUEST or get_tree().auto_accept_quit:
+		return
+	var dirty: PackedStringArray = session.dirty_files()
+	if dirty.is_empty():
+		get_tree().quit()
+		return
+	_quit_question.dialog_text = "Unsaved edits in %s. Quit without saving them?" % ", ".join(Array(dirty).map(func(f: String) -> String: return f.get_file()))
+	_quit_question.popup_centered()
+
+
+## The editor shows its entry on the new body.
+func _on_body_changed(id: StringName) -> void:
+	if current_entry != null:
+		editor.open(current_entry, id)
 
 
 func _on_body_button(pressed: bool, id: StringName) -> void:

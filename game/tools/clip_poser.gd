@@ -72,6 +72,11 @@ func _init(p_model: FighterModel, p_chain: Array[String], reverse: bool = false)
 		_foot_axes[side] = [inv * toward, inv * sole.normalized()]
 
 
+## The chain's parts as laid out (ClipChain.lay_out), each with its start.
+func parts() -> Array[ClipChain.Part]:
+	return _parts
+
+
 ## The parts' poses at `time` (s from the chain's start), by part (every
 ## hand, foot and the body; Swing.PARTS).
 func pose(time: float) -> Dictionary[StringName, Swing.Sample]:

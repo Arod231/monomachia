@@ -23,9 +23,8 @@ extends RefCounted
 ## that performs it, the one picked in the select (picked) whenever it can,
 ## else the first of `weapons` (the weapons on offer, in the select's order)
 ## that can;
-## the unblockable drills need an ability with their counter kind
-## (TrainingBrain.weapon_ability_for), so new unblockables count without a
-## table. swap_dummy_weapon() changes it cleanly, as Game.swapDummyWeapon()
+## the unblockable drills need their route (UnblockableRoutes.can_perform,
+## milestone-1 task 83). swap_dummy_weapon() changes it cleanly, as Game.swapDummyWeapon()
 ## did: anything that belongs to the old weapon stops first.
 
 ## Frames unhurt before the refill starts.
@@ -50,6 +49,8 @@ var _last_hurt: Array[int] = [0, 0]
 var _prev_hp: Array[float] = [SimConst.HP_MAX, SimConst.HP_MAX]
 ## The world frame the dummy was first seen disarmed, or -1 while armed.
 var _disarmed_at: int = -1
+## Per side: K.O.'d by a finisher still playing, to come back re-armed.
+var _finished: Array[bool] = [false, false]
 
 
 ## Not in the snapshot: the world, a link the restore keeps.
@@ -82,7 +83,12 @@ func step() -> void:
 			_last_hurt[i] = world.frame
 		_prev_hp[i] = f.hp
 		if f.state == &"ko":
-			_stand_up(f)
+			if world.finisher_by == 1 - i:
+				# a finisher plays in full before its victim comes back
+				# (milestone-1 task 107)
+				_finished[i] = true
+			else:
+				_stand_up(f)
 		var unhurt: int = world.frame - _last_hurt[i]
 		if refill and unhurt > REFILL_AFTER and (f.hp < SimConst.HP_MAX or (i == dummy and f.posture > 0.0)):
 			f.hp = minf(SimConst.HP_MAX, f.hp + REFILL_RATE)
@@ -94,22 +100,14 @@ func step() -> void:
 			_upkeep_dummy_weapon(f, unhurt)
 
 
-## Whether weapon w can perform a dummy behaviour (TrainingBrain.BEHAVIOURS):
-## the unblockable drills need an ability with their counter kind.
-static func can_perform(w: WeaponDef, behaviour: StringName) -> bool:
-	if behaviour == &"thrust" or behaviour == &"sweep" or behaviour == &"slam":
-		return TrainingBrain.weapon_ability_for(w, behaviour) != &""
-	return true
-
-
 ## The weapon the dummy performs a behaviour with: the picked one when it
 ## can, else the first in the select's order that can.
 func weapon_for(behaviour: StringName) -> WeaponDef:
-	if can_perform(picked, behaviour):
+	if UnblockableRoutes.can_perform(picked, behaviour):
 		return picked
 	for id: StringName in weapons:
 		var w: WeaponDef = Moves.WEAPONS[id]
-		if can_perform(w, behaviour):
+		if UnblockableRoutes.can_perform(w, behaviour):
 			return w
 	return picked
 
@@ -143,6 +141,13 @@ func _upkeep_dummy_weapon(f: Fighter, unhurt: int) -> void:
 
 
 func _stand_up(f: Fighter) -> void:
+	if _finished[f.id]:
+		# after a finisher: re-armed, the weapon gone from the floor
+		_finished[f.id] = false
+		world.remove_dropped_weapon(f.id)
+		f.armed = true
+		if f.id == dummy:
+			_disarmed_at = -1
 	f.hp = SimConst.HP_MAX
 	f.posture = 0.0
 	f.ult_used = false

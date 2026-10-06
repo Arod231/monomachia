@@ -1,0 +1,13 @@
+{
+  "about": "The first launch's preset by graphics card (milestone-1 task 29): the first rule whose pattern (a case-insensitive regular expression) is found in the card's name gives the preset; a card no rule names gets GraphicsPreset.UNKNOWN_CARD_ID (medium). Integrated graphics come first, so a 'Radeon Graphics' never reads as a discrete Radeon.",
+  "rules": [
+    {"pattern": "radeon\\(tm\\)? (vega \\d+ )?graphics|radeon vega|vega \\d+ graphics", "preset": "low", "note": "AMD integrated (Ryzen APUs)"},
+    {"pattern": "intel.*(uhd|iris|hd graphics)", "preset": "low", "note": "Intel integrated"},
+    {"pattern": "rtx\\s*30(80|90)", "preset": "ultra", "note": "RTX 3080 and 3090 (Ti too)"},
+    {"pattern": "rtx\\s*(40|50)(70|80|90)", "preset": "ultra", "note": "the RTX 40 and 50 series' xx70 and up"},
+    {"pattern": "rx\\s*(6[89]|7[89]|9[0-9])\\d\\d", "preset": "ultra", "note": "RX 6800 and up, 7800 and up, the RX 9000s"},
+    {"pattern": "rtx", "preset": "high", "note": "every other RTX"},
+    {"pattern": "rx\\s*[67]\\d\\d\\d", "preset": "high", "note": "the other RX 6000s and 7000s"},
+    {"pattern": "gtx|geforce|radeon", "preset": "medium", "note": "GTX 10 and 16 and older discrete cards"}
+  ]
+}
