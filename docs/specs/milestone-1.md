@@ -164,7 +164,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 106. As a player, I want the two blades to meet at the contact point on a parry, where sparks fly and the clang starts, so that the parry lands where I see it.
 107. As a player, I want a block to show my guard taking the impact, light or heavy, so that blocking feels solid.
 108. As a player, I want a plain parry, a Flash and a redirect to read apart through their own deflect pairs, sounds and sparks, so that I know which one happened.
-109. As a player, I want every parry, Flash and redirect to give a short camera push-in, frozen in hit-stop and turned off by Reduce flashes, so that the moment lands. **(P8, confirmed Oct 4)**
+109. [x] As a player, I want every parry, Flash and redirect to give a short camera push-in, frozen in hit-stop and turned off by Reduce flashes, so that the moment lands. **(P8, confirmed Oct 4)** (Ticked with task 39.)
 110. As a player, I want the stomp against Piercing Thrust and the leap over Swallow Sweep played as paired clips, the two fighters lined up over a few frames so their bodies meet, so that counters look real.
 111. As a player facing an unblockable, I want a red 危 to flash with a sound and the blade to glint red as the wind-up starts, with the attack type reading from the animation, so that I know which counter to use.
 112. As a player in a match, I want an unblockable's reach shown only through the red 危, its sound and the blade's glint, with labels and floor markers only in Training, so that the screen stays clean. **(P6, confirmed Oct 4)**

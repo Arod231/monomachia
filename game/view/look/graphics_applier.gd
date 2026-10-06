@@ -13,6 +13,7 @@ extends RefCounted
 ## - Light3D nodes in group look_minor_light are shown or hidden;
 ## - GPUParticles3D nodes in group look_particles get the particle ratio;
 ## - CombatEffects nodes take the preset (their particle counts);
+## - CameraRig nodes take whether a push-in brings its depth of field;
 ## - Node3D nodes in group look_scenery_detail with meta look_detail (0..2)
 ##   are shown when the preset's scenery_detail reaches that level;
 ## - Light3D nodes in group look_petal_light (the petals' lights) and Decal
@@ -107,6 +108,8 @@ static func _walk(preset: GraphicsPreset, node: Node, materials: Dictionary[Mate
 		(node as GPUParticles3D).amount_ratio = preset.particle_ratio
 	if node is CombatEffects:
 		(node as CombatEffects).set_preset(preset)
+	if node is CameraRig:
+		(node as CameraRig).dof_allowed = preset.push_in_dof
 	if node is Node3D and node.is_in_group(GROUP_SCENERY):
 		(node as Node3D).visible = int(node.get_meta(META_DETAIL, 0)) <= preset.scenery_detail
 	if node is InkWashPass:

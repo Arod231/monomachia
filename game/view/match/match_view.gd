@@ -13,7 +13,10 @@ extends Node3D
 ## StickPose inside FighterView; the combat effects (task 18) are a
 ## CombatEffects child, spawned from _on_sim_event() by the event table
 ## (EffectTable) beside the camera's shake and field-of-view kicks, drawn on
-## the effect clock every frame and cleared at round start.
+## the effect clock every frame and cleared at round start. A parry pushes
+## the camera in instead of kicking it (milestone-1 task 39: parry_push_in,
+## flash_push_in for a Flash or a redirect), held through the hit-stop, with
+## the graphics preset's depth of field.
 ##
 ## A walking or running fighter puts its feet down where its clips land them
 ## (Locomotion, authored-animation task 29): the view reports each as a
@@ -25,7 +28,8 @@ extends Node3D
 ##
 ## Reduce flashes and shaking (task 18.11) follows the player's settings at
 ## match start and whenever they change (apply_reduce_flashes()): the
-## camera's shake scaled to REDUCED_SHAKE, no field-of-view kicks, and the
+## camera's shake scaled to REDUCED_SHAKE, no field-of-view kicks or
+## push-ins, and the
 ## effects' flashes and the fighters' body flashes at REDUCED_FLASH of their
 ## brightness, at full size (the owner's choice, Oct 4, 2026).
 ##
@@ -58,6 +62,10 @@ const FOOTFALL_LAG: int = 4
 @export var counter_shake: float = 0.5
 @export var disarm_shake: float = 0.8
 @export var ko_shake: float = 0.7
+## The parry's push-in (milestone-1 task 39): the share of the way to the
+## camera's look point, on a parry and on a Flash or a redirect.
+@export var parry_push_in: float = 0.15
+@export var flash_push_in: float = 0.25
 ## The camera's kick on contact (plan task 14.12): degrees of field of view
 ## when a strike lands or is blocked, by the class of the attacker's weapon
 ## (its weight), half again for a heavy.
@@ -176,6 +184,7 @@ func apply_reduce_flashes() -> void:
 	for cam: CameraRig in cameras:
 		cam.shake_scale = REDUCED_SHAKE if on else 1.0
 		cam.fov_kick_scale = 0.0 if on else 1.0
+		cam.push_in_scale = 0.0 if on else 1.0
 	effects.flash_scale = REDUCED_FLASH if on else 1.0
 	body_flash_scale = REDUCED_FLASH if on else 1.0
 
@@ -214,6 +223,8 @@ func render(delta: float) -> void:
 	_feed_auras()
 	effects.update(effects.clock())
 	blood.update(effects.clock())
+	for cam: CameraRig in cameras:
+		cam.frozen = host.world.hitstop > 0
 	if split != null:
 		for i: int in 2:
 			cameras[i].update_rig(delta, host.display_position(i), host.display_position(1 - i))
@@ -313,6 +324,8 @@ func _on_match_started(cfg: MatchConfig) -> void:
 		cam.reset_round()
 		cam.shake = 0.0
 		cam.fov_kick = 0.0
+		cam.end_push_in()
+		cam.dof_allowed = GameServices.graphics_preset().push_in_dof
 		cam.current = true
 	snap_camera()
 
@@ -439,6 +452,12 @@ func _shake(amount: float) -> void:
 		cam.add_shake(amount)
 
 
+## Pushes every camera in toward its look point (both halves in Versus).
+func _push_in(amount: float) -> void:
+	for cam: CameraRig in cameras:
+		cam.push_in(amount)
+
+
 ## Kicks every camera's field of view (both halves in Versus).
 func _kick(amount: float) -> void:
 	for cam: CameraRig in cameras:
@@ -479,7 +498,7 @@ func _on_sim_event(e: Dictionary) -> void:
 			_kick_on_contact(e)
 		&"parry":
 			_shake(parry_shake)
-			_kick(3.0 if e["kind"] == &"parry" else 5.0)
+			_push_in(parry_push_in if e["kind"] == &"parry" else flash_push_in)
 		&"counter":
 			_shake(counter_shake)
 			_kick(6.0)

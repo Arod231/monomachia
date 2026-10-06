@@ -108,15 +108,69 @@ func test_events_shake_and_kick_the_camera() -> void:
 	host.sim_event.emit({"t": &"hit", "attacker": 0, "target": 1, "heavy": true, "sound": &"blade", "pos": at})
 	assert_almost_eq(view.camera.shake, view.heavy_hit_shake, 1e-6, "heavy hits do")
 	view.camera.shake = 0.0
+	view.camera.fov_kick = 0.0
 	host.sim_event.emit({"t": &"parry", "parrier": 1, "attacker": 0, "kind": &"parry", "pos": at})
 	assert_almost_eq(view.camera.shake, view.parry_shake, 1e-6)
-	assert_eq(view.camera.fov_kick, 3.0)
+	assert_eq(view.camera.fov_kick, 0.0, "a parry pushes in instead of kicking")
+	assert_almost_eq(view.camera.push_peak, view.parry_push_in, 1e-6)
 	host.sim_event.emit({"t": &"disarm", "victim": 0, "by": 1, "reason": &"parried", "pos": at})
 	assert_eq(view.camera.fov_kick, 7.0)
 	host.sim_event.emit({"t": &"ko", "loser": 1, "winner": 0})
 	assert_gt(view.camera.ko_orbit, 0.0, "the KO swings the camera out")
 	host.sim_event.emit({"t": &"roundStart", "round": 2})
 	assert_eq(view.camera.ko_orbit, 0.0)
+
+
+## A parry pushes the camera in toward the look point, a Flash or a
+## redirect further (milestone-1 task 39); the push-in holds through the
+## hit-stop and the depth of field is the graphics preset's.
+func test_a_parry_pushes_the_camera_in_and_holds_through_the_hit_stop() -> void:
+	host.start(_cpu())
+	var at: Dictionary = {"x": 0.0, "y": 1.25, "z": 0.0}
+	assert_eq(view.parry_push_in, 0.15)
+	assert_eq(view.flash_push_in, 0.25)
+	for kind: StringName in [&"flash", &"redirect"]:
+		view.camera.end_push_in()
+		host.sim_event.emit({"t": &"parry", "parrier": 1, "attacker": 0, "kind": kind, "pos": at})
+		assert_almost_eq(view.camera.push_peak, view.flash_push_in, 1e-6, kind)
+	host.world.hitstop = 10
+	view.render(1.0 / 60.0)
+	assert_true(view.camera.frozen, "held in the hit-stop")
+	host.world.hitstop = 0
+	view.render(1.0 / 60.0)
+	assert_false(view.camera.frozen)
+	assert_eq(view.camera.dof_allowed, GameServices.graphics_preset().push_in_dof)
+	host.start(_cpu())
+	assert_eq(view.camera.push_amount(), 0.0, "a new match starts without one")
+
+
+## Shake and kicks at the slower pace (milestone-1 task 39): each still shows
+## when its outcome's retuned hit-stop ends, so the blow reads as the world
+## moves again, and settles soon after.
+func test_shake_and_kicks_outlast_the_retuned_hit_stops() -> void:
+	host.start(_cpu())
+	var pt: ProtectedTimings = ProtectedTimings.for_weapon(&"katana")
+	var cases: Array[Dictionary] = [
+		{"name": "a heavy hit", "shake": view.heavy_hit_shake, "kick": view.contact_kick[&"small"] * MatchView.HEAVY_KICK, "frames": pt.hitstop(&"heavy")},
+		{"name": "a parry", "shake": view.parry_shake, "kick": 0.0, "frames": pt.parry_hitstop},
+		{"name": "a Flash", "shake": view.parry_shake, "kick": 0.0, "frames": pt.flash_hitstop},
+		{"name": "a disarm", "shake": view.disarm_shake, "kick": 7.0, "frames": pt.disarm_hitstop},
+	]
+	var cam: CameraRig = view.camera
+	for c: Dictionary in cases:
+		cam.shake = 0.0
+		cam.fov_kick = 0.0
+		cam.add_shake(float(c["shake"]))
+		cam.kick_fov(float(c["kick"]))
+		for i: int in int(c["frames"]):
+			view.render(1.0 / 60.0)
+		assert_gt(cam.shake, 0.05, "%s: the shake still shows as the hit-stop ends" % c["name"])
+		if float(c["kick"]) > 0.0:
+			assert_gt(cam.fov_kick, 0.5, "%s: and the kick" % c["name"])
+		for i: int in 60:
+			view.render(1.0 / 60.0)
+		assert_lt(cam.shake, 0.01, "%s: settled within a second" % c["name"])
+		assert_lt(cam.fov_kick, float(c["kick"]) * 0.2 + 1e-6, "%s: the kick mostly back" % c["name"])
 
 
 ## A hit or a block kicks the camera by the weight of the attacker's weapon,
