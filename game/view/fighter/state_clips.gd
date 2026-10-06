@@ -9,6 +9,7 @@ extends RefCounted
 ##
 ##   {"idle": {"clips": {"katana": "CombatIdle1H01"}, "fallbacks": {"katana": "Sword_Idle"}},
 ##    "fades": {"attack": 3, ...},
+##    "blends": {"attack": 3, ...},
 ##    "hit": {"clips": [light, heavy], "fallbacks": [light, heavy], "heavy_hitstun": 20},
 ##    "guard": {"clips": {"katana": [loop, hit]}, "fallback": "Sword_Block"},
 ##    "stun": {"clip": "Stun01", "fallback": "Hit_Knockback"},
@@ -31,7 +32,7 @@ extends RefCounted
 ## stands in for a weapon without an entry.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
-const GROUPS: Array[String] = ["idle", "fades", "hit", "guard", "stun", "rebound", "carry", "ults", "keyed", "knockdown", "ko"]
+const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "rebound", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
 const OPTIONAL_GROUPS: Array[String] = ["own_speed"]
 ## What a clip at its own speed does past its end.
@@ -48,6 +49,12 @@ const TEMPEST_FIELDS: Array[String] = ["spin", "slashes", "flash", "final", "fin
 var own_speed: Dictionary[StringName, StringName] = {}
 ## The crossfades' lengths, in rules frames, by what changes (FADE_NAMES).
 var fades: Dictionary[StringName, int] = {}
+## The inertial blends' lengths, in rules frames, by what hands off
+## (FADE_NAMES; milestone-1 task 23): a hand-off shows the new motion whole
+## at once and fades what is left of the old pose out over this many frames
+## (InertialBlend). Today's crossfades' lengths, the owner's choice (Oct 5),
+## but hitstun's, a cut before, 4.
+var blends: Dictionary[StringName, int] = {}
 ## The free state's idle per weapon (a WeaponDef id; bare hands are "fists"),
 ## and without the packs.
 var idle: Dictionary[StringName, StringName] = {}
@@ -144,6 +151,9 @@ static func read(path: String = PATH) -> StateClips:
 	g = t._object(root.get("fades"), "fades", FADE_NAMES)
 	for key: String in FADE_NAMES:
 		t.fades[StringName(key)] = t._whole(g, "fades", key)
+	g = t._object(root.get("blends"), "blends", FADE_NAMES)
+	for key: String in FADE_NAMES:
+		t.blends[StringName(key)] = t._whole(g, "blends", key)
 
 	g = t._object(root.get("hit"), "hit", ["clips", "fallbacks", "heavy_hitstun"])
 	t.hit_clips = t._ids(g, "hit", "clips", 2)

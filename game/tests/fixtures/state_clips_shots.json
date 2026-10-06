@@ -518,9 +518,9 @@
 		[31,"carry",["HumanM/ObjectGripShoulder02_R",0.0],"=",null,false,false,8,11,"","","free","",null,1.0,1.0],
 		[32,"carry",["HumanM/ObjectGripShoulder02_R",0.0],"=",null,false,false,8,12,"","","free","",null,1.0,1.0],
 		[33,"state",["HumanM/Parry2H01_Loop",0.0],"=",["HumanM/ObjectGripShoulder02_R",0.0],true,true,6,0,"","","free","guard",null,1.0,1.0],
-		[34,"legs",null,"=",["HumanM/ObjectGripShoulder02_R",0.0],true,false,6,0,"","","free","",null,1.0,1.0],
-		[35,"legs",null,"=",["HumanM/ObjectGripShoulder02_R",0.0],true,false,6,1,"","","free","",null,1.0,1.0],
-		[36,"legs",null,"=",["HumanM/ObjectGripShoulder02_R",0.0],true,false,6,2,"","","free","",null,1.0,1.0],
+		[34,"legs",null,"=",["HumanM/Parry2H01_Loop",0.0],true,false,6,0,"","","free","",null,1.0,1.0],
+		[35,"legs",null,"=",["HumanM/Parry2H01_Loop",0.0],true,false,6,1,"","","free","",null,1.0,1.0],
+		[36,"legs",null,"=",["HumanM/Parry2H01_Loop",0.0],true,false,6,2,"","","free","",null,1.0,1.0],
 		[43,"legs",null,"=",null,false,false,6,9,"","","free","",null,1.0,1.0]
 	],
 	"carry stand libs=false": [

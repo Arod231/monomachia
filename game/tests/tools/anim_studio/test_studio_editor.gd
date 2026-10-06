@@ -79,6 +79,30 @@ func test_foot_locking_switches_on_the_rig() -> void:
 	assert_not_null(editor.model.rig.foot_lock, "on again")
 
 
+func test_inertial_blending_switches_on_the_rig() -> void:
+	# milestone-1 task 23's layer toggle: on by default, as in a match; a
+	# loop back to the start blends as a follow-up would, any other jump cuts
+	var studio: AnimStudio = await _studio()
+	var editor: StudioEditor = _open(studio, &"k_l1")
+	var inertial: InertialBlend = editor.model.rig.inertial
+	assert_true(inertial.active, "on by default")
+	(editor.get_node("%InertialBlending") as CheckBox).button_pressed = false
+	assert_false(editor.inertial_on)
+	assert_false(inertial.active, "off")
+	editor.set_inertial_blending(true)
+	assert_true(inertial.active, "on again")
+	editor.playback.seek(12.0)
+	editor._pose()
+	assert_almost_eq(inertial.time, 24.0, 1e-9, "the rules frames at the playhead")
+	editor.playback.seek(editor.playback.length)
+	editor._pose()
+	editor._wrapped()
+	assert_true(inertial.blending(), "the loop back blends")
+	editor.playback.seek(5.0)
+	editor._pose()
+	assert_false(inertial.blending(), "a jump cuts")
+
+
 func test_a_state_has_no_bands_and_back_returns_to_the_gallery() -> void:
 	var studio: AnimStudio = await _studio()
 	studio.open_editor(studio.catalogue.find(StudioCatalogue.KIND_STATE, &"knockdown"))

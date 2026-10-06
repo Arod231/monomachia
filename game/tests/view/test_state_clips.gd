@@ -743,7 +743,8 @@ func test_an_unknown_key_is_refused() -> void:
 		"a group": [{"from": "\"fades\": {", "to": "\"extra\": {}, \"fades\": {", "says": "unknown field extra"}],
 		"a field": [{"from": "\"heavy_hitstun\": 20", "to": "\"heavy_hitstun\": 20, \"heavy\": 1", "says": "hit: unknown field heavy"}],
 		"an ult's field": [{"from": "\"aim\": 30", "to": "\"aim\": 30, \"spare\": 1", "says": "ults.impaler: unknown field spare"}],
-		"a fade": [{"from": "\"guard\": 3, \"rebound\"", "to": "\"guard\": 3, \"blink\": 1, \"rebound\"", "says": "fades: unknown field blink"}],
+		"a fade": [{"from": "\"hitstun\": 0, \"locomotion\"", "to": "\"hitstun\": 0, \"blink\": 1, \"locomotion\"", "says": "fades: unknown field blink"}],
+		"a blend": [{"from": "\"hitstun\": 4, \"locomotion\"", "to": "\"hitstun\": 4, \"blink\": 1, \"locomotion\"", "says": "blends: unknown field blink"}],
 	}
 	for name: String in cases:
 		var c: Dictionary = cases[name][0]

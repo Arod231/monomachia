@@ -86,10 +86,14 @@ extends RefCounted
 ##   or handing on past its end (state_time()); the rest stay fitted. Hit-stop
 ##   and slow motion slow every clip alike: they step the world less often,
 ##   and the clips go by the world's frames;
-## - the crossfades, in rules frames (StateClips.fades): into an attack 3, a follow-up 4
-##   from the last clip's pose, a dodge-cancel 2, a cut for hitstun, 6 back to
-##   the legs, 8 for a stance, 2 into a state's clip (the stomp springs out
-##   of the dodge), 3 into a raised guard.
+## - the hand-offs, in rules frames: since milestone-1 task 23 each shows
+##   the new motion whole at once and asks for an inertial blend
+##   (Shot.blend, StateClips.blends: into an attack 3, a follow-up 4 from
+##   the last clip's pose, a dodge-cancel 2, hitstun 4, 6 back to the legs,
+##   8 for a stance, 2 into a state's clip (the stomp springs out of the
+##   dodge), 3 into a raised guard), which the rig's InertialBlend plays;
+##   the crossfades' lengths (StateClips.fades, hitstun's a cut) still time
+##   the dagger grip's turn and the roll's turn back.
 
 ## What the director plays by is data, in StateClips (state_clips.json, read
 ## through StateClips.shared()): the crossfades' lengths, the idles, the hit,
@@ -224,9 +228,16 @@ class Shot:
 	## Whether a state's clip shows on the upper body alone (a guard's, task
 	## 26), the legs the legs' blend's.
 	var upper: bool = false
-	## The crossfade's length and how many rules frames in it is.
+	## The crossfade's length and how many rules frames in it is. Since
+	## milestone-1 task 23 no clip crossfades (see blend): it times only the
+	## hand-overs that aren't the pose's, the dagger grip's turn and the
+	## roll's turn back.
 	var fade: int = 0
 	var since: int = 0
+	## The inertial blend this frame's hand-off asks for (rules frames;
+	## StateClips.blends), on the hand-off's frame alone; 0 on every other.
+	## The view asks the rig's InertialBlend for it.
+	var blend: int = 0
 	## The idle under the legs' blend (a name in the tree).
 	var idle: String = ""
 	## The attack it plays (to tell a new attack, a follow-up, from the same).
@@ -252,37 +263,29 @@ class Shot:
 	var turn_before: float = 0.0
 	var turn_from: float = 0.0
 
-	## How far the crossfade is in (0 to 1, smoothed): the share of the new
-	## drive over what it fades in from.
-	func blend() -> float:
+	## How far the fade is in (0 to 1, smoothed), for what still hands over
+	## by it (the dagger grip's turn); poses blend inertially instead.
+	func fade_in() -> float:
 		if fade <= 0 or since >= fade:
 			return 1.0
 		return smoothstep(0.0, 1.0, float(since) / float(fade))
 
-	## How much the authored clips (clip and from) show over the legs' blend.
+	## How much the authored clip shows over the legs' blend: all of it
+	## from a hand-off on, the inertial blend fading what was shown before.
 	func authored() -> float:
-		if drive != LEGS:
-			return 1.0 if from != null else blend()
-		return 0.0 if from == null else 1.0 - blend()
+		return 0.0 if drive == LEGS else 1.0
 
-	## How much the legs are the legs' blend's under the authored clips,
-	## which then show on the upper body alone (0 to 1): all of them under the
-	## carry or a guard and while either fades out to the legs, handed over to
-	## an attack across the lift.
+	## How much the legs are the legs' blend's under the authored clip,
+	## which then shows on the upper body alone (0 or 1): all of them under
+	## the carry or a guard, none otherwise, at once from a hand-off (the
+	## inertial blend fades the change).
 	func legs_free() -> float:
-		if drive == CARRY or (drive == STATE and upper):
-			return 1.0
-		if from == null or not from_upper:
-			return 0.0
-		return 1.0 if drive == LEGS else 1.0 - blend()
+		return 1.0 if drive == CARRY or (drive == STATE and upper) else 0.0
 
-	## How much of the authored clips is `clip` rather than `from`.
+	## How much of the authored clips is `clip` rather than `from`: all of
+	## it, from its hand-off on (milestone-1 task 23).
 	func clip_share() -> float:
-		if clip == null:
-			return 0.0
-		if from == null:
-			return 1.0
-		return blend()
+		return 0.0 if clip == null else 1.0
 
 	func copy() -> Shot:
 		var s: Shot = Shot.new()
@@ -378,10 +381,12 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 		else:
 			out.from_upper = out.from != null and (prev.drive == CARRY or (prev.drive == STATE and prev.upper))
 		out.grip_from = prev.grip
-		out.fade = _fade(prev, f, drive)
+		out.fade = _fade(prev, f, drive, sc.fades)
+		out.blend = _fade(prev, f, drive, sc.blends)
 		out.since = 0
 		out.clip_before = playing
 	else:
+		out.blend = 0
 		out.since = prev.since + 1
 		out.clip_before = prev.clip
 		if out.from != null and out.since >= out.fade:
@@ -706,7 +711,7 @@ static func blinks(f: Fighter) -> bool:
 static func _grip(s: Shot, f: Fighter) -> float:
 	if s.drive != ATTACK:
 		return 1.0
-	var t: float = lerpf(s.grip_from, 0.0, s.blend()) if s.fade > 0 else 0.0
+	var t: float = lerpf(s.grip_from, 0.0, s.fade_in()) if s.fade > 0 else 0.0
 	if f.atk != null and f.atk.queued == &"":
 		var left: int = f.atk.def.total_frames() - f.atk.frame
 		if left < GRIP_BACK:
@@ -895,51 +900,48 @@ static func chain_clip(clips: Array[StringName], set_name: StringName, time: flo
 
 
 ## What showed last as an authored clip, held at its pose: the clip when one
-## drove, else the one still fading out, else null (the legs).
+## drove, else null (the legs).
 static func _shown(prev: Shot) -> Clip:
-	if prev.clip != null and prev.clip_share() >= 0.5:
-		return prev.clip
-	if prev.from != null:
-		return prev.from
+	# no crossfade since milestone-1 task 23: the clip shown is the clip
 	return prev.clip
 
 
-## How long the change from `prev` to `drive` fades: into an attack 3, a
+## How long the change from `prev` to `drive` takes, from `lengths` by what
+## changes (StateClips.fades or StateClips.blends): into an attack 3, a
 ## follow-up 4, back to the legs 6; an attack cancelled into a dodge 2;
-## hitstun cuts. Onto the shoulder 8 (a stance); off it into an attack or a
-## guard over the lift off the shoulder.
-static func _fade(prev: Shot, f: Fighter, drive: StringName) -> int:
-	var sc: StateClips = StateClips.shared()
+## hitstun a cut's 0 or a 4-frame blend. Onto the shoulder 8 (a stance); off
+## it into an attack or a guard over the lift off the shoulder.
+static func _fade(prev: Shot, f: Fighter, drive: StringName, lengths: Dictionary[StringName, int]) -> int:
 	if f.state == &"hitstun":
-		return sc.fades[&"hitstun"]
+		return lengths[&"hitstun"]
 	if drive == CARRY:
-		return sc.fades[&"stance"]
+		return lengths[&"stance"]
 	if prev.drive == CARRY and f.guard_lift_left > 0:
 		# a guard raised from the shoulder, over the lift off it
 		return SimConst.GS_SHOULDER_LIFT_FRAMES
 	if drive == STATE:
 		if prev.phase == &"rebound":
-			return sc.fades[&"rebound"]
+			return lengths[&"rebound"]
 		if f.blocking and f.state != &"blockstun" and f.state != &"parryAnim":
-			return sc.fades[&"guard"]
-		return sc.fades[&"state"]
+			return lengths[&"guard"]
+		return lengths[&"state"]
 	if drive == ATTACK:
 		if prev.drive == ATTACK and f.atk != null and f.atk == prev.attack:
 			# a phase of the same attack: into or out of a charge's loop
-			return sc.fades[&"follow_up"]
+			return lengths[&"follow_up"]
 		if prev.drive == ATTACK and f.atk == null and prev.attack == null:
 			# a change of the ultimate's phase
-			return sc.fades[&"follow_up"]
+			return lengths[&"follow_up"]
 		if prev.drive == CARRY and f.atk != null and f.atk.lift > 0:
 			return f.atk.lift
 		if prev.drive == CARRY and f.atk == null:
 			# the ultimate from the shoulder waits out the same lift
 			return SimConst.GS_SHOULDER_LIFT_FRAMES
 		if prev.drive == ATTACK and f.atk != null and f.atk.chained_from != null:
-			return sc.fades[&"follow_up"]
-		return sc.fades[&"attack"]
+			return lengths[&"follow_up"]
+		return lengths[&"attack"]
 	if prev.drive == CARRY and f.guard_lift_left > 0:
 		return SimConst.GS_SHOULDER_LIFT_FRAMES
 	if prev.drive == ATTACK and (f.state == &"dodge" or f.state == &"backstep"):
-		return sc.fades[&"dodge_cancel"]
-	return sc.fades[&"locomotion"]
+		return lengths[&"dodge_cancel"]
+	return lengths[&"locomotion"]
