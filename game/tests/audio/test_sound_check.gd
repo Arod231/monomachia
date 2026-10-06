@@ -129,10 +129,13 @@ static func _expected_cues(step: Dictionary) -> Array:
 	return out
 
 
+## An event's cues as the sound check plays them, without the fighters'
+## voices (heard with whichever fighter acts, so the same sound either way).
 static func _cue_names(event: Dictionary) -> Array:
 	var out := []
 	for cue: Dictionary in SoundBank.cues_for(event, SoundCheck.CAST):
-		out.append(cue["cue"])
+		if not SoundBank.is_vocal(cue["cue"]):
+			out.append(cue["cue"])
 	return out
 
 
@@ -263,8 +266,8 @@ func test_the_distance_step_plays_one_hit_at_each_distance() -> void:
 	var steps := _steps_in("Distance")
 	assert_eq(steps.size(), 1)
 	if steps.size() == 1:
-		# each hit plays its layers (the cut, the flesh, the bone) in one place
-		var per: int = SoundBank.cues_for(check.steps[steps[0]]["actions"][0]["event"]).size()
+		# each hit plays its layers (the cut, the flesh, the bone, the pain) in one place
+		var per: int = SoundBank.cues_for(check.steps[steps[0]]["actions"][0]["event"], SoundCheck.CAST).size()
 		var got: Array = distances[steps[0]]
 		assert_eq(got.size(), SoundCheck.DISTANCES.size() * per, "one 3D hit per distance")
 		for k: int in mini(got.size() / per, SoundCheck.DISTANCES.size()):

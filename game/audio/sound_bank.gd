@@ -241,6 +241,33 @@ const CUES: Dictionary = {
 		"files": ["gen_hunter_gear_rattle_01.wav", "gen_hunter_gear_rattle_02.wav", "gen_hunter_gear_rattle_03.wav"],
 		"volume_db": -11.0, "pitch": Vector2(0.94, 1.06), "bus": BUS_FOLEY, "spatial": true,
 	},
+	# --- effort vocals (milestone-1 task 114; see VOCALS): placeholders until a
+	# vocals pack is bought, the kiai and breaths cut from the bundle's male
+	# recordings, the pain and death cries generated
+	&"vocal_kiai": {
+		"files": ["vocal_kiai_01.wav", "vocal_kiai_02.wav", "vocal_kiai_03.wav", "vocal_kiai_04.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.96, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_exhale": {
+		"files": ["vocal_exhale_01.wav", "vocal_exhale_02.wav", "vocal_exhale_03.wav", "vocal_exhale_04.wav"],
+		"volume_db": -9.0, "pitch": Vector2(0.95, 1.05), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_breath": {
+		"files": ["vocal_breath_01.wav", "vocal_breath_02.wav", "vocal_breath_03.wav"],
+		"volume_db": -10.0, "pitch": Vector2(0.95, 1.05), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_pain": {
+		"files": ["gen_pain_01.wav", "gen_pain_02.wav", "gen_pain_03.wav", "gen_pain_04.wav"],
+		"volume_db": -6.0, "pitch": Vector2(0.95, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_pain_heavy": {
+		"files": ["gen_pain_heavy_01.wav", "gen_pain_heavy_02.wav", "gen_pain_heavy_03.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.96, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_death": {
+		"files": ["gen_death_01.wav", "gen_death_02.wav", "gen_death_03.wav"],
+		"volume_db": -3.0, "pitch": Vector2(0.97, 1.03), "bus": BUS_COMBAT, "spatial": true,
+	},
 	# --- match calls
 	&"taiko_light": {
 		"files": ["gen_taiko_light_01.wav", "gen_taiko_light_02.wav"],
@@ -368,10 +395,21 @@ const FOLEY: Dictionary = {
 	},
 }
 
-## The voice each fighter speaks with (task 114); one not listed is silent.
+## The voice each fighter speaks with where it isn't [constant DEFAULT_VOICE]
+## (milestone-1 task 114).
 const VOICES: Dictionary = {}
-## Each voice's cues by moment (see [method vocal_moments]) (task 114).
-const VOCALS: Dictionary = {}
+## Every fighter's voice unless VOICES names another: one male voice for every
+## fighter (the owner's choice, Oct 6, 2026), the sides told apart by pitch
+## (SIDE_PITCH).
+const DEFAULT_VOICE := &"male"
+## Each voice's cue for each moment (see [method vocal_moments]): placeholder
+## effort vocals until a vocals pack is bought after the spending review.
+const VOCALS: Dictionary = {
+	&"male": {
+		&"kiai": &"vocal_kiai", &"exhale": &"vocal_exhale", &"breath": &"vocal_breath",
+		&"pain": &"vocal_pain", &"pain_heavy": &"vocal_pain_heavy", &"death": &"vocal_death",
+	},
+}
 ## How often a moment is voiced, where not every time: a light's exhale
 ## about one in three (the owner's choice, Oct 6, 2026).
 const VOCAL_CHANCE: Dictionary = {&"exhale": 1.0 / 3.0}
@@ -477,7 +515,7 @@ static func cues_for(event: Dictionary, cast: Array = []) -> Array[Dictionary]:
 	# the fighters' voices (task 114)
 	for m: Dictionary in vocal_moments(event):
 		var side: int = m["side"]
-		var voice: Dictionary = VOCALS.get(VOICES.get(_fighter(cast, side), &""), {})
+		var voice: Dictionary = VOCALS.get(voice_of(_fighter(cast, side)), {})
 		if voice.has(m["moment"]):
 			var cue := _cue(voice[m["moment"]], 0.0, m["chance"])
 			cue["pitch_scale"] = SIDE_PITCH[side] if side < SIDE_PITCH.size() else 1.0
@@ -503,16 +541,34 @@ static func vocal_moments(event: Dictionary) -> Array[Dictionary]:
 	var heavy := bool(_field(event, "heavy", false))
 	match StringName(str(_field(event, "t", ""))):
 		&"swing":
-			out.append(_moment(&"kiai" if heavy else &"exhale", int(_field(event, "f", 0))))
+			out.append(_moment(&"kiai" if heavy else &"exhale", int(_field(event, "f", -1))))
 		&"dodge", &"land":
-			out.append(_moment(&"breath", int(_field(event, "f", 0))))
+			out.append(_moment(&"breath", int(_field(event, "f", -1))))
 		&"hit":
-			out.append(_moment(&"pain_heavy" if heavy else &"pain", int(_field(event, "target", 0))))
+			out.append(_moment(&"pain_heavy" if heavy else &"pain", int(_field(event, "target", -1))))
 		&"ko":
 			var loser := int(_field(event, "loser", -1))
 			for side: int in ([0, 1] if loser < 0 else [loser]):
 				out.append(_moment(&"death", side))
-	return out
+	# an event that names no fighter gives nobody a voice
+	var named: Array[Dictionary] = []
+	named.assign(out.filter(func(m: Dictionary) -> bool: return int(m["side"]) >= 0))
+	return named
+
+
+## The voice [param fighter_id] speaks with, none for nobody (&"").
+static func voice_of(fighter_id: StringName) -> StringName:
+	if fighter_id.is_empty():
+		return &""
+	return VOICES.get(fighter_id, DEFAULT_VOICE)
+
+
+## True for a cue that is a fighter's voice (VOCALS).
+static func is_vocal(cue_name: StringName) -> bool:
+	for voice: StringName in VOCALS:
+		if (VOCALS[voice] as Dictionary).values().has(cue_name):
+			return true
+	return false
 
 
 ## The key of the pair of weapons [param a] and [param b] meet as, the same

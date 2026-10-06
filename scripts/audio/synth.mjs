@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Generates the sound effects the Sonniss bundle has no recordings for: taiko,
 // gong, the parry ring, footsteps on stone, falls and landings, cloth swishes,
-// metal pings and the round-call drums. They are written to
+// metal pings, the round-call drums, the Hunter's gear and the placeholder
+// pain and death cries. They are written to
 // game/assets/audio/sfx/gen_*.wav (mono, 16-bit, 44.1 kHz).
 //
 // The recipes are ports of the web demo's Web Audio sounds (v0.1-web-mvp:src/audio/audio.ts),
@@ -18,6 +19,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   SR,
+  Biquad,
   addInto,
   buffer,
   drive,
@@ -28,6 +30,7 @@ import {
   normalizeBuf,
   tidy,
   tone,
+  wave,
   whiteNoise,
   expEnv,
 } from './lib/synthkit.mjs';
@@ -549,6 +552,174 @@ for (let v = 1; v <= 3; v++) {
       return b;
     },
     { peakDb: -6 },
+  );
+}
+
+// ------------------------------------------------------------------ effort vocals
+
+// The placeholder effort vocals the bundle has no recordings for (milestone-1
+// task 114): a man's pain grunts and death cries, until a vocals pack is
+// bought. The kiai and the breaths are cut from the bundle's male recordings
+// (sonniss-picks.json). One voice, sung through moving formants: a glottal
+// pulse with jitter and shimmer, a breath of aspiration noise riding it, and
+// vocal fry as the voice breaks.
+
+/** Male vowel formants: [Hz, bandwidth Hz, level] for F1-F4. */
+const VOICE_VOWELS = {
+  ah: [[730, 90, 1], [1090, 110, 0.5], [2440, 160, 0.18], [3400, 250, 0.08]],
+  uh: [[640, 80, 1], [1190, 100, 0.45], [2390, 150, 0.15], [3300, 250, 0.06]],
+  eh: [[530, 70, 1], [1840, 110, 0.4], [2480, 160, 0.2], [3500, 250, 0.08]],
+  oo: [[320, 60, 1], [800, 90, 0.3], [2240, 150, 0.06], [3300, 250, 0.03]],
+  // a pressed, strained throat: the formants pulled toward the middle
+  ugh: [[600, 110, 1], [1250, 140, 0.55], [2500, 200, 0.2], [3400, 300, 0.07]],
+};
+
+/** A value along a piecewise-linear curve of [t, value] points at time t. */
+function curve(points, t) {
+  if (t <= points[0][0]) return points[0][1];
+  for (let i = 1; i < points.length; i++) {
+    if (t <= points[i][0]) {
+      const [t0, v0] = points[i - 1];
+      const [t1, v1] = points[i];
+      return v0 + ((v1 - v0) * (t - t0)) / (t1 - t0);
+    }
+  }
+  return points[points.length - 1][1];
+}
+
+/**
+ * One utterance. `pitch`, `level`, `breath` (the aspiration's share) and
+ * `fry` (how much the pulses fall irregular and low, 0-1) are [t, value]
+ * curves; `vowels` is [t, vowel] points the formants glide between; `jitter`
+ * is the pitch's random wobble (a fraction, per glottal period).
+ */
+function voice(r, seconds, { pitch, level, vowels, breath = [[0, 0.15]], fry = [[0, 0]], jitter = 0.012 }) {
+  const n = Math.ceil(seconds * SR);
+  const src = new Float32Array(n);
+  const air = new Float32Array(n);
+  let ph = 0;
+  let wobble = 1;
+  let shimmer = 1;
+  for (let i = 0; i < n; i++) {
+    const t = i / SR;
+    const fr = curve(fry, t);
+    let f = curve(pitch, t) * wobble;
+    // fry: the pulses slow and stumble as the voice breaks
+    if (fr > 0) f *= 1 - 0.55 * fr;
+    const before = ph;
+    ph += f / SR;
+    if (ph >= 1) {
+      ph -= 1;
+      wobble = 1 + (r.next() * 2 - 1) * (jitter + 0.05 * fr);
+      shimmer = 1 - r.next() * (0.12 + 0.5 * fr);
+    }
+    // a glottal pulse: a sawtooth softened by its cube, rich in harmonics
+    const s = wave('sawtooth', before, f / SR);
+    const a = curve(level, t);
+    src[i] = (s - 0.3 * s * s * s) * a * shimmer;
+    // the breath rides the pulse, strongest as the glottis opens
+    air[i] = (r.next() * 2 - 1) * a * curve(breath, t) * (0.6 + 0.4 * Math.max(0, Math.sin(Math.PI * 2 * ph)));
+  }
+  const mix = new Float32Array(n);
+  for (let k = 0; k < 4; k++) {
+    // two biquads in series per formant, retuned as the vowel glides
+    const freqAt = (t) => {
+      const prev = [...vowels].reverse().find(([vt]) => vt <= t) ?? vowels[0];
+      const next = vowels.find(([vt]) => vt > t) ?? prev;
+      const u = next === prev ? 0 : (t - prev[0]) / (next[0] - prev[0]);
+      const a = VOICE_VOWELS[prev[1]][k];
+      const b = VOICE_VOWELS[next[1]][k];
+      return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+    };
+    const [f0, bw0] = freqAt(0);
+    const q1 = new Biquad('bandpass', f0, f0 / bw0);
+    const q2 = new Biquad('bandpass', f0, f0 / bw0);
+    for (let i = 0; i < n; i++) {
+      const t = i / SR;
+      const [fc, bw, lvl] = freqAt(t);
+      if ((i & 31) === 0) {
+        q1.q = fc / bw;
+        q2.q = fc / bw;
+        q1.set(fc);
+        q2.set(fc);
+      }
+      mix[i] += q2.step(q1.step(src[i] + air[i] * 0.5)) * lvl * 4;
+    }
+  }
+  // the breath also leaks around the formants, a hiss above them
+  filter(air, 'highpass', 1800, { q: 0.7 });
+  for (let i = 0; i < n; i++) mix[i] += air[i] * 0.25;
+  filter(mix, 'highpass', 90, { q: 0.7 });
+  filter(mix, 'peaking', 3000, { q: 1, gainDb: 3 }); // presence
+  return mix;
+}
+
+// Pain on a light hit: a short grunt forced out, a glottal catch at the start.
+for (let v = 1; v <= 4; v++) {
+  sound(
+    `gen_pain_0${v}.wav`,
+    'Pain on a light hit taken: a short grunt forced out (milestone-1 task 114, a placeholder until a vocals pack is bought)',
+    'A male voice (a glottal pulse with jitter and shimmer and a breath of aspiration, through moving formants) pressed into "ugh" then "uh", its pitch jumping up and falling, a hard glottal start and a breathy end',
+    0.32,
+    (r) => {
+      const len = r.range(0.17, 0.24);
+      const top = r.range(150, 190);
+      return voice(r, 0.32, {
+        pitch: [[0, top * 0.85], [0.03, top], [len, top * 0.72]],
+        level: [[0, 0], [0.006, 1], [len * 0.6, 0.75], [len, 0.05], [len + 0.04, 0]],
+        vowels: [[0, 'ugh'], [len, v % 2 ? 'uh' : 'ah']],
+        breath: [[0, 0.25], [len * 0.7, 0.4], [len, 0.9]],
+        fry: [[0, 0], [len * 0.7, 0], [len, 0.5]],
+        jitter: 0.02,
+      });
+    },
+    { peakDb: -3 },
+  );
+}
+
+// Pain on a heavy hit: a longer, rougher cry.
+for (let v = 1; v <= 3; v++) {
+  sound(
+    `gen_pain_heavy_0${v}.wav`,
+    'Pain on a heavy hit taken: a rough, longer cry (milestone-1 task 114, a placeholder)',
+    'The same voice opened from "ugh" to "ah", higher and rougher (more jitter and breath), rising then falling away into fry and a breath out',
+    0.6,
+    (r) => {
+      const len = r.range(0.34, 0.46);
+      const top = r.range(190, 230);
+      return voice(r, 0.6, {
+        pitch: [[0, top * 0.8], [0.05, top], [len * 0.6, top * 0.92], [len, top * 0.6]],
+        level: [[0, 0], [0.008, 1], [len * 0.5, 0.9], [len, 0.08], [len + 0.08, 0]],
+        vowels: [[0, 'ugh'], [0.06, 'ah'], [len, 'uh']],
+        breath: [[0, 0.35], [len * 0.5, 0.45], [len, 1]],
+        fry: [[0, 0], [len * 0.65, 0.1], [len, 0.7]],
+        jitter: 0.03,
+      });
+    },
+    { peakDb: -3 },
+  );
+}
+
+// The death cry: a long cry that falls and breaks, the last breath going out.
+for (let v = 1; v <= 3; v++) {
+  sound(
+    `gen_death_0${v}.wav`,
+    'Death cry on a K.O. or a finisher\'s kill: a long cry falling and breaking into the last breath (milestone-1 task 114, a placeholder)',
+    'The same voice: a strained "ah" rising, then falling an octave through "uh" as jitter and fry take it and the voice breaks into breath, the breath trailing out',
+    1.5,
+    (r) => {
+      const len = r.range(0.95, 1.2);
+      const top = r.range(170, 210);
+      return voice(r, 1.5, {
+        pitch: [[0, top * 0.85], [0.1, top], [0.3, top * 0.95], [len, top * 0.48]],
+        level: [[0, 0], [0.02, 1], [0.35, 0.9], [len * 0.85, 0.35], [len, 0.06], [len + 0.25, 0]],
+        vowels: [[0, 'ugh'], [0.08, 'ah'], [0.4, 'ah'], [len * 0.8, 'uh'], [len, 'oo']],
+        breath: [[0, 0.3], [0.4, 0.35], [len * 0.8, 0.7], [len, 1], [len + 0.25, 1]],
+        fry: [[0, 0], [0.45, 0.05], [len * 0.8, 0.5], [len, 0.9]],
+        jitter: 0.025,
+      });
+    },
+    { peakDb: -3 },
   );
 }
 

@@ -321,3 +321,27 @@ func test_an_unknown_cue_is_listed_and_plays_nothing() -> void:
 	assert_eq(player.missing, PackedStringArray(["no_such_cue"]))
 	assert_push_error("no_such_cue")
 	assert_push_error_count(1, "reported once")
+
+
+## A cue that sounds only some of the time (a light swing's exhale, task 114)
+## is rolled on the player's random numbers each time, unless every_time
+## (the sound check) plays it always; a side's voice is pitched by its
+## pitch_scale.
+func test_a_cue_s_chance_and_pitch_scale() -> void:
+	var player := _player(4, 4)
+	var log := _record(player)
+	var light := {"t": "swing", "f": 1, "heavy": false, "weapon": &"katana"}
+	var cast: Array = [&"hunter", &"hunter"]
+	for i: int in 300:
+		player.play_event(light, Callable(), cast)
+	var exhales := _cues(log).count(&"vocal_exhale")
+	assert_between(exhales, 70, 130, "about one in three of 300")
+	log.clear()
+	player.every_time = true
+	for i: int in 30:
+		player.play_event(light, Callable(), cast)
+	assert_eq(_cues(log).count(&"vocal_exhale"), 30, "every time for the sound check")
+	var range_: Vector2 = SoundBank.CUES[&"vocal_exhale"]["pitch"]
+	for entry: Dictionary in log:
+		if entry["cue"] == &"vocal_exhale":
+			assert_between(float(entry["pitch"]), range_.x * SoundBank.SIDE_PITCH[1] - 1e-4, range_.y * SoundBank.SIDE_PITCH[1] + 1e-4, "the second side's voice, lower")

@@ -45,6 +45,9 @@ signal played(cue: StringName, voice: Node)
 ## The most a 3D cue nearer than unit_size is raised above its level (dB).
 @export var near_boost_db: float = 3.0
 
+## Plays a cue that sounds only some of the time (its chance) every time:
+## the sound check, so the owner hears each one.
+var every_time: bool = false
 ## Picks variations and pitches. Seed it for repeatable runs.
 var rng := RandomNumberGenerator.new()
 ## Paths that failed to load, and cue names the bank doesn't have.
@@ -100,7 +103,7 @@ func play_event(event: Dictionary, position_resolver: Callable = Callable(), cas
 	if position_resolver.is_valid():
 		at = position_resolver.call(event)
 	for cue: Dictionary in cues:
-		if float(cue.get("chance", 1.0)) < 1.0 and rng.randf() >= float(cue["chance"]):
+		if not every_time and float(cue.get("chance", 1.0)) < 1.0 and rng.randf() >= float(cue["chance"]):
 			continue
 		var delay := float(cue["delay"])
 		var pitch_scale := float(cue.get("pitch_scale", 1.0))

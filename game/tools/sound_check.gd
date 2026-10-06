@@ -84,6 +84,9 @@ func _ready() -> void:
 	_build_stage()
 	player = SoundPlayer.new()
 	player.name = "Sounds"
+	# a cue heard only some of the time in a match (a light swing's exhale)
+	# plays every time here, so it is heard
+	player.every_time = true
 	player.auto_run = false
 	add_child(player)
 	player.played.connect(_on_played)

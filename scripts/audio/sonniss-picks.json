@@ -207,6 +207,27 @@
       "library": "InMotionAudio - Foley T-Shirt",
       "entry": "InMotionAudio - Foley T-Shirt/FOLYClth_SinglePats04_InMotionAudio_FoleyT-Shirt.wav"
     },
+    "vox_ai_yah": {
+      "part": 1,
+      "library": "344 Audio - Anime Fight Voices Vol. 1",
+      "entry": "344 Audio - Anime Fight Voices Vol. 1/VOXMale_Warrior Opponent Attack, 'Ai yah' 2_344 Audio_Anime Fight Voices.wav"
+    },
+    "vox_active_yell": {
+      "part": 1,
+      "library": "344 Audio - Anime Fight Voices Vol. 1",
+      "entry": "344 Audio - Anime Fight Voices Vol. 1/VOXMale_Male Adventurer, Active Yell 19_344 Audio_Anime Fight Voices.wav"
+    },
+    "vox_panting": {
+      "part": 5,
+      "library": "SoundBits - Vox Hominis - Human Effort Voices",
+      "entry": "SoundBits - Vox Hominis - Human Effort Voices/HMNBrth_Panting Male 02 04_SNDBTS_VH.wav",
+      "takes": { "floorDb": -50, "minSilence": 0.2 }
+    },
+    "vox_gasp": {
+      "part": 2,
+      "library": "Epic Stock Media - AAA Game Character Police Officer",
+      "entry": "Epic Stock Media - AAA Game Character Police Officer/HMNBrth_Police Officer Gasp Vocal Male Shocked Alert 1.wav"
+    },
     "jse_soft_waves": {
       "part": 3,
       "library": "Just Sound Effects - Rocky Coast of Norway",
@@ -1115,6 +1136,72 @@
         { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.02, "length": 0.3, "pitch": 1, "gainDb": -5, "offset": 0.03, "fadeOut": 0.18 }
       ],
       "process": { "highpass": 150 }
+    },
+    {
+      "file": "vocal_kiai_01.wav",
+      "use": "A kiai on a heavy, an ability or an ultimate, landing with the blow: the \"yah\" of a warrior's \"Ai yah\", a little deeper (milestone-1 task 114, a placeholder until a vocals pack is bought)",
+      "layers": [{ "source": "vox_ai_yah", "peakIn": [0.45, 0.75], "from": -0.09, "length": 0.36, "pitch": -1, "fadeIn": 0.01, "fadeOut": 0.12 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_kiai_02.wav",
+      "use": "A kiai: the \"Ai yah\" deeper still",
+      "layers": [{ "source": "vox_ai_yah", "peakIn": [0.45, 0.75], "from": -0.09, "length": 0.36, "pitch": -2.5, "fadeIn": 0.01, "fadeOut": 0.12 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_kiai_03.wav",
+      "use": "A kiai: a short battle yell",
+      "layers": [{ "source": "vox_active_yell", "peakIn": [0.1, 0.3], "from": -0.07, "length": 0.28, "pitch": -1, "fadeIn": 0.01, "fadeOut": 0.1 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_kiai_04.wav",
+      "use": "A kiai: the battle yell, lower",
+      "layers": [{ "source": "vox_active_yell", "peakIn": [0.1, 0.3], "from": -0.07, "length": 0.28, "pitch": -3, "fadeIn": 0.01, "fadeOut": 0.1 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_exhale_01.wav",
+      "use": "An exhale on about one light swing in three: a short breath forced out (milestone-1 task 114)",
+      "layers": [{ "source": "vox_panting", "take": 1, "anchor": "peak", "from": -0.05, "length": 0.32, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_exhale_02.wav",
+      "use": "An exhale on a light swing",
+      "layers": [{ "source": "vox_panting", "take": 2, "anchor": "peak", "from": -0.05, "length": 0.32, "pitch": -1, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_exhale_03.wav",
+      "use": "An exhale on a light swing",
+      "layers": [{ "source": "vox_panting", "take": 3, "anchor": "peak", "from": -0.05, "length": 0.32, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_exhale_04.wav",
+      "use": "An exhale on a light swing",
+      "layers": [{ "source": "vox_panting", "take": 4, "anchor": "peak", "from": -0.05, "length": 0.32, "pitch": -1.5, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_breath_01.wav",
+      "use": "A breath on a dodge, a roll or a landing: a fuller breath out (milestone-1 task 114)",
+      "layers": [{ "source": "vox_panting", "take": 5, "from": 0.0, "length": 0.55, "fadeIn": 0.02, "fadeOut": 0.25 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_breath_02.wav",
+      "use": "A breath on a dodge, a roll or a landing",
+      "layers": [{ "source": "vox_panting", "take": 6, "from": 0.0, "length": 0.55, "pitch": -1, "fadeIn": 0.02, "fadeOut": 0.25 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_breath_03.wav",
+      "use": "A breath on a dodge, a roll or a landing: a sharp breath in",
+      "layers": [{ "source": "vox_gasp", "start": 0.0, "end": 0.28, "pitch": -2, "fadeOut": 0.1 }],
+      "process": { "highpass": 120 }
     }
   ]
 }

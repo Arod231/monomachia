@@ -183,12 +183,23 @@ func test_ambience_bed_is_a_seamless_stereo_loop() -> void:
 	assert_almost_eq(stream.loop_end, roundi(stream.get_length() * stream.mix_rate), 1)
 
 
-## The cues an event plays when the fighters on each side are [param cast].
-func _cast_names(event: Dictionary, cast: Array) -> Array[StringName]:
+## The cues an event plays when the fighters on each side are [param cast],
+## without their voices (task 114) unless [param voices].
+func _cast_names(event: Dictionary, cast: Array, voices: bool = false) -> Array[StringName]:
 	var names: Array[StringName] = []
 	for cue: Dictionary in SoundBank.cues_for(event, cast):
-		names.append(cue["cue"])
+		if voices or not SoundBank.is_vocal(cue["cue"]):
+			names.append(cue["cue"])
 	return names
+
+
+## The cue dictionaries of the fighters' voices an event plays with [param cast].
+func _vocals(event: Dictionary, cast: Array) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for cue: Dictionary in SoundBank.cues_for(event, cast):
+		if SoundBank.is_vocal(cue["cue"]):
+			out.append(cue)
+	return out
 
 
 static func _names(list: Array) -> Array[StringName]:
@@ -316,3 +327,41 @@ func test_effort_vocal_hooks() -> void:
 	# a light's exhale is heard about one time in three
 	var exhale: Dictionary = SoundBank.vocal_moments({"t": "swing", "f": 0, "heavy": false})[0]
 	assert_almost_eq(float(exhale["chance"]), 1.0 / 3.0, 0.01)
+
+
+## Placeholder effort vocals (milestone-1 task 114): every fighter speaks
+## with the one male voice, which has a cue for every moment, placed at the
+## fighter and heard on the combat bus.
+func test_every_fighter_has_a_voice_with_every_moment() -> void:
+	for fighter: StringName in MatchSide.FIGHTER_NAMES:
+		var voice: StringName = SoundBank.voice_of(fighter)
+		assert_true(SoundBank.VOCALS.has(voice), "%s speaks" % fighter)
+		for moment: StringName in [&"kiai", &"exhale", &"breath", &"pain", &"pain_heavy", &"death"]:
+			assert_true(SoundBank.VOCALS[voice].has(moment), "%s has a %s" % [voice, moment])
+			var cue: StringName = SoundBank.VOCALS[voice][moment]
+			assert_true(SoundBank.CUES.has(cue), "%s is a cue" % cue)
+			assert_true(SoundBank.is_vocal(cue))
+			assert_eq(SoundBank.CUES[cue]["bus"], SoundBank.BUS_COMBAT)
+			assert_true(SoundBank.CUES[cue]["spatial"], "%s comes from the fighter" % cue)
+			assert_gt((SoundBank.CUES[cue]["files"] as Array).size(), 1, "%s has variations" % cue)
+	assert_eq(SoundBank.voice_of(&""), &"", "nobody named, nobody speaks")
+
+
+func test_the_fighters_vocalise_on_their_moments() -> void:
+	var cast: Array = [&"hunter", &"rogue"]
+	var names := func(e: Dictionary) -> Array:
+		return _vocals(e, cast).map(func(c: Dictionary) -> StringName: return c["cue"])
+	assert_eq(names.call({"t": "swing", "f": 0, "heavy": true, "weapon": &"katana"}), [&"vocal_kiai"])
+	assert_eq(names.call({"t": "swing", "f": 0, "heavy": false, "weapon": &"katana"}), [&"vocal_exhale"])
+	assert_eq(names.call({"t": "dodge", "f": 1, "back": false}), [&"vocal_breath"])
+	assert_eq(names.call({"t": "land", "f": 0}), [&"vocal_breath"])
+	assert_eq(names.call({"t": "hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade"}), [&"vocal_pain"])
+	assert_eq(names.call({"t": "hit", "attacker": 1, "target": 0, "heavy": true, "sound": &"blade"}), [&"vocal_pain_heavy"])
+	assert_eq(names.call({"t": "ko", "loser": 1, "winner": 0, "finisher": true}), [&"vocal_death"])
+	assert_eq(names.call({"t": "block", "attacker": 0, "target": 1, "heavy": true}), [])
+	assert_eq(_vocals({"t": "swing", "f": 0, "heavy": true}, []), [] as Array[Dictionary], "no cast, no voices")
+	# a light's exhale one time in three; the second side two semitones down
+	assert_almost_eq(float(_vocals({"t": "swing", "f": 0, "heavy": false}, cast)[0]["chance"]), 1.0 / 3.0, 0.01)
+	assert_eq(float(_vocals({"t": "swing", "f": 0, "heavy": true}, cast)[0]["chance"]), 1.0)
+	assert_eq(float(_vocals({"t": "swing", "f": 0, "heavy": true}, cast)[0]["pitch_scale"]), 1.0)
+	assert_almost_eq(float(_vocals({"t": "swing", "f": 1, "heavy": true}, cast)[0]["pitch_scale"]), pow(2.0, -2.0 / 12.0), 0.001)

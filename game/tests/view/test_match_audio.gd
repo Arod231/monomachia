@@ -19,6 +19,9 @@ func before_each() -> void:
 	add_child_autofree(host)
 	audio = host.get_node("Audio")
 	audio.player.auto_run = false
+	# every cue the bank asks for, a light swing's one-in-three exhale too, so
+	# the played cues can be checked one by one against the events
+	audio.player.every_time = true
 
 
 ## Computer against computer on the stand-in arena.

@@ -55,6 +55,13 @@ export const POOLS = {
   hunter_gear_tick: { files: /^gen_hunter_gear_tick_\d+\.wav$/, loudnessDb: -26, ceilingDb: -6 },
   hunter_gear_rattle: { files: /^gen_hunter_gear_rattle_\d+\.wav$/, loudnessDb: -21, ceilingDb: -3 },
   hunter_creak: { files: /^gen_hunter_creak_\d+\.wav$/, loudnessDb: -33, ceilingDb: -3 },
+  // the placeholder effort vocals (milestone-1 task 114)
+  vocal_kiai: { files: /^vocal_kiai_\d+\.wav$/, loudnessDb: -14, ceilingDb: -1 },
+  vocal_exhale: { files: /^vocal_exhale_\d+\.wav$/, loudnessDb: -24, ceilingDb: -3 },
+  vocal_breath: { files: /^vocal_breath_\d+\.wav$/, loudnessDb: -24, ceilingDb: -3 },
+  vocal_pain: { files: /^gen_pain_\d+\.wav$/, loudnessDb: -16, ceilingDb: -1 },
+  vocal_pain_heavy: { files: /^gen_pain_heavy_\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
+  vocal_death: { files: /^gen_death_\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
   // drums and big moments
   taiko_light: { files: /^gen_taiko_light_\d+\.wav$/, loudnessDb: -10.5, ceilingDb: -1 },
   taiko_heavy: { files: /^gen_taiko_heavy_\d+\.wav$/, loudnessDb: -7.5, ceilingDb: -1 },
