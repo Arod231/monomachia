@@ -6,21 +6,22 @@ extends GutTest
 
 const LENGTH: float = 1.5
 
-var _saved: Dictionary[StringName, Swing] = {}
+## Each patched move's [swing, real_markers], put back after each test.
+var _saved: Dictionary[StringName, Array] = {}
 
 
 func before_each() -> void:
 	FrozenStateClips.install()
 	var k: WeaponDef = Moves.KATANA
 	for id: StringName in [&"k_l1", &"k_l2"]:
-		_saved[id] = k.moves[id].swing
+		_saved[id] = [k.moves[id].swing, k.moves[id].real_markers]
 		k.moves[id].swing = _baked(k.moves[id], [StringName("Clip_" + String(id))])
 
 
 func after_each() -> void:
 	for id: StringName in _saved:
-		Moves.KATANA.moves[id].real_markers = false
-		Moves.KATANA.moves[id].swing = _saved[id]
+		Moves.KATANA.moves[id].swing = _saved[id][0]
+		Moves.KATANA.moves[id].real_markers = _saved[id][1]
 	_saved.clear()
 	FrozenStateClips.restore()
 	SimHelpers.dispose_all()
@@ -152,7 +153,8 @@ static func _re_keyed(cut: AttackDef) -> void:
 
 
 func test_a_move_with_real_markers_plays_its_clip_at_1x_of_the_worlds_time() -> void:
-	var W: World = SimHelpers.make_world()
+	# far enough apart that nothing lands: the only hit-stop is the test's
+	var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	var ctx: ClipDirector.Context = _ctx()
 	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
@@ -174,7 +176,6 @@ func test_a_move_with_real_markers_plays_its_clip_at_1x_of_the_worlds_time() -> 
 		if f.state == &"attack":
 			assert_almost_eq(shot.clip.time - before, 1.0 / 60.0, 1e-9, "a rules frame of clip each step")
 		seen += 1
-	cut.real_markers = false
 	assert_gt(seen, 20, "through the whole move")
 
 
@@ -183,7 +184,7 @@ func test_a_stand_in_keeps_its_retime() -> void:
 	var f: Fighter = W.fighters[0]
 	var ctx: ClipDirector.Context = _ctx()
 	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
-	assert_false(cut.real_markers, "Right Cut is on stand-in markers until task 31")
+	cut.real_markers = false # a stand-in, as Right Cut was until task 31
 	cut.swing.speed = 1.45
 	cut.swing.marks = PackedFloat64Array([4.0, 9.0, 10.5, 19.0])
 	_poke(W, f, &"attack", &"k_l1", 6)
@@ -205,7 +206,6 @@ func test_a_move_that_outlasts_its_clip_hands_on_and_never_freezes() -> void:
 	_poke(W, f, &"attack", &"k_l1", 5)
 	assert_null(ClipDirector.attack_clip(f, ctx, 5.0), "past its end: no clip held")
 	assert_eq(ClipDirector.step(null, f, ctx).drive, ClipDirector.LEGS, "handed on to the legs")
-	cut.real_markers = false
 
 
 func test_a_held_charge_plays_its_loop() -> void:
@@ -241,7 +241,6 @@ func test_a_held_charge_plays_its_loop() -> void:
 	assert_eq(shot.fade, StateClips.shared().fades[&"follow_up"], "faded out of the loop")
 	assert_almost_eq(shot.clip.time, (4.0 + (frame + 1) / 2.0) / 30.0, 1e-9)
 	cut.swing.loop = &""
-	cut.real_markers = false
 
 
 func test_a_state_clip_at_its_own_speed_loops_or_hands_on() -> void:
@@ -1174,7 +1173,7 @@ func test_a_roll_turns_the_body_toward_the_roll_and_back_over_the_recovery() -> 
 
 func test_a_dodge_attack_comes_up_facing_the_opponent_over_its_first_3_frames() -> void:
 	var k: WeaponDef = Moves.KATANA
-	_saved[&"k_dl"] = k.moves[&"k_dl"].swing
+	_saved[&"k_dl"] = [k.moves[&"k_dl"].swing, k.moves[&"k_dl"].real_markers]
 	k.moves[&"k_dl"].swing = _baked(k.moves[&"k_dl"], [&"Clip_k_l1"])
 	var ctx: ClipDirector.Context = _move_ctx()
 	var W: World = SimHelpers.make_world()

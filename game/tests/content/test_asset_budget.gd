@@ -2,11 +2,11 @@ extends GutTest
 ## Import hygiene for the art: no file in game/assets or the baked textures
 ## and meshes in game/fighters and game/weapons over 25 MB, textures are
 ## scaled down, every texture a model references exists, and every skinned
-## model is retargeted through the humanoid bone map. The art's and the
-## audio's totals are the public repository's budgets in the spec's size
-## budget table (150 MB and 40 MB, milestone-1 task 8), checked by
-## scripts/check-sizes.mjs (npm run check:sizes) in place of the 110 MB cap
-## this test had.
+## model is retargeted through the humanoid bone map (an exported Iglesias
+## clip through the Iglesias one). The art's and the audio's totals are the
+## public repository's budgets in the spec's size budget table (150 MB and
+## 40 MB, milestone-1 task 8), checked by scripts/check-sizes.mjs (npm run
+## check:sizes) in place of the 110 MB cap this test had.
 
 const ASSETS: String = "res://assets"
 const AUDIO: String = "res://assets/audio"
@@ -20,6 +20,10 @@ const MAX_FILE_BYTES: int = 25 * 1024 * 1024
 const MAX_BASE_COLOR: int = 2048
 const MAX_DATA_MAP: int = 1024
 const BONE_MAP: String = "res://assets/quaternius/ual_bone_map.tres"
+## The Kevin Iglesias clips' own bone map, which the clips exported from
+## Blender (milestone-1 task 13, staged by import_clips.gd) retarget through.
+const IGLESIAS: String = "res://assets/kevin_iglesias/"
+const IGLESIAS_BONE_MAP: String = "res://assets/kevin_iglesias/iglesias_bone_map.tres"
 
 
 static func _files(dir_path: String, out: Array[String]) -> Array[String]:
@@ -114,7 +118,8 @@ func test_every_skinned_model_is_retargeted_through_the_bone_map() -> void:
 		if not (path.ends_with(".gltf.import") or path.ends_with(".glb.import")):
 			continue
 		var text: String = FileAccess.get_file_as_string(path)
-		assert_true(text.contains("\"retarget/bone_map\": Resource(") and text.contains(BONE_MAP), "%s uses the bone map" % path.get_file())
+		var bone_map: String = IGLESIAS_BONE_MAP if path.begins_with(IGLESIAS) else BONE_MAP
+		assert_true(text.contains("\"retarget/bone_map\": Resource(") and text.contains(bone_map), "%s uses the bone map" % path.get_file())
 
 
 func test_assets_are_credited() -> void:

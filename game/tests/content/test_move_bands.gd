@@ -16,6 +16,9 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 ## The weapons milestone 1 holds to the bands; the Greatsword and the
 ## Daggers wait for milestone 2 (the spec's P10).
 const BANDED: Array[StringName] = [&"katana", &"fists"]
+## The moves keyed into their bands so far, by weapon: Right Cut and Return
+## Cut (task 31).
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2"]}
 
 
 func _bands() -> MoveBands:
@@ -57,16 +60,19 @@ func test_every_katana_and_bare_hands_move_off_the_waiting_list_connects_from_it
 
 
 func test_a_move_taken_off_the_waiting_list_while_out_of_band_fails_both_tests() -> void:
-	# Right Cut lands on its 11th frame today, against the light band's
-	# 24-30; a Right Cut held 0.9 m out falls short of 2.5 m
+	# Kesa Cut, still a stand-in, lands on its 11th frame today, against the
+	# light band's 24-30; a Kesa Cut held 0.9 m out falls short of 2.5 m
 	var bands: MoveBands = _bands()
-	bands.waiting[&"katana"].erase(&"k_l1")
+	bands.waiting[&"katana"].erase(&"k_l3")
 	var timing: Array[String] = _timing_problems(bands, FrameDataTable.shared())
-	assert_true(timing.has("katana.k_l1 (string_light): startup 11, not 24-30"), "%s" % [timing])
-	assert_true(timing.all(func(p: String) -> bool: return p.begins_with("katana.k_l1 ")), "only Right Cut: %s" % [timing])
-	var short: Array[String] = _distance_problems(bands, FrameDataTable.shared(), {&"katana": _point(0.9)})
-	assert_eq(short, ["katana.k_l1 (string_light): no touch from 2.5 m"] as Array[String])
-	assert_eq(_distance_problems(_bands(), FrameDataTable.shared(), {&"katana": _point(0.9)}), [] as Array[String],
+	assert_true(timing.has("katana.k_l3 (string_light): startup 11, not 24-30"), "%s" % [timing])
+	assert_true(timing.all(func(p: String) -> bool: return p.begins_with("katana.k_l3 ")), "only Kesa Cut: %s" % [timing])
+	# (the fixture's straight blade changes the keyed lights' reach, so only
+	# Kesa Cut's lines count here)
+	var kesa: Callable = func(p: String) -> bool: return p.begins_with("katana.k_l3 ")
+	var short: Array[String] = _distance_problems(bands, FrameDataTable.shared(), {&"katana": _point(0.9, &"k_l3")})
+	assert_eq(short.filter(kesa), ["katana.k_l3 (string_light): no touch from 2.5 m"])
+	assert_eq(_distance_problems(_bands(), FrameDataTable.shared(), {&"katana": _point(0.9, &"k_l3")}).filter(kesa), [],
 			"on the list, it isn't checked")
 
 
@@ -83,14 +89,15 @@ func test_the_waiting_list_holds_only_katana_and_bare_hands_moves() -> void:
 			assert_ne(kind, &"counter_lunge", "%s.%s: the Counter Lunges get no band test until milestone 2" % [wid, id])
 
 
-func test_today_every_katana_and_bare_hands_move_but_the_counter_lunges_waits_for_its_family() -> void:
-	# task 14's stand-in markers: no move has been keyed into its band yet
+func test_every_katana_and_bare_hands_move_but_the_counter_lunges_and_the_keyed_waits_for_its_family() -> void:
+	# task 14's stand-in markers, until each keying task takes its moves off
 	var bands: MoveBands = _bands()
 	for wid: StringName in BANDED:
 		for id: StringName in Moves.WEAPONS[wid].moves:
 			var kind: StringName = StringName(FrameDataTable.shared().row(wid, id)["kind"])
-			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge", "%s.%s" % [wid, id])
-	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 34)
+			var keyed: bool = KEYED.get(wid, []).has(id)
+			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge" and not keyed, "%s.%s" % [wid, id])
+	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 32)
 
 
 func test_every_banded_move_has_a_timing_band_and_every_striking_one_a_distance_band() -> void:
@@ -229,13 +236,14 @@ func test_a_move_without_a_row_or_a_band_is_named() -> void:
 			["katana.x (counter_lunge): no timing band"] as Array[String])
 
 
-## A Katana whose Right Cut holds a straight blade of the Katana's length
-## level and straight ahead, the grip `out` m in front at 1.2 m up (see
-## test_duel_reach.gd): from 2.5 m apart its lunge leaves `out` - 1.0155 m
-## of blade inside.
-static func _point(out: float) -> WeaponDef:
+## A Katana whose move `id` (Right Cut unless given) holds a straight blade
+## of the Katana's length level and straight ahead, the grip `out` m in
+## front at 1.2 m up (see test_duel_reach.gd), played as a stand-in lunging
+## by its record (SF.weapon()): from 2.5 m apart Right Cut's lunge leaves
+## `out` - 1.0155 m of blade inside.
+static func _point(out: float, id: StringName = &"k_l1") -> WeaponDef:
 	var key: Swing.KeyPose = SF.key(0, [0.0, 1.2, out], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0])
-	var w: WeaponDef = SF.weapon(&"katana", {&"k_l1": SF.held(Moves.KATANA.moves[&"k_l1"], {SF.RIGHT: key} as Dictionary[StringName, Swing.KeyPose])})
+	var w: WeaponDef = SF.weapon(&"katana", {id: SF.held(Moves.KATANA.moves[id], {SF.RIGHT: key} as Dictionary[StringName, Swing.KeyPose])})
 	w.blade = StrikeSegment.make(V3.make(0.0, 0.09, 0.0), V3.make(0.0, 0.777, 0.0), 0.015)
 	w.derive_reach()
 	return w
@@ -281,10 +289,11 @@ func test_the_file_s_mistakes_are_named() -> void:
 
 func test_today_s_reach_checks_guard_only_the_moves_still_waiting() -> void:
 	var DuelReach: GDScript = load("res://tests/sim/test_duel_reach.gd")
-	assert_true(DuelReach.still_waits(Moves.KATANA, &"k_l1"), "a waiting light")
+	assert_true(DuelReach.still_waits(Moves.KATANA, &"k_l3"), "a waiting light")
+	assert_false(DuelReach.still_waits(Moves.KATANA, &"k_l1"), "a keyed light, held by the band test")
 	assert_true(DuelReach.still_waits(Moves.GREATSWORD, &"g_l1"), "a weapon with no bands")
 	assert_true(DuelReach.still_waits(Moves.KATANA, &"k_lunge"), "a Counter Lunge, never on the list, keeps today's checks")
 	var bands: MoveBands = MoveBands.shared()
-	bands.waiting[&"katana"].erase(&"k_l1")
-	assert_false(DuelReach.still_waits(Moves.KATANA, &"k_l1"), "off the list, the band test holds it")
-	bands.waiting[&"katana"].push_front(&"k_l1")
+	bands.waiting[&"katana"].erase(&"k_l3")
+	assert_false(DuelReach.still_waits(Moves.KATANA, &"k_l3"), "off the list, the band test holds it")
+	bands.waiting[&"katana"].push_front(&"k_l3")

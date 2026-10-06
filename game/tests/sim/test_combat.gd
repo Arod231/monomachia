@@ -14,14 +14,20 @@ func after_each() -> void:
 	H.dispose_all()
 
 
-# A katana light (startup 11) started on step 0 becomes active on world frame 13.
+# A Katana light (Right Cut, startup 28 since milestone-1 task 31) started on
+# step 0 lands on step H.LIGHT_LANDS (30), world frame 31; the runs below
+# reach past it.
+const RUN: int = H.LIGHT_LANDS + 20
+## A block press this many steps before a light lands is inside the 9-frame
+## parry window, 4 frames early.
+const EARLY: int = 4
 
 # ------------------------------------------------------------------ attacks
 
 func test_a_light_attack_hits_an_idle_opponent_for_its_hp_and_posture_damage() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
-	H.run(W, 30, H.tap_at(0, Btn.LIGHT), IDLE, r)
+	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), IDLE, r)
 	var b: Fighter = W.fighters[1]
 	assert_true(r.has(&"hit"))
 	assert_almost_eq(b.hp, 94.0, CLOSE)
@@ -61,7 +67,7 @@ func test_a_heavy_held_for_2_5_s_releases_by_itself_as_a_stronger_power_attack()
 func test_blocking_stops_hp_damage_but_takes_reduced_posture_damage() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
-	H.run(W, 30, H.tap_at(0, Btn.LIGHT), func(_i: int) -> RawInput: return H.btn(Btn.BLOCK), r)
+	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), func(_i: int) -> RawInput: return H.btn(Btn.BLOCK), r)
 	var b: Fighter = W.fighters[1]
 	assert_true(r.has(&"block"))
 	assert_eq(b.hp, 100.0)
@@ -71,8 +77,8 @@ func test_blocking_stops_hp_damage_but_takes_reduced_posture_damage() -> void:
 func test_a_well_timed_block_press_parries_attacker_recoils_and_takes_parry_posture() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
-	# impact on frame 13; press on step 8 -> frame 9 (4 frames early, inside the 9-frame window)
-	H.run(W, 20, H.tap_at(0, Btn.LIGHT), H.tap_at(8, Btn.BLOCK), r)
+	# impact on step 30; press on step 26 (4 frames early, inside the 9-frame window)
+	H.run(W, H.LIGHT_LANDS + 2, H.tap_at(0, Btn.LIGHT), H.tap_at(H.LIGHT_LANDS - EARLY, Btn.BLOCK), r)
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
 	var p: Dictionary = r.find(&"parry")
@@ -87,7 +93,7 @@ func test_a_well_timed_block_press_parries_attacker_recoils_and_takes_parry_post
 func test_pressing_block_too_early_only_blocks() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
-	H.run(W, 30, H.tap_at(0, Btn.LIGHT), func(i: int) -> RawInput: return H.btn(Btn.BLOCK) if i >= 1 else H.idle(), r)
+	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), func(i: int) -> RawInput: return H.btn(Btn.BLOCK) if i >= 1 else H.idle(), r)
 	assert_false(r.has(&"parry"))
 	assert_true(r.has(&"block"))
 
@@ -112,7 +118,7 @@ func test_you_cannot_block_an_attack_coming_from_behind() -> void:
 	H.run(W, 1)
 	b.yaw = 0.0 # turn away from the attacker
 	b.blind_until = 1000000000
-	H.run(W, 30, H.tap_at(0, Btn.LIGHT), func(_i: int) -> RawInput: return H.btn(Btn.BLOCK), r)
+	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), func(_i: int) -> RawInput: return H.btn(Btn.BLOCK), r)
 	assert_true(r.has(&"hit"))
 
 
@@ -123,7 +129,7 @@ func test_a_parried_attacker_with_a_full_posture_meter_is_disarmed_and_loses_no_
 	var r: H.Rec = H.Rec.new()
 	var a: Fighter = W.fighters[0]
 	a.posture = SimConst.POSTURE_MAX
-	H.run(W, 30, H.tap_at(0, Btn.LIGHT), H.tap_at(8, Btn.BLOCK), r)
+	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), H.tap_at(H.LIGHT_LANDS - EARLY, Btn.BLOCK), r)
 	assert_true(r.has(&"disarm"))
 	assert_false(a.armed)
 	assert_eq(a.hp, 100.0)
@@ -214,9 +220,9 @@ func test_dodge_invincibility_lets_a_normal_attack_pass_through() -> void:
 	var r: H.Rec = H.Rec.new()
 	H.run(
 		W,
-		30,
+		RUN,
 		H.tap_at(0, Btn.LIGHT),
-		func(i: int) -> RawInput: return H.move(0.0, 1.0, Btn.DODGE) if i == 7 else H.idle(),
+		func(i: int) -> RawInput: return H.move(0.0, 1.0, Btn.DODGE) if i == H.LIGHT_LANDS - 5 else H.idle(),
 		r,
 	)
 	assert_true(r.has(&"evade"))
@@ -299,7 +305,7 @@ func test_a_disarmed_fighter_cannot_block() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
 	W.fighters[1].armed = false
-	H.run(W, 30, H.tap_at(0, Btn.LIGHT), func(_i: int) -> RawInput: return H.btn(Btn.BLOCK), r)
+	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), func(_i: int) -> RawInput: return H.btn(Btn.BLOCK), r)
 	assert_true(r.has(&"hit"))
 	assert_almost_eq(W.fighters[1].hp, 94.0, CLOSE)
 
@@ -310,7 +316,7 @@ func test_a_timed_block_press_while_disarmed_is_a_redirect_counter() -> void:
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
 	b.armed = false
-	H.run(W, 20, H.tap_at(0, Btn.LIGHT), H.tap_at(8, Btn.BLOCK), r)
+	H.run(W, H.LIGHT_LANDS + 2, H.tap_at(0, Btn.LIGHT), H.tap_at(H.LIGHT_LANDS - EARLY, Btn.BLOCK), r)
 	var p: Dictionary = r.find(&"parry")
 	assert_eq(p.get("kind"), &"redirect")
 	assert_eq(a.state, &"stunned")
@@ -324,7 +330,7 @@ func test_a_redirect_against_a_full_posture_attacker_disarms_them() -> void:
 	var b: Fighter = W.fighters[1]
 	b.armed = false
 	a.posture = SimConst.POSTURE_MAX
-	H.run(W, 20, H.tap_at(0, Btn.LIGHT), H.tap_at(8, Btn.BLOCK), r)
+	H.run(W, H.LIGHT_LANDS + 2, H.tap_at(0, Btn.LIGHT), H.tap_at(H.LIGHT_LANDS - EARLY, Btn.BLOCK), r)
 	assert_false(a.armed)
 
 

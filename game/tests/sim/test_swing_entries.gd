@@ -164,8 +164,9 @@ func test_a_follow_up_records_the_move_it_follows() -> void:
 	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	var seen: Dictionary[StringName, Variant] = {}
-	for i: int in 40:
-		W.step([H.btn(Btn.LIGHT) if i == 0 or i == 13 else H.idle(), H.idle()])
+	for i: int in 80:
+		# the second press before Right Cut's branch point (34, task 31)
+		W.step([H.btn(Btn.LIGHT) if i == 0 or i == 30 else H.idle(), H.idle()])
 		if f.state == &"attack" and not seen.has(f.atk.def.id):
 			seen[f.atk.def.id] = f.atk.chained_from
 	assert_eq(seen.keys(), [&"k_l1", &"k_l2"], "Right Cut, then Return Cut")

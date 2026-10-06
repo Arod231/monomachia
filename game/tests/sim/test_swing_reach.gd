@@ -20,7 +20,8 @@ func after_each() -> void:
 
 ## Right Cut on a Katana with no swings (its baked one left off).
 static func _cut() -> AttackDef:
-	return SF.without_swings(&"katana").moves[CUT]
+	# Right Cut as a stand-in with no swing (re-keyed by task 31)
+	return SF.stand_ins(&"katana", [CUT] as Array[StringName]).moves[CUT]
 
 
 ## A Katana whose Right Cut has `swing` and whose blade is a straight test

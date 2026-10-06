@@ -401,8 +401,10 @@ func _string_hips(on: bool) -> Array[Array]:
 		got.clear()
 		got.append(sk.get_bone_global_pose(hips).origin))
 	var out: Array[Array] = []
-	for i: int in 70:
-		W.step([SimHelpers.btn(Btn.LIGHT) if i == 12 or i == 22 else SimHelpers.idle(), SimHelpers.idle()])
+	# Right Cut, and Return Cut pressed past its startup (task 31's frames),
+	# played out to the hand-off back to the legs
+	for i: int in 140:
+		W.step([SimHelpers.btn(Btn.LIGHT) if i == 12 or i == 42 else SimHelpers.idle(), SimHelpers.idle()])
 		_update(v, f)
 		got.clear()
 		sk.advance(1.0 / 60.0)
@@ -427,6 +429,8 @@ func test_the_hand_off_back_to_the_legs_carries_on_from_the_pose_shown() -> void
 	assert_lt((steps[handed][2] as Vector3).distance_to(steps[handed - 1][2]), 0.01, "the hips where they were shown")
 	for i: int in range(handed, mini(handed + 8, steps.size())):
 		var rise: float = (steps[i][2] as Vector3).y - (steps[i - 1][2] as Vector3).y
-		assert_true(rise > -0.005 and rise < 0.08, "step %d: the hips rise smoothly (%.3f m)" % [steps[i][0], rise])
+		# rising out of a low follow-through, or settling a little into the
+		# guard (Return Cut stands back up before it hands on, task 31)
+		assert_true(rise > -0.03 and rise < 0.08, "step %d: the hips carry on smoothly (%.3f m)" % [steps[i][0], rise])
 	var cut: Array[Array] = await _string_hips(false)
 	assert_gt((cut[handed][2] as Vector3).distance_to(cut[handed - 1][2]), 0.05, "without it the pose jumps")

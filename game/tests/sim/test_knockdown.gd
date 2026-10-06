@@ -274,7 +274,8 @@ func test_a_light_swung_into_a_downed_fighter_passes_through() -> void:
 	a.pos = V3.make(b.pos.x, 0.0, b.pos.z - 1.6)
 	a.yaw = 0.0
 	W.drain_events()
-	H.run(W, 14, H.tap_at(0, Btn.LIGHT), IDLE, r)
+	# Right Cut lands on state frame 60, still downed (to rise frame 20)
+	H.run(W, H.LIGHT_LANDS + 10, H.tap_at(0, Btn.LIGHT), IDLE, r)
 	assert_true(r.has(&"swing"))
 	assert_false(r.has(&"hit"))
 	assert_almost_eq(b.hp, 100.0 - THRUST_DAMAGE, CLOSE)
@@ -287,14 +288,15 @@ func test_in_the_guard_window_a_light_is_blocked() -> void:
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
 	var hold_block: Callable = func(_i: int) -> RawInput: return H.btn(Btn.BLOCK)
-	# the light lands 12 frames after the press: on state frame 63
-	_to_sf(W, INVULN_LAST - 9, hold_block)
+	# the light lands H.LIGHT_LANDS steps after the press: on state frame 83,
+	# 3 frames into the guard window
+	_to_sf(W, INVULN_LAST + 3 - H.LIGHT_LANDS, hold_block)
 	a.set_state(&"free")
 	a.pos = V3.make(b.pos.x, 0.0, b.pos.z - 1.6)
 	a.yaw = 0.0
 	b.yaw = PI
 	W.drain_events()
-	H.run(W, 16, H.tap_at(0, Btn.LIGHT), hold_block, r)
+	H.run(W, H.LIGHT_LANDS + 4, H.tap_at(0, Btn.LIGHT), hold_block, r)
 	assert_true(r.has(&"block"), "the rising fighter blocks")
 	assert_false(r.has(&"hit"))
 

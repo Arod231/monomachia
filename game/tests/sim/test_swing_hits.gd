@@ -25,13 +25,14 @@ func after_each() -> void:
 
 
 static func _cut() -> AttackDef:
-	return Moves.KATANA.moves[CUT]
+	return SF.timed(Moves.KATANA.moves[CUT])
 
 
 ## Fighter 0 with a Katana whose Right Cut has `swing` (none: the cone), `gap`
 ## m from an idle Katana.
 static func _world(swing: Swing, gap: float = 1.6) -> World:
-	var w: WeaponDef = SF.weapon(&"katana", {CUT: swing}) if swing != null else Moves.KATANA
+	# without a swing: Right Cut as a stand-in with none (the cone)
+	var w: WeaponDef = SF.weapon(&"katana", {CUT: swing})
 	return H.make_world(w, Moves.KATANA, gap)
 
 

@@ -1,0 +1,16 @@
+{
+	"about": "Return Cut (katana.k_l2), milestone-1 task 31: Attack1H03_R's rising, sweeping cut with a longer wind-up (the rise over 8.5 frames, the descent over 4), the sweep at its own speed into the active frames 12.5-14.5, a 14-frame recovery to the settle at 28.5, and both hands on the grip: the shoulders squared, the weapon brought in front of the chest as far as both arms need. Source frames at 30 fps from 0. Startup 25, active 4, recovery 28 rules frames, as the owner chose (Oct 5).",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H03_R.fbx",
+	"out": "blender/clips/return_cut.blend",
+	"remap": [[0, 0], [8.5, 5], [12.5, 8.5], [14.5, 10.5], [28.5, 18], [49, 39]],
+	"two_hands": {"grip": 0.11, "hold": [0.32, 0.12], "square": 0.6, "clearance": 0.08, "to_guard": [[0, 0], [13.5, 0], [16.5, 1], [49, 1]]},
+	"step": {
+		"body": [[0, 0], [1, 0], [4, 0.048], [5, 0.104], [6, 0.239], [7, 0.374], [8, 0.51], [9, 0.645], [10, 0.78], [11, 0.916], [12, 0.987], [13.5, 1.035], [16, 1.067], [22, 1.075], [49, 1.075]],
+		"feet": {
+			"L": [[4.5, 11, 1.075, 0.2]],
+			"R": [[1, 5, 0.3, 0.16], [6, 14, 0.775, 0.24]]
+		},
+		"hips_top": 0.74,
+		"hips_home": [16, 27]
+	}
+}

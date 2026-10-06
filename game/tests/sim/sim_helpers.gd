@@ -12,6 +12,11 @@ extends RefCounted
 ##   adds a world built some other way.
 ## - runUntil is not ported: no test uses it.
 
+## The step a Katana light pressed on step 0 lands on, from make_world()'s
+## 2.2 m or nearer: Right Cut, re-keyed (milestone-1 task 31), landing on its
+## first active frame (startup 28), world frame 31.
+const LIGHT_LANDS: int = 30
+
 static var _worlds: Array[World] = []
 
 

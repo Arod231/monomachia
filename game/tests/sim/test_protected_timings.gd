@@ -94,12 +94,21 @@ func test_the_kept_timings_are_unchanged() -> void:
 # ------------------------------------------------------------------ a move's own values
 
 func test_today_s_stand_ins_keep_today_s_values() -> void:
-	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
-	assert_false(cut.real_markers, "Right Cut is a stand-in today")
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l3"]
+	assert_false(cut.real_markers, "Kesa Cut is a stand-in today")
 	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [14, 10, 4])
 	assert_eq(Moves.FISTS.moves[&"f_l1"].hitstun, 16, "Jab keeps its own 16 until it is re-keyed")
 	assert_eq([Moves.KATANA.moves[&"k_h2"].hitstun, Moves.KATANA.moves[&"k_h2"].hitstop], [26, 7])
 	assert_same(ProtectedTimings.for_move(cut), ProtectedTimings.today())
+
+
+func test_the_re_keyed_lights_take_the_retuned_values() -> void:
+	# Right Cut and Return Cut, re-keyed (task 31)
+	for id: StringName in [&"k_l1", &"k_l2"]:
+		var cut: AttackDef = Moves.KATANA.moves[id]
+		assert_true(cut.real_markers, "%s is on real markers" % id)
+		assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [24, 15, 5], id)
+		assert_same(ProtectedTimings.for_move(cut), ProtectedTimings.for_weapon(&"katana"), id)
 
 
 func test_the_counter_lunges_already_take_their_weapon_s_light_hitstun() -> void:
@@ -257,11 +266,20 @@ func test_a_greatsword_knockdown_keeps_today_s_phases() -> void:
 
 func test_a_stand_in_hit_and_block_keep_today_s() -> void:
 	var W: World = _world()
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l1"], &"hit", false)
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l3"], &"hit", false)
 	assert_eq([W.fighters[1].state_dur, W.hitstop], [14, 4])
 	W = _world()
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l1"], &"block", false)
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l3"], &"block", false)
 	assert_eq([W.fighters[1].state_dur, W.hitstop], [10, 3])
+
+
+func test_the_re_keyed_right_cut_hits_and_is_blocked_on_the_retuned_values() -> void:
+	var W: World = _world()
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l1"], &"hit", false)
+	assert_eq([W.fighters[1].state_dur, W.hitstop], [24, 5])
+	W = _world()
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l1"], &"block", false)
+	assert_eq([W.fighters[1].state_dur, W.hitstop], [15, 3])
 
 
 func test_a_re_keyed_hit_block_and_charge_take_the_retuned_values() -> void:
@@ -317,8 +335,8 @@ func test_at_the_band_floors_the_retuned_hitstuns_leave_two_free_frames() -> voi
 
 
 func test_the_game_s_held_pairs_keep_the_rule() -> void:
-	# every pair with both moves off the waiting list; none yet, so each
-	# family's keying task brings its pairs in
+	# every pair with both moves off the waiting list: Right Cut into Return
+	# Cut since task 31; each family's keying task brings its pairs in
 	for w: WeaponDef in [Moves.KATANA, Moves.FISTS]:
 		assert_eq(FollowUpCheck.weapon_problems(w), [] as Array[String], "%s's pairs" % w.id)
 
@@ -328,9 +346,10 @@ func test_a_held_pair_breaking_the_rule_fails() -> void:
 	var cut: AttackDef = w.moves[&"k_l1"]
 	var held: Callable = func(id: StringName) -> bool: return id == &"k_l1" or id == &"k_l2"
 	var kind: Callable = func(_id: StringName) -> StringName: return &"string_light"
-	# today's stand-ins: Return Cut lands 13 frames after a hit on Right Cut's
-	# last active frame, inside the retuned 24
-	cut.hitstun = 24
+	# Return Cut lands 28 frames after a hit on Right Cut's last active frame
+	# (task 31: branching 2 frames after it, startup 25), 11 frames inside a
+	# hitstun of 39
+	cut.hitstun = 39
 	var problems: Array[String] = FollowUpCheck.problems(w, held, kind)
 	assert_eq(problems.size(), 1, str(problems))
 	assert_string_contains(problems[0], "katana.k_l1 -> k_l2: the defender is free -11 frames")
@@ -376,15 +395,17 @@ static func _string_run(w: WeaponDef, first: StringName, second: StringName, pre
 
 
 ## Whether, in a run of `first` into `second`, a defender hit by `first`
-## and pressing block on its first free step parries `second`; and that the
-## free steps are the ones FollowUpCheck counts.
+## and pressing block on its first free step parries `second`; and that it
+## has at least the free steps FollowUpCheck counts (which count a hit on the
+## last active frame, the latest it can land; a real one lands on its first
+## touch, earlier).
 func _defender_parries_the_next_hit(w: WeaponDef, first: StringName, second: StringName) -> void:
 	var probe: Dictionary = _string_run(w, first, second, -1)
 	var hits: Array[int] = probe["hits"]
 	assert_eq(hits.size(), 2, "%s.%s and %s both land on an idle defender" % [w.id, first, second])
 	if hits.size() < 2:
 		return
-	assert_eq(hits[1] - int(probe["free"]), FollowUpCheck.free_frames(w.moves[first], w.moves[second]), "%s -> %s: the free frames as counted" % [first, second])
+	assert_gte(hits[1] - int(probe["free"]), FollowUpCheck.free_frames(w.moves[first], w.moves[second]), "%s -> %s: at least the free frames counted" % [first, second])
 	var run: Dictionary = _string_run(w, first, second, int(probe["free"]))
 	var rec: H.Rec = run["rec"]
 	assert_eq([rec.count(&"hit"), rec.count(&"parry")], [1, 1], "%s -> %s: the next hit parried" % [first, second])

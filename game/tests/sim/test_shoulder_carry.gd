@@ -199,7 +199,7 @@ func test_being_hit_takes_it_off() -> void:
 	var W: World = _gs(2.2, true)
 	var a: Fighter = W.fighters[0]
 	var hits: Array[int] = []
-	for i: int in 30:
+	for i: int in 60:
 		W.step([H.idle(), H.btn(Btn.LIGHT) if i == 0 else H.idle()])
 		for e: Dictionary in W.drain_events():
 			if e["t"] == &"hit" and e["target"] == 0:

@@ -36,9 +36,10 @@ func _parses(text: String) -> bool:
 
 func test_find_reads_a_json_value_by_key_path() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var span: Vector2i = SourceEdit.find_value(text, ["katana", "moves", "k_l1", "speed"])
+	# Crown Cut, a stand-in (a re-keyed move names no speed: it plays at 1.0x)
+	var span: Vector2i = SourceEdit.find_value(text, ["katana", "moves", "k_l4", "speed"])
 	assert_ne(span, Vector2i(-1, -1), "speed is found")
-	assert_eq(text.substr(span.x, span.y - span.x), "1.45", "the span is the value alone")
+	assert_eq(text.substr(span.x, span.y - span.x), "1.55", "the span is the value alone")
 
 
 func test_find_reads_a_whole_object_value() -> void:
@@ -106,7 +107,7 @@ func test_find_without_an_errors_array_still_works() -> void:
 
 func test_replacing_speed_in_move_clips_changes_only_those_bytes() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var path: Array[String] = ["katana", "moves", "k_l1", "speed"]
+	var path: Array[String] = ["katana", "moves", "k_l4", "speed"]
 	var span: Vector2i = SourceEdit.find_value(text, path)
 	var errors: Array[String] = _errors()
 	var edited: String = SourceEdit.replace_value(text, path, 2.5, errors)
@@ -214,14 +215,14 @@ func test_a_missing_path_on_replace_pushes_an_error_and_keeps_the_text() -> void
 
 func test_adding_marks_to_a_move_that_has_none_and_removing_it_again_gives_the_original() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var path: Array[String] = ["katana", "moves", "k_l1", "marks"]
-	assert_eq(SourceEdit.find_value(text, path), Vector2i(-1, -1), "k_l1 starts without marks")
+	var path: Array[String] = ["katana", "moves", "k_l4", "marks"]
+	assert_eq(SourceEdit.find_value(text, path), Vector2i(-1, -1), "k_l4 starts without marks")
 	var errors: Array[String] = _errors()
 	var added: String = SourceEdit.replace_value(text, path, {"windup": 8, "contact": 15}, errors)
 	assert_eq(errors, [] as Array[String])
 	var span: Vector2i = SourceEdit.find_value(added, path)
 	assert_ne(span, Vector2i(-1, -1), "marks are there now")
-	assert_true(added.contains('"branch": {"k_l2": 8, "k_h2": 8}}, "marks": {"windup": 8, "contact": 15}}'), "added on the same line, after the last entry (its markers)")
+	assert_true(added.contains('"dodge_cancel": 23}, "marks": {"windup": 8, "contact": 15}}'), "added on the same line, after the last entry (its markers)")
 	assert_eq(added.count("\n"), text.count("\n"), "no line was added")
 	assert_not_null(JSON.parse_string(added), "still valid JSON")
 	var removed: String = SourceEdit.remove_key(added, path, errors)
@@ -363,7 +364,7 @@ func test_replacing_a_value_that_wraps_across_lines() -> void:
 
 func test_a_load_with_no_edit_is_identical_bytes() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var path: Array[String] = ["katana", "moves", "k_l1", "speed"]
+	var path: Array[String] = ["katana", "moves", "k_l4", "speed"]
 	var span: Vector2i = SourceEdit.find_value(text, path)
 	var same: String = SourceEdit.replace_value(text, path, text.substr(span.x, span.y - span.x).to_float(), _errors())
 	assert_eq(same, text, "writing the value it already has changes nothing")
@@ -427,6 +428,8 @@ func test_every_real_move_is_found_where_the_game_reads_it() -> void:
 	var data: Dictionary = JSON.parse_string(json)
 	for weapon: String in ["katana", "greatsword", "daggers"]:
 		for move: String in (data[weapon]["moves"] as Dictionary):
+			if not (data[weapon]["moves"][move] as Dictionary).has("speed"):
+				continue # re-keyed: it plays at 1.0x and names no speed
 			var path: Array[String] = [weapon, "moves", move, "speed"]
 			var span: Vector2i = SourceEdit.find_value(json, path)
 			assert_eq(JsFormat.number(json.substr(span.x, span.y - span.x)), float(data[weapon]["moves"][move]["speed"]), "%s speed" % move)

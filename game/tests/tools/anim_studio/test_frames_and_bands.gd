@@ -8,8 +8,8 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 
 
 ## A Katana whose Right Cut holds a straight blade level and straight ahead,
-## the grip `out` m in front (test_move_bands.gd's): 1.1955 puts 18 cm in
-## from 2.5 m, 0.9 falls short.
+## the grip `out` m in front, played as a stand-in (test_move_bands.gd's):
+## 1.1955 puts 18 cm in from 2.5 m, 0.9 falls short.
 static func _point(out: float) -> WeaponDef:
 	var key: Swing.KeyPose = SF.key(0, [0.0, 1.2, out], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0])
 	var w: WeaponDef = SF.weapon(&"katana", {&"k_l1": SF.held(Moves.KATANA.moves[&"k_l1"], {SF.RIGHT: key} as Dictionary[StringName, Swing.KeyPose])})
@@ -18,10 +18,11 @@ static func _point(out: float) -> WeaponDef:
 	return w
 
 
-## The band tables with Right Cut off the waiting list.
-static func _bands_off() -> MoveBands:
+## The band tables with move `id` off the waiting list (Right Cut is, since
+## task 31).
+static func _bands_off(id: StringName = &"k_l1") -> MoveBands:
 	var b: MoveBands = MoveBands.read()
-	b.waiting[&"katana"].erase(&"k_l1")
+	b.waiting[&"katana"].erase(id)
 	return b
 
 
@@ -42,16 +43,25 @@ func test_a_move_in_band() -> void:
 
 
 func test_a_move_out_of_its_timing_band() -> void:
-	# today's Right Cut, on the stand-ins: 11/3/16 against 24-30, 3-6, 24-36
-	var row: Dictionary = FrameDataTable.shared().row(&"katana", &"k_l1")
-	var waiting: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_l1", row, {}, MoveBands.shared())
+	# today's Kesa Cut, on the stand-ins: 11/3/17 against 24-30, 3-6, 24-36
+	var row: Dictionary = FrameDataTable.shared().row(&"katana", &"k_l3")
+	var waiting: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_l3", row, {}, MoveBands.shared())
 	assert_false(waiting.in_band())
 	assert_true(waiting.waiting)
 	assert_eq(waiting.verdict(), "out of band: waiting for its family")
 	assert_eq(waiting.fields.map(func(f: FramesAndBands.Field) -> bool: return f.ok), [false, true, false],
 			"the startup and the recovery are out, the active frames in")
-	var off: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_l1", row, {}, _bands_off())
+	var off: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_l3", row, {}, _bands_off(&"k_l3"))
 	assert_eq(off.verdict(), "out of band: CI will fail")
+
+
+func test_the_re_keyed_right_cut_is_in_band() -> void:
+	var row: Dictionary = FrameDataTable.shared().row(&"katana", &"k_l1")
+	var v: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_l1", row, {}, MoveBands.shared())
+	assert_false(v.waiting, "off the waiting list (task 31)")
+	assert_eq(v.verdict(), "in band")
+	assert_eq(v.fields.map(func(f: FramesAndBands.Field) -> String: return f.text()),
+			["startup 28 (24-30)", "active 4 (3-6)", "recovery 28 (24-36)"])
 
 
 func test_a_move_that_misses_from_its_distance_band() -> void:

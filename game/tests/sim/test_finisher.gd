@@ -267,7 +267,7 @@ func test_a_real_parry_of_a_full_posture_attacker_at_5_hp_opens_the_prompt() -> 
 	a.posture = SimConst.POSTURE_MAX
 	a.hp = 5.0
 	var r: H.Rec = H.Rec.new()
-	H.run(W, 30, H.tap_at(0, Btn.LIGHT), H.tap_at(8, Btn.BLOCK), r)
+	H.run(W, H.LIGHT_LANDS + 20, H.tap_at(0, Btn.LIGHT), H.tap_at(H.LIGHT_LANDS - 4, Btn.BLOCK), r)
 	assert_false(a.armed, "parried into a disarm")
 	assert_eq(r.count(&"finisherPrompt"), 1, "the prompt opens for the parrier")
 
