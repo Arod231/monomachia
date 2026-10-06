@@ -2,7 +2,9 @@ extends GutTest
 ## Swing playback (plan task 14.10): a move with a swing places the weapon
 ## exactly where the rules' swing has it at the frame shown, the arms reach
 ## for it, and the root stays the rules'. The swings are synthetic
-## (tests/sim/swing_fixtures.gd) on fresh copies of the weapons.
+## (tests/sim/swing_fixtures.gd) on fresh copies of the weapons: the
+## Greatsword's and the Daggers', since the Katana rides the clip's hands in
+## every state (milestone-1 task 135); task 60 retires the rest.
 
 const SF := preload("res://tests/sim/swing_fixtures.gd")
 ## How close the shown weapon must be to the sample: 1 mm and 0.5°.
@@ -11,6 +13,7 @@ const NEAR_DEG: float = 0.5
 
 
 func after_each() -> void:
+	ClipLibraries.force_missing = false
 	SimHelpers.dispose_all()
 
 
@@ -65,7 +68,7 @@ func _play_and_miss(fighter_id: StringName, weapon: WeaponDef) -> Vector2:
 
 
 func test_the_shown_weapon_is_the_swing_at_every_frame() -> void:
-	for pair: Array in [[&"hunter", &"greatsword"], [&"rogue", &"katana"], [&"rogue", &"daggers"], [&"hunter", &"katana"]]:
+	for pair: Array in [[&"hunter", &"greatsword"], [&"rogue", &"greatsword"], [&"rogue", &"daggers"], [&"hunter", &"daggers"]]:
 		var miss: Vector2 = _play_and_miss(pair[0], _slashing(pair[1]))
 		assert_lt(miss.x, NEAR_POS, "%s %s: the grip is the swing's (%.2f mm off)" % [pair[0], pair[1], miss.x * 1000.0])
 		assert_lt(miss.y, NEAR_DEG, "%s %s: the blade and edge are the swing's (%.2f° off)" % [pair[0], pair[1], miss.y])
@@ -187,12 +190,12 @@ func test_moves_without_a_swing_keep_the_stand_in() -> void:
 
 ## The key's elbow-pole tweak goes on the rig for the hand it moves.
 func test_the_elbow_pole_tweak_reaches_the_rig() -> void:
-	var start: AttackDef = SF.timed(Moves.KATANA.moves[&"k_l1"])
+	var start: AttackDef = SF.timed(Moves.GREATSWORD.moves[&"g_l1"])
 	var swing: Swing = SF.level_slash(start)
 	for k: Swing.KeyPose in swing.track(SF.RIGHT):
 		k.pole = V3.make(0.3, 0.1, -0.2)
 	swing = _rebuilt(swing, start)
-	var weapon: WeaponDef = SF.weapon(&"katana", {&"k_l1": swing} as Dictionary[StringName, Swing])
+	var weapon: WeaponDef = SF.weapon(&"greatsword", {&"g_l1": swing} as Dictionary[StringName, Swing])
 	var W: World = SimHelpers.make_world(weapon, Moves.KATANA, 3.0)
 	var f: Fighter = W.fighters[0]
 	var v: FighterView = _view(&"rogue", weapon)
@@ -324,7 +327,7 @@ func test_an_opener_starts_from_the_guard_it_stands_in() -> void:
 ## the opener blends from it into the swing over at most BLEND_FRAMES frames,
 ## then plays it exactly.
 func test_the_guard_stands_in_the_swings_guard_and_the_opener_blends_from_it() -> void:
-	var weapon: WeaponDef = _slashing(&"katana")
+	var weapon: WeaponDef = _slashing(&"greatsword")
 	var W: World = SimHelpers.make_world(weapon, Moves.KATANA, 3.0)
 	var f: Fighter = W.fighters[0]
 	var v: FighterView = _view(&"rogue", weapon)
@@ -355,7 +358,7 @@ func test_the_guard_stands_in_the_swings_guard_and_the_opener_blends_from_it() -
 	assert_between(exact_from, 0, int(SwingPlayer.BLEND_FRAMES) + 1, "blended over the first frames only")
 
 
-## Through the Katana's L-L-L-L and the strings stopped after one, two and
+## Through the Daggers' L-L-L-L and the strings stopped after one, two and
 ## three lights, the shown grip moves no more in a frame at a chain point
 ## than the swings around it move on their own, though a follow-up's entry
 ## starts from the hand-off key, which the move before had not reached; a
@@ -364,11 +367,11 @@ func test_the_guard_stands_in_the_swings_guard_and_the_opener_blends_from_it() -
 ## frame, which the rules never show: the attack ends on the step that
 ## reaches it, so the last frame shown is a frame short of the guard.
 func test_strings_never_jump_and_a_stopped_string_ends_on_the_guard() -> void:
-	var lights: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
+	var lights: Array[StringName] = [&"d_l1", &"d_l2", &"d_l3", &"d_l4"]
 	var largest_gap: float = 0.0
 	var played_lights: int = 0
 	for n: int in [1, 2, 3, 4]:
-		var weapon: WeaponDef = _string_weapon(&"katana", lights)
+		var weapon: WeaponDef = _string_weapon(&"daggers", lights)
 		var chain: Array[StringName] = []
 		var id: StringName = weapon.light_start
 		while id != &"" and weapon.moves.has(id) and chain.size() < n:
@@ -420,7 +423,7 @@ func test_strings_never_jump_and_a_stopped_string_ends_on_the_guard() -> void:
 ## A swing cut off by a dodge (the stand-in's pose takes over) blends out
 ## rather than jumping to the stand-in.
 func test_a_cut_off_swing_blends_out() -> void:
-	var weapon: WeaponDef = _slashing(&"katana")
+	var weapon: WeaponDef = _slashing(&"greatsword")
 	var W: World = SimHelpers.make_world(weapon, Moves.KATANA, 3.0)
 	var f: Fighter = W.fighters[0]
 	var v: FighterView = _view(&"rogue", weapon)
@@ -550,7 +553,10 @@ static func _at(rec: Array[Dictionary], t: float) -> Dictionary:
 ## and body are keyed alike, the hips' turning peaks PELVIS_LEAD frames
 ## before the blade's and the chest's CHEST_LEAD before, on the skeleton.
 func test_the_hips_lead_the_chest_lead_the_blade() -> void:
-	var weapon: WeaponDef = _coiling(&"katana")
+	# over the CC0 stand-in idle: the packs' Greatsword idle turns the hips
+	# on its own
+	ClipLibraries.force_missing = true
+	var weapon: WeaponDef = _coiling(&"greatsword")
 	var cut: AttackDef = weapon.moves[weapon.light_start]
 	var rec: Array[Dictionary] = await _play_posed(&"rogue", weapon, 4)
 	var from: float = float(cut.startup - 3)
@@ -602,7 +608,7 @@ func test_the_cocked_hold_shows_on_the_skeleton() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
 		return
-	var weapon: WeaponDef = _coiling(&"katana")
+	var weapon: WeaponDef = _coiling(&"greatsword")
 	var cut: AttackDef = weapon.moves[weapon.light_start]
 	var rec: Array[Dictionary] = await _play_posed(&"rogue", weapon)
 	var held: int = 0

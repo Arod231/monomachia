@@ -179,6 +179,14 @@ func test_a_katana_light_lays_a_ribbon_only_while_its_trail_is_on() -> void:
 	assert_eq(view.effects.trail(1, TrailState.RIGHT).vertices().size(), 0, "the dummy never swung")
 
 
+## Runs each fighter's modifier stack now, as the frame's skeleton update
+## would: a weapon riding the clip's hands (the Katana, milestone-1 task
+## 135) is placed there, and the next draw's trail reads it.
+func _pose_skeletons() -> void:
+	for fv: FighterView in view.fighters:
+		fv.model.skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+
+
 ## The shortest distance from p to the hurt capsule of side i as shown.
 func _capsule_distance(p: Vector3, i: int) -> float:
 	var at: Vector3 = host.display_position(i)
@@ -200,6 +208,7 @@ func test_the_ribbon_stays_clear_of_the_attackers_body() -> void:
 		for k: int in f.atk.def.startup + f.atk.def.active + f.atk.def.recovery:
 			host.step(1)
 			view.render(DT)
+			_pose_skeletons()
 			for p: Vector3 in view.effects.trail(0, TrailState.RIGHT).vertices():
 				nearest = minf(nearest, _capsule_distance(p, 0))
 				laid += 1
