@@ -69,6 +69,8 @@ const SNAPSHOT_SKIP: Array[StringName] = [&"me", &"_spar"]
 func _init(p_me: Fighter) -> void:
 	me = p_me
 	_spar = AIBrain.new(me, AIBrain.DIFFICULTY[&"normal"], 5)
+	# the dummy never finishes the player (milestone-1 task 107)
+	_spar.finishes = false
 
 
 ## A copy of the dummy's state (milestone-1 task 5), its sparring brain's
@@ -140,7 +142,17 @@ static func practice_distance(w: WeaponDef) -> float:
 	return 2.6 if w.id == &"greatsword" else (1.8 if w.id == &"daggers" else 2.2)
 
 
+## The next step's input. While a finisher prompt is open for the dummy, it
+## presses no heavy that would take it: the dummy never finishes the player
+## (milestone-1 task 107).
 func think() -> RawInput:
+	var out: RawInput = _think()
+	if me.world.prompt_by == me.id:
+		out.buttons &= ~(1 << Btn.HEAVY)
+	return out
+
+
+func _think() -> RawInput:
 	if behaviour == &"fight":
 		return _spar.think()
 	var frame: int = me.world.frame + 1

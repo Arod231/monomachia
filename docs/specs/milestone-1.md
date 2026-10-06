@@ -181,8 +181,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 120. As a disarmed player who redirects an armed opponent at 5% HP or less into a disarm, I want the bare-hands finisher: I turn their last attack aside, then drop them with a crushing palm to the chest or a blow to the throat, cutting nothing, so that bare hands can finish too. When a disarmed fighter disarms by a blocked Breaker Palm or a fully charged Roundhouse instead, the same finisher opens and plays from its strike, skipping the turn-aside **(P52, confirmed Oct 4)**.
 121. As a player, I want each finisher played as a paired clip with its own cinematic shot, so that it reads as a killing move.
 122. As a player with Blood set to Reduced, I want the Katana's finisher to show the cut with less blood and the body staying whole, and with Blood Off no blood at all, so that I choose how graphic it is.
-123. As a player against the computer, I want it to use finishers too, landing them more often on higher difficulties **(P3, confirmed Oct 4)**, at the rates in the computer's finisher rates table **(P55, confirmed Oct 4)**, so that it plays by the same rules.
-124. As a Training player, I want a finisher to play in full and the HP then to refill, so that I can practise finishing. **(P3, confirmed Oct 4)**
+123. [x] As a player against the computer, I want it to use finishers too, landing them more often on higher difficulties **(P3, confirmed Oct 4)**, at the rates in the computer's finisher rates table **(P55, confirmed Oct 4)**, so that it plays by the same rules. (Ticked with task 107.)
+124. [x] As a Training player, I want a finisher to play in full and the HP then to refill, so that I can practise finishing. **(P3, confirmed Oct 4)** (Ticked with task 107.)
 125. As the owner, I want a finisher to end the round as a KO, called Warrior Slain, so that rounds end one way.
 
 ### Round flow, cinematics and the camera

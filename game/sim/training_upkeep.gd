@@ -49,6 +49,8 @@ var _last_hurt: Array[int] = [0, 0]
 var _prev_hp: Array[float] = [SimConst.HP_MAX, SimConst.HP_MAX]
 ## The world frame the dummy was first seen disarmed, or -1 while armed.
 var _disarmed_at: int = -1
+## Per side: K.O.'d by a finisher still playing, to come back re-armed.
+var _finished: Array[bool] = [false, false]
 
 
 ## Not in the snapshot: the world, a link the restore keeps.
@@ -81,7 +83,12 @@ func step() -> void:
 			_last_hurt[i] = world.frame
 		_prev_hp[i] = f.hp
 		if f.state == &"ko":
-			_stand_up(f)
+			if world.finisher_by == 1 - i:
+				# a finisher plays in full before its victim comes back
+				# (milestone-1 task 107)
+				_finished[i] = true
+			else:
+				_stand_up(f)
 		var unhurt: int = world.frame - _last_hurt[i]
 		if refill and unhurt > REFILL_AFTER and (f.hp < SimConst.HP_MAX or (i == dummy and f.posture > 0.0)):
 			f.hp = minf(SimConst.HP_MAX, f.hp + REFILL_RATE)
@@ -134,6 +141,13 @@ func _upkeep_dummy_weapon(f: Fighter, unhurt: int) -> void:
 
 
 func _stand_up(f: Fighter) -> void:
+	if _finished[f.id]:
+		# after a finisher: re-armed, the weapon gone from the floor
+		_finished[f.id] = false
+		world.remove_dropped_weapon(f.id)
+		f.armed = true
+		if f.id == dummy:
+			_disarmed_at = -1
 	f.hp = SimConst.HP_MAX
 	f.posture = 0.0
 	f.ult_used = false
