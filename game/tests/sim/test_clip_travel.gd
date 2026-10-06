@@ -12,8 +12,9 @@ const H := preload("res://tests/sim/sim_helpers.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
 const CUT: StringName = &"k_l1"
 const EPS: float = 1e-9
-## The moves re-keyed so far (task 31: Right Cut and Return Cut).
-const KEYED: Array[StringName] = [&"k_l1", &"k_l2"]
+## The moves re-keyed so far: the light string (task 31: Right Cut and Return
+## Cut; task 32: Kesa Cut and Crown Cut).
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
 
 
 func after_each() -> void:

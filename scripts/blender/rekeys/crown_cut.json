@@ -1,0 +1,14 @@
+{
+	"about": "Crown Cut (katana.k_l4), milestone-1 task 32: Attack2H02's straight overhead, the blade raised over 10 frames and held at the top, the cut at its own speed into the active frames 13.5-15.5, a 16-frame recovery out of its low finish to the settle at 31.5, and a 1.17 m okuri-ashi step into the cut (the back foot stepping up, the front foot stepping with the cut, the back foot following). The clip is two-handed already: the left hand is set on the grip and the blade kept clear of the body. Source frames at 30 fps from 0. Startup 27, active 4, recovery 32 rules frames, as the owner chose (Oct 6).",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H02.fbx",
+	"out": "blender/clips/crown_cut.blend",
+	"remap": [[0, 0], [10, 18], [12.5, 19.8], [13.5, 20.8], [15.5, 22.8], [31.5, 40], [39, 47]],
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0, "clearance": 0.08},
+	"step": {
+		"body": [[0, 0], [2, 0], [4, 0.045], [6, 0.09], [8, 0.135], [9, 0.189], [10, 0.27], [11, 0.378], [12, 0.522], [13, 0.702], [13.5, 0.792], [14, 0.882], [15, 1.017], [16, 1.098], [17, 1.152], [19, 1.17], [39, 1.17]],
+		"feet": {
+			"L": [[8.5, 14.5, 1.17, 0.2]],
+			"R": [[2, 8, 0.366, 0.16], [10.6, 18, 0.804, 0.24]]
+		}
+	}
+}

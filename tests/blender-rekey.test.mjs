@@ -28,7 +28,7 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
-    assert.deepEqual(specs.map((s) => s.id).sort(), ['return_cut', 'right_cut']);
+    assert.deepEqual(specs.map((s) => s.id).sort(), ['crown_cut', 'kesa_cut', 'return_cut', 'right_cut']);
   });
 
   for (const { id, spec } of specs) {

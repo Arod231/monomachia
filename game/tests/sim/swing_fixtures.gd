@@ -128,10 +128,12 @@ static func without_swings(id: StringName) -> WeaponDef:
 ## The frames of the moves milestone 1 has re-keyed as they were as
 ## stand-ins, from the frame-data table before their re-key: [startup, active,
 ## recovery, dodge cancel [from, to], branches]. Right Cut and Return Cut,
-## task 31.
+## task 31; Kesa Cut and Crown Cut, task 32.
 const STAND_IN_FRAMES: Dictionary = {
 	&"k_l1": [11, 3, 16, [20, 30], {&"k_l2": [16, 30], &"k_h2": [16, 30]}],
 	&"k_l2": [10, 3, 16, [19, 29], {&"k_l3": [15, 29], &"k_h1f": [15, 29]}],
+	&"k_l3": [11, 3, 17, [20, 31], {&"k_l4": [16, 31], &"k_h2": [16, 31]}],
+	&"k_l4": [14, 4, 22, [26, 40], {}],
 }
 
 

@@ -211,6 +211,25 @@
 				"daggers"
 			]
 		},
+		"KesaCut": {
+			"export": "exports/clips/kesa_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/2H",
+			"source": "Attack2H01",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 12,
+				"contact_end": 15,
+				"settle": 28
+			},
+			"foot_contacts": {"left": [[0, 8], [14, 37]], "right": [[0, 2], [8, 10], [17, 37]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"Attack2H01": {
 			"pack": "Human Melee Animations",
 			"dir": "Combat/2H",
@@ -246,6 +265,25 @@
 			"provisional": true,
 			"groups": [
 				"greatsword"
+			]
+		},
+		"CrownCut": {
+			"export": "exports/clips/crown_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/2H",
+			"source": "Attack2H02",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 13,
+				"contact_end": 16,
+				"settle": 31
+			},
+			"foot_contacts": {"left": [[0, 10], [16, 40]], "right": [[0, 3], [9, 12], [19, 40]]},
+			"provisional": false,
+			"groups": [
+				"katana"
 			]
 		},
 		"Attack2H02": {

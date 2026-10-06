@@ -299,13 +299,13 @@ func test_a_lunge_into_a_defender_still_stops_0_25_m_clear_of_their_body() -> vo
 ## hands' first two keep 16, and the Daggers' four string lights, which follow
 ## each other faster, stun for 10 (11.1: Off-hand Slice lands 11 frames after
 ## Quick Slice). Both Counter Lunges, on real markers, take their weapon's
-## retuned light hitstun (milestone-1 task 22), as do Right Cut and Return Cut
-## once re-keyed (task 31).
+## retuned light hitstun (milestone-1 task 22), as do the string's four lights
+## once re-keyed (tasks 31 and 32).
 const LIGHT_HITSTUN: int = 14
 const OWN_HITSTUN: Dictionary[StringName, int] = {
 	&"f_l1": 16, &"f_l2": 16, &"d_l1": 10, &"d_l2": 10, &"d_l3": 10, &"d_l4": 10,
 	&"k_lunge": 24, &"f_lunge": 18,
-	&"k_l1": 24, &"k_l2": 24,
+	&"k_l1": 24, &"k_l2": 24, &"k_l3": 24, &"k_l4": 24,
 }
 
 

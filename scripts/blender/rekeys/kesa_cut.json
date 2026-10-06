@@ -1,0 +1,15 @@
+{
+	"about": "Kesa Cut (katana.k_l3), milestone-1 task 32: Attack2H01's diagonal from the right shoulder to the left hip, the wind-up raised over 8 frames and held at the top, the cut at its own speed into the active frames 12.5-14.5, then a quick pass through the clip's still, low follow-through into its rise back toward the guard by the settle at 28.5 (a 14-frame recovery), the hips back up to their guard height over frames 17-25 so the blade clears the front thigh, and a 1.08 m okuri-ashi step into the cut (the back foot stepping up, the front foot stepping with the cut, the back foot following). The clip is two-handed already: the left hand is set on the grip and the blade kept clear of the body. Source frames at 30 fps from 0. Startup 25, active 4, recovery 28 rules frames, as the owner chose (Oct 6).",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H01.fbx",
+	"out": "blender/clips/kesa_cut.blend",
+	"remap": [[0, 0], [8, 11.5], [9.5, 12.5], [12.5, 16], [14.5, 18], [17, 21], [19, 27], [28.5, 41], [36, 48]],
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0, "clearance": 0.08},
+	"step": {
+		"body": [[0, 0], [1, 0], [3, 0.033], [5, 0.083], [6.5, 0.125], [7.5, 0.166], [8.5, 0.249], [9.5, 0.357], [10.5, 0.482], [11.5, 0.632], [12.5, 0.789], [13.5, 0.914], [14.5, 0.997], [15.5, 1.047], [17, 1.08], [36, 1.08]],
+		"feet": {
+			"L": [[7, 13, 1.08, 0.2]],
+			"R": [[1, 6.5, 0.33, 0.16], [9.5, 16, 0.75, 0.24]]
+		},
+		"hips_home": [17, 25]
+	}
+}

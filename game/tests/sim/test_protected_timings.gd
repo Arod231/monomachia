@@ -94,8 +94,8 @@ func test_the_kept_timings_are_unchanged() -> void:
 # ------------------------------------------------------------------ a move's own values
 
 func test_today_s_stand_ins_keep_today_s_values() -> void:
-	var cut: AttackDef = Moves.KATANA.moves[&"k_l3"]
-	assert_false(cut.real_markers, "Kesa Cut is a stand-in today")
+	var cut: AttackDef = Moves.KATANA.moves[&"k_dl"]
+	assert_false(cut.real_markers, "Wind Cut is a stand-in today")
 	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [14, 10, 4])
 	assert_eq(Moves.FISTS.moves[&"f_l1"].hitstun, 16, "Jab keeps its own 16 until it is re-keyed")
 	assert_eq([Moves.KATANA.moves[&"k_h2"].hitstun, Moves.KATANA.moves[&"k_h2"].hitstop], [26, 7])
@@ -103,8 +103,8 @@ func test_today_s_stand_ins_keep_today_s_values() -> void:
 
 
 func test_the_re_keyed_lights_take_the_retuned_values() -> void:
-	# Right Cut and Return Cut, re-keyed (task 31)
-	for id: StringName in [&"k_l1", &"k_l2"]:
+	# the light string, re-keyed (tasks 31 and 32)
+	for id: StringName in [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]:
 		var cut: AttackDef = Moves.KATANA.moves[id]
 		assert_true(cut.real_markers, "%s is on real markers" % id)
 		assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [24, 15, 5], id)
@@ -266,10 +266,10 @@ func test_a_greatsword_knockdown_keeps_today_s_phases() -> void:
 
 func test_a_stand_in_hit_and_block_keep_today_s() -> void:
 	var W: World = _world()
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l3"], &"hit", false)
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_dl"], &"hit", false)
 	assert_eq([W.fighters[1].state_dur, W.hitstop], [14, 4])
 	W = _world()
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_l3"], &"block", false)
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_dl"], &"block", false)
 	assert_eq([W.fighters[1].state_dur, W.hitstop], [10, 3])
 
 
@@ -425,8 +425,9 @@ func test_a_defender_can_parry_the_next_hit_of_every_held_light_pair() -> void:
 			if next != &"" and bands.is_held(w.id, next, StringName(table.row(w.id, next).get("kind", ""))):
 				_defender_parries_the_next_hit(w, id, next)
 				pairs += 1
-	if pairs == 0:
-		pass_test("no light pair is off the waiting list yet: each keying task brings its pairs in")
+	# each keying task brings its pairs in: the Katana's whole string since
+	# task 32 (Right Cut into Return Cut into Kesa Cut into Crown Cut)
+	assert_gte(pairs, 3, "the light string's three pairs are held")
 
 
 func test_a_made_up_pair_at_the_floors_can_be_parried_with_two_frames_to_spare() -> void:

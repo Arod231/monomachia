@@ -288,7 +288,7 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 	},
 	&"string_lll": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [29, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [30, 0.0, 0.0, 0],
-			[1, 0.0, 0.0, LIGHT], [60, 0.0, 0.0, 0]],
+			[1, 0.0, 0.0, LIGHT], [80, 0.0, 0.0, 0]],
 		"notes": "still for 12 frames, then Right Cut, Return Cut and Kesa Cut, recovering to the guard",
 		"views": [&"three_quarter", &"hands"],
 		"spacing": 4.0,
@@ -296,7 +296,7 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 	},
 	&"string_llll": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [29, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [30, 0.0, 0.0, 0],
-			[1, 0.0, 0.0, LIGHT], [15, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [70, 0.0, 0.0, 0]],
+			[1, 0.0, 0.0, LIGHT], [30, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [90, 0.0, 0.0, 0]],
 		"notes": "still for 12 frames, then the whole L-L-L-L: Right Cut, Return Cut, Kesa Cut and Crown Cut, recovering to the guard",
 		"views": [&"three_quarter", &"hands"],
 		"spacing": 4.0,

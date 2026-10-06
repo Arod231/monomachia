@@ -16,9 +16,9 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 ## The weapons milestone 1 holds to the bands; the Greatsword and the
 ## Daggers wait for milestone 2 (the spec's P10).
 const BANDED: Array[StringName] = [&"katana", &"fists"]
-## The moves keyed into their bands so far, by weapon: Right Cut and Return
-## Cut (task 31).
-const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2"]}
+## The moves keyed into their bands so far, by weapon: the light string
+## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32).
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]}
 
 
 func _bands() -> MoveBands:
@@ -60,19 +60,20 @@ func test_every_katana_and_bare_hands_move_off_the_waiting_list_connects_from_it
 
 
 func test_a_move_taken_off_the_waiting_list_while_out_of_band_fails_both_tests() -> void:
-	# Kesa Cut, still a stand-in, lands on its 11th frame today, against the
-	# light band's 24-30; a Kesa Cut held 0.9 m out falls short of 2.5 m
+	# Wind Cut, still a stand-in, lands on its 9th frame today, against the
+	# dodge light band's 24-30; a Wind Cut held 0.3 m out falls short of 2.5 m
+	# and of 2.1 m, lunge and all
 	var bands: MoveBands = _bands()
-	bands.waiting[&"katana"].erase(&"k_l3")
+	bands.waiting[&"katana"].erase(&"k_dl")
 	var timing: Array[String] = _timing_problems(bands, FrameDataTable.shared())
-	assert_true(timing.has("katana.k_l3 (string_light): startup 11, not 24-30"), "%s" % [timing])
-	assert_true(timing.all(func(p: String) -> bool: return p.begins_with("katana.k_l3 ")), "only Kesa Cut: %s" % [timing])
+	assert_true(timing.has("katana.k_dl (dodge_light): startup 9, not 24-30"), "%s" % [timing])
+	assert_true(timing.all(func(p: String) -> bool: return p.begins_with("katana.k_dl ")), "only Wind Cut: %s" % [timing])
 	# (the fixture's straight blade changes the keyed lights' reach, so only
-	# Kesa Cut's lines count here)
-	var kesa: Callable = func(p: String) -> bool: return p.begins_with("katana.k_l3 ")
-	var short: Array[String] = _distance_problems(bands, FrameDataTable.shared(), {&"katana": _point(0.9, &"k_l3")})
-	assert_eq(short.filter(kesa), ["katana.k_l3 (string_light): no touch from 2.5 m"])
-	assert_eq(_distance_problems(_bands(), FrameDataTable.shared(), {&"katana": _point(0.9, &"k_l3")}).filter(kesa), [],
+	# Wind Cut's lines count here)
+	var wind: Callable = func(p: String) -> bool: return p.begins_with("katana.k_dl ")
+	var short: Array[String] = _distance_problems(bands, FrameDataTable.shared(), {&"katana": _point(0.3, &"k_dl")})
+	assert_eq(short.filter(wind), ["katana.k_dl (dodge_light): no touch from 2.5 m", "katana.k_dl (dodge_light): no touch from 2.1 m"])
+	assert_eq(_distance_problems(_bands(), FrameDataTable.shared(), {&"katana": _point(0.3, &"k_dl")}).filter(wind), [],
 			"on the list, it isn't checked")
 
 
@@ -97,7 +98,7 @@ func test_every_katana_and_bare_hands_move_but_the_counter_lunges_and_the_keyed_
 			var kind: StringName = StringName(FrameDataTable.shared().row(wid, id)["kind"])
 			var keyed: bool = KEYED.get(wid, []).has(id)
 			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge" and not keyed, "%s.%s" % [wid, id])
-	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 32)
+	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 30)
 
 
 func test_every_banded_move_has_a_timing_band_and_every_striking_one_a_distance_band() -> void:
@@ -289,11 +290,12 @@ func test_the_file_s_mistakes_are_named() -> void:
 
 func test_today_s_reach_checks_guard_only_the_moves_still_waiting() -> void:
 	var DuelReach: GDScript = load("res://tests/sim/test_duel_reach.gd")
-	assert_true(DuelReach.still_waits(Moves.KATANA, &"k_l3"), "a waiting light")
+	assert_true(DuelReach.still_waits(Moves.KATANA, &"k_dl"), "a waiting light (Wind Cut)")
 	assert_false(DuelReach.still_waits(Moves.KATANA, &"k_l1"), "a keyed light, held by the band test")
 	assert_true(DuelReach.still_waits(Moves.GREATSWORD, &"g_l1"), "a weapon with no bands")
 	assert_true(DuelReach.still_waits(Moves.KATANA, &"k_lunge"), "a Counter Lunge, never on the list, keeps today's checks")
 	var bands: MoveBands = MoveBands.shared()
-	bands.waiting[&"katana"].erase(&"k_l3")
-	assert_false(DuelReach.still_waits(Moves.KATANA, &"k_l3"), "off the list, the band test holds it")
-	bands.waiting[&"katana"].push_front(&"k_l3")
+	var at: int = bands.waiting[&"katana"].find(&"k_dl")
+	bands.waiting[&"katana"].remove_at(at)
+	assert_false(DuelReach.still_waits(Moves.KATANA, &"k_dl"), "off the list, the band test holds it")
+	bands.waiting[&"katana"].insert(at, &"k_dl")
