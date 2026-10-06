@@ -95,6 +95,9 @@ var swing_debug_view: SwingDebugView
 var effects: CombatEffects
 ## The recall's power-up aura and burst (task 30b), drawn with the effects.
 var recall_aura: RecallAura = RecallAura.new()
+## Blood (milestone-1 task 38): bursts, stains on bodies and blades, the
+## floor's splatter, at the settings' Blood level.
+var blood: BloodEffects
 ## The settings whose Reduce flashes switch the view follows (use_settings();
 ## the game's by default).
 var settings: GameSettings
@@ -126,6 +129,10 @@ func _ready() -> void:
 		effects = CombatEffects.new()
 		add_child(effects)
 		effects.host = host
+	if blood == null:
+		blood = BloodEffects.new()
+		add_child(blood)
+		blood.host = host
 	if settings == null:
 		use_settings(GameServices.settings)
 	if host == null and has_node(host_path):
@@ -136,16 +143,29 @@ func _ready() -> void:
 		set_swing_debug(true)
 
 
-## Follows these settings' Reduce flashes switch: applies it now, and again
-## whenever they change (GameSettings.changed). The settings followed before
-## no longer reach the view.
+## Follows these settings' Reduce flashes switch and Blood level: applies
+## them now, and again whenever they change (GameSettings.changed). The
+## settings followed before no longer reach the view.
 func use_settings(p_settings: GameSettings) -> void:
-	if settings != null and settings.changed.is_connected(apply_reduce_flashes):
-		settings.changed.disconnect(apply_reduce_flashes)
+	if settings != null and settings.changed.is_connected(_apply_settings):
+		settings.changed.disconnect(_apply_settings)
 	settings = p_settings
 	if settings != null:
-		settings.changed.connect(apply_reduce_flashes)
+		settings.changed.connect(_apply_settings)
+	_apply_settings()
+
+
+func _apply_settings() -> void:
 	apply_reduce_flashes()
+	apply_blood()
+
+
+## The Blood setting (milestone-1 task 38): how much blood the match draws,
+## at once (turning it off hides what is there).
+func apply_blood() -> void:
+	if blood != null:
+		blood.setting = settings.blood if settings != null else GameSettings.BLOOD_ON
+		blood.update(effects.clock() if effects != null else 0.0)
 
 
 ## Reduce flashes and shaking (18.11) on or off, as the settings say: the
@@ -168,6 +188,8 @@ func bind(p_host: MatchHost) -> void:
 	host = p_host
 	if effects != null:
 		effects.host = host
+	if blood != null:
+		blood.host = host
 	host.match_started.connect(_on_match_started)
 	host.sim_event.connect(_on_sim_event)
 	host.loadout_changed.connect(_on_loadout_changed)
@@ -191,6 +213,7 @@ func render(delta: float) -> void:
 	_feed_trails()
 	_feed_auras()
 	effects.update(effects.clock())
+	blood.update(effects.clock())
 	if split != null:
 		for i: int in 2:
 			cameras[i].update_rig(delta, host.display_position(i), host.display_position(1 - i))
@@ -208,6 +231,7 @@ func snap_camera() -> void:
 	_update_dropped()
 	_feed_trails()
 	effects.update(effects.clock())
+	blood.update(effects.clock())
 	if split != null:
 		for i: int in 2:
 			cameras[i].snap(host.display_position(i), host.display_position(1 - i))
@@ -276,6 +300,7 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	_clear_dropped()
 	effects.clear()
 	effects.set_preset(GameServices.graphics_preset())
+	blood.new_match(fighters)
 	_use_split(cfg.mode == MatchConfig.VERSUS and not host.attract)
 	apply_reduce_flashes()
 	var camera_mode: CameraRig.Mode = CameraRig.Mode.FOLLOW
@@ -441,6 +466,7 @@ func _body_flash(i: int, color: Color, strength: float) -> void:
 func _on_sim_event(e: Dictionary) -> void:
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
+	blood.on_event(e, effects.clock())
 	match e["t"]:
 		&"hit":
 			var heavy: bool = e["heavy"]
