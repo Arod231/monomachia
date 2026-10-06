@@ -90,7 +90,7 @@ flowchart TD
 | `game/fighters`, `game/weapons`, `game/arenas` | Content: fighter models and palettes, weapon models, the Moonlit Shrine. |
 | `game/shaders` | Every `.gdshader` and shared include. |
 | `game/audio` | `SoundBank` (event to sound table), `SoundPlayer`, music director and player, footsteps. |
-| `game/ui` | `MatchHud`, `HudBar`, `MenuScreen`, `TitleScreen`, `ResultsScreen`. |
+| `game/ui` | The HUD (`MatchHud` and its pieces) and the menu screens on a `ScreenStack` (`TitleScreen`, `MainMenu`, `FighterSelect`, `PauseScreen`, `ResultsScreen`, `SettingsScreen`, `ControlsScreen`, `HowToPlayScreen`). |
 | `game/scenes` | `main.tscn` and `main.gd` (the screen flow) and `smoke_run.gd` (the `--smoke` check). |
 | `game/tools` | Headless scripts: soak, typecheck, screenshots, asset builders and bakers. |
 | `game/tests` | GUT tests, by area. |
@@ -169,7 +169,8 @@ flowchart TD
         HOST --> VIEW["View (Node3D)<br/>match_view.gd"]
         HOST --> HUD["Hud (CanvasLayer)<br/>ui/hud/match_hud.tscn"]
         HOST --> AUD["Audio (Node3D)<br/>match_audio.gd"]
-        VIEW --> CAM["CameraRig (Camera3D)"]
+        VIEW --> CAM["CameraRig (Camera3D)<br/>in Versus moved into SplitView's left half"]
+        VIEW --> SPLIT["SplitView (CanvasLayer 1)<br/>Versus only: two halves, CameraRig2 on the right"]
         VIEW --> ARENA["Arena<br/>added at runtime"]
         VIEW --> F0["Fighter0, Fighter1 (FighterView)<br/>added at runtime"]
         VIEW --> DROP["Dropped weapons, flashes<br/>added at runtime"]
@@ -677,9 +678,10 @@ flowchart LR
 | --- | --- | --- |
 | `match_host.gd` | `MatchHost` | The fixed-step loop (section 5). Signals: `match_started`, `sim_event`, `stepped`, `match_finished`, `pause_changed`, `stopped`, `loadout_changed` (the training dummy swapped weapons; the view and the HUD's plate follow), `training_changed` (the dummy's behaviour or the refill changed), `replay_checked`. Milestone 1: `snapshot()`/`restore()`/`state_hash()` over the world, the match, the brains and Training's upkeep, and `rules_hash()` without the brains; every match played records an `InputLog` (`input_log`, saved to `record_dir`), and `start_replay()` plays one back, comparing its checkpoints. |
 | `input_log.gd` | `InputLog` | A match as its inputs (milestone-1 task 6): the config, each step's `RawInput` per side (saved as the doubles' bytes, gzipped, in base64: Godot's text-to-float parsing isn't exact, and a match's inputs repeat a lot), Training's panel actions, the rules' hash every 60 steps and the end. JSON, format 2 (task 28; format 1, the bytes unpacked, still loads); `save_recent()` keeps the newest ten in `user://replays`; `--replay=<log>` (main.gd) plays one. |
-| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera. Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
+| `match_view.gd` | `MatchView` | Loads the arena, builds the two `FighterView`s, draws dropped weapons and contact flashes, drives the camera (in Versus both halves' cameras, `cameras`). Reacts to events with shake, FOV kick and the KO orbit. Follows Reduce flashes and shaking (`apply_reduce_flashes()`, at match start and on `GameSettings.changed`): shake ×0.15, no FOV kicks, flashes and body flashes at 0.45. |
 | `camera_rig.gd` | `CameraRig` | FOLLOW (over the shoulder), WATCH (side-on) and MENU (orbit) cameras with damping, arena clamp, shake and FOV kick. |
-| `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera. |
+| `match_audio.gd` | `MatchAudio` | Event sounds, footsteps, arena ambience; the listener follows the camera, or in Versus stands between the fighters facing side-on (`versus_listener()`). |
+| `split_view.gd` | `SplitView` | Versus split screen (23.6): two `SubViewport` halves sharing the match's world, a divider, neither listening for 3D sound, both in `GraphicsApplier.VIEWPORTS_GROUP`. |
 | `stick_pose.gd` | `StickPose` | Stand-in posing: hand positions and blade directions from the rules' state. Task 14.10 replaces it with authored swings. |
 | `arena_scenes.gd` | `ArenaScenes` | Arena id → `ArenaDef` → scene, falling back to the stand-in arena if the radius doesn't match the rules. |
 | `standin_arena.gd/.tscn` | | A simple code-built arena, used by tests and as the fallback. |
@@ -832,16 +834,17 @@ flowchart LR
 
 ## 13. Screens and the HUD (`game/ui`, `game/scenes`)
 
-The menus are the playable skeleton's; plan task 22 replaces them with the full set (character select, Training, Versus, Settings, Controls).
+The menus are task 22's full set, in today's ink-wash theme (milestone 1 restyles them): every mode starts through the fighter select, and the main menu also opens How to play, Controls and Settings. Pages sit on a `ScreenStack`, so Back on a page returns to the page that opened it. `test_navigation_walk.gd` walks the whole flow with the keyboard alone and with a controller alone (22.17), and every screen has a `tools/shot_scenes/menu_*.tscn` shot.
 
 ```mermaid
 stateDiagram-v2
     [*] --> TITLE : launch (attract duel starts behind)
     TITLE --> MENU : any key
     MENU --> TITLE : back
-    MENU --> PLAYING : Duel (Rogue + Katana vs Hunter + Greatsword)
-    MENU --> PLAYING : Watch (Katana vs Daggers)
-    MENU --> PLAYING : Training (through the select)
+    MENU --> SELECT : Duel, Training, Versus, Watch
+    SELECT --> MENU : back from the first side
+    SELECT --> PLAYING : Lock in
+    MENU --> MENU : How to play, Controls, Settings (Back returns)
     MENU --> [*] : Quit
     PLAYING --> PAUSED : pause binding, Esc, Start, focus lost
     PAUSED --> PLAYING : Resume, Back
@@ -850,6 +853,7 @@ stateDiagram-v2
     PAUSED --> MENU : Quit to menu
     PLAYING --> RESULTS : match_finished
     RESULTS --> PLAYING : Rematch (next seed)
+    RESULTS --> SELECT : Change fighters
     RESULTS --> MENU : Main menu
 ```
 
@@ -859,12 +863,15 @@ stateDiagram-v2
 | `scenes/smoke_run.gd` | `SmokeRun` | `--smoke`: plays Watch to the results, exits 0 or 1. |
 | `ui/menus/menu_screen.gd` | `MenuScreen` | A generic menu panel with keyboard, mouse and controller navigation. |
 | `ui/menus/title_screen.gd` | `TitleScreen` | "Press any key". |
+| `ui/menus/main_menu.gd` | `MainMenu` | Duel, Training, Versus, Watch, How to play, Controls, Settings and Quit, each with its sublabel. |
+| `ui/menus/fighter_select.gd` | `FighterSelect` | The select for every mode: the sides one after the other, each with the fighter grid, the loadout panel and the 3D preview; a computer side's skill; in Versus each player's device and Controls profile, a clash or a missing controller refusing Lock in; the arena and Lock in on the last side. Picks go into a `MatchSelection` draft. |
+| `ui/menus/how_to_play_screen.gd`, `controls_screen.gd`, `settings_screen.gd` | `HowToPlayScreen`, `ControlsScreen`, `SettingsScreen` | The rules and a move list per weapon; rebinding with capture and profiles; picture and sound. Each also opens over the pause. |
 | `ui/menus/pause_screen.gd` | `PauseScreen` | 休止 Paused: Resume, Move list, Controls, Settings, Restart, Quit to menu; in Training, Dummy and Refill health rows above them. |
-| `ui/menus/results_screen.gd` | `ResultsScreen` | Winner, rounds, seven stats, Rematch and Main menu. |
-| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, the prompts (shown by the Button hints setting), and in Training the `TrainingPanel`. Hidden in the attract duel. |
+| `ui/menus/results_screen.gd` | `ResultsScreen` | Winner, rounds, seven stats, Rematch, Change fighters and Main menu. |
+| `ui/hud/match_hud.gd/.tscn` | `MatchHud` | HP and posture bars, round pips, ultimate badge, announcements and toasts timed on rules steps, the prompts (shown by the Button hints setting), the marker on a dropped weapon, and in Training the `TrainingPanel`. In Versus (23.7) the plates read Player 1 and Player 2, each player's prompts and marker keep to their own half of the split (`prompt_columns`, `weapon_markers`, through `MatchView.cameras`), and the toasts and calls name the player. Hidden in the attract duel. |
 | `ui/hud/hud_toasts.gd` | `HudToasts` | The toasts under the centre: `for_event()` says what a rules event toasts from the player's side or Watch's (no nodes); up to three on screen, 69 rules steps each, held by a pause. |
 | `ui/hud/hud_prompts.gd`, `key_cap.gd` | `HudPrompts`, `KeyCap` | The prompts at the bottom: `for_fighter()` says what the player can press now (no nodes), at most two, urgent first; each key a `KeyCap` named for the device used last. |
-| `ui/hud/weapon_marker.gd` | `WeaponMarker` | "Your weapon" over your dropped weapon as the gameplay camera sees it; `place()` (no nodes) clamps it whole to the screen's edge, pointing the way, when the weapon is off screen or behind the camera. |
+| `ui/hud/weapon_marker.gd` | `WeaponMarker` | "Your weapon" over your dropped weapon as the gameplay camera sees it; `place()` (no nodes) clamps it whole to the screen's edge, pointing the way, when the weapon is off screen or behind the camera. In Versus each player has one ("Player 2's weapon"), kept to their half (`show_in()`). |
 | `ui/hud/training_panel.gd` | `TrainingPanel` | Training's panel at the bottom left: "Dummy · <weapon>", the nine behaviour chips (keys 1–9) and refill (key 0), clicks too; a digit bound in the player's profile is left to its action. Follows `MatchHost.training_changed` and `loadout_changed`; hidden while paused. |
 | `ui/hud/hud_bar.gd` | `HudBar` | A meter with a lagging band. |
 
@@ -948,6 +955,8 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run bench:record` | Re-records the worst-case replay (`tools/bench/record_worst_case.gd`): seeded Hard Katana mirrors until one has a 90 s window with Moonsplitter, Breaker Palm and a stretch at the wall; run it when a rules change makes the committed log drift |
 | `npm run play`, `npm run dev`, `npm run studio` | Play the game; open the Godot editor; open the Animation Studio |
 | `npm run shots -- <scene> <out.png> [frames]` | Render a screenshot in an off-screen window |
+| `npm run clip -- <scene> [--seconds N]` | Record a shot scene with Movie Maker as a looping MP4 and a still in `shots/` (`scripts/clip.mjs`, `shot.gd --record`) |
+| `npm run post -- <files> [--caption …]` | Publish shots and clips to the session's page in the Project Manager (`tools/lanes-board/post.mjs`; media kept in `~/.claude/lanes-board/media/`, never in the repo) |
 | `npm run build` | Export the Windows build to `build/windows/Monomachia.exe`, with `LICENSE.txt`, `CREDITS.txt` and `THIRD-PARTY-NOTICES.txt` beside it (`tools/build_notices.gd`, from the root `LICENSE` and `CREDITS.md`) |
 | `npm run release -- <tag> [--no-upload]` | On the PC with the clip libraries: export, `--smoke`, zip and attach to the tag's GitHub release (see section 17) |
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…). `clips` builds the clip libraries from the clip manifest: the packs' FBX, and the GLBs of clips exported from Blender (milestone-1 task 13: an entry's `export` path in the asset repository, one export for every clip set, with its pack clip kept as its origin when it replaces one, and `props` keeping the prop bones' motion) |
@@ -991,7 +1000,7 @@ flowchart TD
     end
 ```
 
-Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts; counterlab's cases and run are `Counterlab`, `counterlab_run.gd`, which a GUT test runs short), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `bench/` (the frame-time harness: `FrameTimes`, the percentile maths and the frames file; `WorstCase`, the worst-case replay's search and its committed log `worst_case.json`; `frame_time_bench.tscn`; `record_worst_case.gd`), `look_test/` (the look test, milestone-1 task 30: `LookTest`, one fighter in a corner of the Moonlit Shrine in the realistic look under Camera 2's framing, playing the Katana's light string, with its own bench (`npm run bench:look`, 14 ms gate), and `LookMaterials`, which turns toon materials into physically based ones in that scene only, re-lighting each toon-lit shader through `pbr_light.gdshaderinc`; the game keeps the toon look until the art conversion), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `anim_studio/` is the Animation Studio (`npm run studio`): the gallery of live tiles (`gallery/`, `AnimTile`, `StudioCatalogue`) and, since milestone-1 task 25, the editor (`anim_studio/editor/`): `StudioEditor` (a viewport under an `OrbitCamera`, the side panel and the foot-locking toggle), `StudioPlayback` (the playhead over source frames), `StudioTimeline` (the source ruler, the markers, the rules ruler and the feet) and `FramesAndBands` (a move's frame-data table row against its `MoveBands` timing band and distance check); since task 26 `MarkerEdits` (a marker put on a frame, checked as `MoveClips` or `ClipManifest` would check it, into pending edits) and `EditSession` (`anim_studio/edit_session.gd`: the pending edits with undo and redo, and the text a file would be saved as through `SourceEdit`); since task 27 `ChainEdits` (a move's chain as parts and ranges, with no speed or new holds) and `StudioSaver` (`anim_studio/studio_saver.gd`: the clobber check, the atomic write, the frame-data table regenerated by `bake_swings.gd`'s static `bake()` in-process, undone byte for byte if the generator refuses, and the report of changed and out-of-band moves). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
+Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts; counterlab's cases and run are `Counterlab`, `counterlab_run.gd`, which a GUT test runs short), `typecheck.gd`, `shot.gd` (behind `npm run shots`, and `npm run clip` with `--record`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `bench/` (the frame-time harness: `FrameTimes`, the percentile maths and the frames file; `WorstCase`, the worst-case replay's search and its committed log `worst_case.json`; `frame_time_bench.tscn`; `record_worst_case.gd`), `look_test/` (the look test, milestone-1 task 30: `LookTest`, one fighter in a corner of the Moonlit Shrine in the realistic look under Camera 2's framing, playing the Katana's light string, with its own bench (`npm run bench:look`, 14 ms gate), and `LookMaterials`, which turns toon materials into physically based ones in that scene only, re-lighting each toon-lit shader through `pbr_light.gdshaderinc`; the game keeps the toon look until the art conversion), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `anim_studio/` is the Animation Studio (`npm run studio`): the gallery of live tiles (`gallery/`, `AnimTile`, `StudioCatalogue`) and, since milestone-1 task 25, the editor (`anim_studio/editor/`): `StudioEditor` (a viewport under an `OrbitCamera`, the side panel and the foot-locking toggle), `StudioPlayback` (the playhead over source frames), `StudioTimeline` (the source ruler, the markers, the rules ruler and the feet) and `FramesAndBands` (a move's frame-data table row against its `MoveBands` timing band and distance check); since task 26 `MarkerEdits` (a marker put on a frame, checked as `MoveClips` or `ClipManifest` would check it, into pending edits) and `EditSession` (`anim_studio/edit_session.gd`: the pending edits with undo and redo, and the text a file would be saved as through `SourceEdit`); since task 27 `ChainEdits` (a move's chain as parts and ranges, with no speed or new holds) and `StudioSaver` (`anim_studio/studio_saver.gd`: the clobber check, the atomic write, the frame-data table regenerated by `bake_swings.gd`'s static `bake()` in-process, undone byte for byte if the generator refuses, and the report of changed and out-of-band moves). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
 
 ## 17. CI and releases
 

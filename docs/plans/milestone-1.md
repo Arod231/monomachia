@@ -1,6 +1,6 @@
 # Plan: Milestone 1
 
-Spec: `docs/specs/milestone-1.md` · branch `feature/milestone-1` · pull request #33
+Spec: `docs/specs/milestone-1.md` · branch `master` (built on `feature/milestone-1` until Oct 6, 2026, then folded into `master`; every lane now branches from `master` and opens its pull request into it)
 
 ## Destination
 
@@ -8,20 +8,24 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 
 ## Notes
 
-- **One task at a time per lane.** The main lane takes the pipeline, then the pilot family, then the other families in order. Side lanes (below) take the look, the Studio, the computer opponent, sound and screens. Before each task, merge `origin/feature/milestone-1` in (and, while the master follow-ups are open, `origin/master` into `feature/milestone-1`), and run the full tests. After each task:
+- **One task at a time per lane.** The main lane takes the pipeline, then the pilot family, then the other families in order. Side lanes (below) take the look, the Studio, the computer opponent, sound and screens. Before each task, merge `origin/master` in and run the full tests. After each task:
   - tick it here;
   - update Progress;
   - in the spec, update the status line, any numbers the task changed, and tick each user story the build now fully delivers.
 - **Every task ends with** `npm test` and `npm run typecheck` passing, a commit and a push. Visual tasks also end with contact sheets or screenshots reviewed by eye. Tasks that change rules data (move data, the frame-data table, protected timings, gait speeds, the soak) also end with a clean 40-match soak, and each family's review adds a 300-match `soak:tune`.
 - **Owner reviews don't hold tasks open**, except the named gates: the owner's approval of the spec and this plan, the band tables included (task 1), the mood board (3), the look test scene (30), the pilot family's review (41), the Godot check (42), each later family's review (62, 68, 74, 78, 85, 92, 96, 102, 109, 112), the owner's Cascadeur polish of the signature clips (126, 127, 128, 129, 130), the performance gates' laptop bench (119), the finisher share (120), the spending review (124) and the sign-off (125). Every task blocked by a gate names it as `N (and the owner's OK)`. Anything else the owner looks at (sheets, shots) is noted in Progress and work goes on.
-- **Blockers list direct needs.** A Blocked by line names every task whose result the task itself uses, even when another blocker already implies it.
+- **Blockers list direct needs, and only those.** A Blocked by line names every task whose result the task itself uses (code, data, a test, a clip, an event), even when another blocker already implies it, and no other: never a task that only comes earlier in the build order or in the same family. Two tasks that edit the same files without using each other's result aren't blockers; give them to one lane in order. When a blocker is dropped, a later task that reached a gate only through it names that gate itself.
+- **What the family order gates.** A family's review (P33) gates the next family's clip work: re-keys, reactions, deflect pairs, paired and transition clips, and their sound and effects. Systems with no clip of their own (rules, the camera, the computer, Training) are blocked only by what they use, so they can run ahead of their family, as the stuck weapon (86) and the finisher's rules (103) now do. The owner also released the draw (110), a clip, by name. Both decisions Oct 5, 2026.
 - **Where the work starts.** Nothing starts before the owner approves the spec and this plan (task 1), and milestone 1's code waits on the consolidation: every task from 4 on is blocked, directly or through another task, by task 1 and by `docs/plans/godot-rebuild.md` task 26.4, right after which `feature/milestone-1` is cut from `master` (`docs/plans/roadmap.md` task R4). Three tasks start earlier, since they need neither `master` nor this repository's code: task 1 runs on `docs/milestone-1-spec` during the roadmap's phase 1, and tasks 2 (the asset repository) and 3 (the mood board) happen outside this repository. The spec lets both start at once, in parallel with the consolidation, once the owner has approved the spec and this plan.
-- **Side lanes.** A side lane is a worktree on its own branch from `feature/milestone-1`, taking one task at a time and merging back through a pull request into `feature/milestone-1`. Side-lane tasks are those whose blockers are done and that touch no file the main lane's open task touches. Only the main lane writes the move data, the frame-data table, the band tables, the clip manifest's markers and the protected timings; a side lane that needs a change there asks for it in the main lane's next task. The usual side lanes:
-  - **the look:** 29, 30, then 43–54, 131 and 132 after the Godot check, 97, 115;
+- **Side lanes.** A side lane is a worktree on its own branch from `master`, taking one task at a time and merging back through a pull request into `master`. Side-lane tasks are those whose blockers are done and that touch no file the main lane's open task touches. Only the main lane writes the move data, the frame-data table, the band tables, the clip manifest's markers and the protected timings; a side lane that needs a change there asks for it in the main lane's next task. The usual side lanes:
+  - **the look:** 29, 30, then 43–54, 131 and 132 after the Godot check, 115;
   - **the Studio:** 11, 25, 26, 27;
-  - **the computer opponent:** 24, 66, 101;
-  - **sound and screens:** 113, 114, 116, 117.
-- **Side-lane pull requests target `feature/milestone-1`**, an exception to CLAUDE.md for this milestone, like the spec's branch exception. Each one still merges only on the owner's approval, as CLAUDE.md requires; waiting for that approval holds only the side lane's next task, not the main lane.
+  - **the clip view:** 19, 23, 135 (they share `ClipDirector` and the rig, so one lane in order);
+  - **the camera:** 39, 97;
+  - **the computer opponent and Training:** 83, 24, 66, 101, 107;
+  - **the rules systems:** 86, 103;
+  - **sound and screens:** 113, 36, 114, 116, 117.
+- **Every lane's pull request targets `master`**, as CLAUDE.md says (the owner's rule since Oct 6, 2026, when `feature/milestone-1` was folded into `master` and retired; before that, lanes targeted `feature/milestone-1`). Each one merges only on the owner's approval; waiting for that approval holds only that lane's next task, not the other lanes.
 - **If the look test runs late** (spec P51), the owner decides at a look at the pilot's motion (tasks 31–36) whether family 2 starts before the pilot's effects are final. If the owner says yes, the Blocked by lines of tasks 55, 58 and 59 change from `41 (and the owner's OK)` to `36`, task 62 gains `41 (and the owner's OK)` so the pilot's review still comes before family 2's, and Progress records the owner's word.
 - **The Animation Studio plan** (`docs/plans/animation-studio.md`) is not followed as its own plan; this plan absorbs what is left of it:
   - task 11 closes the dropped tasks 13 (the frame-data panel), 14 (the state timings panel), 16 (the refinement launcher), 17 (the chat panel), 18 (correctives), 19 (bone posing), 20 (IK handles) and 21 (keyed clip editing);
@@ -29,7 +33,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - task 26 carries Studio tasks 10 (the edit session) and 11 (marker editing);
   - task 27 carries Studio tasks 12 (the chain panel) and 15 (save, slimmed);
   - task 41 carries Studio task 22 (the owner's review, re-scoped to a try of the slimmed Studio on the pilot family) and the gallery's open gate 6.
-- **Master follow-ups this plan builds on** (`docs/plans/godot-rebuild.md`, finished on `master` alongside): the finisher prompt (106) builds on 24.4's prompts; task 117 restyles what the follow-ups built (22.7's select preview, 23.7's Versus HUD, 24.3's toasts and 24.5's off-screen marker) and reruns 22.17's walks; the effects parity check (118) confirms Reduce flashes (18.11) covers every new effect; the performance gates (119) bench 23.5's Watch and 23.6's split screen. 24.4 should finish early on `master`, since the finishers family waits on it. Merge `origin/master` in to pick them up.
+- **Master follow-ups this plan builds on** (`docs/plans/godot-rebuild.md`, finished on `master` alongside): the finisher prompt (106) builds on 24.4's prompts; task 117 restyles what the follow-ups built (22.7's select preview, 23.7's Versus HUD, 24.3's toasts and 24.5's off-screen marker) and reruns 22.17's walks; the effects parity check (118) confirms Reduce flashes (18.11) covers every new effect; the performance gates (119) bench 23.5's Watch and 23.6's split screen. 24.4 should finish early on `master`, since the finishers family waits on it. They are on `master`, which every lane merges in before each task.
 - **Licence.**
   - Never commit an Iglesias file, a clip converted from one, or a clip re-keyed from one. They live in the asset repository and in the gitignored clip libraries.
   - Committed: the bone map, the clip manifest and its markers, the frame-data table, the swing files, the band tables, and the exports of self-made and CC0 models and materials that fit the public size budget (spec P23).
@@ -49,7 +53,9 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [Spec](../specs/milestone-1.md), drafted on Oct 4, 2026, with this plan; the owner reviews both once. Its "Defaults the owner confirmed (Oct 4)" (P1–P56, confirmed as written) are built on as written; a changed answer becomes a change to this plan.
 - The order follows the spec's Implementation Decisions (Order of work and branches): the pipeline, the mood board at once, the pilot family with the look test alongside, the pilot's effects and review and the first Godot check, the art conversion, the other families one at a time in the spec's order (P33), then the closing checks and the sign-off.
 - The moved tasks of the older plans live here; the task that finishes each one names it in its `Replaces:` line, and tasks that carry part of one say so in their Delivers. `docs/plans/godot-rebuild.md` 12.6, 12.7 and the Greatsword and Daggers half of 12.9, and `docs/plans/authored-animation.md` 34, are milestone 2's (`docs/plans/roadmap.md`).
+- Oct 5, 2026, the blockers audited (the owner's request, so lanes can run in parallel): every Blocked by line checked against what the task uses. Dropped as unused: 36's 34 and 35 (the deflect pairs' sounds split out as task 136), 38's 37 (now 30), 39's 34, 46's 45 (now 43), 70's 69, 72's 71, 82's 81, 83's 81, 97's 43 (now 39), 101's 99 (now 18), 107's 104 and 105 (now 103); re-pointed: 73 (69, 71), 108 (104, 105, 106); added where a test was used without its task: 22 to 31 and 32, 83 to 81; added where a review reached them only through a dropped blocker: 35, 37 and 136 to 40, 72 to 74, 81 to 85, 107 to 109; gates named directly for the same reason: 68 on 72, 85 on 87, 88 and 89 (89's 86 was unused; it now names 18, 19, 21 and 22), 102 on 104 and 105, 109 on 111. The owner released 86, 103 and 110 from the family order (see Notes).
 - Values the tasks use (timing and distance bands, protected timings, momentum and gaits, the balance-run targets, the computer's finisher rates, the performance gates, the size budgets, the Godot check, the per-move checklist) are the spec's tables; the tasks don't repeat them.
+- Oct 6, 2026, one trunk (the owner's rule): `master` is the only long-lived branch. `feature/milestone-1` was folded into `master` and retired, and every lane, this plan's and any later one's, branches from `master` and opens its pull request into `master` unless the owner says otherwise.
 
 ## Progress
 
@@ -61,6 +67,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - Oct 5, 2026: task 18 done in `lane/m1-18-25-26-27` (the main lane for task 18; a Studio side lane for 25–27): the band tables are committed data (`game/sim/moves/bands.json`) and CI holds every Katana and bare-hands move off their waiting list to its timing and distance bands. Every one of the 34 waits today; each family's keying task takes its moves off.
 - Oct 5, 2026: the main lane `lane/m1-19-20-21-24` takes tasks 19–21 (and task 24 as a computer-opponent side lane). On the owner's word the 1.0× playback and travel from the table switch on move by move as each family re-keys it, so the stand-ins play and move as today until then. Task 19 done: a move with real markers plays its clip at 1.0× of the world's time, a held charge its loop, and state clips at their own speed once a family lists them; nothing on screen changes yet. Task 20 done: follow-ups start at the table's branch points and dodge cancels close at its windows; nothing in play changes (a 40-match soak gave task 17's numbers). Task 21 done: a re-keyed Katana or bare-hands move moves only by its table travel, with no lunge, reach push or run-speed carry; every move today keeps its lunge until its family re-keys it.
 - Oct 5, 2026: the main lane `lane/m1-22-23-30-31` (built on #74's branch) takes tasks 22, 23 and 31, and task 30 as a look side lane. Task 22 done: the protected timings are frozen in `ProtectedTimings`, retuned for the Katana and bare hands with each light and heavy hitstun a frame longer than the spec first counted, as the owner decided (the next hit lands a frame later than it reckoned). The outcomes (the counters' stuns, the disarm, the knockdown, their hit-stops) take the retuned values now; a move's own hitstun, blockstun and hit-stop switch as its family re-keys it. A 40-match soak: 0 failures, 147 rounds of 45.3 s, 1.26 disarms. Task 23 done: every hand-off shows the new motion at once and blends inertially from the pose shown (a skeleton modifier first in the rig, picture only); the director no longer crossfades, and the Studio has the layer's toggle.
+- Oct 6, 2026: `feature/milestone-1` folded into `master` on the owner's word, bringing everything merged into it since #63 (tasks 13, 15–18, 25–29, 83, 86, 103 and 107) to `master`, with the three Studio tests that failed without the packs fixed. The open lanes' pull requests (#74, #76, #77) move to `master`; the branch is then deleted.
 - Oct 6, 2026: task 31 done in `lane/m1-22-23-30-31`: Right Cut and Return Cut are re-keyed by Claude's scripted Blender pass (`scripts/blender/rekey_clip.py`) as two-handed cuts with longer wind-ups and a real okuri-ashi step, inside the light band (17.5 and 17.3 cm in from 2.5 m, 28 and 25 frames to land), off the waiting list, and in play at 1.0× with their travel and the retuned hit values. Their sources and exports are in the asset repository's pull request #3. Rounds lengthened to 70.3 s on average in a 40-match soak (inside the spec's 60-90 s), with 1.69 disarms a round. Left for the owner: the sheets, and PoseCheck's wrist and elbow limits and the Rogue's near misses, which this task's check doesn't hold.
 
 ## Build order
@@ -68,7 +75,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 1. **Before the merge, on the docs branch and outside this repository:** 1, 2, 3
 2. **Groundwork on the milestone branch:** 4, 5, 134, 6, 7, 8, 9, 10, 11, 14, 113
 3. **The pipeline:** 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
-4. **The pilot's motion, with the look test alongside:** 30, 31, 32, 135, 33, 34, 35, 36, 126, 114
+4. **The pilot's motion, with the look test alongside:** 30, 31, 32, 135, 33, 34, 35, 36, 136, 126, 114
 5. **The pilot's effects and review:** 37, 38, 39, 40, 41, 42
 6. **The art conversion, after the Godot check:** 43, 44, 45, 46, 47, 48, 131, 132, 49, 50, 51, 52, 53, 54, 115
 7. **Family 2, guard movement and dodges, after the pilot's review:** 55, 56, 57, 58, 59, 60, 61, 62
@@ -313,14 +320,14 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [x] **31. Right Cut and Return Cut re-keyed.** The string's first two lights become two-handed cuts with longer wind-ups and real steps, inside the light band.
   - Delivers: Claude's scripted Blender passes of both clips (longer wind-ups, both hands on the grip, steps from the hips), exported and imported, markers set, the table regenerated; both moves leave the band tests' waiting list.
   - Check: both pass the timing-band and distance-band tests, and the free-frame test passes for Right Cut into Return Cut; PoseCheck's foot slide under 1 cm and blade clearance on every frame; the weapon-in-hand test; sheets of both, both sides, reviewed; a clean soak.
-  - Blocked by: 9, 18, 19, 21 · Stories: 34, 52, 53, 211
+  - Blocked by: 9, 18, 19, 21, 22 · Stories: 34, 52, 53, 211
   - Decided with the owner (Oct 5, before building; the main lane, as task 22 says): both clips are re-keyed from today's one-handed clips (Attack1H01_R and Attack1H03_R), keeping their cut directions: the off hand put on the grip, the wind-up lengthened and a step led from the hips, by script in Blender. Right Cut lands at 28 frames (an opener near 500 ms) and Return Cut at 25 (a chained light), both active 4 and recovering about 28. The Blender sources and exports go on a new branch of the asset repository cut from `tools/blender-sources` (its PR #2, which holds `blender/sources.json`), with their own pull request into its `main`, merged after #2.
   - Found while keying, and decided with the owner (Oct 6): the one-handed clips hold the sword at the right side, 0.7-0.8 m from the left shoulder even at rest, and Attack1H01_R is a lunging thrust whose right arm ends fully extended; the left arm is about 0.43 m long, so the grip can't simply be re-gripped. The scripted pass re-poses the upper body instead (shoulders squared, both hands on the handle on IK, the blade's path rebuilt from the clip's), keeping the cut directions, and the lost reach comes back from a real okuri-ashi step (the front foot steps, the back foot follows), judged on the sheets.
   - Done Oct 6: `scripts/blender/rekey_clip.py` re-keys a pack clip headless in Blender from a spec in `scripts/blender/rekeys/` (`right_cut.json`, `return_cut.json`) into a source in the asset repository (`blender/clips/`, licence iglesias in `blender/sources.json`), which `npm run export` turns into `exports/clips/<id>.glb` (the asset repository's pull request #3, on branch `clips/m1-31-right-return-cut`, to merge after #2); the clip manifest imports them as `RightCut` and `ReturnCut` (markers 0/14/16/30 and 0/12/15/28, foot contacts measured) and the move-clip table points Right Cut and Return Cut at them on real markers. The pass, in order: the time warp (a monotone cubic through [new, source] frame pairs, so a planted foot stays planted); the step (the hips' own shift over the ground taken out and the body carried along a forward path instead, each foot stepping on its own list, lifted before it moves and moved before it lands, both legs on IK with the knees over the toes; the clip stays in place, so a planted foot slides back under it exactly as far as the body goes, which the generator reads as travel); and both hands on the handle (shoulders squared 60%, the weapon kept turned as the clip turns it and moved toward a hold point in front of the chest only as far as both arms reach, both arms on IK, the right hand's turn kept; a weapon that would come within 8 cm of a stand-in body is moved further, else turned about the grip away from the part it nears, else eased toward its guard). Right Cut: Attack1H01_R, the back foot stepping up 0.45 m in the wind-up (tsugi-ashi), the front foot lunging 1.35 m to land with the cut, the back foot following; 28/4/28; travel 1.51 m on the Hunter (1.18 m by its last active frame). Return Cut: Attack1H03_R, a 0.3 m step-up and a 1.075 m lunge, its rising wind-up kept under 0.74 m at the hips so the planted back foot stays in reach and its hips back at their guard height by its settle (source frames 16-27: the game hands on there, where the pack clip was still crouched in its follow-through), and its one-handed follow-through eased into the two-handed guard from source frame 13.5 to 16.5 (the sword had hung tip-down along the right forearm); 25/4/28; travel 1.13 m. Both are off the band tests' waiting list. Measured: in band, Right Cut 17.5 cm in at 2.5 m (first touch from 2.6 m) and Return Cut 17.3 cm (2.65 m), both touching from 2.1 m and missing from 3.25 m; the defender free 4 frames between them (FollowUpCheck); on the Hunter, PoseCheck's worst foot slide 0.8 and 0.7 cm and nearest blade 5.4 cm (torso) and 5.7 cm (right forearm) over every frame. Technical, recorded for the owner: the game retargets clips onto longer legs than Kevin's rig, so a nearly straight swinging leg brushes the floor mid-stride and FootLock grabs it; the steps lift 16-24 cm for that. FootLock eases a released foot over 4 rules frames, so a foot travels only 1.6 frames after it starts lifting. Left for later, outside this task's check: PoseCheck's wrist and elbow limits still fail on these clips (the game's rig re-grips the off hand on the handle by IK, which sets the left wrist; the elbows at contact are about 142°, not 150-160°), as on every stand-in today, and on the Rogue the nearest blade is 3.6 cm (Right Cut) and 2.6 cm (Return Cut's first frame) and the worst slide 1.0 and 1.1 cm, since the stand-in body the script clears is the Hunter's build. Checked: `tests/blender-rekey.test.mjs` (every spec well formed, its clip imported with its markers inside it and its feet stepping as far as its body goes; in Blender, local-only, the time warp through its pairs without falling, a stepping foot moving only while off the ground, and each spec re-keyed from the asset repository to its length), the band tests (`test_move_bands.gd`, both moves now held to them and its examples moved to Kesa Cut), the free-frame and parry tests, PoseCheck through MoveBench, the weapon-in-hand and string-continuity tests; sheets of both from both sides in `shots/m31/` (not committed). With the light button's first light re-keyed, about ninety tests written around Right Cut's stand-in timing (startup 11, a 0.35 m lunge) were brought up to date: the swing fixtures (`swing_fixtures.gd`) play a move given a made-up swing as the stand-in it was, on its stand-in frames (`STAND_IN_FRAMES`, `timed()`, `stand_ins()`); the rules tests time their presses from Right Cut's landing (`SimHelpers.LIGHT_LANDS`, step 30); the stand-in examples in the band, marker, Studio and protected-timing tests moved to Kesa Cut or Crown Cut, with new checks that Right Cut and Return Cut are in band, on real markers and on the retuned hit values; the string drives and the training dummy's runs are retimed for the longer string; `test_clip_director.gd` no longer clears the moves' real markers after each test; the asset-budget test lets an exported Iglesias clip use the Iglesias bone map; the parry-the-next-hit test holds the real run to at least FollowUpCheck's free frames (8 against 4, Right Cut landing on its first active frame); the wall test runs up to 30 seeds (fewer matches reach the wall now). The scripted bout's shots and the worst-case log (seed 11) were re-recorded. A 40-match soak: 0 failures, 160 rounds of 70.3 s (task 22's 45.3 s, now inside the spec's 60-90), 1.69 disarms a round (out of 0.3-0.6, as before), every appear-list item in (the stomp 147, the leap 94, Flash 37, Moonsplitter 117, Breaker Palm 34, a pick-up 246).
 - [ ] **32. Kesa Cut and Crown Cut re-keyed.** The string's last two lights, the vertical cuts stepping into the cut.
   - Delivers: as task 31, for Kesa Cut and Crown Cut.
   - Check: as task 31; the free-frame and block-the-next-hit tests pass for the four lights; the string-continuity test (each swing starts on the side the last ended) across the four lights.
-  - Blocked by: 31 · Stories: 52, 59
+  - Blocked by: 22, 31 · Stories: 52, 59
 - [ ] **135. The weapon rides the clip's hands in every state.** The weapon stays fixed to the clip's hands in guard and free movement as well as in attacks.
   - Delivers: `FighterView` fixes the weapon to the clip's hands (the prop bone where a clip has one) in every state, with the libraries or with the CC0 stand-ins, building on what `docs/plans/roadmap.md` task R1 did for CI.
   - Check: the weapon-in-hand test in guard, free movement and every string hit, with and without the libraries; `test_the_guard_puts_the_weapon_in_both_hands` rewritten for clips.
@@ -337,10 +344,14 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: light hit reactions front, left, right and back, high and low, picked from the hit's contact point; a light block reaction; each fits the retuned light hitstun and blockstun at its own speed.
   - Check: director tests of the pick by contact point; the state-clip fit test for each; sheets reviewed.
   - Blocked by: 22, 33 · Stories: 97, 107
-- [ ] **36. The pilot's sound.** The light string sounds physical: swings, metal impacts by weapon pair, flesh and bone, the parry ring, the deflect pairs, and the Hunter's cloth and gear.
-  - Delivers: `SoundBank` entries for the four lights' swings, Katana-on-Katana impacts, flesh and bone layers keyed to the hit, a distinct parry ring, the deflect pairs' sounds, the Hunter's cloth and gear movement, and hooks for the effort vocals (task 114).
-  - Check: sound-bank tests that a Katana-on-Katana block picks the Katana-pair impact, that a blade hit adds the flesh and bone layers, that a parry plays the ring distinct from a block, and that each deflect pair and the Hunter's cloth and gear movement have entries; `test_every_event_type_has_an_entry`; `test_sound_playback.gd`'s whole match; the listening pass happens at the pilot's review.
-  - Blocked by: 34, 35 · Stories: 170, 171, 176
+- [ ] **36. The pilot's sound.** The light string sounds physical: swings, metal impacts by weapon pair, flesh and bone, the parry ring, and the Hunter's cloth and gear.
+  - Delivers: `SoundBank` entries for the four lights' swings, Katana-on-Katana impacts, flesh and bone layers keyed to the hit, a distinct parry ring, the Hunter's cloth and gear movement, and hooks for the effort vocals (task 114). All of them hang on rules events that exist today; the deflect pairs' sounds are task 136.
+  - Check: sound-bank tests that a Katana-on-Katana block picks the Katana-pair impact, that a blade hit adds the flesh and bone layers, that a parry plays the ring distinct from a block, and that the Hunter's cloth and gear movement has entries; `test_every_event_type_has_an_entry`; `test_sound_playback.gd`'s whole match; the listening pass happens at the pilot's review.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 170, 171, 176
+- [ ] **136. The deflect pairs' sounds.** Each light's deflect pair sounds its half of the parry.
+  - Delivers: `SoundBank` entries for the four lights' deflect pairs, the parrier's deflect and the attacker's recoil, keyed to the pair's contact frame (split from task 36, Oct 5).
+  - Check: sound-bank tests that each deflect pair has its entries and plays at its contact frame; `test_every_event_type_has_an_entry`.
+  - Blocked by: 34, 36 · Stories: 171
 - [ ] **126. The owner's polish of the light string's deflect pairs.** The owner polishes Claude's block-outs in Cascadeur, and the polished clips replace them.
   - Delivers: Cascadeur Indie bought; the four lights' deflect pairs polished, exported to the asset repository and imported; their markers checked and the table regenerated.
   - Check: task 34's director tests pass on the polished clips; the blades within 2 cm at contact on the sheets; rules unchanged.
@@ -356,17 +367,17 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **38. Blood and the Blood setting.** Blade hits draw blood that lasts the match, and Settings offers On, Reduced or Off.
   - Delivers: a burst on each blade hit, blood on blades and clothes for the whole match, floor splatter that fades; `GameSettings.blood` (On by default) with its Settings row; Reduced scales and Off removes every blood effect.
   - Check: settings tests (saves and loads, default On); effect tests under each value; shots of a hit at each value reviewed.
-  - Blocked by: 37 · Stories: 157, 161, 185
+  - Blocked by: 30 (and the owner's OK) · Stories: 157, 161, 185
   - Replaces: `docs/plans/godot-rebuild.md` task 18.4
 - [ ] **39. The parry push-in.** Every parry, Flash and redirect gives a short camera push-in, frozen in hit-stop and off under Reduce flashes.
   - Delivers: `CameraRig.push_in` toward the look point, easing back, frozen in hit-stop, depth of field allowed during it; Reduce flashes (`GameSettings.reduce_flashes`, already saved) turns it off; camera shake and kicks checked at the new pace.
   - Check: `test_camera_rig.gd` tests of the push-in, the hit-stop freeze and Reduce flashes; a parry shot reviewed.
-  - Blocked by: 34 · Stories: 109, 136
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 109, 136
   - Replaces: `docs/plans/godot-rebuild.md` task 18.5
 - [ ] **40. The pilot's review package.** Everything the owner needs to judge the light string as a player would.
   - Delivers: contact sheets of the four lights, their deflect pairs and reactions; a side-by-side video against For Honor, Ghost of Tsushima and Tekken 8 or Mortal Kombat 1 (the footage stays on the owner's machine); the light string's checklist rows filled; a build for the play session with the licensed clips loaded; the Katana's lights rebalanced (damage and posture) and a 300-match `soak:tune` recorded.
   - Check: every CI-checked checklist item passes for the four lights; the package is in Progress.
-  - Blocked by: 9, 10, 36, 38, 39, 126 (and the owner's OK) · Stories: 50, 209, 210
+  - Blocked by: 9, 10, 35, 36, 136, 37, 38, 39, 126 (and the owner's OK) · Stories: 50, 209, 210
 - [ ] **41. The pilot family's review.** The owner plays the light string at final quality, tries the slimmed Studio on it, and ends the protected-timing retune.
   - Delivers: the owner's verdict on the pilot recorded in Decisions so far; any changes to the protected timings written into the spec's table and the frozen-timings test, then frozen; the slimmed Studio tried on the pilot's markers and chains.
   - Check: the owner's notes are answered by fixes or by new tasks; the pilot's checklist rows all ticked.
@@ -395,7 +406,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **46. The tricorn and the scarf, the scarf on spring bones.** Both are remodelled in Blender with oriental touches; the scarf's ends swing.
   - Delivers: Blender sources and exports for the tricorn and the scarf replacing `tools/build_headwear.gd`'s; spring bones on the scarf's ends.
   - Check: content tests that both load on the Hunter and the spring bones settle at rest; sheets of a sprint and a roll reviewed.
-  - Blocked by: 12, 45 · Stories: 144
+  - Blocked by: 12, 43 · Stories: 144
 - [ ] **47. The Katana and its saya modelled.** The weapon the player watches most, real, keeping today's 0.72 m blade within 2 cm.
   - Delivers: Blender sources and exports for the Katana and the saya replacing `tools/build_katana.gd` and the coded `Saya`; the grip, blade and off-hand markers kept.
   - Check: `test_the_katana_blade_is_072_m_and_curved_back` within 2 cm; the distance-band and weapon-in-hand tests pass; shots in hand and at the hip reviewed.
@@ -517,7 +528,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **70. The physical reaction layer.** A physical layer on the spine, head and arms, pushed from where and how hard the hit landed.
   - Delivers: a skeleton modifier in the rig's order after inertial blending, picture only.
   - Check: modifier tests (a push decays and settles; zero push leaves the pose); a rules test that the match is identical with the layer off; a short video reviewed.
-  - Blocked by: 23, 69 · Stories: 96, 98
+  - Blocked by: 23 · Stories: 96, 98
 - [ ] **71. The knockdown, the stuns and the staggers re-keyed.** The biggest hits fit their retuned frames at their own speed, and knockback comes from the reaction clips' travel.
   - Delivers: the knockdown's fall, down and rise (30, 30, 40 with a 20-frame guard window), the stuns and the staggers re-keyed; knockback and pushback from the reaction clips' travel; invulnerable while down, blocking or parrying while rising as today.
   - Check: the state-clip fit test; `test_knockdown.gd`; rules tests of the travel; sheets reviewed; a clean soak.
@@ -525,15 +536,15 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **72. Deaths, the KO and Warrior Slain.** A round's KO plays on the gameplay camera with the slow motion, the sound drain and the Warrior Slain call.
   - Delivers: death clips; 討死 Warrior Slain, drawn in task 54's brushed calligraphy, in place of 一本 K.O. in every mode (the double KO keeps 相打ち); the final hit ringing out as the slow motion drains the arena and music buses, a deep drum under the call; hit-stop, shake and the KO's slow motion at the new pace; the KO's effect leading into the call. It is part of godot-rebuild 18.9, which task 118 finishes.
   - Check: HUD announcement tests; bus tests of the drain; a rules test that every round-ending KO calls Warrior Slain; shots and a listening pass reviewed.
-  - Blocked by: 54, 71 · Stories: 125, 128, 132, 136, 172
+  - Blocked by: 54, 68 (and the owner's OK) · Stories: 125, 128, 132, 136, 172
 - [ ] **73. Family 4's sound and effects.** Hits, falls and knockdowns sound and look physical.
   - Delivers: flesh and bone layers for every reaction, falls and knockdowns' sounds, dust from falls.
   - Check: sound-bank tests that every reaction has its flesh and bone layers by weight and that falls and knockdowns have entries; effect tests of the dust from falls; shots reviewed.
-  - Blocked by: 72 · Stories: 160, 170
+  - Blocked by: 69, 71 · Stories: 160, 170
 - [ ] **74. Family 4's review.** Reactions, knockdown and KO go to the owner.
   - Delivers: the review package as in task 40.
   - Check: every CI-checked checklist item passes for the family's clips.
-  - Blocked by: 70, 73 · Stories: 209
+  - Blocked by: 70, 72, 73 · Stories: 209
   - **Owner:** reviews family 4. Its OK gates family 5.
 
 ### Phase J: family 5, the Katana's movement attacks
@@ -568,17 +579,17 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Blocked by: 78 (and the owner's OK) · Stories: 62, 110
 - [ ] **81. Swallow Sweep and the leap's paired clip.** The sweep re-keyed in the unblockable band, and the leap played as a paired clip.
   - Delivers: as task 80, for Swallow Sweep and the leap.
-  - Check: as task 80; the sweep still jumpable.
-  - Blocked by: 80 · Stories: 62, 110
+  - Check: as task 80; the sweep still jumpable; counterlab's stomp and leap cases (task 83) still counter each at least once with the paired clips' line-up.
+  - Blocked by: 80, 83 · Stories: 62, 110
 - [ ] **82. The 危, the glint and Training-only labels.** As an unblockable's wind-up starts, a red 危 flashes with its sound and the blade glints red; labels and the floor marker show only in Training.
   - Delivers: the 危 and its distinct warning sound; the blade's red glint; the THRUST and SWEEP labels and a floor reach marker in Training only; the gold 奥義 ULTIMATE mark and the floor ink arc retire in matches.
   - Check: effect tests by mode; a sound-bank test; shots in a match and in Training reviewed.
-  - Blocked by: 37, 81 · Stories: 111, 112, 173, 196
+  - Blocked by: 37 · Stories: 111, 112, 173, 196
   - Replaces: `docs/plans/godot-rebuild.md` task 18.6
 - [x] **83. Training's routes and counterlab's stomp and leap.** The dummy performs every milestone-1 unblockable through one routes table, and counterlab proves the stomp and the leap reachable.
   - Delivers: an `UnblockableRoutes` table replacing `TrainingBrain.weapon_ability_for` and `TrainingUpkeep.can_perform`; the Katana dummy's heavies alternate both Iai variants; counterlab's stomp and leap cases (the evade's waits for milestone 2).
-  - Check: Training tests that the dummy telegraphs both unblockables and both Iai variants; a short GUT counterlab counters each at least once; the full table goes in the commit.
-  - Blocked by: 81 · Stories: 6, 189, 190, 196
+  - Check: Training tests that the dummy telegraphs both unblockables and both Iai variants; a short GUT counterlab counters each at least once; the full table goes in the commit. The stomp, the leap and both Iai variants exist in today's rules, so this runs on them; task 81 reruns the counterlab once the paired clips land.
+  - Blocked by: 1 (and the owner's OK), `docs/plans/godot-rebuild.md` task 26.4 · Stories: 6, 189, 190, 196
   - Replaces: `docs/plans/godot-rebuild.md` tasks 12.3 and 12.4
   - Decided with the owner (Oct 5, before building): the side lane `lane/m1-83-86-103-107` builds 83, 86, 103 and 107 ahead of their blockers (81; 85 and 102, whose gates the owner waived for these four; 104 and 105), on today's moves and clips. It is a side lane (Done notes only, no Progress or spec status line) allowed to add the new rules constants its tasks introduce, changing no existing protected timing or table row. For 83: the routes table keeps the Greatsword's slam row, hidden without `--full-roster` as today, and counterlab drops the slam case until milestone 2, running the stomp (the Katana's thrust) and the leap (the Katana's sweep). The Katana dummy's heavies run a four-turn cycle: the vertical Iai with its follow-up, the horizontal alone, the vertical alone, the horizontal with its follow-up.
   - Done Oct 5 (side lane): `UnblockableRoutes` (`game/sim/unblockable_routes.gd`), one table of each weapon's unblockables by counter kind (the Katana's Piercing Thrust and Swallow Sweep; the hidden weapons' rows, the Greatsword's slam among them, stay for `--full-roster`). `TrainingBrain` drills from it and `can_perform()` replaces `TrainingUpkeep.can_perform` in Training's swap, the roster's drill list and the match host; `TrainingBrain.weapon_ability_for` is gone. A heavy with a second draw (`AttackDef.release_variant`, the Iai) runs the four-turn cycle, the dummy holding the stick sideways until the horizontal is drawn; other heavies keep their follow-up every other turn. Counterlab's cases and run moved to `Counterlab` (`game/tools/counterlab_run.gd`); `npm run counterlab` exits 1 when a case never lands its counter, and gave `thrust { attempts: 21, 'counter:stomp': 16, hit: 4 }` and `sweep { attempts: 25, 'counter:leap': 18, hit: 3 }`. Checked: `test_unblockable_routes.gd`, `test_training_brain.gd` (both Iai variants with and without their follow-ups; both unblockables telegraphed), `test_counterlab.gd` (each counter landed, and only it, in half a minute), `test_training_swap.gd` and `test_match_host.gd` on the table.
@@ -594,7 +605,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **85. Family 6's review.** Block abilities and counters go to the owner.
   - Delivers: the review package as in task 40.
   - Check: every CI-checked checklist item passes for the family's moves.
-  - Blocked by: 83, 84, 128 (and the owner's OK) · Stories: 209
+  - Blocked by: 81, 83, 84, 128 (and the owner's OK) · Stories: 209
   - **Owner:** reviews family 6. Its OK gates family 7.
 
 ### Phase L: family 7, the disarm and bare hands' core
@@ -602,22 +613,23 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [x] **86. The deterministic stuck weapon.** A disarmed weapon flies along the knock or deflect direction and sticks blade-first in the ground inside the walls, the same way every run.
   - Delivers: `DroppedWeapon` stops drawing from the world's generator: a fixed arc along the knock or deflect direction, shortened to land inside the walls, stuck at an angle that is rules state; the bounce, its event and the bounce sparks retire; the replay and save-and-restore tests cover a disarm.
   - Check: rules tests of the direction, the walls and the same landing every run; the replay and save-and-restore tests through a disarm; `test_shrine_as_arena.gd`'s wall test rewritten; a clean soak.
-  - Blocked by: 6, 85 (and the owner's OK) · Stories: 25, 66, 67
+  - Blocked by: 6 · Stories: 25, 66, 67
+  - Released from the family order (Oct 5, the owner): a rules system with no clip of its own, so it runs ahead of family 7; the family's clips (87, 88, 89) still wait on family 6's review.
   - Decided with the owner (Oct 5, before building; built ahead of 85, see task 83): the weapon follows the blade's motion at contact. A knock (a blocked power blow) sends the blocker's weapon along the blow's blade motion across the ground; a deflect (parried, redirect) sends the attacker's weapon along its own blade's motion reversed. With no swing, a scripted hit, or a blade moving under 0.5 m/s across the ground, it flies straight away from the disarmer. It flies 3.5 m, shortened to land inside the walls, and sticks blade-first 25° from vertical, leaning back toward where it came from. The view flies today's weapon model along the rules' arc and stands it at the stuck angle; the bounce sparks retire, the beam stays until task 87.
   - Done Oct 5 (side lane): `DroppedWeapon` draws nothing from the world's generator (nothing else in the rules did, so the generator stays only in the snapshot and hash). `heading()` reads the striking blade's motion over its last tick before the disarm ends the attacks (the fastest part's tip; a knock along it, a deflect reversed; under 0.5 m/s or no swing, straight away from the disarmer); `landing()` flies it `DISARM_FLIGHT` 3.5 m, shortened along its flight to the ring `STUCK_WEAPON_MARGIN` 0.8 m inside the wall (pulled onto it from beyond), and the flight leaves the hands no further out than that ring. It flies a fixed arc (6.4 m/s across the ground, 3.5 m in 33 frames, rising 1 m, tumbling 1.5 turns) and sticks blade-first, `pitch` PI less `STUCK_WEAPON_LEAN` 25°, leaning back along its flight; a `weaponStuck` event replaces `weaponBounce` and plays the bounce's fast landing (bounce and clatter) until task 91 gives it its own sound. `MatchView` turns today's model by `pitch` and `yaw`, from centred on the rules position as it leaves the hands to its point 12 cm into the ground as it sticks; the beam stays until task 87. Checked: `test_stuck_weapon.gd` (both deflects and a knock along the blade, straight away with no swing and under 0.5 m/s, the stuck angle and place, the wall from inside and from beyond the ring, the same landing on two seeds with the generator untouched, the event), `test_shrine_as_arena.gd`'s wall test rewritten (every weapon flying four ways from the wall, in flight and stuck, stays inside the parapet), the save-and-restore test saving mid-flight and stuck, the replay test's match through a disarm; the bounce test in `test_fluid_combat.gd` retired. The committed worst-case log drifted and was re-recorded (`npm run bench:record`: seed 11). `test_sound_playback.gd`'s cap rose to 15 minutes: its seed of the hidden Daggers' mirror passed 12 once the weapon landed elsewhere (Hard Daggers mirrors run 6.5–11 minutes, seeds 11–20). A 40-match soak: 0 failures, 148 rounds of 46.6 s, 1.16 disarms, no finishers (out until task 103), every appear-list item in (the stomp 106, the leap 57, Flash 54, Moonsplitter 120, Breaker Palm 21, a pick-up 150).
 - [ ] **87. The pull-out and the stuck weapon on screen.** Picking up means pulling the weapon out of the ground, and the stuck weapon shows in the realistic look with a faint glint.
   - Delivers: the pull-out pick-up taking its clip's length, the weapon in hand at its in-hand marker; the stuck Katana model with a faint glint; the beam and ring retire; the stuck weapon removed on pull-out, recall and round start; the pull-out off the not-keyed list. 24.5's off-screen marker is restyled in task 117.
   - Check: rules tests of the pull-out's length; a test that standing over the weapon blocks the owner's way; effect tests; shots after a disarm reviewed.
-  - Blocked by: 47, 86 · Stories: 68, 69, 166
+  - Blocked by: 47, 85 (and the owner's OK), 86 · Stories: 68, 69, 166
   - Replaces: `docs/plans/godot-rebuild.md` task 18.10
 - [ ] **88. The disarmed gaits and the longer disarmed roll.** Disarmed fighters move faster and dodge farther through their own clips.
   - Delivers: disarmed gait clips at about 1.2× the armed run; a longer disarmed roll covering 1.5× the distance in the same protected frames; the disarmed jump stays a rules number; the disarmed gaits off the not-keyed list.
   - Check: rules tests of the speeds and the roll's distance; the state-clip fit test; sheets reviewed; a clean soak.
-  - Blocked by: 55, 58, 86 · Stories: 70, 71
+  - Blocked by: 55, 58, 85 (and the owner's OK), 86 · Stories: 70, 71
 - [ ] **89. Jab, Cross and Hook.** Bare hands' light string re-keyed in its bands, one shared moveset for every fighter.
   - Delivers: the three re-keyed, exported and in band.
   - Check: band and distance tests (bare hands' 6 m miss kept); the free-frame test for the string; sheets reviewed; a clean soak.
-  - Blocked by: 86 · Stories: 72, 79
+  - Blocked by: 18, 19, 21, 22, 85 (and the owner's OK) · Stories: 72, 79
 - [ ] **133. Roundhouse and Spinning Heel.** Bare hands' heavies re-keyed in their bands.
   - Delivers: the two re-keyed, exported and in band.
   - Check: band and distance tests; sheets reviewed; a clean soak.
@@ -665,8 +677,8 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 
 - [ ] **97. The shot director.** Authored camera shots play from data on the presentation side, never in the rules.
   - Delivers: a shot director reading shot data (a camera path, a lens, the camera effects allowed) and choosing shots from rules events: the ultimates once they connect, both finishers, the match-winning KO; the recall gets a push-in only.
-  - Check: director-seam tests (events in, the chosen shot out; no shot for an ultimate's wind-up; a round-ending finisher's shot; a match-winning finisher's shot replacing the KO shot); a test shot reviewed.
-  - Blocked by: 43 · Stories: 133, 135
+  - Check: director-seam tests (events in, the chosen shot out; no shot for an ultimate's wind-up; a round-ending finisher's shot; a match-winning finisher's shot replacing the KO shot, on made-up finisher events until task 103 adds the real ones); a test shot reviewed.
+  - Blocked by: 39 · Stories: 133, 135
 - [ ] **98. Moonsplitter re-keyed, with its shot.** The fighter sheathes, the stick picks vertical or horizontal, and the wave crosses the stage; its shot plays once it connects.
   - Delivers: Moonsplitter's clips; the wind-up on the gameplay camera with the roar and a push-in; its shot on connecting; the wave still a scripted rules hit.
   - Check: band test to the wave; rules tests that the horizontal wave is jumpable and the vertical avoidable by stepping aside; shot tests; sheets reviewed; a clean soak.
@@ -683,7 +695,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **101. The computer uses its ultimates and plays the stuck weapon.** It uses the ultimates by today's rules at the new pace and keeps the disarm game live.
   - Delivers: Moonsplitter at 2.5–14 m, the recall beyond 2.5 m and Breaker Palm closer, those distances rechecked against the distance bands; standing in the way of a disarmed opponent; running for its own stuck weapon and pulling it out.
   - Check: seeded tests of each; a clean soak with the appear-list showing both ultimates, the recall and a pick-up.
-  - Blocked by: 24, 87, 99 · Stories: 192, 193
+  - Blocked by: 18, 24, 87 · Stories: 192, 193
 - [ ] **102. Family 9's review.** The ultimates go to the owner.
   - Delivers: the review package as in task 40, with the shots.
   - Check: every CI-checked checklist item passes for the family's moves.
@@ -695,17 +707,18 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [x] **103. The finisher's rules.** A disarm at 5% HP or less opens one timed heavy prompt; a fresh press inside it starts a paired finisher that ends the round as a KO.
   - Delivers: the prompt (18 rules frames, stepped at 0.3×), only a fresh heavy press inside it counting, the buffer carrying none in; a miss plays the disarm out; the finisher a paired state with the victim's inputs ignored and the round ending at the kill marker; the new events; the replay and save-and-restore tests through a finisher.
   - Check: rules-seam tests of every case in the spec's Testing Decisions; the replay and save-and-restore tests; a clean soak with the finisher share reported.
-  - Blocked by: 86, 102 (and the owner's OK) · Stories: 25, 114, 116, 117, 118, 125
+  - Blocked by: 16, 86 · Stories: 25, 114, 116, 117, 118, 125
+  - Released from the family order (Oct 5, the owner): the finisher's rules run ahead of family 10 on a stand-in kill frame in the frame-data table, which the finisher clips (104, 105) replace with their kill and strike markers; those clips still wait on family 9's review.
   - Decided with the owner (Oct 5, before building; built ahead of 102, see task 83): until tasks 104 and 105 put the finisher clips' lengths and kill markers in the table, both finishers use one stand-in, a rules constant: a line-up over 6 frames to 1.2 m apart, face to face, 80 frames long, the kill at frame 56, no pass-through travel. On screen the stand-in borrows today's clips: the vertical Iai Slash (the Katana) or the Cross (bare hands), the victim holding the disarm stagger and falling with today's KO at the kill. While the prompt is open, a fresh press of light, block, dodge, jump, ability or ultimate forfeits it and the disarm plays out; walking and running don't. A fresh heavy press starts the finisher from whatever state the disarmer is in.
   - Done Oct 5 (side lane): `FinisherRules` (`game/sim/finisher_rules.gd`), its state on the world (`World.prompt_*` and `World.finisher_*`, so the snapshot, the hash and the replay carry it). A disarm at 5 HP or less (`FINISHER_HP_SHARE` 5%) opens the prompt for the disarmer, `FINISHER_PROMPT_FRAMES` 18 world frames after the disarm's at 0.3× (`request_slowmo`, so the host paces each of them slow; a press in the disarm's hit-stop counts as the first). A press counts only when its press frame is inside the window, so a held or buffered one never does; a fresh heavy press is consumed and starts the finisher from any state, and a fresh light, block, dodge, jump or ultimate forfeits it. The finisher is the paired states `finisher` and `finished`: the knock-backs stop, the finisher lines up 1.2 m from the victim over 6 frames, face to face, neither can be hit, the victim's presses go nowhere, and at frame 56 the victim falls (`finisherKill`, then a K.O. carrying `finisher: true` that ends the round); the finisher is freed at frame 80. The weapon decides it: the armed disarmer's weapon, bare hands' (`fists`) for a disarmed one, from its strike (`FINISHER_STRIKE_FRAME` 32, the stand-in's, so its kill comes 24 frames in) when it disarmed by a blocked power blow (P52). Events: `finisherPrompt`, `finisherPromptEnd` (why: finisher, forfeit, timeout or lost), `finisher` (the event the soak and the worst-case bench already counted) and `finisherKill`. On screen `ClipDirector.finisher_clip()` borrows the vertical Iai Slash or the Cross, timed so its last active frame meets the kill, and the victim holds the stun (`finished` joins `STUN_STATES`); `skeleton_finisher.tscn` shows it. The prompt's glyph is task 106's. Checked: `test_finisher.gd` (opens at 5 HP and not at 5.5; 18 slow frames then the disarm plays out; a fresh press starts it; held and buffered presses don't; a press after the window is an ordinary heavy; each forfeit, walking not; from parry recoil, recoil and hitstun; the line-up; the victim can't act or be hit and the round ends as a K.O. at the kill; the end frees the finisher; a redirect's and a blocked power blow's bare-hands finisher, from its strike; a real parry at 5 HP opens it; a finisher replays and restores to the same hash on every step), `test_finisher_clips.gd`. The worst-case log was re-recorded (seed 11; the world's new fields change every hash). A 40-match soak: 0 failures, the same 148 rounds as task 86's, finishers 0 of 148 (the computer presses from task 107 on).
 - [ ] **104. The Katana's finisher.** The iai slash through to stand behind the opponent, the re-sheathe, and the diagonal cut, with its shot.
   - Delivers: the paired clip (Claude's block-out; the owner's polish lands in task 130), its kill marker and placement in the table, off the not-keyed list; its shot; with Blood On the opponent falls in two halves with blood along the cut; Reduced shows less blood and the body whole; Off no blood.
   - Check: table and director tests; shot tests; shots at each Blood value reviewed.
-  - Blocked by: 38, 97, 103 · Stories: 119, 121, 122, 211
+  - Blocked by: 38, 97, 102 (and the owner's OK), 103 · Stories: 119, 121, 122, 211
 - [ ] **105. Bare hands' finisher.** The turn-aside and the crushing strike, or the strike alone after a blocked Breaker Palm or a fully charged Roundhouse, with its shot.
   - Delivers: the paired clip with its strike marker (Claude's block-out; the owner's polish lands in task 130), off the not-keyed list; the line-up to the strike's placement when there is no attack to turn aside; its shot.
   - Check: rules tests of both openings; table and director tests; shots reviewed.
-  - Blocked by: 89, 90, 99, 103, 133 · Stories: 120, 121
+  - Blocked by: 89, 90, 99, 102 (and the owner's OK), 103, 133 · Stories: 120, 121
 - [ ] **106. The finisher prompt on screen.** The heavy button's glyph from the device last used, over the disarmed fighter, readable in the slow motion.
   - Delivers: the prompt drawn on 24.4's prompts in the new HUD style.
   - Check: HUD tests of when it shows and which glyph; shots with keyboard and controller reviewed.
@@ -713,13 +726,13 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [x] **107. The computer and Training finish.** The computer presses the prompt at its difficulty's rate, and Training plays a finisher in full, then refills HP.
   - Delivers: the computer's finisher rates (Easy 30%, Normal 60%, Hard 90%, at frames from its own generator); `TrainingUpkeep` plays the finisher, then refills.
   - Check: seeded tests of the rates; Training tests of the refill after a finisher.
-  - Blocked by: 104, 105 · Stories: 123, 124
+  - Blocked by: 103 · Stories: 123, 124
   - Decided with the owner (Oct 5, before building; built ahead of 104 and 105 on task 103's stand-in finisher, see task 83): in Training the dummy never presses the prompt, its sparring fight drill included. When a finisher ends in Training the victim comes back at once at full HP and posture, re-armed, its stuck weapon removed.
   - Done Oct 5 (side lane): `AIParams` gains the finisher prompt's share and frames (`finishing()`: Easy 30% on frames 10–18 of the window, Normal 60% on 1–18, Hard 90% on 1–6). `AIBrain.think()` decides once per prompt from its own generator, then presses heavy alone on the frame drawn, or plays on with no heavy press that would take the prompt (a brain letting it pass had finished by its ordinary heavies). Training's dummy never presses: its sparring brain doesn't finish (`AIBrain.finishes`) and `TrainingBrain.think()` strips heavy while a prompt is open for it. `TrainingUpkeep` keeps a finisher's victim down until the finisher ends (still task 103's stand-in), then stands it up at full HP and posture, re-armed, its weapon gone from the floor. Checked: `test_computer_finishes.gd` (over 300 seeds each, Easy pressed 33.3%, Normal 59.7%, Hard 91.3%, every press inside its frames; the same seed the same choice; the dummy, disarming the player 20 times, never finished; a Training finisher plays in full, then its victim is back at once, refilled and re-armed). The worst-case log was re-recorded (seed 11). A 40-match soak: 0 failures, 151 rounds of 45.9 s, 1.21 disarms, finishers in 11 of 151 rounds (7.3%, in), every appear-list item in (the stomp 102, the leap 50, Flash 54, Moonsplitter 120, Breaker Palm 21, a pick-up 155).
 - [ ] **108. The finishers' sound and effects.** The prompt, both finishers and the kill have their own sounds and effects.
   - Delivers: sound-bank entries for the prompt opening and closing, both finishers and the kill; their effects.
   - Check: sound-bank tests that the prompt's opening and closing, each finisher and the kill have entries, and that a match-winning finisher plays its kill once; effect tests of each finisher's events; a listening pass at the review.
-  - Blocked by: 106, 107 · Stories: 171
+  - Blocked by: 104, 105, 106 · Stories: 171
 - [ ] **130. The owner's polish of both finishers.** The owner polishes Claude's block-outs in Cascadeur, and the polished clips replace them.
   - Delivers: the Katana's and bare hands' finishers polished, exported and imported; their kill and strike markers checked and the table regenerated.
   - Check: tasks 104's and 105's table and director tests pass on the polished clips; shots reviewed.
@@ -728,7 +741,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **109. Family 10's review.** The finishers go to the owner.
   - Delivers: the review package as in task 40, with the shots.
   - Check: every CI-checked checklist item passes for both finishers.
-  - Blocked by: 108, 130 (and the owner's OK) · Stories: 209
+  - Blocked by: 107, 108, 130 (and the owner's OK) · Stories: 209
   - **Owner:** reviews family 10. Its OK gates family 11.
 
 ### Phase P: family 11, round flow
@@ -736,12 +749,13 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **110. The draw at the round intro.** The Hunter draws the Katana from the saya at the left hip, and "Fight!" is called when both draws reach their ready marker.
   - Delivers: the draw clip at final quality and its own speed, the ready marker in the table and the draw off the not-keyed list; the intro lasting as long as the draws; bare hands' combat entry dropped.
   - Check: director tests of the intro clip; rules tests of the call's frame from the table; sheets reviewed.
-  - Blocked by: 47, 109 (and the owner's OK) · Stories: 126, 127
+  - Blocked by: 16, 47 · Stories: 126, 127
+  - Released from the family order (Oct 5, the owner, by name): the draw and the intro's timing run ahead of family 11 once the Katana and its saya are modelled; the round-end beat and the victory poses (111) still wait on family 10's review.
   - Replaces: `docs/plans/authored-animation.md` task 32
 - [ ] **111. The round-end beat, the match-winning KO shot and the victory poses.** Other KOs close with a short beat; the match-winning KO gets the authored shot and the full victory pose.
   - Delivers: the round-end beat (sheathe, or shake out the hands if disarmed); the authored KO shot and the victory poses (the Katana's sheathe and bow, bare hands' cheer) only for the match-winning KO; neither sheathes again after a Katana finisher; the round end's length from its clips; the round-end beats and the victory poses off the not-keyed list.
   - Check: director tests of the round-end beat against the match-winning victory and of the skipped sheathe; rules tests of the lengths; sheets and shots reviewed.
-  - Blocked by: 97, 110 · Stories: 128, 129, 130, 131
+  - Blocked by: 97, 109 (and the owner's OK), 110 · Stories: 128, 129, 130, 131
   - Replaces: `docs/plans/authored-animation.md` task 33
 - [ ] **112. Round flow's review.** The round flow goes to the owner, closing the families.
   - Delivers: the review package as in task 40, with the sounds of the draw, the sheathes and the bow.

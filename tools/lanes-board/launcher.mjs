@@ -28,6 +28,29 @@ const GRACE_MS = 10_000; // app records can be stamped a little before the board
 
 export const launchLink = (folder, prompt) => `claude://code/new?folder=${encodeURIComponent(folder)}&q=${encodeURIComponent(prompt)}`;
 
+/**
+ * A new session from the pages' "New session" button: a launch with no tasks,
+ * which the owner prompts from the Claude app over Remote Control. The app only
+ * makes a session once a prompt is sent, so it gets a short first prompt that
+ * carries its tag (what links it to its session, as a lane's branch does) and
+ * moves it onto the latest master: the app makes its worktree from whatever the
+ * main checkout has checked out.
+ */
+export function newSessionLaunch({ now, repo }) {
+  const tag = `pm-session-${now.toString(36)}`;
+  const worktree = `${repo}\\.claude\\worktrees\\${tag}`;
+  const goal = [
+    `New session from the Project Manager (${tag}), in the Monomachia repository at ${repo}.`,
+    `Setup, before anything else: work only in a worktree of ${repo}, never in a scratch or other folder, on the latest master.`,
+    `If your working directory is not inside ${repo}, run git -C "${repo}" fetch origin master, then git -C "${repo}" worktree add "${worktree}" --detach origin/master, and move this session into it with the change_directory tool (find it with ToolSearch).`,
+    'Otherwise run git fetch origin master and, if git status shows no changes, git switch --detach origin/master.',
+    `If .godot-path or .assets-src-path is missing, copy it from ${repo}.`,
+    'Then reply in one line with the commit you are on (git log --oneline -1) and wait for my next message: I will send the work from the Claude app.',
+    'When I do, set this session\'s title to a short name for that work with the set_session_title tool (session_id "self"; find it with ToolSearch), and build any change on a new branch from origin/master, per CLAUDE.md.',
+  ].join(' ');
+  return { id: tag, kind: 'session', time: now, tasks: [], tag, goal, start: { state: 'queued', at: now, attempts: 0 } };
+}
+
 // Still waiting for its session: not linked to one, not ended, not lapsed.
 const pending = (l, now) => !l.session && !l.endedAt && now - l.time < LAUNCH_FRESH_MS;
 
@@ -177,20 +200,20 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /**
  * Links each launch still waiting for its session to the earliest app session
  * made since the launch (less the grace) whose first prompt names the launch's
- * lane branch, unless another launch took it. Naming the branch makes it this
- * launch's session, however late it started: the board's press, a retry, or
- * someone sending the draft by hand. The newest launches go first, so a
- * relaunch of the same tasks gets its own session. sessions: [{ id, cli,
- * created }] from the app's records; prompts: cli id -> first prompt (missing
- * until the transcript has one). Changes the launches in place; true if any was
- * linked.
+ * lane branch (or a new session's tag), unless another launch took it. Naming
+ * the branch makes it this launch's session, however late it started: the
+ * board's press, a retry, or someone sending the draft by hand. The newest
+ * launches go first, so a relaunch of the same tasks gets its own session.
+ * sessions: [{ id, cli, created }] from the app's records; prompts: cli id ->
+ * first prompt (missing until the transcript has one). Changes the launches in
+ * place; true if any was linked.
  */
 export function linkLaunches(launches, sessions, prompts, now) {
   const taken = new Set(launches.map((l) => l.session?.id).filter(Boolean));
   let linked = false;
-  for (const l of launches.filter((x) => pending(x, now) && x.branch).sort((a, b) => b.time - a.time)) {
+  for (const l of launches.filter((x) => pending(x, now) && (x.branch || x.tag)).sort((a, b) => b.time - a.time)) {
     // The branch as a whole word: lane/gr-1.1 isn't lane/gr-1.10, but may end a sentence.
-    const names = new RegExp(`${escapeRe(l.branch)}(?![\\w-]|\\.\\w)`);
+    const names = new RegExp(`${escapeRe(l.branch || l.tag)}(?![\\w-]|\\.\\w)`);
     const s = sessions
       .filter((x) => !taken.has(x.id) && x.cli && x.created >= l.time - GRACE_MS && names.test(prompts.get(x.cli) ?? ''))
       .sort((a, b) => a.created - b.created)[0];

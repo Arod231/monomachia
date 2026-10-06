@@ -11,6 +11,9 @@
 //   script <res://path.gd> [-- user args]   run a SceneTree tool script headless
 //   shots <scene> [out.png] [frames] [scene args...]   render a scene in an off-screen window;
 //                          fails on a shader or script error
+//   clip <scene> [--seconds N] [--out shots/<name>.mp4] [scene args...]   record a scene the
+//                          shots tool runs as a looping MP4 (6 s, at most 20) and a still in
+//                          shots/, with Movie Maker and ffmpeg (rules in clip.mjs)
 //   bench [scene args...]  the frame-time harness: plays the worst-case replay in a window
 //                          and writes every frame's time to build/bench/ (tools/bench/frame_time_bench.gd)
 //   run                    play the game
@@ -31,7 +34,7 @@
 //
 // package.json's scripts call most of these by their own names (plan task
 // 26.3): test:godot, typecheck, soak (soak:tune runs 300), build, release,
-// play (= run), dev, studio, shots, bench, counterlab (= script
+// play (= run), dev, studio, shots, clip, bench, counterlab (= script
 // res://tools/counterlab.gd) and bench:record (= script
 // res://tools/bench/record_worst_case.gd); `npm run godot -- <command>` reaches the rest.
 //
@@ -39,9 +42,11 @@
 // `godot4` on PATH, then a local `.godot-path` file (see findGodot).
 
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CLIP_FPS, CLIP_SIZE, clipArgs, clipFfmpegArgs, clipPaths } from './clip.mjs';
 import { STAND_IN_FILE, checkTag, projectVersion, releaseFiles, workProblems, writeZip, zipName } from './release.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -195,8 +200,8 @@ async function exportWindows(godot) {
 async function main() {
   const [cmd = 'help', ...rest] = process.argv.slice(2);
   if (cmd === 'help' || cmd === '--help') {
-    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|bench|run|studio|dev|build|release|clips|bake');
-    console.log('npm scripts: test:godot, typecheck, soak, soak:tune, build, release, play (run), dev, studio, shots, bench, bench:record, counterlab;');
+    console.log('usage: node scripts/godot.mjs import|test|typecheck|soak|script|shots|clip|bench|run|studio|dev|build|release|clips|bake');
+    console.log('npm scripts: test:godot, typecheck, soak, soak:tune, build, release, play (run), dev, studio, shots, clip, bench, bench:record, counterlab;');
     console.log('the rest through npm run godot -- <command> (see the top of scripts/godot.mjs).');
     return;
   }
@@ -280,6 +285,37 @@ async function main() {
       if (r.code === 0 && hasShaderErrors(r.output)) die('godot.mjs: a shader failed to compile (see SHADER ERROR above).');
       if (r.code === 0 && hasScriptErrors(r.output)) die('godot.mjs: the scene reported script errors.');
       process.exit(r.code);
+      return;
+    }
+    case 'clip': {
+      // A scene the shots tool runs, recorded by Movie Maker (which, like
+      // shots, needs a real window) at 30 fps: shot.gd saves the still, then
+      // lets the scene run the clip's frames and quits, and ffmpeg keeps that
+      // end of the movie as a looping MP4 (rules in clip.mjs).
+      let args;
+      try { args = clipArgs(rest); } catch (err) { die(`godot.mjs clip: ${err.message}`); }
+      if (spawnSync('ffmpeg', ['-version'], { windowsHide: true }).status !== 0) die('godot.mjs clip: ffmpeg must be on the PATH.');
+      const { mp4, still } = clipPaths(args, ROOT);
+      mkdirSync(dirname(mp4), { recursive: true });
+      const avi = join(os.tmpdir(), `monomachia-clip-${process.pid}.avi`);
+      await importProject(godot);
+      const r = await runGodot(
+        godot,
+        [
+          '--path', PROJECT, '--position', '-3000,-3000', '--resolution', CLIP_SIZE, '--fixed-fps', String(CLIP_FPS), '--write-movie', avi,
+          '--script', 'res://tools/shot.gd', '--', `--scene=${args.scene}`, `--out=${still}`, '--frames=30',
+          `--record=${Math.round(args.seconds * CLIP_FPS)}`, ...args.sceneArgs,
+        ],
+        { timeoutMs: 600000, env: DEFAULT_SETTINGS_ENV },
+      );
+      const failed = r.code !== 0 ? `Godot exited ${r.code}` : hasShaderErrors(r.output) ? 'a shader failed to compile'
+        : hasScriptErrors(r.output) ? 'the scene reported script errors' : null;
+      if (failed) { rmSync(avi, { force: true }); die(`godot.mjs clip: ${failed} (see above).`); }
+      const ff = spawnSync('ffmpeg', clipFfmpegArgs({ avi, seconds: args.seconds, mp4 }), { stdio: 'inherit', windowsHide: true });
+      rmSync(avi, { force: true });
+      if (ff.status !== 0) die('godot.mjs clip: ffmpeg could not make the MP4.');
+      const rel = (p) => relative(ROOT, p).split('\\').join('/');
+      console.log(`clip: wrote ${rel(mp4)} (${args.seconds} s) and its still ${rel(still)}. Post them with: npm run post -- ${rel(mp4)} --caption "…"`);
       return;
     }
     case 'bench': {

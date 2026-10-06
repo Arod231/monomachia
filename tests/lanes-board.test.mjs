@@ -110,16 +110,16 @@ describe('parseFlat', () => {
 describe('PLANS', () => {
   it('follows the roadmap, milestone 1, the Godot rebuild, authored animation (closed) and the Project Manager\'s remote control, not the session tracker', () => {
     assert.deepEqual(PLANS.map((p) => [p.key, p.kind, p.branch, !!p.closed]), [
-      ['rm', 'roadmap', 'feature/godot-rebuild', false],
-      ['m1', 'flat', 'feature/milestone-1', false],
-      ['gr', 'nested', 'feature/godot-rebuild', false],
+      ['rm', 'roadmap', 'master', false],
+      ['m1', 'flat', 'master', false],
+      ['gr', 'nested', 'master', false],
       ['aa', 'flat', 'feature/authored-animation', true],
       ['pm', 'flat', 'tools/project-manager-remote', false],
     ]);
     assert.equal(RM.file, 'docs/plans/roadmap.md');
     assert.equal(M1.file, 'docs/plans/milestone-1.md');
     assert.equal(PLAN_BY_KEY.pm.file, 'docs/plans/project-manager-remote.md');
-    assert.equal(PLAN_BY_KEY.pm.into, 'feature/godot-rebuild');
+    assert.equal(PLAN_BY_KEY.pm.into, 'master');
   });
 });
 
@@ -137,10 +137,10 @@ describe('the Project Manager plan (PM)', () => {
     assert.doesNotMatch('Swing sampler (task 7.3)', SUBJECT_TASK.pm);
   });
 
-  it('launches lanes into its branch, which merges into the Godot rebuild branch', () => {
+  it('launches lanes into its branch, which merges into master', () => {
     const goal = goalFor({ plan: PLAN_BY_KEY.pm, ids: ['6'], tasks: { 6: { title: 'Away, and questions answered' } },
       branch: 'lane/pm-6', repo: 'C:\\Repo' });
-    assert.ok(goal.includes('tools/project-manager-remote (which merges into feature/godot-rebuild)'));
+    assert.ok(goal.includes('tools/project-manager-remote (which merges into master)'));
     assert.ok(goal.includes('origin/tools/project-manager-remote'));
   });
 });
@@ -553,49 +553,52 @@ describe('goalFor', () => {
   const tasks = { '22.15': { title: 'Pause menu' }, '23.1': { title: 'Training upkeep in the rules' } };
   const goal = goalFor({ plan: GR, ids: ['22.15', '23.1'], tasks, branch: 'lane/gr-22.15-23.1', repo });
 
-  it('names the tasks, the repository and the Godot rebuild branch', () => {
+  it('names the tasks, the repository and the plan branch, master since the Godot rebuild merged', () => {
     assert.ok(goal.includes('22.15 Pause menu; 23.1 Training upkeep in the rules'));
     assert.ok(goal.includes(`in the Monomachia repository at ${repo}`));
-    assert.ok(goal.includes('the Godot rebuild branch, feature/godot-rebuild'));
+    assert.ok(goal.includes('with every change built on and merged into master.'));
   });
 
-  it('keeps the work on a lane branch with a pull request into the plan branch, never master', () => {
-    assert.ok(goal.includes('pushed on lane/gr-22.15-23.1, with a pull request into feature/godot-rebuild, never master'));
-    assert.ok(goal.includes('git switch -c lane/gr-22.15-23.1 origin/feature/godot-rebuild'));
+  it('keeps the work on a lane branch with a pull request into the plan branch', () => {
+    assert.ok(goal.includes('pushed on lane/gr-22.15-23.1, with a pull request into master.'));
+    assert.ok(!goal.includes('never master'));
+    assert.ok(goal.includes('git switch -c lane/gr-22.15-23.1 origin/master'));
   });
 
   it('brings a session that opened elsewhere into a worktree of the repository', () => {
     assert.ok(goal.includes('never in a scratch or other folder'));
-    assert.ok(goal.includes(`worktree add "${repo}\\.claude\\worktrees\\lane-gr-22-15-23-1" -b lane/gr-22.15-23.1 origin/feature/godot-rebuild`));
+    assert.ok(goal.includes(`worktree add "${repo}\\.claude\\worktrees\\lane-gr-22-15-23-1" -b lane/gr-22.15-23.1 origin/master`));
   });
 
   it('asks wayfinder\'s questions before implementing', () => {
     assert.match(goal, /wayfinder for questions only.*AskUserQuestion.*Then implement/);
   });
 
-  it('builds milestone 1 and roadmap lanes on their plan\'s branch', () => {
+  it('builds milestone 1 and roadmap lanes on master, with their pull requests into master', () => {
     const m1 = goalFor({ plan: M1, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo });
     assert.ok(m1.includes('12 Sparks (docs/plans/milestone-1.md)'));
-    assert.ok(m1.includes('pushed on lane/m1-12, with a pull request into feature/milestone-1, never master'));
-    assert.ok(m1.includes('git switch -c lane/m1-12 origin/feature/milestone-1'));
+    assert.ok(m1.includes('pushed on lane/m1-12, with a pull request into master.'));
+    assert.ok(m1.includes('git switch -c lane/m1-12 origin/master'));
+    assert.ok(!m1.includes('never master'));
     assert.ok(!m1.includes('which merges into'));
     const rm = goalFor({ plan: RM, ids: ['R3'], tasks: { R3: { title: 'Sign-off' } }, branch: 'lane/rm-R3', repo });
-    assert.ok(rm.includes('the Godot rebuild branch, feature/godot-rebuild'));
-    assert.ok(rm.includes('git switch -c lane/rm-R3 origin/feature/godot-rebuild'));
+    assert.ok(rm.includes('with a pull request into master.'));
+    assert.ok(rm.includes('git switch -c lane/rm-R3 origin/master'));
   });
 
-  it('follows a branch named in the plan header', () => {
-    const goal = goalFor({ plan: { ...M1, branch: 'master' }, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo });
-    assert.ok(goal.includes('with a pull request into master'));
-    assert.ok(goal.includes('origin/master'));
+  it('follows a branch named in the plan header, keeping a feature branch\'s lanes off master', () => {
+    const goal = goalFor({ plan: { ...M1, branch: 'feature/x' }, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo });
+    assert.ok(goal.includes('with a pull request into feature/x, never master'));
+    assert.ok(goal.includes('git switch -c lane/m1-12 origin/feature/x'));
   });
 
   it('tells the session to stop and tell the owner when the plan\'s branch is not on origin yet', () => {
-    const goal = goalFor({ plan: M1, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo, baseExists: false });
+    const plan = { ...M1, branch: 'feature/milestone-1' };
+    const goal = goalFor({ plan, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo, baseExists: false });
     assert.ok(goal.includes('origin/feature/milestone-1 does not exist yet'));
     assert.match(goal, /stop and tell me.*do not create it or build on another branch/);
     assert.ok(goal.includes('or, if origin/feature/milestone-1 is still missing, when you have told me so and stopped'));
-    assert.ok(!goalFor({ plan: M1, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo }).includes('does not exist yet'));
+    assert.ok(!goalFor({ plan, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo }).includes('does not exist yet'));
   });
 
   it('is plain words, since the app turns a link\'s leading slash into a full-width one and never runs it as a command', () => {

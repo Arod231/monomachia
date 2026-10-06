@@ -251,7 +251,12 @@ func _build_fighter() -> void:
 	if weapon != &"":
 		model.attach_weapon(WeaponLook.load_id(weapon))
 	var chain: Array[String] = AnimTile.chain_on(model, entry, fighter_id)[0]
-	poser = ClipPoser.new(model, chain if not chain.is_empty() else [AnimTile.still_clip(model)] as Array[String])
+	# Typed by the declaration: an `as Array[String]` cast of a literal inside
+	# the conditional left it untyped, and ClipPoser.new refused it.
+	var plays: Array[String] = chain
+	if plays.is_empty():
+		plays = [AnimTile.still_clip(model)]
+	poser = ClipPoser.new(model, plays)
 	_note.visible = chain.is_empty() or not ClipLibraries.available()
 	_note.text = "Nothing to play: the fighter's idle, held." if chain.is_empty() else ClipLibraries.MISSING_NOTE
 	_last_rules = -1000

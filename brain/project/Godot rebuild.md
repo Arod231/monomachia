@@ -8,7 +8,7 @@ The original Monomachia was a browser demo in three.js and TypeScript (see [[MVP
 
 ## The plan
 
-The [[Rebuild plan]] lives on `feature/godot-rebuild`, and every lane's work merges into that branch through pull requests. Its phases:
+The [[Rebuild plan]] was built on `feature/godot-rebuild`, every lane's work merging into that branch through pull requests. The branch merged into `master` (pull requests #2 and #68, Oct 4 and 5), and new work now branches from `master`. Its phases:
 
 - **A. Foundation and a [[Faithful port]]:** the Godot project, the rules ported bit for bit, and golden replays.
 - **B. A playable skeleton:** a match you can play in Godot.

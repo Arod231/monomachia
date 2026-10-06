@@ -325,7 +325,8 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 				# each spin is a phase of its own, faded into as a follow-up
 				phase = StringName("spin%d" % f.ult.spins)
 		elif f.atk != null and ctx.libraries and f.atk.def.swing != null and f.atk.def.swing.loop != &"":
-			# a charge's loop is a phase of the attack (task 19)
+			# a charge's loop is a phase of the attack (task 19); a finisher's
+			# stand-in (task 103) plays with no attack, so it has none
 			phase = &"hold" if f.atk.charging else &"swing"
 	else:
 		playing = state_clip(f, ctx)

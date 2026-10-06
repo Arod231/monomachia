@@ -21,8 +21,10 @@
 # -LockOnly only answers {"result": "locked"} or {"result": "unlocked"}. The
 # trust dialog can come up a moment after the draft, so the box must have shown
 # for -SettleMs before Send is pressed. -App names the program whose windows are
-# searched (claude, the desktop app; tests pass a stand-in).
-param([int]$WaitMs = 60000, [int]$TakeMs = 10000, [int]$SettleMs = 2000, [string]$App = 'claude', [switch]$LockOnly)
+# searched (claude, the desktop app); -AppPid searches one process's windows
+# instead (tests pass their stand-in's, since a program name such as powershell
+# would take in other lanes' stand-ins, trust dialogs and all).
+param([int]$WaitMs = 60000, [int]$TakeMs = 10000, [int]$SettleMs = 2000, [string]$App = 'claude', [int]$AppPid = 0, [switch]$LockOnly)
 $ErrorActionPreference = 'Stop'
 $sw = [Diagnostics.Stopwatch]::StartNew()
 $trusted = $false
@@ -76,7 +78,7 @@ public static class LanesSessionLock {
   # The app's top-level windows (for the Claude app, its own claude.exe: its
   # sessions' claude.exe processes have none).
   $windows = {
-    $ids = @(Get-Process -Name $App -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+    $ids = if ($AppPid) { @($AppPid) } else { @(Get-Process -Name $App -ErrorAction SilentlyContinue | ForEach-Object { $_.Id }) }
     @($AE::RootElement.FindAll($TS::Children, [System.Windows.Automation.Condition]::TrueCondition) |
       Where-Object { $ids -contains $_.Current.ProcessId })
   }
@@ -132,12 +134,15 @@ public static class LanesSessionLock {
         if ($null -eq $boxSince) { $boxSince = $sw.ElapsedMilliseconds }
       }
       if ($box -and $sw.ElapsedMilliseconds - $boxSince -ge $SettleMs) {
-        # This box's Send: the nearest ancestor holding exactly one.
+        # This box's Send: the nearest ancestor holding exactly one, up to the
+        # box's own window and never the desktop above it (which would take in
+        # every other program's windows and their Send buttons).
         $send = $null
         $node = $box
+        $root = $AE::RootElement
         for ($i = 0; $i -lt 10 -and $node; $i++) {
           $node = $walker.GetParent($node)
-          if (-not $node) { break }
+          if (-not $node -or [System.Windows.Automation.Automation]::Compare($node, $root)) { break }
           $sends = $node.FindAll($TS::Descendants, $isSend)
           if ($sends.Count -eq 1) { $send = $sends[0]; break }
           if ($sends.Count -gt 1) { break }
