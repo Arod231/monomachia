@@ -2,6 +2,8 @@
 
 Status: built, after the owner's check from the phone on Oct 5, 2026 (approved Oct 4, with its plan, `docs/plans/project-manager-remote.md`).
 
+Changed Oct 6, 2026 (the owner's call): the Project Manager no longer answers anything or merges. Every permission prompt, plan and question is answered in the Claude app, Away or not; the relay hook holds nothing and only notes questions asked in the app and finished turns for the bell (its timeouts are back to 10 seconds). The Questions tab, the held items' cards, Approve & continue and the Merge panel are gone; merges are done on GitHub, or by a session the owner tells to merge or approves a merge for. The Away switch now only sends the bell's news to the phone's lock screen, and the bell's "ready to merge" says the pull request is ready to merge on GitHub. Where this spec says otherwise, this note wins.
+
 Changed Oct 5, 2026 (the owner's call): questions (AskUserQuestion) are no longer sent to the Project Manager. They always stay in the app's own dialog, Away or not, and the relay hook only notes them, so the bell (and a push, once push lands) says "<session> is waiting on you to answer questions in the app" and the Questions tab lists them under "Asked in the app". Permission prompts, plans and turn ends still wait in the Project Manager while Away is on. Where this spec says questions wait in or are answered from the Project Manager, this note wins.
 
 ## Problem Statement

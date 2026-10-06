@@ -86,8 +86,8 @@ describe('cleanSubscription', () => {
 
 describe('the rules', () => {
   const S = '11111111-2222-4333-8444-555555555555';
-  const rec = { id: 'held:q-1', kind: 'question', session: S, text: 'Lane 7 asks you a question', detail: 'Which camera?', read: false,
-    target: { tab: 'questions', item: 'q-1', session: S } };
+  const rec = { id: 'event:5:0', kind: 'asked', session: S, text: 'Lane 7 is waiting on you to answer questions in the app', detail: 'Which camera?', read: false,
+    target: { tab: 'sessions', session: S } };
 
   it('pushes only while Away is on, and only unread records', () => {
     assert.deepEqual(toPush([rec, { ...rec, id: 'x', read: true }], { on: true }), [rec]);
@@ -95,19 +95,21 @@ describe('the rules', () => {
     assert.deepEqual(toPush([rec], null), []);
   });
 
-  it('says who needs what in one line, tags by session and opens the record', () => {
+  it('says who needs what in one line, tags by session and opens the record\'s session', () => {
     const m = pushMessage(rec);
-    assert.equal(m.title, 'Lane 7 asks you a question');
+    assert.equal(m.title, 'Lane 7 is waiting on you to answer questions in the app');
     assert.equal(m.body, 'Which camera?');
     assert.equal(m.tag, `session:${S}`);
     const u = new URL(m.url, 'https://pc');
     assert.equal(u.pathname, '/m');
-    assert.deepEqual(Object.fromEntries(u.searchParams), { bell: 'held:q-1', go: 'questions', item: 'q-1', session: S });
+    assert.deepEqual(Object.fromEntries(u.searchParams), { bell: 'event:5:0', go: 'sessions', session: S });
+    const old = pushMessage({ ...rec, id: 'held:q-1', target: { tab: 'questions', item: 'q-1', session: S } });
+    assert.deepEqual(Object.fromEntries(new URL(old.url, 'https://pc').searchParams), { bell: 'held:q-1', go: 'sessions', session: S }, 'an older record too');
     const turn = pushMessage({ ...rec, id: 'event:9-0', kind: 'turn', target: { tab: 'sessions', session: S } });
     assert.equal(turn.tag, `session:${S}`);
     assert.deepEqual(Object.fromEntries(new URL(turn.url, 'https://pc').searchParams), { bell: 'event:9-0', go: 'sessions', session: S });
-    const ready = pushMessage({ ...rec, id: 'event:9:10', kind: 'merge', target: { tab: 'sessions', session: S, merge: 51 } });
-    assert.deepEqual(Object.fromEntries(new URL(ready.url, 'https://pc').searchParams), { bell: 'event:9:10', go: 'sessions', merge: '51', session: S });
+    const ready = pushMessage({ ...rec, id: 'event:9:10', kind: 'merge', target: { tab: 'sessions', session: S } });
+    assert.deepEqual(Object.fromEntries(new URL(ready.url, 'https://pc').searchParams), { bell: 'event:9:10', go: 'sessions', session: S });
     const vis = pushMessage({ ...rec, id: `visuals:${S}:1-0`, kind: 'visuals', target: { tab: 'sessions', session: S, visuals: true } });
     assert.deepEqual(Object.fromEntries(new URL(vis.url, 'https://pc').searchParams), { bell: `visuals:${S}:1-0`, go: 'sessions', visuals: '1', session: S });
   });

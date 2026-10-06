@@ -93,8 +93,8 @@ export async function startBoard({ env: extraEnv = {} } = {}) {
       return { status: r.status, body: await r.json().catch(() => null) };
     },
     // Runs the relay hook with a fixture event, as Claude Code would.
-    hook(event, { waitMs = 8000, session = SESSION } = {}) {
-      return runHook('relay-hook.mjs', event, session, { LANES_RELAY_WAIT_MS: String(waitMs) });
+    hook(event, { session = SESSION } = {}) {
+      return runHook('relay-hook.mjs', event, session, {});
     },
     // Runs the stop hook (PreToolUse and Stop) the same way.
     stopHook(event, { session = SESSION } = {}) {
