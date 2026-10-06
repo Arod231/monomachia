@@ -104,11 +104,18 @@ var body_flash_scale: float = 1.0
 
 ## owner side -> Node3D: the dropped weapon stand-ins.
 var _dropped: Dictionary[int, Node3D] = {}
+## The beams over dropped weapons: one mesh, and a material for each side,
+## built with the view and recoloured each match (beam_material()). A
+## StandardMaterial3D made at the disarm compiled its shader on the main
+## thread, some 40 ms at every disarm, since freeing the last beam freed it.
+var _beam_mesh: CylinderMesh = _make_beam_mesh()
+var _beam_mats: Array[StandardMaterial3D] = [_make_beam_material(), _make_beam_material()]
 var _time: float = 0.0
-var _side_palette: Array[int] = [0, 1]
 
 
 func _ready() -> void:
+	for m: StandardMaterial3D in _beam_mats:
+		m.get_rid() # builds the beams' shader now, not at the first disarm
 	camera = get_node_or_null(camera_path) as CameraRig
 	if camera == null:
 		camera = CameraRig.new()
@@ -265,7 +272,7 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	for i: int in 2:
 		var s: MatchSide = cfg.sides[i]
 		fighters[i].setup(s.fighter_id, s.palette, s.weapon_id, i)
-		_side_palette[i] = s.palette
+		_beam_mats[i].albedo_color = Color(LookPalette.side_color(s.palette), 0.35)
 	_clear_dropped()
 	effects.clear()
 	effects.set_preset(GameServices.graphics_preset())
@@ -542,24 +549,43 @@ func _make_dropped(side_id: int, weapon_id: StringName) -> Node3D:
 			w.set_meta(&"tip", span.y)
 			w.position = Vector3(0.12 * float(k), -float(w.get_meta(&"middle")), 0.0)
 	# a pillar of light in the owner's colour over a weapon on the ground
-	var beam_mat: StandardMaterial3D = StandardMaterial3D.new()
-	beam_mat.albedo_color = LookPalette.side_color(_side_palette[side_id])
-	beam_mat.albedo_color.a = 0.35
-	beam_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	beam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	beam_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var beam: MeshInstance3D = MeshInstance3D.new()
 	beam.name = "Beam"
-	var cyl: CylinderMesh = CylinderMesh.new()
-	cyl.top_radius = 0.06
-	cyl.bottom_radius = 0.12
-	cyl.height = 3.5
-	beam.mesh = cyl
-	beam.material_override = beam_mat
+	beam.mesh = _beam_mesh
+	beam.material_override = _beam_mats[side_id]
 	beam.visible = false
 	root.add_child(beam)
 	GraphicsApplier.apply_to_tree(GameServices.graphics_preset(), root)
 	return root
+
+
+## The material side `side`'s dropped weapon's beam is drawn with, in its
+## colour this match.
+func beam_material(side: int) -> StandardMaterial3D:
+	return _beam_mats[side]
+
+
+## The mesh every dropped weapon's beam is drawn with.
+func beam_mesh() -> CylinderMesh:
+	return _beam_mesh
+
+
+static func _make_beam_mesh() -> CylinderMesh:
+	var cyl: CylinderMesh = CylinderMesh.new()
+	cyl.top_radius = 0.06
+	cyl.bottom_radius = 0.12
+	cyl.height = 3.5
+	return cyl
+
+
+## A beam's see-through, unlit material; _on_match_started() colours it.
+static func _make_beam_material() -> StandardMaterial3D:
+	var m: StandardMaterial3D = StandardMaterial3D.new()
+	m.albedo_color = Color(1.0, 1.0, 1.0, 0.35)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
 
 
 ## A weapon model's extent along its length (its +Y, toward the point), from
