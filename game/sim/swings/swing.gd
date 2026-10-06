@@ -147,6 +147,10 @@ var fallback: StringName = &""
 ## stance, task 11), first and last: the view shows it there and no hand
 ## holds it; empty for none. Always before the active frames.
 var sheathed: PackedInt32Array = PackedInt32Array()
+## The authored loop a held charge plays (a ClipChain entry, milestone-1
+## task 19), at 1.0 from when the charge began; empty to hold the attack's
+## clip where the charge holds the frame.
+var loop: StringName = &""
 var _tracks: Dictionary[StringName, Array] = {}
 var _ticks: Dictionary[StringName, Array] = {}
 var _baked: Dictionary[StringName, bool] = {}

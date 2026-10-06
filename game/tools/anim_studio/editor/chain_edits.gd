@@ -4,8 +4,8 @@ extends RefCounted
 ## move's chain as rows of parts and source-frame ranges, written as one
 ## edit of the move's "clips" in the move-clip table. The panel has no speed
 ## field and makes no held frames: today's holds ("id@frame*n") and the
-## move's speed are shown read-only, marked for task 19, and written back
-## untouched.
+## move's speed are shown read-only, going with the stand-ins (task 19), and
+## written back untouched.
 
 ## One part of a chain.
 class Row:
@@ -14,7 +14,7 @@ class Row:
 	## Source frames: from (0 for the start) and to (NAN for the clip's end).
 	var from: float = 0.0
 	var to: float = NAN
-	## A held part ("id@frame*n", task 19 removes them): kept as written.
+	## A held part ("id@frame*n", going with the stand-ins, task 19): kept as written.
 	var held: String = ""
 
 	func is_held() -> bool:

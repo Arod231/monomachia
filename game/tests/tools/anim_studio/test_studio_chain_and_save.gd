@@ -56,13 +56,13 @@ func test_the_chain_panel_lists_the_parts_and_shows_the_speed_read_only() -> voi
 	assert_eq((panel.get_node("Part0/To") as LineEdit).text, "12")
 	assert_eq((panel.get_node("Part1/To") as LineEdit).text, "", "to the clip's end")
 	assert_not_null(panel.get_node_or_null("AddPart"))
-	assert_eq(editor.get_node("%SpeedLabel").text, "speed 1.3 (task 19 removes it)")
+	assert_eq(editor.get_node("%SpeedLabel").text, "speed 1.3 (goes with the stand-ins)")
 
 
 func test_a_hold_shows_read_only() -> void:
 	var editor: StudioEditor = await _open(&"k_thrust")
 	var held: Label = editor.get_node("%ChainPanel").get_node("Part1").get_child(0)
-	assert_eq(held.text, "AttackPolearm01@8*4 · hold (task 19)")
+	assert_eq(held.text, "AttackPolearm01@8*4 · hold (goes with the stand-ins)")
 
 
 func test_moving_a_part_down_is_a_pending_edit() -> void:

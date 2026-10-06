@@ -30,15 +30,27 @@ extends RefCounted
 ## played at 1.0x, each a whole or half frame: the wind-up start, the active
 ## frames' start and end, the settle, the dodge-cancel window (its start, and
 ## an end that defaults to the settle) when the move has one, and a branch
-## point for each follow-up ("branch": {move: frame}). Until task 19 the clips
-## still play by "marks" and the speed, so the two can differ. On the
-## Katana's and bare hands' moves they are stand-ins ("markers_stand_in"):
-## placed to give today's frame data exactly, not at the clip's events, until
-## their family re-keys them; frame_data() reads them.
+## point for each follow-up ("branch": {move: frame}). On the Katana's and
+## bare hands' moves they are stand-ins ("markers_stand_in"): placed to give
+## today's frame data exactly, not at the clip's events, until their family
+## re-keys them; frame_data() reads them. A stand-in's clip still plays by
+## its "marks" and speed, so the two differ.
+##
+## From milestone-1 task 19 a move with real markers plays its clip at 1.0x
+## from its wind-up start, so a Katana or bare-hands move a family re-keys
+## has no "speed" (its "marks" may stay, recording where the clip's events
+## fall); the Greatsword's, the Daggers' and both Counter Lunges' keep theirs,
+## unread, until milestone 2 re-keys them. A
+## chargeable move may name the "loop" its held charge plays (a ClipChain
+## entry), at 1.0 from when the charge began.
 
 const PATH: String = "res://assets/kevin_iglesias/move_clips.json"
 const WEAPON_FIELDS: Array[String] = ["guard", "moves"]
-const MOVE_FIELDS: Array[String] = ["clips", "speed", "fallback", "marks", "sheathed", "markers", "markers_stand_in"]
+const MOVE_FIELDS: Array[String] = ["clips", "speed", "fallback", "marks", "sheathed", "markers", "markers_stand_in", "loop"]
+## The weapons whose moves play at 1.0x once re-keyed (milestone 1's): a
+## re-keyed move of theirs has no speed. AttackDef.CLIP_LED_WEAPONS, written
+## out: a constant read from it here makes a cycle as the rules load.
+const ONE_SPEED_WEAPONS: Array[StringName] = [&"katana", &"fists"]
 ## A move's markers that every move has, in the order they fall.
 const RULES_MARKERS: Array[String] = ["windup", "active_start", "active_end", "settle"]
 ## The dodge-cancel window's markers, for a move with one: the start, and an
@@ -72,6 +84,8 @@ class Entry:
 	## Whether they are stand-ins giving today's frame data, waiting for the
 	## move's family to re-key it.
 	var markers_stand_in: bool = false
+	## The loop a held charge plays (a ClipChain entry); empty for none.
+	var loop: StringName = &""
 
 
 ## Weapon id -> the clip its guard is read from.
@@ -250,6 +264,22 @@ func _entry(wid: StringName, id: StringName, d: Variant, manifest: ClipManifest)
 		errors.append("%s: markers_stand_in is true or false, and true only with markers" % at)
 		return null
 	e.markers_stand_in = stand_in
+	var waits: bool = ((Moves.WEAPONS[wid] as WeaponDef).moves[id] as AttackDef).special == &"counterLunge"
+	if ONE_SPEED_WEAPONS.has(wid) and not e.markers.is_empty() and not stand_in and not waits and (d as Dictionary).has("speed"):
+		errors.append("%s: a move with real markers plays at 1.0x, so it has no speed" % at)
+		return null
+	if (d as Dictionary).has("loop"):
+		if not ((Moves.WEAPONS[wid] as WeaponDef).moves[id] as AttackDef).chargeable:
+			errors.append("%s: only a chargeable move has a loop" % at)
+			return null
+		var why: Array[String] = []
+		var part: ClipChain.Part = ClipChain.parse(str(d["loop"]), why)
+		if part != null and not ClipChain.is_cc0(part.id) and not manifest.clips.has(part.id):
+			why.append("%s is not in the clip manifest" % part.id)
+		if not why.is_empty():
+			errors.append("%s: the loop: %s" % [at, why[0]])
+			return null
+		e.loop = StringName(str(d["loop"]))
 	return e
 
 
