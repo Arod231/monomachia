@@ -57,11 +57,24 @@ static func measures_depth(weapon: WeaponDef) -> bool:
 ## its blades' sweeps touch the defender's hurt capsule, of those that check
 ## for hits (World.checks_frame()), and how deep, or null for none. It plays
 ## the attacker as Fighter does, each frame: the lunge along the facing
-## (stopping with the bodies 0.25 m apart), then the turn toward the defender
+## (stopping with the bodies 0.25 m apart), or for a move led by its clip
+## its travel (milestone-1 task 21), then the turn toward the defender
 ## at the move's tracking rates, then the blades. A hop, an air attack and a
 ## lunge along the dodge are played on the ground along the facing.
 static func first_contact(def: AttackDef, weapon: WeaponDef, distance: float, bearing: float, body: FighterBody) -> Contact:
 	var found: Array[Contact] = _play(def, weapon, distance, bearing, body, true)
+	return null if found.is_empty() else found[0]
+
+
+## Where an attack already under way first touches the defender (milestone-1
+## task 24): as first_contact(), but played on from attack frame `from`,
+## with the defender `distance` m away at `bearing` degrees to the right of
+## the attacker as it stands on that frame, and the attack's lunge
+## (`lunge_total`, AttackState.lunge_total) covering only its frames to come.
+## The first tick it can touch on is the frame after `from`.
+static func first_contact_from(def: AttackDef, weapon: WeaponDef, distance: float, bearing: float, body: FighterBody,
+		from: int, lunge_total: float) -> Contact:
+	var found: Array[Contact] = _play(def, weapon, distance, bearing, body, true, from, lunge_total)
 	return null if found.is_empty() else found[0]
 
 
@@ -74,26 +87,38 @@ static func touches(def: AttackDef, weapon: WeaponDef, distance: float, bearing:
 
 
 static func _play(def: AttackDef, weapon: WeaponDef, distance: float, bearing: float, body: FighterBody,
-		first_only: bool) -> Array[Contact]:
+		first_only: bool, from: int = 0, lunge_total: float = NAN) -> Array[Contact]:
 	var out: Array[Contact] = []
 	var pos: V3 = V3.make()
 	var yaw: float = 0.0
 	var off: float = bearing * SimMath.DEG
 	var target: V3 = SimMath.local_to_world(pos, yaw, V3.make(distance * JsMath.sin(off), 0.0, distance * JsMath.cos(off)))
 	var capsule: SimCapsule = body.hurt_capsule(target)
-	var lunge: float = def.lunge_from(distance)
+	var lunge: float = def.lunge_from(distance) if is_nan(lunge_total) else lunge_total
 	var last: Dictionary[StringName, Array] = {}
-	for f: int in def.startup + def.active + 1:
+	for f: int in range(from, def.startup + def.active + 1):
+		# played on from a frame under way: that frame's move and turn are done
+		var moves: bool = from == 0 or f > from
 		# Fighter._update_attack(): the lunge, as _advance() takes it
 		var share: float = def.lunge_share(f)
-		if lunge > 0.0 and share > 0.0:
+		if moves and lunge > 0.0 and share > 0.0:
 			var room: float = maxf(0.0, SimMath.dist2(pos, target) - (SimConst.FIGHTER_RADIUS * 2.0 + 0.25))
 			var step: float = minf(lunge * share, room)
 			var dir: V2 = SimMath.fwd(yaw)
 			pos = V3.make(pos.x + dir.x * step, pos.y, pos.z + dir.z * step)
+		# Fighter._travel(): a move led by its clip moves by its travel
+		# (milestone-1 task 21)
+		if moves and def.by_travel:
+			var travel: PackedFloat64Array = def.travel_at(f)
+			var move: V3 = SimMath.local_to_world(V3.make(), yaw, V3.make(travel[1], 0.0, travel[0]))
+			var dist: float = JsMath.hypot(move.x, move.z)
+			if dist > 0.0:
+				pos = _along(pos, target, V2.make(move.x / dist, move.z / dist), dist)
+			yaw = SimMath.wrap_angle(yaw - travel[2] * SimMath.DEG)
 		# Fighter._update_facing(): the startup's and the active frames' tracking
 		var rate: float = def.track_startup if f <= def.startup else def.track_active
-		yaw = SimMath.turn_toward(yaw, SimMath.yaw_to(pos, target), rate * SimConst.DT)
+		if moves:
+			yaw = SimMath.turn_toward(yaw, SimMath.yaw_to(pos, target), rate * SimConst.DT)
 		# Fighter.place_blades() and blade_touch(): the deepest touch
 		var deepest: BladeSweep = null
 		for part: StringName in def.swing.parts():
@@ -118,6 +143,19 @@ static func _play(def: AttackDef, weapon: WeaponDef, distance: float, bearing: f
 			if first_only:
 				break
 	return out
+
+
+## `pos` moved `dist` along `dir` (a unit vector) as Fighter._advance_along()
+## moves it toward a defender at `target`: the part that closes on them
+## stops with the bodies 0.25 m apart, the part across goes on.
+static func _along(pos: V3, target: V3, dir: V2, dist: float) -> V3:
+	var to: V2 = SimMath.norm2(target.x - pos.x, target.z - pos.z)
+	var closing: float = (dir.x * to.x + dir.z * to.z) * dist
+	var across_x: float = dir.x * dist - to.x * closing
+	var across_z: float = dir.z * dist - to.z * closing
+	if closing > 0.0:
+		closing = minf(closing, maxf(0.0, SimMath.dist2(pos, target) - (SimConst.FIGHTER_RADIUS * 2.0 + 0.25)))
+	return V3.make(pos.x + across_x + to.x * closing, pos.y, pos.z + across_z + to.z * closing)
 
 
 ## The reach of `def`'s swing on `weapon` (the weapon whose moves hold it):

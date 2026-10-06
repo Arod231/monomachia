@@ -770,6 +770,19 @@ func test_a_missing_or_wrong_field_is_refused() -> void:
 	assert_eq(Array(t.errors), ["res://assets/kevin_iglesias/no_such_state_clips.json is not there"], "no file")
 
 
+func test_the_clips_at_their_own_speed_are_optional_and_checked() -> void:
+	# milestone-1 task 19: the families list each clip they re-key to play at
+	# 1.0x, looping or handing on past its end; none yet
+	assert_eq(StateClips.read().own_speed, {}, "none today")
+	var t: StateClips = _read_text(_edited("\"fades\": {", "\"own_speed\": {\"Stun01\": \"loop\", \"CombatDamage01\": \"hand_on\"}, \"fades\": {"))
+	assert_eq(Array(t.errors), [], "read cleanly")
+	assert_eq(t.own_speed, {&"Stun01": &"loop", &"CombatDamage01": &"hand_on"} as Dictionary[StringName, StringName])
+	t = _read_text(_edited("\"fades\": {", "\"own_speed\": {\"Stun01\": \"hold\"}, \"fades\": {"))
+	assert_eq(Array(t.errors), ["own_speed.Stun01: must be loop or hand_on"])
+	t = _read_text(_edited("\"fades\": {", "\"own_speed\": [\"Stun01\"], \"fades\": {"))
+	assert_eq(Array(t.errors), ["own_speed: must be an object"])
+
+
 func test_the_knockdown_and_ko_groups_are_checked() -> void:
 	var t: StateClips = _read_text(_edited("\"standUp\": \"Knockdown01_StandUp\"}", "\"stand_up\": \"Knockdown01_StandUp\"}"))
 	assert_true(Array(t.errors).has("knockdown.clips: needs standUp"), "a phase missing: %s" % t.errors)

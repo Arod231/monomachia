@@ -75,6 +75,17 @@ extends RefCounted
 ##   TURN_BACK_FRAMES; the backstep's Dodge01 lean back; jump and land; the
 ##   leap; the pick-up; each whole body, without the packs their CC0
 ##   fallbacks;
+## - at its own speed (milestone-1 task 19): a move whose markers are real
+##   (AttackDef.real_markers) plays its clip at 1.0 of the world's time from
+##   its wind-up start, whatever its swing's speed, and hands on to the legs
+##   if it outlasts the clip rather than hold its last pose; a held charge
+##   plays its swing's loop (Swing.loop) at 1.0 from when it began, faded
+##   into and out of as a follow-up is (phases &"swing" and &"hold"). A
+##   stand-in keeps its retime until its family re-keys it. A state clip
+##   StateClips.own_speed lists plays at 1.0 from its state's start, looping
+##   or handing on past its end (state_time()); the rest stay fitted. Hit-stop
+##   and slow motion slow every clip alike: they step the world less often,
+##   and the clips go by the world's frames;
 ## - the crossfades, in rules frames (StateClips.fades): into an attack 3, a follow-up 4
 ##   from the last clip's pose, a dodge-cancel 2, a cut for hitstun, 6 back to
 ##   the legs, 8 for a stance, 2 into a state's clip (the stomp springs out
@@ -310,6 +321,10 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			if f.ult.kind == &"tempest" and phase == &"spin":
 				# each spin is a phase of its own, faded into as a follow-up
 				phase = StringName("spin%d" % f.ult.spins)
+		elif f.atk != null and ctx.libraries and f.atk.def.swing != null and f.atk.def.swing.loop != &"":
+			# a charge's loop is a phase of the attack (task 19); a finisher's
+			# stand-in (task 103) plays with no attack, so it has none
+			phase = &"hold" if f.atk.charging else &"swing"
 	else:
 		playing = state_clip(f, ctx)
 		if playing == null:
@@ -332,7 +347,9 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			playing = reaction_clip(f, ctx, reaction, held)
 			if playing != null and out.rebound != null and reaction != &"guard":
 				# after the rebound: the stun's clip over the rest of the state
-				playing.time = fitted_time(f.sf - sc.rebound_frames, f.state_dur - sc.rebound_frames, ctx.lengths.get(playing.name, 0.0))
+				var at: float = state_time(sc.stun_clip if ctx.libraries else sc.stun_fallback, f.sf - sc.rebound_frames,
+					f.state_dur - sc.rebound_frames, ctx.lengths.get(playing.name, 0.0))
+				playing = null if at < 0.0 else Clip.make(playing.name, at)
 			phase = reaction if playing != null else &""
 		if playing != null:
 			drive = STATE
@@ -414,6 +431,9 @@ static func state_clip(f: Fighter, ctx: Context) -> Clip:
 	var length: float = ctx.lengths.get(anim_name, 0.0)
 	if length <= 0.0:
 		return null
+	if sc.own_speed.has(id):
+		var at: float = state_time(id, f.sf, f.state_dur, length)
+		return null if at < 0.0 else Clip.make(anim_name, at)
 	var share: float = clampf(float(f.sf) / float(maxi(1, f.state_dur)), 0.0, 1.0)
 	return Clip.make(anim_name, share * length)
 
@@ -514,7 +534,10 @@ static func move_clip(f: Fighter, ctx: Context) -> Array:
 			if f.sf > grab and ctx.libraries:
 				id = PICKUP_STOP
 				phase = &"pickup_rise"
-				source = fitted_time(f.sf - grab, maxi(1, f.state_dur - grab), _length(ctx, PICKUP_STOP)) * src
+				var at: float = state_time(PICKUP_STOP, f.sf - grab, maxi(1, f.state_dur - grab), _length(ctx, PICKUP_STOP))
+				if at < 0.0:
+					return []
+				source = at * src
 		_:
 			return []
 	var anim_name: String = "%s/%s" % [FighterModel.LIBRARY, fallback]
@@ -589,7 +612,8 @@ static func reaction_clip(f: Fighter, ctx: Context, reaction: StringName, held: 
 		return null
 	if reaction == &"guard":
 		return Clip.make(anim_name, fmod(float(held) / float(SimConst.FPS), length))
-	return Clip.make(anim_name, fitted_time(f.sf, f.state_dur, length))
+	var at: float = state_time(id if ctx.libraries else fallback, f.sf, f.state_dur, length)
+	return null if at < 0.0 else Clip.make(anim_name, at)
 
 
 ## The time (s) into a clip `length` s long, `frame` rules frames into a
@@ -601,6 +625,21 @@ static func reaction_clip(f: Fighter, ctx: Context, reaction: StringName, held: 
 static func fitted_time(frame: int, frames: int, length: float) -> float:
 	var speed: float = clampf(length * float(SimConst.FPS) / float(maxi(1, frames)), ClipTiming.MIN_SPEED, ClipTiming.MAX_SPEED)
 	return minf(float(frame) * speed / float(SimConst.FPS), length)
+
+
+## The time (s) into state clip `id` (`length` s long), `frame` rules frames
+## into a state `frames` long (milestone-1 task 19): a clip StateClips.own_speed
+## lists plays at 1.0 from the state's start, looping past its end, or giving
+## -1 there to hand on (never held or stretched); any other is fitted
+## (fitted_time()).
+static func state_time(id: StringName, frame: int, frames: int, length: float) -> float:
+	var end: StringName = StateClips.shared().own_speed.get(id, &"")
+	if end == &"":
+		return fitted_time(frame, frames, length)
+	var t: float = float(frame) / float(SimConst.FPS)
+	if end == &"loop":
+		return fmod(t, length) if length > 0.0 else 0.0
+	return t if t <= length else -1.0
 
 
 ## The clip of a knocked-down or knocked-out `f` (task 28), as a name in
@@ -629,14 +668,16 @@ static func down_clip(f: Fighter, ctx: Context) -> Clip:
 	var ground: int = SimConst.KNOCKDOWN_GROUND_FRAMES
 	match phase:
 		&"fall":
-			return Clip.make(anim_name, fitted_time(f.sf, fall, length))
+			var at: float = state_time(id if ctx.libraries else fallback, f.sf, fall, length)
+			return null if at < 0.0 else Clip.make(anim_name, at)
 		&"ground":
 			if not ctx.libraries:
 				return Clip.make(anim_name, 0.0)
 			return Clip.make(anim_name, fmod(float(f.sf - fall) / fps, length))
 		&"standUp":
 			var from: float = sc.knockdown_standup_from / float(ClipManifest.SOURCE_FPS) if ctx.libraries else 0.0
-			return Clip.make(anim_name, from + fitted_time(f.sf - fall - ground, SimConst.KNOCKDOWN_STANDUP_FRAMES, length - from))
+			var up: float = state_time(id if ctx.libraries else fallback, f.sf - fall - ground, SimConst.KNOCKDOWN_STANDUP_FRAMES, length - from)
+			return null if up < 0.0 else Clip.make(anim_name, from + up)
 	return Clip.make(anim_name, minf(float(f.sf) / fps, length))
 
 
@@ -737,10 +778,22 @@ static func _move_clip(f: Fighter, def: AttackDef, ctx: Context, t: float) -> Cl
 		var anim_name: String = "%s/%s" % [FighterModel.LIBRARY, swing.fallback]
 		var share: float = clampf(t / float(maxi(1, def.total_frames())), 0.0, 1.0)
 		return Clip.make(anim_name, share * ctx.lengths.get(anim_name, 0.0))
+	var set_name: StringName = ClipLibraries.set_for(ctx.fighter_id, swing)
+	if swing.loop != &"" and f.atk.charging:
+		# a held charge plays its loop at 1.0 from when it began (task 19)
+		var loop: Array[StringName] = [swing.loop]
+		var length: float = chain_length(loop, set_name, ctx)
+		var held: float = float(f.atk.charge_frames) / float(SimConst.FPS)
+		return chain_clip(loop, set_name, fmod(held, length) if length > 0.0 else 0.0, ctx)
+	if def.real_markers and not swing.marks.is_empty():
+		# its own speed: 1.0 from the wind-up start, handing on past the end
+		var at: float = swing.marks[0] / float(ClipManifest.SOURCE_FPS) + t / float(SimConst.FPS)
+		if at > chain_length(swing.clips, set_name, ctx):
+			return null
+		return chain_clip(swing.clips, set_name, at, ctx)
 	var timing: ClipTiming = timing_of(swing)
 	if timing == null:
 		return null
-	var set_name: StringName = ClipLibraries.set_for(ctx.fighter_id, swing)
 	return chain_clip(swing.clips, set_name, timing.clip_time(t), ctx)
 
 
@@ -834,6 +887,17 @@ static func timing_of(swing: Swing) -> ClipTiming:
 	return ClipTiming.make(markers, swing.speed, [] as Array[String])
 
 
+## The length (s) of chain `clips` (ClipChain entries, in set `set_name`),
+## or 0 when a clip is missing.
+static func chain_length(clips: Array[StringName], set_name: StringName, ctx: Context) -> float:
+	var lengths: Dictionary = {}
+	for entry: StringName in clips:
+		var id: StringName = ClipChain.parse(String(entry), [] as Array[String]).id
+		lengths[id] = ctx.lengths.get(ClipChain.anim_name(set_name, id), 0.0) * float(ClipManifest.SOURCE_FPS)
+	var parts: Array[ClipChain.Part] = ClipChain.lay_out(clips, lengths, [] as Array[String])
+	return ClipChain.length_of(parts) / float(ClipManifest.SOURCE_FPS) if not parts.is_empty() else 0.0
+
+
 ## The clip of chain `clips` (ClipChain entries, in set `set_name`) at
 ## `time` (s from the chain's start) and the time into it, with the part
 ## before under it while a part fades in; null when a clip is missing.
@@ -884,6 +948,9 @@ static func _fade(prev: Shot, f: Fighter, drive: StringName) -> int:
 			return sc.fades[&"guard"]
 		return sc.fades[&"state"]
 	if drive == ATTACK:
+		if prev.drive == ATTACK and f.atk != null and f.atk == prev.attack:
+			# a phase of the same attack: into or out of a charge's loop
+			return sc.fades[&"follow_up"]
 		if prev.drive == ATTACK and f.atk == null and prev.attack == null:
 			# a change of the ultimate's phase
 			return sc.fades[&"follow_up"]
