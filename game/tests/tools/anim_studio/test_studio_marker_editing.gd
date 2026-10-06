@@ -52,18 +52,20 @@ func test_a_marker_dragged_on_the_timeline_snaps_to_a_whole_frame() -> void:
 	var tl: StudioTimeline = studio.editor.timeline
 	tl.size = Vector2(1000.0, tl.custom_minimum_size.y)
 	assert_true(tl.markers_editable)
+	# The active start (16), not a late marker: without the packs the timeline
+	# shows the 22-frame stand-in clip, so the source's later frames are off it.
 	var press: InputEventMouseButton = InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_LEFT
 	press.pressed = true
-	press.position = Vector2(tl.x_of(31.0), StudioTimeline.RULER_H + 5.0)
+	press.position = Vector2(tl.x_of(16.0), StudioTimeline.RULER_H + 5.0)
 	tl._gui_input(press)
 	var move: InputEventMouseMotion = InputEventMouseMotion.new()
-	move.position = Vector2(tl.x_of(33.3), StudioTimeline.RULER_H + 5.0)
+	move.position = Vector2(tl.x_of(17.3), StudioTimeline.RULER_H + 5.0)
 	tl._gui_input(move)
 	var release: InputEventMouseButton = press.duplicate()
 	release.pressed = false
 	tl._gui_input(release)
-	assert_eq(tl.markers["settle"], 33.0, "the settle dragged to 33")
+	assert_eq(tl.markers["active_start"], 17.0, "the active start dragged to 17")
 	assert_eq(studio.editor.playback.frame, 0.0, "a marker drag doesn't scrub")
 	assert_eq(StudioTimeline.snap(33.3, true), 33.5, "Alt snaps to halves")
 

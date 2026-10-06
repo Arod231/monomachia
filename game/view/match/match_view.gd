@@ -28,6 +28,13 @@ extends Node3D
 ## camera's shake scaled to REDUCED_SHAKE, no field-of-view kicks, and the
 ## effects' flashes and the fighters' body flashes at REDUCED_FLASH of their
 ## brightness, at full size (the owner's choice, Oct 4, 2026).
+##
+## Versus draws a split screen (task 23.6, SplitView): player 1 on the left
+## and player 2 on the right, each half with its own CameraRig following its
+## player toward the other (`cameras`; `camera` stays player 1's). Shake and
+## field-of-view kicks reach both, the KO orbit stays off, both halves take
+## the graphics preset, and each half's camera decides the shrine's
+## underside for itself. The other modes keep the one camera on the screen.
 
 ## A fighter's foot came down on the ground at `at` while its footsteps are
 ## its clips' (steps_from_clips()).
@@ -61,6 +68,8 @@ const HEAVY_KICK: float = 1.5
 ## Reduce flashes and shaking: the shake's scale, and the flashes' brightness.
 const REDUCED_SHAKE: float = 0.15
 const REDUCED_FLASH: float = 0.45
+## How deep a stuck weapon's point sits in the ground (milestone-1 task 86).
+const STUCK_EMBED: float = 0.12
 
 ## Draws blade sweeps and hurt capsules over the match (SwingDebugView, task
 ## 7.15). F3 turns it on and off in a debug build, and --swing-debug on the
@@ -68,7 +77,13 @@ const REDUCED_FLASH: float = 0.45
 @export var swing_debug: bool = false
 
 var host: MatchHost
+## Player 1's camera (the screen's outside Versus).
 var camera: CameraRig
+## Every camera drawing the match: [camera], or in Versus [player 1's,
+## player 2's], one in each half of the split.
+var cameras: Array[CameraRig] = []
+## Versus's split screen (task 23.6), or null in the other modes.
+var split: SplitView
 var arena: Node3D
 var arena_id: StringName = &""
 ## The two fighters, kept across matches: each rebuilds its model only when
@@ -106,6 +121,7 @@ func _ready() -> void:
 		camera = CameraRig.new()
 		camera.name = "CameraRig"
 		add_child(camera)
+	cameras = [camera]
 	if effects == null:
 		effects = CombatEffects.new()
 		add_child(effects)
@@ -137,8 +153,9 @@ func use_settings(p_settings: GameSettings) -> void:
 ## brightness and the body flashes'.
 func apply_reduce_flashes() -> void:
 	var on: bool = settings != null and settings.reduce_flashes
-	camera.shake_scale = REDUCED_SHAKE if on else 1.0
-	camera.fov_kick_scale = 0.0 if on else 1.0
+	for cam: CameraRig in cameras:
+		cam.shake_scale = REDUCED_SHAKE if on else 1.0
+		cam.fov_kick_scale = 0.0 if on else 1.0
 	effects.flash_scale = REDUCED_FLASH if on else 1.0
 	body_flash_scale = REDUCED_FLASH if on else 1.0
 
@@ -174,6 +191,11 @@ func render(delta: float) -> void:
 	_feed_trails()
 	_feed_auras()
 	effects.update(effects.clock())
+	if split != null:
+		for i: int in 2:
+			cameras[i].update_rig(delta, host.display_position(i), host.display_position(1 - i))
+		_cull_below_deck()
+		return
 	var me: int = host.view_side()
 	camera.update_rig(delta, host.display_position(me), host.display_position(1 - me))
 
@@ -186,6 +208,11 @@ func snap_camera() -> void:
 	_update_dropped()
 	_feed_trails()
 	effects.update(effects.clock())
+	if split != null:
+		for i: int in 2:
+			cameras[i].snap(host.display_position(i), host.display_position(1 - i))
+		_cull_below_deck()
+		return
 	var me: int = host.view_side()
 	camera.snap(host.display_position(me), host.display_position(1 - me))
 
@@ -249,17 +276,19 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	_clear_dropped()
 	effects.clear()
 	effects.set_preset(GameServices.graphics_preset())
+	_use_split(cfg.mode == MatchConfig.VERSUS and not host.attract)
 	apply_reduce_flashes()
+	var camera_mode: CameraRig.Mode = CameraRig.Mode.FOLLOW
 	if host.attract:
-		camera.mode = CameraRig.Mode.MENU
+		camera_mode = CameraRig.Mode.MENU
 	elif cfg.mode == MatchConfig.WATCH:
-		camera.mode = CameraRig.Mode.WATCH
-	else:
-		camera.mode = CameraRig.Mode.FOLLOW
-	camera.reset_round()
-	camera.shake = 0.0
-	camera.fov_kick = 0.0
-	camera.current = true
+		camera_mode = CameraRig.Mode.WATCH
+	for cam: CameraRig in cameras:
+		cam.mode = camera_mode
+		cam.reset_round()
+		cam.shake = 0.0
+		cam.fov_kick = 0.0
+		cam.current = true
 	snap_camera()
 
 
@@ -289,7 +318,8 @@ func set_arena(node: Node3D, id: StringName) -> void:
 	move_child(arena, 0)
 	arena_id = id
 	var data: Dictionary = arena_camera_data(arena)
-	camera.apply_arena(data["max_radius"], data["far"])
+	for cam: CameraRig in cameras:
+		cam.apply_arena(data["max_radius"], data["far"])
 
 
 ## { "max_radius", "far" } from an arena root's `def`, 0 for what it lacks.
@@ -336,6 +366,60 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+# ------------------------------------------------------------------ split screen
+
+## Versus's split screen on or off (task 23.6). On: a SplitView of two
+## halves drawing this world, player 1's camera (`camera`) moved into the
+## left half and a copy of it made for player 2 in the right, so the root
+## viewport has no camera and draws no 3D under them. A rematch keeps the
+## split as it is. Off: the camera back on the view, drawing the screen, and
+## the split freed with player 2's camera.
+func _use_split(on: bool) -> void:
+	if on == (split != null):
+		return
+	if on:
+		split = SplitView.new()
+		add_child(split)
+		split.share_world(get_viewport().find_world_3d())
+		split.apply_preset(GameServices.graphics_preset())
+		var second: CameraRig = camera.duplicate() as CameraRig
+		second.name = "CameraRig2"
+		camera.reparent(split.viewports[0], false)
+		split.viewports[1].add_child(second)
+		second.apply_arena(camera.arena_max_radius, camera.arena_far)
+		cameras = [camera, second]
+	else:
+		camera.reparent(self, false)
+		remove_child(split)
+		split.queue_free()
+		split = null
+		cameras = [camera]
+	camera.current = true
+
+
+## Each half's camera decides whether it sees the rock under the shrine's
+## rim (MoonlitShrine.cull_below_deck(), by the BELOW_DECK_LAYER bit of its
+## own cull mask) after it has moved: the arena decides only for its own
+## viewport's camera, and in Versus the root viewport has none.
+func _cull_below_deck() -> void:
+	if arena == null or not arena.has_method(&"cull_below_deck"):
+		return
+	for cam: CameraRig in cameras:
+		arena.call(&"cull_below_deck", cam)
+
+
+## Shakes every camera (both halves in Versus).
+func _shake(amount: float) -> void:
+	for cam: CameraRig in cameras:
+		cam.add_shake(amount)
+
+
+## Kicks every camera's field of view (both halves in Versus).
+func _kick(amount: float) -> void:
+	for cam: CameraRig in cameras:
+		cam.kick_fov(amount)
+
+
 # ------------------------------------------------------------------ events
 
 ## Kicks the camera for a hit or block event `e`, by the weight of the
@@ -345,7 +429,7 @@ func _kick_on_contact(e: Dictionary) -> void:
 		return
 	var by: Fighter = host.world.fighters[int(e["attacker"])]
 	var kick: float = float(contact_kick.get(by.moveset().cls, 0.0))
-	camera.kick_fov(kick * (HEAVY_KICK if e["heavy"] else 1.0))
+	_kick(kick * (HEAVY_KICK if e["heavy"] else 1.0))
 
 
 ## Flashes fighter i's body (a hit's tint, a disarm's or a K.O.'s white) at
@@ -360,51 +444,52 @@ func _on_sim_event(e: Dictionary) -> void:
 	match e["t"]:
 		&"hit":
 			var heavy: bool = e["heavy"]
-			camera.add_shake(heavy_hit_shake if heavy else light_hit_shake)
+			_shake(heavy_hit_shake if heavy else light_hit_shake)
 			_kick_on_contact(e)
 			var color: Color = Color(1.0, 0.94, 0.88) if e["sound"] == &"fist" else Color(1.0, 0.38, 0.25)
 			_body_flash(int(e["target"]), color, 0.55 if heavy else 0.4)
 		&"block":
-			camera.add_shake(heavy_block_shake if e["heavy"] else light_block_shake)
+			_shake(heavy_block_shake if e["heavy"] else light_block_shake)
 			_kick_on_contact(e)
 		&"parry":
-			camera.add_shake(parry_shake)
-			camera.kick_fov(3.0 if e["kind"] == &"parry" else 5.0)
+			_shake(parry_shake)
+			_kick(3.0 if e["kind"] == &"parry" else 5.0)
 		&"counter":
-			camera.add_shake(counter_shake)
-			camera.kick_fov(6.0)
+			_shake(counter_shake)
+			_kick(6.0)
 		&"disarm":
-			camera.add_shake(disarm_shake)
-			camera.kick_fov(7.0)
+			_shake(disarm_shake)
+			_kick(7.0)
 			_body_flash(int(e["victim"]), Color.WHITE, 0.6)
 		&"ultStart":
-			camera.kick_fov(8.0)
+			_kick(8.0)
 		&"ultWave":
-			camera.add_shake(0.5)
+			_shake(0.5)
 		&"ultImpale":
-			camera.add_shake(0.6)
+			_shake(0.6)
 		&"ultBurst":
-			camera.add_shake(1.2)
-			camera.kick_fov(10.0)
+			_shake(1.2)
+			_kick(10.0)
 		&"ultLightning":
-			camera.add_shake(0.3)
+			_shake(0.3)
 		&"recallBurst":
 			# the recall's power-up burst (task 30b): the flare and shockwave,
 			# and the opponent blasted away when it hits
 			RecallAura.burst(effects, e, host.world.frame)
-			camera.add_shake(1.0 if e["hit"] else 0.4)
-			camera.kick_fov(8.0)
+			_shake(1.0 if e["hit"] else 0.4)
+			_kick(8.0)
 			if e["hit"]:
 				_body_flash(int(e["on"]), Color(1.0, 0.9, 0.55), 0.7)
 		&"ko":
-			camera.add_shake(ko_shake)
+			_shake(ko_shake)
 			var loser: int = int(e["loser"])
 			if loser >= 0:
 				_body_flash(loser, Color.WHITE, 0.8)
 			if host.config.mode != MatchConfig.VERSUS:
 				camera.start_ko_orbit()
 		&"roundStart":
-			camera.reset_round()
+			for cam: CameraRig in cameras:
+				cam.reset_round()
 			_clear_dropped()
 			effects.clear()
 			recall_aura.clear()
@@ -422,7 +507,13 @@ func _update_dropped() -> void:
 			_dropped[w.owner] = node
 		node.position = Vector3(w.pos.x, w.pos.y, w.pos.z)
 		var stick: Node3D = node.get_node("Stick")
-		stick.rotation = Vector3(PI / 2.0 + w.tumble, w.yaw, 0.0)
+		stick.rotation = Vector3(w.pitch, w.yaw, 0.0)
+		# centred on the rules' position as it leaves the hands, its point
+		# STUCK_EMBED into the ground there once it sticks (milestone-1 task 86)
+		var flown: float = 1.0 if w.grounded else float(w.flown) / float(w.flight_frames)
+		for model: Node in stick.get_children():
+			var m: Node3D = model
+			m.position.y = lerpf(-float(m.get_meta(&"middle")), STUCK_EMBED - float(m.get_meta(&"tip")), flown)
 		var beam: Node3D = node.get_node("Beam")
 		beam.visible = w.grounded
 		beam.position = Vector3(0.0, 1.75 - w.pos.y, 0.0)
@@ -446,14 +537,17 @@ func _make_dropped(side_id: int, weapon_id: StringName) -> Node3D:
 	stick.name = "Stick"
 	root.add_child(stick)
 	# the weapon's own model (both of a pair), in the toon look like a held
-	# one, centred on the rules' position along its length
+	# one, its middle and point along its length kept for _update_dropped()
 	var look: WeaponLook = WeaponLook.load_id(weapon_id) if WeaponLook.IDS.has(weapon_id) else null
 	if look != null:
 		for k: int in 2 if look.paired else 1:
 			var w: Node3D = look.instantiate()
 			w.name = "Weapon%d" % k
 			stick.add_child(w)
-			w.position = Vector3(0.12 * float(k), -_middle(w), 0.0)
+			var span: Vector2 = _span(w)
+			w.set_meta(&"middle", (span.x + span.y) * 0.5)
+			w.set_meta(&"tip", span.y)
+			w.position = Vector3(0.12 * float(k), -float(w.get_meta(&"middle")), 0.0)
 	# a pillar of light in the owner's colour over a weapon on the ground
 	var beam: MeshInstance3D = MeshInstance3D.new()
 	beam.name = "Beam"
@@ -494,8 +588,9 @@ static func _make_beam_material() -> StandardMaterial3D:
 	return m
 
 
-## Halfway along a weapon model's length (its +Y), from its meshes' bounds.
-static func _middle(w: Node3D) -> float:
+## A weapon model's extent along its length (its +Y, toward the point), from
+## its meshes' bounds: (pommel end, point).
+static func _span(w: Node3D) -> Vector2:
 	var lo: float = INF
 	var hi: float = -INF
 	for node: Node in w.find_children("*", "MeshInstance3D", true, false):
@@ -503,4 +598,4 @@ static func _middle(w: Node3D) -> float:
 		var box: AABB = mi.transform * mi.get_aabb()
 		lo = minf(lo, box.position.y)
 		hi = maxf(hi, box.end.y)
-	return (lo + hi) * 0.5 if lo <= hi else 0.0
+	return Vector2(lo, hi) if lo <= hi else Vector2.ZERO

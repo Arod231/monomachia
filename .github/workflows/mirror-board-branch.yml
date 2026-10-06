@@ -1,0 +1,27 @@
+# Keeps feature/godot-rebuild an exact copy of master. The branch is retired
+# for work: nothing is built on it and no pull request targets it. It stays only
+# because the owner's PC starts the Project Manager at logon with
+# ~/.claude/all-lanes-server/run.cmd, which runs the board from
+# origin/feature/godot-rebuild, and Bitdefender refuses every edit to that
+# logon script. With this mirror a reboot still starts the newest board.
+# Once run.cmd follows master, delete this file and the branch.
+name: Mirror master for the logon board
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # A fast-forward only: if anyone ever commits to the mirror, this fails
+      # rather than overwrite their work.
+      - run: git push origin HEAD:refs/heads/feature/godot-rebuild

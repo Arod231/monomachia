@@ -23,6 +23,16 @@ extends CanvasLayer
 ## (authored-animation task 8), and the log says what to fix
 ## (ClipLibraries.warn_if_missing()). It hides when the results open.
 ##
+## Versus (23.7, on the split screen of 23.6) names its sides for their
+## players: "Player 1" and "Player 2" plates with each fighter beside its
+## weapon under them; each player's prompts at the bottom of the middle of
+## their own half, named for their own device; a marker on each player's
+## dropped weapon ("Player 2's weapon") in their own half, through their own
+## camera; and Watch's toasts and neutral calls naming the player ("Player 2:
+## Parry", "Player 1 wins the round", "Player 2 lost their weapon"), the
+## demo's Versus wording, in the sides' colours (the owner's choices, Oct 5,
+## 2026).
+##
 ## Announcements and toasts, their entrances included, are timed on the host's rules
 ## steps, not the wall clock, so they slow down with slow motion and freeze
 ## with pause. Port of the
@@ -95,10 +105,14 @@ var training_panel: TrainingPanel
 var toasts: HudToasts
 ## Training's parry timing feedback (23.4): Too early and Too late.
 var parry_feedback: ParryFeedback = ParryFeedback.new()
-## The prompts at the bottom (24.4).
+## The prompts at the bottom (24.4): the player's, or player 1's in Versus.
 var prompts: HudPrompts
-## The marker on your dropped weapon (24.5).
+## The prompt columns: [prompts, player 2's in Versus (empty otherwise)].
+var prompt_columns: Array[HudPrompts] = []
+## The marker on your dropped weapon (24.5), or player 1's in Versus.
 var weapon_marker: WeaponMarker
+## The markers: [weapon_marker, player 2's in Versus (hidden otherwise)].
+var weapon_markers: Array[WeaponMarker] = []
 ## The settings whose Button hints switch shows or hides the prompts; null
 ## for the game's (GameServices.settings). Tests set their own.
 var settings: GameSettings
@@ -200,18 +214,31 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	parry_feedback.clear()
 	_behaviour = host.training_behaviour()
 	var me: int = _me()
+	var versus: bool = _versus()
 	for i: int in 2:
 		_lags[i].reset(1.0)
 		var s: MatchSide = cfg.sides[i]
-		_plates[i].text = s.display_name() + (" (You)" if i == me else "")
-		_weapons[i].text = Moves.WEAPONS[s.weapon_id].name
+		_plates[i].text = MatchResults.PLAYERS[i] if versus else s.display_name() + (" (You)" if i == me else "")
+		_weapons[i].text = _weapon_line(i)
+		weapon_markers[i].label.text = "%s's weapon" % MatchResults.PLAYERS[i] if versus else "Your weapon"
+		# Versus: each player's prompts in the middle of their own half
+		var column: HudPrompts = prompt_columns[i]
+		column.anchor_left = (0.25 if i == 0 else 0.75) if versus else 0.5
+		column.anchor_right = column.anchor_left
 	_refresh_announcement()
 
 
 ## A side's weapon changed mid-match (the training dummy's): its plate names
 ## the new one.
 func _on_loadout_changed(side: int) -> void:
-	_weapons[side].text = host.fighter(side).weapon.name
+	_weapons[side].text = _weapon_line(side)
+
+
+## The line under a side's plate: its weapon, or in Versus its fighter and
+## weapon ("Rogue · Katana").
+func _weapon_line(side: int) -> String:
+	var f: Fighter = host.fighter(side)
+	return MatchResults.fighter_and_weapon(f) if _versus() else f.weapon.name
 
 
 ## Training's behaviour or refill changed (from the panel or the pause
@@ -232,18 +259,24 @@ func _on_match_finished(_results: MatchResults) -> void:
 	_queued.clear()
 	toasts.clear()
 	_refresh_announcement()
-	prompts.show_prompts([])
-	weapon_marker.visible = false
+	for i: int in 2:
+		prompt_columns[i].show_prompts([])
+		weapon_markers[i].visible = false
 	visible = false
 
 
 func _on_sim_event(e: Dictionary) -> void:
 	var training: bool = host.config.mode == MatchConfig.TRAINING
 	var me: int = _me()
-	var watch: bool = me < 0
+	var versus: bool = _versus()
+	# Watch and Versus name the sides rather than speak to "you"
+	var neutral: bool = me < 0
 	var now: int = host.step_count
-	var names: Array[String] = [host.fighter(0).name, host.fighter(1).name]
-	toasts.push_all(HudToasts.for_event(e, me, training, names, host.label("light", me) if me >= 0 else ""))
+	var names: Array[String] = _names()
+	if versus:
+		toasts.push_all(HudToasts.for_versus(e, names))
+	else:
+		toasts.push_all(HudToasts.for_event(e, me, training, names, host.label("light", me) if me >= 0 else ""))
 	if training and me >= 0:
 		toasts.push_all(parry_feedback.on_event(e, me, host.fighter(me), host.world.frame))
 	match e["t"]:
@@ -267,29 +300,32 @@ func _on_sim_event(e: Dictionary) -> void:
 		&"roundOver":
 			if not training:
 				var winner: int = int(e["winner"])
-				var call: Array[String] = _round_result(int(e["winner"]), bool(e["perfect"]), watch)
-				# in Watch the winner's name in its side's colour, as its toasts (23.5)
-				var color: Color = HudToasts.TONE_COLORS[HudToasts.SIDE_TONES[winner]] if watch and winner >= 0 else NO_COLOR
+				var call: Array[String] = _round_result(int(e["winner"]), bool(e["perfect"]), neutral)
+				# in Watch and Versus the winner's name in its side's colour, as
+				# their toasts (23.5, 23.7)
+				var color: Color = HudToasts.TONE_COLORS[HudToasts.SIDE_TONES[winner]] if neutral and winner >= 0 else NO_COLOR
 				_queued.append({"at": now + ROUND_RESULT_DELAY, "kanji": call[0], "text": call[1], "sub": call[2], "frames": ROUND_RESULT_FRAMES, "color": color})
 		&"disarm":
 			var victim: int = int(e["victim"])
 			var sub: String = ""
-			if not watch:
-				sub = "Retrieve your weapon or fight bare-handed" if victim == _me() else "Stand between them and their blade"
+			if versus:
+				sub = "%s lost their weapon" % names[victim]
+			elif not neutral:
+				sub = "Retrieve your weapon or fight bare-handed" if victim == me else "Stand between them and their blade"
 			announce("武器喪失", "Disarmed", sub, DISARM_FRAMES)
 
 
 ## The round's result as [kanji, words, subline]: 勝 for a round won and in
-## Watch, 敗 otherwise (a draw included), as the demo's. In Watch the
-## winner is named with the side's seal in a mirror match ("Rogue 青 wins
-## the round").
-func _round_result(winner: int, perfect: bool, watch: bool) -> Array[String]:
+## Watch and Versus (neutral), 敗 otherwise (a draw included), as the
+## demo's. Watch names the winner, with the side's seal in a mirror match
+## ("Rogue 青 wins the round"); Versus names the player ("Player 1 wins the
+## round").
+func _round_result(winner: int, perfect: bool, neutral: bool) -> Array[String]:
 	if winner < 0:
-		return ["勝" if watch else "敗", "Draw", "The round will be replayed"]
+		return ["勝" if neutral else "敗", "Draw", "The round will be replayed"]
 	var sub: String = "Perfect" if perfect else ""
-	if watch:
-		var names: Array[String] = [host.fighter(0).name, host.fighter(1).name]
-		return ["勝", "%s wins the round" % MatchResults.side_name(names, winner), sub]
+	if neutral:
+		return ["勝", "%s wins the round" % MatchResults.side_name(_names(), winner), sub]
 	var won: bool = winner == _me()
 	return ["勝" if won else "敗", "You win the round" if won else "You lose the round", sub]
 
@@ -370,36 +406,61 @@ func _process(delta: float) -> void:
 		_pips[i].lit = s.pips
 		_badges[i].state = s.badge
 		_tags[i].visible = s.disarmed
-	prompts.show_prompts(_prompts_now())
+	var players: Array[int] = _players()
+	for i: int in 2:
+		var shown: Array[Dictionary] = []
+		if i < players.size():
+			shown = _prompts_now(players[i])
+		prompt_columns[i].show_prompts(shown)
 	_place_prompts()
-	_place_weapon_marker()
+	_place_weapon_markers()
 
 
-## Shows the marker on the player's dropped weapon, flying or grounded, as
-## the gameplay camera sees it; hides it while the player is armed, in Watch
-## (Versus waits for 23.7) and without a camera. In Training it rises above
-## the panel at the bottom left rather than sit on it.
-func _place_weapon_marker() -> void:
-	var me: int = _me()
-	var w: DroppedWeapon = null
-	if me >= 0 and not host.fighter(me).armed:
-		w = host.world.weapon_of(me)
-	var cam: Camera3D = _camera()
-	if w == null or cam == null:
-		weapon_marker.visible = false
-		return
-	weapon_marker.show_for(cam, Vector3(w.pos.x, maxf(w.pos.y, 0.0), w.pos.z), _root.size)
-	var panel: Rect2 = training_panel.get_rect()
-	if training_panel.visible and weapon_marker.get_rect().intersects(panel):
-		weapon_marker.position.y = panel.position.y - PROMPT_PANEL_GAP - weapon_marker.size.y
+## Shows each player's marker on their dropped weapon, flying or grounded,
+## as their camera sees it; hides it while they are armed, in Watch and
+## without a camera. In Versus each player's is kept to their own half,
+## through their own camera. In Training it rises above the panel at the
+## bottom left rather than sit on it.
+func _place_weapon_markers() -> void:
+	var players: Array[int] = _players()
+	var view: MatchView = _view()
+	var split: bool = view != null and view.split != null
+	for i: int in 2:
+		var marker: WeaponMarker = weapon_markers[i]
+		var p: int = players[i] if i < players.size() else -1
+		var w: DroppedWeapon = null
+		if p >= 0 and not host.fighter(p).armed:
+			w = host.world.weapon_of(p)
+		var cam: Camera3D = view.cameras[p] if split and p >= 0 else _camera()
+		if w == null or cam == null:
+			marker.visible = false
+			continue
+		var at: Vector3 = Vector3(w.pos.x, maxf(w.pos.y, 0.0), w.pos.z)
+		if split:
+			var half: Rect2 = view.split.containers[p].get_global_rect()
+			var pixels: Vector2 = Vector2(cam.get_viewport().size)
+			# before the halves are first laid out there is nowhere to put it
+			if half.has_area() and pixels.x > 0.0 and pixels.y > 0.0:
+				marker.show_in(cam, at, half, pixels)
+			else:
+				marker.visible = false
+			continue
+		marker.show_for(cam, at, _root.size)
+		var panel: Rect2 = training_panel.get_rect()
+		if training_panel.visible and marker.get_rect().intersects(panel):
+			marker.position.y = panel.position.y - PROMPT_PANEL_GAP - marker.size.y
 
 
 ## The gameplay camera: the match view's, else the viewport's.
 func _camera() -> Camera3D:
-	var view: MatchView = host.get_node_or_null("View") as MatchView
+	var view: MatchView = _view()
 	if view != null and view.camera != null:
 		return view.camera
 	return get_viewport().get_camera_3d()
+
+
+func _view() -> MatchView:
+	return host.get_node_or_null("View") as MatchView
 
 
 ## The prompts sit centred at the bottom; in Training they move right, as
@@ -414,13 +475,13 @@ func _place_prompts() -> void:
 		prompts.offset_right = -PROMPT_LEFT + shift
 
 
-## The player's prompts now (HudPrompts.for_fighter): none in Watch, outside
-## the fought round, or with the Button hints setting off.
-func _prompts_now() -> Array[Dictionary]:
-	var me: int = _me()
-	if me < 0 or not host.sim_match.fighting() or not _settings().button_hints:
+## A player's prompts now (HudPrompts.for_fighter), named for their own
+## device: none outside the fought round, or with the Button hints setting
+## off.
+func _prompts_now(side: int) -> Array[Dictionary]:
+	if not host.sim_match.fighting() or not _settings().button_hints:
 		return []
-	return HudPrompts.for_fighter(host.fighter(me), host.world, host.label.bind(me), host.on_pad(me))
+	return HudPrompts.for_fighter(host.fighter(side), host.world, host.label.bind(side), host.on_pad(side))
 
 
 ## The settings the HUD follows: settings, or the game's.
@@ -428,7 +489,31 @@ func _settings() -> GameSettings:
 	return settings if settings != null else GameServices.settings
 
 
-## The side a human plays (the HUD's "you"), or -1 in Watch.
+## The sides whose prompts and marker the HUD shows, by column: Versus's
+## two players, the one player's side, or none in Watch.
+func _players() -> Array[int]:
+	if _versus():
+		return [0, 1]
+	var out: Array[int] = []
+	var me: int = _me()
+	if me >= 0:
+		out.append(me)
+	return out
+
+
+## The names the toasts and calls give the sides: the players' in Versus,
+## else the fighters'.
+func _names() -> Array[String]:
+	if _versus():
+		return MatchResults.PLAYERS
+	return [host.fighter(0).name, host.fighter(1).name]
+
+
+func _versus() -> bool:
+	return host != null and host.config != null and host.config.mode == MatchConfig.VERSUS
+
+
+## The side a human plays (the HUD's "you"), or -1 in Watch and Versus.
 func _me() -> int:
 	if host == null or host.config == null:
 		return -1
@@ -607,19 +692,28 @@ func _build() -> void:
 	toasts.offset_right = 500.0
 	_root.add_child(toasts)
 
-	# the marker on your dropped weapon, placed each frame
-	weapon_marker = WeaponMarker.new()
-	_root.add_child(weapon_marker)
+	# the markers on dropped weapons, placed each frame (player 2's in Versus)
+	for i: int in 2:
+		var marker: WeaponMarker = WeaponMarker.new()
+		marker.name = "WeaponMarker" if i == 0 else "WeaponMarker2"
+		_root.add_child(marker)
+		weapon_markers.append(marker)
+	weapon_marker = weapon_markers[0]
 
-	# the demo's prompts: bottom centre, 22 px up, growing upward
-	prompts = HudPrompts.new()
-	prompts.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	prompts.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	prompts.offset_left = PROMPT_LEFT
-	prompts.offset_right = -PROMPT_LEFT
-	prompts.offset_top = -22.0
-	prompts.offset_bottom = -22.0
-	_root.add_child(prompts)
+	# the demo's prompts: bottom centre, 22 px up, growing upward (in Versus
+	# one column in the middle of each half, set at match start)
+	for i: int in 2:
+		var column: HudPrompts = HudPrompts.new()
+		column.name = "Prompts" if i == 0 else "Prompts2"
+		column.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		column.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		column.offset_left = PROMPT_LEFT
+		column.offset_right = -PROMPT_LEFT
+		column.offset_top = -22.0
+		column.offset_bottom = -22.0
+		_root.add_child(column)
+		prompt_columns.append(column)
+	prompts = prompt_columns[0]
 
 	_packs_note = _label("PacksNote", ClipLibraries.MISSING_NOTE, &"", 14, 3)
 	_packs_note.add_theme_color_override("font_color", Color(UiPalette.PAPER, 0.7))

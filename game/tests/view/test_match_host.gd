@@ -570,7 +570,7 @@ func test_each_behaviour_on_each_dummy_weapon_ends_with_a_weapon_that_can_do_it(
 			assert_eq(host.training_behaviour(), b)
 			assert_eq((host.brain(1) as TrainingBrain).behaviour, b)
 			var w: WeaponDef = host.fighter(1).weapon
-			assert_true(TrainingUpkeep.can_perform(w, b), "%s from the %s: the %s" % [b, picked, w.id])
+			assert_true(UnblockableRoutes.can_perform(w, b), "%s from the %s: the %s" % [b, picked, w.id])
 			host.step(30)
 			assert_null(host.world.weapon_of(1), "no dropped weapon left behind")
 			assert_true(host.fighter(1).armed)

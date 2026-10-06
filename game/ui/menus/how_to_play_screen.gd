@@ -43,7 +43,7 @@ static var RULES: Array = [
 	]],
 	["Posture", [
 		"The bar under your health. Hits, blocks, parries and counters you take fill it.",
-		"It only drains while you [color=#c9a15a]hold block and are not being hit[/color]: fastest standing still, slower when moving or hurt.",
+		"Armed, it only drains while you [color=#c9a15a]hold block and are not being hit[/color]: fastest standing still, slower when moving or hurt. Disarmed, it drains by itself.",
 		"When it is full, a parried attack or blocking an unblockable, a full-charge heavy or an ultimate [color=#c9a15a]disarms you[/color].",
 	]],
 	["Unblockables (red 危 mark)", [
@@ -59,7 +59,7 @@ static var RULES: Array = [
 	]],
 	["Ultimate", [
 		"At %d%% health or less you glow: press [color=#c9a15a]light + heavy together[/color] (or the ultimate button), once per round." % roundi(SimConst.ULT_HP_THRESHOLD),
-		"Armed: your weapon's signature technique. Disarmed: choose Recall (your weapon returns) or Breaker Palm (a big posture blow).",
+		"Armed: your weapon's signature technique. Disarmed: choose Recall (your weapon returns in a burst that knocks them down if they are close) or Breaker Palm (a big posture blow).",
 	]],
 	["Modes", [
 		"[color=#c9a15a]Duel[/color]: you against the computer, at three skill levels.",

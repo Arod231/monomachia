@@ -60,8 +60,7 @@ func _use_pad() -> void:
 ## The player's own weapon on the ground, `metres` away along the ground.
 func _drop_weapon(metres: float) -> void:
 	me.armed = false
-	var w := DroppedWeapon.new(0, &"katana", V3.make(me.pos.x + metres, 0.0, me.pos.z), V3.make(), Rng.new(1))
-	w.grounded = true
+	var w := DroppedWeapon.stuck_at(0, &"katana", V3.make(me.pos.x + metres, 0.0, me.pos.z), 0.0)
 	host.world.weapons.append(w)
 
 

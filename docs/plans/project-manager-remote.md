@@ -52,6 +52,12 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
 - Oct 4, 2026: the owner approved this plan (task 1). Next: task 2 in its own small pull request, then the spike (task 3).
 - Oct 4, 2026: task 2 done: pull request #37 merged (38f43fa) and the live Project Manager follows PM. Next: the spike (task 3), with task 4 alongside while its long holds run.
 - Oct 4, 2026: task 3 done (the spike; findings under Decisions so far). Next: task 4.
+- Oct 4, 2026: tasks 4, 5 and 6 done in lane `lane/pm-4-5-6`: pull request #42 merged (618922d), then #44 (0cdc58a), which drops held items of deleted sessions. Next: tasks 7 to 10.
+- Oct 4, 2026: tasks 7, 8, 9 and 10 done in lane `lane/pm-7-8-9-10`: pull request #45 merged (d3f0e56). Task 9 was ticked once the owner had used Away from the phone. The review fixes followed in #52 (6792420), and the 25-minute holds in #50. Pull request #36 was retargeted to `master` once the rebuild merged there. Next: tasks 11 to 14.
+- Oct 5, 2026: questions stay in the app (the owner's call): #55 merged into `master` (4fde976). Then #36 merged into `master` (bb52ea0) and `tools/project-manager-remote` was pushed again from `master` for the rest of this plan.
+- Oct 5, 2026: tasks 11, 12, 13 and 14 done in lane `lane/pm-11-12-13-14`: pull request #57 merged (5924826). Tasks 11 and 14 were ticked once the owner had tried them from the phone. Next: tasks 15 to 18.
+- Oct 5, 2026: tasks 15, 16, 17 and 18 done in lane `lane/pm-15-16-17-18`: pull request #58 merged (a0e6cdb). Outside the plan, the New session button followed (#64, 4feebbd). Next: the owner's check (task 19).
+- Oct 5, 2026: task 19 done in lane `lane/pm-19`: the owner's check from the phone, with its fixes in pull request #65, merged (6668082) from the session's own page. Every task and story is ticked and the spec is built. Next: #67 into `master`.
 
 ## Build order
 
@@ -191,7 +197,7 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Owner's answers (Oct 4):
     - answering, handing back or a timeout marks a held item's record read, so the bell counts only what still needs the owner;
     - a session's newer finished-turn record replaces its older unread one, so each session shows at most one unread finished turn.
-- [ ] **11. Lock-screen notifications.** While Away is on, the iPhone shows each new notification on its lock screen.
+- [x] **11. Lock-screen notifications.** While Away is on, the iPhone shows each new notification on its lock screen.
   - Delivers:
     - **On the phone:** a service worker at the site root that shows a push and opens its target on tap, and the manifest set up as a standalone Home Screen app. "Turn on notifications" is offered only in the Home Screen app over HTTPS, with an explanation anywhere else.
     - **Keys and subscriptions:** a VAPID key pair and the subscriptions in the state folder, never committed. Subscriptions the push service reports gone are dropped.
@@ -204,17 +210,25 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - the owner gets a lock-screen notification for a held question and taps through to it.
   - Blocked by: 5, 10 · Stories: 34, 35, 36, 38, 39, 40, 85
   - **Owner:** adds the Home Screen icon from https://desktop-jk5bn8g.tailec6188.ts.net, taps "Turn on notifications", allows them, and confirms one arrives.
+  - Owner's answers (Oct 5, lane `lane/pm-11-12-13-14`, with tasks 12, 13 and 14; side-lane rule as in task 4):
+    - the lane builds on `tools/project-manager-remote` after pull requests #45 and #50 merged;
+    - a session's newest lock-screen notification replaces its older one (the tag is the session), since a tap opens the Questions tab or the session page, which list everything;
+    - "Turn on notifications", or why it isn't possible here, sits at the top of the bell's list; once on, a short line says so, with Turn off;
+    - once task 11 is pushed, the preview on port 5197 moves to `lane/pm-11-12-13-14`, and tasks 12 and 13 are built while the owner tries the notifications; task 11 is ticked once the owner confirms one arrived.
+  - Built (Oct 5, 84664b7): `push.mjs` (RFC 8291 encryption, checked against its worked example; VAPID; the rules), `push-api.mjs` (keys and subscriptions in `~/.claude/lanes-board/push-keys.json` and `push-subscriptions.json`; the bell's new records pushed while Away is on), `/sw.js`. The preview on 5197 serves it, at https://desktop-jk5bn8g.tailec6188.ts.net too. Done Oct 5: the owner tried it from the phone and it worked.
 
 ### Phase D: sessions and commands
 
-- [ ] **12. The Sessions tab, the session page and its first commands.** Each session gets a page with its lane and conversation, and four commands.
+- [x] **12. The Sessions tab, the session page and its first commands.** Each session gets a page with its lane and conversation, and four commands.
   - Delivers:
     - **On the phone,** Sessions replaces Lanes: state, the app's turn summary and the context gauge, with worktrees that have no session under a Worktrees filter.
     - **A session page** with title, state, summary, gauge, branch, task and pull request, the conversation with tools folded, and a reply box. On the PC, the Sessions tab's detail gains the same header.
     - **A command bar:** Approve & continue, Show me, Stop now (stops before the next tool, then held while Away is on) and End work (for any session). Each command says whether it was delivered now, comes before the next step, or is queued.
   - Check: unit tests of the session-state rules; round-trip cases for each command's delivery; both pages by hand.
   - Blocked by: 4, 8 · Stories: 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 62
-- [ ] **13. Merge.** A session's pull request is merged from its page once it's ready.
+  - Owner's answer (Oct 5): Stop now refuses every tool call the session tries, telling it the owner pressed Stop now and to end its turn, until its turn ends; with Away on that turn end is then held like any other. A hard stop (as End work does) was turned down, since it leaves the session idle where only the Claude app can wake it.
+  - After the gates (Oct 5, the owner's call): a held question, permission or plan answered in the app or over Remote Control is dropped and its hook released once its call has a result in the transcript, so the session no longer shows "waiting on you" for up to 24 minutes.
+- [x] **13. Merge.** A session's pull request is merged from its page once it's ready.
   - Delivers:
     - **A readiness rule** over `gh pr view`'s fields (draft, mergeable, checks, behind its base), giving the reasons when the pull request isn't ready. Update branch is offered when it's behind.
     - **The merge:** a confirmation naming the pull request and its base, and the request must name the pull request the page showed. Then `gh pr merge --merge --delete-branch` runs against the repository on GitHub, never a local branch or worktree. The session is then told to update its local base and delete its local branch.
@@ -225,7 +239,10 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - round trip against a stub `gh`: update, merge, and a mismatched pull request refused;
     - the tidy-up message reaches the session.
   - Blocked by: 10, 12 · Stories: 52, 53, 54, 55, 56, 57, 58
-- [ ] **14. Compact and Open in the Claude app.** A session opens in the Claude app on the phone, where `/compact` and any message work.
+  - Owner's answers (Oct 5):
+    - Merge is offered whatever the pull request's base, `master` included; the confirmation names the pull request and its base, and the tap is the approval;
+    - ready needs every check on the pull request passed, skipped or neutral; a pending or failing check makes it not ready, named in the reasons.
+- [x] **14. Compact and Open in the Claude app.** A session opens in the Claude app on the phone, where `/compact` and any message work.
   - Delivers:
     - the Remote Control link, read from the app's session record where task 3 found it;
     - Open in the Claude app on session pages and on questions asked in the app;
@@ -234,10 +251,11 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
   - Check: a unit test of reading the link from a record; the owner opens a session from the phone and compacts it.
   - Blocked by: 3, 12 · Stories: 10, 59, 60, 61
   - **Owner:** turns on "Connect new sessions to Remote Control" in the Claude app (Settings > Claude Code), and tries Compact from the phone.
+  - Built (Oct 5): the link is the record's newest `bridgeSessionIds` entry at `https://claude.ai/code/<id>` (19 of the PC's 34 session records had one on Oct 5). Compact opens a panel saying to type `/compact` in the Claude app, with Copy /compact and Open in the Claude app; with no link, it says to turn on Remote Control (or type `/rc` once) and offers the app's session list. Questions asked in the app get Open in the Claude app too. Done Oct 5: the owner tried it from the phone and it worked.
 
 ### Phase E: visuals and docs
 
-- [ ] **15. Posted visuals.** Sessions publish shots and clips to their page, and the owner views them full screen.
+- [x] **15. Posted visuals.** Sessions publish shots and clips to their page, and the owner views them full screen.
   - Delivers:
     - **`npm run post -- <files> [--caption …] [--task …]`:** it finds the session from the shell's ids, or `--session`. Stills are copied; other video is converted to H.264 MP4 with ffmpeg, with a poster still.
     - **The media store and its index,** with a sweep that removes media older than 30 days, then the oldest beyond 5 GB.
@@ -249,11 +267,19 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - round trip: a post shows on the session page and makes one notification;
     - the viewer checked by hand on the phone.
   - Blocked by: 10, 12 · Stories: 37, 63, 64, 65, 67, 68, 69, 70, 73
-- [ ] **16. Everything it looked at.** The images a session got back from its tools show on its page without it posting them.
+  - Owner's answers (Oct 5, lane `lane/pm-15-16-17-18`, with tasks 16, 17 and 18; side-lane rule as in task 4):
+    - the lane merges `lane/pm-11-12-13-14` (pull request #57, task 12's session page) in at the start, so its pull request shows those commits too until #57 merges;
+    - the checks "by hand on the phone" in tasks 15, 17 and 18 are skipped: each task is ticked once its automated checks pass;
+    - a session page opens from its posted media alone (for a session older than the Sessions list's 3 days, or whose transcript was deleted), and the Sessions list gains an "Older" filter of sessions with media from the last 30 days;
+    - the owner wants a session's page to show shots and media of the game or feature being worked on, as progress updates, and its documents and artifacts.
+  - Built (Oct 5): `post.mjs` (`npm run post`) and `media.mjs` (the store in `~/.claude/lanes-board/media/<session>/` with its `index.json`, and the 30-day, 5 GB sweep, run at each post and hourly by the board); `media-api.mjs` serves `/media/<session>/<file>` (store files only, clips in byte ranges); the session page's Visuals and the full-screen viewer (`sessions-ui.mjs` `visualsHtml`, `mountViewer`) on both pages; the bell's "posted N visuals" record per session per minute, opening the page at its Visuals; Show me now asks for `npm run post`.
+- [x] **16. Everything it looked at.** The images a session got back from its tools show on its page without it posting them.
   - Delivers: images found in the results of the session's tool calls (browser screenshots, images it opened, viewport shots), listed under Visuals and served by reference to their transcript line. Images the owner pasted are left out. The viewer is shared with task 15.
   - Check: unit tests on fixture transcript lines (an image read from a file, a browser screenshot, an MCP tool's image, a pasted image left out); the page shows them.
   - Blocked by: 15 · Stories: 66
-- [ ] **17. Docs, the pull request and artifacts.** A session's page lists what it wrote and what it published.
+  - Owner's answers (Oct 5): only images of the work are listed: images the session opened from its own worktree's `shots/` (renders of the game it made) and Godot or Blender viewport shots. Browser-pane screenshots, pasted images, images from outside its worktree and its subagents' images are left out.
+  - Built (Oct 5): `work-images.mjs` finds them (a Read of a file in `shots/` under the folder the session was in when it made the call; any tool of an MCP server named for Blender or Godot), indexing each transcript as it grows; the session page lists them as "Images of the work" under Visuals, in the same viewer, served from the transcript line at `/work/<session>/<line>-<n>`.
+- [x] **17. Docs, the pull request and artifacts.** A session's page lists what it wrote and what it published.
   - Delivers:
     - the Markdown files its Write and Edit calls name, newest first, read from the worktree or, once that's gone, from its branch in git, and rendered with the Markdown library the second brain vendors;
     - its pull request's description, checks and changed files, with a GitHub link, cached for a minute;
@@ -261,7 +287,11 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     Paths are served only when the session's transcript names them and they lie inside the repo or one of its worktrees.
   - Check: unit tests of the extraction and of the path rule (a named file inside a worktree is served; an unnamed file or one outside is refused); checked by hand on the phone.
   - Blocked by: 12 · Stories: 74, 75, 76, 77, 80
-- [ ] **18. Clips, and sessions told to post.** Sessions can record a scene as a looping clip, and CLAUDE.md tells them when to post.
+  - Owner's answers (Oct 5):
+    - the documents listed are the Markdown files it wrote (rendered), plus HTML pages and PDFs it wrote (opened as they are; HTML in a sandbox, so a page can't act as the Project Manager), all inside the repo or its worktrees;
+    - a document whose worktree is gone is read from its branch (local, then remote), else from its merged pull request's head commit; only if all fail does it show "no longer available".
+  - Built (Oct 5): `docs.mjs` (what its Write, Edit and MultiEdit calls name, the artifacts its publishes returned, its branch, and the path rule) and `docs-api.mjs` (`/docs`, and `/doc` serving Markdown as text, HTML in a sandbox with no access to the Project Manager, and PDF; the pull request from `gh`, cached a minute); both pages' session view shows Docs with the pull request (checks, changed files, description), the documents (Markdown opens in a full-screen reader, rendered with `marked` from `tools/second-brain/vendor/`, served at `/marked.js`, any HTML in it shown as text) and the artifacts. A PDF shows only when a Write or Edit call names it; one made by a script isn't found.
+- [x] **18. Clips, and sessions told to post.** Sessions can record a scene as a looping clip, and CLAUDE.md tells them when to post.
   - Delivers:
     - **`npm run clip -- <scene> [--seconds N] [scene args]`:** it records a scene the shots tool runs, with Godot's Movie Maker at 30 fps and 1280×720, as a looping MP4 (H.264, no audio, 6 seconds by default and 20 at most) plus a still, written into the worktree's `shots/`.
     - **CLAUDE.md:**
@@ -271,10 +301,12 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
       - the Project Manager line names Away, the Questions tab and the bell.
   - Check: a clip of a shot scene plays in the phone's viewer; the Godot suite passes if the recorder changed anything under `game/`.
   - Blocked by: 15 · Stories: 71, 72
+  - Owner's answer (Oct 5): `clip` only writes the MP4 and its still into `shots/`; the session posts them with `npm run post`, as any shot.
+  - Built (Oct 5): `scripts/clip.mjs` (the rules) and `scripts/godot.mjs clip` run `shot.gd` under Movie Maker with its new `--record=<frames>`: it saves the still, lets the scene run the clip's frames, then quits, and ffmpeg keeps the movie's last seconds, scaled to 1280×720 (Movie Maker writes the project's 1600×900 window). A bare scene name means `res://tools/shot_scenes/<name>.tscn`. CLAUDE.md gains the posting rule, both commands and the session page in its Project Manager line; README and `docs/architecture.md` list the commands. A 3-second clip of `arena_gameplay` came out as H.264, yuv420p, 1280×720, no sound, and was posted to this lane's own page.
 
 ### Phase F: the owner's check
 
-- [ ] **19. The owner's check from the phone.** The owner runs real work remotely, and the pull request is made ready.
+- [x] **19. The owner's check from the phone.** The owner runs real work remotely, and the pull request is made ready.
   - Delivers: fixes from the owner's check; every task ticked here; the spec's stories ticked and its status set to built; the pull request marked ready.
   - Check: with Away on, from the phone:
     - a question answered;
@@ -285,3 +317,17 @@ The owner runs the project's sessions from the iPhone. With Away on, every sessi
     - a session compacted.
   - Blocked by: 9, 11, 13, 14, 16, 17, 18 · Stories: 1–87
   - **Owner:** runs the check and approves the pull request.
+  - Owner's answers (Oct 5, lane `lane/pm-19`, built on `tools/project-manager-remote` after #58 and #64 merged):
+    - "the pull request" is a new one from `tools/project-manager-remote` into `master` (#36, its predecessor, merged into `master`), opened as a draft and marked ready once the check passes;
+    - since questions stay in the app (Oct 5), "a question answered" becomes both a permission prompt or plan answered in the Questions tab and a question answered in the Claude app, reached by Open in the Claude app;
+    - a full close-out: a Progress line for each of tasks 4 to 19 (no main lane is left to write them since #36 merged), every story ticked, and the spec's status set to built;
+    - the check runs on this lane's own session: it posts a clip to its page, ends turns for the owner to approve, asks a question and a permission prompt, is compacted from the phone, and its pull request is merged from its page with Merge, last;
+    - the live Project Manager on port 5197 is restarted onto the branch's head first, so tasks 15 to 18 and New session are live;
+    - before the owner's check, Claude walks the six steps on a test board in the Browser pane at phone width and fixes what it finds.
+  - The dry run (Oct 5), at 375 px on a test board with fixture sessions and a stand-in `gh`: a permission prompt allowed and a plan shown in the Questions tab; a turn approved; an in-app question reached from the bell, with Open in the Claude app; a posted clip opened from its notification's address, looping in the viewer; a pull request merged; the Compact panel. Every step worked. Three snags on the phone page were fixed (2936f47): the header pushed the bell 14 px off screen once Away showed; the Merge button ran past its panel with a long base name; a ready Merge panel was filled solid green, because its `ready` class was also the task-status colour.
+  - Found next (Oct 5, f602b39): this lane's own session showed no branch or pull request, so no Merge. A session started outside git, as lanes launched from a scratch folder are, records its branch as "HEAD" on every transcript line, even after it moves into a worktree. The board now falls back to the branch checked out in the session's folder, for its card, page, Merge and Docs.
+  - For the check, on the owner's OK, port 5197 serves `lane/pm-19` from `~/.claude/all-lanes-server/preview.cmd` in place of `follow.cmd`, and goes back to `follow.cmd` once #65 merges. The session posted a 5-second clip of `arena_watch` to its page.
+  - The check (Oct 5), with Away switched on from the phone. Step 1 (a question answered in the Claude app) worked. It turned up two fixes (5fc0cf6):
+    - a question asked in the app left its bell record unread for good: it is now marked read once its session no longer has the question open (after a 20-second grace);
+    - a plan approved in the app stayed held in the Questions tab for up to 24 minutes, because the transcript's ExitPlanMode call carries no plan and so never matched by summary: plans now match by tool alone. The sweep reads a transcript's last 60 entries, so the one plan held before this fix went live was handed back by hand.
+  - Done Oct 5: a question answered in the Claude app (step 1); a turn approved from the Project Manager, whose Stop hook said "Approved from the Project Manager" (step 2); this session compacted from the phone (step 6); and #65 merged from its page with Merge, last (6668082, step 5). The owner merged without reporting separately on the lock-screen notification (step 3) or the posted clip (step 4); both worked in the dry run. Since #65 merged first, the close-out (every story ticked, the spec built, this tick) and `master` merged in followed in a second pull request from this lane. #67 takes `tools/project-manager-remote` into `master`.

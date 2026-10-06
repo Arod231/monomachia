@@ -263,7 +263,9 @@ const EVENTS: Dictionary = {
 	&"recall": [&"recall"],
 	&"pickup": [&"pickup"],
 	&"recallBurst": [&"boom"], # the recall's power-up burst (task 30b)
-	&"weaponBounce": [&"weapon_bounce"],
+	# a disarmed weapon sticking in the ground (milestone-1 task 86): the
+	# retired bounce's fast landing, until task 91 gives it its own sound
+	&"weaponStuck": [&"weapon_bounce", &"weapon_clatter"],
 	&"counterReady": [], # shown by a flash; the counter itself is loud
 	&"backstabReady": [], # shown by a prompt
 	&"roundStart": [&"round_roll", &"gong"],
@@ -287,22 +289,16 @@ const DELAYS: Dictionary = {
 	&"roundStart": {&"gong": 1.34},
 }
 
-## A dropped weapon's first, fast landing also clatters.
-const CLATTER_SPEED := 6.0
-## The demo scaled a bounce's loudness by min(1, speed / 8).
-const BOUNCE_FULL_SPEED := 8.0
-
 
 ## The cues to play for one rules event, in order, each as
 ## [code]{"cue": StringName, "delay": float, "volume_db": float}[/code]
 ## where volume_db is added to the cue's own level. Applies the demo's
 ## sub-selection rules: the hit sound by the event's [code]sound[/code] field
 ## (blade, colossal, dagger, fist) and weight; clangs and whooshes by weight
-## and weapon; parries and counters by kind; bounces by speed.
+## and weapon; parries and counters by kind.
 static func cues_for(event: Dictionary) -> Array[Dictionary]:
 	var type := StringName(str(_field(event, "t", "")))
 	var names: Array[StringName] = []
-	var extra_db := 0.0
 	var heavy := bool(_field(event, "heavy", false))
 	match type:
 		&"swing":
@@ -353,12 +349,6 @@ static func cues_for(event: Dictionary) -> Array[Dictionary]:
 					names = [&"dodge_swish", &"taiko_light"]
 				_:
 					names = [&"taiko_light"]
-		&"weaponBounce":
-			var speed := float(_field(event, "speed", BOUNCE_FULL_SPEED))
-			extra_db = linear_to_db(clampf(speed / BOUNCE_FULL_SPEED, 0.05, 1.0))
-			names = [&"weapon_bounce"]
-			if speed >= CLATTER_SPEED:
-				names.append(&"weapon_clatter")
 		_:
 			if not EVENTS.has(type):
 				return []
@@ -366,7 +356,7 @@ static func cues_for(event: Dictionary) -> Array[Dictionary]:
 	var delays: Dictionary = DELAYS.get(type, {})
 	var out: Array[Dictionary] = []
 	for cue_name: StringName in names:
-		out.append({"cue": cue_name, "delay": float(delays.get(cue_name, 0.0)), "volume_db": extra_db})
+		out.append({"cue": cue_name, "delay": float(delays.get(cue_name, 0.0)), "volume_db": 0.0})
 	return out
 
 

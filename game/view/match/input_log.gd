@@ -9,13 +9,16 @@ extends RefCounted
 ## reports; a replay that drifts names the first checkpoint it missed.
 ##
 ## Saved as JSON (FORMAT): the config, the actions, the checkpoints and the
-## end are readable; the inputs are the doubles' bytes in base64, because
+## end are readable; the inputs are the doubles' bytes, gzipped (format 2,
+## milestone-1 task 28: a match's inputs repeat a lot, and the worst-case
+## replay's log shrank from 955 KB to a few dozen) and in base64, because
 ## Godot's text-to-float parsing isn't exact (about one in six of the
 ## computer's stick values came back from JSON numbers a unit in the last
-## place off, enough to drift a replay). Every match played is saved to DIR,
+## place off, enough to drift a replay). Format 1, the bytes unpacked, still
+## loads. Every match played is saved to DIR,
 ## which keeps the newest KEEP.
 
-const FORMAT: int = 1
+const FORMAT: int = 2
 const CHECKPOINT_EVERY: int = 60
 const DIR: String = "user://replays"
 const KEEP: int = 10
@@ -76,12 +79,14 @@ func to_dict() -> Dictionary:
 	var cps: Dictionary = {}
 	for s: int in checkpoints:
 		cps[str(s)] = checkpoints[s]
+	var raw: PackedByteArray = inputs.to_byte_array()
 	return {
 		"format": FORMAT,
 		"game": str(ProjectSettings.get_setting("application/config/version", "")),
 		"config": config.to_dict(),
 		"steps": step_count(),
-		"inputs": Marshalls.raw_to_base64(inputs.to_byte_array()),
+		"inputs": Marshalls.raw_to_base64(raw.compress(FileAccess.COMPRESSION_GZIP)),
+		"inputs_bytes": raw.size(),
 		"actions": actions.duplicate(true),
 		"checkpoints": cps,
 		"end": {"steps": end_steps, "winner": end_winner, "hash": end_hash},
@@ -90,7 +95,8 @@ func to_dict() -> Dictionary:
 
 ## A out_log from to_dict()'s form, or null (and an error) when it isn't one.
 static func from_dict(d: Dictionary) -> InputLog:
-	if int(d.get("format", -1)) != FORMAT:
+	var format: int = int(d.get("format", -1))
+	if format != FORMAT and format != 1:
 		push_error("InputLog: format %s, not %d" % [d.get("format"), FORMAT])
 		return null
 	var cfg_in: Variant = d.get("config")
@@ -99,7 +105,14 @@ static func from_dict(d: Dictionary) -> InputLog:
 		return null
 	var out_log: InputLog = InputLog.new()
 	out_log.config = MatchConfig.from_dict(cfg_in)
-	out_log.inputs = Marshalls.base64_to_raw(str(d.get("inputs", ""))).to_float64_array()
+	var raw: PackedByteArray = Marshalls.base64_to_raw(str(d.get("inputs", "")))
+	if format == FORMAT:
+		var size: int = int(d.get("inputs_bytes", -1))
+		raw = raw.decompress_dynamic(maxi(size, 0), FileAccess.COMPRESSION_GZIP) if size > 0 else PackedByteArray()
+		if raw.size() != maxi(size, 0):
+			push_error("InputLog: the inputs don't unpack to the %s bytes it names" % d.get("inputs_bytes"))
+			return null
+	out_log.inputs = raw.to_float64_array()
 	if out_log.step_count() != int(d.get("steps", -1)) or out_log.inputs.size() % PER_STEP != 0:
 		push_error("InputLog: the inputs don't hold the %s steps it names" % d.get("steps"))
 		return null

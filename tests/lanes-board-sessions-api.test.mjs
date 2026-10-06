@@ -69,4 +69,39 @@ describe('sessions api', () => {
     await assert.rejects(api.post('/relay/answer', { id: 'gone-gone', behavior: 'allow' }), /already answered, handed back or timed out/);
     await assert.rejects(api.post('/relay/answer', { id: 'abcd-efgh', behavior: 'deny' }), /already answered/);
   });
+
+  it('says which sessions are asking in the app now, for the bell', async () => {
+    assert.deepEqual(await api.askingNow(), []);
+    writeFileSync(path.join(projects, 'C--repo', `${ID}.jsonl`), [
+      line({ type: 'user', cwd: 'C:/repo', message: { content: 'Build it' } }),
+      line({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_q', name: 'AskUserQuestion', input: { questions: [{ question: 'Which?' }] } }] } }),
+    ].join('\n'));
+    assert.deepEqual(await api.askingNow(), [ID]);
+  });
+
+  describe("a session's branch", () => {
+    const PR = { number: 65, title: 'PM task 19', url: 'https://github.com/o/r/pull/65', base: 'tools/pm', draft: true };
+    const withBranch = (gitBranch) => {
+      writeFileSync(path.join(projects, 'C--repo', `${ID}.jsonl`), [
+        line({ type: 'user', cwd: 'C:/repo', gitBranch, message: { content: 'Build it' } }),
+        line({ type: 'assistant', gitBranch, message: { content: [{ type: 'text', text: 'Done.' }] } }),
+      ].join('\n'));
+      api = sessionsApi({ relay, projects, activeMs: 60_000, contextOf: async () => null, appSessions: async () => [], pool,
+        branchOf: (dir) => (dir === 'C:/repo' ? 'lane/pm-19' : null), prOf: (b) => (b === 'lane/pm-19' ? PR : b === 'lane/other' ? { ...PR, number: 7 } : null) });
+    };
+
+    it("is its folder's when its transcript says HEAD, as for a session started outside git and moved into a worktree", async () => {
+      withBranch('HEAD');
+      assertMatches((await get('/sessions')).sessions[0], { branch: 'lane/pm-19', pr: { number: 65 } });
+      assertMatches(await get(`/session?id=${ID}`), { branch: 'lane/pm-19', pr: { number: 65 } });
+      assert.deepEqual(await api.branches(), [{ id: ID, branch: 'lane/pm-19' }]);
+      assert.equal(await api.branchOfSession(ID), 'lane/pm-19');
+    });
+
+    it("is its transcript's when that names one", async () => {
+      withBranch('lane/other');
+      assertMatches((await get('/sessions')).sessions[0], { branch: 'lane/other', pr: { number: 7 } });
+      assert.deepEqual(await api.branches(), [{ id: ID, branch: 'lane/other' }]);
+    });
+  });
 });
