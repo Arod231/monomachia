@@ -43,8 +43,7 @@ describe('the round trip: a session moved into a worktree', () => {
     assertMatches((await board.get(`/session?id=${MOVED}`)).body, { branch: 'lane/moved', pr: { number: 9 } });
   });
 
-  it('lets Merge and Docs find that pull request too', async () => {
-    assertMatches((await board.get(`/merge?session=${MOVED}`)).body, { pr: { number: 9, head: 'lane/moved' }, ready: false });
+  it('lets Docs find that pull request too', async () => {
     assertMatches((await board.get(`/docs?session=${MOVED}`)).body, { branch: 'lane/moved', pr: { number: 9 } });
   });
 });

@@ -6,6 +6,8 @@ Spec: `docs/specs/project-manager-remote.md` · branch `tools/project-manager-re
 
 The owner runs the project's sessions from the iPhone. With Away on, every session's permission prompts, plan approvals and turn ends wait in the Project Manager's Questions tab and are answered in a tap or two, and the session carries on. (Questions did too until Oct 5; since then they stay in the app and the bell says a session waits on them: see the spec's status note.) A bell, and lock-screen notifications while Away is on, say when something needs the owner. Each session has a page with its lane, its posted shots and looping clips, every image it got back from its tools, the documents it wrote, its pull request and its artifacts. The commands Approve & continue, Show me, Merge, Compact (through the Claude app), Stop now and End work all work from the phone. The plan ends when the owner has run real work this way from the phone and approved the pull request.
 
+Since Oct 6, 2026 (the owner's call), the Project Manager answers nothing and never merges: prompts, plans and questions are answered in the Claude app, merges are done on GitHub or by a session told to, and the Away switch only sends the bell's news to the lock screen. See the spec's status note; the tasks below record what was built before then.
+
 ## Notes
 
 - **Gate tasks are ticked only once the owner has done their part,** so a task blocked by one needs no "(and the owner's OK)" of its own.

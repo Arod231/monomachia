@@ -1,112 +1,72 @@
-// Lets the owner answer Claude Code sessions from the Project Manager (npm run
-// board): their permission prompts, plans, and a reply when a turn ends. While
-// the Away switch is on (the Questions tab, on the phone or the PC), every
-// session's prompts and turn ends wait there; while it's off, every session
-// keeps the app's own dialogs, and a finished turn is noted for the Project
-// Manager. AskUserQuestion questions always stay in the app (owner's choice,
-// Oct 5): the Project Manager is only told that the session waits on the owner,
-// Away or not.
+// Tells the Project Manager (npm run board) what Claude Code sessions do, and
+// hands a session what the owner sent it from its page. It never holds a
+// session: since Oct 6 (owner's choice) every permission prompt, plan and
+// question is answered in the Claude app, and merges are done on GitHub or by
+// a session the owner tells to merge. The Project Manager's bell is only told
+// that a session asks in the app, or finished its turn.
 //
 // Install: npm run board:hooks copies this file to ~/.claude/hooks/lanes-relay/hook.mjs
 // (with inbox.mjs beside it) and adds, to ~/.claude/settings.json (beside the
-// lanes stop hook), with timeouts of 25 minutes, a minute longer than this file
-// holds, so it always gives up first:
+// lanes stop hook):
 //   "hooks": {
-//     "PermissionRequest": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 1500 }] }],
-//     "Stop": [{ "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 1500 }] }]
+//     "PermissionRequest": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 10 }] }],
+//     "Stop": [{ "hooks": [{ "type": "command", "command": "node \"<home>/.claude/hooks/lanes-relay/hook.mjs\"", "timeout": 10 }] }]
 //   }
 //
 // It talks to the board through files in ~/.claude/lanes-relay (LANES_RELAY
 // overrides it, for tests), so it works whether or not the board is up; with no
 // such folder it exits at once:
-//   away.json            the Away switch: { on, since, from }
-//   pending/<id>.json    what a session waits on (written here)
-//   answers/<id>.json    the board's answer (read here, then both removed)
-//   inbox/<session>/<n>.json  what the owner sent the session while no turn end
-//                        was held, oldest first by name: the stop hook hands the
-//                        oldest over before the session's next tool, and a turn
-//                        end here takes the rest
+//   inbox/<session>/<n>.json  what the owner sent the session from its page,
+//                        oldest first by name: the stop hook hands the oldest
+//                        over before the session's next tool, and a turn end
+//                        here takes the rest
 //   stopnow/<session>.json  the owner pressed Stop now: the stop hook refuses the
 //                        session's tools until its turn ends, when this removes it
-//   events.jsonl         what happened in the app meanwhile (a question asked
-//                        there, or a turn finished while Away was off), one JSON
-//                        object per line
-// A prompt waits up to 24 minutes for the board (LANES_RELAY_WAIT_MS), then falls
-// back to the app's dialog; so does switching Away off. A turn's end waits the
-// same, so the owner can reply; meanwhile the app shows the session as working,
-// and "Hand back to the app" on the board ends the wait.
-// The board shapes every answer and words every message (sessions.mjs
-// relayAnswer, ownerMessage); this file only carries them, so it stays free of
-// dependencies but inbox.mjs, which is installed beside it.
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+//   events.jsonl         what happened in the app (a question asked there, or a
+//                        turn finished), one JSON object per line, for the bell
+// The board words every message (sessions.mjs ownerMessage); this file only
+// carries them, so it stays free of dependencies but inbox.mjs, which is
+// installed beside it.
+import { appendFileSync, existsSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { takeFromInbox } from './inbox.mjs';
 
 const DIR = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
-const WAIT_MS = Number(process.env.LANES_RELAY_WAIT_MS) || 24 * 60 * 1000;
-const POLL_MS = 400;
-
-const readJson = (file) => { try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return null; } };
-const away = () => readJson(path.join(DIR, 'away.json'))?.on === true;
 
 if (!existsSync(DIR)) process.exit(0);
 
 let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (c) => { input += c; });
-process.stdin.on('end', async () => {
+process.stdin.on('end', () => {
   let out = null;
-  try { out = await main(JSON.parse(input || '{}')); } catch { /* never get in a session's way */ }
+  try { out = main(JSON.parse(input || '{}')); } catch { /* never get in a session's way */ }
   if (out) process.stdout.write(JSON.stringify(out));
   process.exit(0);
 });
 
-let pendingFile = null;
-const cleanup = () => { if (pendingFile) rmSync(pendingFile, { force: true }); };
-process.on('exit', cleanup);
-for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(sig, () => process.exit(0));
-
-async function main(hook) {
+function main(hook) {
   const id = hook.session_id;
   if (!id || !/^[\w-]+$/.test(id)) return null;
   const event = hook.hook_event_name;
 
   if (event === 'Stop') {
     // A Stop now has done its work once the turn ends (the stop hook refused
-    // its tools until then); the turn end is held below like any other.
+    // its tools until then).
     rmSync(path.join(DIR, 'stopnow', `${id}.json`), { force: true });
-    // What the owner sent meanwhile goes in first, Away or not.
-    const sent = takeInbox(id);
-    if (sent) return continueWith(sent);
-    const last = String(hook.last_assistant_message ?? '');
-    if (!away()) {
-      note({ kind: 'turn-finished', session: id, cwd: hook.cwd ?? null, last: last.slice(-1000) });
-      return null;
-    }
-    const answer = await ask(hook, { kind: 'stop', last: last.slice(-4000) }, id);
-    return answer?.reply ? continueWith(answer.reply) : null;
+    // What the owner sent meanwhile goes in as the turn's next instruction.
+    const texts = takeFromInbox(DIR, id, { all: true });
+    if (texts.length) return { decision: 'block', reason: texts.join('\n\n') };
+    note({ kind: 'turn-finished', session: id, cwd: hook.cwd ?? null, last: String(hook.last_assistant_message ?? '').slice(-1000) });
+    return null;
   }
 
-  if (event === 'PermissionRequest') {
-    // A question is answered in the app; the bell only says the session waits.
-    if (hook.tool_name === 'AskUserQuestion') {
-      note({ kind: 'asked-in-app', session: id, cwd: hook.cwd ?? null,
-        questions: (hook.tool_input?.questions ?? []).map((q) => String(q.question ?? '')) });
-      return null;
-    }
-    if (!away()) return null;
-    const answer = await ask(hook, {
-      kind: hook.tool_name === 'ExitPlanMode' ? 'plan' : 'permission', tool: hook.tool_name, input: hook.tool_input ?? {},
-      suggestions: hook.permission_suggestions ?? null, mode: hook.permission_mode ?? null,
-    });
-    if (!answer || answer.release || !answer.behavior) return null;
-    const decision = { behavior: answer.behavior };
-    if (answer.behavior === 'allow') {
-      if (answer.updatedInput) decision.updatedInput = answer.updatedInput;
-      if (answer.updatedPermissions) decision.updatedPermissions = answer.updatedPermissions;
-    } else if (answer.message) decision.message = answer.message;
-    return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } };
+  // A question is answered in the app; the bell only says the session waits.
+  // Every other prompt is the app's own dialog, untouched.
+  if (event === 'PermissionRequest' && hook.tool_name === 'AskUserQuestion') {
+    note({ kind: 'asked-in-app', session: id, cwd: hook.cwd ?? null,
+      questions: (hook.tool_input?.questions ?? []).map((q) => String(q.question ?? '')) });
   }
   return null;
 }
@@ -114,46 +74,4 @@ async function main(hook) {
 // An event for the Project Manager, appended to events.jsonl.
 function note(event) {
   try { appendFileSync(path.join(DIR, 'events.jsonl'), `${JSON.stringify({ time: Date.now(), ...event })}\n`); } catch { /* not worth a session's time */ }
-}
-
-// The board's words, as the turn's next instruction.
-function continueWith(text) {
-  return { decision: 'block', reason: text };
-}
-
-// Everything in a session's inbox, oldest first, joined; null when it's empty.
-function takeInbox(session) {
-  const texts = takeFromInbox(DIR, session, { all: true });
-  return texts.length ? texts.join('\n\n') : null;
-}
-
-// Writes the pending item and waits for the board's answer (or, for a turn's
-// end, anything sent to the session's inbox). Null when Away goes off, when
-// handed back, or out of time.
-async function ask(hook, item, inboxOf = null) {
-  const pid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10).padEnd(4, '0')}`;
-  for (const sub of ['pending', 'answers']) mkdirSync(path.join(DIR, sub), { recursive: true });
-  pendingFile = path.join(DIR, 'pending', `${pid}.json`);
-  const answerFile = path.join(DIR, 'answers', `${pid}.json`);
-  writeFileSync(pendingFile, JSON.stringify({
-    id: pid, session: hook.session_id, cwd: hook.cwd ?? null, transcript: hook.transcript_path ?? null,
-    time: Date.now(), pid: process.pid, ...item,
-  }, null, 2));
-  const until = Date.now() + WAIT_MS;
-  try {
-    while (Date.now() < until) {
-      const a = readJson(answerFile);
-      if (a) { rmSync(answerFile, { force: true }); return a.release ? null : a; }
-      if (inboxOf) {
-        const sent = takeInbox(inboxOf);
-        if (sent) return { reply: sent };
-      }
-      if (!away()) return null;
-      await new Promise((r) => setTimeout(r, POLL_MS));
-    }
-    return null;
-  } finally {
-    cleanup();
-    pendingFile = null;
-  }
 }
