@@ -1,8 +1,8 @@
-// Merge from the Project Manager: whether a session's pull request is ready,
-// from the fields `gh pr view --json` gives, and what the session is told once
-// it merged. Pure, no I/O: merge-api.mjs runs gh. The owner's choices (PM task
-// 13, Oct 5): Merge is offered whatever the base, and ready means every check
-// passed, skipped or neutral.
+// Whether a session's pull request is ready to merge, from the fields
+// `gh pr view --json` gives, for the bell's "ready to merge". Pure, no I/O:
+// merge-api.mjs runs gh. The Project Manager never merges: since Oct 6 (owner's
+// choice) merges are done on GitHub, or by a session the owner tells to. Ready
+// means every check passed, skipped or neutral (PM task 13, Oct 5).
 
 // The fields mergeReadiness reads, for `gh pr view <n> --json <fields>`.
 export const MERGE_FIELDS = ['number', 'title', 'url', 'state', 'isDraft', 'mergeable', 'mergeStateStatus', 'baseRefName', 'headRefName',
@@ -39,11 +39,4 @@ export function mergeReadiness(pr) {
   if (behind) reasons.push(`It is behind ${base}.`);
   if (pr.mergeStateStatus === 'BLOCKED' && !reasons.length) reasons.push(`GitHub's rules for ${base} block it (reviews or required checks).`);
   return { ready: reasons.length === 0, behind, reasons };
-}
-
-// What the session is told once the owner merged its pull request.
-export function mergedMessage(pr) {
-  return `The owner merged pull request #${pr.number} into ${pr.baseRefName} from the Project Manager (a merge commit; GitHub deleted the remote branch ${pr.headRefName}). `
-    + `That merge was the owner's approval. Tidy up: fetch, bring your local ${pr.baseRefName} up to date, and delete your local branch ${pr.headRefName} `
-    + 'once nothing else needs it (switch off it first). Then say in one line what you did.';
 }

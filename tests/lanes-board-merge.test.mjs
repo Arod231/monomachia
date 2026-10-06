@@ -1,8 +1,8 @@
-// Merge from the Project Manager (tools/lanes-board/merge.mjs): when a pull
-// request is ready, and the words that tell its session to tidy up.
+// "Ready to merge" in the Project Manager (tools/lanes-board/merge.mjs): when
+// a pull request is ready. The board never merges it.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { MERGE_FIELDS, mergeReadiness, mergedMessage } from '../tools/lanes-board/merge.mjs';
+import { MERGE_FIELDS, mergeReadiness } from '../tools/lanes-board/merge.mjs';
 
 const run = (name, conclusion, status = 'COMPLETED') => ({ __typename: 'CheckRun', name, status, conclusion });
 const ctx = (context, state) => ({ __typename: 'StatusContext', context, state });
@@ -58,14 +58,5 @@ describe('mergeReadiness', () => {
     const r = mergeReadiness({ ...PR, isDraft: true, mergeStateStatus: 'BEHIND', statusCheckRollup: [run('test', 'FAILURE')] });
     assert.deepEqual(r.reasons, ['It is still a draft.', 'Checks failed: test.', 'It is behind tools/pm.']);
     assert.equal(r.behind, true);
-  });
-});
-
-describe('mergedMessage', () => {
-  it('tells the session its pull request merged and how to tidy up', () => {
-    const m = mergedMessage(PR);
-    assert.match(m, /merged pull request #51 into tools\/pm/);
-    assert.match(m, /lane\/pm-11/);
-    assert.match(m, /delete/);
   });
 });

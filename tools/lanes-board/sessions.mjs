@@ -243,93 +243,15 @@ export function contextTracker(env = {}) {
 // ---------- the relay (relay-hook.mjs on the session's side) ----------
 
 export const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-export const PENDING_ID = /^[a-z0-9]{4,16}-[a-z0-9]{4,16}$/;
-
-// AskUserQuestion's answers, as the tool takes them: question text -> the
-// chosen label, several labels joined with ", ".
-export function questionAnswers(questions, picks) {
-  const answers = {};
-  questions.forEach((q, i) => {
-    const p = picks?.[i];
-    const labels = (Array.isArray(p) ? p : p == null ? [] : [p]).map((s) => String(s).trim()).filter(Boolean);
-    if (!labels.length) throw new Error(`No answer for "${q.question}"`);
-    if (!q.multiSelect && labels.length > 1) throw new Error(`"${q.question}" takes one answer`);
-    answers[q.question] = labels.join(', ');
-  });
-  return answers;
-}
-
-// How a question is answered: 'allow' passes the tool its input back with an
-// `answers` map, as Claude Code's own hosts answer it; 'decline' (the spec's
-// fallback, should the spike show a hook can't answer that way) refuses the
-// tool with the answers as the reason, which Claude reads and follows.
-export const QUESTION_ANSWER = 'allow';
-
-// The board's answer to a pending item, checked, in the shape the hook reads.
-// body: { picks: [label | [labels]] } for a question (an Other's free text is a
-// label like any other), or { reply } to answer it in the owner's own words;
-// { behavior, always?, message? } for a permission; { behavior, suggestion?,
-// message? } for a plan.
-export function relayAnswer(pending, body, { questionAnswer = QUESTION_ANSWER } = {}) {
-  if (pending.kind === 'stop') {
-    if (body.release) return { release: true };
-    return { reply: ownerMessage(body.command ? { command: body.command } : { text: body.reply }) };
-  }
-  if (body.release) return { release: true };
-  if (pending.kind === 'question') {
-    const reply = String(body.reply ?? '').trim();
-    if (reply) {
-      return { behavior: 'deny', message: `The owner answered from the Project Manager instead of picking an option:\n\n${reply.slice(0, 20000)}` };
-    }
-    const questions = pending.input?.questions ?? [];
-    const answers = questionAnswers(questions, body.picks);
-    if (questionAnswer === 'decline') {
-      const lines = Object.entries(answers).map(([q, a]) => `- ${q} → ${a}`);
-      return { behavior: 'deny', message: `The owner answered from the Project Manager:\n${lines.join('\n')}` };
-    }
-    return { behavior: 'allow', updatedInput: { ...pending.input, answers } };
-  }
-  if (pending.kind === 'plan') return planAnswer(pending, body);
-  if (body.behavior === 'allow') {
-    const out = { behavior: 'allow' };
-    if (body.always && Array.isArray(pending.suggestions) && pending.suggestions.length) out.updatedPermissions = pending.suggestions;
-    return out;
-  }
-  if (body.behavior === 'deny') {
-    const why = String(body.message ?? '').trim();
-    return { behavior: 'deny', message: why ? `The owner declined from the Project Manager: ${why.slice(0, 4000)}` : 'The owner declined this from the Project Manager.' };
-  }
-  throw new Error('Allow or deny?');
-}
-
-// A plan (ExitPlanMode): approved, plainly or with one of the prompt's own
-// choices (body.suggestion, an index into its suggestions, such as switching to
-// auto-accept edits), or rejected with the owner's reason, so Claude keeps planning.
-function planAnswer(pending, body) {
-  if (body.behavior === 'allow') {
-    if (body.suggestion == null) return { behavior: 'allow' };
-    const s = Number.isInteger(body.suggestion) ? pending.suggestions?.[body.suggestion] : null;
-    if (!s) throw new Error('No such choice');
-    return { behavior: 'allow', updatedPermissions: [s] };
-  }
-  if (body.behavior === 'deny') {
-    const why = String(body.message ?? '').trim();
-    return { behavior: 'deny', message: why ? `The owner rejected this plan from the Project Manager. Keep planning: ${why.slice(0, 4000)}`
-      : 'The owner rejected this plan from the Project Manager. Keep planning, and ask what to change.' };
-  }
-  throw new Error('Approve or reject?');
-}
-
 // ---------- turn ends and the inbox ----------
 // What the owner sends a session (a reply, or a command's fixed words) reaches
 // it whole: the hooks pass it on as it is, so they stay free of the wording.
-// A held turn end takes it at once; otherwise it waits in the session's inbox
-// (inbox/<session>/ in the relay folder), where the stop hook hands the oldest
-// over before the session's next tool and the relay hook the rest at its next
-// turn end.
+// It waits in the session's inbox (inbox/<session>/ in the relay folder), where
+// the stop hook hands the oldest over before the session's next tool and the
+// relay hook the rest at its next turn end. Approvals aren't among the
+// commands: since Oct 6 the owner gives them in the Claude app.
 
 export const COMMANDS = {
-  approve: 'Approved from the Project Manager: go on with the next task.',
   // The shot lands on the session's page through `npm run post` (post.mjs).
   show: "The owner asks from the Project Manager: show me what you're working on. Capture a shot or a short clip of it and post it to your page "
     + 'with `npm run post -- <file> --caption "<one line>"`, or say in one line that there\'s nothing to show yet.',
@@ -346,11 +268,11 @@ export function ownerMessage({ text, command } = {}) {
   return `The owner replied from the Project Manager:\n\n${t.slice(0, 20000)}`;
 }
 
-// When a message reaches its session: now (a turn end is held for it), before
-// its next step (it is at work, so the stop hook sees its next tool call), or
-// at its next turn end (it is idle, or asleep in the app).
-export function deliveryOf({ held, active }) {
-  return held ? 'now' : active ? 'next-step' : 'turn-end';
+// When a message reaches its session: before its next step (it is at work, so
+// the stop hook sees its next tool call), or at its next turn end (it is idle,
+// or asleep in the app).
+export function deliveryOf({ active }) {
+  return active ? 'next-step' : 'turn-end';
 }
 
 // The app's turn summary (a session record's postTurnSummary), when it is about
@@ -365,9 +287,10 @@ export function turnSummary(raw, lastReply) {
 }
 
 // ---------- the Away switch ----------
-// While Away is on, the relay hook holds every session's questions, permission
-// prompts and turn ends for the Project Manager; while it's off they stay in
-// the app. It lives in the relay folder's away.json: { on, since, from }.
+// While Away is on, the bell's news goes to the lock screen of every phone that
+// turned notifications on (push-api.mjs); while it's off, it stays on the
+// pages. It lives in the relay folder's away.json: { on, since, from }. It
+// holds nothing for the owner: since Oct 6 sessions always ask in the app.
 
 // The Away file as written when the owner flips the switch from a page.
 export function awaySwitch(body, ua, now = Date.now()) {
@@ -380,39 +303,14 @@ export function awayOf(raw) {
   return { on: true, since: Number(raw.since) || null, from: raw.from ?? null };
 }
 
-// A held item whose session is gone. The spike (plan task 3) found that a
-// deleted session's hook keeps holding, so a live hook doesn't mean a live
-// session: the item goes once its transcript is deleted, or its app record is
-// deleted after the board had seen one (sessions run outside the app have none).
-export function heldOrphaned(p, { transcriptExists, hasRecord, sawRecord }) {
-  if (p.transcript && !transcriptExists) return true;
-  return !!sawRecord && !hasRecord;
-}
-
-// A held question, permission or plan answered somewhere else: in the app on
-// the PC, or over Remote Control, which answer the prompt while the hook still
-// waits. That same call (its tool and what it does) then has a result written
-// after the hold began. entries: the session's turns (parseTranscript).
-export function heldAnsweredElsewhere(p, entries) {
-  if (!['question', 'permission', 'plan'].includes(p.kind) || !p.tool) return false;
-  // The transcript's ExitPlanMode call has no input (the hook is given the
-  // plan), so a plan matches by its tool alone.
-  const summary = p.tool === 'ExitPlanMode' ? null : toolSummary(p.tool, p.input ?? {});
-  const done = new Map(entries.filter((e) => e.kind === 'result').map((e) => [e.tool, e]));
-  return entries.some((e) => e.kind === 'tool' && e.name === p.tool && (summary === null || e.summary === summary)
-    && (done.get(e.id)?.time ?? 0) > (Number(p.time) || Infinity));
-}
-
 // ---------- the session page ----------
 
-// What a session is doing, for its card and page: waiting on you (something
-// held for the Project Manager), asked in the app (a question in the app's own
-// dialog), ended (End work, until it is woken again: at work more than two
-// minutes after), at work, or idle. s: { pending, asking, active, activity, endedAt }.
+// What a session is doing, for its card and page: asked in the app (a question
+// in the app's own dialog), ended (End work, until it is woken again: at work
+// more than two minutes after), at work, or idle. s: { asking, active, activity, endedAt }.
 // The pages word them (sessions-ui.mjs STATE_LABELS).
 const ENDED_GRACE_MS = 2 * 60 * 1000;
 export function sessionState(s) {
-  if (s.pending?.length) return 'waiting';
   if (s.asking) return 'asked';
   if (s.endedAt && !(s.active && s.activity > s.endedAt + ENDED_GRACE_MS)) return 'ended';
   return s.active ? 'working' : 'idle';

@@ -5,18 +5,14 @@
 // the owner's OK), the server reports the status on both pages, and
 // tests/lanes-board-hooks.test.mjs checks both.
 
-// Claude Code ends a hook at its timeout, so a holding hook gets a minute more
-// than the relay hook holds (24 minutes, LANES_RELAY_WAIT_MS): it gives up and
-// clears its card itself.
-const HOLD_S = 25 * 60;
-
 // Each hook: its folder under ~/.claude/hooks/, its tracked file here, the
-// modules installed beside it, and the events it is registered for. `hold`
-// events wait for the owner (HOLD_S).
+// modules installed beside it, and the events it is registered for, with
+// their timeouts in seconds. None waits for the owner (since Oct 6 the relay
+// hook holds nothing), so every timeout is short.
 export const HOOKS = [
   { name: 'lanes-relay', label: 'relay hook', file: 'relay-hook.mjs', shared: ['inbox.mjs'], events: [
-    { event: 'PermissionRequest', matcher: '*', timeout: HOLD_S, hold: true },
-    { event: 'Stop', timeout: HOLD_S, hold: true },
+    { event: 'PermissionRequest', matcher: '*', timeout: 10 },
+    { event: 'Stop', timeout: 10 },
   ] },
   { name: 'lanes-stop', label: 'stop hook', file: 'stop-hook.mjs', shared: ['inbox.mjs'], events: [
     { event: 'PreToolUse', matcher: '*', timeout: 10 },
@@ -40,9 +36,9 @@ export function hookCommand(claudeDir, name) {
 
 const findHook = (groups, command) => (groups ?? []).flatMap((g) => g.hooks ?? []).find((h) => h.command === command) ?? null;
 
-// settings with every hook registered and every holding timeout at least 25
-// minutes; other settings and hooks are left as they are. A copy: settings is
-// not changed.
+// settings with every hook registered with its timeout (an older install's
+// 25-minute hold comes down to it); other settings and hooks are left as they
+// are. A copy: settings is not changed.
 export function withHooks(settings, claudeDir) {
   const out = structuredClone(settings ?? {});
   out.hooks ??= {};
@@ -52,7 +48,7 @@ export function withHooks(settings, claudeDir) {
       const groups = (out.hooks[e.event] ??= []);
       const found = findHook(groups, command);
       if (found) {
-        if (e.hold && !(found.timeout >= e.timeout)) found.timeout = e.timeout;
+        found.timeout = e.timeout;
         continue;
       }
       const entry = { type: 'command', command, timeout: e.timeout };
@@ -93,7 +89,7 @@ export function hooksStatus({ tracked, installed, settings, claudeDir }) {
     for (const e of h.events) {
       const found = findHook(settings?.hooks?.[e.event], command);
       if (!found) problems.push(`The ${h.label} isn't registered for ${e.event}.`);
-      else if (e.hold && !(found.timeout >= e.timeout)) problems.push(`The ${h.label}'s ${e.event} timeout is ${found.timeout ?? 'the default'} s, not 25 minutes.`);
+      else if (found.timeout !== e.timeout) problems.push(`The ${h.label}'s ${e.event} timeout is ${found.timeout ?? 'the default'} s, not ${e.timeout} s.`);
     }
   }
   return { current: problems.length === 0, problems };

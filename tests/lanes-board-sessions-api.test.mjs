@@ -33,9 +33,9 @@ describe('sessions api', () => {
   it('lists recent sessions and shows one', async () => {
     const { sessions } = await get('/sessions');
     assert.equal(sessions.length, 1);
-    assertMatches(sessions[0], { id: ID, title: 'Board work', cwd: 'C:/repo', queued: 0, pending: [], lastText: 'Done.' });
+    assertMatches(sessions[0], { id: ID, title: 'Board work', cwd: 'C:/repo', queued: 0, lastText: 'Done.' });
     const d = await get(`/session?id=${ID}`);
-    assertMatches(d, { id: ID, title: 'Board work', pending: [], queued: [] });
+    assertMatches(d, { id: ID, title: 'Board work', queued: [], away: { on: false } });
     assert.deepEqual(d.entries.map((e) => e.kind), ['user', 'assistant']);
   });
 
@@ -60,14 +60,19 @@ describe('sessions api', () => {
     assert.equal(existsSync(inbox), false);
   });
 
-  it('answers a waiting prompt, and refuses one that has gone', async () => {
+  it('answers no prompt and has no Questions tab: they are answered in the app', async () => {
     mkdirSync(path.join(relay, 'pending'), { recursive: true });
     writeFileSync(path.join(relay, 'pending', 'abcd-efgh.json'), JSON.stringify({ id: 'abcd-efgh', session: ID, kind: 'permission', time: 1 }));
-    assert.equal((await get('/sessions')).sessions[0].pending.length, 1);
-    assert.deepEqual(await api.post('/relay/answer', { id: 'abcd-efgh', behavior: 'allow' }), { ok: true });
-    assert.deepEqual(JSON.parse(readFileSync(path.join(relay, 'answers', 'abcd-efgh.json'), 'utf8')), { behavior: 'allow' });
-    await assert.rejects(api.post('/relay/answer', { id: 'gone-gone', behavior: 'allow' }), /already answered, handed back or timed out/);
-    await assert.rejects(api.post('/relay/answer', { id: 'abcd-efgh', behavior: 'deny' }), /already answered/);
+    assert.equal((await get('/sessions')).sessions[0].pending, undefined);
+    assert.equal(api.post('/relay/answer', { id: 'abcd-efgh', behavior: 'allow' }), undefined);
+    assert.equal(get('/questions'), undefined);
+    assert.equal(existsSync(path.join(relay, 'answers')), false);
+  });
+
+  it('reads the Away switch', async () => {
+    assertMatches(await get('/away'), { on: false });
+    await api.post('/relay/away', { on: true });
+    assertMatches(await get('/away'), { on: true, from: 'PC' });
   });
 
   it('says which sessions are asking in the app now, for the bell', async () => {

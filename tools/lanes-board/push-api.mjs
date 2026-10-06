@@ -13,7 +13,7 @@ import { cleanSubscription, pushMessage, pushRequest, toPush, vapidKeys } from '
 
 const MAX_SUBSCRIPTIONS = 20;
 
-// state: the state folder; away(): the Away switch; httpsUrl(): the
+// state: the state folder; away(): the Away switch (sessions.mjs awayOf); httpsUrl(): the
 // Project Manager's HTTPS address (https://<pc>.<tailnet>.ts.net) or null;
 // insecure: lets http endpoints through (tests' stand-in push service).
 export function pushApi({ state, away, httpsUrl = () => null, insecure = false, log = console.error }) {
