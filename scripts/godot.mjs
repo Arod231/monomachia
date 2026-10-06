@@ -290,11 +290,16 @@ async function main() {
       const outDir = join(ROOT, 'build', 'bench');
       mkdirSync(outDir, { recursive: true });
       const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
-      const args = rest.some((a) => a.startsWith('--out=')) ? rest : [`--out=${join(outDir, `frame-times-${stamp}.csv`)}`, ...rest];
+      // --scene= times another scene instead (the look test's, milestone-1
+      // task 30: npm run bench:look), which reads the same --res and --out.
+      const sceneArg = rest.find((a) => a.startsWith('--scene='));
+      const scene = sceneArg ? sceneArg.slice('--scene='.length) : 'res://tools/bench/frame_time_bench.tscn';
+      const sceneRest = rest.filter((a) => a !== sceneArg);
+      const args = sceneRest.some((a) => a.startsWith('--out=')) ? sceneRest : [`--out=${join(outDir, `frame-times-${stamp}.csv`)}`, ...sceneRest];
       await importProject(godot);
       const r = await runGodot(
         godot,
-        ['--path', PROJECT, '--resolution', '1600x900', '--fixed-fps', '60', 'res://tools/bench/frame_time_bench.tscn', '--', ...args],
+        ['--path', PROJECT, '--resolution', '1600x900', '--fixed-fps', '60', scene, '--', ...args],
         { timeoutMs: 1800000, env: DEFAULT_SETTINGS_ENV },
       );
       if (r.code === 0 && hasShaderErrors(r.output)) die('godot.mjs: a shader failed to compile (see SHADER ERROR above).');

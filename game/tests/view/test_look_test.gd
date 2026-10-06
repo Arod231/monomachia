@@ -1,0 +1,190 @@
+extends GutTest
+## The look test scene (milestone-1 task 30): built headless in its own
+## viewport, it has the realistic look's parts and the features Godot check 6
+## lists, the fighter plays the light string, the camera is the board's
+## Camera 2, and the game's own Shrine keeps the toon look. How it looks, and
+## the bench, are judged in a real window (shots and npm run bench:look).
+
+
+func _look(extra: Dictionary = {}) -> LookTest:
+	var t := LookTest.new()
+	t.own_viewport = true
+	t.bench_res = Vector2i(64, 64)
+	for key: String in extra:
+		t.set(key, extra[key])
+	add_child_autofree(t)
+	return t
+
+
+static func _geometry(root: Node) -> Array[GeometryInstance3D]:
+	var out: Array[GeometryInstance3D] = []
+	for n: Node in root.find_children("*", "GeometryInstance3D", true, false):
+		out.append(n as GeometryInstance3D)
+	return out
+
+
+## Every material drawn under root.
+static func _materials(root: Node) -> Array[Material]:
+	var out: Array[Material] = []
+	for g: GeometryInstance3D in _geometry(root):
+		if g.material_override != null:
+			out.append(g.material_override)
+		if g is MeshInstance3D and (g as MeshInstance3D).mesh != null:
+			var mi: MeshInstance3D = g as MeshInstance3D
+			for i: int in mi.mesh.get_surface_count():
+				var m: Material = mi.get_surface_override_material(i)
+				out.append(m if m != null else mi.mesh.surface_get_material(i))
+	return out
+
+
+static func _toon(m: Material) -> bool:
+	if not m is ShaderMaterial or (m as ShaderMaterial).shader == null:
+		return false
+	var sh: Shader = (m as ShaderMaterial).shader
+	return sh == ToonMaterials.TOON_SHADER or sh == ToonMaterials.TOON_TWO_SIDED_SHADER or sh.code.contains(LookMaterials.TOON_LIGHT)
+
+
+func test_the_stage_is_physically_based_with_no_ink() -> void:
+	var t: LookTest = _look()
+	assert_eq(t.stage.find_children("*", "InkWashPass", true, false).size(), 0, "no ink-wash pass")
+	var toon: int = 0
+	var lines: int = 0
+	for m: Material in _materials(t.stage):
+		if _toon(m):
+			toon += 1
+		if m != null and m.next_pass != null and m.next_pass is ShaderMaterial \
+				and (m.next_pass as ShaderMaterial).shader == ToonMaterials.OUTLINE_SHADER:
+			lines += 1
+	assert_eq(toon, 0, "no toon material left on the fighter, the Katana or the Shrine")
+	assert_eq(lines, 0, "no ink outlines")
+	assert_gt(t.materials.counts["standard"], 5, "toon materials made physically based")
+	assert_gt(t.materials.counts["relit"], 2, "the floor, the rock and the Katana re-lit")
+
+
+func test_the_katana_s_blade_is_steel() -> void:
+	var t: LookTest = _look()
+	var blade: ShaderMaterial = null
+	for m: Material in _materials(t.fighter):
+		if m is ShaderMaterial and (m as ShaderMaterial).shader.code.contains("hamon"):
+			blade = m as ShaderMaterial
+	assert_not_null(blade, "the blade keeps its temper line")
+	if blade != null:
+		assert_eq(blade.get_shader_parameter(&"look_metallic"), 1.0)
+		assert_lt(float(blade.get_shader_parameter(&"look_roughness")), 0.3)
+		assert_true(blade.shader.code.contains(LookMaterials.PBR_LIGHT), "lit physically")
+
+
+func test_the_environment_is_the_look_s() -> void:
+	var t: LookTest = _look()
+	var e: Environment = t.environment
+	assert_true(e.volumetric_fog_enabled, "volumetric fog")
+	assert_eq(e.volumetric_fog_albedo, LookTest.MIST, "of the mist's colour")
+	assert_true(e.ssao_enabled, "ambient occlusion")
+	assert_true(e.glow_enabled, "bloom")
+	assert_lt(e.glow_bloom, 0.1, "subtle")
+	assert_true(e.fog_enabled, "depth fog")
+	assert_eq(e.tonemap_mode, Environment.TONE_MAPPER_AGX)
+	assert_true(e.adjustment_enabled, "the grade")
+	var curve: Gradient = (e.adjustment_color_correction as GradientTexture1D).gradient
+	assert_eq(curve.sample(0.0), LookTest.NIGHT_INK, "black lifted to the night's ink, never pure black")
+	assert_same((t.arena.get_node(^"WorldEnvironment") as WorldEnvironment).environment, e)
+
+
+func test_the_features_the_milestone_needs_are_there() -> void:
+	# Godot check 6 (volumetric fog above): decals, GPU particles, temporal
+	# anti-aliasing and FSR 2.2, spring bones and skeleton modifiers
+	var t: LookTest = _look()
+	assert_gte(t.stage.find_children("*", "Decal", true, false).size(), 2, "decals")
+	assert_eq(t.stage.find_children("*", "GPUParticles3D", true, false).filter(func(n: Node) -> bool: return n.name == &"Dust").size(), 1, "GPU particles")
+	var vp: Viewport = t.stage.get_viewport()
+	assert_eq(vp.scaling_3d_mode, Viewport.SCALING_3D_MODE_FSR2, "FSR 2.2 at Ultra")
+	assert_almost_eq(vp.scaling_3d_scale, 0.67, 0.005, "from 67%")
+	var taa: LookTest = _look({"aa": &"taa"})
+	assert_true(taa.stage.get_viewport().use_taa, "Godot's TAA with --aa=taa")
+	assert_eq(taa.stage.get_viewport().scaling_3d_scale, 1.0, "at full resolution")
+	assert_true(t.cord_sim is SpringBoneSimulator3D, "spring bones")
+	assert_eq(t.cord.get_bone_count(), LookTest.CORD_SEGMENTS)
+	var mods: Array[StringName] = []
+	for c: Node in t.fighter.model.skeleton.get_children():
+		if c is SkeletonModifier3D:
+			mods.append(c.name)
+	assert_true(mods.has(&"InertialBlend") and mods.has(&"BodyLayer") and mods.has(&"LegIK"), "the rig's skeleton modifiers: %s" % [mods])
+
+
+func test_the_key_and_rim_light_only_fighters() -> void:
+	var t: LookTest = _look()
+	for light: Light3D in [t.key_light, t.rim_light]:
+		assert_eq(light.light_cull_mask, LookPalette.FIGHTER_LAYER, "%s touches fighters only" % light.name)
+	var lit: int = 0
+	for g: GeometryInstance3D in _geometry(t.fighter):
+		if g.layers & LookPalette.FIGHTER_LAYER:
+			lit += 1
+	assert_gt(lit, 0, "the fighter is on the fighters' layer")
+	for g: GeometryInstance3D in _geometry(t.arena):
+		assert_eq(g.layers & LookPalette.FIGHTER_LAYER, 0, "%s isn't" % g.name)
+
+
+func test_the_camera_is_camera_2() -> void:
+	var t: LookTest = _look()
+	var c: CameraRig = t.rig_camera
+	assert_not_null(c)
+	assert_eq([c.follow_back, c.follow_side, c.follow_close_side, c.follow_close_from, c.follow_height, c.base_fov],
+		[3.4, 1.0, 0.6, 3.5, 1.75, 55.0], "the board's numbers")
+	# at Camera 2's base distance: 3.4 m back, 1.0 m right, 1.75 m up
+	var target: Dictionary = c.follow_target(Vector3.ZERO, Vector3(0.0, 0.0, 3.5), Vector3(0.0, 0.0, 1.0))
+	var pos: Vector3 = target["pos"]
+	assert_almost_eq(pos.z, -3.4, 0.05, "back")
+	assert_almost_eq(absf(pos.x), 1.0, 0.05, "to the side")
+	assert_almost_eq(pos.y, 1.75, 0.05, "up")
+
+
+func test_the_fighter_plays_the_light_string_in_its_corner() -> void:
+	var t: LookTest = _look()
+	var seen: Array[StringName] = []
+	for i: int in 160:
+		t._advance()
+		var f: Fighter = t.world.fighters[0]
+		if f.state == &"attack" and f.atk != null and not seen.has(f.atk.def.id):
+			seen.append(f.atk.def.id)
+	assert_eq(seen, [&"k_l1", &"k_l2", &"k_l3", &"k_l4"] as Array[StringName], "the four lights in turn")
+	var from_centre: float = Vector2(t.world.fighters[0].pos.x, t.world.fighters[0].pos.z).length()
+	assert_gt(from_centre, 6.0, "in a corner, near the wall")
+
+
+func test_the_cord_swings_on_its_spring_bones() -> void:
+	var t: LookTest = _look()
+	var sk: Skeleton3D = t.cord
+	sk.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
+	var tip: int = sk.get_bone_count() - 1
+	var got: Array = []
+	(t.cord_sim as SkeletonModifier3D).modification_processed.connect(func() -> void:
+		got.clear()
+		got.append(sk.get_bone_global_pose(tip).origin))
+	sk.advance(1.0 / 60.0)
+	await wait_process_frames(1)
+	var rest: Vector3 = got[0] if not got.is_empty() else Vector3.ZERO
+	# the saya swings sideways: the tip trails behind, then swings back
+	var parent: Node3D = sk.get_parent() as Node3D
+	parent.position += parent.basis.x * 0.3
+	var most: float = 0.0
+	for i: int in 12:
+		got.clear()
+		sk.advance(1.0 / 60.0)
+		await wait_process_frames(1)
+		assert_false(got.is_empty(), "the spring bones ran")
+		if not got.is_empty():
+			most = maxf(most, (got[0] as Vector3).distance_to(rest))
+	assert_gt(most, 0.01, "the tip swung off its pose (%.4f m at most)" % most)
+
+
+func test_the_game_s_shrine_keeps_the_toon_look() -> void:
+	var t: LookTest = _look()
+	var shrine: Node3D = (load("res://arenas/moonlit_shrine/moonlit_shrine.tscn") as PackedScene).instantiate() as Node3D
+	add_child_autofree(shrine)
+	assert_eq(shrine.find_children("*", "InkWashPass", true, false).size(), 1, "its ink-wash pass")
+	var toon: int = 0
+	for m: Material in _materials(shrine):
+		if _toon(m):
+			toon += 1
+	assert_gt(toon, 5, "its toon materials, untouched by the look test's")
+	assert_ne((shrine.get_node(^"WorldEnvironment") as WorldEnvironment).environment, t.environment)
