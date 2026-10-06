@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { assertMatches } from './assert-matches.mjs';
 import {
   GOAL_LIMIT, PLANS, PLAN_BY_KEY, cancelStops, expandIds, goalFor, linkMoved, mergeCopies, parseFlat, parseNested,
-  SUBJECT_TASK, parsePlan, parseRoadmap, planOfBranch, roadmapView, sessionTitle, taskRange,
+  SUBJECT_TASK, findBatches, parsePlan, parseRoadmap, planOfBranch, roadmapView, sessionTitle, taskRange,
 } from '../tools/lanes-board/plans.mjs';
 
 const GR = PLAN_BY_KEY.gr;
@@ -730,5 +730,73 @@ describe('stop hook', () => {
   it('never blocks on a broken stop list', () => {
     writeFileSync(file, '{not json');
     assert.equal(run({ session_id: 'listed', cwd: worktree, hook_event_name: 'PreToolUse' }), '');
+  });
+});
+
+describe('findBatches', () => {
+  // tasks: id -> [status, blockers ('id' local, or 'gr:1.1'; a trailing '*' means done), ownerOk?]
+  const plan = (order, tasks, key = 'm1') => ({
+    key, stages: [{ n: 1, name: 'All', ids: order }],
+    tasks: Object.fromEntries(Object.entries(tasks).map(([id, [status, blockers = [], ownerOk = []]]) => [id, {
+      title: `T ${id}`, status, ownerOk,
+      blockers: blockers.map((b) => ({ ref: b.replace('*', '').includes(':') ? b.replace('*', '') : `${key}:${b.replace('*', '')}`, done: b.endsWith('*') })),
+    }])),
+  });
+
+  it('chains a ready task with the tasks that wait only on it, in order', () => {
+    const p = plan(['1', '2', '3', '4'], { 1: ['done'], 2: ['ready', ['1*']], 3: ['blocked', ['2']], 4: ['blocked', ['3', '1*']] });
+    assert.deepEqual(findBatches(p), [['2', '3', '4']]);
+  });
+
+  it('leaves a ready task with nothing to chain out', () => {
+    const p = plan(['1', '2'], { 1: ['ready'], 2: ['blocked', ['gr:9.9']] });
+    assert.deepEqual(findBatches(p), []);
+  });
+
+  it('stops before a task that also waits on unfinished work outside the batch', () => {
+    const p = plan(['1', '2', '3', '4'], { 1: ['ready'], 2: ['blocked', ['1']], 3: ['working'], 4: ['blocked', ['2', '3']] });
+    assert.deepEqual(findBatches(p), [['1', '2']]);
+  });
+
+  it('stops before a task that waits on the owner\'s OK of a task in the batch', () => {
+    const p = plan(['1', '2', '3'], { 1: ['ready'], 2: ['blocked', ['1']], 3: ['blocked', ['2'], ['2']] });
+    assert.deepEqual(findBatches(p), [['1', '2']]);
+  });
+
+  it('is a chain: each task uses the one before, and tasks that only share an earlier one fan out', () => {
+    const p = plan(['1', '2', '3', '4'], { 1: ['ready'], 2: ['blocked', ['1']], 3: ['blocked', ['1']], 4: ['blocked', ['2']] });
+    assert.deepEqual(findBatches(p), [['1', '2', '4']]);
+  });
+
+  it('gives each task to one batch, so batches can run side by side', () => {
+    const p = plan(['1', '2', '3', '4', '5'], { 1: ['ready'], 2: ['ready'], 3: ['blocked', ['1']], 4: ['blocked', ['2']], 5: ['blocked', ['1', '2']] });
+    assert.deepEqual(findBatches(p), [['1', '3'], ['2', '4']]);
+  });
+
+  it('never starts on or takes a task already started or launched', () => {
+    const p = plan(['1', '2', '3', '4'], { 1: ['working'], 2: ['blocked', ['1']], 3: ['launched'], 4: ['blocked', ['3']] });
+    assert.deepEqual(findBatches(p), []);
+  });
+
+  it('starts on a task waiting only on the owner\'s OK, since launching it gives the OK', () => {
+    const p = plan(['9', '1', '2'], { 9: ['done'], 1: ['owner', ['9*'], ['9']], 2: ['blocked', ['1']] });
+    assert.deepEqual(findBatches(p), [['1', '2']]);
+  });
+
+  it('takes a task gated on the owner\'s OK of a task done before the batch', () => {
+    const p = plan(['9', '1', '2'], { 9: ['done'], 1: ['ready'], 2: ['blocked', ['1', '9*'], ['9']] });
+    assert.deepEqual(findBatches(p), [['1', '2']]);
+  });
+
+  it('stops before a review gate or other owner task, which a session can\'t do', () => {
+    const p = plan(['1', '2', '3', '4'], { 1: ['ready'], 2: ['blocked', ['1']], 3: ['blocked', ['2']], 4: ['blocked', ['2']] });
+    p.tasks[3].gate = true;
+    assert.deepEqual(findBatches(p), [['1', '2', '4']]);
+  });
+
+  it('reads tasks outside the build order too', () => {
+    const p = plan(['1'], { 1: ['ready'], 2: ['blocked', ['1']] });
+    p.stages.push({ n: null, name: 'Not in the build order', ids: ['2'] });
+    assert.deepEqual(findBatches(p), [['1', '2']]);
   });
 });
