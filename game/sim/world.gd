@@ -69,6 +69,22 @@ var hitstop: int = 0
 var slowmo_frames: int = 0
 var slowmo_scale: float = 1.0
 var ko_resolved: bool = false
+## The finisher prompt (milestone-1 task 103, FinisherRules): open for fighter
+## prompt_by while >= 0, since world frame prompt_at, for the finisher
+## prompt_kind (the disarmer's weapon, or &"fists"), from bare hands' strike
+## when prompt_from_strike.
+var prompt_by: int = -1
+var prompt_at: int = 0
+var prompt_kind: StringName = &""
+var prompt_from_strike: bool = false
+## The finisher being played by fighter finisher_by while >= 0: its kind, its
+## frame, and where the finisher stood as it started (the line-up's start).
+var finisher_by: int = -1
+var finisher_kind: StringName = &""
+var finisher_from_strike: bool = false
+var finisher_frame: int = 0
+var finisher_from_x: float = 0.0
+var finisher_from_z: float = 0.0
 var rng: Rng
 var _scripted_queue: Array[ScriptedHit] = []
 
@@ -166,6 +182,12 @@ func reset_round() -> void:
 	hitstop = 0
 	slowmo_frames = 0
 	ko_resolved = false
+	prompt_by = -1
+	prompt_kind = &""
+	prompt_from_strike = false
+	finisher_by = -1
+	finisher_kind = &""
+	finisher_from_strike = false
 
 
 func request_slowmo(frames: int, scale: float) -> void:
@@ -199,8 +221,10 @@ func step(inputs: Array[RawInput]) -> void:
 	if slowmo_frames > 0:
 		slowmo_frames -= 1
 
+	FinisherRules.step_prompt(self)
 	for f: Fighter in fighters:
 		f.update()
+	FinisherRules.step_finisher(self)
 	_flush_scripted_hits()
 	_separate()
 	for f: Fighter in fighters:
@@ -324,6 +348,9 @@ static func checks_frame(def: AttackDef, f: int) -> bool:
 ## (Fighter.blade_touch()), or null for none; a scripted hit needs none.
 func evaluate(a: Fighter, b: Fighter, def: AttackDef, scripted: bool, touch: BladeSweep = null) -> StringName:
 	if b.state == &"ko" or b.state == &"intro" or b.state == &"victory":
+		return &"miss"
+	# neither half of a finisher can be hit (milestone-1 task 103)
+	if b.state == &"finisher" or b.state == &"finished":
 		return &"miss"
 	# a downed fighter can't be hit, by anything (task 16)
 	if b.is_downed():
@@ -725,5 +752,5 @@ func _check_ko() -> void:
 	if d1 and f1.state != &"ko":
 		f1.to_ko()
 	var winner: int = -1 if d0 and d1 else (1 if d0 else 0)
-	emit({"t": &"ko", "loser": -1 if d0 and d1 else (0 if d0 else 1), "winner": winner})
+	emit({"t": &"ko", "loser": -1 if d0 and d1 else (0 if d0 else 1), "winner": winner, "finisher": finisher_by >= 0})
 	request_slowmo(50, 0.3)

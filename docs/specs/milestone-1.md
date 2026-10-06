@@ -65,7 +65,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 22. [x] As a developer, I want the Greatsword's and the Daggers' frame data generated from their current clips through the same generator, with no band test until milestone 2, so that one generator serves every weapon. **(P10, confirmed Oct 4)** (Ticked with task 17.)
 23. [x] As a developer, I want a replay test in the pipeline phase, in this form: a seeded match run twice gives matching state hashes on every step **(P18, confirmed Oct 4)**, so that the rules stay deterministic for rollback netcode. (Ticked with task 5.)
 24. [x] As a developer, I want a save-and-restore test in the pipeline phase, in this form: save mid-match, restore, step again and compare **(P18, confirmed Oct 4)**, so that the rules can be rolled back later without a retrofit. (Ticked with tasks 134 and 6.)
-25. As a developer, I want both tests to cover a finisher and a stuck weapon, so that the new rules are as deterministic as the old. **(P18, confirmed Oct 4)**
+25. [x] As a developer, I want both tests to cover a finisher and a stuck weapon, so that the new rules are as deterministic as the old. **(P18, confirmed Oct 4)** (Ticked with task 103.)
 26. [x] As a developer, I want matches recordable as input logs that replay to the same result, so that the performance gate, the balance run and bug reports can replay a match exactly. (Ticked with task 6.)
 27. [x] As the owner, I want the Animation Studio slimmed to its gallery, a timeline, markers and chains, so that it does what animation-leads needs and nothing it no longer needs. (Ticked with task 27.)
 28. [x] As the owner, I want markers set on the Studio's timeline to give each clip's active frames, cancel windows and branch points, and saving to regenerate the frame-data table and report any move outside its band, so that a marker edit is the only way frame data change. **(P12, confirmed Oct 4)** (Ticked with task 27.)
@@ -172,11 +172,11 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### Finishers
 
-114. As a player who disarms an opponent at 5% HP or less, I want the disarm to play in slow motion and give me one timed prompt, so that I can end the round with a finisher. (5% is 5 HP at today's 100 maximum.)
+114. [x] As a player who disarms an opponent at 5% HP or less, I want the disarm to play in slow motion and give me one timed prompt, so that I can end the round with a finisher. (5% is 5 HP at today's 100 maximum.) (Ticked with task 103.)
 115. As a player, I want the prompt to be heavy, shown as the button's glyph over the disarmed fighter and pressed within about a second of slow motion, so that it's clear what to press and when.
-116. As a player, I want a press made before the prompt appears not to count, the input buffer included, so that mashing can't take the finisher.
-117. As a player who misses the prompt, I want the disarm to play out as normal, so that the round goes on.
-118. As a player being finished, I want no escape once the finisher starts, so that defence happens before the disarm, as with strings.
+116. [x] As a player, I want a press made before the prompt appears not to count, the input buffer included, so that mashing can't take the finisher. (Ticked with task 103.)
+117. [x] As a player who misses the prompt, I want the disarm to play out as normal, so that the round goes on. (Ticked with task 103.)
+118. [x] As a player being finished, I want no escape once the finisher starts, so that defence happens before the disarm, as with strings. (Ticked with task 103.)
 119. As a Katana player, I want the Katana's finisher: I sheathe, then draw in a lightning-fast iai slash that carries me through to stand behind the opponent; I re-sheathe, and as the guard clicks home blood sprays along the cut and the opponent falls in two halves, cut diagonally from one shoulder to the opposite hip, so that the finisher is the game's signature moment.
 120. As a disarmed player who redirects an armed opponent at 5% HP or less into a disarm, I want the bare-hands finisher: I turn their last attack aside, then drop them with a crushing palm to the chest or a blow to the throat, cutting nothing, so that bare hands can finish too. When a disarmed fighter disarms by a blocked Breaker Palm or a fully charged Roundhouse instead, the same finisher opens and plays from its strike, skipping the turn-aside **(P52, confirmed Oct 4)**.
 121. As a player, I want each finisher played as a paired clip with its own cinematic shot, so that it reads as a killing move.

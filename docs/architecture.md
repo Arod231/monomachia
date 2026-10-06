@@ -272,6 +272,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `ai/ai_brain.gd` | `AIBrain` | The computer opponent. |
 | `ai/training_brain.gd` | `TrainingBrain` | The training dummy's drills. Its heavies run both Iai draws in a four-turn cycle (milestone-1 task 83). |
 | `training_upkeep.gd` | `TrainingUpkeep` | Training's upkeep, stepped by the host after each rules step: getting up after a K.O., the refill (90 frames unhurt, then 2 HP a frame, the dummy's posture draining as fast), the dummy re-arming after 240 frames disarmed. `weapon_for()` and `swap_dummy_weapon()` give the dummy a weapon that can perform a behaviour. |
+| `finisher_rules.gd` | `FinisherRules` | The finisher's rules (milestone-1 task 103): a disarm at 5% HP or less opens the prompt (`World.prompt_*`, 18 rules frames at 0.3×); only a fresh heavy press inside it starts the paired finisher (`World.finisher_*`, the states `finisher` and `finished`), other presses forfeit it; the line-up, the kill and the K.O. Until tasks 104 and 105 one stand-in (`SimConst.FINISHER_*`) serves both; `ClipDirector.finisher_clip()` borrows the Iai Slash or the Cross to show it. |
 | `unblockable_routes.gd` | `UnblockableRoutes` | The routes table (milestone-1 task 83): how each weapon performs each unblockable, by counter kind. The dummy drills from it; `can_perform()` tells Training's swap, the roster's drill list and the host which weapons can drill what. |
 
 ### 6.2 Data model
@@ -583,6 +584,7 @@ Every rules event is a `Dictionary` with a `"t"` key, emitted in order and drain
 | Ultimates | `ultReady`, `ultStart`, `ultChoice`, `ultWave`, `ultDash`, `ultImpale`, `ultBurst`, `ultLightning` | Fighter and World |
 | Weapon | `pickup`, `recall`, `weaponStuck` | Fighter and World |
 | Follow-up cues | `counterReady`, `backstabReady` | Fighter and World |
+| Finisher | `finisherPrompt`, `finisherPromptEnd`, `finisher`, `finisherKill` (and `ko`'s `finisher`) | `FinisherRules` |
 | Flow | `roundStart`, `fight`, `ko`, `roundOver`, `matchOver` | Match and World |
 
 `parryEarly` is declared but never emitted.

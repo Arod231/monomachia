@@ -108,6 +108,25 @@ const KNOCKDOWN_GUARD_FRAMES: int = 15
 ## unblockable: Mountain Slam, Meteor Drop and Leaping Smash.
 const KNOCKDOWN_MOVES: Array[StringName] = [&"g_slam", &"g_jh", &"g_sh"]
 
+# --- Finisher (milestone-1 task 103) ----------------------------------------
+## A disarm of a fighter at this share of HP_MAX or less (5 HP) opens the
+## finisher prompt for the disarmer.
+const FINISHER_HP_SHARE: float = 0.05
+## The prompt: rules frames, played at this slow motion (P35: about 1 s).
+const FINISHER_PROMPT_FRAMES: int = 18
+const FINISHER_PROMPT_SLOWMO: float = 0.3
+## The stand-in finisher, both weapons', until tasks 104 and 105 read each
+## from its clip in the table (the owner's numbers, Oct 5): the finisher lines
+## up FINISHER_GAP from the victim, face to face, over FINISHER_LINE_UP_FRAMES;
+## it lasts FINISHER_FRAMES, the round ending at FINISHER_KILL_FRAME. Bare
+## hands' finisher with no attack to turn aside (P52) starts at
+## FINISHER_STRIKE_FRAME.
+const FINISHER_LINE_UP_FRAMES: int = 6
+const FINISHER_GAP: float = 1.2
+const FINISHER_FRAMES: int = 80
+const FINISHER_KILL_FRAME: int = 56
+const FINISHER_STRIKE_FRAME: int = 32
+
 # --- Disarm ----------------------------------------------------------------
 const DISARM_STAGGER: int = 26 # the disarmed fighter reels back
 # The disarmed weapon's flight (milestone-1 task 86, the owner's numbers of

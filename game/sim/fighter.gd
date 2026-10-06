@@ -471,7 +471,8 @@ func update() -> void:
 	_handle_guard_press()
 
 	match state:
-		&"intro", &"victory":
+		&"intro", &"victory", &"finisher", &"finished":
+			# a finisher's two halves move only as FinisherRules lines them up
 			vel.x = 0.0
 			vel.z = 0.0
 		&"free":
@@ -1350,6 +1351,7 @@ func disarm(by: Fighter, reason: StringName) -> void:
 		"reason": reason,
 	})
 	by.stats.disarms += 1
+	FinisherRules.on_disarm(W, self, by, reason)
 
 
 # ------------------------------------------------------------------ pickup / counters
