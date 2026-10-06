@@ -92,9 +92,11 @@ func test_inertial_blending_switches_on_the_rig() -> void:
 	assert_false(inertial.active, "off")
 	editor.set_inertial_blending(true)
 	assert_true(inertial.active, "on again")
-	editor.playback.seek(12.0)
+	# inside any clip Right Cut plays: its own, or without the packs its
+	# CC0 fallback (11 source frames)
+	editor.playback.seek(6.0)
 	editor._pose()
-	assert_almost_eq(inertial.time, 24.0, 1e-9, "the rules frames at the playhead")
+	assert_almost_eq(inertial.time, 12.0, 1e-9, "the rules frames at the playhead")
 	editor.playback.seek(editor.playback.length)
 	editor._pose()
 	editor._wrapped()
