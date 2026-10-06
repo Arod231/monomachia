@@ -70,6 +70,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - Oct 5, 2026: the main lane `lane/m1-22-23-30-31` (built on #74's branch) takes tasks 22, 23 and 31, and task 30 as a look side lane. Task 22 done: the protected timings are frozen in `ProtectedTimings`, retuned for the Katana and bare hands with each light and heavy hitstun a frame longer than the spec first counted, as the owner decided (the next hit lands a frame later than it reckoned). The outcomes (the counters' stuns, the disarm, the knockdown, their hit-stops) take the retuned values now; a move's own hitstun, blockstun and hit-stop switch as its family re-keys it. A 40-match soak: 0 failures, 147 rounds of 45.3 s, 1.26 disarms. Task 23 done: every hand-off shows the new motion at once and blends inertially from the pose shown (a skeleton modifier first in the rig, picture only); the director no longer crossfades, and the Studio has the layer's toggle.
 - Oct 6, 2026: `feature/milestone-1` folded into `master` on the owner's word, bringing everything merged into it since #63 (tasks 13, 15–18, 25–29, 83, 86, 103 and 107) to `master`, with the three Studio tests that failed without the packs fixed. The open lanes' pull requests (#74, #76, #77) move to `master`; the branch is then deleted.
 - Oct 6, 2026: task 31 done in `lane/m1-22-23-30-31`: Right Cut and Return Cut are re-keyed by Claude's scripted Blender pass (`scripts/blender/rekey_clip.py`) as two-handed cuts with longer wind-ups and a real okuri-ashi step, inside the light band (17.5 and 17.3 cm in from 2.5 m, 28 and 25 frames to land), off the waiting list, and in play at 1.0× with their travel and the retuned hit values. Their sources and exports are in the asset repository's pull request #3. Rounds lengthened to 70.3 s on average in a 40-match soak (inside the spec's 60-90 s), with 1.69 disarms a round. Left for the owner: the sheets, and PoseCheck's wrist and elbow limits and the Rogue's near misses, which this task's check doesn't hold.
+- Oct 6, 2026: the owner bought Cascadeur Indie (a subscription) and installed it, the first of task 126's deliverables and the first purchase task 124's spending review lists. Task 126's polish still waits on task 34.
 
 ## Build order
 
@@ -359,6 +360,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Check: task 34's director tests pass on the polished clips; the blades within 2 cm at contact on the sheets; rules unchanged.
   - Blocked by: 34 · Stories: 105, 211
   - **Owner:** buys Cascadeur Indie and polishes the light string's deflect pairs.
+  - Oct 6, 2026: Cascadeur Indie bought and installed by the owner, ahead of the polish (commercial use only under $100,000 a year of revenue or funding, spec Risks). The polish still waits on task 34's block-outs.
 
 ### Phase E: the pilot's effects and review
 
