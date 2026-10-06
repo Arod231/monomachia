@@ -14,8 +14,12 @@ extends RefCounted
 ## muted. Master drives the Master bus, effects the SFX, UI and Ambience buses,
 ## and music the Music bus.
 ##
+## The first launch (no preset saved, or one the game doesn't know) picks the
+## preset from the graphics card (GraphicsPreset.for_card(), milestone-1 task
+## 29); a run that asks for the defaults gets Ultra, the reference.
+##
 ## File layout:
-##   [graphics]  preset="high"
+##   [graphics]  preset="ultra"
 ##   [audio]     master=80  effects=90  music=100
 ##   [display]   reduce_flashes=false  button_hints=true
 
@@ -126,9 +130,12 @@ func save(path: String = PATH) -> Error:
 
 
 ## Loads the saved settings. A missing or unreadable file gives the defaults,
-## and so does any saved value that isn't one the game knows.
-static func load_from(path: String = PATH) -> GameSettings:
+## and so does any saved value that isn't one the game knows, except the
+## graphics preset: without a known one saved, it is the one card_name (this
+## machine's graphics card by default) maps to.
+static func load_from(path: String = PATH, card_name: String = RenderingServer.get_video_adapter_name()) -> GameSettings:
 	var settings := GameSettings.new()
+	settings.graphics_preset_id = GraphicsPreset.for_card(card_name)
 	var cfg := ConfigFile.new()
 	if not FileAccess.file_exists(path) or cfg.load(path) != OK:
 		return settings

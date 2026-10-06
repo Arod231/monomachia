@@ -37,8 +37,7 @@ func _place(at: Vector2, behind: bool = false) -> Array:
 ## A grounded weapon of `owner` at a world position.
 func _drop(owner: int, at: Vector3) -> DroppedWeapon:
 	host.fighter(owner).armed = false
-	var w := DroppedWeapon.new(owner, &"katana", V3.make(at.x, at.y, at.z), V3.make(), Rng.new(2))
-	w.grounded = true
+	var w := DroppedWeapon.stuck_at(owner, &"katana", V3.make(at.x, at.y, at.z), 0.0)
 	host.world.weapons.append(w)
 	return w
 

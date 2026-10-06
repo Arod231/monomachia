@@ -65,17 +65,29 @@ func test_a_hold_shows_read_only() -> void:
 	assert_eq(held.text, "AttackPolearm01@8*4 · hold (goes with the stand-ins)")
 
 
-func test_moving_a_part_down_is_a_pending_edit_the_fighter_plays() -> void:
+func test_moving_a_part_down_is_a_pending_edit() -> void:
 	var editor: StudioEditor = await _open(&"k_iai")
 	_to_copy(editor)
 	editor.open(editor.entry)
-	var before: Array[String] = editor.poser.chain.duplicate()
 	var down: Button = editor.get_node("%ChainPanel").get_node("Part0").get_child(4)
 	assert_eq(down.text, "↓")
 	down.pressed.emit()
 	assert_eq(ChainEdits.current(editor.session, COPY, &"katana", editor.move_entry), ["Attack1H04_R@2", "SheatheHips01_R@3-12"] as Array[String])
-	assert_ne(editor.poser.chain, before, "the fighter plays the pending chain")
 	assert_string_ends_with(editor.get_node("%EditorTitle").text, "· unsaved")
+
+
+## Only with the packs: without them both chains fall back to the same
+## stand-in clip, so the fighter's chain can't show the change.
+func test_local_the_fighter_plays_the_pending_chain() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	var editor: StudioEditor = await _open(&"k_iai")
+	_to_copy(editor)
+	editor.open(editor.entry)
+	var before: Array[String] = editor.poser.chain.duplicate()
+	(editor.get_node("%ChainPanel").get_node("Part0").get_child(4) as Button).pressed.emit()
+	assert_ne(editor.poser.chain, before, "the fighter plays the pending chain")
 
 
 func test_save_writes_the_copy_and_shows_the_report() -> void:

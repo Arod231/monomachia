@@ -1,6 +1,6 @@
 # Roadmap: from the consolidation to online play
 
-Spec: `docs/design.md` (Order of work) and `docs/specs/milestone-1.md` · branch `feature/godot-rebuild`
+Spec: `docs/design.md` (Order of work) and `docs/specs/milestone-1.md` · branch `master`
 
 ## Destination
 
@@ -17,7 +17,7 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
 - **The Animation Studio plan** (`docs/plans/animation-studio.md`) isn't followed on its own: milestone 1's tasks 11, 25, 26, 27 and 41 absorb what is left of it. The session tracker plan was dropped on Oct 4 (PR #7 closed; the lanes board's Sessions tab replaced it).
 - **Later phases are coarse on purpose.** Milestone 1 has its spec and plan. Each task from milestone 2 on is large: when its phase starts it becomes its own grilling, spec and plan (`/to-spec`, `/to-tickets`, or `/wayfinder` for online play), and this roadmap then points at that plan with a key of its own.
 - **Milestone-1 task 1 runs in phase 1.** The owner's approval of the milestone-1 spec and plan (`m1 1`) has to come before the docs pull request merges (R2), and that pull request has to merge before the consolidation (godot-rebuild 26.4, which waits on R1 and R2), so that the spec and plan reach `master` with it. So phase 1 lists `m1 1`; `m1 *` in phase 2 lists it again, ticked by then. Milestone-1 tasks 2 and 3 (the asset repository and the mood board) may also start during phase 1, once task 1 is done.
-- **Branches.** The consolidation and this roadmap live on `feature/godot-rebuild` until task 26.4 merges it into `master`; from then on new work branches from `master`, and this roadmap's header names `master`.
+- **Branches.** `master` is the only long-lived branch (the owner's rule, Oct 6, 2026): every lane, of any plan, branches from `master` and opens its pull request into `master`, unless the owner says otherwise, and the Project Manager reads each plan's header as where its lanes go. The consolidation lived on `feature/godot-rebuild` until task 26.4 merged it into `master` (the last of it arrived with #68 on Oct 5). Milestone 1's code went on `feature/milestone-1`, cut from `master` (R4), until the owner folded it into `master` on Oct 6 and retired it.
 - **Not planned** (spec Out of Scope): Mac and Linux builds, a lock-on toggle or free camera, and ring-outs.
 
 ## Phases
@@ -44,21 +44,25 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
   - Blocked by: `docs/plans/milestone-1.md` task 1
   - **Owner:** approves the docs pull request.
   - Done Oct 4 (PR #33): the owner approved the spec and plan (milestone-1 task 1) and the pull request, which merged into `feature/godot-rebuild`.
-- [ ] **R3. The first release from `master`.** The rebuild's first Windows release is published.
+- [x] **R3. The first release from `master`.** The rebuild's first Windows release is published.
   - Delivers: a release zip, `Monomachia-<tag>-windows.zip`, exported on the PC with the asset repository (or the packs' folder until milestone-1 task 2 lands), passing `--smoke`, attached to a GitHub release with `gh release upload` (godot-rebuild 25.5's flow).
   - Check: the downloaded zip's exe passes `--smoke` and plays a match.
   - Blocked by: `docs/plans/godot-rebuild.md` task 26.4
   - **Owner:** publishes the release.
+  - Decided with the owner (Oct 5, before building): the release is built from `master` as it stands (31e64b3, the consolidation as merged), not after a further merge of `feature/godot-rebuild`, so the Versus work (22.16, 23.6, 23.7) waits for a later release. The tag is `v0.2.0`, matching `project.godot` and `package.json`, so the version isn't bumped. It's exported in a worktree detached at `origin/master`, with the clip libraries built from the asset repository. The draft is marked as a pre-release and carries short written notes put on with `gh release edit`: what's in the build, how to run it, system requirements, known limits (the look and stand-ins retiring) and the licence line. The notes live only on GitHub. If the upload fails, it's retried until the zip lands. The Check's match is the downloaded exe's `--smoke` Watch match, with no separate owner playtest. README's Play paragraph drops the "first release follows the merge" sentence on this lane. The owner publishes.
+  - Done (Oct 5): in a worktree detached at `origin/master` (31e64b3), the clip libraries were built from the asset repository (94 HumanM and 94 HumanF clips), and `npm run release -- v0.2.0` exported the build. Its `--smoke` run reached the results with every Iglesias clip played. The command wrote the 93.8 MB `Monomachia-v0.2.0-windows.zip`, made the draft release `v0.2.0` at 31e64b3, and uploaded the zip on the first try in about 5 minutes. `gh release edit` then marked the draft as a pre-release and put on the notes. The zip downloaded from the draft matches GitHub's SHA-256 digest (069566d1…). Windows' `tar` unzips it to the exe and the three text files, with no STAND-IN.txt, and the credits name the Iglesias packs. Its exe passes `--smoke`: exit 0, the Watch match reached the results after 13,200 steps, with 94 HumanM and 94 HumanF clips each played. The exe won't start from a path over 260 characters, so it was checked from a short one. The draft waits for the owner to publish it.
 
 ### Phase 2: Milestone 1
 
-- [ ] **R4. `feature/milestone-1` cut from `master`.** Milestone 1's code gets its branch once the consolidation has merged.
-  - Delivers: `feature/milestone-1` from `master` after 26.4, with the spec and plan already on it (they arrived through R2); a draft pull request into `master` after the first push; the plans' headers (milestone 1's, and this roadmap's `branch` line moved to `master`) updated.
+- [x] **R4. `feature/milestone-1` cut from `master`.** Milestone 1's code gets its branch once the consolidation has merged.
+  - Delivers: `feature/milestone-1` from `master` after 26.4, with the spec and plan already on it (they arrived through R2); a draft pull request into `master` after the first push; milestone 1's plan header names that pull request (this roadmap's header keeps `feature/godot-rebuild`, see Notes).
   - Check: the branch builds and its tests pass; the lanes board shows milestone 1's frontier.
   - Blocked by: R1, R2, `docs/plans/godot-rebuild.md` task 26.4
-- [ ] **R5. Milestone 1 ends.** The Hunter with the Katana and bare hands is at final quality, and `feature/milestone-1` merges into `master`.
-  - Delivers: every move passes its checklist; Ultra holds 4K at 60 fps on the RTX 3090 and Low 60 fps at 1080p on the laptop; a balance run of mirror matches comes out clean; every check is green; the owner plays the real build with the asset repository and signs off; the pull request merges into `master`.
-  - Check: milestone-1 tasks 119, 121, 123 and 125 done, with their results in that plan's Progress; the owner's sign-off and approval of the merge are milestone-1 task 125's gate, not a second one here.
+  - Decided with the owner (Oct 5, before building): the cut already happened on Oct 4, from master at 0b4907c just after 26.4, and milestone-1 tasks 4–10 have merged into it (PRs #46, #56), so this lane does what is left. The roadmap's header keeps `feature/godot-rebuild`, not `master`: roadmap lanes and the master follow-ups go on merging there (as R3 did), and the Project Manager reads the header as where launched roadmap sessions open their pull requests, so this block's Delivers and the Notes' Branches bullet are corrected to say so. The draft pull request from `feature/milestone-1` into `master` is opened now and marked ready at R5. `feature/milestone-1` stays as cut, without merging the 45 commits master has gained since (Project Manager tooling and docs, no game code), so this lane's only pull request is into `feature/godot-rebuild`. The Check runs `npm test` and `npm run typecheck` on `feature/milestone-1`'s tip in a detached worktree with the clip libraries. The milestone-1 plan's header swaps the docs pull request (#33) for the new one on this lane only; `feature/milestone-1`'s copy gets it when the branches meet in `master`.
+  - Done (Oct 5): the draft pull request #63 runs from `feature/milestone-1` into `master`, and milestone 1's plan header names it (lane pull request #62). At the branch's tip, d22dd37 (after PR #56), with the clip libraries: `npm run typecheck` passes; the GUT suite passes 1961 of 1964, the other 3 being the usual local-only tests that need the imported source clips; the Node tests pass 290 of 291 in `npm test` and all 38 of the launcher file on a rerun alone, the failure being the press-send flake that PR #49 fixed on `feature/godot-rebuild` but that `feature/milestone-1` doesn't have yet. The Project Manager's Roadmap tab shows milestone 1's frontier: tasks 13 and 15 ready.
+- [ ] **R5. Milestone 1 ends.** The Hunter with the Katana and bare hands is at final quality on `master`.
+  - Delivers: every move passes its checklist; Ultra holds 4K at 60 fps on the RTX 3090 and Low 60 fps at 1080p on the laptop; a balance run of mirror matches comes out clean; every check is green; the owner plays the real build with the asset repository and signs off. (Since Oct 6 milestone 1's lanes merge into `master` one by one, so no milestone pull request is left to merge.)
+  - Check: milestone-1 tasks 119, 121, 123 and 125 done, with their results in that plan's Progress; the owner's sign-off is milestone-1 task 125's gate, not a second one here.
   - Blocked by: `docs/plans/milestone-1.md` task 125
 
 ### Phase 4: Milestone 2

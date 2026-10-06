@@ -24,9 +24,9 @@ build and will be replaced when the new look lands.
 ## Play
 
 Download `Monomachia-<version>-windows.zip` from the
-[Releases](../../releases) page, unzip it and run `Monomachia.exe`. The first
-release follows the merge of the Godot rebuild into `master`; until then,
-build it yourself (see [Build and develop](#build-and-develop)).
+[Releases](../../releases) page, unzip it and run `Monomachia.exe`. To play
+work newer than the latest release, build it yourself (see
+[Build and develop](#build-and-develop)).
 
 | Mode | What it is |
 | --- | --- |
@@ -119,8 +119,11 @@ npm run build        # exports build/windows/Monomachia.exe
 ```
 
 `npm run shots -- res://tools/shot_scenes/<scene>.tscn shots/<name>.png`
-renders a scene to a PNG; `npm run counterlab` measures how often the computer
-lands each unblockable's counter; `npm run studio` opens the Animation Studio,
+renders a scene to a PNG, and `npm run clip -- <scene>` records one as a
+looping MP4 (with ffmpeg); `npm run post -- <files>` shows shots and clips on
+the session's page in the Project Manager; `npm run counterlab` measures how often the computer
+lands each unblockable's counter; `npm run bench` times every frame of the
+worst-case replay at 4K against the 60 fps gate; `npm run studio` opens the Animation Studio,
 a gallery and editor for the clips; `npm run godot -- help` lists the
 runner's other commands.
 

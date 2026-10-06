@@ -205,7 +205,7 @@ func _apply_preset() -> void:
 	if preset_id != &"":
 		preset = GraphicsPreset.load_id(preset_id)
 		if preset == null:
-			push_error("preview.gd: --preset must be low, medium or high, not '%s'" % preset_id)
+			push_error("preview.gd: --preset must be low, medium, high or ultra, not '%s'" % preset_id)
 			return
 	GraphicsApplier.apply(preset, self, get_viewport())
 

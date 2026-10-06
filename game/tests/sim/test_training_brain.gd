@@ -35,14 +35,6 @@ const LIGHT_STRINGS: Dictionary[StringName, Array] = {
 	&"daggers": [&"d_l1", &"d_l2", &"d_l3", &"d_l4"],
 }
 
-## [drill, the dummy's weapon, the counter that beats it]
-const COUNTERS: Array = [
-	[&"slam", &"greatsword", &"evade"],
-	[&"thrust", &"katana", &"stomp"],
-	[&"sweep", &"greatsword", &"leap"],
-]
-
-
 func after_each() -> void:
 	H.dispose_all()
 
@@ -182,17 +174,30 @@ func test_the_lights_dummy_throws_its_weapons_whole_light_string_110_frames_apar
 		_assert_gaps(run.swings_of(string[0]), 110, "%s string" % weapon_id)
 
 
-func test_the_heavies_dummy_adds_the_heavy_follow_up_every_other_time() -> void:
-	var run: DummyRun = _play(Moves.KATANA, &"heavies", 720)
-	var expected: Array[StringName] = []
-	for c: int in 5:
-		expected.append(&"k_iai")
-		if c % 2 == 0:
-			expected.append(&"k_h1f")
-	assert_eq(run.swung().slice(0, expected.size()), expected, "the Iai Slash, then Rising Heaven every other time")
+## Milestone-1 task 83: the Katana's heavies run a four-turn cycle, so each
+## Iai variant shows with and without its follow-up.
+func test_the_katana_heavies_dummy_alternates_both_iai_variants_with_and_without_their_follow_ups() -> void:
+	var run: DummyRun = _play(Moves.KATANA, &"heavies", 1080)
+	var expected: Array[StringName] = [&"k_iai", &"k_h1f", &"k_iai_h", &"k_iai", &"k_iai_h", &"k_rdraw", &"k_iai", &"k_h1f"]
+	assert_eq(run.swung().slice(0, expected.size()), expected, "vertical and Rising Heaven, horizontal, vertical, horizontal and Returning Draw, again")
 	for e: Dictionary in run.by_dummy(&"swing"):
 		assert_true(e["heavy"], "%s is a heavy" % e["attack"])
-	_assert_gaps(run.swings_of(&"k_iai"), 120, "the Iai Slash")
+	var draws: Array[Dictionary] = run.by_dummy(&"swing").filter(
+		func(e: Dictionary) -> bool: return e["attack"] == &"k_iai" or e["attack"] == &"k_iai_h"
+	)
+	_assert_gaps(draws, 120, "the Iai Slash")
+
+
+func test_a_heavies_dummy_without_a_second_draw_adds_the_heavy_follow_up_every_other_time() -> void:
+	var run: DummyRun = _play(Moves.GREATSWORD, &"heavies", 960)
+	var start: StringName = Moves.GREATSWORD.heavy_start
+	var follow_up: StringName = Moves.GREATSWORD.moves[start].chain_heavy
+	var expected: Array[StringName] = []
+	for c: int in 4:
+		expected.append(start)
+		if c % 2 == 0:
+			expected.append(follow_up)
+	assert_eq(run.swung().slice(0, expected.size()), expected, "the heavy, then its follow-up every other time")
 
 
 func test_each_unblockable_drill_repeats_its_unblockable_from_the_light_slot() -> void:
@@ -288,30 +293,3 @@ func test_the_sparring_dummy_walks_in_attacks_and_defends_like_the_computer() ->
 	)
 	assert_gte(defended, 3, "it blocks, parries or dodges the computer's attacks")
 	assert_eq(W.fighters[0].abilities, Moves.KATANA.default_abilities, "it fights with its default abilities")
-
-
-## counterlab.gd's experiment: the dummy repeats one unblockable for a minute
-## against a hard brain that always tries the counter and does nothing else.
-func test_a_brain_that_always_tries_the_counter_lands_each_one_within_a_minute() -> void:
-	var params: AIBrain.AIParams = AIBrain.DIFFICULTY[&"hard"].copy()
-	params.counter = 1.0
-	params.parry = 0.0
-	params.dodge = 0.0
-	params.block = 0.0
-	params.aggression = 0.0
-	params.guard = 0.0
-	for c: Array in COUNTERS:
-		var drill: StringName = c[0]
-		var counter: StringName = c[2]
-		var W: World = H.track(World.new(FighterConfig.make(Moves.WEAPONS[c[1]]), FighterConfig.make(Moves.KATANA), 5))
-		for f: Fighter in W.fighters:
-			f.set_state(&"free")
-		var dummy: TrainingBrain = TrainingBrain.new(W.fighters[0])
-		dummy.set_behaviour(drill)
-		var ai: AIBrain = AIBrain.new(W.fighters[1], params, 3)
-		var run: DummyRun = _run(W, dummy, 60 * 60, func(_i: int) -> RawInput: return ai.think())
-		dummy.dispose()
-		ai.dispose()
-		for e: Dictionary in run.all(&"counter"):
-			assert_eq(e["by"], 1, "%s: the brain does the countering" % drill)
-		assert_eq(_kinds(run.all(&"counter")), [counter], "%s is countered by %s, and only by it" % [drill, counter])

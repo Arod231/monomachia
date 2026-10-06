@@ -164,7 +164,11 @@ const STATE: StringName = &"state"
 ## daze, a disarm's stagger, the impaled) play Stun01's stagger into a dazed
 ## sway (StateClips.stun_clip); without the packs the CC0 Hit_Knockback. (The
 ## stomped thruster plays its keyed pin, StateClips.stun_clips.)
-const STUN_STATES: Array[StringName] = [&"stunned", &"stagger", &"disarmStagger", &"impaled"]
+const STUN_STATES: Array[StringName] = [&"stunned", &"stagger", &"disarmStagger", &"impaled", &"finished"]
+## The stand-in finisher's moves by finisher kind (milestone-1 task 103), until
+## tasks 104 and 105 bring the finishers' own clips: the Katana's vertical Iai
+## Slash and bare hands' Cross. The victim (&"finished") holds the stun.
+const FINISHER_STANDINS: Dictionary[StringName, StringName] = {&"katana": &"k_iai", &"fists": &"f_l2"}
 ## The reactions that show on the upper body alone.
 const UPPER_REACTIONS: Array[StringName] = [&"guard", &"blockstun", &"parry"]
 ## The states a parried attacker rebounds in: a block's parry recoils it, a
@@ -304,19 +308,22 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 	var playing: Clip = attack_clip(f, ctx, float(f.atk.frame) if f.atk != null else 0.0)
 	out.rebound = null
 	if playing == null:
+		playing = finisher_clip(f, ctx)
+	if playing == null:
 		playing = ult_clip(f, ctx)
 	var drive: StringName = ATTACK if playing != null else LEGS
 	var move: StringName = &""
 	var phase: StringName = &""
 	if playing != null:
-		move = f.atk.def.id if f.atk != null else f.ult.kind
-		if f.atk == null:
+		move = f.atk.def.id if f.atk != null else (f.ult.kind if f.ult != null else f.state)
+		if f.atk == null and f.ult != null:
 			phase = f.ult.phase
 			if f.ult.kind == &"tempest" and phase == &"spin":
 				# each spin is a phase of its own, faded into as a follow-up
 				phase = StringName("spin%d" % f.ult.spins)
-		elif ctx.libraries and f.atk.def.swing != null and f.atk.def.swing.loop != &"":
-			# a charge's loop is a phase of the attack (task 19)
+		elif f.atk != null and ctx.libraries and f.atk.def.swing != null and f.atk.def.swing.loop != &"":
+			# a charge's loop is a phase of the attack (task 19); a finisher's
+			# stand-in (task 103) plays with no attack, so it has none
 			phase = &"hold" if f.atk.charging else &"swing"
 	else:
 		playing = state_clip(f, ctx)
@@ -743,7 +750,25 @@ static func idle_clip(f: Fighter, ctx: Context) -> String:
 static func attack_clip(f: Fighter, ctx: Context, t: float) -> Clip:
 	if f.state != &"attack" or f.atk == null:
 		return null
-	var def: AttackDef = f.atk.def
+	return _move_clip(f, f.atk.def, ctx, t)
+
+
+## The stand-in finisher's clip (FINISHER_STANDINS) for the finisher `f`, or
+## null: its move played over the finisher's frames so its last active frame
+## lands at the kill, then held.
+static func finisher_clip(f: Fighter, ctx: Context) -> Clip:
+	if f.state != &"finisher" or f.world == null:
+		return null
+	var def: AttackDef = f.moveset().moves.get(FINISHER_STANDINS.get(f.world.finisher_kind, &""), null)
+	if def == null:
+		return null
+	var strike: float = float(def.startup + def.active)
+	var t: float = minf(float(def.total_frames()), float(f.world.finisher_frame) * strike / float(SimConst.FINISHER_KILL_FRAME))
+	return _move_clip(f, def, ctx, t)
+
+
+## Move `def`'s clip for `f` at its frame `t` (attack_clip()).
+static func _move_clip(f: Fighter, def: AttackDef, ctx: Context, t: float) -> Clip:
 	var swing: Swing = def.swing
 	if swing == null or swing.clips.is_empty() or f.moveset().moves.get(def.id) != def:
 		return null

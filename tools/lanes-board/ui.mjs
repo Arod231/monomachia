@@ -182,3 +182,19 @@ export function launchStartText(start) {
   if (start.reason === 'locked') return 'Waiting: the PC is locked. It starts when the PC is unlocked.';
   return `Couldn't start: ${WHY_WAITING[start.reason] ?? 'something unexpected happened'}. Try again, or send it from the Claude app on the PC.`;
 }
+
+// ---------- a new session ----------
+// The "New session" button's line: how the newest session it started (a launch
+// with kind 'session' in /data) is getting on, until it has been started this
+// long; null when there's nothing to say.
+export const NEW_SESSION_SHOW_MS = 15 * 60 * 1000;
+export function newSessionStatus(launches, now) {
+  const l = (launches ?? []).filter((x) => x.kind === 'session').at(-1);
+  if (!l?.start || l.endedAt) return null;
+  const s = l.start;
+  if (s.state === 'started') {
+    if (now - l.time >= NEW_SESSION_SHOW_MS) return null;
+    return { id: l.id, state: 'started', session: l.session, retry: false, text: 'Started: send it your prompts from the Claude app' };
+  }
+  return { id: l.id, state: s.state, session: l.session, retry: !!s.retry, text: launchStartText(s) };
+}

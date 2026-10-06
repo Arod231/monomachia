@@ -31,8 +31,9 @@ export async function waitFor(fn, ms = 8000, what = 'the condition') {
   throw new Error(`Timed out waiting for ${what}`);
 }
 
-// Starts a board; `stop()` ends it and removes every throwaway folder.
-export async function startBoard() {
+// Starts a board (with extra environment variables, if given); `stop()` ends
+// it and removes every throwaway folder.
+export async function startBoard({ env: extraEnv = {} } = {}) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'pm-roundtrip-'));
   const dirs = Object.fromEntries(['state', 'relay', 'projects', 'appdata', 'repo', 'claude'].map((k) => [k, path.join(root, k)]));
   for (const d of Object.values(dirs)) mkdirSync(d, { recursive: true });
@@ -70,7 +71,7 @@ export async function startBoard() {
   const env = {
     ...process.env, PORT: String(port), LANES_LOCAL_ONLY: '1', LANES_DRY_RUN: '1', REPO: dirs.repo,
     LANES_STATE: dirs.state, LANES_RELAY: dirs.relay, LANES_STOP_FILE: path.join(root, 'stop.json'),
-    LANES_PROJECTS: dirs.projects, APPDATA: dirs.appdata, LANES_CLAUDE_DIR: dirs.claude,
+    LANES_PROJECTS: dirs.projects, APPDATA: dirs.appdata, LANES_CLAUDE_DIR: dirs.claude, ...extraEnv,
   };
   const server = spawn(process.execPath, [path.join(BOARD, 'server.mjs')], { env, windowsHide: true });
   let log = '';

@@ -9,10 +9,11 @@
 // what, and Sessions every recent Claude session. From the page you can queue
 // tasks and launch a desktop-app session to build them, which the board starts
 // itself so a launch from the phone needs nobody at the PC (rules in
-// launcher.mjs, the press in press-send.ps1), end a launched session's work,
-// answer a session (through relay-hook.mjs), see how full each session's
-// context is (a gauge and a turn-by-turn chart, rules in sessions.mjs), and open
-// the second brain. It never fetches or takes git locks.
+// launcher.mjs, the press in press-send.ps1), start a new session with no tasks
+// on the latest master for the owner to prompt from the Claude app ("New
+// session"), end a launched session's work, answer a session (through
+// relay-hook.mjs), see how full each session's context is (a gauge and a
+// turn-by-turn chart, rules in sessions.mjs), and open the second brain. It never fetches or takes git locks.
 //   npm run board   ->   http://localhost:5197
 // It also listens on this PC's Tailscale addresses, so the owner's phone can open
 // it (http://<tailscale ip>:5197 or http://<pc name>:5197); a phone gets the
@@ -32,11 +33,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
-import { contextTracker } from './sessions.mjs';
+import { awayOf, contextTracker, remoteLinkOf } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
 import { hooksStatusOf } from './hooks.mjs';
 import { bellApi } from './bell-api.mjs';
-import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, pressResult, startView } from './launcher.mjs';
+import { pushApi } from './push-api.mjs';
+import { ghRunner, mergeApi } from './merge-api.mjs';
+import { mediaApi } from './media-api.mjs';
+import { docsApi } from './docs-api.mjs';
+import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, newSessionLaunch, pressResult, startView } from './launcher.mjs';
 
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -237,7 +242,8 @@ async function appSessions() {
           const r = JSON.parse(await readFile(p, 'utf8'));
           out.push({ id: r.sessionId, cli: r.cliSessionId, title: r.title ?? '', archived: !!r.isArchived,
             dir: path.normalize(r.worktreePath ?? r.cwd ?? '').toLowerCase(), activity: r.lastActivityAt ?? 0, created: r.createdAt ?? 0,
-            summary: r.postTurnSummary ?? null }); // the app's turn summary (sessions.mjs turnSummary)
+            summary: r.postTurnSummary ?? null, // the app's turn summary (sessions.mjs turnSummary)
+            remote: remoteLinkOf(r) }); // its Remote Control address, if it has one
         } catch { /* being written */ }
       }
     }
@@ -324,14 +330,16 @@ async function linkSessions(sessions, transcripts) {
   return linkLaunches(launches, candidates, prompts, now);
 }
 
+// gh, or LANES_GH (a script run with node, standing in for gh in tests).
+const gh = ghRunner();
 let prs = [];
 let prsAt = 0;
 let prsBusy = false;
 function refreshPrs() {
   if (prsBusy || Date.now() - prsAt < 60_000) return;
   prsBusy = true;
-  run('gh', ['pr', 'list', '--state', 'open', '--json', 'number,title,headRefName,baseRefName,isDraft,url'], { cwd: REPO, windowsHide: true, timeout: 20_000 })
-    .then(({ stdout }) => { prs = JSON.parse(stdout); }, () => {})
+  gh(['pr', 'list', '--state', 'open', '--json', 'number,title,headRefName,baseRefName,isDraft,url'], { cwd: REPO, timeout: 20_000 })
+    .then((stdout) => { prs = JSON.parse(stdout); }, () => {})
     .finally(() => { prsAt = Date.now(); prsBusy = false; });
 }
 
@@ -437,7 +445,7 @@ async function collect() {
       .sort((x, y) => (x.archived - y.archived) || (y.activity - x.activity))[0] ?? null;
     // The context gauge follows the lane's app session (or its launch's), else
     // the newest transcript in the worktree's folder.
-    const cli = app?.cli ?? launches.find((l) => l.branch === w.branch && l.session?.cli)?.session.cli;
+    const cli = app?.cli ?? launches.find((l) => l.branch && l.branch === w.branch && l.session?.cli)?.session.cli;
     const gaugeFile = (cli && transcripts.get(cli)) ?? newest?.file ?? null;
     const question = app && !app.archived ? await waitingQuestion(w.path, app.cli) : null;
     const own = treeFiles[i];
@@ -492,7 +500,7 @@ async function collect() {
       && (lane.state === 'dirty' || lane.state === 'merging' || (lane.activity === 'active' && (lane.ahead > 0 || !!lane.scope))));
     // Launching a task is the owner's OK, so a launched lane doesn't wait on it.
     // A lane whose launch was ended from the board takes no task.
-    lane.ended = launches.find((l) => l.endedAt && l.branch === lane.branch) ? true : false;
+    lane.ended = launches.find((l) => l.endedAt && l.branch && l.branch === lane.branch) ? true : false;
     lane.working = !lane.ended && !!(pick && busy && ready(pick) && (!lane.taskWaits.length || lane.scope));
     if (lane.working) p.working.add(pick);
   }
@@ -502,7 +510,7 @@ async function collect() {
   // The launch a task belongs to, ended or not, for the board's End menu.
   const launchView = (l) => {
     const stop = stops.find((s) => s.id === l.id);
-    return { id: l.id, time: l.time, branch: l.branch, tasks: l.tasks, session: l.session?.id ?? null,
+    return { id: l.id, kind: l.kind ?? 'tasks', time: l.time, branch: l.branch ?? null, tasks: l.tasks, session: l.session?.id ?? null,
       endedAt: l.endedAt ?? null, stoppedAt: stop?.firedAt ?? null, start: startView(l, now) };
   };
 
@@ -638,6 +646,19 @@ async function launch(body) {
   return done;
 }
 
+// The pages' "New session" button: a session with no tasks, started like a
+// launch (the same queue, lock wait and Try again), which the owner then
+// prompts from the Claude app over Remote Control (launcher.mjs newSessionLaunch).
+async function newSession() {
+  const record = newSessionLaunch({ now: Date.now(), repo: REPO });
+  launches.push(record);
+  launches = launches.filter((l) => Date.now() - l.time < 14 * 24 * 60 * 60 * 1000);
+  await saveLaunches();
+  starter.kick();
+  try { cached = { ...(await collect()), took: 0 }; } catch { /* the loop will */ }
+  return record;
+}
+
 // "Try again" for a launch that couldn't start: refused at once (started, ended,
 // starting or just sent), else the starter opens its link and presses Send again.
 async function retryLaunch(body) {
@@ -657,6 +678,7 @@ async function endLaunch(body) {
   const l = launches.find((x) => x.id === body?.launch);
   if (!l) throw new Error('Unknown launch');
   if (l.endedAt) throw new Error('That lane was already ended');
+  if (!l.tasks.length) throw new Error('A new session has no tasks to end: stop it in the Claude app');
   const trees = await worktrees();
   const tree = trees.find((t) => t.branch === l.branch);
   const sessions = await appSessions();
@@ -684,6 +706,12 @@ function taskOfDir(dir) {
   if (!l?.plan || !l.task) return null;
   return { ref: `${l.plan}:${l.task}`, label: `${PLAN_BY_KEY[l.plan]?.short ?? l.plan} ${l.task}`, title: l.taskTitle ?? '' };
 }
+// The branch checked out in a folder, from the worktree list, for a session
+// whose transcript records none ("HEAD": started outside git, then moved in).
+function branchOfDir(dir) {
+  const d = path.normalize(dir).toLowerCase();
+  return cached?.lanes?.find((x) => path.normalize(x.path).toLowerCase() === d)?.branch ?? null;
+}
 // Whether the hooks installed in user settings are this checkout's (hooks.mjs);
 // both pages say so when they aren't. LANES_CLAUDE_DIR overrides ~/.claude.
 const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.claude');
@@ -691,18 +719,37 @@ const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.cla
 async function hooksState() {
   return hooksStatusOf({ claudeDir: CLAUDE_DIR, boardDir: HERE, read: (file) => { try { return readFileSync(file, 'utf8'); } catch { return null; } } });
 }
+// A branch's open pull request, from the list refreshed each minute (refreshPrs).
+function prOfBranch(branch) {
+  const p = prs.find((x) => x.headRefName === branch);
+  return p ? { number: p.number, title: p.title, url: p.url, base: p.baseRefName, draft: !!p.isDraft } : null;
+}
+// What sessions post with `npm run post` (media.mjs, media-api.mjs), swept hourly.
+const mediaRoutes = mediaApi({ state: STATE, sweepMs: 60 * 60 * 1000 });
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
-  hooks: hooksState, sweepMs: 5000 });
-// The bell: notifications from held items and the relay hook's events (bell-api.mjs).
+  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch, branchOf: branchOfDir, media: mediaRoutes });
+// Merge from a session's page (merge-api.mjs), and "ready to merge" for the
+// bell, looked for every minute (LANES_MERGE_POLL_MS overrides it, for tests).
+const mergeRoutes = mergeApi({ repoDir: REPO, relay: RELAY, gh, prOf: prOfBranch, sessions: sessionRoutes,
+  stateFile: path.join(STATE, 'merge-ready.json'), pollMs: Number(process.env.LANES_MERGE_POLL_MS) || 60_000 });
+// A session's Docs: what it wrote, its pull request and its artifacts (docs-api.mjs).
+const docsRoutes = docsApi({ repoDir: REPO, worktrees, gh, prOf: prOfBranch, fileOf: sessionRoutes.fileOf, branchOf: sessionRoutes.branchOfSession });
+// Lock-screen notifications (push-api.mjs): the bell's new records, pushed while
+// Away is on to every phone that turned them on. LANES_PUSH_INSECURE=1 lets a
+// test's stand-in push service on http through.
+const pushRoutes = pushApi({ state: STATE, insecure: !!process.env.LANES_PUSH_INSECURE,
+  away: async () => awayOf(JSON.parse(await readFile(path.join(RELAY, 'away.json'), 'utf8').catch(() => 'null'))),
+  httpsUrl: () => { const n = [...hostNames].find((h) => h.endsWith('.ts.net')); return n ? `https://${n}` : null; } });
+// The bell: notifications from held items, the relay hook's events and posted media (bell-api.mjs).
 const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
-  titlesOf: sessionRoutes.titlesOf, sweepMs: 5000 });
+  titlesOf: sessionRoutes.titlesOf, posts: mediaRoutes.posts, asking: sessionRoutes.askingNow, onNew: pushRoutes.notify, sweepMs: 5000 });
 
 // ---------- the second brain ----------
 // The board's "Second brain" button opens /brain/: the viewer and vault from
 // tools/second-brain (docs/specs/second-brain.md), imported from this checkout.
-// The notes are built from git, never a working tree: the newest rebuild-branch
-// tip that has the vault (brain/Home.md), so plan ticks show once they're pushed.
-const BRAIN_REFS = ['origin/feature/godot-rebuild', 'feature/godot-rebuild'];
+// The notes are built from git, never a working tree: the newest master tip
+// that has the vault (brain/Home.md), so plan ticks show once they're pushed.
+const BRAIN_REFS = ['origin/master', 'master'];
 let brain = null; // { handle, gitSource, set }
 
 async function newestRef(refs, needs) {
@@ -783,12 +830,15 @@ async function handle(req, res) {
       let result;
       if (req.url === '/launch') result = { launched: await launch(body) };
       else if (req.url === '/launch/retry') result = await retryLaunch(body);
+      else if (req.url === '/session/new') result = { launched: await newSession() };
       else if (req.url === '/end') result = { ended: await endLaunch(body) };
       else if (req.url === '/open') {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if ((result = await (bellRoutes.post(req.url, body) ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
+      } else if ((result = await (bellRoutes.post(req.url, body) ?? mergeRoutes.post(req.url, body)
+        ?? pushRoutes.post(req.url, body, { origin: req.headers.origin, ua: req.headers['user-agent'] })
+        ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(result));
       return;
@@ -796,7 +846,16 @@ async function handle(req, res) {
     if (req.url === '/brain') { res.writeHead(302, { location: '/brain/' }); res.end(); return; }
     if (req.url.startsWith('/brain/')) { await serveBrain(req, res, req.url.slice('/brain/'.length)); return; }
     const url = new URL(req.url, 'http://board');
-    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? sessionRoutes.get(url);
+    if (await mediaRoutes.serve(req, res, url)) return;
+    if (await docsRoutes.serve(req, res, url)) return;
+    const work = await sessionRoutes.workImage(url);
+    if (work !== undefined) {
+      if (!work) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('No such image'); return; }
+      res.writeHead(200, { 'content-type': work.type, 'content-length': work.bytes.length, 'cache-control': 'private, max-age=86400' });
+      res.end(work.bytes);
+      return;
+    }
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? docsRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.

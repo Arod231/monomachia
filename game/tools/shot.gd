@@ -8,6 +8,10 @@ extends SceneTree
 ## (how many frames to wait) and `func shot_ready() -> bool` (true once it has
 ## posed itself), and hand over the picture to save with
 ## `func shot_image() -> Image` (null saves the screen).
+##
+## With `--record=<frames>` (`npm run clip`, which runs it under Movie Maker),
+## the scene runs that many more frames after the still is saved, then it
+## quits, so the movie ends with them.
 
 
 func _initialize() -> void:
@@ -52,4 +56,9 @@ func _run() -> void:
 		quit(1)
 		return
 	print("shot: saved %s (%dx%d)" % [out, img.get_width(), img.get_height()])
+	var record: int = int(_arg("record", "0"))
+	if record > 0:
+		print("shot: recording %d frames" % record)
+		for i: int in record:
+			await process_frame
 	quit(0)

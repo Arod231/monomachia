@@ -39,7 +39,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 ### The starting point and the roster
 
 1. As the owner, I want milestone 1 to start only after the consolidation has merged the Godot rebuild into `master` (the web version retired, CI green on clones without the clips), so that new work branches from `master` again and nothing is built on a branch about to move.
-2. As a developer, I want milestone 1's code on its own branch, `feature/milestone-1`, cut from `master` after godot-rebuild task 26.4 and merged back by one pull request, with this spec and its plan already on `master` (they arrive earlier, through the docs pull request into `feature/godot-rebuild` and the consolidation, an exception to CLAUDE.md for this round), so that the owner reviews the code in one place.
+2. As a developer, I want milestone 1's code on its own branch, `feature/milestone-1`, cut from `master` after godot-rebuild task 26.4 and merged back by one pull request, with this spec and its plan already on `master` (they arrive earlier, through the docs pull request into `feature/godot-rebuild` and the consolidation, an exception to CLAUDE.md for this round), so that the owner reviews the code in one place. **(Changed Oct 6 by the owner: `feature/milestone-1` was folded into `master` and retired; milestone 1's lanes branch from `master` and open their pull requests into it.)**
 3. [x] As a player, I want the menus during milestone 1 to offer only the Hunter and the Katana, with bare hands when disarmed, so that every match I play is one this milestone has brought to final quality. (Ticked with task 4.)
 4. As a developer, I want a dev flag that still shows the Rogue, the Greatsword and the Twin Daggers, with their code kept and their tests passing (those that pin frame data become reads of the generated table), so that milestone 2 starts from working code.
 5. [x] As a player, I want every default match (Duel, Training, Watch and the title's attract duel) to be the Hunter in crimson against the Hunter in indigo, both with the Katana and today's default block abilities (Flash and Piercing Thrust), so that no default reaches a hidden fighter or weapon. (Ticked with task 4.)
@@ -65,7 +65,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 22. [x] As a developer, I want the Greatsword's and the Daggers' frame data generated from their current clips through the same generator, with no band test until milestone 2, so that one generator serves every weapon. **(P10, confirmed Oct 4)** (Ticked with task 17.)
 23. [x] As a developer, I want a replay test in the pipeline phase, in this form: a seeded match run twice gives matching state hashes on every step **(P18, confirmed Oct 4)**, so that the rules stay deterministic for rollback netcode. (Ticked with task 5.)
 24. [x] As a developer, I want a save-and-restore test in the pipeline phase, in this form: save mid-match, restore, step again and compare **(P18, confirmed Oct 4)**, so that the rules can be rolled back later without a retrofit. (Ticked with tasks 134 and 6.)
-25. As a developer, I want both tests to cover a finisher and a stuck weapon, so that the new rules are as deterministic as the old. **(P18, confirmed Oct 4)**
+25. [x] As a developer, I want both tests to cover a finisher and a stuck weapon, so that the new rules are as deterministic as the old. **(P18, confirmed Oct 4)** (Ticked with task 103.)
 26. [x] As a developer, I want matches recordable as input logs that replay to the same result, so that the performance gate, the balance run and bug reports can replay a match exactly. (Ticked with task 6.)
 27. [x] As the owner, I want the Animation Studio slimmed to its gallery, a timeline, markers and chains, so that it does what animation-leads needs and nothing it no longer needs. (Ticked with task 27.)
 28. [x] As the owner, I want markers set on the Studio's timeline to give each clip's active frames, cancel windows and branch points, and saving to regenerate the frame-data table and report any move outside its band, so that a marker edit is the only way frame data change. **(P12, confirmed Oct 4)** (Ticked with task 27.)
@@ -115,8 +115,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### The disarm and bare hands
 
-66. As a player, I want a disarm to send the weapon flying the way the blow knocked it (on a parry, the way the deflect sends it) and stick blade-first in the ground at an angle, always inside the walls, so that a disarm reads as a real moment.
-67. As a developer, I want the weapon's flight deterministic, along the knock or deflect direction and inside the walls, with its landing angle as rules state, so that a replay or a rollback lands it in the same place. **(P16, confirmed Oct 4)**
+66. [x] As a player, I want a disarm to send the weapon flying the way the blow knocked it (on a parry, the way the deflect sends it) and stick blade-first in the ground at an angle, always inside the walls, so that a disarm reads as a real moment. (Ticked with task 86.)
+67. [x] As a developer, I want the weapon's flight deterministic, along the knock or deflect direction and inside the walls, with its landing angle as rules state, so that a replay or a rollback lands it in the same place. **(P16, confirmed Oct 4)** (Ticked with task 86.)
 68. As a disarmed player, I want to pick my weapon up by pulling it out of the ground, taking as long as its clip, so that the pick-up looks and plays as it should. **(P16, confirmed Oct 4)**
 69. As a player whose opponent is disarmed, I want to stand in their way to keep the advantage, so that the disarm game stays live.
 70. As a disarmed player, I want to move faster, dodge farther and jump higher than when armed, so that bare hands keep their agility.
@@ -172,17 +172,17 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### Finishers
 
-114. As a player who disarms an opponent at 5% HP or less, I want the disarm to play in slow motion and give me one timed prompt, so that I can end the round with a finisher. (5% is 5 HP at today's 100 maximum.)
+114. [x] As a player who disarms an opponent at 5% HP or less, I want the disarm to play in slow motion and give me one timed prompt, so that I can end the round with a finisher. (5% is 5 HP at today's 100 maximum.) (Ticked with task 103.)
 115. As a player, I want the prompt to be heavy, shown as the button's glyph over the disarmed fighter and pressed within about a second of slow motion, so that it's clear what to press and when.
-116. As a player, I want a press made before the prompt appears not to count, the input buffer included, so that mashing can't take the finisher.
-117. As a player who misses the prompt, I want the disarm to play out as normal, so that the round goes on.
-118. As a player being finished, I want no escape once the finisher starts, so that defence happens before the disarm, as with strings.
+116. [x] As a player, I want a press made before the prompt appears not to count, the input buffer included, so that mashing can't take the finisher. (Ticked with task 103.)
+117. [x] As a player who misses the prompt, I want the disarm to play out as normal, so that the round goes on. (Ticked with task 103.)
+118. [x] As a player being finished, I want no escape once the finisher starts, so that defence happens before the disarm, as with strings. (Ticked with task 103.)
 119. As a Katana player, I want the Katana's finisher: I sheathe, then draw in a lightning-fast iai slash that carries me through to stand behind the opponent; I re-sheathe, and as the guard clicks home blood sprays along the cut and the opponent falls in two halves, cut diagonally from one shoulder to the opposite hip, so that the finisher is the game's signature moment.
 120. As a disarmed player who redirects an armed opponent at 5% HP or less into a disarm, I want the bare-hands finisher: I turn their last attack aside, then drop them with a crushing palm to the chest or a blow to the throat, cutting nothing, so that bare hands can finish too. When a disarmed fighter disarms by a blocked Breaker Palm or a fully charged Roundhouse instead, the same finisher opens and plays from its strike, skipping the turn-aside **(P52, confirmed Oct 4)**.
 121. As a player, I want each finisher played as a paired clip with its own cinematic shot, so that it reads as a killing move.
 122. As a player with Blood set to Reduced, I want the Katana's finisher to show the cut with less blood and the body staying whole, and with Blood Off no blood at all, so that I choose how graphic it is.
-123. As a player against the computer, I want it to use finishers too, landing them more often on higher difficulties **(P3, confirmed Oct 4)**, at the rates in the computer's finisher rates table **(P55, confirmed Oct 4)**, so that it plays by the same rules.
-124. As a Training player, I want a finisher to play in full and the HP then to refill, so that I can practise finishing. **(P3, confirmed Oct 4)**
+123. [x] As a player against the computer, I want it to use finishers too, landing them more often on higher difficulties **(P3, confirmed Oct 4)**, at the rates in the computer's finisher rates table **(P55, confirmed Oct 4)**, so that it plays by the same rules. (Ticked with task 107.)
+124. [x] As a Training player, I want a finisher to play in full and the HP then to refill, so that I can practise finishing. **(P3, confirmed Oct 4)** (Ticked with task 107.)
 125. As the owner, I want a finisher to end the round as a KO, called Warrior Slain, so that rounds end one way.
 
 ### Round flow, cinematics and the camera
@@ -255,8 +255,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 179. As a player, I want the finisher prompt designed as the heavy button's glyph, from the device I last used, over the disarmed fighter, so that I can read it in the slow motion.
 180. As a player, I want the HUD's off-screen marker for my dropped weapon restyled and lifted to clear the stuck weapon's hilt, so that I can always find my weapon. **(P7, confirmed Oct 4)**
 181. As a player, I want the menus to take the new theme (colours, fonts and panels) so nothing looks ink-wash, with their layouts redone later, so that the game looks consistent.
-182. As a player, I want four graphics presets (Ultra, High, Medium and Low), with Ultra as the reference preset, so that the game runs on my machine.
-183. As a player, I want the first launch to pick a preset from my graphics card, so that the game starts well without fiddling.
+182. [x] As a player, I want four graphics presets (Ultra, High, Medium and Low), with Ultra as the reference preset, so that the game runs on my machine. (Ticked with task 29.)
+183. [x] As a player, I want the first launch to pick a preset from my graphics card, so that the game starts well without fiddling. (Ticked with task 29.)
 184. As a player, I want Ultra to render at about 1440p–1800p and upscale to 4K with FSR 2.2, and Low to drop only atmosphere (volumetric fog becomes height fog, petals stop casting light, no ambient occlusion, fewer decals) while keeping the palettes, the rim lights, blood, the 危 and the cinematic shots, so that every preset reads the fight.
 185. As a player, I want Settings to hold the Blood setting, and Reduce flashes to cover every new effect, shake and push-in, so that comfort options stay complete. **(P7, confirmed Oct 4)**
 186. As a player reading How to play, I want it to describe finishers, Warrior Slain and the slower pace, so that it matches the game.
@@ -266,8 +266,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 187. [x] As a player, I want the computer to read the generated frame-data table, so that its defence follows the clips as they're re-animated. **(P17, confirmed Oct 4)** (Ticked with task 24.)
 188. [x] As a player, I want the computer to time its defence from each swing's first touch and ignore moves that can't reach, so that it defends fairly at the new pace. (Ticked with task 24.)
-189. As a Training player, I want the dummy to perform every milestone-1 unblockable (Piercing Thrust and Swallow Sweep) through one shared routes table, and the Katana dummy's heavies to alternate both Iai variants, so that I can drill every counter the milestone has.
-190. As a developer, I want counterlab to show the stomp and the leap reached, with the evade waiting for milestone 2, so that every reachable counter is proven.
+189. [x] As a Training player, I want the dummy to perform every milestone-1 unblockable (Piercing Thrust and Swallow Sweep) through one shared routes table, and the Katana dummy's heavies to alternate both Iai variants, so that I can drill every counter the milestone has. (Ticked with task 83.)
+190. [x] As a developer, I want counterlab to show the stomp and the leap reached, with the evade waiting for milestone 2, so that every reachable counter is proven. (Ticked with task 83.)
 191. As a player, I want the computer to use and answer the Iai (quick draws, walking in sheathed, both variants, the follow-ups, dodging out when attacked; against a sheathed opponent, keeping out of range, punishing or parrying the release), landing it from the Iai's distance band, so that it plays the Katana well.
 192. As a player, I want the computer to deal with a stuck weapon (standing in my way when I'm disarmed, running for its own when it is), so that the disarm game stays live against it.
 193. As a player, I want the computer to use its ultimates by today's rules at the new pace (Moonsplitter when the opponent is 2.5–14 m away and neither knocked out nor invulnerable; when disarmed, the recall when the opponent is farther than 2.5 m and Breaker Palm when closer), with those distances rechecked against the distance bands, so that ultimates appear in its play.
@@ -327,7 +327,7 @@ Module names are the code's; the plan names the files. The tables at the end of 
 
 ### Order of work and branches
 
-- Milestone 1 waits on the consolidation: `docs/plans/godot-rebuild.md` stage 14, ending with task 26.4 merging `feature/godot-rebuild` into `master`. Its code's branch, `feature/milestone-1`, is cut from `master` then, and its pull request targets `master`. This spec and its plan go earlier, on `docs/milestone-1-spec` through a draft pull request into `feature/godot-rebuild`, and reach `master` with the consolidation.
+- Milestone 1 waits on the consolidation: `docs/plans/godot-rebuild.md` stage 14, ending with task 26.4 merging `feature/godot-rebuild` into `master`. Its code's branch, `feature/milestone-1`, is cut from `master` then, and its pull request targets `master` (until Oct 6, when the owner folded it into `master`: since then each lane's pull request targets `master` directly). This spec and its plan go earlier, on `docs/milestone-1-spec` through a draft pull request into `feature/godot-rebuild`, and reach `master` with the consolidation.
 - The work runs in this order: (1) the pipeline (asset repository, Blender export and clip import, frame-data generator with the band tests, replay and save-and-restore tests, the Studio's slimming, the protected-timing retune); (2) the mood board, started at once and in parallel with the pipeline; (3) the pilot family keyed, with its sound and rules, and alongside it the look test scene, built as soon as the mood board is approved and showing the pilot's moves; (4) the pilot's effects made in the approved look, the pilot's final review by the owner (its play session ending the protected-timing retune), and the first Godot check, then the art conversion; (5) the other move families one at a time; (6) the closing checks: effects parity, the performance gates, the balance run, then the owner's sign-off. Clip work never waits for the look **(P2, confirmed Oct 4)**: the pipeline and the pilot's keying start at once, and only the pilot's effects wait for the look test, so the pilot reaches final quality whole before any other family starts, as the owner decided. If the look test runs late, the owner decides at a review of the pilot's motion whether family 2 starts before the pilot's effects are final **(P51, confirmed Oct 4)**.
 - The godot-rebuild master follow-ups run on `master` at the same time. Milestone 1 restyles what they build (the toasts, prompts and dropped-weapon marker, the Versus HUD, the fighter-select preview, the Reduce flashes wiring) and does not wait for them, except where a milestone-1 story needs the function: the finisher prompt builds on 24.4's prompts, the off-screen marker restyle on 24.5, and Reduce flashes covering the new effects on 18.11.
 
@@ -654,7 +654,7 @@ A move must pass every item that applies before the milestone ends. Built from `
 
 ### Move families and their order (P33, confirmed Oct 4)
 
-Each family goes to final quality, with every checklist item, before the next starts; the owner reviews each. "Reached in a milestone-1 match" assumes the Hunter-against-Hunter Katana mirror, with bare hands when disarmed; a block ability is reached when the loadout picks it.
+Each family goes to final quality, with every checklist item, before the next starts; the owner reviews each. The order holds the families' clip work (re-keys, reactions, deflect pairs, paired and transition clips, and their sound and effects); systems with no clip of their own (rules, the camera, the computer, Training) run ahead as soon as what they use is built, and the owner also released the draw at the round intro from the order (Oct 5; see the plan's Notes). "Reached in a milestone-1 match" assumes the Hunter-against-Hunter Katana mirror, with bare hands when disarmed; a block ability is reached when the loadout picks it.
 
 | Order | Family | Moves and clips | Reached in a milestone-1 match |
 |---|---|---|---|

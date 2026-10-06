@@ -436,7 +436,7 @@ func _set_training_behaviour(behaviour: StringName) -> void:
 	if b == null or not TrainingBrain.BEHAVIOURS.has(behaviour):
 		return
 	var w: WeaponDef = _upkeep.weapon_for(behaviour)
-	if not TrainingUpkeep.can_perform(w, behaviour):
+	if not UnblockableRoutes.can_perform(w, behaviour):
 		return
 	if input_log != null:
 		input_log.actions.append({"step": step_count, "behaviour": String(behaviour)})

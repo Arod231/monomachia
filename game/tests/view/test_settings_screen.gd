@@ -51,8 +51,8 @@ func _saved() -> GameSettings:
 func test_the_rows_in_order_open_on_graphics_and_show_the_settings() -> void:
 	assert_eq(screen.items, [screen.graphics, screen.flashes, screen.hints, screen.master, screen.effects, screen.music] as Array[Control])
 	assert_eq(screen.focused_item(), screen.graphics)
-	assert_eq(screen.graphics.chips.map(func(c: Button) -> String: return c.text), ["High", "Medium", "Low"])
-	assert_eq(screen.graphics.index, 0, "High, the default")
+	assert_eq(screen.graphics.chips.map(func(c: Button) -> String: return c.text), ["Ultra", "High", "Medium", "Low"])
+	assert_eq(screen.graphics.index, 0, "Ultra, the default")
 	assert_eq(screen.flashes.index, 0, "Off")
 	assert_eq(screen.hints.index, 0, "On")
 	assert_eq([screen.master.value, screen.effects.value, screen.music.value], [80, 90, 100])
@@ -65,7 +65,7 @@ func test_the_rows_follow_saved_settings_when_it_opens() -> void:
 	settings.music_volume = 35
 	stack.clear()
 	stack.push(screen)
-	assert_eq(screen.graphics.index, 2)
+	assert_eq(screen.graphics.index, 3)
 	assert_eq(screen.flashes.index, 1)
 	assert_eq(screen.hints.index, 1)
 	assert_eq(screen.music.value, 35)
@@ -73,12 +73,14 @@ func test_the_rows_follow_saved_settings_when_it_opens() -> void:
 
 func test_graphics_changes_and_saves_at_once() -> void:
 	_key(KEY_RIGHT)
-	assert_eq(settings.graphics_preset_id, &"medium")
+	assert_eq(settings.graphics_preset_id, &"high")
+	assert_eq(_saved().graphics_preset_id, &"high")
+	_key(KEY_RIGHT)
 	assert_eq(_saved().graphics_preset_id, &"medium")
 	_key(KEY_RIGHT)
 	assert_eq(_saved().graphics_preset_id, &"low")
 	_key(KEY_RIGHT)
-	assert_eq(_saved().graphics_preset_id, &"high", "wraps round")
+	assert_eq(_saved().graphics_preset_id, &"ultra", "wraps round")
 
 
 func test_reduce_flashes_and_button_hints_change_and_save_at_once() -> void:
@@ -120,7 +122,7 @@ func test_a_controller_walks_and_changes_the_rows() -> void:
 	assert_true(_saved().reduce_flashes)
 	_pad(JOY_BUTTON_DPAD_UP)
 	_pad(JOY_BUTTON_A)
-	assert_eq(_saved().graphics_preset_id, &"medium")
+	assert_eq(_saved().graphics_preset_id, &"high", "a step down from Ultra")
 	for i: int in 5:
 		_pad(JOY_BUTTON_DPAD_DOWN)
 	_pad(JOY_BUTTON_DPAD_LEFT)

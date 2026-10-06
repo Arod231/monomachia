@@ -40,6 +40,10 @@ const FILES = {
   '/graph.mjs': { file: 'graph.mjs', type: 'text/javascript; charset=utf-8' },
   '/ui.mjs': { file: 'ui.mjs', type: 'text/javascript; charset=utf-8' },
   '/sessions-ui.mjs': { file: 'sessions-ui.mjs', type: 'text/javascript; charset=utf-8' },
+  // The second brain's Markdown library, for a session's Docs.
+  '/marked.js': { file: '../second-brain/vendor/marked.umd.js', type: 'text/javascript; charset=utf-8' },
+  // The service worker for lock-screen notifications, at the root so it covers every page.
+  '/sw.js': { file: 'sw.js', type: 'text/javascript; charset=utf-8' },
 };
 
 // The file for a GET that isn't /data or /brain: phones get m.html, computers

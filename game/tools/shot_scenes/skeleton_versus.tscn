@@ -4,4 +4,4 @@
 
 [node name="SkeletonShot" type="Node"]
 script = ExtResource("1")
-shot = "title"
+shot = "versus"

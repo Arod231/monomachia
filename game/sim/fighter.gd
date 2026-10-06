@@ -471,7 +471,8 @@ func update() -> void:
 	_handle_guard_press()
 
 	match state:
-		&"intro", &"victory":
+		&"intro", &"victory", &"finisher", &"finished":
+			# a finisher's two halves move only as FinisherRules lines them up
 			vel.x = 0.0
 			vel.z = 0.0
 		&"free":
@@ -1368,12 +1369,14 @@ func enter_recoil(frames: int, guard_after: int) -> void:
 ## reason: &"parried" | &"blocked" | &"redirect"
 func disarm(by: Fighter, reason: StringName) -> void:
 	var W: World = world
+	# read the blades before the stagger ends the attacks
+	var flies: V2 = DroppedWeapon.heading(self, by, reason)
 	armed = false
 	posture = 0.0
 	last_posture_damage = W.frame
 	set_state(&"disarmStagger", SimConst.DISARM_STAGGER)
 	knock(by.pos.x, by.pos.z, 1.3, 16)
-	W.spawn_dropped_weapon(self, by)
+	W.spawn_dropped_weapon(self, flies)
 	W.emit({
 		"t": &"disarm",
 		"victim": id,
@@ -1382,6 +1385,7 @@ func disarm(by: Fighter, reason: StringName) -> void:
 		"reason": reason,
 	})
 	by.stats.disarms += 1
+	FinisherRules.on_disarm(W, self, by, reason)
 
 
 # ------------------------------------------------------------------ pickup / counters

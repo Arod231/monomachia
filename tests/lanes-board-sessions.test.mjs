@@ -14,8 +14,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { assertMatches } from './assert-matches.mjs';
 import { edgePath, layoutPlan, related } from '../tools/lanes-board/graph.mjs';
 import {
-  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldOrphaned,
-  deliveryOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, toolSummary, turnSummary,
+  PENDING_ID, QUESTION_ANSWER, SESSION_ID, autoCompactAt, awayOf, awaySwitch, contextTracker, contextWindowFor, downsample, heldAnsweredElsewhere, heldOrphaned,
+  STOP_NOW, deliveryOf, remoteLinkOf, endedAtOf, ownerMessage, parseTranscript, questionAnswers, relayAnswer, sessionState, toolSummary, turnSummary,
 } from '../tools/lanes-board/sessions.mjs';
 import { pageFor } from '../tools/lanes-board/access.mjs';
 
@@ -381,7 +381,7 @@ describe('relay answers', () => {
   it('continues a turn end with the owner\'s reply, Approve & continue or Show me, but not with nothing', () => {
     assert.deepEqual(relayAnswer({ kind: 'stop' }, { reply: ' Go on ' }), { reply: 'The owner replied from the Project Manager:\n\nGo on' });
     assert.deepEqual(relayAnswer({ kind: 'stop' }, { command: 'approve' }), { reply: 'Approved from the Project Manager: go on with the next task.' });
-    assert.match(relayAnswer({ kind: 'stop' }, { command: 'show' }).reply, /^The owner asks from the Project Manager: show me what you're working on\. .*path.*nothing to show yet\.$/);
+    assert.match(relayAnswer({ kind: 'stop' }, { command: 'show' }).reply, /^The owner asks from the Project Manager: show me what you're working on\. .*`npm run post -- <file> --caption .*nothing to show yet\.$/);
     assert.throws(() => relayAnswer({ kind: 'stop' }, { reply: ' ' }), /Type a reply first/);
     assert.throws(() => relayAnswer({ kind: 'stop' }, { command: 'merge' }), /No such command/);
     assert.deepEqual(relayAnswer({ kind: 'stop' }, { release: true }), { release: true });
@@ -565,5 +565,89 @@ describe('relay hook', () => {
     writeFileSync(path.join(dir, 'away.json'), '{not json');
     assert.equal((await run({ hook_event_name: 'Stop' })).out, '');
     assert.equal((await run(ASK)).out, '');
+  });
+});
+
+describe('the session page\'s rules', () => {
+  it('reads the branch the session is on from its newest line', () => {
+    const line = (o) => JSON.stringify(o);
+    const lines = [
+      line({ type: 'user', gitBranch: 'lane/pm-1', message: { content: 'Go' } }),
+      line({ type: 'assistant', gitBranch: 'lane/pm-11-12', message: { content: [{ type: 'text', text: 'On it.' }] } }),
+      line({ type: 'assistant', isSidechain: true, gitBranch: 'other', message: { content: [{ type: 'text', text: 'Agent' }] } }),
+    ];
+    assert.equal(parseTranscript(lines).branch, 'lane/pm-11-12');
+    assert.equal(parseTranscript([]).branch, null);
+    assert.equal(parseTranscript([line({ type: 'user', gitBranch: 'HEAD', message: { content: 'x' } })]).branch, null, 'a detached head names no branch');
+  });
+
+  it('gives a session one state: waiting on you, asked in the app, ended, at work or idle', () => {
+    const base = { pending: [], asking: null, active: false, activity: 1000, endedAt: null };
+    assert.equal(sessionState({ ...base, pending: [{ kind: 'stop' }], active: true }), 'waiting');
+    assert.equal(sessionState({ ...base, asking: ['Which?'], active: true }), 'asked');
+    assert.equal(sessionState({ ...base, active: true }), 'working');
+    assert.equal(sessionState(base), 'idle');
+    assert.equal(sessionState({ ...base, endedAt: 900 }), 'ended');
+    assert.equal(sessionState({ ...base, active: true, activity: 1000, endedAt: 900 }), 'ended', 'still finishing its last step');
+    assert.equal(sessionState({ ...base, active: true, activity: 900 + 3 * 60 * 1000, endedAt: 900 }), 'working', 'woken again since');
+  });
+
+  it('finds when a session\'s work was last ended: by its id, or inside an ended lane\'s worktree', () => {
+    const stops = [
+      { requestedAt: 100, sessions: ['s1'], worktree: null },
+      { requestedAt: 200, sessions: [], worktree: 'C:\\repo\\.claude\\worktrees\\lane-a' },
+      { requestedAt: 300, sessions: ['s1'], cancelledAt: 310 },
+    ];
+    assert.equal(endedAtOf(stops, { id: 's1', cwd: 'C:\\other' }), 100);
+    assert.equal(endedAtOf(stops, { id: 's2', cwd: 'c:\\repo\\.claude\\worktrees\\lane-a\\tools' }), 200);
+    assert.equal(endedAtOf(stops, { id: 's2', cwd: 'C:/repo/.claude/worktrees/lane-a' }), 200);
+    assert.equal(endedAtOf(stops, { id: 's2', cwd: 'C:\\repo\\.claude\\worktrees\\lane-ab' }), null);
+    assert.equal(endedAtOf([], { id: 's1', cwd: null }), null);
+  });
+
+  it('words Stop now for the session: stop at once and end the turn', () => {
+    assert.match(STOP_NOW, /Stop now/);
+    assert.match(STOP_NOW, /end your turn/);
+  });
+});
+
+describe('remoteLinkOf', () => {
+  it('reads the Remote Control link from the app\'s session record: its newest bridge session', () => {
+    assert.equal(remoteLinkOf({ bridgeSessionIds: ['session_01Old', 'session_01D7VSLCnQpmX45bMfUkX9ny'] }), 'https://claude.ai/code/session_01D7VSLCnQpmX45bMfUkX9ny');
+  });
+  it('has none without Remote Control, or with an id that isn\'t one', () => {
+    assert.equal(remoteLinkOf({ bridgeSessionIds: [] }), null);
+    assert.equal(remoteLinkOf({}), null);
+    assert.equal(remoteLinkOf(null), null);
+    assert.equal(remoteLinkOf({ bridgeSessionIds: ['../../evil?x=1'] }), null);
+  });
+});
+
+describe('heldAnsweredElsewhere', () => {
+  // A held item, and the transcript's entries as parseTranscript gives them.
+  const p = { kind: 'permission', tool: 'Bash', input: { command: 'npm test' }, time: 10_000 };
+  const call = (id, time, input = { command: 'npm test' }, name = 'Bash') => ({ kind: 'tool', id, name, time, summary: toolSummary(name, input) });
+  const result = (tool, time) => ({ kind: 'result', tool, time, text: 'ok' });
+
+  it('is answered elsewhere once that same call got its result after the hold began (the app or Remote Control let it run, or refused it)', () => {
+    assert.equal(heldAnsweredElsewhere(p, [call('t1', 9_000), result('t1', 12_000)]), true);
+  });
+  it('is still held while the call has no result', () => {
+    assert.equal(heldAnsweredElsewhere(p, [call('t1', 9_000)]), false);
+  });
+  it('ignores an earlier run of the same command, and other calls finishing meanwhile', () => {
+    assert.equal(heldAnsweredElsewhere(p, [call('t0', 1_000), result('t0', 2_000), call('t1', 9_000)]), false);
+    assert.equal(heldAnsweredElsewhere(p, [call('t1', 9_000), call('t2', 9_000, { command: 'ls' }), result('t2', 11_000)]), false);
+  });
+  it('covers questions and plans too, but never a held turn end', () => {
+    const ask = { kind: 'question', tool: 'AskUserQuestion', input: { questions: [{ question: 'Which?' }] }, time: 10_000 };
+    assert.equal(heldAnsweredElsewhere(ask, [call('q1', 9_000, ask.input, 'AskUserQuestion'), result('q1', 15_000)]), true);
+    assert.equal(heldAnsweredElsewhere({ kind: 'stop', time: 10_000 }, [call('t1', 9_000), result('t1', 12_000)]), false);
+  });
+  it('matches a plan by its tool alone, as the transcript\'s ExitPlanMode call carries no plan (the hook is given it)', () => {
+    const plan = { kind: 'plan', tool: 'ExitPlanMode', input: { plan: '# Fix the bell\n\nSteps.', planFilePath: 'C:/x.md' }, time: 10_000 };
+    assert.equal(heldAnsweredElsewhere(plan, [call('p1', 9_000, {}, 'ExitPlanMode'), result('p1', 12_000)]), true);
+    assert.equal(heldAnsweredElsewhere(plan, [call('p1', 9_000, {}, 'ExitPlanMode')]), false);
+    assert.equal(heldAnsweredElsewhere(plan, [call('p0', 1_000, {}, 'ExitPlanMode'), result('p0', 2_000), call('p1', 9_000, {}, 'ExitPlanMode')]), false);
   });
 });

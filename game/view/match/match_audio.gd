@@ -10,7 +10,11 @@ extends Node3D
 ## Cues marked spatial play in 3D where their event happened
 ## ([method event_position]): a contact point, where lightning strikes, else
 ## the chest of the fighter the event names. The calls (the gong, the taiko,
-## the parry ring) stay flat. The listener follows the view's camera. The
+## the parry ring) stay flat. The listener follows the view's camera, except
+## in Versus, where it stands between the two fighters facing side-on, player
+## 1's fighter on its left (versus_listener(), the owner's choice, Oct 4,
+## 2026): the split screen's halves don't listen, so this is the one listener
+## and both players hear the fight alike. The
 ## arena's room is the Arena bus's reverb, which the Combat and Foley buses
 ## feed (see default_bus_layout.tres): Godot 4.7's Area3D reverb would take a
 ## 3D cue off its own bus, so there is no reverb area.
@@ -41,6 +45,10 @@ const DEFAULT_AMBIENCE := &"ambience_shrine"
 @export var view_path: NodePath = ^"../View"
 ## Where on a fighter its sounds come from: the chest, above its feet (m).
 @export var chest_height: float = 1.25
+## In Versus, how far the listener stands back from the line between the
+## fighters (m), still as far from each: right on the line, each fighter's
+## sounds would come from one speaker alone.
+@export var versus_back: float = 2.5
 
 var host: MatchHost
 var view: MatchView
@@ -98,10 +106,13 @@ func bind(p_host: MatchHost) -> void:
 	host.stepped.connect(_on_stepped)
 
 
-## Puts the listener where the camera is. The view moves the camera earlier in
+## Puts the listener where the camera is, or in Versus between the fighters
+## (versus_listener()). The view moves the camera earlier in
 ## the frame (it comes first in match_host.tscn).
 func follow_camera() -> void:
-	if camera != null:
+	if host != null and host.is_started() and host.config.mode == MatchConfig.VERSUS:
+		listener.global_transform = versus_listener(host.display_position(0), host.display_position(1), chest_height, versus_back)
+	elif camera != null:
 		listener.global_transform = camera.global_transform
 
 
@@ -195,3 +206,16 @@ func _on_stopped() -> void:
 
 static func _vector(d: Dictionary) -> Vector3:
 	return Vector3(float(d["x"]), float(d["y"]), float(d["z"]))
+
+
+## The Versus listener for fighters at a and b: at chest height on the
+## perpendicular through their midpoint, `back` metres from it, facing it,
+## with a on its left and b on its right.
+static func versus_listener(a: Vector3, b: Vector3, height: float, back: float = 0.0) -> Transform3D:
+	var along: Vector3 = Vector3(b.x - a.x, 0.0, b.z - a.z)
+	if along.length() < 0.001:
+		along = Vector3.RIGHT
+	var right: Vector3 = along.normalized()
+	var behind: Vector3 = right.cross(Vector3.UP)
+	var mid: Vector3 = Vector3((a.x + b.x) * 0.5, height, (a.z + b.z) * 0.5)
+	return Transform3D(Basis(right, Vector3.UP, behind), mid + behind * back)

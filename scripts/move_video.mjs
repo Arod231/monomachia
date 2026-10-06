@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // The before-and-after video of a weapon's moves (authored-animation task 14):
-// the procedural animation from feature/godot-rebuild beside the clips from
-// this branch, side by side, written under shots/ (it stays local).
+// the procedural animation from before authored animation merged (f776428, the
+// Godot rebuild branch's last commit without it; the branch itself merged into
+// master) beside the clips from this branch, side by side, written under shots/
+// (it stays local).
 //
-//   node scripts/move_video.mjs [--weapon=katana] [--fighter=hunter] [--moves=k_l1,k_l2] [--ref=origin/feature/godot-rebuild]
+//   node scripts/move_video.mjs [--weapon=katana] [--fighter=hunter] [--moves=k_l1,k_l2] [--ref=f776428]
 //
 // 1. Exports the reference branch's game/ folder (git archive, no checkout)
 //    to shots/<weapon>_video/before_project and imports it once.
@@ -19,7 +21,7 @@ const ROOT = resolve(import.meta.dirname, '..');
 const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/, '').split('=')));
 const weapon = args.weapon ?? 'katana';
 const fighter = args.fighter ?? 'hunter';
-const ref = args.ref ?? 'origin/feature/godot-rebuild';
+const ref = args.ref ?? 'f776428';
 const out = join(ROOT, 'shots', `${weapon}_video`);
 const project = join(out, 'before_project');
 // as scripts/godot.mjs finds it: godot4 on PATH, else the .godot-path file
