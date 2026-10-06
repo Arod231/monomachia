@@ -7,11 +7,12 @@ import path from 'node:path';
 
 // A plan's header may name another branch (``branch `master` ``); the board then
 // uses that one. Authored animation is closed: it shows as history. The Godot
-// rebuild branch merged into master for good on Oct 5 (PR #68), so the roadmap
-// and the Godot rebuild plan follow master.
+// rebuild branch merged into master for good on Oct 5 (PR #68), and milestone 1's
+// branch was folded into master on Oct 6, so the roadmap, the Godot rebuild plan
+// and milestone 1 follow master: their lanes branch from it and PR into it.
 export const PLANS = [
   { key: 'rm', short: 'RM', name: 'Roadmap', file: 'docs/plans/roadmap.md', kind: 'roadmap', branch: 'master' },
-  { key: 'm1', short: 'M1', name: 'Milestone 1', file: 'docs/plans/milestone-1.md', kind: 'flat', branch: 'feature/milestone-1' },
+  { key: 'm1', short: 'M1', name: 'Milestone 1', file: 'docs/plans/milestone-1.md', kind: 'flat', branch: 'master' },
   { key: 'gr', short: 'GR', name: 'Godot rebuild', file: 'docs/plans/godot-rebuild.md', kind: 'nested', branch: 'master',
     names: { 1: 'Resume and safety nets', 2: 'The look, real fighters', 3: 'The shrine', 4: 'Fluid rules', 5: 'Sound and music',
       6: 'The new strings', 7: 'Swing foundations', 8: 'Fighter animation core', 9: 'Katana swings, anim review',

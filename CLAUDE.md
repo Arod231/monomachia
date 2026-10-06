@@ -25,7 +25,7 @@ A major feature is anything bigger than a tuning tweak or a small fix: a new wea
 2. **Plan: how we'll build it.** Turn the approved spec into a step-by-step plan of small tasks with `/to-tickets` (use `/wayfinder` for very large features such as online play). Save it as `docs/plans/<feature>.md`. Each task should be small enough to finish and test on its own. I run batches of tasks in parallel sessions, so before showing me the plan, audit its blockers as `docs/agents/issue-tracker.md` says ("Blockers") and include in the summary the tasks that can start at once and the batches that could run side by side.
 3. **Implement: build it task by task.** Work through the plan with `/implement` (tests first, then code, then review), or `/implement-spec` when tasks can safely run in parallel. Use `/prototype` to answer design questions with throwaway code, and `diagnosing-bugs` for hard bugs. Tick off tasks in the plan file as they're done.
 
-After the spec and after the plan, show me a short summary and wait for my OK before starting the next stage. The spec, the plan and the code all go on the feature's branch (see below), so they arrive in one pull request.
+After the spec and after the plan, show me a short summary and wait for my OK before starting the next stage. The spec and the plan arrive in one pull request into `master`; then each task, or each lane of tasks, gets its own branch from `master` and its own pull request into `master` (see below). There are no long-lived feature or milestone branches unless I ask for one.
 
 Small changes (tuning, bug fixes, doc edits) skip the spec and plan and go straight to a branch and pull request.
 
@@ -61,6 +61,8 @@ Rules:
 - Never commit paid assets (the Kevin Iglesias packs or anything bought), or files converted from them. They live in the private asset repository, which the import tools read through `.assets-src-path`; numbers measured from them (frame data, hit paths, travel) may be committed with their source clip recorded.
 - Visual work (a look, an animation, an arena, an effect, a screen) posts a shot or a clip of it, with a one-line caption, to its session's page in the Project Manager at each finished step, and whenever I ask to be shown (Show me): `npm run shots` or `npm run clip` into `shots/`, then `npm run post`. Shots and clips go nowhere else and are never committed, since renders can show paid assets.
 - Never force-push or rewrite history on `master`.
+- `master` is protected on GitHub (since Oct 6, 2026): a direct push to it is refused, so every change reaches it through a pull request. GitHub requires no review or green CI for the merge; my approval is the gate. Merged branches are deleted automatically.
+- `feature/godot-rebuild` is a read-only mirror of `master`, kept by `.github/workflows/mirror-board-branch.yml` only because the PC's logon script starts the Project Manager from it. Never build on it or open a pull request into it.
 - Never merge a pull request or turn on auto-merge without my approval. Approval of one pull request doesn't cover the next. Ask again for each one.
 - When I press Merge on a session's page in the Project Manager, that is my approval for that pull request: the Project Manager merges it on GitHub (merge commit, remote branch deleted) and tells the session, which then brings its local base up to date and deletes its local branch, with no second approval.
 - If a push is rejected because GitHub has newer commits, run `git pull --rebase origin <branch>`, rerun the tests, then push again.

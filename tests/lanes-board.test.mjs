@@ -111,7 +111,7 @@ describe('PLANS', () => {
   it('follows the roadmap, milestone 1, the Godot rebuild, authored animation (closed) and the Project Manager\'s remote control, not the session tracker', () => {
     assert.deepEqual(PLANS.map((p) => [p.key, p.kind, p.branch, !!p.closed]), [
       ['rm', 'roadmap', 'master', false],
-      ['m1', 'flat', 'feature/milestone-1', false],
+      ['m1', 'flat', 'master', false],
       ['gr', 'nested', 'master', false],
       ['aa', 'flat', 'feature/authored-animation', true],
       ['pm', 'flat', 'tools/project-manager-remote', false],
@@ -574,30 +574,31 @@ describe('goalFor', () => {
     assert.match(goal, /wayfinder for questions only.*AskUserQuestion.*Then implement/);
   });
 
-  it('builds milestone 1 and roadmap lanes on their plan\'s branch', () => {
+  it('builds milestone 1 and roadmap lanes on master, with their pull requests into master', () => {
     const m1 = goalFor({ plan: M1, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo });
     assert.ok(m1.includes('12 Sparks (docs/plans/milestone-1.md)'));
-    assert.ok(m1.includes('pushed on lane/m1-12, with a pull request into feature/milestone-1, never master'));
-    assert.ok(m1.includes('git switch -c lane/m1-12 origin/feature/milestone-1'));
+    assert.ok(m1.includes('pushed on lane/m1-12, with a pull request into master.'));
+    assert.ok(m1.includes('git switch -c lane/m1-12 origin/master'));
+    assert.ok(!m1.includes('never master'));
     assert.ok(!m1.includes('which merges into'));
     const rm = goalFor({ plan: RM, ids: ['R3'], tasks: { R3: { title: 'Sign-off' } }, branch: 'lane/rm-R3', repo });
     assert.ok(rm.includes('with a pull request into master.'));
     assert.ok(rm.includes('git switch -c lane/rm-R3 origin/master'));
   });
 
-  it('follows a branch named in the plan header', () => {
-    const goal = goalFor({ plan: { ...M1, branch: 'master' }, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo });
-    assert.ok(goal.includes('with a pull request into master'));
-    assert.ok(goal.includes('origin/master'));
-    assert.ok(!goal.includes('never master'));
+  it('follows a branch named in the plan header, keeping a feature branch\'s lanes off master', () => {
+    const goal = goalFor({ plan: { ...M1, branch: 'feature/x' }, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo });
+    assert.ok(goal.includes('with a pull request into feature/x, never master'));
+    assert.ok(goal.includes('git switch -c lane/m1-12 origin/feature/x'));
   });
 
   it('tells the session to stop and tell the owner when the plan\'s branch is not on origin yet', () => {
-    const goal = goalFor({ plan: M1, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo, baseExists: false });
+    const plan = { ...M1, branch: 'feature/milestone-1' };
+    const goal = goalFor({ plan, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo, baseExists: false });
     assert.ok(goal.includes('origin/feature/milestone-1 does not exist yet'));
     assert.match(goal, /stop and tell me.*do not create it or build on another branch/);
     assert.ok(goal.includes('or, if origin/feature/milestone-1 is still missing, when you have told me so and stopped'));
-    assert.ok(!goalFor({ plan: M1, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo }).includes('does not exist yet'));
+    assert.ok(!goalFor({ plan, ids: ['12'], tasks: { 12: { title: 'Sparks' } }, branch: 'lane/m1-12', repo }).includes('does not exist yet'));
   });
 
   it('is plain words, since the app turns a link\'s leading slash into a full-width one and never runs it as a command', () => {
