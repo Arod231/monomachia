@@ -449,6 +449,8 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 				"kind": kind,
 				"timing": timing,
 				"window": b.parry_window_at_press,
+				"weapon": a.moveset().id,
+				"defender_weapon": b.moveset().id,
 			})
 			b.stats.parries += 1
 			if kind != &"parry":
@@ -555,6 +557,8 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 				"posture": def.posture * mult * charge_mult,
 				"pos": SimEvents.vec3(contact),
 				"heavy": def.kind != &"light",
+				"weapon": a.moveset().id,
+				"defender_weapon": b.moveset().id,
 			})
 			return
 
@@ -590,6 +594,8 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 				"heavy": def.kind != &"light",
 				"sound": def.sound if def.sound != &"" else &"blade",
 				"backstab": backstab,
+				"weapon": a.moveset().id,
+				"defender_weapon": b.moveset().id,
 			})
 			b.release_if_impaling()
 			if b.hp <= 0.0:

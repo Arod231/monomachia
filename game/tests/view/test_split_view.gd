@@ -135,7 +135,7 @@ func test_rematches_leave_no_stray_viewports() -> void:
 	assert_eq(view.find_children("*", "CameraRig", true, false).size(), 2)
 
 
-func test_shake_and_kicks_reach_both_cameras() -> void:
+func test_shake_kicks_and_push_ins_reach_both_cameras() -> void:
 	_start(_versus())
 	for cam: CameraRig in view.cameras:
 		cam.shake = 0.0
@@ -143,6 +143,9 @@ func test_shake_and_kicks_reach_both_cameras() -> void:
 	view._on_sim_event({"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 3, "window": 9, "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
 	for i: int in 2:
 		assert_gt(view.cameras[i].shake, 0.0, "camera %d shakes" % i)
+		assert_gt(view.cameras[i].push_peak, 0.0, "camera %d pushes in" % i)
+	view._on_sim_event({"t": &"disarm", "victim": 1, "by": 0, "reason": &"parried", "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
+	for i: int in 2:
 		assert_gt(view.cameras[i].fov_kick, 0.0, "camera %d kicks" % i)
 
 
@@ -155,6 +158,7 @@ func test_reduce_flashes_reaches_both_cameras() -> void:
 	for i: int in 2:
 		assert_eq(view.cameras[i].shake_scale, MatchView.REDUCED_SHAKE, "camera %d" % i)
 		assert_eq(view.cameras[i].fov_kick_scale, 0.0, "camera %d" % i)
+		assert_eq(view.cameras[i].push_in_scale, 0.0, "camera %d" % i)
 
 
 func test_no_ko_orbit_in_either_half() -> void:

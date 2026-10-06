@@ -1,6 +1,6 @@
 extends GutTest
 ## The Settings screen (task 22.9): graphics, reduce flashes and shaking,
-## button hints and the three volume sliders, each applied and saved at once,
+## button hints, blood (milestone-1 task 38) and the three volume sliders, each applied and saved at once,
 ## walked with keys and with a controller. The screen saves to a test path,
 ## never the player's file.
 
@@ -49,12 +49,14 @@ func _saved() -> GameSettings:
 
 
 func test_the_rows_in_order_open_on_graphics_and_show_the_settings() -> void:
-	assert_eq(screen.items, [screen.graphics, screen.flashes, screen.hints, screen.master, screen.effects, screen.music] as Array[Control])
+	assert_eq(screen.items, [screen.graphics, screen.flashes, screen.hints, screen.blood, screen.master, screen.effects, screen.music] as Array[Control])
 	assert_eq(screen.focused_item(), screen.graphics)
 	assert_eq(screen.graphics.chips.map(func(c: Button) -> String: return c.text), ["Ultra", "High", "Medium", "Low"])
 	assert_eq(screen.graphics.index, 0, "Ultra, the default")
 	assert_eq(screen.flashes.index, 0, "Off")
 	assert_eq(screen.hints.index, 0, "On")
+	assert_eq(screen.blood.chips.map(func(c: Button) -> String: return c.text), ["On", "Reduced", "Off"])
+	assert_eq(screen.blood.index, 0, "On, the default")
 	assert_eq([screen.master.value, screen.effects.value, screen.music.value], [80, 90, 100])
 
 
@@ -62,12 +64,14 @@ func test_the_rows_follow_saved_settings_when_it_opens() -> void:
 	settings.set_graphics_preset(&"low")
 	settings.reduce_flashes = true
 	settings.button_hints = false
+	settings.blood = GameSettings.BLOOD_REDUCED
 	settings.music_volume = 35
 	stack.clear()
 	stack.push(screen)
 	assert_eq(screen.graphics.index, 3)
 	assert_eq(screen.flashes.index, 1)
 	assert_eq(screen.hints.index, 1)
+	assert_eq(screen.blood.index, 1)
 	assert_eq(screen.music.value, 35)
 
 
@@ -96,8 +100,24 @@ func test_reduce_flashes_and_button_hints_change_and_save_at_once() -> void:
 	assert_true(_saved().button_hints)
 
 
-func test_sliders_step_by_five_and_apply_and_save_at_once() -> void:
+## The Blood setting (milestone-1 task 38) changes and saves at once.
+func test_blood_changes_and_saves_at_once() -> void:
+	watch_signals(settings)
 	for i: int in 3:
+		_key(KEY_DOWN)
+	assert_eq(screen.focused_item(), screen.blood)
+	_key(KEY_RIGHT)
+	assert_eq(settings.blood, GameSettings.BLOOD_REDUCED)
+	assert_eq(_saved().blood, GameSettings.BLOOD_REDUCED)
+	_key(KEY_RIGHT)
+	assert_eq(_saved().blood, GameSettings.BLOOD_OFF)
+	_key(KEY_RIGHT)
+	assert_eq(_saved().blood, GameSettings.BLOOD_ON, "wraps round")
+	assert_signal_emit_count(settings, "changed", 3, "what follows the settings hears each change")
+
+
+func test_sliders_step_by_five_and_apply_and_save_at_once() -> void:
+	for i: int in 4:
 		_key(KEY_DOWN)
 	assert_eq(screen.focused_item(), screen.master)
 	_key(KEY_LEFT)
@@ -123,7 +143,7 @@ func test_a_controller_walks_and_changes_the_rows() -> void:
 	_pad(JOY_BUTTON_DPAD_UP)
 	_pad(JOY_BUTTON_A)
 	assert_eq(_saved().graphics_preset_id, &"high", "a step down from Ultra")
-	for i: int in 5:
+	for i: int in 6:
 		_pad(JOY_BUTTON_DPAD_DOWN)
 	_pad(JOY_BUTTON_DPAD_LEFT)
 	assert_eq(_saved().music_volume, 95)

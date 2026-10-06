@@ -1,7 +1,8 @@
 extends GutTest
 ## The match camera's math: behind the player on the line to the opponent,
 ## offset to the player's right, at the spec's distance and height, clamped
-## inside the arena; the side-on Watch view; shake and field-of-view kicks.
+## inside the arena; the side-on Watch view; shake, field-of-view kicks and
+## the parry's push-in (milestone-1 task 39).
 
 var rig: CameraRig
 
@@ -216,3 +217,116 @@ func test_a_ko_swings_the_follow_camera_to_the_side_until_the_next_round() -> vo
 	rig.reset_round()
 	rig.snap(p, o)
 	assert_lt(rig.rig_position.z, p.z, "behind the player again")
+
+
+# ------------------------------------------------------------------ the push-in
+
+const P: Vector3 = Vector3(0.0, 0.0, -1.5)
+const O: Vector3 = Vector3(0.0, 0.0, 1.5)
+
+
+func _step(frames: int = 1) -> void:
+	for i: int in frames:
+		rig.update_rig(1.0 / 60.0, P, O)
+
+
+## How far the camera stands from the look point.
+func _reach() -> float:
+	return rig.transform.origin.distance_to(rig.rig_look)
+
+
+## A parry's push-in (milestone-1 task 39): it closes in on the look point
+## over about 3 frames, holds still through the hit-stop, then eases back out
+## over about 0.4 s.
+func test_a_push_in_snaps_in_holds_through_the_hit_stop_and_eases_back() -> void:
+	rig.snap(P, O)
+	var rest: float = _reach()
+	rig.frozen = true
+	rig.push_in(0.15)
+	_step()
+	assert_between(rig.push_amount(), 0.01, 0.15, "on its way in")
+	_step(2)
+	assert_almost_eq(rig.push_amount(), 0.15, 1e-4, "in after 3 frames")
+	assert_almost_eq(_reach(), rest * 0.85, 0.01, "15% of the way to the look point")
+	var held: Transform3D = rig.transform
+	_step(9)
+	assert_almost_eq(rig.push_amount(), 0.15, 1e-6, "held through the hit-stop")
+	assert_eq(rig.transform, held, "the camera stands still")
+	rig.frozen = false
+	_step(12)
+	assert_between(rig.push_amount(), 0.01, 0.149, "easing back")
+	_step(12)
+	assert_eq(rig.push_amount(), 0.0, "back after 0.4 s")
+	assert_almost_eq(_reach(), rest, 0.01)
+
+
+func test_a_push_in_moves_toward_the_look_point_not_off_the_line() -> void:
+	rig.snap(P, O)
+	rig.push_in(0.25)
+	_step(3)
+	var want: Vector3 = rig.rig_position.lerp(rig.rig_look, 0.25)
+	assert_almost_eq(rig.transform.origin, want, Vector3.ONE * 1e-3)
+	assert_eq(rig.fov, rig.base_fov, "a push-in, not a field-of-view kick")
+
+
+## A second push-in during the first goes on from where the camera is.
+func test_a_second_push_in_carries_on_from_the_first() -> void:
+	rig.snap(P, O)
+	rig.push_in(0.15)
+	_step(3)
+	_step(10)
+	var now: float = rig.push_amount()
+	rig.push_in(0.25)
+	assert_almost_eq(rig.push_amount(), now, 1e-6, "no jump")
+	_step(3)
+	assert_almost_eq(rig.push_amount(), 0.25, 1e-4)
+
+
+## Depth of field comes in with the push-in: a far blur past the look point
+## that clears as it eases out.
+func test_the_push_in_brings_a_far_blur_that_clears_as_it_eases_out() -> void:
+	rig.snap(P, O)
+	assert_null(rig.attributes, "no blur at rest")
+	rig.push_in(0.25)
+	_step(3)
+	var dof := rig.attributes as CameraAttributesPractical
+	assert_not_null(dof)
+	assert_true(dof.dof_blur_far_enabled)
+	assert_false(dof.dof_blur_near_enabled, "the fighters stay sharp")
+	assert_gt(dof.dof_blur_far_distance, _reach(), "past the look point")
+	var full: float = dof.dof_blur_amount
+	assert_gt(full, 0.0)
+	_step(12)
+	assert_between(dof.dof_blur_amount, 0.001, full - 0.001, "clearing")
+	_step(20)
+	assert_null(rig.attributes, "gone with the push-in")
+
+
+func test_without_depth_of_field_the_push_in_has_no_blur() -> void:
+	rig.dof_allowed = false
+	rig.snap(P, O)
+	rig.push_in(0.25)
+	_step(3)
+	assert_almost_eq(rig.push_amount(), 0.25, 1e-4, "the push-in itself still happens")
+	assert_null(rig.attributes)
+
+
+## Reduce flashes and shaking turns the push-in (and so its blur) off.
+func test_the_push_in_scale_turns_it_off() -> void:
+	rig.push_in_scale = 0.0
+	rig.snap(P, O)
+	var rest: Transform3D = rig.transform
+	rig.push_in(0.25)
+	_step(3)
+	assert_eq(rig.push_amount(), 0.0)
+	assert_null(rig.attributes)
+	assert_almost_eq(rig.transform.origin, rest.origin, Vector3.ONE * 1e-4)
+
+
+func test_end_push_in_clears_it() -> void:
+	rig.snap(P, O)
+	rig.push_in(0.25)
+	_step(3)
+	rig.end_push_in()
+	assert_eq(rig.push_amount(), 0.0)
+	assert_null(rig.attributes)

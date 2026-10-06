@@ -204,7 +204,7 @@ An authored camera shot, with its own path, lens and camera effects, that takes 
 _Avoid_: Cutscene, replay
 
 **Blood setting**:
-The player's choice of On (blood on hits, and a finisher can cut the opponent apart), Reduced (finishers show the cut with less blood and the body stays whole) or Off (no blood). It changes only the picture.
+The player's choice of On (blood on hits, and a finisher can cut the opponent apart), Reduced (less blood on every hit, and finishers show the cut with less blood and the body stays whole) or Off (no blood). It changes only the picture.
 _Avoid_: Gore setting, violence filter
 
 ## Making the game

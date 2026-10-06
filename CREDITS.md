@@ -39,6 +39,7 @@ Most sound effects are cut and mixed from the Sonniss #GameAudioGDC 2026 bundle 
 - InMotionAudio
 - Ivo Vicic
 - Just Sound Effects
+- SoundBits
 - The Noisery
 
 The other sound effects and the placeholder music are made by Monomachia's own code.

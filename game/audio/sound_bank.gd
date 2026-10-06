@@ -72,6 +72,12 @@ const CUES: Dictionary = {
 		"files": ["crunch_01.wav", "crunch_02.wav", "crunch_03.wav", "gen_bone_crunch_01.wav", "gen_bone_crunch_02.wav"],
 		"volume_db": -5.0, "pitch": Vector2(0.9, 1.08), "bus": BUS_COMBAT, "spatial": true,
 	},
+	# the flesh layer under every blade hit, hit_blade being the cut alone
+	# (milestone-1 task 36)
+	&"hit_flesh": {
+		"files": ["hit_flesh_01.wav", "hit_flesh_02.wav", "hit_flesh_03.wav", "hit_flesh_04.wav"],
+		"volume_db": -3.0, "pitch": Vector2(0.92, 1.08), "bus": BUS_COMBAT, "spatial": true,
+	},
 	# --- blocks and parries
 	&"clang_light": {
 		"files": ["clang_light_01.wav", "clang_light_02.wav", "clang_light_03.wav", "clang_light_04.wav"],
@@ -84,6 +90,28 @@ const CUES: Dictionary = {
 	&"parry_contact": {
 		"files": ["parry_contact_01.wav", "parry_contact_02.wav", "parry_contact_03.wav"],
 		"volume_db": -3.0, "pitch": Vector2(0.97, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	# by the pair of weapons that meet (milestone-1 task 36): the Katana on
+	# the Katana, then bare hands against the Katana
+	&"clang_katana": {
+		"files": ["clang_katana_01.wav", "clang_katana_02.wav", "clang_katana_03.wav", "clang_katana_04.wav"],
+		"volume_db": -3.0, "pitch": Vector2(0.96, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"clang_katana_heavy": {
+		"files": ["clang_katana_heavy_01.wav", "clang_katana_heavy_02.wav", "clang_katana_heavy_03.wav"],
+		"volume_db": 0.0, "pitch": Vector2(0.95, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"parry_contact_katana": {
+		"files": ["parry_contact_katana_01.wav", "parry_contact_katana_02.wav", "parry_contact_katana_03.wav"],
+		"volume_db": -1.5, "pitch": Vector2(0.97, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"clang_fist": {
+		"files": ["clang_fist_01.wav", "clang_fist_02.wav", "clang_fist_03.wav"],
+		"volume_db": 0.0, "pitch": Vector2(0.93, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"redirect_arm": {
+		"files": ["redirect_arm_01.wav", "redirect_arm_02.wav", "redirect_arm_03.wav"],
+		"volume_db": -1.0, "pitch": Vector2(0.94, 1.07), "bus": BUS_COMBAT, "spatial": true,
 	},
 	&"parry_ring": {
 		"files": ["gen_parry_ring_01.wav", "gen_parry_ring_02.wav", "gen_parry_ring_03.wav"],
@@ -188,6 +216,58 @@ const CUES: Dictionary = {
 		"files": ["gen_body_fall.wav", "body_drop_01.wav", "body_drop_02.wav"],
 		"volume_db": -4.0, "pitch": Vector2(0.94, 1.04), "bus": BUS_FOLEY, "spatial": true,
 	},
+	# --- the Hunter's own cloth and gear (milestone-1 task 36; see FOLEY)
+	&"hunter_cloth_step": {
+		"files": ["hunter_cloth_step_01.wav", "hunter_cloth_step_02.wav", "hunter_cloth_step_03.wav", "hunter_cloth_step_04.wav"],
+		"volume_db": -9.0, "pitch": Vector2(0.92, 1.1), "bus": BUS_FOLEY, "spatial": true,
+	},
+	&"hunter_gear_tick": {
+		"files": ["gen_hunter_gear_tick_01.wav", "gen_hunter_gear_tick_02.wav", "gen_hunter_gear_tick_03.wav", "gen_hunter_gear_tick_04.wav"],
+		"volume_db": -15.0, "pitch": Vector2(0.92, 1.1), "bus": BUS_FOLEY, "spatial": true,
+	},
+	&"hunter_cloth_swing": {
+		"files": ["hunter_cloth_swing_01.wav", "hunter_cloth_swing_02.wav", "hunter_cloth_swing_03.wav"],
+		"volume_db": -11.0, "pitch": Vector2(0.94, 1.08), "bus": BUS_FOLEY, "spatial": true,
+	},
+	&"hunter_creak": {
+		"files": ["gen_hunter_creak_01.wav", "gen_hunter_creak_02.wav", "gen_hunter_creak_03.wav"],
+		"volume_db": -7.0, "pitch": Vector2(0.9, 1.1), "bus": BUS_FOLEY, "spatial": true,
+	},
+	&"hunter_cloth_dodge": {
+		"files": ["hunter_cloth_dodge_01.wav", "hunter_cloth_dodge_02.wav", "hunter_cloth_dodge_03.wav"],
+		"volume_db": -8.0, "pitch": Vector2(0.94, 1.08), "bus": BUS_FOLEY, "spatial": true,
+	},
+	&"hunter_gear_rattle": {
+		"files": ["gen_hunter_gear_rattle_01.wav", "gen_hunter_gear_rattle_02.wav", "gen_hunter_gear_rattle_03.wav"],
+		"volume_db": -11.0, "pitch": Vector2(0.94, 1.06), "bus": BUS_FOLEY, "spatial": true,
+	},
+	# --- effort vocals (milestone-1 task 114; see VOCALS): placeholders until a
+	# vocals pack is bought, the kiai and breaths cut from the bundle's male
+	# recordings, the pain and death cries generated
+	&"vocal_kiai": {
+		"files": ["vocal_kiai_01.wav", "vocal_kiai_02.wav", "vocal_kiai_03.wav", "vocal_kiai_04.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.96, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_exhale": {
+		"files": ["vocal_exhale_01.wav", "vocal_exhale_02.wav", "vocal_exhale_03.wav", "vocal_exhale_04.wav"],
+		"volume_db": -9.0, "pitch": Vector2(0.95, 1.05), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_breath": {
+		"files": ["vocal_breath_01.wav", "vocal_breath_02.wav", "vocal_breath_03.wav"],
+		"volume_db": -10.0, "pitch": Vector2(0.95, 1.05), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_pain": {
+		"files": ["gen_pain_01.wav", "gen_pain_02.wav", "gen_pain_03.wav", "gen_pain_04.wav"],
+		"volume_db": -6.0, "pitch": Vector2(0.95, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_pain_heavy": {
+		"files": ["gen_pain_heavy_01.wav", "gen_pain_heavy_02.wav", "gen_pain_heavy_03.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.96, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"vocal_death": {
+		"files": ["gen_death_01.wav", "gen_death_02.wav", "gen_death_03.wav"],
+		"volume_db": -3.0, "pitch": Vector2(0.97, 1.03), "bus": BUS_COMBAT, "spatial": true,
+	},
 	# --- match calls
 	&"taiko_light": {
 		"files": ["gen_taiko_light_01.wav", "gen_taiko_light_02.wav"],
@@ -257,7 +337,7 @@ const EVENTS: Dictionary = {
 	&"ultChoice": [&"ult_start"],
 	&"ultWave": [&"ult_wave"],
 	&"ultDash": [&"ult_dash"],
-	&"ultImpale": [&"hit_blade_heavy", &"crunch"],
+	&"ultImpale": [&"hit_blade_heavy", &"hit_flesh", &"crunch"],
 	&"ultBurst": [&"boom", &"taiko_heavy"],
 	&"ultLightning": [&"lightning", &"lightning_zap"],
 	&"recall": [&"recall"],
@@ -289,17 +369,75 @@ const DELAYS: Dictionary = {
 	&"roundStart": {&"gong": 1.34},
 }
 
+## The impacts chosen by the pair of weapons that meet (milestone-1 task 36),
+## keyed by [method pair_key] of the attacker's and the defender's weapon,
+## then by outcome: a block light and heavy, and a parry's contact (played
+## under its ring). Pairs not listed, and events that name no weapons, keep
+## the general clangs until milestone 2 brings their weapons to final quality.
+const PAIR_IMPACTS: Dictionary = {
+	&"katana+katana": {&"block": &"clang_katana", &"block_heavy": &"clang_katana_heavy", &"parry": &"parry_contact_katana"},
+	# a bare hand against the Katana: a fist meets the Katana's guard, and a
+	# bare-handed parry turns the blade aside by the arm
+	&"fists+katana": {&"block": &"clang_fist", &"block_heavy": &"clang_fist", &"parry": &"clang_fist", &"redirect": &"redirect_arm"},
+}
+
+## Each fighter's own cloth and gear (milestone-1 task 36), by fighter id and
+## moment: under a footfall (step), with a swing, in a backstep (dodge, in
+## place of the general cloth flap), in a roll and on a landing. A fighter not
+## listed moves with the general cloth only.
+const FOLEY: Dictionary = {
+	&"hunter": {
+		&"step": [&"hunter_cloth_step", &"hunter_gear_tick"],
+		&"swing": [&"hunter_cloth_swing", &"hunter_creak"],
+		&"dodge": [&"hunter_cloth_dodge", &"hunter_gear_rattle"],
+		&"roll": [&"hunter_gear_rattle"],
+		&"land": [&"hunter_cloth_dodge", &"hunter_gear_rattle"],
+	},
+}
+
+## The voice each fighter speaks with where it isn't [constant DEFAULT_VOICE]
+## (milestone-1 task 114).
+const VOICES: Dictionary = {}
+## Every fighter's voice unless VOICES names another: one male voice for every
+## fighter (the owner's choice, Oct 6, 2026), the sides told apart by pitch
+## (SIDE_PITCH).
+const DEFAULT_VOICE := &"male"
+## Each voice's cue for each moment (see [method vocal_moments]): placeholder
+## effort vocals until a vocals pack is bought after the spending review.
+const VOCALS: Dictionary = {
+	&"male": {
+		&"kiai": &"vocal_kiai", &"exhale": &"vocal_exhale", &"breath": &"vocal_breath",
+		&"pain": &"vocal_pain", &"pain_heavy": &"vocal_pain_heavy", &"death": &"vocal_death",
+	},
+}
+## How often a moment is voiced, where not every time: a light's exhale
+## about one in three (the owner's choice, Oct 6, 2026).
+const VOCAL_CHANCE: Dictionary = {&"exhale": 1.0 / 3.0}
+## How much lower each side's voice is pitched, so that two fighters with the
+## same voice can be told apart by ear: the second side about two semitones
+## down (the owner's choice, Oct 6, 2026).
+const SIDE_PITCH: Array[float] = [1.0, 0.8909]
+
 
 ## The cues to play for one rules event, in order, each as
-## [code]{"cue": StringName, "delay": float, "volume_db": float}[/code]
-## where volume_db is added to the cue's own level. Applies the demo's
-## sub-selection rules: the hit sound by the event's [code]sound[/code] field
-## (blade, colossal, dagger, fist) and weight; clangs and whooshes by weight
-## and weapon; parries and counters by kind.
-static func cues_for(event: Dictionary) -> Array[Dictionary]:
+## [code]{"cue": StringName, "delay": float, "volume_db": float,
+## "pitch_scale": float, "chance": float}[/code] where volume_db is added to
+## the cue's own level, pitch_scale multiplies its random pitch and chance is
+## how likely it is to sound (1 for always). Applies the demo's sub-selection
+## rules: the hit sound by the event's [code]sound[/code] field (blade,
+## colossal, dagger, fist) and weight, every blade hit adding the flesh layer
+## and a heavy the bone; clangs and parries by the pair of weapons that meet
+## ([constant PAIR_IMPACTS]) and by weight; whooshes by weight and weapon;
+## parries and counters by kind.
+## [param cast] names the fighter on each side, by side (fighter ids, as
+## [member MatchSide.fighter_id]); with it, a fighter's own cloth and gear
+## ([constant FOLEY]) and voice ([constant VOCALS]) join the event's cues.
+static func cues_for(event: Dictionary, cast: Array = []) -> Array[Dictionary]:
 	var type := StringName(str(_field(event, "t", "")))
 	var names: Array[StringName] = []
 	var heavy := bool(_field(event, "heavy", false))
+	var pair: Dictionary = PAIR_IMPACTS.get(pair_key(_field(event, "weapon", &""), _field(event, "defender_weapon", &"")), {})
+	var own: Dictionary = _foley_of(event, cast)
 	match type:
 		&"swing":
 			var weapon := str(_field(event, "weapon", "katana"))
@@ -309,36 +447,53 @@ static func cues_for(event: Dictionary) -> Array[Dictionary]:
 				names = [&"whoosh_light" if heavy else &"whoosh_small"]
 			else:
 				names = [&"whoosh_heavy" if heavy else &"whoosh_light"]
+			names.append_array(own.get(&"swing", []))
 		&"telegraph":
 			# The ultimate's warning is heard through its own start sound.
 			if str(_field(event, "kind", "")) != "ult":
 				names = [&"telegraph"]
 		&"hit":
+			# the cut, then the flesh under every blade, then the bone under
+			# a heavy (the colossal always crunches)
 			match str(_field(event, "sound", "blade")):
 				"fist":
 					names = [&"hit_fist_heavy" if heavy else &"hit_fist"]
 				"colossal":
-					names = [&"hit_colossal", &"crunch"]
+					names = [&"hit_colossal", &"hit_flesh", &"crunch"]
 				"dagger":
-					names = [&"hit_dagger"]
+					names = [&"hit_dagger", &"hit_flesh"]
 				_:
-					names = [&"hit_blade_heavy" if heavy else &"hit_blade"]
+					names = [&"hit_blade_heavy" if heavy else &"hit_blade", &"hit_flesh"]
+			if heavy and names.has(&"hit_flesh") and not names.has(&"crunch"):
+				names.append(&"crunch")
 		&"block":
-			names = [&"clang_heavy" if heavy else &"clang_light"]
+			names = [pair.get(&"block_heavy" if heavy else &"block", &"clang_heavy" if heavy else &"clang_light")]
 		&"parry":
+			var contact: StringName = pair.get(&"parry", &"parry_contact")
 			match str(_field(event, "kind", "parry")):
 				"flash":
-					names = [&"parry_contact", &"parry_flash"]
+					names = [contact, &"parry_flash"]
 				"redirect":
 					names = [&"parry_redirect"]
+					if pair.has(&"redirect"):
+						names.append(pair[&"redirect"])
 				_:
-					names = [&"parry_contact", &"parry_ring"]
+					names = [contact, &"parry_ring"]
 		&"dodge":
-			# the backstep keeps the dash's whoosh; a roll tumbles (task 30)
+			# the backstep keeps the dash's whoosh; a roll tumbles (task 30);
+			# a fighter's own coat takes the general cloth flap's place
 			if bool(_field(event, "back", false)):
-				names = [&"dodge_swish", &"dodge_cloth"]
+				names = [&"dodge_swish"]
+				if own.has(&"dodge"):
+					names.append_array(own[&"dodge"])
+				else:
+					names.append(&"dodge_cloth")
 			else:
 				names = [&"roll"]
+				names.append_array(own.get(&"roll", []))
+		&"land":
+			names = [&"land"]
+			names.append_array(own.get(&"land", []))
 		&"counter":
 			match str(_field(event, "kind", "")):
 				"stomp":
@@ -356,8 +511,91 @@ static func cues_for(event: Dictionary) -> Array[Dictionary]:
 	var delays: Dictionary = DELAYS.get(type, {})
 	var out: Array[Dictionary] = []
 	for cue_name: StringName in names:
-		out.append({"cue": cue_name, "delay": float(delays.get(cue_name, 0.0)), "volume_db": 0.0})
+		out.append(_cue(cue_name, float(delays.get(cue_name, 0.0))))
+	# the fighters' voices (task 114)
+	for m: Dictionary in vocal_moments(event):
+		var side: int = m["side"]
+		var voice: Dictionary = VOCALS.get(voice_of(_fighter(cast, side)), {})
+		if voice.has(m["moment"]):
+			var cue := _cue(voice[m["moment"]], 0.0, m["chance"])
+			cue["pitch_scale"] = SIDE_PITCH[side] if side < SIDE_PITCH.size() else 1.0
+			out.append(cue)
 	return out
+
+
+## The cues of a footfall by [param fighter_id]: the stone footstep and the
+## fighter's own cloth and gear ([constant FOLEY]).
+static func footfall_cues(fighter_id: StringName) -> Array[StringName]:
+	var names: Array[StringName] = [&"footstep"]
+	names.append_array(FOLEY.get(fighter_id, {}).get(&"step", []))
+	return names
+
+
+## Where an event gives a fighter's effort vocals their hooks (task 114),
+## each [code]{"moment": StringName, "side": int, "chance": float}[/code]: a
+## kiai on a heavy swing (abilities and ultimates count) and an exhale on a
+## light one; a breath on a dodge or a landing; pain on being hit, more on a
+## heavy; a death cry on a K.O. (both on a double K.O.). A block is silent.
+static func vocal_moments(event: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var heavy := bool(_field(event, "heavy", false))
+	match StringName(str(_field(event, "t", ""))):
+		&"swing":
+			out.append(_moment(&"kiai" if heavy else &"exhale", int(_field(event, "f", -1))))
+		&"dodge", &"land":
+			out.append(_moment(&"breath", int(_field(event, "f", -1))))
+		&"hit":
+			out.append(_moment(&"pain_heavy" if heavy else &"pain", int(_field(event, "target", -1))))
+		&"ko":
+			var loser := int(_field(event, "loser", -1))
+			for side: int in ([0, 1] if loser < 0 else [loser]):
+				out.append(_moment(&"death", side))
+	# an event that names no fighter gives nobody a voice
+	var named: Array[Dictionary] = []
+	named.assign(out.filter(func(m: Dictionary) -> bool: return int(m["side"]) >= 0))
+	return named
+
+
+## The voice [param fighter_id] speaks with, none for nobody (&"").
+static func voice_of(fighter_id: StringName) -> StringName:
+	if fighter_id.is_empty():
+		return &""
+	return VOICES.get(fighter_id, DEFAULT_VOICE)
+
+
+## True for a cue that is a fighter's voice (VOCALS).
+static func is_vocal(cue_name: StringName) -> bool:
+	for voice: StringName in VOCALS:
+		if (VOCALS[voice] as Dictionary).values().has(cue_name):
+			return true
+	return false
+
+
+## The key of the pair of weapons [param a] and [param b] meet as, the same
+## whichever side holds which: "fists+katana".
+static func pair_key(a: Variant, b: Variant) -> StringName:
+	var ids: Array[String] = [str(a), str(b)]
+	ids.sort()
+	return StringName("+".join(ids))
+
+
+static func _cue(cue_name: StringName, delay: float = 0.0, chance: float = 1.0) -> Dictionary:
+	return {"cue": cue_name, "delay": delay, "volume_db": 0.0, "pitch_scale": 1.0, "chance": chance}
+
+
+static func _moment(moment: StringName, side: int) -> Dictionary:
+	return {"moment": moment, "side": side, "chance": float(VOCAL_CHANCE.get(moment, 1.0))}
+
+
+static func _fighter(cast: Array, side: int) -> StringName:
+	return StringName(cast[side]) if side >= 0 and side < cast.size() else &""
+
+
+## The [constant FOLEY] of the fighter an event names by its "f" field.
+static func _foley_of(event: Dictionary, cast: Array) -> Dictionary:
+	if cast.is_empty() or not (event.has("f") or event.has(&"f")):
+		return {}
+	return FOLEY.get(_fighter(cast, int(_field(event, "f", -1))), {})
 
 
 ## The resource path of every file a cue can play.
