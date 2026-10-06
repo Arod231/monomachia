@@ -18,7 +18,7 @@ The owner launches sessions that each take a batch of tasks in order (x, then y,
 - **Shared files aren't blockers.** Two tasks that edit the same files without using each other's result go to one lane, in order (say so in the plan's Notes), rather than blocking one on the other.
 - **Dropping a blocker.** A later task that reached a gate only through the dropped blocker names that gate itself.
 
-After drafting or changing a plan, check every Blocked by line against these rules, then list the frontier (the tasks that can start now) and the batches that could run side by side, each starting on a frontier task.
+After drafting or changing a plan, check every Blocked by line against these rules, then list the frontier (the tasks that can start now) and the batches that could run side by side, each starting on a frontier task. The Project Manager finds the same batches live (`findBatches` in `tools/lanes-board/plans.mjs`): each starts on a task that can start (ready, or waiting only on the owner's OK, which launching gives) and takes, in build order, the tasks whose every blocker is done or earlier in the batch and that use a task in it, stopping before any task gated on the owner's OK of a task in the batch; each task belongs to one batch. It draws them in pink.
 
 ## When a skill says "publish to the issue tracker"
 

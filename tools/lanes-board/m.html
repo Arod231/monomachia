@@ -22,7 +22,7 @@
   --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff; --bar: rgba(249,249,247,0.86);
   --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
   --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
-  --done: #2a78d6; --working: #eb6834; --ready: #1baf7a; --owner: #eda100; --blocked: #d3d1c7;
+  --done: #2a78d6; --working: #eb6834; --ready: #1baf7a; --owner: #eda100; --blocked: #d3d1c7; --batch: #e0489a;
   --good: #0ca30c; --critical: #d03b3b; --scrim: rgba(0,0,0,0.32);
   --top: env(safe-area-inset-top, 0px); --bottom: env(safe-area-inset-bottom, 0px);
   --side: max(16px, env(safe-area-inset-left, 0px));
@@ -34,7 +34,7 @@
     --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e; --bar: rgba(13,13,13,0.84);
     --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
     --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
-    --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+    --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441; --batch: #f062ad;
     --scrim: rgba(0,0,0,0.55);
   }
 }
@@ -43,7 +43,7 @@
   --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e; --bar: rgba(13,13,13,0.84);
   --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
   --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
-  --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+  --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441; --batch: #f062ad;
   --scrim: rgba(0,0,0,0.55);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -151,6 +151,10 @@ h2 { font-size: 17px; font-weight: 650; margin: 0; }
 .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
 .done { background: var(--done); } .working { background: var(--working); } .ready { background: var(--ready); }
 .owner { background: var(--owner); } .blocked { background: var(--blocked); }
+.batch.blocked { background: var(--batch); }
+.batch.ready, .batch.owner { box-shadow: inset 0 0 0 2.5px var(--batch); }
+.t.batch:is(.ready, .owner) { box-shadow: inset 0 0 0 4px var(--batch); }
+.t.batch.queued:is(.ready, .owner) { box-shadow: inset 0 0 0 4px var(--batch), 0 0 0 2px var(--page), 0 0 0 4px var(--text); }
 .launched { background: transparent; box-shadow: inset 0 0 0 2px var(--working); }
 .retired { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
 
@@ -374,6 +378,8 @@ nav.tabs .count:empty { display: none; }
       <span><i class="sw retired"></i>Retired</span>
       <span><i class="sw moved"></i>Moved to M1 or M2</span>
       <span><i class="sw launched"></i>Launched</span>
+      <span><i class="sw ready batch"></i>Starts a batch</span>
+      <span><i class="sw blocked batch"></i>Later in a batch: the same session takes it next</span>
       <span><i class="sw blocked" style="position:relative"><i style="position:absolute;inset:3px;border-radius:50%;background:var(--page)"></i></i>Review gate</span>
     </div></details>
     <p class="qnote"><a href="/brain/">Second brain</a> · <a href="/desktop">Desktop view</a></p>
@@ -868,7 +874,7 @@ function renderPlan() {
       const t = p.tasks[id];
       const ref = `${p.key}:${id}`;
       // A moved task: a muted "M1" tile; its sheet links to the task that took it over.
-      return `<button class="t ${t.status}${t.gate ? ' gate' : ''}${queue.includes(ref) ? ' queued' : ''}" data-task="${esc(ref)}" aria-label="${esc(`${taskName(p.key, id)} ${t.title}: ${statusLabel(t)}`)}">${t.status === 'moved' ? esc(t.moved.toUpperCase()) : ''}</button>`;
+      return `<button class="t ${t.status}${t.batch ? ' batch' : ''}${t.gate ? ' gate' : ''}${queue.includes(ref) ? ' queued' : ''}" data-task="${esc(ref)}" aria-label="${esc(`${taskName(p.key, id)} ${t.title}: ${statusLabel(t)}${t.batch ? `, batch ${t.batch.n}` : ''}`)}">${t.status === 'moved' ? esc(t.moved.toUpperCase()) : ''}</button>`;
     }).join('');
     const what = !s.ids.length ? '' : s.ids.every((id) => p.tasks[id].status === 'moved') ? 'moved' : 'retired';
     return `<div class="stage ${complete(s) ? 'complete' : ''}"><div class="hd"><span class="nm">${s.n != null ? `<span class="n">${s.n}</span>` : ''}${esc(s.name)}</span><span class="ct">${live.length ? `${done}/${live.length}` : what}</span></div>
