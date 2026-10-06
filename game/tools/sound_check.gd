@@ -423,9 +423,8 @@ static func make_steps() -> Array[Dictionary]:
 	out.append(_event_step(c, "recall: a weapon flies back", {"t": &"recall", "f": 1}))
 	out.append(_event_step(c, "recallBurst: the recall's power-up bursts", {"t": &"recallBurst", "f": 1, "on": 0, "hit": true, "reach": 2.5, "pos": at}))
 	out.append(_event_step(c, "pickup", {"t": &"pickup", "f": 1}))
-	for bounce: Array in [[3.0, "slow"], [8.0, "fast, so it clatters too"]]:
-		out.append(_event_step(c, "weaponBounce: %s" % bounce[1],
-			{"t": &"weaponBounce", "owner": 1, "pos": _dict(FOE + Vector3(1.0, 0.1, 0.0)), "speed": bounce[0]}))
+	out.append(_event_step(c, "weaponStuck: a disarmed weapon sticks in the ground",
+		{"t": &"weaponStuck", "owner": 1, "pos": _dict(FOE + Vector3(1.0, 0.0, 0.0))}))
 	out.append(_event_step(c, "roundStart: the round call", {"t": &"roundStart", "round": 1}))
 	out.append(_event_step(c, "fight", {"t": &"fight", "round": 1}))
 

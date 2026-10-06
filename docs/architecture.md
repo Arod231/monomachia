@@ -251,7 +251,7 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `ult_state.gd` | `UltState` | The ultimate in progress: kind, phase, frames in phase. |
 | `fighter_config.gd` | `FighterConfig` | What a fighter is built from: weapon, abilities, name. |
 | `fighter_stats.gd` | `FighterStats` | Per-match counters for the results screen. |
-| `dropped_weapon.gd` | `DroppedWeapon` | A weapon knocked out of a fighter's hands, tumbling then lying on the floor. |
+| `dropped_weapon.gd` | `DroppedWeapon` | A weapon knocked out of a fighter's hands. Since milestone-1 task 86 it draws nothing from the world's generator: `heading()` follows the blade's motion at contact (the blow's for a knock, the attacker's reversed for a deflect, else straight away), `landing()` shortens the 3.5 m flight to land inside the walls, and it flies a fixed arc to stick blade-first 25° from vertical (`pitch`, rules state), with a `weaponStuck` event. |
 | `slash_wave.gd` | `SlashWave` | A Moonsplitter wave travelling across the arena. |
 | `events.gd` | `SimEvents` | The list of event types and their payloads (documented in its header). |
 | `input_tracker.gd` | `InputTracker` | Turns each frame's `RawInput` into presses, releases, an 8-frame buffer, steps and sprint. |
@@ -269,9 +269,11 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `moves/weapon_def.gd` | `WeaponDef` | One weapon: class, speed, parry window, block mitigation, its moves and which move starts each context. |
 | `moves/moves.gd` | `Moves` | The registry: `WEAPONS`, `PLAYABLE_WEAPONS`, `COUNTER_LUNGE`, `ULT_HITS`, `get_move()`. |
 | `moves/katana.gd`, `greatsword.gd`, `daggers.gd`, `fists.gd` | `KatanaMoves` and so on | Each weapon's `MOVES` table and `build()`: what design sets (damage, posture, kind, type, follow-ups, lunges and the like). Since milestone-1 task 17 the frames (startup, active, recovery, the dodge cancel, the travel) come from the frame-data table (`AttackDef.finalize_moves()` given the weapon, `TABLE_FIELDS`). Fists is the bare-hands moveset. |
-| `ai/ai_brain.gd` | `AIBrain` | The computer opponent. |
-| `ai/training_brain.gd` | `TrainingBrain` | The training dummy's drills. |
-| `training_upkeep.gd` | `TrainingUpkeep` | Training's upkeep, stepped by the host after each rules step: getting up after a K.O., the refill (90 frames unhurt, then 2 HP a frame, the dummy's posture draining as fast), the dummy re-arming after 240 frames disarmed. `weapon_for()` and `swap_dummy_weapon()` give the dummy a weapon that can perform a behaviour. |
+| `ai/ai_brain.gd` | `AIBrain` | The computer opponent. Since milestone-1 task 107 it presses a finisher prompt on its difficulty's share (`AIParams.finisher`, from its own generator, at a frame of the window between `finisher_from` and `finisher_to`) and otherwise plays on with no heavy press that would take it. |
+| `ai/training_brain.gd` | `TrainingBrain` | The training dummy's drills. Its heavies run both Iai draws in a four-turn cycle (milestone-1 task 83). |
+| `training_upkeep.gd` | `TrainingUpkeep` | Training's upkeep, stepped by the host after each rules step: getting up after a K.O., the refill (90 frames unhurt, then 2 HP a frame, the dummy's posture draining as fast), the dummy re-arming after 240 frames disarmed; since milestone-1 task 107 a finisher's victim stays down until the finisher ends, then comes back at full HP and posture, re-armed, its weapon gone from the floor. `weapon_for()` and `swap_dummy_weapon()` give the dummy a weapon that can perform a behaviour. |
+| `finisher_rules.gd` | `FinisherRules` | The finisher's rules (milestone-1 task 103): a disarm at 5% HP or less opens the prompt (`World.prompt_*`, 18 rules frames at 0.3×); only a fresh heavy press inside it starts the paired finisher (`World.finisher_*`, the states `finisher` and `finished`), other presses forfeit it; the line-up, the kill and the K.O. Until tasks 104 and 105 one stand-in (`SimConst.FINISHER_*`) serves both; `ClipDirector.finisher_clip()` borrows the Iai Slash or the Cross to show it. |
+| `unblockable_routes.gd` | `UnblockableRoutes` | The routes table (milestone-1 task 83): how each weapon performs each unblockable, by counter kind. The dummy drills from it; `can_perform()` tells Training's swap, the roster's drill list and the host which weapons can drill what. |
 
 ### 6.2 Data model
 
@@ -370,7 +372,11 @@ classDiagram
     class DroppedWeapon {
         owner
         weapon_id
+        from
+        to
         pos
+        yaw
+        pitch
         grounded
     }
     class SlashWave {
@@ -576,8 +582,9 @@ Every rules event is a `Dictionary` with a `"t"` key, emitted in order and drain
 | Combat | `swing`, `telegraph`, `hit`, `block`, `parry`, `counter`, `evade`, `disarm`, `stagger`, `whiff` | Fighter and World |
 | Movement | `dodge`, `jump`, `land`, `step` | Fighter |
 | Ultimates | `ultReady`, `ultStart`, `ultChoice`, `ultWave`, `ultDash`, `ultImpale`, `ultBurst`, `ultLightning` | Fighter and World |
-| Weapon | `pickup`, `recall`, `weaponBounce` | Fighter and World |
+| Weapon | `pickup`, `recall`, `weaponStuck` | Fighter and World |
 | Follow-up cues | `counterReady`, `backstabReady` | Fighter and World |
+| Finisher | `finisherPrompt`, `finisherPromptEnd`, `finisher`, `finisherKill` (and `ko`'s `finisher`) | `FinisherRules` |
 | Flow | `roundStart`, `fight`, `ko`, `roundOver`, `matchOver` | Match and World |
 
 `parryEarly` is declared but never emitted.
@@ -979,7 +986,7 @@ flowchart TD
     end
 ```
 
-Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `bench/` (the frame-time harness: `FrameTimes`, the percentile maths and the frames file; `WorstCase`, the worst-case replay's search and its committed log `worst_case.json`; `frame_time_bench.tscn`; `record_worst_case.gd`), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `anim_studio/` is the Animation Studio (`npm run studio`): the gallery of live tiles (`gallery/`, `AnimTile`, `StudioCatalogue`) and, since milestone-1 task 25, the editor (`anim_studio/editor/`): `StudioEditor` (a viewport under an `OrbitCamera`, the side panel and the foot-locking toggle), `StudioPlayback` (the playhead over source frames), `StudioTimeline` (the source ruler, the markers, the rules ruler and the feet) and `FramesAndBands` (a move's frame-data table row against its `MoveBands` timing band and distance check); since task 26 `MarkerEdits` (a marker put on a frame, checked as `MoveClips` or `ClipManifest` would check it, into pending edits) and `EditSession` (`anim_studio/edit_session.gd`: the pending edits with undo and redo, and the text a file would be saved as through `SourceEdit`); since task 27 `ChainEdits` (a move's chain as parts and ranges, with no speed or new holds) and `StudioSaver` (`anim_studio/studio_saver.gd`: the clobber check, the atomic write, the frame-data table regenerated by `bake_swings.gd`'s static `bake()` in-process, undone byte for byte if the generator refuses, and the report of changed and out-of-band moves). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
+Other tools in `game/tools`: `soak.gd` and `counterlab.gd` (ports of the TypeScript scripts; counterlab's cases and run are `Counterlab`, `counterlab_run.gd`, which a GUT test runs short), `typecheck.gd`, `shot.gd` (behind `npm run shots`), `inspect_scene.gd` (print a model's nodes, bones and clips), `foot_phase.gd` (gait numbers), `move_bench.gd` (play a move frame by frame for tests and contact sheets), `frame_data_generator.gd` (`FrameDataGenerator`, milestone-1 task 15: a clip and its markers at 1.0× into a move's frame data, its swing and its per-frame travel from the hips and foot plants, and a gait clip's speed), `frame_data_rows.gd` (`FrameDataRows`, task 16: the table's rows, band kinds, checksums and text, which `bake_swings.gd` writes with the swing files), `checklist_results.gd` (where tests record per-move checklist results), `bench/` (the frame-time harness: `FrameTimes`, the percentile maths and the frames file; `WorstCase`, the worst-case replay's search and its committed log `worst_case.json`; `frame_time_bench.tscn`; `record_worst_case.gd`), `foot_contacts.gd` and `measure_feet.gd` (each clip's foot plants and lifts, measured from the clip libraries into the clip manifest), `texel_map.gd` and `js_format.gd` (helpers). `anim_studio/` is the Animation Studio (`npm run studio`): the gallery of live tiles (`gallery/`, `AnimTile`, `StudioCatalogue`) and, since milestone-1 task 25, the editor (`anim_studio/editor/`): `StudioEditor` (a viewport under an `OrbitCamera`, the side panel and the foot-locking toggle), `StudioPlayback` (the playhead over source frames), `StudioTimeline` (the source ruler, the markers, the rules ruler and the feet) and `FramesAndBands` (a move's frame-data table row against its `MoveBands` timing band and distance check); since task 26 `MarkerEdits` (a marker put on a frame, checked as `MoveClips` or `ClipManifest` would check it, into pending edits) and `EditSession` (`anim_studio/edit_session.gd`: the pending edits with undo and redo, and the text a file would be saved as through `SourceEdit`); since task 27 `ChainEdits` (a move's chain as parts and ranges, with no speed or new holds) and `StudioSaver` (`anim_studio/studio_saver.gd`: the clobber check, the atomic write, the frame-data table regenerated by `bake_swings.gd`'s static `bake()` in-process, undone byte for byte if the generator refuses, and the report of changed and out-of-band moves). `game/tools/shot_scenes/` holds the screenshot scenes: arena views, gameplay moments, the look bench, animation contact sheets (`move_sheet`) and the pass/fail render checks. The export excludes `tests/`, `tools/`, `addons/gut/` and `fighters/preview/`.
 
 ## 17. CI and releases
 

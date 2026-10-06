@@ -48,6 +48,20 @@ class AIParams:
 	var use_ult: float = 0.0
 	## chance to raise a pre-emptive guard when inside the opponent's reach
 	var guard: float = 0.0
+	## The finisher prompt (milestone-1 task 107, the spec's computer's
+	## finisher rates table): the share of prompts pressed, and the window's
+	## frames the press falls in (1 the first after the prompt opens).
+	var finisher: float = 0.0
+	var finisher_from: int = 1
+	var finisher_to: int = SimConst.FINISHER_PROMPT_FRAMES
+
+	## These params pressing `rate` of finisher prompts on a frame from
+	## `from` to `to` of the window.
+	func finishing(rate: float, from: int, to: int) -> AIParams:
+		finisher = rate
+		finisher_from = from
+		finisher_to = to
+		return self
 
 	static func make(
 		p_reaction: float,
@@ -76,15 +90,19 @@ class AIParams:
 
 	## { ...params }: a field-by-field copy, so a caller can override some fields.
 	func copy() -> AIParams:
-		return make(reaction, reaction_jitter, parry, block, counter, dodge, aggression, timing_error, use_ult, guard)
+		return make(reaction, reaction_jitter, parry, block, counter, dodge, aggression, timing_error, use_ult, guard).finishing(
+			finisher, finisher_from, finisher_to
+		)
 
 
 # Columns: reaction, reactionJitter, parry, block, counter, dodge, aggression,
-# timingError, useUlt, guard.
+# timingError, useUlt, guard; then the finisher prompt's share and frames
+# (P55: Easy 30% in the window's second half, Normal 60% anywhere in it, Hard
+# 90% in its first 6 frames).
 static var DIFFICULTY: Dictionary[StringName, AIParams] = {
-	&"easy": AIParams.make(27, 8, 0.08, 0.35, 0.1, 0.15, 0.35, 5, 0.5, 0.3),
-	&"normal": AIParams.make(18, 6, 0.3, 0.45, 0.35, 0.2, 0.55, 3, 0.8, 0.55),
-	&"hard": AIParams.make(11, 4, 0.55, 0.35, 0.6, 0.25, 0.72, 2, 1, 0.7),
+	&"easy": AIParams.make(27, 8, 0.08, 0.35, 0.1, 0.15, 0.35, 5, 0.5, 0.3).finishing(0.3, 10, 18),
+	&"normal": AIParams.make(18, 6, 0.3, 0.45, 0.35, 0.2, 0.55, 3, 0.8, 0.55).finishing(0.6, 1, 18),
+	&"hard": AIParams.make(11, 4, 0.55, 0.35, 0.6, 0.25, 0.72, 2, 1, 0.7).finishing(0.9, 1, 6),
 }
 
 
@@ -127,6 +145,13 @@ var _last_opp_blocking_frames: int = 0
 var _spacing_bias: float = 0.0
 var _guard_until: int = 0
 var _guard_roll: int = 0
+## The finisher prompt (milestone-1 task 107): the world frame the last prompt
+## seen opened on, and the frame its press is planned for (-1: let it pass).
+var _prompt_seen: int = -1
+var _finish_at: int = -1
+## Whether this brain presses finisher prompts at all (Training's dummy
+## doesn't).
+var finishes: bool = true
 
 var me: Fighter
 var params: AIParams
@@ -233,7 +258,28 @@ func _stick_toward(x: float, z: float) -> V2:
 
 # ------------------------------------------------------------------ main
 
+## The next step's input. While a finisher prompt is open for this fighter,
+## it decides once whether to press it (params.finisher, from its own
+## generator), then either presses heavy alone on the frame drawn, or plays on
+## without a heavy press that would take the prompt.
 func think() -> RawInput:
+	var W: World = _w()
+	if W.prompt_by != me.id:
+		return _think()
+	if _prompt_seen != W.prompt_at:
+		_prompt_seen = W.prompt_at
+		_finish_at = -1
+		if finishes and rng.chance(params.finisher):
+			_finish_at = W.prompt_at + rng.int(params.finisher_from, params.finisher_to)
+	if _finish_at >= 0:
+		_reset()
+		return RawInput.make(0.0, 0.0, (1 << Btn.HEAVY) if W.frame + 1 == _finish_at else 0)
+	var out: RawInput = _think()
+	out.buttons &= ~(1 << Btn.HEAVY)
+	return out
+
+
+func _think() -> RawInput:
 	var W: World = _w()
 	var frame: int = W.frame + 1 # the frame this input will be read on
 	var opp: Fighter = me.opp

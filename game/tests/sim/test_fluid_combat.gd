@@ -15,7 +15,6 @@ const CENTRE_LIMIT: float = WALL - FIGHTER_RADIUS
 ## The Impaler's dash ends 0.7 m inside the wall.
 const IMPALER_STOP: float = WALL - 0.7
 ## Dropped weapons bounce off a ring 0.8 m inside the wall.
-const BOUNCE_RING: float = WALL - 0.8
 ## The Impaler dashes 24 m/s: 0.4 m a frame.
 const DASH_STEP: float = 0.4
 
@@ -67,22 +66,6 @@ func test_backing_away_stops_a_fighters_centre_at_the_15_m_wall() -> void:
 	assert_gt(furthest, 12.0, "past the demo's 11.08 m")
 	assert_almost_eq(furthest, CENTRE_LIMIT, 1e-9, "no further than the wall less a fighter's radius")
 	assert_almost_eq(_r(a.pos), CENTRE_LIMIT, 1e-9, "held against the wall")
-
-
-func test_a_weapon_dropped_near_the_wall_bounces_off_it_and_rests_inside() -> void:
-	var W: World = H.make_world()
-	var victim: Fighter = W.fighters[1]
-	victim.pos = V3.make(0.0, 0.0, 14.0)
-	W.fighters[0].pos = V3.make()
-	W.spawn_dropped_weapon(victim, W.fighters[0])
-	var furthest: float = 0.0
-	for _i: int in 300:
-		W.step([H.idle(), H.idle()])
-		furthest = maxf(furthest, _r(W.weapons[0].pos))
-	var w: DroppedWeapon = W.weapons[0]
-	assert_true(w.grounded, "it comes to rest")
-	assert_almost_eq(furthest, BOUNCE_RING, 1e-9, "it flies out to its bounce ring and no further")
-	assert_lt(_r(w.pos), BOUNCE_RING - 1.0, "it bounces back off the ring and rests well inside")
 
 
 func test_the_impaler_dash_stops_0_7_m_inside_the_wall() -> void:

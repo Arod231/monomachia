@@ -10,8 +10,12 @@ extends GutTest
 ## load and play;
 ## [br]- anything logs an error (GUT fails a test on any unexpected error).
 
-## The longest a match may take (game frames), as in the other whole-match tests.
-const MAX_FRAMES := 60 * 60 * 12
+## The longest a match may take (game frames): 15 minutes. The other
+## whole-match tests allow 12, but the hidden Daggers' mirror, its moves near
+## twice as long at 1.0x until milestone 2's retune, runs 6.5 to 11 minutes of
+## rules time on Hard (seeds 11-20, measured at milestone-1 task 86), and its
+## seed here passed 12 once the disarmed weapon stuck where it flew.
+const MAX_FRAMES := 60 * 60 * 15
 
 var main: Node
 var host: MatchHost
