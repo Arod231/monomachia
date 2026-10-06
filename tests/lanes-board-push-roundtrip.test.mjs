@@ -73,7 +73,7 @@ describe('the round trip: lock-screen notifications', () => {
     const message = JSON.parse(decryptPayload(push.body, { uaPrivate: phone.getPrivateKey().toString('base64url'), auth }));
     assertMatches(message, { title: 'Fixture session is waiting on you to answer questions in the app', body: 'Which camera?', tag: `session:${SESSION}` });
     const url = new URL(message.url, 'https://pc');
-    assert.equal(url.searchParams.get('go'), 'questions');
+    assert.equal(url.searchParams.get('go'), 'sessions');
     assert.equal(url.searchParams.get('session'), SESSION);
     await new Promise((r) => setTimeout(r, 6000));
     assert.equal(received.length, 1, 'one push per record');

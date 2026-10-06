@@ -38,7 +38,7 @@ import { sessionsApi } from './sessions-api.mjs';
 import { hooksStatusOf } from './hooks.mjs';
 import { bellApi } from './bell-api.mjs';
 import { pushApi } from './push-api.mjs';
-import { ghRunner, mergeApi } from './merge-api.mjs';
+import { ghRunner, mergeWatch } from './merge-api.mjs';
 import { mediaApi } from './media-api.mjs';
 import { docsApi } from './docs-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, newSessionLaunch, pressResult, startView } from './launcher.mjs';
@@ -707,8 +707,8 @@ async function endLaunch(body) {
 }
 
 // ---------- sessions (the Sessions tab) ----------
-// Every recent Claude Code session, the Away switch and the relay's answers,
-// in sessions-api.mjs. A session's plan task is its folder's lane's.
+// Every recent Claude Code session, the Away switch and the replies the owner
+// sends sessions, in sessions-api.mjs. A session's plan task is its folder's lane's.
 const RELAY = process.env.LANES_RELAY ?? path.join(os.homedir(), '.claude', 'lanes-relay');
 function taskOfDir(dir) {
   const d = path.normalize(dir).toLowerCase();
@@ -725,7 +725,7 @@ function branchOfDir(dir) {
 // Whether the hooks installed in user settings are this checkout's (hooks.mjs);
 // both pages say so when they aren't. LANES_CLAUDE_DIR overrides ~/.claude.
 const CLAUDE_DIR = process.env.LANES_CLAUDE_DIR ?? path.join(os.homedir(), '.claude');
-// A handful of small files, read in place each time the Questions tab asks.
+// A handful of small files, read in place each time the Sessions list asks.
 async function hooksState() {
   return hooksStatusOf({ claudeDir: CLAUDE_DIR, boardDir: HERE, read: (file) => { try { return readFileSync(file, 'utf8'); } catch { return null; } } });
 }
@@ -737,10 +737,10 @@ function prOfBranch(branch) {
 // What sessions post with `npm run post` (media.mjs, media-api.mjs), swept hourly.
 const mediaRoutes = mediaApi({ state: STATE, sweepMs: 60 * 60 * 1000 });
 const sessionRoutes = sessionsApi({ relay: RELAY, projects: PROJECTS, activeMs: ACTIVE_MS, contextOf, appSessions, pool, taskOf: taskOfDir,
-  hooks: hooksState, sweepMs: 5000, stopFile: STOPS, prOf: prOfBranch, branchOf: branchOfDir, media: mediaRoutes });
-// Merge from a session's page (merge-api.mjs), and "ready to merge" for the
-// bell, looked for every minute (LANES_MERGE_POLL_MS overrides it, for tests).
-const mergeRoutes = mergeApi({ repoDir: REPO, relay: RELAY, gh, prOf: prOfBranch, sessions: sessionRoutes,
+  hooks: hooksState, stopFile: STOPS, prOf: prOfBranch, branchOf: branchOfDir, media: mediaRoutes });
+// "Ready to merge" for the bell (merge-api.mjs), looked for every minute
+// (LANES_MERGE_POLL_MS overrides it, for tests). The board itself never merges.
+mergeWatch({ repoDir: REPO, relay: RELAY, gh, prOf: prOfBranch, sessions: sessionRoutes,
   stateFile: path.join(STATE, 'merge-ready.json'), pollMs: Number(process.env.LANES_MERGE_POLL_MS) || 60_000 });
 // A session's Docs: what it wrote, its pull request and its artifacts (docs-api.mjs).
 const docsRoutes = docsApi({ repoDir: REPO, worktrees, gh, prOf: prOfBranch, fileOf: sessionRoutes.fileOf, branchOf: sessionRoutes.branchOfSession });
@@ -750,8 +750,8 @@ const docsRoutes = docsApi({ repoDir: REPO, worktrees, gh, prOf: prOfBranch, fil
 const pushRoutes = pushApi({ state: STATE, insecure: !!process.env.LANES_PUSH_INSECURE,
   away: async () => awayOf(JSON.parse(await readFile(path.join(RELAY, 'away.json'), 'utf8').catch(() => 'null'))),
   httpsUrl: () => { const n = [...hostNames].find((h) => h.endsWith('.ts.net')); return n ? `https://${n}` : null; } });
-// The bell: notifications from held items, the relay hook's events and posted media (bell-api.mjs).
-const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY, held: sessionRoutes.held,
+// The bell: notifications from the relay hook's events and posted media (bell-api.mjs).
+const bellRoutes = bellApi({ file: path.join(STATE, 'notifications.json'), relay: RELAY,
   titlesOf: sessionRoutes.titlesOf, posts: mediaRoutes.posts, asking: sessionRoutes.askingNow, onNew: pushRoutes.notify, sweepMs: 5000 });
 
 // ---------- the second brain ----------
@@ -846,7 +846,7 @@ async function handle(req, res) {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);
         result = { ok: true };
-      } else if ((result = await (bellRoutes.post(req.url, body) ?? mergeRoutes.post(req.url, body)
+      } else if ((result = await (bellRoutes.post(req.url, body)
         ?? pushRoutes.post(req.url, body, { origin: req.headers.origin, ua: req.headers['user-agent'] })
         ?? sessionRoutes.post(req.url, body, { ua: req.headers['user-agent'] }))) === undefined) { res.writeHead(404); res.end('{}'); return; }
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -865,7 +865,7 @@ async function handle(req, res) {
       res.end(work.bytes);
       return;
     }
-    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? mergeRoutes.get(url) ?? docsRoutes.get(url) ?? sessionRoutes.get(url);
+    const routed = url.pathname === '/data' ? data() : bellRoutes.get(url) ?? pushRoutes.get(url) ?? docsRoutes.get(url) ?? sessionRoutes.get(url);
     if (routed) {
       const body = JSON.stringify(await routed);
       // About 75 KB every 4 s; gzip makes it a few KB for the phone.
