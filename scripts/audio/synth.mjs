@@ -442,6 +442,116 @@ sound(
   },
 );
 
+// ------------------------------------------------------------------ the Hunter's gear
+
+// The Hunter's own gear (milestone-1 task 36): the bundle has cloth but no
+// leather or sword fittings, so these are made here and played with its cloth
+// recordings (hunter_cloth_*): the brass fittings of the scabbard and belt
+// ticking, the lacquered scabbard knocking at the hip, and the leather
+// harness creaking.
+
+/** One brass fitting ticking: a few high inharmonic modes, very short. */
+function fittingTick(dst, r, { t0 = 0, peak = 0.3 } = {}) {
+  const f0 = r.range(2600, 3600);
+  modes(
+    dst,
+    [
+      { f: f0, amp: peak, decay: r.range(0.035, 0.06) },
+      { f: f0 * r.range(2.3, 2.6), amp: peak * 0.5, decay: r.range(0.02, 0.035) },
+      { f: f0 * r.range(3.9, 4.4), amp: peak * 0.25, decay: 0.015 },
+    ],
+    { t0, rand: r.next },
+  );
+  noiseBurst(dst, { peak: peak * 0.4, attack: 0.0005, decay: 0.006, type: 'highpass', f0: 5000, t0, rand: r.next });
+}
+
+/** The lacquered wooden scabbard knocking against the hip: a hollow box. */
+function scabbardKnock(dst, r, { t0 = 0, peak = 0.5 } = {}) {
+  const f0 = r.range(520, 700);
+  modes(
+    dst,
+    [
+      { f: f0, amp: peak, decay: r.range(0.05, 0.08) },
+      { f: f0 * r.range(1.55, 1.7), amp: peak * 0.55, decay: 0.05 },
+      { f: f0 * r.range(2.6, 2.9), amp: peak * 0.3, decay: 0.03 },
+    ],
+    { t0, rand: r.next },
+  );
+  noiseBurst(dst, { peak: peak * 0.6, attack: 0.0008, decay: 0.012, type: 'bandpass', f0: r.range(1400, 2000), q: 1.2, t0, rand: r.next });
+}
+
+/**
+ * Leather straining: a creak is the leather sticking and slipping, a train of
+ * small clicks whose rate wanders, rung through the strap's body.
+ */
+function leatherCreak(dst, r, { t0 = 0, seconds = 0.2, peak = 0.35 } = {}) {
+  const creak = buffer(seconds + 0.02);
+  let t = 0;
+  const rate0 = r.range(35, 55);
+  const rate1 = rate0 * r.range(0.6, 1.5);
+  while (t < seconds) {
+    const u = t / seconds;
+    const rate = rate0 + (rate1 - rate0) * u;
+    const env = Math.sin(Math.PI * u) ** 0.7;
+    noiseBurst(creak, { peak: peak * env * r.range(0.6, 1), attack: 0.0004, decay: r.range(0.003, 0.006), type: 'bandpass', f0: r.range(900, 1600), q: 3, t0: t, rand: r.next });
+    t += (1 / rate) * r.range(0.8, 1.2);
+  }
+  filter(creak, 'bandpass', r.range(1000, 1400), { q: 0.8 });
+  addInto(dst, creak, t0);
+}
+
+for (let v = 1; v <= 4; v++) {
+  sound(
+    `gen_hunter_gear_tick_0${v}.wav`,
+    'The Hunter\'s gear under a footfall: a brass fitting or two ticking against the scabbard (milestone-1 task 36)',
+    'One or two short brass ticks (inharmonic modes from 2.6-3.6 kHz, a high click) a few milliseconds apart, and a faint scabbard knock',
+    0.15,
+    (r) => {
+      const b = buffer(0.15);
+      fittingTick(b, r, { peak: 0.35 });
+      if (v % 2 === 0) fittingTick(b, r, { t0: r.range(0.012, 0.03), peak: 0.18 });
+      scabbardKnock(b, r, { t0: r.range(0.003, 0.01), peak: 0.12 });
+      return b;
+    },
+    { peakDb: -6 },
+  );
+}
+
+for (let v = 1; v <= 3; v++) {
+  sound(
+    `gen_hunter_gear_rattle_0${v}.wav`,
+    'The Hunter\'s gear in a dodge, a roll or a landing: the scabbard knocking, the fittings rattling and the harness creaking (milestone-1 task 36)',
+    'A scabbard knock (a hollow 520-700 Hz box) with a second softer one, four to six brass ticks scattered over 120 ms, and a short leather creak (a wandering train of band-passed clicks)',
+    0.4,
+    (r) => {
+      const b = buffer(0.4);
+      scabbardKnock(b, r, { peak: 0.5 });
+      scabbardKnock(b, r, { t0: r.range(0.05, 0.09), peak: 0.25 });
+      const ticks = 4 + Math.floor(r.range(0, 3));
+      for (let i = 0; i < ticks; i++) fittingTick(b, r, { t0: r.range(0.002, 0.12), peak: r.range(0.12, 0.28) });
+      leatherCreak(b, r, { t0: r.range(0.02, 0.05), seconds: r.range(0.14, 0.2), peak: 0.22 });
+      return b;
+    },
+    { peakDb: -3 },
+  );
+}
+
+for (let v = 1; v <= 3; v++) {
+  sound(
+    `gen_hunter_creak_0${v}.wav`,
+    'The Hunter\'s leather harness creaking with a swing (milestone-1 task 36)',
+    'A leather creak (a train of band-passed clicks at 35-55 a second, wandering in rate) and a single brass tick',
+    0.3,
+    (r) => {
+      const b = buffer(0.3);
+      leatherCreak(b, r, { seconds: r.range(0.16, 0.24), peak: 0.4 });
+      fittingTick(b, r, { t0: r.range(0.03, 0.1), peak: 0.12 });
+      return b;
+    },
+    { peakDb: -6 },
+  );
+}
+
 // ------------------------------------------------------------------ main
 
 /** High-pass corner (Hz) that takes the DC and sub-sonic drift out of every sound. */

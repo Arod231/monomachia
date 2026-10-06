@@ -36,6 +36,10 @@ const CONTACT := Vector3(0.0, 1.25, 0.0)
 ## follow_back, follow_side and follow_height), looking at the opponent.
 const CAMERA_AT := Vector3(1.35, 1.95, 6.1)
 const LOOK_AT := Vector3(0.0, 1.3, -1.5)
+## Who fights: you are the Hunter, so the Hunter's own cloth, gear and voice
+## are heard near the camera (SoundBank.FOLEY, VOCALS), and the opponent the
+## Rogue, who moves with the general cloth.
+const CAST: Array = [&"hunter", &"rogue"]
 ## How far in front of the camera the distance step's hits land (m).
 const DISTANCES: Array[float] = [1.5, 3.0, 6.0, 12.0, 24.0]
 ## The footstep steps' paces (m/s): the guard walk's fastest, the run's
@@ -148,10 +152,13 @@ func step_seconds(step: Dictionary) -> float:
 	for action: Dictionary in step["actions"]:
 		var t := float(action["time"])
 		if action.has("event"):
-			for cue: Dictionary in SoundBank.cues_for(action["event"]):
-				end = maxf(end, t + float(cue["delay"]) + cue_seconds(cue["cue"]))
+			for cue: Dictionary in SoundBank.cues_for(action["event"], CAST):
+				end = maxf(end, t + float(cue["delay"]) + cue_seconds(cue["cue"]) / float(cue["pitch_scale"]))
 		elif action.has("cue"):
 			end = maxf(end, t + cue_seconds(action["cue"]))
+		elif action.has("footfall"):
+			for cue: StringName in SoundBank.footfall_cues(CAST[int(action["footfall"])]):
+				end = maxf(end, t + cue_seconds(cue))
 		else:
 			end = maxf(end, t)
 	return end + GAP
@@ -235,9 +242,13 @@ func _run_due() -> void:
 
 func _do(action: Dictionary) -> void:
 	if action.has("event"):
-		player.play_event(action["event"], event_position)
+		player.play_event(action["event"], event_position, CAST)
 	elif action.has("cue"):
 		player.play_cue(action["cue"], action["pos"])
+	elif action.has("footfall"):
+		# a foot of side "footfall" comes down, as MatchAudio.foot_down
+		for cue: StringName in SoundBank.footfall_cues(CAST[int(action["footfall"])]):
+			player.play_cue(cue, action["pos"])
 	elif action.has("ambience"):
 		var cue: StringName = action["ambience"]
 		if cue.is_empty():
@@ -386,26 +397,42 @@ static func make_steps() -> Array[Dictionary]:
 	]:
 		out.append(_event_step(c, "swing: %s" % swing[2],
 			{"t": &"swing", "f": 1, "attack": &"swing", "heavy": swing[1], "weapon": StringName(swing[0])}))
+	out.append(_event_step(c, "swing: Katana, light (yours: the Hunter's sleeves and harness)",
+		{"t": &"swing", "f": 0, "attack": &"swing", "heavy": false, "weapon": &"katana"}))
 	out.append(_event_step(c, "telegraph: an unblockable winds up",
 		{"t": &"telegraph", "f": 1, "kind": &"thrust", "attack": &"thrust"}))
 	for hit: Array in [
 		["blade", false, "blade, light"], ["blade", true, "blade, heavy"], ["dagger", false, "Daggers"],
-		["fist", false, "fist, light"], ["fist", true, "fist, heavy"], ["colossal", true, "Greatsword"],
+		["dagger", true, "Daggers, heavy"], ["fist", false, "fist, light"], ["fist", true, "fist, heavy"],
+		["colossal", true, "Greatsword"],
 	]:
 		out.append(_event_step(c, "hit: %s" % hit[2], {"t": &"hit", "attacker": 1, "target": 0, "attack": &"swing",
 			"damage": 10.0, "posture": 10.0, "pos": at, "heavy": hit[1], "sound": StringName(hit[0]), "backstab": false}))
-	for heavy: bool in [false, true]:
-		out.append(_event_step(c, "block: %s" % ("heavy" if heavy else "light"),
-			{"t": &"block", "attacker": 1, "target": 0, "attack": &"swing", "posture": 10.0, "pos": at, "heavy": heavy}))
-	for kind: StringName in [&"parry", &"flash", &"redirect"]:
-		out.append(_event_step(c, "parry" if kind == &"parry" else "parry: %s" % kind,
-			{"t": &"parry", "parrier": 0, "attacker": 1, "pos": at, "kind": kind, "timing": 4, "window": 8}))
+	# blocks and parries by the pair of weapons that meet (milestone-1 task
+	# 36): the general clangs (a Greatsword on a Katana), the Katana on the
+	# Katana, and bare hands against the Katana
+	for pair: Array in [["greatsword", "katana", "Greatsword on Katana"], ["katana", "katana", "Katana on Katana"],
+			["fists", "katana", "fist on the Katana's guard"]]:
+		for heavy: bool in [false, true]:
+			out.append(_event_step(c, "block: %s, %s" % [pair[2], "heavy" if heavy else "light"],
+				{"t": &"block", "attacker": 1, "target": 0, "attack": &"swing", "posture": 10.0, "pos": at, "heavy": heavy,
+				"weapon": StringName(pair[0]), "defender_weapon": StringName(pair[1])}))
+	for parry: Array in [[&"parry", "greatsword", "katana", "parry: Greatsword by Katana"],
+			[&"flash", "greatsword", "katana", "parry: flash, Greatsword by Katana"],
+			[&"parry", "katana", "katana", "parry: Katana by Katana"], [&"flash", "katana", "katana", "parry: flash, Katana by Katana"],
+			[&"parry", "fists", "katana", "parry: a fist by the Katana"], [&"flash", "fists", "katana", "parry: flash, a fist by the Katana"],
+			[&"redirect", "greatsword", "fists", "parry: redirect, Greatsword by a bare hand"],
+			[&"redirect", "katana", "fists", "parry: redirect, Katana by a bare hand"]]:
+		out.append(_event_step(c, parry[3],
+			{"t": &"parry", "parrier": 0, "attacker": 1, "pos": at, "kind": parry[0], "timing": 4, "window": 8,
+			"weapon": StringName(parry[1]), "defender_weapon": StringName(parry[2])}))
 	for kind: StringName in [&"stomp", &"leap", &"evade"]:
 		out.append(_event_step(c, "counter: %s" % kind, {"t": &"counter", "kind": kind, "by": 0, "on": 1, "pos": at}))
 	out.append(_event_step(c, "disarm", {"t": &"disarm", "victim": 1, "by": 0, "pos": at, "reason": &"parried"}))
 	out.append(_event_step(c, "stagger: a disarmed fighter's posture breaks", {"t": &"stagger", "f": 1}))
 	out.append(_event_step(c, "dodge: a roll (yours)", {"t": &"dodge", "f": 0, "back": false}))
 	out.append(_event_step(c, "dodge: a backstep (yours)", {"t": &"dodge", "f": 0, "back": true}))
+	out.append(_event_step(c, "dodge: a backstep (the opponent's, the general cloth)", {"t": &"dodge", "f": 1, "back": true}))
 	out.append(_event_step(c, "jump (yours)", {"t": &"jump", "f": 0}))
 	out.append(_event_step(c, "land (yours)", {"t": &"land", "f": 0}))
 	out.append(_event_step(c, "step: a tap step (yours)", {"t": &"step", "f": 0}))
@@ -449,7 +476,7 @@ static func make_steps() -> Array[Dictionary]:
 		var falls: Array = []
 		var t := 0.0
 		while t < WALK_SECONDS:
-			falls.append({"time": t, "cue": &"footstep", "pos": feet})
+			falls.append({"time": t, "footfall": 1 if feet == FOE else 0, "pos": feet})
 			t += every
 		out.append(_step("Footsteps", "%s (%.1f m/s, a footfall every %.2f s)" % [pace[0], speed, every], falls))
 

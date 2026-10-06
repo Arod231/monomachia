@@ -240,7 +240,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 ### Sound and music
 
 169. As a player, I want footsteps where the clips' feet land, sounding like stone, so that movement sounds grounded. **(P21, confirmed Oct 4)**
-170. As a player, I want metal impacts that depend on which weapons meet, a distinct ring on parries and Flash, flesh and bone layers that match the blood, and the Hunter's own cloth and gear movement sounds, so that combat sounds physical.
+170. [x] As a player, I want metal impacts that depend on which weapons meet, a distinct ring on parries and Flash, flesh and bone layers that match the blood, and the Hunter's own cloth and gear movement sounds, so that combat sounds physical. (Ticked with task 36, for milestone 1's weapons: the Katana and bare hands; the other pairs keep the general clangs until milestone 2.)
 171. As a player, I want the deflect pairs, the stuck weapon, the pull-out, the finisher prompt and both finishers to have their own sounds, so that every new event is heard.
 172. As a player, I want the final hit to ring out as the slow motion drains the arena's sound and the music, then a deep drum under Warrior Slain, so that a round's end is felt.
 173. As a player, I want the 危's warning sound distinct from everything else, so that I hear an unblockable coming.

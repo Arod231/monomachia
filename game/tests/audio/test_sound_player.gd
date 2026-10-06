@@ -37,7 +37,7 @@ func test_a_colossal_hit_plays_both_its_cues_on_combat() -> void:
 	var player := _player()
 	var log := _record(player)
 	player.play_event({"t": "hit", "sound": "colossal", "heavy": true})
-	assert_eq(_cues(log), [&"hit_colossal", &"crunch"] as Array[StringName])
+	assert_eq(_cues(log), [&"hit_colossal", &"hit_flesh", &"crunch"] as Array[StringName])
 	for entry: Dictionary in log:
 		assert_eq(entry["bus"], &"Combat")
 		assert_has(SoundBank.paths_for(entry["cue"]), entry["path"])

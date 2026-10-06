@@ -801,7 +801,7 @@ Milestone-1 task 29: four presets, Low, Medium, High and Ultra. Ultra (`Graphics
 ```mermaid
 flowchart LR
     EV["sim_event(e)"] --> MA["MatchAudio"]
-    MA --> SB["SoundBank.cues_for(e)<br/>event → cue names,<br/>refined by weapon, heavy, kind"]
+    MA --> SB["SoundBank.cues_for(e, cast)<br/>event → cue names,<br/>refined by weapon pair, heavy, kind;<br/>the fighters' own foley and voices"]
     SB --> SP["SoundPlayer.play_cue<br/>pick variation, pitch, bus;<br/>3D voice at the event's position"]
     ST["stepped (not drawn)"] --> FC["FootstepCadence<br/>one step per stride"] --> SP
     SH["MatchView.footfall<br/>(the clips' foot contacts)"] --> SP
@@ -827,6 +827,7 @@ flowchart LR
 ```
 
 - Sounds are keyed by **cue name** in `SoundBank.CUES`: each cue lists its WAV variations under `assets/audio/sfx/`, volume, pitch range, bus and whether it is 3D. `SoundBank.EVENTS` maps each event type to cues; an empty list means the event is deliberately silent.
+- Since milestone-1 task 36, hit, block and parry events name both fighters' weapons (`weapon`, `defender_weapon`), and `SoundBank.PAIR_IMPACTS` picks the impact by the pair that meets (the Katana on the Katana, bare hands against the Katana; other pairs keep the general clangs). A blade hit is the cut, the flesh layer and, on a heavy, the bone. `cues_for(e, cast)` takes each side's fighter id (`MatchAudio.cast()`) and adds that fighter's own cloth and gear (`SoundBank.FOLEY`: the Hunter's) to its swings, dodges, rolls and landings, and `footfall_cues()` under its footsteps; `vocal_moments()` are the hooks of the effort vocals (`VOICES`, `VOCALS`, task 114). A cue can carry a `chance` (sounding only some of the time) and a `pitch_scale`.
 - `SoundPlayer` keeps fixed voice pools and steals the oldest voice when full. Some cues are delayed (the KO gong, the body fall).
 - The attract duel is silent. Music changes only from the played match and the menus.
 - `tools/sound_check.tscn` is a scene for listening to every cue.
