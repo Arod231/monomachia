@@ -31,7 +31,7 @@ import { gzipSync } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
 import os from 'node:os';
 import path from 'node:path';
-import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView } from './plans.mjs';
+import { PLANS, PLAN_BY_KEY, SUBJECT_TASK, parsePlan, mergeCopies, goalFor, cancelStops, linkMoved, planOfBranch, roadmapView, findBatches } from './plans.mjs';
 import { fromTailnetOrLocal, knownHost, pageFor, sameOrigin, tailnetIPv4s, tailscaleSelf, wantsGzip } from './access.mjs';
 import { awayOf, contextTracker, remoteLinkOf } from './sessions.mjs';
 import { sessionsApi } from './sessions-api.mjs';
@@ -516,6 +516,7 @@ async function collect() {
 
   // Task statuses.
   const out = [];
+  let batchN = 0; // batches are numbered across the plans, so "batch 3" names one
   for (const p of plans) {
     const tasks = {};
     for (const t of p.base.tasks.values()) {
@@ -545,8 +546,11 @@ async function collect() {
     if (extra.length) stages.push({ n: null, name: 'Not in the build order', ids: extra });
     const counts = { done: 0, working: 0, launched: 0, ready: 0, owner: 0, blocked: 0, retired: 0, moved: 0 };
     for (const t of Object.values(tasks)) counts[t.status]++;
+    // The batches that could start now, side by side, each one session's tasks in order.
+    const batches = p.plan.closed ? [] : findBatches({ key: p.plan.key, stages, tasks }).map((ids) => ({ n: ++batchN, ids }));
+    for (const b of batches) b.ids.forEach((id, i) => { tasks[id].batch = { n: b.n, at: i, of: b.ids.length }; });
     out.push({ key: p.plan.key, short: p.plan.short, name: p.plan.name, kind: p.plan.kind, closed: !!p.plan.closed,
-      branch: p.branch, file: p.plan.file, stages, tasks, counts,
+      branch: p.branch, file: p.plan.file, stages, tasks, counts, batches,
       total: Object.keys(tasks).length - counts.retired - counts.moved });
   }
 

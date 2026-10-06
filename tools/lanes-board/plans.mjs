@@ -342,6 +342,45 @@ export function roadmapView(phases, plans, lanes) {
 }
 
 /**
+ * The batches a plan can run side by side now (docs/agents/issue-tracker.md,
+ * "Blockers"): each starts on a task that can start (ready, or waiting only on
+ * the owner's OK, which launching it gives), and takes, one after another, the
+ * tasks whose every blocker is done or earlier in the batch and that use the
+ * batch's newest task, so a session working through it never waits (the first
+ * such task in build order). A batch is a chain: tasks that only share an
+ * earlier task fan out instead, each ready for a session of its own once that
+ * task lands, which runs more sessions side by side. A review gate or other owner task (a session can't do it), a task
+ * gated on the owner's OK of a task in the batch, or one already started or
+ * launched, is never taken. Heads are tried in build order and each
+ * task goes to one batch only; a head with nothing to chain makes no batch.
+ * plan: a /data plan ({ key, stages, tasks }). Returns lists of task ids, in order.
+ */
+export function findBatches(plan) {
+  const order = [...new Set(plan.stages.flatMap((s) => s.ids))].filter((id) => plan.tasks[id]);
+  const local = `${plan.key}:`;
+  const taken = new Set();
+  const batches = [];
+  for (const head of order.filter((id) => ['ready', 'owner'].includes(plan.tasks[id].status))) {
+    const batch = [head];
+    const uses = (id, ids) => plan.tasks[id].blockers.some((b) => b.ref.startsWith(local) && ids.includes(b.ref.slice(local.length)));
+    const fits = (id) => {
+      const t = plan.tasks[id];
+      if (t.status !== 'blocked' || t.gate || taken.has(id) || batch.includes(id) || (t.ownerOk ?? []).some((g) => batch.includes(g))) return false;
+      return t.blockers.every((b) => b.done || (b.ref.startsWith(local) && batch.includes(b.ref.slice(local.length))));
+    };
+    for (;;) {
+      const next = order.find((id) => fits(id) && uses(id, [batch.at(-1)]));
+      if (!next) break;
+      batch.push(next);
+    }
+    if (batch.length < 2) continue;
+    for (const id of batch) taken.add(id);
+    batches.push(batch);
+  }
+  return batches;
+}
+
+/**
  * Launching a lane's tasks again is the owner taking the work back up, so any
  * stop entry left from ending that lane (same branch) is cancelled; the stop
  * hook skips cancelled entries. Returns the entries and how many it cancelled.

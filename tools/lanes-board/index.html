@@ -10,7 +10,7 @@
   --page: #f9f9f7; --surface: #f1f0ec; --card: #ffffff;
   --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
   --border: rgba(11,11,11,0.10); --border-strong: rgba(11,11,11,0.22);
-  --done: #2a78d6; --working: #eb6834; --ready: #1baf7a; --owner: #eda100; --blocked: #d3d1c7;
+  --done: #2a78d6; --working: #eb6834; --ready: #1baf7a; --owner: #eda100; --blocked: #d3d1c7; --batch: #e0489a;
   --good: #0ca30c; --critical: #d03b3b;
 }
 @media (prefers-color-scheme: dark) {
@@ -19,7 +19,7 @@
     --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
     --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
     --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
-    --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+    --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441; --batch: #f062ad;
   }
 }
 :root[data-theme="dark"] {
@@ -27,7 +27,7 @@
   --page: #0d0d0d; --surface: #1a1a19; --card: #1f1f1e;
   --text: #ffffff; --text-2: #c3c2b7; --muted: #898781;
   --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.22);
-  --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441;
+  --done: #3987e5; --working: #d95926; --ready: #199e70; --owner: #c98500; --blocked: #444441; --batch: #f062ad;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -77,6 +77,9 @@ a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items
 .t:hover { outline: 2px solid var(--text); outline-offset: 1px; }
 .done { background: var(--done); } .working { background: var(--working); } .ready { background: var(--ready); }
 .owner { background: var(--owner); } .blocked { background: var(--blocked); }
+.batch.blocked { background: var(--batch); }
+.batch.ready, .batch.owner { box-shadow: inset 0 0 0 2.5px var(--batch); }
+.t.batch.queued:is(.ready, .owner) { box-shadow: inset 0 0 0 2.5px var(--batch), 0 0 0 2px var(--page), 0 0 0 4px var(--text); }
 .sw.retired { background: transparent; border: 1px dashed var(--border-strong); }
 .sw.launched { background: transparent; border: 2px solid var(--working); }
 .wait { list-style: none; margin: 0; padding: 0; }
@@ -210,6 +213,13 @@ details.history > section { margin-top: 10px; }
 .phase h4 { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 10px 0 3px; }
 .phase .tiles { margin-top: 6px; }
 .trs { list-style: none; margin: 0; padding: 0; }
+.batches { list-style: none; margin: 0; padding: 0; }
+.batches li { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.batches li .sw { position: relative; top: 1px; }
+.batches .bn { font-weight: 600; white-space: nowrap; color: var(--batch); }
+.batches .chain { min-width: 0; }
+.batches .chain span[data-p] { cursor: pointer; } .batches .chain span[data-p]:hover { text-decoration: underline; }
+.batches .btn { margin-left: auto; flex: none; }
 .tr { display: flex; gap: 7px; align-items: baseline; padding: 3px 5px; margin: 0 -5px; border-radius: 5px; font-size: 13px; cursor: pointer; min-width: 0; }
 .tr:hover, .tr:focus-visible { background: var(--surface); outline: none; }
 .tr .sw { position: relative; top: 1px; }
@@ -248,6 +258,8 @@ details.history > section { margin-top: 10px; }
 .gn.s-ready .stripe { fill: var(--ready); } .gn.s-owner .stripe { fill: var(--owner); }
 .gn.s-blocked .stripe { fill: var(--blocked); } .gn.s-retired .stripe, .gn.s-moved .stripe { fill: none; }
 .gn.s-launched .stripe { fill: var(--working); opacity: .45; }
+.gn.batch .box { stroke: var(--batch); stroke-width: 2.5; } .gn.batch.s-blocked .stripe { fill: var(--batch); }
+.gn.batch .gid tspan { fill: var(--batch); }
 .gn.s-done .gti, .gn.s-retired .gti, .gn.s-done .gid, .gn.s-retired .gid, .gn.s-moved .gti, .gn.s-moved .gid { fill: var(--muted); }
 .gn.s-retired .box, .gn.s-moved .box { stroke-dasharray: 4 3; fill: none; }
 .gn.s-launched .box { stroke: var(--working); stroke-width: 2; }
@@ -434,6 +446,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
   <div id="v-roadmap" class="view">
     <div class="kpis" id="kpisR"></div>
     <div id="rNote"></div>
+    <section id="batchesR"></section>
     <div class="track" id="track" aria-label="Phases in order"></div>
     <div class="phases" id="phases"></div>
     <p class="m" style="margin-top:14px">Click or right-click a task to queue, launch or end it. The Progress tab has every plan's tasks; the Graph tab shows what waits on what.</p>
@@ -452,9 +465,12 @@ details.tl pre { margin: 4px 0 4px 14px; }
       <span><i class="sw blocked" style="position:relative"><i style="position:absolute;inset:3px;border-radius:50%;background:var(--page)"></i></i>Review gate</span>
       <span><i class="sw launched"></i>Launched</span>
       <span><i class="sw ready" style="box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--text)"></i>Queued</span>
+      <span><i class="sw ready batch"></i>Starts a batch</span>
+      <span><i class="sw blocked batch"></i>Later in a batch: the same session takes it next</span>
       <span style="color:var(--muted)">Right-click a task that hasn't started to queue it</span>
     </div>
     <section id="waiting"></section>
+    <section id="batches"></section>
     <section><div class="sh"><h2>Lanes</h2><span class="m" id="laneMeta"></span></div><div class="lanes" id="lanes"></div><div id="others"></div></section>
     <div id="plans"></div>
   </div>
@@ -471,6 +487,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
     <div class="glegend">
       <span><i class="sw done"></i>Done</span><span><i class="sw working"></i>In progress</span><span><i class="sw launched"></i>Launched</span>
       <span><i class="sw ready"></i>Ready</span><span><i class="sw owner"></i>Waits on your OK</span><span><i class="sw blocked"></i>Blocked</span>
+      <span><i class="sw ready batch"></i>Starts a batch</span><span><i class="sw blocked batch"></i>Later in a batch</span>
       <span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="var(--card)" stroke="var(--text-2)" stroke-width="1.5"/></svg>Review gate</span>
       <span><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="var(--text)" stroke-width="2"/></svg>waits on</span>
       <span><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="var(--text)" stroke-width="2" stroke-dasharray="6 4"/></svg>waited on by (when a task is picked)</span>
@@ -662,14 +679,39 @@ const taskTile = (ref) => {
   const t = taskOf(ref);
   if (!t) return '';
   const [k, id] = ref.split(':');
-  return `<i class="t ${t.status}${t.gate ? ' gate' : ''}${queue.includes(ref) ? ' queued' : ''}${STARTABLE.has(t.status) ? ' startable' : ''}" data-p="${k}" data-id="${esc(id)}"></i>`;
+  return `<i class="t ${t.status}${t.batch ? ' batch' : ''}${t.gate ? ' gate' : ''}${queue.includes(ref) ? ' queued' : ''}${STARTABLE.has(t.status) ? ' startable' : ''}" data-p="${k}" data-id="${esc(id)}"></i>`;
 };
 const taskRow = (ref) => {
   const t = taskOf(ref);
   if (!t) return '';
   const [k, id] = ref.split(':');
-  return `<li class="tr s-${t.status}${queue.includes(ref) ? ' queued' : ''}" tabindex="0" data-p="${k}" data-id="${esc(id)}"><i class="sw ${t.status}"></i><span class="id">${esc(taskName(k, id))}</span><span class="ti">${esc(t.title)}</span></li>`;
+  return `<li class="tr s-${t.status}${queue.includes(ref) ? ' queued' : ''}" tabindex="0" data-p="${k}" data-id="${esc(id)}"><i class="sw ${t.status}${t.batch ? ' batch' : ''}"></i><span class="id">${esc(taskName(k, id))}</span><span class="ti">${esc(t.title)}</span></li>`;
 };
+// The batches that can start now, side by side (plans.mjs findBatches): each is
+// one session's tasks in order, starting on a task that can start.
+const batchesOf = () => data.plans.flatMap((p) => (p.batches ?? []).map((b) => ({ ...b, key: p.key, refs: b.ids.map((id) => `${p.key}:${id}`) })));
+const batchName = (t) => (t?.batch ? `batch ${t.batch.n} (${t.batch.at + 1} of ${t.batch.of})` : '');
+function renderBatches(id) {
+  const list = batchesOf();
+  setHtml(id, `<div class="sh"><h2>Batches that can start side by side</h2><span class="m">${list.length
+    ? `${list.length} batch${list.length === 1 ? '' : 'es'}: each is one session's tasks, in order, and none waits on another`
+    : 'none: no task that can start now has a task to chain after it'}</span></div>`
+    + (list.length ? `<ul class="batches">${list.map((b) => `<li><span class="bn">Batch ${b.n}</span><span class="chain">${b.refs.map((r) => {
+      const [k, tid] = r.split(':');
+      return `<span data-p="${k}" data-id="${esc(tid)}" data-jump="${esc(r)}"><i class="sw ${taskOf(r).status} batch"></i> ${esc(taskName(k, tid))} ${esc(shorten(taskOf(r).title, 34))}</span>`;
+    }).join(' → ')}</span><button class="btn small" data-queue-batch="${b.n}" title="Add its tasks to the launch queue, in order">Queue batch</button></li>`).join('')}</ul>` : ''));
+}
+function queueBatch(n) {
+  const b = batchesOf().find((x) => x.n === Number(n));
+  if (!b) return;
+  queue = [...new Set([...queue, ...b.refs])]; queueMsg = null; saveQueue(); render();
+}
+document.addEventListener('click', (e) => {
+  const q = e.target.closest('[data-queue-batch]');
+  if (q) { queueBatch(q.dataset.queueBatch); return; }
+  const j = e.target.closest('.batches [data-jump]');
+  if (j) jumpTo(j.dataset.jump);
+});
 function phaseLanes(ph) {
   return ph.lanes.map((x) => {
     const l = data.lanes.find((y) => y.folder === x.folder) ?? {};
@@ -890,8 +932,8 @@ function render() {
   const before = queue.length;
   queue = queue.filter((ref) => STARTABLE.has(taskOf(ref)?.status));
   if (queue.length !== before) saveQueue();
-  if (view === 'roadmap') { renderKpis(); renderRoadmap(); }
-  if (view === 'progress') { renderKpis(); renderWaiting(); renderLanes(); renderPlans(); }
+  if (view === 'roadmap') { renderKpis(); renderBatches('batchesR'); renderRoadmap(); }
+  if (view === 'progress') { renderKpis(); renderWaiting(); renderBatches('batches'); renderLanes(); renderPlans(); }
   if (view === 'graph') renderGraph();
   renderQueue();
 }
@@ -1029,6 +1071,7 @@ function taskActions(ref, { panel = false } = {}) {
       acts.push({ act: 'add', label: 'Add to launch queue' });
       const extra = chainOf(ref).filter((r) => r !== ref && !queue.includes(r));
       if (extra.length) acts.push({ act: 'chain', label: `Add with its ${extra.length} unstarted blocker${extra.length === 1 ? '' : 's'}` });
+      if (t.batch && batchesOf().find((b) => b.n === t.batch.n)?.refs.some((r) => !queue.includes(r))) acts.push({ act: 'batch', label: `Add batch ${t.batch.n} (${t.batch.of} tasks, in order)` });
     }
     acts.push({ act: 'launch', primary: true, label: queue.includes(ref) ? 'Launch the queue' : queue.length ? `Add and launch the queue (${queue.length + 1})` : 'Launch this task now' });
   }
@@ -1046,6 +1089,7 @@ function runAction(act, ref) {
   if (act === 'add') toggleQueued(ref, true);
   else if (act === 'remove') toggleQueued(ref, false);
   else if (act === 'chain') { queue = [...new Set([...queue, ...chainOf(ref)])]; queueMsg = null; saveQueue(); render(); }
+  else if (act === 'batch') queueBatch(taskOf(ref).batch.n);
   else if (act === 'launch') { if (!queue.includes(ref)) toggleQueued(ref, true); launchQueue(); }
   else if (act === 'goto') jumpTo(taskOf(ref).movedTo);
   else if (act === 'retry') retryLaunch(ref);
@@ -1145,7 +1189,7 @@ function renderGraph(force) {
   $('gPlans').innerHTML = data.plans.map((x) => `<button data-plan="${x.key}" aria-pressed="${x.key === p.key}" title="${esc(x.name)}">${esc(x.name)}</button>`).join('');
   $('gHideDone').checked = gOpt.hideDone;
   $('gShowRetired').checked = gOpt.showRetired;
-  const sig = JSON.stringify([gOpt, Object.entries(p.tasks).map(([id, t]) => [id, t.status, t.blockers.length]), queue, gFind,
+  const sig = JSON.stringify([gOpt, Object.entries(p.tasks).map(([id, t]) => [id, t.status, t.blockers.length, t.batch?.n]), queue, gFind,
     Object.values(p.tasks).flatMap((t) => t.blockers.filter((b) => !b.ref.startsWith(`${p.key}:`)).map((b) => taskOf(b.ref)?.status))]);
   if (sig !== gSig || force) {
     gSig = sig;
@@ -1171,11 +1215,11 @@ function renderGraph(force) {
       const status = t?.status ?? (n.done ? 'done' : 'blocked');
       const title = t?.title ?? '';
       const hit = q && (id.toLowerCase().startsWith(q) || title.toLowerCase().includes(q));
-      return `<g class="gn s-${status}${queue.includes(ref) ? ' queued' : ''}${ref === gSel ? ' sel' : ''}${hit ? ' hit' : ''}" data-p="${k}" data-id="${esc(id)}" data-n="${esc(n.id)}" transform="translate(${n.x},${n.y})">
+      return `<g class="gn s-${status}${t?.batch ? ' batch' : ''}${queue.includes(ref) ? ' queued' : ''}${ref === gSel ? ' sel' : ''}${hit ? ' hit' : ''}" data-p="${k}" data-id="${esc(id)}" data-n="${esc(n.id)}" transform="translate(${n.x},${n.y})">
         <rect class="ring" x="-4" y="-4" width="${n.w + 8}" height="${n.h + 8}" rx="9"/>
         <rect class="box" width="${n.w}" height="${n.h}" rx="6"/>
         <rect class="stripe" x="0.5" y="0.5" width="6" height="${n.h - 1}" rx="3"/>
-        <text class="gid" x="14" y="17">${esc(taskName(k, id))}${status === 'working' ? ' · in progress' : status === 'launched' ? ' · launched' : status === 'moved' ? ` · moved → ${esc(t.moved.toUpperCase())}` : ''}</text>
+        <text class="gid" x="14" y="17">${esc(taskName(k, id))}${status === 'working' ? ' · in progress' : status === 'launched' ? ' · launched' : status === 'moved' ? ` · moved → ${esc(t.moved.toUpperCase())}` : ''}${t?.batch ? `<tspan> · batch ${t.batch.n}</tspan>` : ''}</text>
         <text class="gti" x="14" y="34">${esc(shorten(title, 25))}</text>
         ${t?.gate ? `<circle class="gate" cx="${n.w - 12}" cy="12" r="4.5"/>` : ''}
       </g>`;
@@ -1278,6 +1322,7 @@ function renderPanel() {
     <h3>${esc(taskName(k, id))} ${esc(t.title)}</h3>
     <div><i class="sw ${t.status}"></i> ${esc(statusLabel(t))}${t.gate ? ' · review gate' : ''}${lane ? ` · in ${esc(lane.main ? 'the main checkout' : lane.folder.split(/[\\/]/).pop())}` : ''}${queue.includes(gSel) ? ' · queued' : ''}</div>
     ${t.ownerOk.length ? `<div class="m">Also needs your OK of ${t.ownerOk.map((g) => taskName(k, g)).join(', ')}</div>` : ''}
+    ${t.batch ? `<div class="m"><i class="sw ${t.status} batch"></i> In ${esc(batchName(t))}: ${batchesOf().find((b) => b.n === t.batch.n)?.ids.map((x) => esc(taskName(k, x))).join(' → ') ?? ''}</div>` : ''}
     ${panelConfirm && live ? `<div class="acts confirm"><div>${esc(endQuestion(live))}</div><button class="btn primary" data-pact="end-yes">Stop the session</button><button class="btn" data-pact="end-no">Cancel</button></div>`
       : `<div class="acts">${acts.map((a) => `<button class="btn${a.primary ? ' primary' : ''}" ${a.act ? `data-pact="${a.act}"` : ''} ${a.disabled ? 'disabled' : ''}>${esc(a.label)}</button>`).join('')}</div>`}
     <h4>Waits on (${t.blockers.length})</h4>${t.blockers.length ? `<ul>${t.blockers.map((b) => row(b.ref, b.done)).join('')}</ul>` : '<div class="m">Nothing: it can start any time.</div>'}
@@ -1738,7 +1783,7 @@ document.addEventListener('mouseover', (e) => {
   const bl = t.blockers.length ? `Blocked by ${t.blockers.map((b) => `<span class="${b.done ? 'ok' : ''}">${esc(b.label)}</span>`).join(', ')}` : 'No blockers';
   const owner = t.ownerOk.length ? `<div class="d">Also needs your OK of ${t.ownerOk.map((g) => taskName(p.key, g)).join(', ')}</div>` : '';
   const lane = data.lanes.find((l) => l.working && l.plan === p.key && l.task === el.dataset.id);
-  tip.innerHTML = `<div class="h">${taskName(p.key, el.dataset.id)} ${esc(t.title)}</div><div class="d">${esc(statusLabel(t))}${t.gate ? ' · review gate' : ''}${lane ? ` · in ${esc(lane.main ? 'the main checkout' : lane.folder.split(/[\\/]/).pop())}` : ''}</div><div class="d">${bl}</div>${owner}`;
+  tip.innerHTML = `<div class="h">${taskName(p.key, el.dataset.id)} ${esc(t.title)}</div><div class="d">${esc(statusLabel(t))}${t.gate ? ' · review gate' : ''}${lane ? ` · in ${esc(lane.main ? 'the main checkout' : lane.folder.split(/[\\/]/).pop())}` : ''}</div><div class="d">${bl}</div>${owner}${t.batch ? `<div class="d">In ${esc(batchName(t))}${t.batch.at ? ': the same session takes it after the batch\'s earlier tasks' : ': can start now'}</div>` : ''}`;
   tip.style.opacity = 1;
 });
 document.addEventListener('mousemove', (e) => {
