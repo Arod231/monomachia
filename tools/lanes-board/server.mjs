@@ -376,7 +376,7 @@ async function collect() {
     const list = copies[plan.key];
     if (!list.length) continue;
     const parsed = await Promise.all(list.map(async (c) => ({ time: c.at.time, p: parse(plan, await blobText(c.at.blob), c.at.blob) })));
-    const { tasks, stages, phases, branch, done, retired, moved } = mergeCopies(parsed);
+    const { tasks, stages, phases, branch, done, retired, okd, moved } = mergeCopies(parsed);
     const base = { tasks, stages, phases };
     const working = new Set();
     for (const files of treeFiles) {
@@ -386,7 +386,7 @@ async function collect() {
       }
     }
     // The branch the plan's header names, if any, is where its work goes now.
-    plans.push({ plan, branch: branch ?? plan.branch, base, done, retired, moved, working });
+    plans.push({ plan, branch: branch ?? plan.branch, base, done, retired, okd, moved, working });
   }
   const branchOf = Object.fromEntries(PLANS.map((p) => [p.key, plans.find((x) => x.plan === p)?.branch ?? p.branch]));
 
@@ -396,6 +396,12 @@ async function collect() {
     const p = plans.find((x) => x.plan.key === k);
     return !!p && (p.done.has(id) || p.retired.has(id) || p.moved.has(id));
   };
+  // A gate the owner has OK'd (its task's Done note says so) waits on nothing more.
+  const isOkd = (ref) => {
+    const [k, id] = ref.split(':');
+    return !!plans.find((x) => x.plan.key === k)?.okd.has(id);
+  };
+  const waitsOn = (t) => (t.gatedBy ?? []).filter((g) => !isOkd(g));
   const movedTo = linkMoved(plans.map((p) => ({ key: p.plan.key, tasks: p.base.tasks })));
 
   // Lanes: every worktree.
@@ -490,7 +496,7 @@ async function collect() {
     lane.task = pick;
     lane.taskTitle = pick ? p.base.tasks.get(pick)?.title ?? '' : '';
     const t = pick && p.base.tasks.get(pick);
-    lane.taskWaits = t ? (t.gatedBy ?? []).filter((g) => isDone(g)).map((g) => g.split(':')[1]) : [];
+    lane.taskWaits = t ? waitsOn(t).filter((g) => isDone(g)).map((g) => g.split(':')[1]) : [];
     lane.taskBlocked = t ? t.blockers.filter((x) => !isDone(x)) : [];
     // A lane with uncommitted work, or a live session with commits of its own,
     // is taken to be on its next task. (A session that only reads, like a
@@ -528,13 +534,13 @@ async function collect() {
       else if (p.working.has(t.id)) s = 'working';
       else if (launchOf(ref)) s = 'launched';
       else if (!t.blockers.every(isDone)) s = 'blocked';
-      else if ((t.gatedBy ?? []).length) s = 'owner';
+      else if (waitsOn(t).length) s = 'owner';
       else s = 'ready';
       status.set(ref, s);
       tasks[t.id] = {
         title: t.title, status: s, gate: t.gate,
         blockers: t.blockers.map((x) => ({ ref: x, label: x.startsWith(`${p.plan.key}:`) ? x.split(':')[1] : `${PLAN_BY_KEY[x.split(':')[0]]?.name ?? x.split(':')[0]} ${x.split(':')[1]}`, done: isDone(x) })),
-        ownerOk: (t.gatedBy ?? []).map((g) => g.split(':')[1]),
+        ownerOk: waitsOn(t).map((g) => g.split(':')[1]),
         launchedAt: s === 'launched' ? launchOf(ref).time : null,
         // Moved by the Oct 4 triage to milestone 1 or 2, and the task that took it over.
         moved: t.moved ?? null, movedTo: movedTo.get(ref) ?? null, replaces: t.replaces ?? [],

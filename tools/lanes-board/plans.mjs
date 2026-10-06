@@ -113,8 +113,10 @@ const TASK_LINE = {
 const OTHER_LINE = { nested: /^\s*- \[[ x-]\] /, flat: /^- \[/, roadmap: /^- \[/ };
 
 // Every task and the sub-bullets under it: its blockers (the first "Blocked
-// by:" line, up to " · "; "none" for none), Replaces, an **Owner:** gate, and,
-// on a retired task, a "Moved to milestone 1" (or 2) note that makes it moved.
+// by:" line, up to " · "; "none" for none), Replaces, an **Owner:** gate, the
+// owner's OK of it (a Done note saying the owner approved it, or an "Owner's
+// OK:" line), and, on a retired task, a "Moved to milestone 1" (or 2) note that
+// makes it moved.
 function readTasks(text, plan) {
   const tasks = new Map();
   const gates = new Set();
@@ -123,13 +125,14 @@ function readTasks(text, plan) {
   for (const line of text.split(/\r?\n/)) {
     const m = line.match(TASK_LINE[plan.kind]);
     if (m) {
-      cur = { id: m[2], title: m[3].replace(/[.;:]\s*$/, ''), mark: m[1], blockers: [], gatedBy: [], replaces: [], gate: false, moved: null };
+      cur = { id: m[2], title: m[3].replace(/[.;:]\s*$/, ''), mark: m[1], blockers: [], gatedBy: [], replaces: [], gate: false, okd: false, moved: null };
       tasks.set(cur.id, cur);
       continue;
     }
     if (OTHER_LINE[plan.kind].test(line) || line.startsWith('#')) { cur = null; continue; }
     if (!cur) continue;
     if (/\*\*Owner:\*\*/.test(line)) cur.gate = true;
+    if (/^\s+- Owner's OK:/.test(line) || (/^\s+- Done\b/.test(line) && /\bapproved by the owner\b|\bthe owner\b[^.;]*\bapproved\b/i.test(line))) cur.okd = true;
     const moved = cur.mark === '-' && line.match(/^\s+- Moved to milestone ([12])\b/);
     if (moved) cur.moved = `m${moved[1]}`;
     const r = line.match(/^\s+- Replaces:\s*(.*)/);
@@ -217,8 +220,9 @@ export const parsePlan = (plan, text) => PARSERS[plan.kind](text, plan);
  * branch come from the newest copy. Branches change different tasks (one
  * re-points 12.2's blockers while another ticks 22.2), so each task's text comes
  * from the newest copy that changed it from the oldest copy, and from the newest
- * copy otherwise. A task is done or retired when any copy says so, and moved
- * (to milestone 1 or 2, neither done nor retired) when any copy says that.
+ * copy otherwise. A task is done, retired or OK'd by the owner when any copy
+ * says so, and moved (to milestone 1 or 2, neither done nor retired) when any
+ * copy says that.
  */
 export function mergeCopies(copies) {
   const newest = copies.reduce((a, b) => (b.time > a.time ? b : a));
@@ -238,9 +242,11 @@ export function mergeCopies(copies) {
   }
   const done = new Set();
   const retired = new Set();
+  const okd = new Set();
   const moved = new Map();
   for (const { p } of [...copies].sort((a, b) => a.time - b.time)) {
     for (const t of p.tasks.values()) {
+      if (t.okd) okd.add(t.id);
       if (t.mark === 'x') done.add(t.id);
       if (t.mark === '-') retired.add(t.id);
       if (t.moved) moved.set(t.id, t.moved);
@@ -248,7 +254,7 @@ export function mergeCopies(copies) {
   }
   for (const id of moved.keys()) { done.delete(id); retired.delete(id); }
   for (const [id, t] of tasks) tasks.set(id, { ...t, moved: moved.get(id) ?? null });
-  return { tasks, stages: newest.p.stages, phases: newest.p.phases, branch: newest.p.branch ?? null, done, retired, moved };
+  return { tasks, stages: newest.p.stages, phases: newest.p.phases, branch: newest.p.branch ?? null, done, retired, okd, moved };
 }
 
 /**
