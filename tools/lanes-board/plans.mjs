@@ -345,11 +345,13 @@ export function roadmapView(phases, plans, lanes) {
  * The batches a plan can run side by side now (docs/agents/issue-tracker.md,
  * "Blockers"): each starts on a task that can start (ready, or waiting only on
  * the owner's OK, which launching it gives), and takes, one after another, the
- * tasks whose every blocker is done or earlier in the batch and that use at
- * least one task in it, so a session working through it never waits. The next
- * task is the first in build order that uses the batch's newest task, else any
- * task in it. A task gated on the owner's OK of a task in the batch, or already
- * started or launched, is never taken. Heads are tried in build order and each
+ * tasks whose every blocker is done or earlier in the batch and that use the
+ * batch's newest task, so a session working through it never waits (the first
+ * such task in build order). A batch is a chain: tasks that only share an
+ * earlier task fan out instead, each ready for a session of its own once that
+ * task lands, which runs more sessions side by side. A review gate or other owner task (a session can't do it), a task
+ * gated on the owner's OK of a task in the batch, or one already started or
+ * launched, is never taken. Heads are tried in build order and each
  * task goes to one batch only; a head with nothing to chain makes no batch.
  * plan: a /data plan ({ key, stages, tasks }). Returns lists of task ids, in order.
  */
@@ -363,12 +365,11 @@ export function findBatches(plan) {
     const uses = (id, ids) => plan.tasks[id].blockers.some((b) => b.ref.startsWith(local) && ids.includes(b.ref.slice(local.length)));
     const fits = (id) => {
       const t = plan.tasks[id];
-      if (t.status !== 'blocked' || taken.has(id) || batch.includes(id) || (t.ownerOk ?? []).some((g) => batch.includes(g))) return false;
+      if (t.status !== 'blocked' || t.gate || taken.has(id) || batch.includes(id) || (t.ownerOk ?? []).some((g) => batch.includes(g))) return false;
       return t.blockers.every((b) => b.done || (b.ref.startsWith(local) && batch.includes(b.ref.slice(local.length))));
     };
     for (;;) {
-      const open = order.filter((id) => fits(id) && uses(id, batch));
-      const next = open.find((id) => uses(id, [batch.at(-1)])) ?? open[0];
+      const next = order.find((id) => fits(id) && uses(id, [batch.at(-1)]));
       if (!next) break;
       batch.push(next);
     }

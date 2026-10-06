@@ -763,9 +763,9 @@ describe('findBatches', () => {
     assert.deepEqual(findBatches(p), [['1', '2']]);
   });
 
-  it('follows the chain from the newest task first, then picks up the rest', () => {
+  it('is a chain: each task uses the one before, and tasks that only share an earlier one fan out', () => {
     const p = plan(['1', '2', '3', '4'], { 1: ['ready'], 2: ['blocked', ['1']], 3: ['blocked', ['1']], 4: ['blocked', ['2']] });
-    assert.deepEqual(findBatches(p), [['1', '2', '4', '3']]);
+    assert.deepEqual(findBatches(p), [['1', '2', '4']]);
   });
 
   it('gives each task to one batch, so batches can run side by side', () => {
@@ -786,6 +786,12 @@ describe('findBatches', () => {
   it('takes a task gated on the owner\'s OK of a task done before the batch', () => {
     const p = plan(['9', '1', '2'], { 9: ['done'], 1: ['ready'], 2: ['blocked', ['1', '9*'], ['9']] });
     assert.deepEqual(findBatches(p), [['1', '2']]);
+  });
+
+  it('stops before a review gate or other owner task, which a session can\'t do', () => {
+    const p = plan(['1', '2', '3', '4'], { 1: ['ready'], 2: ['blocked', ['1']], 3: ['blocked', ['2']], 4: ['blocked', ['2']] });
+    p.tasks[3].gate = true;
+    assert.deepEqual(findBatches(p), [['1', '2', '4']]);
   });
 
   it('reads tasks outside the build order too', () => {
