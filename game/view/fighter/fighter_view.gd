@@ -113,6 +113,10 @@ var swing_player: SwingPlayer = SwingPlayer.new()
 ## The clip director's last answer (null before the first frame), what it
 ## plays from, and the foot lock under the clips.
 var shot: ClipDirector.Shot = null
+## Whether the inertial blend under way hands off from an authored clip
+## (an attack's or a state's), whose pose already carries its body: the swing
+## player's body then stays off until it ends (milestone-1 task 23).
+var _blend_from_clip: bool = false
 var director: ClipDirector.Context
 var foot_lock: FootLock
 ## The world the shot and the foot lock are for: a new one starts them afresh.
@@ -198,8 +202,17 @@ func update_from(f: Fighter, pos: Vector3, yaw: float, alpha: float, _delta: flo
 	if f.world != _shot_world:
 		shot = null
 		foot_lock.clear()
+		model.rig.inertial.clear()
 		_shot_world = f.world
+	var before: ClipDirector.Shot = shot
 	shot = ClipDirector.step(shot, f, director)
+	# a hand-off asks the rig for its inertial blend (milestone-1 task 23),
+	# which runs on the world's time, as the clips do
+	var inertial: InertialBlend = model.rig.inertial
+	inertial.time = float(frame) - 1.0 + alpha
+	if shot != before and shot.blend > 0:
+		inertial.request(shot.blend)
+		_blend_from_clip = before != null and (before.drive == ClipDirector.ATTACK or before.drive == ClipDirector.STATE)
 	var down: bool = f.state == &"ko" or f.state == &"knockdown"
 	if down and shot.drive != ClipDirector.STATE:
 		# no clip in the tree for it (task 28's come through the director):
@@ -209,7 +222,7 @@ func update_from(f: Fighter, pos: Vector3, yaw: float, alpha: float, _delta: flo
 		if f.state == &"ko":
 			_fall(maxf(0.0, float(f.sf) - 1.0 + alpha))
 		else:
-			_knocked_down(maxf(0.0, float(f.sf) - 1.0 + alpha))
+			_knocked_down(maxf(0.0, float(f.sf) - 1.0 + alpha), f.knockdown_timings())
 	else:
 		_show_authored(f, alpha)
 		locomotion.update(f, StringName(shot.idle), seconds, alpha)
@@ -403,8 +416,9 @@ func _pose(f: Fighter, p: StickPose.Pose, _seconds: float, alpha: float) -> void
 	rig.body.hips_offset = Vector3(0.0, -crouch, 0.0)
 	# a swing's body (its coil, shift and dip)
 	var swing_body: SwingPlayer.Body = swing_player.body(f, alpha)
-	if driving:
-		# the clip turns the body itself
+	if driving or (_blend_from_clip and rig.inertial.active and rig.inertial.blending()):
+		# the clip turns the body itself, and while the blend away from it
+		# runs, what is left of its pose does
 		swing_body.weight = 0.0
 	swing_body.apply(rig.body)
 	rig.clip_feet = 1.0
@@ -515,17 +529,18 @@ func _fall(frames: float) -> void:
 
 
 ## A knocked-down fighter (task 16), `frames` rules frames into the
-## knockdown: until task 28's clips, the fallback's stand-in. The fall plays
-## KNOCKDOWN_FALL_CLIP over the fall's frames, then the fighter lies in
-## KNOCKDOWN_RISE_CLIP's first pose and rises with it over the stand-up.
-func _knocked_down(frames: float) -> void:
+## knockdown, its phases those of `kd`: until task 28's clips, the
+## fallback's stand-in. The fall plays KNOCKDOWN_FALL_CLIP over the fall's
+## frames, then the fighter lies in KNOCKDOWN_RISE_CLIP's first pose and
+## rises with it over the stand-up.
+func _knocked_down(frames: float, kd: ProtectedTimings) -> void:
 	_let_go()
-	var fall: float = float(SimConst.KNOCKDOWN_FALL_FRAMES)
-	var standup_from: float = fall + float(SimConst.KNOCKDOWN_GROUND_FRAMES)
+	var fall: float = float(kd.knockdown_fall)
+	var standup_from: float = fall + float(kd.knockdown_ground)
 	if frames < fall:
 		_play_share(KNOCKDOWN_FALL_CLIP, frames / fall)
 	else:
-		_play_share(KNOCKDOWN_RISE_CLIP, maxf(0.0, frames - standup_from) / float(SimConst.KNOCKDOWN_STANDUP_FRAMES))
+		_play_share(KNOCKDOWN_RISE_CLIP, maxf(0.0, frames - standup_from) / float(kd.knockdown_rise))
 
 
 ## Shows the share `t` (0 to 1) of clip `clip`.

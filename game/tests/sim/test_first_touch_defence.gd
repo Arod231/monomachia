@@ -24,7 +24,7 @@ func after_each() -> void:
 ## left over its ACTIVE frames, with no lunge and no turn toward the target,
 ## so the bearing it is thrown at decides when it touches.
 static func _slash(unblockable: bool = false) -> WeaponDef:
-	var w: WeaponDef = SF.weapon(&"katana", {})
+	var w: WeaponDef = SF.stand_ins(&"katana", [CUT] as Array[StringName])
 	var cut: AttackDef = w.moves[CUT]
 	cut.startup = STARTUP
 	cut.active = ACTIVE

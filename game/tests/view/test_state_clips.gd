@@ -390,9 +390,9 @@ static func _guards(bout: Bout) -> void:
 static func _stuns(bout: Bout) -> void:
 	for libs: bool in [true, false]:
 		var cases: Array = [
-			[&"stunned", SimConst.LEAP_STUN, &""], [&"stunned", SimConst.REDIRECT_STUN, &""],
-			[&"stagger", SimConst.DISARMED_STAGGER, &""], [&"disarmStagger", SimConst.DISARM_STAGGER, &""],
-			[&"impaled", 60, &""], [&"stunned", SimConst.STOMP_STUN, &"stomp"],
+			[&"stunned", SimConst.LEAP_STUN, &""], [&"stunned", ProtectedTimings.today().redirect_stun, &""],
+			[&"stagger", ProtectedTimings.today().disarmed_daze, &""], [&"disarmStagger", ProtectedTimings.today().disarm_stagger, &""],
+			[&"impaled", 60, &""], [&"stunned", ProtectedTimings.today().stomp_stun, &"stomp"],
 		]
 		for case: Array in cases:
 			if not libs and not (case[1] == SimConst.LEAP_STUN or case[2] == &"stomp"):
@@ -419,7 +419,7 @@ static func _stuns(bout: Bout) -> void:
 static func _rebounds(bout: Bout) -> void:
 	for libs: bool in [true, false]:
 		var cases: Array = [
-			[&"recoil", SimConst.PARRY_RECOIL], [&"stunned", SimConst.FLASH_STUN], [&"stunned", SimConst.REDIRECT_STUN],
+			[&"recoil", SimConst.PARRY_RECOIL], [&"stunned", ProtectedTimings.today().flash_stun], [&"stunned", ProtectedTimings.today().redirect_stun],
 		]
 		for case: Array in cases:
 			if not libs and case[1] != SimConst.PARRY_RECOIL:
@@ -536,8 +536,8 @@ static func _stomps(bout: Bout) -> void:
 		var W2: World = SimHelpers.make_world()
 		var f: Fighter = W2.fighters[0]
 		shot = bout.step(null, f, ctx)
-		f.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
-		for sf: int in range(0, SimConst.STOMP_STUN + 3, 5):
+		f.enter_stun(ProtectedTimings.today().stomp_stun, &"stunned", &"stomp")
+		for sf: int in range(0, ProtectedTimings.today().stomp_stun + 3, 5):
 			_poke(W2, f, &"stunned", sf)
 			shot = bout.step(shot, f, ctx)
 
@@ -552,7 +552,7 @@ static func _downs(bout: Bout) -> void:
 		var ctx: ClipDirector.Context = _ctx(libs)
 		var shot: ClipDirector.Shot = _run(bout, W, null, ctx, 2)
 		f.enter_knockdown()
-		var total: int = SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES + SimConst.KNOCKDOWN_STANDUP_FRAMES
+		var total: int = f.knockdown_timings().knockdown_fall + f.knockdown_timings().knockdown_ground + f.knockdown_timings().knockdown_rise
 		for sf: int in range(1, total + 1):
 			_poke(W, f, &"knockdown", sf)
 			shot = bout.step(shot, f, ctx)
@@ -743,7 +743,8 @@ func test_an_unknown_key_is_refused() -> void:
 		"a group": [{"from": "\"fades\": {", "to": "\"extra\": {}, \"fades\": {", "says": "unknown field extra"}],
 		"a field": [{"from": "\"heavy_hitstun\": 20", "to": "\"heavy_hitstun\": 20, \"heavy\": 1", "says": "hit: unknown field heavy"}],
 		"an ult's field": [{"from": "\"aim\": 30", "to": "\"aim\": 30, \"spare\": 1", "says": "ults.impaler: unknown field spare"}],
-		"a fade": [{"from": "\"guard\": 3, \"rebound\"", "to": "\"guard\": 3, \"blink\": 1, \"rebound\"", "says": "fades: unknown field blink"}],
+		"a fade": [{"from": "\"hitstun\": 0, \"locomotion\"", "to": "\"hitstun\": 0, \"blink\": 1, \"locomotion\"", "says": "fades: unknown field blink"}],
+		"a blend": [{"from": "\"hitstun\": 4, \"locomotion\"", "to": "\"hitstun\": 4, \"blink\": 1, \"locomotion\"", "says": "blends: unknown field blink"}],
 	}
 	for name: String in cases:
 		var c: Dictionary = cases[name][0]

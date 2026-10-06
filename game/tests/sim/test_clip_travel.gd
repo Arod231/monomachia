@@ -4,16 +4,26 @@ extends GutTest
 ## fighter only by its row's travel, with no lunge and none of a run's speed;
 ## the stand-ins, the Counter Lunges and the hidden weapons keep their lunges
 ## until they are re-keyed (milestone 2 for the last two). Right Cut is
-## re-keyed here on a fresh Katana with made-up travel.
+## re-keyed here on a fresh Katana with made-up travel, and played as a
+## stand-in (lunging by its record, as before task 31 re-keyed it) where a
+## test needs one.
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
 const CUT: StringName = &"k_l1"
 const EPS: float = 1e-9
+## The moves re-keyed so far (task 31: Right Cut and Return Cut).
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2"]
 
 
 func after_each() -> void:
 	H.dispose_all()
+
+
+## A fresh Katana whose Right Cut is a stand-in again: no travel, its
+## record's lunge.
+static func _stand_in() -> WeaponDef:
+	return SF.stand_ins(&"katana", [CUT] as Array[StringName])
 
 
 ## A fresh Katana whose Right Cut is re-keyed: moved by `step` ([forward m,
@@ -97,7 +107,7 @@ func test_an_attack_out_of_a_run_keeps_none_of_its_speed() -> void:
 	var last: Array = steps[-1]
 	assert_almost_eq(V3.length(V3.sub(last[1], start)), 0.02 * last[0], EPS, "and so does the whole move")
 	# a stand-in out of a run keeps its share (ATTACK_MOMENTUM_KEEP) as before
-	var stand_in: Array[Array] = _play(SF.weapon(&"katana", {}), 10.0, 30)
+	var stand_in: Array[Array] = _play(_stand_in(), 10.0, 30)
 	assert_gt(V3.length(V3.sub(stand_in[1][1], stand_in[0][1])), 0.03, "the stand-in carries the run on")
 
 
@@ -105,14 +115,29 @@ func test_the_stand_ins_the_counter_lunges_and_the_hidden_weapons_lunge_as_today
 	for w: WeaponDef in [Moves.KATANA, Moves.FISTS, Moves.GREATSWORD, Moves.DAGGERS]:
 		for id: StringName in w.moves:
 			var def: AttackDef = w.moves[id]
-			assert_false(def.by_travel, "%s: no move is re-keyed yet" % id)
-			assert_eq(def.lunge_from(10.0), def.lunge if def.special != &"counterLunge" else 7.0, "%s keeps its lunge" % id)
-	# Right Cut, a stand-in, from 10 m: its 0.35 m lunge, eased over its frames
-	var steps: Array[Array] = _play(Moves.KATANA)
+			var keyed: bool = w == Moves.KATANA and KEYED.has(id)
+			assert_eq(def.by_travel, keyed, "%s: re-keyed only if its family keyed it" % id)
+			if not keyed:
+				assert_eq(def.lunge_from(10.0), def.lunge if def.special != &"counterLunge" else 7.0, "%s keeps its lunge" % id)
+	# Right Cut as a stand-in, from 10 m: its 0.35 m lunge, eased over its frames
+	var steps: Array[Array] = _play(_stand_in())
 	assert_almost_eq(V3.length(V3.sub(steps[-1][1], steps[0][1])), Moves.KATANA.moves[CUT].lunge, 1e-6, "Right Cut lunges 0.35 m")
 	var heavy: Array[Array] = _play(Moves.GREATSWORD)
 	var lunge_and_slide: float = Moves.GREATSWORD.moves[&"g_l1"].lunge + SimConst.COLOSSAL_SLIDE_DIST
 	assert_almost_eq(V3.length(V3.sub(heavy[-1][1], heavy[0][1])), lunge_and_slide, 1e-6, "Heavy Swing lunges and slides on as it did")
+
+
+func test_the_re_keyed_right_cut_moves_by_its_rows_travel() -> void:
+	# task 31's Right Cut: no lunge, its okuri-ashi's travel from the table
+	var cut: AttackDef = Moves.KATANA.moves[CUT]
+	assert_true(cut.by_travel)
+	assert_eq(cut.lunge_from(10.0), 0.0, "no lunge")
+	var ahead: float = 0.0
+	for f: int in range(1, cut.total_frames()):
+		ahead += cut.travel_at(f)[0]
+	assert_gt(ahead, 1.0, "a real step: %.2f m" % ahead)
+	var steps: Array[Array] = _play(Moves.KATANA)
+	assert_almost_eq(V3.length(V3.sub(steps[-1][1], steps[0][1])), ahead, 0.02, "the fighter goes as far as its travel")
 
 
 func test_who_is_led_by_their_clips() -> void:

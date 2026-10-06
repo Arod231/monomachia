@@ -6,21 +6,22 @@ extends GutTest
 
 const LENGTH: float = 1.5
 
-var _saved: Dictionary[StringName, Swing] = {}
+## Each patched move's [swing, real_markers], put back after each test.
+var _saved: Dictionary[StringName, Array] = {}
 
 
 func before_each() -> void:
 	FrozenStateClips.install()
 	var k: WeaponDef = Moves.KATANA
 	for id: StringName in [&"k_l1", &"k_l2"]:
-		_saved[id] = k.moves[id].swing
+		_saved[id] = [k.moves[id].swing, k.moves[id].real_markers]
 		k.moves[id].swing = _baked(k.moves[id], [StringName("Clip_" + String(id))])
 
 
 func after_each() -> void:
 	for id: StringName in _saved:
-		Moves.KATANA.moves[id].real_markers = false
-		Moves.KATANA.moves[id].swing = _saved[id]
+		Moves.KATANA.moves[id].swing = _saved[id][0]
+		Moves.KATANA.moves[id].real_markers = _saved[id][1]
 	_saved.clear()
 	FrozenStateClips.restore()
 	SimHelpers.dispose_all()
@@ -152,7 +153,8 @@ static func _re_keyed(cut: AttackDef) -> void:
 
 
 func test_a_move_with_real_markers_plays_its_clip_at_1x_of_the_worlds_time() -> void:
-	var W: World = SimHelpers.make_world()
+	# far enough apart that nothing lands: the only hit-stop is the test's
+	var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	var ctx: ClipDirector.Context = _ctx()
 	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
@@ -174,7 +176,6 @@ func test_a_move_with_real_markers_plays_its_clip_at_1x_of_the_worlds_time() -> 
 		if f.state == &"attack":
 			assert_almost_eq(shot.clip.time - before, 1.0 / 60.0, 1e-9, "a rules frame of clip each step")
 		seen += 1
-	cut.real_markers = false
 	assert_gt(seen, 20, "through the whole move")
 
 
@@ -183,7 +184,7 @@ func test_a_stand_in_keeps_its_retime() -> void:
 	var f: Fighter = W.fighters[0]
 	var ctx: ClipDirector.Context = _ctx()
 	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
-	assert_false(cut.real_markers, "Right Cut is on stand-in markers until task 31")
+	cut.real_markers = false # a stand-in, as Right Cut was until task 31
 	cut.swing.speed = 1.45
 	cut.swing.marks = PackedFloat64Array([4.0, 9.0, 10.5, 19.0])
 	_poke(W, f, &"attack", &"k_l1", 6)
@@ -205,7 +206,6 @@ func test_a_move_that_outlasts_its_clip_hands_on_and_never_freezes() -> void:
 	_poke(W, f, &"attack", &"k_l1", 5)
 	assert_null(ClipDirector.attack_clip(f, ctx, 5.0), "past its end: no clip held")
 	assert_eq(ClipDirector.step(null, f, ctx).drive, ClipDirector.LEGS, "handed on to the legs")
-	cut.real_markers = false
 
 
 func test_a_held_charge_plays_its_loop() -> void:
@@ -241,7 +241,6 @@ func test_a_held_charge_plays_its_loop() -> void:
 	assert_eq(shot.fade, StateClips.shared().fades[&"follow_up"], "faded out of the loop")
 	assert_almost_eq(shot.clip.time, (4.0 + (frame + 1) / 2.0) / 30.0, 1e-9)
 	cut.swing.loop = &""
-	cut.real_markers = false
 
 
 func test_a_state_clip_at_its_own_speed_loops_or_hands_on() -> void:
@@ -299,50 +298,40 @@ static func _poke(W: World, f: Fighter, state: StringName, move: StringName = &"
 	f.atk.frame = frame
 
 
-func test_each_crossfade_has_its_length() -> void:
+## Every hand-off asks for an inertial blend (milestone-1 task 23) of its
+## length, on its first frame only, and shows the new motion whole at once:
+## no crossfade. The lengths are today's crossfades' (the owner's choice,
+## Oct 5), the hitstun cut a 4-frame blend.
+func test_each_hand_off_requests_its_inertial_blend() -> void:
 	var W: World = SimHelpers.make_world()
 	var f: Fighter = W.fighters[0]
 	var ctx: ClipDirector.Context = _ctx()
 	var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+	assert_eq(shot.blend, 0, "nothing to blend from at first")
 	# into an attack: 3 frames from the legs
 	_poke(W, f, &"attack", &"k_l1", 1)
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.fade, 3, "into an attack")
+	assert_eq([shot.fade, shot.blend], [3, 3], "into an attack")
 	assert_null(shot.from, "from the legs' blend")
-	var shares: Array[float] = [shot.authored()]
-	for i: int in 3:
-		_poke(W, f, &"attack", &"k_l1", 2 + i)
-		shot = ClipDirector.step(shot, f, ctx)
-		shares.append(shot.authored())
-	assert_eq(shares[0], 0.0, "the attack's first frame starts the fade")
-	assert_gt(shares[1], 0.0)
-	assert_lt(shares[2], 1.0)
-	assert_eq(shares[3], 1.0, "all of it after 3 frames")
+	assert_eq(shot.authored(), 1.0, "the attack whole on its first frame")
+	_poke(W, f, &"attack", &"k_l1", 2)
+	shot = ClipDirector.step(shot, f, ctx)
+	assert_eq(shot.blend, 0, "asked on the hand-off's frame alone")
+	assert_eq(shot.authored(), 1.0)
 	# a follow-up: 4 frames, from the last clip's pose
 	var last_time: float = shot.clip.time
 	_poke(W, f, &"attack", &"k_l2", 1, &"k_l1")
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.fade, 4, "a follow-up")
-	assert_eq(shot.from.name, "HumanM/Clip_k_l1", "fading in from the last clip")
+	assert_eq([shot.fade, shot.blend], [4, 4], "a follow-up")
+	assert_eq(shot.from.name, "HumanM/Clip_k_l1", "handed off from the last clip")
 	assert_eq(shot.from.time, last_time, "held at its last pose")
 	assert_eq(shot.clip.name, "HumanM/Clip_k_l2")
-	assert_eq(shot.authored(), 1.0, "authored all through")
-	for i: int in 4:
-		_poke(W, f, &"attack", &"k_l2", 2 + i)
-		shot = ClipDirector.step(shot, f, ctx)
-	assert_null(shot.from, "the fade done")
-	assert_eq(shot.clip_share(), 1.0)
+	assert_eq(shot.clip_share(), 1.0, "the follow-up's clip whole at once")
 	# back to the legs: 6 frames
 	_poke(W, f, &"free")
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq([shot.drive, shot.fade], [ClipDirector.LEGS, 6], "back to the legs")
-	assert_eq(shot.from.name, "HumanM/Clip_k_l2", "the clip fading out")
-	assert_eq(shot.authored(), 1.0)
-	for i: int in 6:
-		_poke(W, f, &"free")
-		shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.authored(), 0.0, "the legs alone after 6 frames")
-	assert_null(shot.from)
+	assert_eq([shot.drive, shot.fade, shot.blend], [ClipDirector.LEGS, 6, 6], "back to the legs")
+	assert_eq(shot.authored(), 0.0, "the legs alone at once")
 	# a dodge-cancel: 2
 	_poke(W, f, &"attack", &"k_l1", 1)
 	shot = ClipDirector.step(shot, f, ctx)
@@ -350,17 +339,18 @@ func test_each_crossfade_has_its_length() -> void:
 	shot = ClipDirector.step(shot, f, ctx)
 	_poke(W, f, &"dodge")
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.fade, 2, "a dodge-cancel")
-	# hitstun cuts
+	assert_eq([shot.fade, shot.blend], [2, 2], "a dodge-cancel")
+	# hitstun: today's cut, now a 4-frame blend
 	_poke(W, f, &"attack", &"k_l1", 1)
 	shot = ClipDirector.step(shot, f, ctx)
 	_poke(W, f, &"attack", &"k_l1", 6)
 	shot = ClipDirector.step(shot, f, ctx)
 	_poke(W, f, &"hitstun")
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.fade, 0, "hitstun cuts")
-	assert_eq(shot.authored(), 0.0, "nothing fades out")
-	assert_eq(StateClips.shared().fades[&"stance"], 8, "a stance change fades 8")
+	assert_eq([shot.fade, shot.blend], [0, 4], "hitstun blends over 4")
+	assert_eq(StateClips.shared().blends[&"stance"], 8, "a stance change blends 8")
+	assert_eq(StateClips.shared().blends, {&"attack": 3, &"follow_up": 4, &"dodge_cancel": 2, &"hitstun": 4,
+		&"locomotion": 6, &"stance": 8, &"state": 2, &"guard": 3, &"rebound": 4}, "today's crossfades, hitstun's 4")
 
 
 func test_a_move_without_a_baked_swing_keeps_the_stand_in() -> void:
@@ -578,6 +568,7 @@ func test_an_attack_from_the_shoulder_fades_in_over_the_lift() -> void:
 	assert_eq(shot.fade, SimConst.GS_SHOULDER_LIFT_FRAMES, "the lift is the crossfade")
 	assert_eq(shot.from.name, "HumanM/" + StateClips.shared().carry_pose, "from the shoulder")
 	assert_true(shot.from_upper)
+	assert_eq(shot.blend, SimConst.GS_SHOULDER_LIFT_FRAMES, "blended over the lift")
 	var first: float = shot.clip.time
 	var legs: Array[float] = [shot.legs_free()]
 	for i: int in SimConst.GS_SHOULDER_LIFT_FRAMES:
@@ -585,10 +576,8 @@ func test_an_attack_from_the_shoulder_fades_in_over_the_lift() -> void:
 		legs.append(shot.legs_free())
 		if f.atk.lift_left > 0:
 			assert_eq(shot.clip.time, first, "the attack's first frame held through the lift")
-	assert_eq(legs[0], 1.0, "the legs walk as the lift starts")
-	assert_eq(legs[-1], 0.0, "and are the attack's once it ends")
-	for i: int in legs.size() - 1:
-		assert_true(legs[i + 1] <= legs[i], "handed over without going back: %s" % [legs])
+	for share: float in legs:
+		assert_eq(share, 0.0, "the legs the attack's at once, the blend smoothing the hand-off: %s" % [legs])
 	assert_null(shot.from, "the fade done")
 
 
@@ -601,9 +590,8 @@ func test_a_guard_raised_from_the_shoulder_fades_out_over_the_lift() -> void:
 		shot = _next(W, shot, ctx)
 	shot = _next(W, shot, ctx, [SimHelpers.btn(Btn.BLOCK), SimHelpers.idle()])
 	assert_false(W.fighters[0].shouldered, "off the shoulder")
-	assert_eq([shot.drive, shot.fade], [ClipDirector.LEGS, SimConst.GS_SHOULDER_LIFT_FRAMES], "back to the legs over the lift")
-	assert_eq(shot.legs_free(), 1.0, "the legs stay the legs' blend's as it fades")
-	assert_eq(shot.authored(), 1.0, "the carry still all there on its first frame")
+	assert_eq([shot.drive, shot.fade, shot.blend], [ClipDirector.LEGS, SimConst.GS_SHOULDER_LIFT_FRAMES, SimConst.GS_SHOULDER_LIFT_FRAMES], "back to the legs, blended over the lift")
+	assert_eq(shot.authored(), 0.0, "the legs at once")
 
 
 func test_the_stomp_plays_its_keyed_clip_fitted_to_the_state() -> void:
@@ -716,8 +704,8 @@ func test_the_stomped_thruster_plays_its_pin_fitted_to_the_stun() -> void:
 	var ctx: ClipDirector.Context = _ctx()
 	var pinned: String = KeyedClips.anim_name(KeyedClips.PINNED)
 	ctx.lengths[pinned] = 70.0 / 60.0
-	f.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
-	f.sf = 35
+	f.enter_stun(ProtectedTimings.for_weapon(&"katana").stomp_stun, &"stunned", &"stomp")
+	f.sf = f.state_dur / 2
 	var clip: ClipDirector.Clip = ClipDirector.state_clip(f, ctx)
 	assert_not_null(clip)
 	assert_eq(clip.name, pinned, "the stomp's stun plays Mikiri_Pinned")
@@ -798,7 +786,7 @@ func test_hitstun_plays_the_light_or_heavy_recoil() -> void:
 			assert_almost_eq(clip.time, ClipDirector.fitted_time(f.sf, case[0], ctx.lengths[want]), 1e-9, "timed to the hitstun")
 
 
-func test_a_hit_cuts_into_its_recoil() -> void:
+func test_a_hit_blends_into_its_recoil() -> void:
 	var ctx: ClipDirector.Context = _reaction_ctx()
 	var W: World = SimHelpers.make_world()
 	var f: Fighter = W.fighters[0]
@@ -808,7 +796,7 @@ func test_a_hit_cuts_into_its_recoil() -> void:
 	f.enter_hitstun(14)
 	W.frame += 1
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq([shot.drive, shot.fade], [ClipDirector.STATE, 0], "hitstun cuts")
+	assert_eq([shot.drive, shot.fade, shot.blend], [ClipDirector.STATE, 0, 4], "no crossfade, a 4-frame blend")
 
 
 func test_a_held_block_loops_the_guard_on_the_upper_body() -> void:
@@ -830,9 +818,9 @@ func test_a_held_block_loops_the_guard_on_the_upper_body() -> void:
 		assert_almost_eq(shot.clip.time, fmod(float(held) / 60.0, length), 1e-9, "looped at 1.0 (frame %d)" % held)
 	shot = _next(W, shot, ctx)
 	assert_false(f.blocking)
-	assert_eq([shot.drive, shot.fade], [ClipDirector.LEGS, StateClips.shared().fades[&"locomotion"]], "lowered back to the legs")
+	assert_eq([shot.drive, shot.blend], [ClipDirector.LEGS, StateClips.shared().blends[&"locomotion"]], "lowered back to the legs")
 	assert_true(shot.from_upper)
-	assert_eq(shot.legs_free(), 1.0, "the legs stay the legs' blend's as it fades")
+	assert_eq(shot.authored(), 0.0, "the legs alone at once")
 
 
 func test_each_weapon_class_guards_with_its_own_clips() -> void:
@@ -880,8 +868,8 @@ func test_the_long_stuns_play_stun01_timed_to_them() -> void:
 	var W: World = SimHelpers.make_world()
 	var f: Fighter = W.fighters[0]
 	var length: float = ctx.lengths["HumanM/Stun01"]
-	for case: Array in [[&"stunned", SimConst.LEAP_STUN], [&"stunned", SimConst.REDIRECT_STUN], [&"stagger", SimConst.DISARMED_STAGGER],
-			[&"disarmStagger", SimConst.DISARM_STAGGER], [&"impaled", 60]]:
+	for case: Array in [[&"stunned", SimConst.LEAP_STUN], [&"stunned", ProtectedTimings.for_weapon(&"katana").redirect_stun], [&"stagger", ProtectedTimings.for_weapon(&"katana").disarmed_daze],
+			[&"disarmStagger", ProtectedTimings.for_weapon(&"katana").disarm_stagger], [&"impaled", 60]]:
 		f.enter_stun(case[1], case[0])
 		f.sf = case[1] / 2
 		assert_eq(ClipDirector.reaction_of(f), &"stun", String(case[0]))
@@ -893,7 +881,7 @@ func test_the_long_stuns_play_stun01_timed_to_them() -> void:
 	# the stomped thruster keeps its keyed pin
 	var pinned: String = KeyedClips.anim_name(KeyedClips.PINNED)
 	ctx.lengths[pinned] = 70.0 / 60.0
-	f.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
+	f.enter_stun(ProtectedTimings.for_weapon(&"katana").stomp_stun, &"stunned", &"stomp")
 	W.frame += 1
 	shot = ClipDirector.step(shot, f, ctx)
 	assert_eq(shot.clip.name, pinned, "the stomp's stun: Mikiri_Pinned")
@@ -988,7 +976,7 @@ func test_a_parried_attack_runs_back_then_staggers() -> void:
 
 func test_a_flash_or_redirect_stun_rebounds_too_but_not_a_stomp() -> void:
 	var ctx: ClipDirector.Context = _reaction_ctx()
-	for stun: int in [SimConst.FLASH_STUN, SimConst.REDIRECT_STUN]:
+	for stun: int in [ProtectedTimings.for_weapon(&"katana").flash_stun, ProtectedTimings.for_weapon(&"katana").redirect_stun]:
 		var got: Array = _attacking(ctx, 12)
 		var W: World = got[0]
 		var f: Fighter = W.fighters[0]
@@ -1007,7 +995,7 @@ func test_a_flash_or_redirect_stun_rebounds_too_but_not_a_stomp() -> void:
 	var f2: Fighter = (got2[0] as World).fighters[0]
 	var pinned: String = KeyedClips.anim_name(KeyedClips.PINNED)
 	ctx.lengths[pinned] = 70.0 / 60.0
-	f2.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
+	f2.enter_stun(ProtectedTimings.for_weapon(&"katana").stomp_stun, &"stunned", &"stomp")
 	f2.atk = null
 	(got2[0] as World).frame += 1
 	var shot2: ClipDirector.Shot = ClipDirector.step(got2[1], f2, ctx)
@@ -1049,9 +1037,9 @@ func test_a_knockdown_fits_knockdown01_to_its_three_phases() -> void:
 	var W: World = SimHelpers.make_world()
 	var f: Fighter = W.fighters[0]
 	f.enter_knockdown()
-	var fall: int = SimConst.KNOCKDOWN_FALL_FRAMES
-	var ground: int = SimConst.KNOCKDOWN_GROUND_FRAMES
-	var up: int = SimConst.KNOCKDOWN_STANDUP_FRAMES
+	var fall: int = f.knockdown_timings().knockdown_fall
+	var ground: int = f.knockdown_timings().knockdown_ground
+	var up: int = f.knockdown_timings().knockdown_rise
 	var shot: ClipDirector.Shot = null
 	var fall_len: float = ctx.lengths["HumanM/Knockdown01_Fall"]
 	var ground_len: float = ctx.lengths["HumanM/Knockdown01_Ground"]
@@ -1087,10 +1075,10 @@ func test_without_the_packs_a_knockdown_plays_the_stand_ins() -> void:
 	f.enter_knockdown()
 	f.sf = 10
 	assert_eq(ClipDirector.down_clip(f, ctx).name, "ual/Hit_Knockback", "falling")
-	f.sf = SimConst.KNOCKDOWN_FALL_FRAMES + 5
+	f.sf = f.knockdown_timings().knockdown_fall + 5
 	var lying: ClipDirector.Clip = ClipDirector.down_clip(f, ctx)
 	assert_eq([lying.name, lying.time], ["ual/LayToIdle", 0.0], "lying in the rise's first pose")
-	f.sf = SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES + 5
+	f.sf = f.knockdown_timings().knockdown_fall + f.knockdown_timings().knockdown_ground + 5
 	assert_eq(ClipDirector.down_clip(f, ctx).name, "ual/LayToIdle", "rising")
 
 
@@ -1185,7 +1173,7 @@ func test_a_roll_turns_the_body_toward_the_roll_and_back_over_the_recovery() -> 
 
 func test_a_dodge_attack_comes_up_facing_the_opponent_over_its_first_3_frames() -> void:
 	var k: WeaponDef = Moves.KATANA
-	_saved[&"k_dl"] = k.moves[&"k_dl"].swing
+	_saved[&"k_dl"] = [k.moves[&"k_dl"].swing, k.moves[&"k_dl"].real_markers]
 	k.moves[&"k_dl"].swing = _baked(k.moves[&"k_dl"], [&"Clip_k_l1"])
 	var ctx: ClipDirector.Context = _move_ctx()
 	var W: World = SimHelpers.make_world()

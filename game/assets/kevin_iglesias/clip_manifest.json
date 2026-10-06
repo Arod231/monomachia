@@ -43,6 +43,25 @@
 				"daggers"
 			]
 		},
+		"RightCut": {
+			"export": "exports/clips/right_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H01_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 14,
+				"contact_end": 16,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 11], [16, 44]], "right": [[0, 4], [10, 12], [19, 44]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"Attack1H02_L": {
 			"pack": "Human Melee Animations",
 			"dir": "Combat/1H",
@@ -78,6 +97,25 @@
 			"groups": [
 				"katana",
 				"daggers"
+			]
+		},
+		"ReturnCut": {
+			"export": "exports/clips/return_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H03_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 12,
+				"contact_end": 15,
+				"settle": 28
+			},
+			"foot_contacts": {"left": [[0, 6], [12, 50]], "right": [[0, 2], [6, 7], [15, 50]]},
+			"provisional": false,
+			"groups": [
+				"katana"
 			]
 		},
 		"Attack1H03_L": {

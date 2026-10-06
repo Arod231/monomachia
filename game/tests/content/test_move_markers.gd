@@ -9,6 +9,10 @@ extends GutTest
 const TEMP: String = "user://move_markers_test.json"
 ## The moves whose markers sit at their clips' events (spec P10, P48).
 const REAL: Array[StringName] = [&"k_lunge", &"f_lunge"]
+## The moves re-keyed since, on real markers placed to their frame counts,
+## within half a source frame of their clips' events (task 31: Right Cut and
+## Return Cut).
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2"]
 const REAL_WEAPONS: Array[StringName] = [&"greatsword", &"daggers"]
 
 
@@ -26,7 +30,7 @@ func _read(data: Dictionary) -> MoveClips:
 
 
 func _real(wid: StringName, id: StringName) -> bool:
-	return REAL_WEAPONS.has(wid) or REAL.has(id)
+	return REAL_WEAPONS.has(wid) or REAL.has(id) or KEYED.has(id)
 
 
 ## Each move's follow-ups (its chain_light and chain_heavy).
@@ -104,7 +108,8 @@ func test_real_markers_sit_at_the_clips_events() -> void:
 			var marks: Dictionary = e.marks if not e.marks.is_empty() else MoveClips.markers(e, manifest, PackedFloat64Array([0.0]))
 			for pair: Array in [["windup", "windup"], ["active_start", "contact"], ["active_end", "contact_end"], ["settle", "settle"]]:
 				assert_almost_eq(e.markers[pair[0]], float(marks[pair[1]]), 0.5, "%s's %s at its %s" % [id, pair[0], pair[1]])
-				assert_eq(e.markers[pair[0]], floorf(e.markers[pair[0]]), "%s's %s on a whole frame" % [id, pair[0]])
+				if not KEYED.has(id):
+					assert_eq(e.markers[pair[0]], floorf(e.markers[pair[0]]), "%s's %s on a whole frame" % [id, pair[0]])
 
 
 func test_frame_data_count_two_rules_frames_a_source_frame_from_the_wind_up() -> void:

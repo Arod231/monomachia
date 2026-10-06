@@ -2,22 +2,26 @@ extends GutTest
 ## Knockdown (authored-animation plan task 16, spec "Rules changes"): an
 ## unblockable, a heavy released at full charge and the Greatsword's slams
 ## knock the defender down on a hit, in place of hitstun. The downed fighter
-## falls, lies and stands up on a fixed timer, invulnerable until stand-up
-## frame 10, then able to block or parry (but not attack, dodge or move) for
-## the stand-up's last 15 frames. Expected numbers come from the spec.
+## falls, lies and stands up on a fixed timer, invulnerable until the
+## stand-up's guard window, then able to block or parry (but not attack, dodge
+## or move) through it. Expected numbers come from the milestone-1 spec's
+## protected-timing table: the knockdowns here are the Katana's, retuned by
+## milestone-1 task 22 (a Greatsword's keeps today's 20, 30, 25 and 15; see
+## test_protected_timings.gd).
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 const CLOSE: float = 0.005
 
-## The spec's provisional phases: fall 20, ground 30, stand-up 25.
-const FALL: int = 20
+## The Katana's retuned phases: fall 30, ground 30, stand-up 40.
+const FALL: int = 30
 const GROUND: int = 30
-const STANDUP: int = 25
+const STANDUP: int = 40
 const TOTAL: int = FALL + GROUND + STANDUP
-## Invulnerable from the fall's first frame until stand-up frame 10.
-const INVULN_LAST: int = FALL + GROUND + 10
-## The stomp keeps its 70-frame stun.
-const STOMP_STUN: int = 70
+## Invulnerable from the fall's first frame until stand-up frame 20, where
+## the 20-frame guard window opens.
+const INVULN_LAST: int = FALL + GROUND + 20
+## The stomp's retuned stun.
+const STOMP_STUN: int = 90
 
 ## Piercing Thrust's numbers (the Katana's block-heavy ability).
 const THRUST_DAMAGE: float = 12.0
@@ -220,7 +224,7 @@ func test_a_knocking_out_hit_plays_the_ko_instead() -> void:
 	assert_eq(b.state, &"ko")
 
 
-func test_the_stomp_still_stuns_for_70_and_doesnt_knock_down() -> void:
+func test_the_stomp_stuns_for_its_retuned_90_and_doesnt_knock_down() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
 	var a: Fighter = W.fighters[0]
@@ -240,7 +244,7 @@ func test_the_stomp_still_stuns_for_70_and_doesnt_knock_down() -> void:
 
 # ------------------------------------------------------------------ the downed fighter
 
-func test_the_downed_fighter_is_invulnerable_until_stand_up_frame_10() -> void:
+func test_the_downed_fighter_is_invulnerable_until_its_guard_window() -> void:
 	var W: World = _knocked_down()
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
@@ -270,7 +274,8 @@ func test_a_light_swung_into_a_downed_fighter_passes_through() -> void:
 	a.pos = V3.make(b.pos.x, 0.0, b.pos.z - 1.6)
 	a.yaw = 0.0
 	W.drain_events()
-	H.run(W, 14, H.tap_at(0, Btn.LIGHT), IDLE, r)
+	# Right Cut lands on state frame 60, still downed (to rise frame 20)
+	H.run(W, H.LIGHT_LANDS + 10, H.tap_at(0, Btn.LIGHT), IDLE, r)
 	assert_true(r.has(&"swing"))
 	assert_false(r.has(&"hit"))
 	assert_almost_eq(b.hp, 100.0 - THRUST_DAMAGE, CLOSE)
@@ -283,14 +288,15 @@ func test_in_the_guard_window_a_light_is_blocked() -> void:
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
 	var hold_block: Callable = func(_i: int) -> RawInput: return H.btn(Btn.BLOCK)
-	# the light lands 12 frames after the press: on state frame 63
-	_to_sf(W, INVULN_LAST - 9, hold_block)
+	# the light lands H.LIGHT_LANDS steps after the press: on state frame 83,
+	# 3 frames into the guard window
+	_to_sf(W, INVULN_LAST + 3 - H.LIGHT_LANDS, hold_block)
 	a.set_state(&"free")
 	a.pos = V3.make(b.pos.x, 0.0, b.pos.z - 1.6)
 	a.yaw = 0.0
 	b.yaw = PI
 	W.drain_events()
-	H.run(W, 16, H.tap_at(0, Btn.LIGHT), hold_block, r)
+	H.run(W, H.LIGHT_LANDS + 4, H.tap_at(0, Btn.LIGHT), hold_block, r)
 	assert_true(r.has(&"block"), "the rising fighter blocks")
 	assert_false(r.has(&"hit"))
 
@@ -365,7 +371,7 @@ func _brain_presses(down: bool, frames: int) -> Array[int]:
 	params.guard = 0.0
 	var brain: AIBrain = AIBrain.new(a, params, 5)
 	if down:
-		b.enter_knockdown()
+		b.enter_knockdown(ProtectedTimings.for_weapon(&"katana"))
 	var presses: Array[int] = []
 	for i: int in frames:
 		var inp: RawInput = brain.think()

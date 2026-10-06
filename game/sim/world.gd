@@ -419,6 +419,11 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 		charge_f = ctx.charge_f
 	elif atk != null:
 		charge_f = atk.charge_frac
+	# the protected timings (milestone-1 task 22): the outcome's by the move's
+	# weapon, the move's own (its stuns, hit-stop and charge bonus) by
+	# whether its family has re-keyed it
+	var pt: ProtectedTimings = ProtectedTimings.for_weapon(def.weapon)
+	var own: ProtectedTimings = ProtectedTimings.for_move(def)
 
 	match kind:
 		&"miss":
@@ -454,12 +459,12 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 			var melee: bool = not scripted or def.id == &"u_impale"
 			a.release_if_impaling()
 			if was_full and a.armed:
-				a.disarm(b, &"redirect" if kind == &"redirect" else &"parried")
-				hitstop = 14
+				a.disarm(b, &"redirect" if kind == &"redirect" else &"parried", pt)
+				hitstop = pt.disarm_hitstop
 				return
 			if was_full and not a.armed:
 				# already bare-handed: a broken posture dazes instead
-				a.enter_stun(SimConst.DISARMED_STAGGER, &"stagger")
+				a.enter_stun(pt.disarmed_daze, &"stagger")
 				a.posture = SimConst.DISARMED_STAGGER_RESET
 				emit({"t": &"stagger", "f": a.id})
 				hitstop = 10
@@ -469,14 +474,14 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 				if kind == &"parry":
 					a.enter_recoil(SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER)
 				else:
-					a.enter_stun(SimConst.FLASH_STUN if kind == &"flash" else SimConst.REDIRECT_STUN)
+					a.enter_stun(pt.flash_stun if kind == &"flash" else pt.redirect_stun)
 				a.knock(b.pos.x, b.pos.z, 0.35, 8)
-			hitstop = 8 if kind == &"parry" else 10
+			hitstop = pt.parry_hitstop if kind == &"parry" else pt.flash_hitstop
 			return
 
 		&"stomp":
 			a.release_if_impaling()
-			a.enter_stun(SimConst.STOMP_STUN, &"stunned", &"stomp")
+			a.enter_stun(pt.stomp_stun, &"stunned", &"stomp")
 			a.add_posture(SimConst.STOMP_POSTURE)
 			# the stomp lands on the blade's tip: the thruster is jolted back if
 			# the defender is already nearer than that
@@ -495,7 +500,7 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 				"on": a.id,
 				"pos": SimEvents.vec3(V3.make(a.pos.x, 0.2, a.pos.z)),
 			})
-			hitstop = 10
+			hitstop = pt.stomp_hitstop
 			return
 
 		&"leap":
@@ -511,7 +516,7 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 				"on": a.id,
 				"pos": SimEvents.vec3(V3.make(a.pos.x, 1.7, a.pos.z)),
 			})
-			hitstop = 6
+			hitstop = pt.leap_hitstop
 			return
 
 		&"evadeCounter":
@@ -537,11 +542,11 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 			var charge_mult: float = 1.0 + 0.8 * charge_f
 			var mult: float = def.guard_crush if not is_nan(def.guard_crush) else b.weapon.block_mitigation
 			b.add_posture(def.posture * mult * charge_mult)
-			b.set_state(&"blockstun", (def.blockstun if def.blockstun != AttackDef.UNSET else 12) + SimMath.js_round(8.0 * charge_f))
+			b.set_state(&"blockstun", (def.blockstun if def.blockstun != AttackDef.UNSET else 12) + SimMath.js_round(float(own.charge_blockstun) * charge_f))
 			b.blocking = true
 			b.knock(a.pos.x, a.pos.z, def.knockback * 0.45 * charge_mult, 10)
 			b.stats.blocks += 1
-			hitstop = maxi(3, (def.hitstop if def.hitstop != AttackDef.UNSET else 4) - 2)
+			hitstop = ProtectedTimings.block_hitstop(def.hitstop if def.hitstop != AttackDef.UNSET else 4)
 			emit({
 				"t": &"block",
 				"attacker": a.id,
@@ -555,8 +560,8 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 
 		&"disarm":
 			_mark_done(atk, def)
-			b.disarm(a, &"blocked")
-			hitstop = 14
+			b.disarm(a, &"blocked", pt)
+			hitstop = pt.disarm_hitstop
 			return
 
 		&"hit":
@@ -591,18 +596,18 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 				b.to_ko(a, def.kind != &"light")
 				b.knock(a.pos.x, a.pos.z, maxf(1.5, def.knockback * 1.5), 20)
 			elif not b.armed and b.posture_full() and b.state != &"stagger":
-				b.enter_stun(SimConst.DISARMED_STAGGER, &"stagger")
+				b.enter_stun(pt.disarmed_daze, &"stagger")
 				b.posture = SimConst.DISARMED_STAGGER_RESET
 				b.knock(a.pos.x, a.pos.z, def.knockback, 12)
 				emit({"t": &"stagger", "f": b.id})
 			elif b.state != &"impaled":
 				if knocks_down(def, charge_f):
-					b.enter_knockdown()
+					b.enter_knockdown(pt)
 					emit({"t": &"knockdown", "f": b.id, "attacker": a.id})
 				else:
-					b.enter_hitstun((def.hitstun if def.hitstun != AttackDef.UNSET else 20) + SimMath.js_round(12.0 * charge_f))
+					b.enter_hitstun((def.hitstun if def.hitstun != AttackDef.UNSET else 20) + SimMath.js_round(float(own.charge_hitstun) * charge_f))
 				b.knock(a.pos.x, a.pos.z, def.knockback * (1.0 + 1.2 * charge_f), 12)
-			hitstop = (def.hitstop if def.hitstop != AttackDef.UNSET else 4) + SimMath.js_round(4.0 * charge_f)
+			hitstop = (def.hitstop if def.hitstop != AttackDef.UNSET else 4) + SimMath.js_round(float(own.charge_hitstop) * charge_f)
 			return
 
 

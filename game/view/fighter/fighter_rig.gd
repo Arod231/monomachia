@@ -5,6 +5,8 @@ extends RefCounted
 ## spike's rig (docs/research/animation-spike). FighterModel installs one on
 ## its skeleton. In order, under the skeleton:
 ##
+## 0. InertialBlend: what is left of the pose shown before a hand-off, fading
+##    out over the clip (milestone-1 task 23; picture only);
 ## 1. BodyLayer: the procedural body (lean, hips, spine, head);
 ## 2. RigPre: each gripping hand's frame on its handle, turned about it to
 ##    carry on the line of its forearm, which sets the wrist target, the
@@ -67,6 +69,8 @@ const CLAVICLE_MAX: float = 18.0
 const REACH_SHARE: float = 0.97
 
 var skeleton: Skeleton3D
+## The inertial blend over the clip, the stack's first (milestone-1 task 23).
+var inertial: InertialBlend
 var body: BodyLayer
 var hand_grip: HandGrip
 ## How far the arms of gripping hands follow the IK (1) rather than the
@@ -154,6 +158,9 @@ func _init(sk: Skeleton3D) -> void:
 			m.name = side + marker
 			sk.add_child(m)
 			_markers[side + marker] = m
+	inertial = InertialBlend.new()
+	inertial.name = &"InertialBlend"
+	sk.add_child(inertial)
 	body = BodyLayer.new()
 	body.name = &"BodyLayer"
 	sk.add_child(body)

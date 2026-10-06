@@ -187,7 +187,7 @@ func test_moves_without_a_swing_keep_the_stand_in() -> void:
 
 ## The key's elbow-pole tweak goes on the rig for the hand it moves.
 func test_the_elbow_pole_tweak_reaches_the_rig() -> void:
-	var start: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	var start: AttackDef = SF.timed(Moves.KATANA.moves[&"k_l1"])
 	var swing: Swing = SF.level_slash(start)
 	for k: Swing.KeyPose in swing.track(SF.RIGHT):
 		k.pole = V3.make(0.3, 0.1, -0.2)
@@ -455,6 +455,7 @@ func test_a_cut_off_swing_blends_out() -> void:
 ## the chest at -30° and the weight 6 cm forward, settling there (ease 0).
 ## Keyed alike, the hand's and the body's speeds peak together, at the middle.
 static func _coiled_cut(move: AttackDef) -> Swing:
+	move = SF.timed(move)
 	var S: int = move.startup
 	var end: int = S + move.active + 3
 	var mid: int = (S - 1 + end) / 2

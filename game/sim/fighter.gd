@@ -132,6 +132,10 @@ var knock_z: float = 0.0
 var knock_left: int = 0
 ## What put the fighter in its stun (enter_stun()): &"stomp" for a stomped thrust, else &"".
 var stun_cause: StringName = &""
+## Whether the knockdown under way takes the retuned phases (a Katana's or
+## bare hands' move knocked the fighter down) or today's (milestone-1 task
+## 22; ProtectedTimings): its fall, time down, rise and guard window.
+var knockdown_retuned: bool = false
 ## The final blow (to_ko(); authored-animation task 28, for the KO's clip):
 ## whether it was a heavy, and whether it came from behind the fighter.
 var ko_heavy: bool = false
@@ -320,26 +324,32 @@ func is_invulnerable() -> bool:
 	return false
 
 
+## The protected timings of the knockdown under way (or the last one).
+func knockdown_timings() -> ProtectedTimings:
+	return ProtectedTimings.for_weapon(&"katana") if knockdown_retuned else ProtectedTimings.today()
+
+
 ## A knockdown's whole length: its fall, its time on the ground and its
 ## stand-up.
-static func knockdown_frames() -> int:
-	return SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES + SimConst.KNOCKDOWN_STANDUP_FRAMES
+func knockdown_frames() -> int:
+	return knockdown_timings().knockdown_frames()
 
 
 ## Whether the fighter is down: knocked down and not yet in the stand-up's
 ## guard window, so it can't be hit (not even by an undodgeable move) and
 ## can't guard.
 func is_downed() -> bool:
-	return state == &"knockdown" and sf <= knockdown_frames() - SimConst.KNOCKDOWN_GUARD_FRAMES
+	return state == &"knockdown" and sf <= knockdown_frames() - knockdown_timings().knockdown_guard
 
 
 ## &"fall" | &"ground" | &"standUp" while knocked down, or &"" otherwise.
 func knockdown_phase() -> StringName:
 	if state != &"knockdown":
 		return &""
-	if sf <= SimConst.KNOCKDOWN_FALL_FRAMES:
+	var t: ProtectedTimings = knockdown_timings()
+	if sf <= t.knockdown_fall:
 		return &"fall"
-	if sf <= SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES:
+	if sf <= t.knockdown_fall + t.knockdown_ground:
 		return &"ground"
 	return &"standUp"
 
@@ -1341,8 +1351,11 @@ func enter_stun(frames: int, kind: StringName = &"stunned", cause: StringName = 
 
 
 ## Knocked down (task 16), in place of hitstun, by a hit from an unblockable,
-## a full charge or a Greatsword slam (World.knocks_down()).
-func enter_knockdown() -> void:
+## a full charge or a Greatsword slam (World.knocks_down()), its phases those
+## of `t`, the protected timings of the move that knocked it down (today's
+## when none is given).
+func enter_knockdown(t: ProtectedTimings = null) -> void:
+	knockdown_retuned = t != null and t.retuned
 	set_state(&"knockdown", knockdown_frames())
 	vel.x = 0.0
 	vel.z = 0.0
@@ -1366,15 +1379,19 @@ func enter_recoil(frames: int, guard_after: int) -> void:
 	vel.z = 0.0
 
 
-## reason: &"parried" | &"blocked" | &"redirect"
-func disarm(by: Fighter, reason: StringName) -> void:
+## reason: &"parried" | &"blocked" | &"redirect". The stagger is that of `t`,
+## the protected timings of the move that disarmed (the parried or blocked
+## one), or of this fighter's weapon when none is given.
+func disarm(by: Fighter, reason: StringName, t: ProtectedTimings = null) -> void:
 	var W: World = world
 	# read the blades before the stagger ends the attacks
 	var flies: V2 = DroppedWeapon.heading(self, by, reason)
+	if t == null:
+		t = ProtectedTimings.for_weapon(weapon.id if weapon != null else &"")
 	armed = false
 	posture = 0.0
 	last_posture_damage = W.frame
-	set_state(&"disarmStagger", SimConst.DISARM_STAGGER)
+	set_state(&"disarmStagger", t.disarm_stagger)
 	knock(by.pos.x, by.pos.z, 1.3, 16)
 	W.spawn_dropped_weapon(self, flies)
 	W.emit({
@@ -1450,7 +1467,8 @@ func _recall_burst() -> void:
 	if not hit:
 		return
 	o.release_if_impaling()
-	o.enter_knockdown()
+	# the recall is bare hands' ultimate: its knockdown takes their phases
+	o.enter_knockdown(ProtectedTimings.for_weapon(&"fists"))
 	o.knock(pos.x, pos.z, SimConst.RECALL_BURST_KNOCKBACK, SimConst.RECALL_BURST_KNOCK_FRAMES)
 	world.emit({"t": &"knockdown", "f": o.id, "attacker": id})
 	world.hitstop = SimConst.RECALL_BURST_HITSTOP

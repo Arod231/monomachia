@@ -3,6 +3,7 @@ extends GutTest
 ## one section per rule. Expected numbers come from the spec, not the code.
 
 const H := preload("res://tests/sim/sim_helpers.gd")
+const SF := preload("res://tests/sim/swing_fixtures.gd")
 ## toBeCloseTo's default precision (2 digits), as the neighbouring tests use
 const CLOSE: float = 0.005
 
@@ -200,10 +201,17 @@ func test_holding_block_stops_a_sprint() -> void:
 
 
 # ------------------------------------------------------------------ momentum
-# Each run starts 10 m from the opponent, so nobody meets.
+# Each run starts 10 m from the opponent, so nobody meets. The carry is a
+# stand-in's (a move its family has re-keyed keeps none of a run's speed,
+# test_clip_travel.gd), so Right Cut plays as one here.
+
+## The Katana with Right Cut a stand-in again.
+static func _stand_in_katana() -> WeaponDef:
+	return SF.stand_ins(&"katana", [&"k_l1"] as Array[StringName])
+
 
 func test_a_light_thrown_at_a_run_keeps_half_the_running_speed() -> void:
-	var s: FighterSteps = _record(Moves.KATANA, 10.0, 40, func(i: int) -> RawInput:
+	var s: FighterSteps = _record(_stand_in_katana(), 10.0, 40, func(i: int) -> RawInput:
 		return H.move(0.0, 1.0, Btn.LIGHT) if i == 30 else H.move(0.0, 1.0))
 	var i: int = s.start_of(&"k_l1")
 	assert_eq(i, 30, "Right Cut starts on the press")
@@ -212,9 +220,9 @@ func test_a_light_thrown_at_a_run_keeps_half_the_running_speed() -> void:
 
 
 func test_a_light_thrown_at_a_run_carries_the_attacker_further_than_one_thrown_standing() -> void:
-	var standing: FighterSteps = _record(Moves.KATANA, 10.0, 60, func(i: int) -> RawInput:
+	var standing: FighterSteps = _record(_stand_in_katana(), 10.0, 90, func(i: int) -> RawInput:
 		return H.btn(Btn.LIGHT) if i == 0 else H.idle())
-	var running: FighterSteps = _record(Moves.KATANA, 10.0, 90, func(i: int) -> RawInput:
+	var running: FighterSteps = _record(_stand_in_katana(), 10.0, 120, func(i: int) -> RawInput:
 		if i < 30:
 			return H.move(0.0, 1.0)
 		return H.btn(Btn.LIGHT) if i == 30 else H.idle())
@@ -222,7 +230,7 @@ func test_a_light_thrown_at_a_run_carries_the_attacker_further_than_one_thrown_s
 	assert_eq(running.start_of(&"k_l1"), 30, "the running one too")
 	# The kept speed for one step, then braked each step after:
 	# 1.95 m/s x 1/60 s x (1 + 0.8 + 0.8^2 + ...) = 1.95 / 12 m. The cut ends
-	# after 31 steps, which leaves 0.1% of the series out.
+	# after 60 steps, which leaves next to none of the series out.
 	var expected: float = MOMENTUM_KEEP * RUN_FORWARD / 60.0 / (1.0 - ATTACK_BRAKE)
 	assert_almost_eq(running.walked(30) - standing.walked(), expected, 0.0005, "the same cut, 16 cm further")
 
@@ -290,10 +298,14 @@ func test_a_lunge_into_a_defender_still_stops_0_25_m_clear_of_their_body() -> vo
 ## The spec's light hitstun: 14 frames. The lights with their own: bare
 ## hands' first two keep 16, and the Daggers' four string lights, which follow
 ## each other faster, stun for 10 (11.1: Off-hand Slice lands 11 frames after
-## Quick Slice).
+## Quick Slice). Both Counter Lunges, on real markers, take their weapon's
+## retuned light hitstun (milestone-1 task 22), as do Right Cut and Return Cut
+## once re-keyed (task 31).
 const LIGHT_HITSTUN: int = 14
 const OWN_HITSTUN: Dictionary[StringName, int] = {
 	&"f_l1": 16, &"f_l2": 16, &"d_l1": 10, &"d_l2": 10, &"d_l3": 10, &"d_l4": 10,
+	&"k_lunge": 24, &"f_lunge": 18,
+	&"k_l1": 24, &"k_l2": 24,
 }
 
 
@@ -315,9 +327,10 @@ static func _right_cut_then_return_cut(press: int) -> LightStringRun:
 	var b: Fighter = W.fighters[1]
 	var r := LightStringRun.new()
 	var was_hit: bool = false
-	for i: int in 60:
-		# the second press is taken as Return Cut once Right Cut can take it
-		var p0: RawInput = H.btn(Btn.LIGHT) if i == 0 or i == 8 else H.idle()
+	for i: int in 120:
+		# the second press, as Right Cut lands, is taken as Return Cut at its
+		# branch point
+		var p0: RawInput = H.btn(Btn.LIGHT) if i == 0 or i == 30 else H.idle()
 		W.step([p0, H.btn(Btn.BLOCK) if i == press else H.idle()])
 		var hits_before: int = r.count(&"hit")
 		r.collect(W)
@@ -335,10 +348,10 @@ func test_a_defender_hit_by_right_cut_can_parry_return_cut() -> void:
 	var probe: LightStringRun = _right_cut_then_return_cut(-1)
 	var hits: Array = probe.all(&"hit").map(func(e: Dictionary) -> Variant: return e["attack"])
 	assert_eq(hits, [&"k_l1", &"k_l2"], "an idle defender takes both cuts")
-	# Return Cut lands 15 frames after Right Cut (the notes' count), so 14
-	# frames of hitstun leave the defender one free step before it
+	# re-keyed (task 31), Return Cut lands far enough after Right Cut that the
+	# retuned hitstun (24) leaves the defender free before it (FollowUpCheck)
 	assert_eq(probe.hit_steps.size(), 2)
-	assert_eq(probe.free_step, probe.hit_steps[1] - 1, "out of hitstun for one step before Return Cut lands")
+	assert_between(probe.free_step, probe.hit_steps[0] + 1, probe.hit_steps[1] - 1, "out of hitstun before Return Cut lands")
 	# pressing block a step before hitstun ends: the press waits in the buffer
 	var r: LightStringRun = _right_cut_then_return_cut(probe.free_step - 1)
 	assert_eq(r.count(&"hit"), 1, "only Right Cut lands")
@@ -510,10 +523,11 @@ static var SWING_CANCEL: int = (Moves.GREATSWORD.moves[&"g_l1"] as AttackDef).do
 
 ## How far fighter 0 moves on each of attack id's recovery frames (frames
 ## past startup + active), in order.
-static func _recovery_steps(s: FighterSteps, id: StringName) -> PackedFloat64Array:
-	var def: AttackDef = null
+static func _recovery_steps(s: FighterSteps, id: StringName, played: WeaponDef = null) -> PackedFloat64Array:
+	var def: AttackDef = played.moves.get(id) if played != null else null
 	for w: WeaponDef in Moves.WEAPONS.values():
-		def = w.moves.get(id, def)
+		if def == null:
+			def = w.moves.get(id)
 	var out: PackedFloat64Array = []
 	for i: int in s.moved.size():
 		if s.attack[i] == id and s.frame[i] > def.startup + def.active:
@@ -523,8 +537,8 @@ static func _recovery_steps(s: FighterSteps, id: StringName) -> PackedFloat64Arr
 
 ## Asserts attack id ran past the slide's frames and moved no more than allow
 ## in its recovery (leftover momentum aside, nothing).
-func _assert_no_slide(s: FighterSteps, id: StringName, what: String, allow: float = 0.0) -> void:
-	var steps: PackedFloat64Array = _recovery_steps(s, id)
+func _assert_no_slide(s: FighterSteps, id: StringName, what: String, allow: float = 0.0, played: WeaponDef = null) -> void:
+	var steps: PackedFloat64Array = _recovery_steps(s, id, played)
 	assert_gt(steps.size(), SLIDE_FRAMES, "%s's recovery outlasts the slide's frames" % what)
 	assert_lte(_total(steps), allow, "%s doesn't slide" % what)
 
@@ -537,9 +551,10 @@ func test_a_whiffed_greatsword_swing_slides_into_its_recovery() -> void:
 	for k: int in SLIDE_FRAMES - 1:
 		assert_gt(swing[k], swing[k + 1], "easing out (recovery frame %d)" % (k + 2))
 	assert_eq(_total(swing.slice(SLIDE_FRAMES)), 0.0, "all of it in the first 10 recovery frames")
-	var cut: FighterSteps = _record(Moves.KATANA, 10.0, 60, tap_light)
+	var katana: WeaponDef = _stand_in_katana()
+	var cut: FighterSteps = _record(katana, 10.0, 90, tap_light)
 	assert_eq(cut.start_of(&"k_l1"), 0)
-	_assert_no_slide(cut, &"k_l1", "a Katana Right Cut")
+	_assert_no_slide(cut, &"k_l1", "a Katana Right Cut (lunging, as a stand-in)", 0.0, katana)
 
 
 func test_the_slide_runs_after_a_hit_and_after_a_block() -> void:

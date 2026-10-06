@@ -173,6 +173,10 @@ var branches: Dictionary[StringName, PackedInt32Array] = {}
 ## a re-keyed Katana or bare-hands move, moved only by its travel, with no
 ## lunge and none of a run's speed; set from the table
 var by_travel: bool = false
+## the weapon the move belongs to (finalize_moves() sets it from its weapon,
+## or a record names it, as the scripted ultimate hits do): it picks the
+## move's protected timings (ProtectedTimings, milestone-1 task 22)
+var weapon: StringName = &""
 ## the path the weapon travels through the move (task 7, the rebuild's), put
 ## on it from the weapon's swing file when the weapon is built
 ## (WeaponDef.from_dict); null until the move has one. A record may also
@@ -187,7 +191,7 @@ const KEYS: Array[String] = [
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
 	"sound", "trail", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "swing",
+	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "weapon", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
 const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches", "by_travel"]
@@ -253,6 +257,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	for follow: Variant in windows:
 		m.branches[StringName(follow)] = PackedInt32Array(windows[follow])
 	m.by_travel = bool(d.get("by_travel", false))
+	m.weapon = StringName(d.get("weapon", &""))
 	m.swing = d.get("swing", null)
 	return m
 
@@ -269,24 +274,18 @@ static func finalize_moves(moves: Dictionary, weapon: StringName = &"") -> Dicti
 		var row: Dictionary = FrameDataTable.shared().row(weapon, StringName(move_id)) if weapon != &"" else {}
 		if not row.is_empty():
 			_take_row(m, row, StringName(move_id), weapon)
+		if weapon != &"" and not m.has("weapon"):
+			m["weapon"] = weapon
+		_take_protected(m, StringName(move_id))
 		var is_unblockable: bool = bool(m.get("unblockable", false))
 		var move_kind: StringName = StringName(m.get("kind", &""))
 		if not m.has("track_startup"):
 			m["track_startup"] = 5.0 if is_unblockable else 7.0
 		if not m.has("track_active"):
 			m["track_active"] = 1.2
-		if not m.has("hitstun"):
-			# lights 14 (the demo's 18), so a defender can block or parry the next light
-			m["hitstun"] = (
-				14 if move_kind == &"light" else (26 if move_kind == &"heavy" else (40 if move_kind == &"ultimate" else 24))
-			)
 		if move_kind == &"heavy" and not m.has("dodge_cancel_from"):
 			# heavies dodge-cancel in the second half of their recovery (the demo's had none)
 			m["dodge_cancel_from"] = int(m["startup"]) + int(m["active"]) + ceili(int(m["recovery"]) / 2.0)
-		if not m.has("blockstun"):
-			m["blockstun"] = 10 if move_kind == &"light" else (16 if move_kind == &"heavy" else 14)
-		if not m.has("hitstop"):
-			m["hitstop"] = 4 if move_kind == &"light" else (7 if move_kind == &"heavy" else 6)
 		if is_unblockable and not m.has("undodgeable"):
 			m["undodgeable"] = true
 		if is_unblockable and not m.has("trail"):
@@ -299,6 +298,33 @@ static func finalize_moves(moves: Dictionary, weapon: StringName = &"") -> Dicti
 			m["hand"] = &"R"
 		out[StringName(move_id)] = from_dict(m)
 	return out
+
+
+## The protected timings a move carries (milestone-1 task 22).
+const PROTECTED_FIELDS: Array[String] = ["hitstun", "blockstun", "hitstop"]
+
+
+## Puts a move's protected timings into its record `m`: the retuned ones of
+## its kind once its family has re-keyed a Katana or bare-hands move (real
+## markers), which its record must then leave out; else the record's own, or
+## today's of its kind (lights' hitstun 14, the demo's 18, so a defender can
+## block or parry the next light). See ProtectedTimings.for_move().
+static func _take_protected(m: Dictionary, move_id: StringName) -> void:
+	var kind: StringName = StringName(m.get("kind", &""))
+	var w: StringName = StringName(m.get("weapon", &""))
+	var rekeyed: bool = bool(m.get("real_markers", false)) and ProtectedTimings.RETUNED_WEAPONS.has(w)
+	var t: ProtectedTimings = ProtectedTimings.for_weapon(w) if rekeyed else ProtectedTimings.today()
+	if rekeyed:
+		for field: String in PROTECTED_FIELDS:
+			if m.has(field):
+				push_error("%s sets %s; a re-keyed move's protected timings come from ProtectedTimings" % [move_id, field])
+				m.erase(field)
+	if not m.has("hitstun"):
+		m["hitstun"] = t.hitstun(kind, move_id)
+	if not m.has("blockstun"):
+		m["blockstun"] = t.blockstun(kind)
+	if not m.has("hitstop"):
+		m["hitstop"] = t.hitstop(kind)
 
 
 ## Puts a move's row of the frame-data table into its record `m`.

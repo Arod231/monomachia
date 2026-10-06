@@ -36,32 +36,32 @@ const COUNTER_LUNGE: Dictionary[StringName, StringName] = {
 # ordinary attacks, so parry/block/i-frame rules apply consistently.
 static var ULT_HITS: Dictionary[StringName, AttackDef] = AttackDef.finalize_moves({
 	&"u_moon_v": {
-		"id": &"u_moon_v", "name": "Moonsplitter", "kind": &"ultimate", "type": &"slash", "anim": &"ult",
+		"id": &"u_moon_v", "name": "Moonsplitter", "weapon": &"katana", "kind": &"ultimate", "type": &"slash", "anim": &"ult",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 30, "posture": 40, "knockback": 2.2,
 		"range": 30, "arc": 360, "unblockable": true, "undodgeable": true, "hitstun": 50, "hitstop": 12,
 	},
 	&"u_moon_h": {
-		"id": &"u_moon_h", "name": "Moonsplitter", "kind": &"ultimate", "type": &"sweep", "anim": &"ult",
+		"id": &"u_moon_h", "name": "Moonsplitter", "weapon": &"katana", "kind": &"ultimate", "type": &"sweep", "anim": &"ult",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 30, "posture": 40, "knockback": 2.2,
 		"range": 30, "arc": 360, "unblockable": true, "undodgeable": true, "jumpable": true, "hitstun": 50, "hitstop": 12,
 	},
 	&"u_impale": {
-		"id": &"u_impale", "name": "Impaler", "kind": &"ultimate", "type": &"thrust", "anim": &"ult", "sound": &"colossal",
+		"id": &"u_impale", "name": "Impaler", "weapon": &"greatsword", "kind": &"ultimate", "type": &"thrust", "anim": &"ult", "sound": &"colossal",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 15, "posture": 20, "knockback": 0,
 		"range": 2, "arc": 60, "unblockable": true, "undodgeable": false, "hitstun": 60, "hitstop": 12,
 	},
 	&"u_burst": {
-		"id": &"u_burst", "name": "Impaler Burst", "kind": &"ultimate", "type": &"thrust", "anim": &"ult", "sound": &"colossal",
+		"id": &"u_burst", "name": "Impaler Burst", "weapon": &"greatsword", "kind": &"ultimate", "type": &"thrust", "anim": &"ult", "sound": &"colossal",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 20, "posture": 30, "knockback": 4.5,
 		"range": 3, "arc": 360, "unblockable": true, "undodgeable": true, "hitstun": 55, "hitstop": 14,
 	},
 	&"u_tempest": {
-		"id": &"u_tempest", "name": "Lightning Tempest", "kind": &"ultimate", "type": &"spin", "anim": &"ult", "sound": &"dagger",
+		"id": &"u_tempest", "name": "Lightning Tempest", "weapon": &"daggers", "kind": &"ultimate", "type": &"spin", "anim": &"ult", "sound": &"dagger",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 5, "posture": 5, "knockback": 0.05,
 		"range": 2.2, "arc": 360, "hitstun": 16, "blockstun": 12, "hitstop": 3,
 	},
 	&"u_tempest_final": {
-		"id": &"u_tempest_final", "name": "Thunder Finisher", "kind": &"ultimate", "type": &"slash", "anim": &"ult", "sound": &"dagger",
+		"id": &"u_tempest_final", "name": "Thunder Finisher", "weapon": &"daggers", "kind": &"ultimate", "type": &"slash", "anim": &"ult", "sound": &"dagger",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 8, "posture": 10, "knockback": 2.5,
 		"range": 2.4, "arc": 360, "hitstun": 36, "blockstun": 18, "hitstop": 10,
 	},

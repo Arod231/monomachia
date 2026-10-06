@@ -27,9 +27,10 @@ func test_opening_a_katana_light_shows_its_frames_against_its_band() -> void:
 	assert_not_null(editor.poser, "playing the move")
 	assert_eq(editor.view.kind, &"string_light")
 	var verdict: Label = editor.get_node("%Verdict")
-	assert_eq(verdict.text, "string light · out of band: waiting for its family")
+	# re-keyed into its band (task 31)
+	assert_eq(verdict.text, "string light · in band")
 	var fields: Array = (editor.get_node("%BandFields") as Node).get_children().map(func(l: Label) -> String: return l.text)
-	assert_eq(fields, ["✗ startup 11 (24-30)", "✓ active 3 (3-6)", "✗ recovery 16 (24-36)"])
+	assert_eq(fields, ["✓ startup 28 (24-30)", "✓ active 4 (3-6)", "✓ recovery 28 (24-36)"])
 	var distance: Array = (editor.get_node("%DistanceLines") as Node).get_children().map(func(l: Label) -> String: return l.text)
 	assert_eq(distance.size(), 3, "the duelling, preferred and miss distances: %s" % [distance])
 	assert_true(distance[2].ends_with("misses from 3.25 m") or distance[2].contains("where it must miss"), "%s" % [distance])
@@ -77,6 +78,32 @@ func test_foot_locking_switches_on_the_rig() -> void:
 	assert_null(editor.model.rig.foot_lock, "off")
 	editor.set_foot_lock(true)
 	assert_not_null(editor.model.rig.foot_lock, "on again")
+
+
+func test_inertial_blending_switches_on_the_rig() -> void:
+	# milestone-1 task 23's layer toggle: on by default, as in a match; a
+	# loop back to the start blends as a follow-up would, any other jump cuts
+	var studio: AnimStudio = await _studio()
+	var editor: StudioEditor = _open(studio, &"k_l1")
+	var inertial: InertialBlend = editor.model.rig.inertial
+	assert_true(inertial.active, "on by default")
+	(editor.get_node("%InertialBlending") as CheckBox).button_pressed = false
+	assert_false(editor.inertial_on)
+	assert_false(inertial.active, "off")
+	editor.set_inertial_blending(true)
+	assert_true(inertial.active, "on again")
+	# inside any clip Right Cut plays: its own, or without the packs its
+	# CC0 fallback (11 source frames)
+	editor.playback.seek(6.0)
+	editor._pose()
+	assert_almost_eq(inertial.time, 12.0, 1e-9, "the rules frames at the playhead")
+	editor.playback.seek(editor.playback.length)
+	editor._pose()
+	editor._wrapped()
+	assert_true(inertial.blending(), "the loop back blends")
+	editor.playback.seek(5.0)
+	editor._pose()
+	assert_false(inertial.blending(), "a jump cuts")
 
 
 func test_a_state_has_no_bands_and_back_returns_to_the_gallery() -> void:

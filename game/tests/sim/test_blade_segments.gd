@@ -80,7 +80,7 @@ func test_the_blade_is_placed_where_hits_are_decided_after_the_fighters_are_push
 
 
 func test_the_segment_is_the_pose_at_the_attack_s_frame_and_the_last_tick_s_beside_it() -> void:
-	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	var cut: AttackDef = SF.timed(Moves.KATANA.moves[&"k_l1"])
 	var W: World = H.make_world(SF.weapon(&"katana", {&"k_l1": SF.level_slash(cut, 1.2)}), Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	var seen: int = 0
@@ -171,7 +171,7 @@ func test_the_segment_holds_in_a_charge_and_through_extra_recovery() -> void:
 
 
 func test_the_segment_holds_in_hit_stop() -> void:
-	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	var cut: AttackDef = SF.timed(Moves.KATANA.moves[&"k_l1"])
 	# 1.6 m apart: the lunge closes to 1.25 m, and the slash cuts through the
 	# idle opponent (task 7.10: its sweep decides)
 	var W: World = H.make_world(SF.weapon(&"katana", {&"k_l1": SF.level_slash(cut, 1.2)}), Moves.KATANA, 1.6)

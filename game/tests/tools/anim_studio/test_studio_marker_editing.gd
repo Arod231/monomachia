@@ -80,21 +80,22 @@ func test_an_out_of_order_marker_is_refused_and_says_why() -> void:
 
 
 func test_a_stand_in_move_asks_before_its_markers_become_real() -> void:
-	var studio: AnimStudio = await _open(StudioCatalogue.KIND_MOVE, &"k_l1")
+	# Crown Cut, still a stand-in (active 17-19)
+	var studio: AnimStudio = await _open(StudioCatalogue.KIND_MOVE, &"k_l4")
 	var editor: StudioEditor = studio.editor
-	editor.set_marker("active_start", 6.0)
+	editor.set_marker("active_start", 18.0)
 	var question: ConfirmationDialog = editor.get_node("StandInQuestion")
 	assert_true(question.visible, "it asks")
 	assert_eq(question.dialog_text, MarkerEdits.STAND_IN_QUESTION)
 	assert_eq(editor.session.dirty_files(), PackedStringArray(), "nothing yet")
 	question.confirmed.emit()
-	assert_eq(editor.timeline.markers["active_start"], 6.0)
-	assert_false(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_l1", true), "real markers now")
+	assert_eq(editor.timeline.markers["active_start"], 18.0)
+	assert_false(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_l4", true), "real markers now")
 	editor.undo()
-	assert_true(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_l1", true), "undo puts the stand-ins back")
-	editor.set_marker("active_start", 6.0)
+	assert_true(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_l4", true), "undo puts the stand-ins back")
+	editor.set_marker("active_start", 18.0)
 	question.canceled.emit()
-	assert_eq(editor.timeline.markers["active_start"], 5.5, "no keeps them")
+	assert_eq(editor.timeline.markers["active_start"], 17.0, "no keeps them")
 
 
 func test_a_clip_s_own_markers_are_edited_in_whole_frames() -> void:

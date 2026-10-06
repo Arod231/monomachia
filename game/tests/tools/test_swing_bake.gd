@@ -5,6 +5,7 @@ extends GutTest
 ## clip on the Hunter (ClipPoser), so CI needs no Iglesias packs.
 
 const CLIP: String = "ual/Sword_Attack"
+const SF := preload("res://tests/sim/swing_fixtures.gd")
 const MM: float = 0.001
 ## Markers in source frames: a wind-up start, a contact start and end and a
 ## settle, all inside Sword_Attack (46 frames).
@@ -346,7 +347,9 @@ func test_the_reach_correction_eases_in_and_out_and_is_zero_outside_the_attack()
 
 
 func test_a_short_light_is_pushed_toward_the_reach_rule() -> void:
-	var k: WeaponDef = Moves.WEAPONS[&"katana"]
+	# a stand-in Right Cut (lunging; a move led by its clip, as Right Cut is
+	# since task 31, gets no push)
+	var k: WeaponDef = SF.stand_ins(&"katana", [&"k_l1"] as Array[StringName])
 	var cut: AttackDef = k.moves[&"k_l1"]
 	var got: Array = _katana_cut(1.5)
 	var r: SwingBake.Result = got[2]

@@ -130,7 +130,7 @@ func test_values_are_in_their_unions() -> void:
 func test_get_move_falls_back_to_ultimate_hits() -> void:
 	assert_same(Moves.get_move(Moves.KATANA, &"k_l1"), Moves.KATANA.moves[&"k_l1"])
 	assert_same(Moves.get_move(Moves.FISTS, &"u_burst"), Moves.ULT_HITS[&"u_burst"])
-	assert_eq(Moves.KATANA.moves[&"k_l1"].total_frames(), 30)
+	assert_eq(Moves.KATANA.moves[&"k_l1"].total_frames(), 60, "Right Cut, re-keyed (task 31): 28, 4 and 28")
 
 
 func test_get_move_reports_an_unknown_move() -> void:

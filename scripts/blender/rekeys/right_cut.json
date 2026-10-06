@@ -1,0 +1,14 @@
+{
+	"about": "Right Cut (katana.k_l1), milestone-1 task 31: Attack1H01_R's lunging cut with a longer wind-up (the draw-back over 9 frames, the cocked pose held 1.5), the strike at its own speed into the active frames 14-16, a 14-frame recovery to the settle at 30, and both hands on the grip: the shoulders squared, the weapon brought in front of the chest as far as both arms need. Source frames at 30 fps from 0. Startup 28, active 4, recovery 28 rules frames, as the owner chose (Oct 5).",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H01_R.fbx",
+	"out": "blender/clips/right_cut.blend",
+	"remap": [[0, 0], [9, 4], [10.5, 4], [14, 8], [16, 9.5], [30, 20], [43, 33]],
+	"two_hands": {"grip": 0.11, "hold": [0.32, 0.12], "square": 0.6, "clearance": 0.08},
+	"step": {
+		"body": [[0, 0], [3, 0], [9, 0.2], [10, 0.269], [10.5, 0.35], [11, 0.431], [12, 0.593], [13, 0.755], [14, 0.917], [15, 1.079], [16, 1.21], [17, 1.3], [19, 1.35], [24, 1.35], [43, 1.35]],
+		"feet": {
+			"L": [[10, 15, 1.35, 0.2]],
+			"R": [[3, 9, 0.45, 0.16], [11, 18, 0.9, 0.24]]
+		}
+	}
+}

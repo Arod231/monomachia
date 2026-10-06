@@ -78,15 +78,15 @@ func test_the_attack_plays_its_fallback_clip_without_the_packs() -> void:
 			var want: Vector3 = SwingPlayer.to_skeleton(swing.tick(&"right_hand", f.atk.frame - 1).grip)
 			assert_lt(v.model.weapons[0].transform.origin.distance_to(want), 0.01, "frame %d: posed on the baked path" % f.atk.frame)
 		W.step([SimHelpers.idle(), SimHelpers.idle()])
-	assert_eq(amounts[0], 0.0, "the first frame starts the crossfade")
-	assert_eq(amounts[3], 1.0, "all of it 3 frames in")
+	assert_eq(amounts[0], 1.0, "the swing's clip whole from its first frame (the rig blends inertially, task 23)")
+	assert_eq(amounts[3], 1.0)
 	var after: Array[float] = []
 	for i: int in 7:
 		_show(v, f)
 		after.append(_authored(v))
 		W.step([SimHelpers.idle(), SimHelpers.idle()])
-	assert_gt(after[0], 0.0, "fading back to the legs")
-	assert_eq(after[6], 0.0, "the legs alone 6 frames on")
+	assert_eq(after[0], 0.0, "the legs at once, the rig blending the hand-off")
+	assert_eq(after[6], 0.0)
 
 
 func test_the_view_stands_in_the_classs_idle_and_holds_planted_feet() -> void:

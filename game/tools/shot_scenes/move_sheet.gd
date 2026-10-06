@@ -273,21 +273,21 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 		"every": 2,
 	},
 	&"string_l": {
-		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [60, 0.0, 0.0, 0]],
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [70, 0.0, 0.0, 0]],
 		"notes": "still for 12 frames, then Right Cut alone, recovering to the guard",
 		"views": [&"three_quarter", &"hands"],
 		"spacing": 4.0,
 		"every": 2,
 	},
 	&"string_ll": {
-		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [11, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [60, 0.0, 0.0, 0]],
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [29, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [80, 0.0, 0.0, 0]],
 		"notes": "still for 12 frames, then Right Cut into Return Cut, recovering to the guard",
 		"views": [&"three_quarter", &"hands"],
 		"spacing": 4.0,
 		"every": 2,
 	},
 	&"string_lll": {
-		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [11, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [15, 0.0, 0.0, 0],
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [29, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [30, 0.0, 0.0, 0],
 			[1, 0.0, 0.0, LIGHT], [60, 0.0, 0.0, 0]],
 		"notes": "still for 12 frames, then Right Cut, Return Cut and Kesa Cut, recovering to the guard",
 		"views": [&"three_quarter", &"hands"],
@@ -295,7 +295,7 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 		"every": 2,
 	},
 	&"string_llll": {
-		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [11, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [15, 0.0, 0.0, 0],
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [29, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [30, 0.0, 0.0, 0],
 			[1, 0.0, 0.0, LIGHT], [15, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [70, 0.0, 0.0, 0]],
 		"notes": "still for 12 frames, then the whole L-L-L-L: Right Cut, Return Cut, Kesa Cut and Crown Cut, recovering to the guard",
 		"views": [&"three_quarter", &"hands"],

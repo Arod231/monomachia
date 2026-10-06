@@ -223,7 +223,7 @@ func test_a_knockdown_falls_lies_and_rises_with_its_clips() -> void:
 	_step(W, 20)
 	_update(v, b, 0.5)
 	assert_eq([v.shot.phase, v.shot.clip.name], [&"ground", "HumanF/Knockdown01_Ground" if packs else "ual/LayToIdle"])
-	var rise_from: int = SimConst.KNOCKDOWN_FALL_FRAMES + SimConst.KNOCKDOWN_GROUND_FRAMES
+	var rise_from: int = b.knockdown_timings().knockdown_fall + b.knockdown_timings().knockdown_ground
 	_step(W, rise_from + 10 - b.sf)
 	_update(v, b, 1.0)
 	assert_eq([v.shot.phase, v.shot.clip.name], [&"standUp", "HumanF/Knockdown01_StandUp" if packs else "ual/LayToIdle"])
@@ -327,3 +327,110 @@ func test_a_pick_up_brings_the_weapon_back_into_the_clips_hand() -> void:
 			assert_eq(v.shot.clip.name.get_file(), "Loot01_Begin" if sf <= SimConst.PICKUP_ATTACH_FRAME else "Loot01_Stop")
 		if sf >= SimConst.PICKUP_ATTACH_FRAME:
 			assert_true(v.model.rig.is_fixed(), "frame %d: riding the clip's hand" % sf)
+
+
+# ------------------------------------------------------------------ inertial blending (milestone-1 task 23)
+
+func test_inertial_blending_runs_first_in_the_rig() -> void:
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	var order: Array[StringName] = []
+	for child: Node in v.model.skeleton.get_children():
+		if child is SkeletonModifier3D:
+			order.append(child.name)
+	assert_eq(order[0], &"InertialBlend", "right after the clip: %s" % [order])
+	for later: StringName in [&"BodyLayer", &"LegIK", &"HandGrip"]:
+		assert_gt(order.find(later), 0, "%s after it" % later)
+	assert_same(v.model.rig.inertial, v.model.skeleton.get_node(^"InertialBlend"))
+
+
+func test_a_hand_off_asks_the_rig_for_its_blend_on_the_world_s_time() -> void:
+	var W: World = _world()
+	var f: Fighter = W.fighters[0]
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	_update(v, f)
+	await _posed(v)
+	_step(W, 2)
+	_update(v, f, 0.5)
+	await _posed(v)
+	assert_almost_eq(v.model.rig.inertial.time, float(W.frame) - 1.0 + 0.5, 1e-9, "the world's frame and alpha")
+	assert_false(v.model.rig.inertial.blending(), "no hand-off yet")
+	W.step([SimHelpers.btn(Btn.LIGHT), SimHelpers.idle()])
+	_update(v, f, 0.0)
+	await _posed(v)
+	assert_eq(v.shot.blend, 3, "into an attack")
+	assert_true(v.model.rig.inertial.blending(), "the rig blends from the guard")
+	for i: int in 4:
+		W.step([SimHelpers.idle(), SimHelpers.idle()])
+		_update(v, f, 0.0)
+		await _posed(v)
+	assert_false(v.model.rig.inertial.blending(), "done 3 frames on")
+
+
+func test_the_rules_are_the_same_with_inertial_blending_off() -> void:
+	# picture only: two seeded computer matches, one shown with the modifier
+	# on and one with it off, step to the same state
+	var hashes: Array[String] = []
+	for on: bool in [true, false]:
+		var W: World = _world()
+		var views: Array[FighterView] = [_view(&"hunter", Moves.KATANA), _view(&"rogue", Moves.KATANA, 1)]
+		var brains: Array[AIBrain] = [AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"].copy(), 3),
+			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"].copy(), 4)]
+		for i: int in 2:
+			views[i].model.rig.inertial.active = on
+		for step: int in 240:
+			W.step([brains[0].think(), brains[1].think()])
+			for i: int in 2:
+				_update(views[i], W.fighters[i])
+				views[i].model.skeleton.advance(1.0 / 60.0)
+		hashes.append(W.state_hash())
+	assert_eq(hashes[0], hashes[1])
+
+
+## The hips at the end of the rig's stack, each rules step of Right Cut into
+## Return Cut and back to the legs, with inertial blending `on` or off:
+## [step, drive, hips].
+func _string_hips(on: bool) -> Array[Array]:
+	var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 4.0)
+	var f: Fighter = W.fighters[0]
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	v.model.rig.inertial.active = on
+	var sk: Skeleton3D = v.model.skeleton
+	var hips: int = sk.find_bone("Hips")
+	var got: Array = []
+	(sk.get_node(^"RigCarry") as SkeletonModifier3D).modification_processed.connect(func() -> void:
+		got.clear()
+		got.append(sk.get_bone_global_pose(hips).origin))
+	var out: Array[Array] = []
+	# Right Cut, and Return Cut pressed past its startup (task 31's frames),
+	# played out to the hand-off back to the legs
+	for i: int in 140:
+		W.step([SimHelpers.btn(Btn.LIGHT) if i == 12 or i == 42 else SimHelpers.idle(), SimHelpers.idle()])
+		_update(v, f)
+		got.clear()
+		sk.advance(1.0 / 60.0)
+		if got.is_empty():
+			await wait_process_frames(1)
+		out.append([i, v.shot.drive, got[0]])
+	return out
+
+
+func test_the_hand_off_back_to_the_legs_carries_on_from_the_pose_shown() -> void:
+	# the stand-in swing body's tail stays off while the blend away from the
+	# clip runs (it once dropped the hips 35 cm onto the blended pose)
+	var steps: Array[Array] = await _string_hips(true)
+	var handed: int = -1
+	for i: int in range(1, steps.size()):
+		if steps[i][1] == ClipDirector.LEGS and steps[i - 1][1] == ClipDirector.ATTACK:
+			handed = i
+			break
+	assert_gt(handed, 0, "Return Cut hands back to the legs")
+	if handed <= 0:
+		return
+	assert_lt((steps[handed][2] as Vector3).distance_to(steps[handed - 1][2]), 0.01, "the hips where they were shown")
+	for i: int in range(handed, mini(handed + 8, steps.size())):
+		var rise: float = (steps[i][2] as Vector3).y - (steps[i - 1][2] as Vector3).y
+		# rising out of a low follow-through, or settling a little into the
+		# guard (Return Cut stands back up before it hands on, task 31)
+		assert_true(rise > -0.03 and rise < 0.08, "step %d: the hips carry on smoothly (%.3f m)" % [steps[i][0], rise])
+	var cut: Array[Array] = await _string_hips(false)
+	assert_gt((cut[handed][2] as Vector3).distance_to(cut[handed - 1][2]), 0.05, "without it the pose jumps")

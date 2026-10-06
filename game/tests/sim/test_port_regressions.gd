@@ -17,6 +17,12 @@ extends GutTest
 const H := preload("res://tests/sim/sim_helpers.gd")
 const Soak := preload("res://tools/soak.gd")
 
+## How far apart the patched runs start: near enough for Right Cut's lunge to
+## reach.
+const GAP: float = 1.6
+## Steps enough for a patched Right Cut to play out (60 frames since task 31).
+const STEPS: int = 70
+
 var _fx: Dictionary
 ## [AttackDef, field, old value] for each patched move field, undone after each test
 var _patches: Array[Array] = []
@@ -26,7 +32,20 @@ func before_all() -> void:
 	_fx = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/port.json"))
 
 
+## Right Cut, re-keyed (task 31), patched back into a stand-in for each test:
+## the move fields checked here are a stand-in's (its lunge, and hit values
+## of its own rather than the retuned table's), struck with the cone (its
+## re-keyed clip's cut sweeps past the defender before a stretched active
+## window ends).
+func before_each() -> void:
+	_patch("real_markers", false)
+	_patch("by_travel", false)
+	_patch("travel", PackedFloat64Array())
+	_patch("swing", null)
+
+
 func after_each() -> void:
+	_patches.reverse()
 	for p: Array in _patches:
 		(p[0] as AttackDef).set(p[1], p[2])
 	_patches.clear()
@@ -148,7 +167,7 @@ class Trace extends SimHelpers.Rec:
 ## Fighter 0 (the attacker) and fighter 1 (the defender), Katanas 2.2 m apart,
 ## play p0 and p1 for `steps` steps, after setup (if any) has adjusted the world.
 func _run_patched(steps: int, p0: Callable, p1: Callable, setup: Callable = Callable()) -> Trace:
-	var W: World = H.make_world()
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, GAP)
 	if not setup.is_null():
 		setup.call(W)
 	var t: Trace = Trace.new()
@@ -178,11 +197,11 @@ static func _idle(_i: int) -> RawInput:
 
 func test_multi_interval_zero_skips_every_active_frame() -> void:
 	# TS: (f - S - 1) % 0 is NaN, NaN !== 0, so no frame ever hits (no error).
-	assert_eq(_run_patched(30, _light_at_0, _idle).count(&"hit"), 1, "unpatched, the Right Cut reaches and hits")
+	assert_eq(_run_patched(STEPS, _light_at_0, _idle).count(&"hit"), 1, "unpatched, the Right Cut reaches and hits")
 	_patch("multi_hit", 3)
 	_patch("multi_interval", 0)
 	_patch("active", 6)
-	var t: Trace = _run_patched(30, _light_at_0, _idle)
+	var t: Trace = _run_patched(STEPS, _light_at_0, _idle)
 	assert_eq(t.all(&"hit"), [] as Array[Dictionary], "no active frame hits")
 	assert_eq(t.attacker[0], &"attack", "the Right Cut was thrown")
 
@@ -193,7 +212,7 @@ func test_a_negative_multi_interval_is_used_as_is() -> void:
 	_patch("multi_hit", 3)
 	_patch("multi_interval", -2)
 	_patch("active", 6)
-	var t: Trace = _run_patched(30, _light_at_0, _idle)
+	var t: Trace = _run_patched(STEPS, _light_at_0, _idle)
 	var hits: Array[Dictionary] = t.all(&"hit")
 	assert_eq(hits.size(), 3, "three hits")
 	for k: int in range(1, hits.size()):
@@ -205,7 +224,7 @@ func test_a_negative_guard_crush_is_kept() -> void:
 	# TS: guardCrush ?? blockMitigation keeps the negative multiplier, and
 	# addPosture then ignores the negative cost.
 	_patch("guard_crush", -0.5)
-	var t: Trace = _run_patched(30, _light_at_0, _hold_block, func(W: World) -> void: W.fighters[1].posture = 40.0)
+	var t: Trace = _run_patched(STEPS, _light_at_0, _hold_block, func(W: World) -> void: W.fighters[1].posture = 40.0)
 	assert_eq([t.count(&"block"), t.count(&"hit")], [1, 0], "the Right Cut is blocked")
 	assert_almost_eq(float(t.find(&"block")["posture"]), 7.0 * -0.5, 1e-9, "the block's posture cost keeps the negative multiplier (Right Cut's 7 × -0.5)")
 	var rises: int = 0
@@ -228,10 +247,10 @@ func test_a_negative_lunge_end_means_no_lunge() -> void:
 	# TS: lungeEnd ?? S + A keeps a negative end, so the lunge window is empty.
 	_patch("lunge_end", -1)
 	var out_of_reach: Callable = func(W: World) -> void: W.fighters[1].pos.z = 4.0
-	var t: Trace = _run_patched(30, _light_at_0, _idle, out_of_reach)
+	var t: Trace = _run_patched(STEPS, _light_at_0, _idle, out_of_reach)
 	assert_eq(t.attacker[0], &"attack", "the Right Cut was thrown")
 	var a: Fighter = t.world.fighters[0]
-	assert_eq([a.pos.x, a.pos.z], [0.0, -1.1], "the attacker never moved")
+	assert_eq([a.pos.x, a.pos.z], [0.0, -GAP / 2.0], "the attacker never moved")
 
 
 func test_negative_hitstop_and_hitstun_are_kept() -> void:
@@ -239,11 +258,11 @@ func test_negative_hitstop_and_hitstun_are_kept() -> void:
 	# freezes and the defender recovers at once.
 	_patch("hitstop", -3)
 	_patch("hitstun", -4)
-	var t: Trace = _run_patched(30, _light_at_0, _idle)
+	var t: Trace = _run_patched(STEPS, _light_at_0, _idle)
 	assert_eq(t.count(&"hit"), 1, "one hit")
 	var at: int = t.find(&"hit")["step"]
 	assert_eq(t.hitstop[at], -3, "the hit-stop is kept as it is")
-	assert_eq(t.frame, range(1, 31), "the world steps on every step: no hit-stop")
+	assert_eq(t.frame, range(1, STEPS + 1), "the world steps on every step: no hit-stop")
 	assert_eq([t.defender[at], t.defender[at + 1]], [&"hitstun", &"free"], "the defender is free on the frame after the hit")
 
 
@@ -253,7 +272,7 @@ func test_a_negative_blockstun_is_kept() -> void:
 	# would for Right Cut's own 4: the minimum hides the kept -2).
 	_patch("blockstun", -5)
 	_patch("hitstop", -2)
-	var t: Trace = _run_patched(30, _light_at_0, _hold_block)
+	var t: Trace = _run_patched(STEPS, _light_at_0, _hold_block)
 	assert_eq(t.count(&"block"), 1, "one block")
 	var at: int = t.find(&"block")["step"]
 	assert_eq(t.hitstop[at], 3, "the minimum hit-stop")

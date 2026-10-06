@@ -144,16 +144,17 @@ func test_the_idle_dummy_presses_nothing_and_stays_put() -> void:
 
 
 func test_the_blocking_dummy_holds_block_and_blocks_every_light() -> void:
-	# the opponent throws a Right Cut every 60 steps, the first well after the
+	# the opponent throws a Right Cut every 90 steps (each plays out, 60
+	# frames, before the next press, task 31), the first well after the
 	# dummy's first block press so it is blocked, not parried
 	var opponent: Callable = func(i: int) -> RawInput:
-		return H.btn(Btn.LIGHT) if i >= 30 and i % 60 == 30 else H.idle()
-	var run: DummyRun = _play(Moves.KATANA, &"block", 600, opponent)
+		return H.btn(Btn.LIGHT) if i >= 30 and i % 90 == 30 else H.idle()
+	var run: DummyRun = _play(Moves.KATANA, &"block", 900, opponent)
 	var held: int = 0
 	for r: RawInput in run.inputs:
 		if r.buttons == 1 << Btn.BLOCK and r.mx == 0.0 and r.my == 0.0:
 			held += 1
-	assert_eq(held, 600, "block alone is held on every step")
+	assert_eq(held, 900, "block alone is held on every step")
 	assert_eq(run.blocking.count(false), 0, "the dummy is blocking after every step")
 	var blocked: Array = run.all(&"block").filter(func(e: Dictionary) -> bool: return e["target"] == 0)
 	var hit: Array = run.all(&"hit").filter(func(e: Dictionary) -> bool: return e["target"] == 0)
@@ -164,7 +165,9 @@ func test_the_blocking_dummy_holds_block_and_blocks_every_light() -> void:
 func test_the_lights_dummy_throws_its_weapons_whole_light_string_110_frames_apart() -> void:
 	for weapon_id: StringName in LIGHT_STRINGS:
 		var string: Array = LIGHT_STRINGS[weapon_id]
-		var run: DummyRun = _play(Moves.WEAPONS[weapon_id], &"lights", 660)
+		# the Katana's string outlasts 110 frames since task 31, so its next
+		# starts once it is free
+		var run: DummyRun = _play(Moves.WEAPONS[weapon_id], &"lights", 900)
 		var expected: Array[StringName] = []
 		for _s: int in 5:
 			expected.append_array(string)
@@ -226,6 +229,8 @@ func test_choosing_random_again_starts_it_over_at_lights() -> void:
 	var dummy: TrainingBrain = TrainingBrain.new(W.fighters[0])
 	dummy.set_behaviour(&"random")
 	for _i: int in 300: # two drills in
+		W.step([dummy.think(), H.idle()])
+	while W.fighters[0].state != &"free": # the drill under way plays out
 		W.step([dummy.think(), H.idle()])
 	W.drain_events()
 	dummy.set_behaviour(&"random")

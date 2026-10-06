@@ -9,8 +9,10 @@ extends VBoxContainer
 ## ruler, the markers and the feet (StudioTimeline). Space plays and pauses,
 ## Left and Right step a frame, L loops.
 ##
-## Only foot locking has a toggle: task 23 adds inertial blending's, and the
-## reaction layer's task its own.
+## Foot locking and inertial blending (milestone-1 task 23) have toggles,
+## both on as in a match; the reaction layer's task adds its own. Inertial
+## blending runs on the playhead's rules frames: a loop back to the start
+## hands off as a follow-up would (StateClips.blends), any other jump cuts.
 ##
 ## Markers (milestone-1 task 26) are edited in the Markers panel's boxes or by
 ## dragging them on the timeline: a move's (MoveClips: wind-up, active start
@@ -49,6 +51,8 @@ var playback: StudioPlayback = StudioPlayback.new()
 var view: FramesAndBands = null
 ## Whether planted feet are held (the foot-locking layer).
 var foot_lock_on: bool = true
+## Whether the inertial-blending layer is on (milestone-1 task 23).
+var inertial_on: bool = true
 ## The Studio's pending edits (shared with the gallery's badges).
 var session: EditSession = EditSession.new()
 ## The data files marker edits go to (fixture copies in tests).
@@ -75,6 +79,7 @@ var _verdict: Label = null
 var _fields: VBoxContainer = null
 var _distance: VBoxContainer = null
 var _foot_lock: CheckBox = null
+var _inertial: CheckBox = null
 var _play: Button = null
 var _loop: CheckBox = null
 var _rate: HSlider = null
@@ -145,6 +150,21 @@ func play(on: bool) -> void:
 	_play.text = "Pause" if playback.playing else "Play"
 
 
+## Switches the inertial-blending layer on or off (milestone-1 task 23).
+func set_inertial_blending(on: bool) -> void:
+	inertial_on = on
+	_inertial.set_pressed_no_signal(on)
+	if model != null:
+		model.rig.inertial.clear()
+	_pose()
+
+
+## A loop back to the start: blends into it as a follow-up would.
+func _wrapped() -> void:
+	if model != null:
+		model.rig.inertial.request(StateClips.shared().blends[&"follow_up"])
+
+
 ## Switches the foot-locking layer on or off.
 func set_foot_lock(on: bool) -> void:
 	foot_lock_on = on
@@ -156,10 +176,11 @@ func set_foot_lock(on: bool) -> void:
 func _process(delta: float) -> void:
 	if not is_visible_in_tree() or not playback.playing:
 		return
+	var before: float = playback.frame
 	playback.advance(delta)
 	if not playback.playing:
 		_play.text = "Play"
-	_pose()
+	_pose(playback.loop and playback.frame < before)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -192,8 +213,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 ## Poses the fighter at the playhead: the rig's foot lock steps by rules
-## frames (two to a source frame), a fresh one after any jump.
-func _pose() -> void:
+## frames (two to a source frame), a fresh one after any jump; inertial
+## blending runs on them, cutting at a jump but a loop round (`wrapped`).
+func _pose(wrapped: bool = false) -> void:
 	timeline.set_frame(playback.frame)
 	var rules: int = roundi(playback.frame * MoveClips.RULES_PER_SOURCE)
 	_frame_label.text = "source %.1f / %.1f · rules %d" % [playback.frame, playback.length,
@@ -206,6 +228,13 @@ func _pose() -> void:
 		rig.foot_lock = null
 	elif rig.foot_lock == null or rules < _last_rules or rules > _last_rules + FootLock.EASE_FRAMES:
 		rig.foot_lock = rig.new_foot_lock()
+	rig.inertial.active = inertial_on
+	rig.inertial.time = playback.frame * MoveClips.RULES_PER_SOURCE
+	if rules < _last_rules or rules > _last_rules + FootLock.EASE_FRAMES:
+		if wrapped:
+			_wrapped()
+		else:
+			rig.inertial.clear()
 	_last_rules = rules
 	rig.rules_frame = rules
 	poser.pose(playback.source_time())
@@ -670,6 +699,11 @@ func _build_ui() -> void:
 	_foot_lock.button_pressed = foot_lock_on
 	_foot_lock.toggled.connect(set_foot_lock)
 	side.add_child(_foot_lock)
+	_inertial = _named(CheckBox.new(), "InertialBlending")
+	_inertial.text = "Inertial blending"
+	_inertial.button_pressed = inertial_on
+	_inertial.toggled.connect(set_inertial_blending)
+	side.add_child(_inertial)
 
 	var controls: HBoxContainer = HBoxContainer.new()
 	add_child(controls)

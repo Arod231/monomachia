@@ -5,6 +5,7 @@
 		"fallbacks": {"katana": "Sword_Idle", "daggers": "Sword_Idle", "greatsword": "Sword_Idle", "fists": "Idle"}
 	},
 	"fades": {"attack": 3, "follow_up": 4, "dodge_cancel": 2, "hitstun": 0, "locomotion": 6, "stance": 8, "state": 2, "guard": 3, "rebound": 4},
+	"blends": {"attack": 3, "follow_up": 4, "dodge_cancel": 2, "hitstun": 4, "locomotion": 6, "stance": 8, "state": 2, "guard": 3, "rebound": 4},
 	"hit": {"clips": ["CombatDamage01", "CombatDamage02"], "fallbacks": ["Hit_Chest", "Hit_Head"], "heavy_hitstun": 20},
 	"guard": {
 		"clips": {
