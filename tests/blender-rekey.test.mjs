@@ -1,6 +1,8 @@
 // Tests for Claude's scripted re-keys (scripts/blender/rekey_clip.py,
 // milestone-1 task 31): every spec in scripts/blender/rekeys/ is well formed
-// and names a clip the clip manifest imports, and, where Blender is
+// and names a clip the clip manifest imports (the light string's cuts, its
+// guard, and task 33's transitions: the bridges between its hits and each
+// light's return to guard), and, where Blender is
 // installed (local-only, skipped elsewhere, CI included), the script's time
 // warp and steps behave: the warp passes through its pairs without falling or
 // overshooting, a stepping foot moves only while it is off the ground, and
@@ -28,15 +30,28 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
-    assert.deepEqual(specs.map((s) => s.id).sort(), ['crown_cut', 'kesa_cut', 'return_cut', 'right_cut']);
+    assert.deepEqual(specs.map((s) => s.id).sort(), [
+      'crown_cut', 'crown_cut_to_guard', 'katana_guard', 'kesa_cut', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
+      'return_cut', 'return_cut_to_guard', 'return_cut_to_kesa_cut', 'right_cut', 'right_cut_to_guard', 'right_cut_to_return_cut',
+    ]);
   });
 
   for (const { id, spec } of specs) {
     describe(id, () => {
       const length = spec.remap.at(-1)[0];
+      const transition = id.includes('_to_');
 
-      it('re-keys a pack clip into its own Blender source', () => {
-        assert.match(spec.source, /^kevin_iglesias\/.+\.fbx$/);
+      it('re-keys a pack clip, or for a transition a re-keyed clip, into its own Blender source', () => {
+        if (transition) {
+          const [from, to] = id.split('_to_');
+          const into = to === 'guard' ? 'katana_guard' : to;
+          assert.equal(spec.source, `blender/clips/${into}.blend`, 'carried into the clip it hands on to');
+          assert.equal(spec.blend_from.source, `blender/clips/${from}.blend`, 'from the clip it follows');
+          assert.ok(spec.blend_from.frames > 0 && spec.blend_from.frames <= length, 'blended in within the clip');
+          assert.deepEqual(spec.remap, [[0, 0], [length, length]], 'its target at its own speed from its start');
+        } else {
+          assert.match(spec.source, /^kevin_iglesias\/.+\.fbx$/);
+        }
         assert.equal(spec.out, `blender/clips/${id}.blend`);
       });
 
@@ -48,13 +63,13 @@ describe('the re-key specs', () => {
         }
       });
 
-      it('puts both hands on the grip, clear of the body', () => {
+      it('puts both hands on the grip, clear of the body (a transition carries its two clips\' hands)', { skip: transition }, () => {
         assert.ok(spec.two_hands.grip > 0 && spec.two_hands.grip < 0.3);
         assert.equal(spec.two_hands.hold.length, 2);
         assert.ok(spec.two_hands.clearance >= 0.05, 'at least PoseCheck.BLADE_CLEARANCE');
       });
 
-      it('steps forward and ends in the stance it started in', () => {
+      it('steps forward and ends in the stance it started in', { skip: !spec.step && 'no step: the guard and the transitions keep their clips\' feet' }, () => {
         const { body, feet } = spec.step;
         assert.deepEqual(body[0], [0, 0]);
         for (let i = 1; i < body.length; i++) {
@@ -136,7 +151,9 @@ print(json.dumps([f(i / 10.0) for i in range(431)]))`);
       assert.equal(r.status, 0, r.stdout + r.stderr);
       const length = spec.remap.at(-1)[0];
       assert.match(r.stdout, new RegExp(`-> ${length + 1} frames \\(${length} long\\)`), id);
-      assert.match(r.stdout, /the body steps \d\.\d\d m forward/, id);
+      if (spec.step) assert.match(r.stdout, /the body steps \d\.\d\d m forward/, id);
+      if (spec.blend_from) assert.match(r.stdout, /blended in from the start pose over \d+ frames/, id);
+      assert.doesNotMatch(r.stdout, /out of the leg's reach/, id);
     }
   });
 });

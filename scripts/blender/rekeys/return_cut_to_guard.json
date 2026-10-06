@@ -1,0 +1,11 @@
+{
+	"about": "Return Cut's return to guard (katana.k_l2), milestone-1 task 33: the guard idle's first 12 frames, starting in Return Cut's pose at its settle (frame 28.5), where the attack ends, and carried into the guard, the feet where the guard has them. Played after the recovery when no follow-up is taken and the fighter stands; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/katana_guard.blend",
+	"out": "blender/clips/return_cut_to_guard.blend",
+	"remap": [[0, 0], [12, 12]],
+	"blend_from": {
+		"source": "blender/clips/return_cut.blend",
+		"frame": 28.5,
+		"frames": 12
+	}
+}

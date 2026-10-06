@@ -26,6 +26,13 @@ extends RefCounted
 ##   The Rogue plays the Hunter's set for a move whose HumanF clip strays
 ##   (ClipLibraries.set_for()). Moves without a baked swing keep the
 ##   stand-in poses: nothing drives;
+## - the light string's transitions (milestone-1 task 33; StateClips.bridges
+##   and returns, with the packs): a re-keyed follow-up started from the move
+##   its bridge is keyed from plays the bridge over its first frames and
+##   hands on to its own clip, where that clip would be, before its active
+##   frames (bridge_clip()); a light played out with no follow-up plays its
+##   return to guard, whole body, while the fighter stands in the free state
+##   without blocking (return_clip()). Both at 1.0x, picture only;
 ## - the ultimate Moonsplitter (task 13; ult_clip()): its clip wound up and
 ##   held through the rules' wind-up, released as the wave goes out;
 ##   Impaler (task 20): AttackPolearm01 drawn back through the aim, thrust
@@ -178,6 +185,9 @@ const UPPER_REACTIONS: Array[StringName] = [&"guard", &"blockstun", &"parry"]
 ## The states a parried attacker rebounds in: a block's parry recoils it, a
 ## Flash's or a Redirect's stuns it (task 27).
 const REBOUND_STATES: Array[StringName] = [&"recoil", &"stunned"]
+## The most a fighter moves (m/s over the ground) and still stands for a
+## light's return to guard (return_clip()): Locomotion's turn threshold.
+const RETURN_STILL: float = 0.1
 
 
 ## What a fighter is playing and from what it plays.
@@ -330,6 +340,12 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			phase = &"hold" if f.atk.charging else &"swing"
 	else:
 		playing = state_clip(f, ctx)
+		if playing == null:
+			var back: Array = return_clip(prev, f, ctx)
+			if not back.is_empty():
+				playing = back[0]
+				move = back[1]
+				phase = &"return"
 		if playing == null:
 			var moving: Array = move_clip(f, ctx)
 			if not moving.is_empty():
@@ -756,7 +772,56 @@ static func idle_clip(f: Fighter, ctx: Context) -> String:
 static func attack_clip(f: Fighter, ctx: Context, t: float) -> Clip:
 	if f.state != &"attack" or f.atk == null:
 		return null
+	var bridge: Clip = bridge_clip(f, ctx, t)
+	if bridge != null:
+		return bridge
 	return _move_clip(f, f.atk.def, ctx, t)
+
+
+## The bridge `f`'s follow-up plays at its frame `t` (milestone-1 task 33),
+## or null: with the packs, a re-keyed follow-up that has a bridge from the
+## move it follows (StateClips.bridges) plays it at 1.0x from its first
+## frame, and hands on to its own clip where the bridge ends, the pose the
+## bridge ends in and the time its own clip would be at. Picture only.
+static func bridge_clip(f: Fighter, ctx: Context, t: float) -> Clip:
+	var def: AttackDef = f.atk.def
+	if not ctx.libraries or f.atk.chained_from == null or not def.real_markers or def.swing == null \
+			or f.moveset().moves.get(def.id) != def:
+		return null
+	var id: StringName = (StateClips.shared().bridges.get(def.id, {}) as Dictionary).get(f.atk.chained_from.id, &"")
+	if id == &"":
+		return null
+	var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id, def.swing), id)
+	var at: float = t / float(SimConst.FPS)
+	if at >= ctx.lengths.get(anim_name, 0.0) - 1e-9:
+		return null
+	return Clip.make(anim_name, at)
+
+
+## `f`'s return to guard (milestone-1 task 33) as [clip, move], or empty:
+## with the packs, a move with a return (StateClips.returns) played out to
+## its recovery (`prev` the attack's last shot) hands on to it in the free
+## state, at 1.0x from its start, while the fighter stands (RETURN_STILL)
+## and doesn't block; it ends, for good, at its end or once either changes.
+static func return_clip(prev: Shot, f: Fighter, ctx: Context) -> Array:
+	if prev == null or not ctx.libraries or f.state != &"free" or f.blocking \
+			or Vector2(f.vel.x, f.vel.z).length() > RETURN_STILL:
+		return []
+	var move: StringName = &""
+	var since: int = 0
+	if prev.drive == STATE and prev.phase == &"return":
+		move = prev.move
+		since = prev.since + 1
+	elif prev.drive == ATTACK and prev.attack != null and prev.attack.frame >= prev.attack.def.startup + prev.attack.def.active:
+		move = prev.attack.def.id
+	var id: StringName = StateClips.shared().returns.get(move, &"")
+	if id == &"":
+		return []
+	var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id)
+	var at: float = float(since) / float(SimConst.FPS)
+	if at >= ctx.lengths.get(anim_name, 0.0) - 1e-9:
+		return []
+	return [Clip.make(anim_name, at), move]
 
 
 ## The stand-in finisher's clip (FINISHER_STANDINS) for the finisher `f`, or

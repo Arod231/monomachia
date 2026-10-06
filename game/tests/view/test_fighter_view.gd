@@ -227,6 +227,57 @@ func test_the_weapon_rides_the_clips_hands_in_every_state() -> void:
 			SimHelpers.dispose_all()
 
 
+## Local-only (milestone-1 task 33): on the live clip tables, both fighters
+## stand in the Katana's keyed guard, play the light string stopped after
+## one to four lights with each bridge between its hits and the last light's
+## return to guard, and hold the weapon in the clip's hands throughout.
+func test_local_the_katana_stays_in_hand_through_its_guard_bridges_and_returns() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	StateClips.use(StateClips.read())
+	var lights: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
+	var bridges: Array[String] = ["RightCutToReturnCut", "ReturnCutToKesaCut", "KesaCutToCrownCut"]
+	var returns: Array[String] = ["RightCutToGuard", "ReturnCutToGuard", "KesaCutToGuard", "CrownCutToGuard"]
+	for id: StringName in FighterLook.IDS:
+		for n: int in [1, 2, 3, 4]:
+			var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 4.0)
+			var f: Fighter = W.fighters[0]
+			var v: FighterView = _view(id, Moves.KATANA)
+			var what: String = "%s, %d light%s" % [id, n, "" if n == 1 else "s"]
+			var shown: Dictionary[String, bool] = {}
+			var started: Array[AttackState] = []
+			var worst: float = 0.0
+			var loose: int = 0
+			var after: int = 0
+			for step: int in 300:
+				var press: bool = step >= 4 and started.size() < n and step % 4 == 0
+				W.step([SimHelpers.btn(Btn.LIGHT) if press else SimHelpers.idle(), SimHelpers.idle()])
+				if f.state == &"attack" and not started.has(f.atk):
+					started.append(f.atk)
+				_update(v, f)
+				var poses: Array[Transform3D] = await _posed(v)
+				if v.shot.clip != null:
+					shown[String(v.shot.clip.name).get_file()] = true
+				if not v.model.rig.is_fixed():
+					loose += 1
+				worst = maxf(worst, _held_miss(v, poses))
+				if step == 0:
+					assert_eq(String(v.shot.idle).get_file(), "KatanaGuard", "%s: the keyed guard" % what)
+				if not started.is_empty() and f.state == &"free":
+					after += 1
+					if after > 40:
+						break
+			assert_eq(started.map(func(a: AttackState) -> StringName: return a.def.id), lights.slice(0, n), "%s: the string" % what)
+			for i: int in n - 1:
+				assert_true(shown.has(bridges[i]), "%s: bridged by %s (shown %s)" % [what, bridges[i], shown.keys()])
+			assert_false(shown.has(bridges[n - 1]) if n < 4 else false, "%s: no bridge past the string's end" % what)
+			assert_true(shown.has(returns[n - 1]), "%s: returned to guard by %s (shown %s)" % [what, returns[n - 1], shown.keys()])
+			assert_eq(loose, 0, "%s: fixed in the clip's hands throughout" % what)
+			assert_lt(worst, NEAR, "%s: the hands on the grips" % what)
+			SimHelpers.dispose_all()
+
+
 ## Local-only: through every frame of a light and a heavy attack the Hunter
 ## holds the weapon in the clip's hand, the off hand on its grip, the elbows
 ## never locking. The fallback clips can't reach the baked paths.

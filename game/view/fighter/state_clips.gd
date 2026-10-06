@@ -20,8 +20,8 @@ extends RefCounted
 ##    "knockdown": {"clips": {"fall": ...}, "fallbacks": {"fall": ...}, "standup_from": 6},
 ##    "ko": {"clips": {"front": [light, heavy], "behind": [light, heavy]}, "fallback": "Death01"}}
 ##
-## Every group and field is needed, but "own_speed", and a field it doesn't
-## know is an error, as in MoveClips.
+## Every group and field is needed, but "own_speed" and "transitions", and a
+## field it doesn't know is an error, as in MoveClips.
 ##
 ## "own_speed" (milestone-1 task 19) lists the clips that play at 1.0 from
 ## their state's start instead of fitted to it, each "loop" (looping once
@@ -30,11 +30,18 @@ extends RefCounted
 ## so every state clip is still fitted (ClipDirector.fitted_time()). An "about" field may say what the file is. Weapon-keyed
 ## tables may list any weapon but must have the bare hands' ("fists"), which
 ## stands in for a weapon without an entry.
+##
+## "transitions" (milestone-1 task 33) names the keyed transitions between
+## a string's moves: "bridges" by the follow-up and the move it follows
+## ({"k_l2": {"k_l1": clip}}), played over the follow-up's first frames
+## when it follows that move, and "returns" by move ({"k_l1": clip}), each
+## light's return to guard after its recovery. Both are picture only, and
+## only with the packs.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "rebound", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions"]
 ## What a clip at its own speed does past its end.
 const OWN_SPEED_ENDS: Array[String] = ["loop", "hand_on"]
 const KNOCKDOWN_PHASES: Array[String] = ["fall", "ground", "standUp"]
@@ -122,6 +129,11 @@ var knockdown_standup_from: float = 0.0
 ## lying at the end.
 var ko_clips: Array[Array] = []
 var ko_fallback: StringName = &""
+## The string's bridges (milestone-1 task 33): by follow-up, the clip it
+## plays over its first frames by the move it follows.
+var bridges: Dictionary[StringName, Dictionary] = {}
+## Each light's return to guard, by move.
+var returns: Dictionary[StringName, StringName] = {}
 ## What is wrong with the file, one line each; empty when it read cleanly.
 var errors: PackedStringArray = []
 
@@ -224,6 +236,31 @@ static func read(path: String = PATH) -> StateClips:
 					t.errors.append("own_speed.%s: must be loop or hand_on" % id)
 				else:
 					t.own_speed[StringName(str(id))] = StringName(str(own[id]))
+	if root.has("transitions"):
+		g = t._object(root["transitions"], "transitions", ["bridges", "returns"])
+		var bridges: Variant = g.get("bridges", {})
+		if not bridges is Dictionary:
+			t.errors.append("transitions.bridges: must be an object")
+		else:
+			for move: Variant in bridges:
+				var at: String = "transitions.bridges.%s" % move
+				if not bridges[move] is Dictionary:
+					t.errors.append("%s: must be an object of clip ids by the move it follows" % at)
+					continue
+				var by: Dictionary[StringName, StringName] = {}
+				for from: Variant in bridges[move]:
+					var id: StringName = t._id(bridges[move], at, str(from))
+					if id != &"":
+						by[StringName(str(from))] = id
+				t.bridges[StringName(str(move))] = by
+		var returns: Variant = g.get("returns", {})
+		if not returns is Dictionary:
+			t.errors.append("transitions.returns: must be an object")
+		else:
+			for move: Variant in returns:
+				var id: StringName = t._id(returns, "transitions.returns", str(move))
+				if id != &"":
+					t.returns[StringName(str(move))] = id
 	return t
 
 

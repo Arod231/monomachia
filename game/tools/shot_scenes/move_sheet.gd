@@ -994,6 +994,10 @@ func render_drive(drive_id: StringName) -> Image:
 			lines[0] += " · %s frame %d" % [bench.attacker.atk.def.id, bench.attacker.atk.frame]
 		elif bench.attacker.state != &"free":
 			lines[0] += " · %s %d" % [bench.attacker.state, bench.attacker.sf]
+		var shot: ClipDirector.Shot = bench.view.shot
+		if shot != null and shot.clip != null:
+			# the clip driving (a bridge or a return to guard among them, task 33)
+			lines[1] = "%s %.2f s · %s" % [String(shot.clip.name).get_file(), shot.clip.time, lines[1]]
 		strip.append(lines)
 		for view: StringName in views:
 			var label: Image = await _text_image(lines, [TEXT_COLOR, TEXT_COLOR, TEXT_COLOR],

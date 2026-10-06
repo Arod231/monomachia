@@ -8,7 +8,8 @@
 #     --assets <asset repository> [--check]
 #
 # A spec (JSON) names:
-# - source: the pack clip, a path from the asset repository's root;
+# - source: the pack clip (an .fbx), or a re-keyed clip's own source (a .blend
+#   this script wrote), a path from the asset repository's root;
 # - out: the .blend it writes, from the asset repository's root (blender/clips/);
 # - remap: the time warp, [new frame, source frame] pairs at 30 fps from frame
 #   0, non-decreasing in both (a pair repeating a source frame holds it); every
@@ -29,7 +30,13 @@
 #   place so the planted feet slide back under it as far as the body goes (the
 #   frame-data generator's travel), the hips no higher than "hips_top" and
 #   back at their guard height over "hips_home" (by the settle, where the game
-#   hands on), both legs on IK, baked; omit for a clip that keeps its feet.
+#   hands on), both legs on IK, baked; omit for a clip that keeps its feet;
+# - blend_from: {"source": path, "frame": source frame, "frames": n}: a
+#   transition (blend_from(); milestone-1 task 33's bridges and returns to
+#   guard): the clip starts in that clip's pose at that frame and carries it
+#   into its own motion over its first n frames, everything above the legs
+#   offset by what is left of the difference, the feet kept where the clip
+#   has them, both legs on IK, baked; omit for a clip that starts as it is.
 #
 # The source keeps the armature and the new action only (the export takes
 # every action, the import the first). Re-running gives the same file's
@@ -103,11 +110,16 @@ def check_remap(remap):
 
 
 def import_clip(path):
-    for o in list(bpy.data.objects):
-        bpy.data.objects.remove(o, do_unlink=True)
-    for a in list(bpy.data.actions):
-        bpy.data.actions.remove(a)
-    bpy.ops.import_scene.fbx(filepath=path, automatic_bone_orientation=False)
+    """The clip at `path` alone in the scene: a pack clip (.fbx, its first
+    frame 1) or a source this script wrote (.blend, opened as it was saved)."""
+    if path.lower().endswith(".blend"):
+        bpy.ops.wm.open_mainfile(filepath=path)
+    else:
+        for o in list(bpy.data.objects):
+            bpy.data.objects.remove(o, do_unlink=True)
+        for a in list(bpy.data.actions):
+            bpy.data.actions.remove(a)
+        bpy.ops.import_scene.fbx(filepath=path, automatic_bone_orientation=False)
     arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     return arm, arm.animation_data.action
 
@@ -127,7 +139,8 @@ def retime(arm, scene, src_action, remap):
     warp = monotone([float(p[0]) for p in remap], [float(p[1]) for p in remap])
     length = int(round(remap[-1][0]))
     frames = [sample(arm, scene, warp(n)) for n in range(length + 1)]
-    new = bpy.data.actions.new(src_action.name.split("|")[1] + "_rekeyed" if "|" in src_action.name else "rekeyed")
+    base = src_action.name.split("|")[1] if "|" in src_action.name else src_action.name
+    new = bpy.data.actions.new(base if base.endswith("_rekeyed") else base + "_rekeyed")
     arm.animation_data.action = new
     for pb in arm.pose.bones:
         pb.rotation_mode = "QUATERNION"
@@ -461,6 +474,28 @@ def step(arm, scene, length, spec):
 
     fwd = mathutils.Vector((0.0, -1.0, 0.0))
     up = mathutils.Vector((0.0, 0.0, 1.0))
+    feet = {"L": [], "R": []}
+    for n in range(length + 1):
+        for side in ("L", "R"):
+            ahead, high = foot_path(spec["feet"].get(side, []), float(n))
+            m = feet0[side]
+            at = m.to_translation() + fwd * (ahead - (body(float(n)) - body(0.0))) + up * high
+            feet[side].append((at, m.to_quaternion(), high))
+    over = legs_to(arm, scene, length, feet, feet0)
+    print(f"rekey_clip: the body steps {body(float(length)) - body(0.0):.2f} m forward", flush=True)
+    if over:
+        print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
+def legs_to(arm, scene, length, feet, rest, knees=None):
+    """Both legs on IK, baked: each foot (the foot bone) on `feet[side][n]`
+    ((place, turn, height off the ground), world space) on every frame, each
+    knee over its toes as they point in `rest[side]` (a foot's world
+    matrix), or, given `knees[side][n]` (world space), bent toward that
+    point. Answers where a planted foot is out of the leg's reach."""
+    mw = arm.matrix_world
+    pbs = arm.pose.bones
+    up = mathutils.Vector((0.0, 0.0, 1.0))
     leg = {side: 0.99 * (arm.data.bones["B-thigh." + side].length + arm.data.bones["B-shin." + side].length) * arm.scale[1]
            for side in ("L", "R")}
     targets = {}
@@ -474,11 +509,10 @@ def step(arm, scene, length, spec):
         scene.frame_set(1 + n)
         bpy.context.view_layer.update()
         for side in ("L", "R"):
-            ahead, high = foot_path(spec["feet"].get(side, []), float(n))
-            m = feet0[side]
+            at, turn, high = feet[side][n]
             t = targets[side]
-            t.location = m.to_translation() + fwd * (ahead - (body(float(n)) - body(0.0))) + up * high
-            t.rotation_quaternion = m.to_quaternion()
+            t.location = at
+            t.rotation_quaternion = turn
             t.keyframe_insert("location", frame=1 + n)
             t.keyframe_insert("rotation_quaternion", frame=1 + n)
             hip = mw @ pbs["B-thigh." + side].head
@@ -491,13 +525,20 @@ def step(arm, scene, length, spec):
         pole = bpy.data.objects.new("Knee" + side, None)
         scene.collection.objects.link(pole)
         poles[side] = pole
-        toes = feet0[side].to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))
+        toes = rest[side].to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))
         toes.z = 0.0
         toes.normalize()
         for n in range(length + 1):
             scene.frame_set(1 + n)
-            pole.location = targets[side].location + toes * 0.8 + up * 0.45
+            pole.location = knees[side][n] if knees else targets[side].location + toes * 0.8 + up * 0.45
             pole.keyframe_insert("location", frame=1 + n)
+    # following the clip's knees, the legs end as the clip's: the thigh's
+    # turn on the last frame, before the IK, to fit the pole angle to
+    thighs = {}
+    if knees:
+        scene.frame_set(1 + length)
+        bpy.context.view_layer.update()
+        thighs = {side: (mw @ pbs["B-thigh." + side].matrix).to_quaternion() for side in ("L", "R")}
     cons = []
     for side in ("L", "R"):
         ik = pbs["B-shin." + side].constraints.new("IK")
@@ -505,15 +546,24 @@ def step(arm, scene, length, spec):
         ik.pole_target = poles[side]
         ik.chain_count = 2
         cons.append((pbs["B-shin." + side], ik))
-        scene.frame_set(1)
         best = None
-        for angle in (0.0, 90.0, -90.0, 180.0):
-            ik.pole_angle = math.radians(angle)
-            bpy.context.view_layer.update()
-            knee = mw @ pbs["B-shin." + side].head
-            gap = (knee - poles[side].location).length
-            if best is None or gap < best[0]:
-                best = (gap, angle)
+        if knees:
+            scene.frame_set(1 + length)
+            for angle in range(-180, 180, 2):
+                ik.pole_angle = math.radians(angle)
+                bpy.context.view_layer.update()
+                miss = thighs[side].rotation_difference((mw @ pbs["B-thigh." + side].matrix).to_quaternion()).angle
+                if best is None or miss < best[0]:
+                    best = (miss, float(angle))
+        else:
+            scene.frame_set(1)
+            for angle in (0.0, 90.0, -90.0, 180.0):
+                ik.pole_angle = math.radians(angle)
+                bpy.context.view_layer.update()
+                knee = mw @ pbs["B-shin." + side].head
+                gap = (knee - poles[side].location).length
+                if best is None or gap < best[0]:
+                    best = (gap, angle)
         ik.pole_angle = math.radians(best[1])
         turn = pbs["B-foot." + side].constraints.new("COPY_ROTATION")
         turn.target = targets[side]
@@ -525,7 +575,64 @@ def step(arm, scene, length, spec):
         for t in list(targets.values()) + list(poles.values()):
             bpy.data.objects.remove(t, do_unlink=True)
     bake_bones(arm, scene, length, ["B-thigh.L", "B-shin.L", "B-foot.L", "B-thigh.R", "B-shin.R", "B-foot.R"], cleanup)
-    print(f"rekey_clip: the body steps {body(float(length)) - body(0.0):.2f} m forward", flush=True)
+    return over
+
+
+# The bones a transition (blend_from()) leaves to the leg IK.
+LEGS = ("B-thigh.", "B-shin.", "B-foot.", "B-toe.")
+
+
+def pose_at(path, frame):
+    """Every pose bone's local location, rotation and scale in the clip at
+    `path` (import_clip()) at source frame `frame`."""
+    arm, _ = import_clip(path)
+    pose = sample(arm, bpy.context.scene, float(frame))
+    return {name: (loc.copy(), rot.copy(), scl.copy()) for name, (loc, rot, scl) in pose.items()}
+
+
+def blend_from(arm, scene, length, start, frames):
+    """A transition: the clip starts in `start` (pose_at()) and carries it
+    into its own motion over its first `frames` frames. Every bone but the
+    legs' is offset by the difference of `start` from the clip's frame 0,
+    fading out on a smootherstep (its rotation turned by what is left of
+    the turn, its location moved by what is left of the move); the feet are
+    kept where the clip has them, each frame, on IK, each knee bent toward
+    a point out from where the clip has it, so a planted foot stays planted
+    and the legs end as the clip's. Baked."""
+    mw = arm.matrix_world
+    pbs = arm.pose.bones
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    rest = {side: (mw @ pbs["B-foot." + side].matrix) for side in ("L", "R")}
+    feet = {"L": [], "R": []}
+    knees = {"L": [], "R": []}
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        for side in ("L", "R"):
+            m = mw @ pbs["B-foot." + side].matrix
+            feet[side].append((m.to_translation(), m.to_quaternion(), 0.0))
+            hip, knee = mw @ pbs["B-thigh." + side].head, mw @ pbs["B-shin." + side].head
+            ankle = m.to_translation()
+            bend = knee - (hip + ankle) / 2
+            knees[side].append(knee + (bend.normalized() if bend.length > 1e-4 else mathutils.Vector((0.0, -1.0, 0.0))) * 0.5)
+    first = sample(arm, scene, 0.0)
+    moved = [pb for pb in pbs if not pb.name.startswith(LEGS) and pb.name in start]
+    for n in range(min(length, int(frames)) + 1):
+        left = 1.0 - _smoother(n / float(frames))
+        scene.frame_set(1 + n)
+        for pb in moved:
+            loc0, rot0, _ = first[pb.name]
+            loc1, rot1, _ = start[pb.name]
+            turn = rot1 @ rot0.inverted()
+            if turn.w < 0:
+                turn = -turn
+            pb.rotation_quaternion = mathutils.Quaternion().slerp(turn, left) @ pb.rotation_quaternion
+            pb.location = pb.location + (loc1 - loc0) * left
+            pb.keyframe_insert("rotation_quaternion", frame=1 + n, group=pb.name)
+            pb.keyframe_insert("location", frame=1 + n, group=pb.name)
+    over = legs_to(arm, scene, length, feet, rest, knees)
+    print(f"rekey_clip: blended in from the start pose over {int(frames)} frames", flush=True)
     if over:
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
 
@@ -539,14 +646,22 @@ def main():
     src = os.path.join(a["assets"], spec["source"])
     if not os.path.isfile(src):
         raise SystemExit(f"rekey_clip: no source clip at {src}")
+    start = None
+    if spec.get("blend_from"):
+        from_path = os.path.join(a["assets"], spec["blend_from"]["source"])
+        if not os.path.isfile(from_path):
+            raise SystemExit(f"rekey_clip: no clip to blend from at {from_path}")
+        start = pose_at(from_path, float(spec["blend_from"]["frame"]))
+    arm, src_action = import_clip(src)
     scene = bpy.context.scene
     scene.render.fps = FPS
-    arm, src_action = import_clip(src)
     scene.frame_start, scene.frame_end = 1, int(src_action.frame_range[1])
     new, length = retime(arm, scene, src_action, remap)
     scene.frame_start, scene.frame_end = 1, 1 + length
     if spec.get("step"):
         step(arm, scene, length, spec["step"])
+    if start is not None:
+        blend_from(arm, scene, length, start, float(spec["blend_from"]["frames"]))
     if spec.get("two_hands"):
         th = spec["two_hands"]
         two_hands(arm, scene, length, float(th["grip"]), th.get("hold", [0.3, 0.1]), float(th.get("square", 0.0)),

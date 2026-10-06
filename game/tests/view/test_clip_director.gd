@@ -284,6 +284,134 @@ func test_today_no_katana_or_bare_hands_move_has_real_markers_but_the_counter_lu
 				assert_false(def.real_markers, "%s: a stand-in until its family re-keys it" % id)
 
 
+# ------------------------------------------------------------------ transitions (milestone-1 task 33)
+
+## The frozen table with the string's first bridge (Right Cut into Return
+## Cut, 8 source frames) and Right Cut's return to guard (12), and a context
+## whose tree has them; Return Cut re-keyed (real markers), as the string's
+## lights are. Undone by after_each.
+func _transitions() -> ClipDirector.Context:
+	var t: StateClips = StateClips.read(FrozenStateClips.PATH)
+	t.bridges[&"k_l2"] = {&"k_l1": &"Bridge_k_l1_k_l2"}
+	t.returns[&"k_l1"] = &"Return_k_l1"
+	StateClips.use(t)
+	Moves.KATANA.moves[&"k_l2"].real_markers = true
+	var ctx: ClipDirector.Context = _ctx()
+	for set_name: StringName in ClipLibraries.SETS:
+		ctx.lengths["%s/Bridge_k_l1_k_l2" % set_name] = 8.0 / 30.0
+		ctx.lengths["%s/Return_k_l1" % set_name] = 12.0 / 30.0
+		ctx.lengths["%s/Parry1H01_R_Loop" % set_name] = 1.0
+	return ctx
+
+
+## A follow-up started from the move its bridge is keyed from plays the
+## bridge at 1.0x over its first frames, then its own clip exactly where it
+## would have been without one, before its active frames and with no blend
+## (the bridge ends in that pose); the rules' frames are untouched.
+func test_a_chained_follow_up_plays_its_bridge_then_its_own_clip() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _transitions()
+	var follow: AttackDef = Moves.KATANA.moves[&"k_l2"]
+	var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+	_poke(W, f, &"attack", &"k_l1", 20)
+	shot = ClipDirector.step(shot, f, ctx)
+	for frame: int in 30:
+		_poke(W, f, &"attack", &"k_l2", frame, &"k_l1")
+		shot = ClipDirector.step(shot, f, ctx)
+		if frame < 16:
+			assert_eq(shot.clip.name, "HumanM/Bridge_k_l1_k_l2", "frame %d: the bridge" % frame)
+			assert_almost_eq(shot.clip.time, frame / 60.0, 1e-9, "frame %d: at 1.0x from its start" % frame)
+		else:
+			assert_eq(shot.clip.name, "HumanM/Clip_k_l2", "frame %d: the follow-up's own clip" % frame)
+			assert_almost_eq(shot.clip.time, follow.swing.marks[0] / 30.0 + frame / 60.0, 1e-9, "frame %d: where it would be without the bridge" % frame)
+		assert_eq(shot.drive, ClipDirector.ATTACK)
+		if frame == 16:
+			assert_eq(shot.blend, 0, "handed on with no blend")
+	assert_lt(16, follow.startup, "handed on before the active frames")
+
+
+## No bridge for an opener, for a follow-up from a move it has none from, or
+## without the packs (the fallback plays as before).
+func test_only_a_follow_up_from_its_move_plays_a_bridge() -> void:
+	var ctx: ClipDirector.Context = _transitions()
+	for from: StringName in [&"", &"k_h2"]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		_poke(W, f, &"attack", &"k_l2", 3, from)
+		assert_eq(ClipDirector.step(null, f, ctx).clip.name, "HumanM/Clip_k_l2", "from %s: its own clip" % [from if from != &"" else &"the guard"])
+	var W2: World = SimHelpers.make_world()
+	_poke(W2, W2.fighters[0], &"attack", &"k_l2", 3, &"k_l1")
+	assert_eq(ClipDirector.step(null, W2.fighters[0], _ctx(&"hunter", false)).clip.name, "ual/Sword_Attack", "without the packs: the fallback")
+
+
+## A light played out with no follow-up hands on to its return to guard,
+## whole body at 1.0x from its start, while the fighter stands in the free
+## state; then the legs' idle.
+func test_a_light_with_no_follow_up_returns_to_guard() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _transitions()
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+	_poke(W, f, &"attack", &"k_l1", cut.total_frames() - 1)
+	shot = ClipDirector.step(shot, f, ctx)
+	for i: int in 24:
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq([shot.drive, shot.phase, shot.move], [ClipDirector.STATE, &"return", &"k_l1"], "step %d: returning" % i)
+		assert_eq(shot.clip.name, "HumanM/Return_k_l1")
+		assert_almost_eq(shot.clip.time, i / 60.0, 1e-9, "step %d: at 1.0x" % i)
+		assert_false(shot.upper, "the whole body")
+	_poke(W, f, &"free")
+	shot = ClipDirector.step(shot, f, ctx)
+	assert_eq(shot.drive, ClipDirector.LEGS, "then the legs' idle")
+
+
+## Moving or raising the guard hands the return on at once (to the legs or
+## the guard), and it doesn't come back; a light cut short or played
+## without the packs returns through the legs as before.
+func test_moving_or_guarding_ends_the_return() -> void:
+	var ctx: ClipDirector.Context = _transitions()
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	for how: String in ["move", "guard"]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+		_poke(W, f, &"attack", &"k_l1", cut.total_frames() - 1)
+		shot = ClipDirector.step(shot, f, ctx)
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq(shot.phase, &"return", "%s: returning" % how)
+		if how == "move":
+			f.vel = V3.make(1.2, 0.0, 0.0)
+		else:
+			f.blocking = true
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq(shot.phase, &"" if how == "move" else &"guard", "%s: handed on" % how)
+		f.vel = V3.make()
+		f.blocking = false
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq(shot.drive, ClipDirector.LEGS, "%s: and it doesn't come back" % how)
+	var W2: World = SimHelpers.make_world()
+	var f2: Fighter = W2.fighters[0]
+	var plain: ClipDirector.Context = _ctx(&"hunter", false)
+	var s2: ClipDirector.Shot = ClipDirector.step(null, f2, plain)
+	_poke(W2, f2, &"attack", &"k_l1", cut.total_frames() - 1)
+	s2 = ClipDirector.step(s2, f2, plain)
+	_poke(W2, f2, &"free")
+	assert_eq(ClipDirector.step(s2, f2, plain).drive, ClipDirector.LEGS, "without the packs: the legs")
+	var W3: World = SimHelpers.make_world()
+	var f3: Fighter = W3.fighters[0]
+	var s3: ClipDirector.Shot = ClipDirector.step(null, f3, ctx)
+	_poke(W3, f3, &"attack", &"k_l1", 6)
+	s3 = ClipDirector.step(s3, f3, ctx)
+	_poke(W3, f3, &"free")
+	assert_eq(ClipDirector.step(s3, f3, ctx).drive, ClipDirector.LEGS, "cut short in its startup: the legs")
+
+
 ## Pokes fighter `f` into a state for the director's next step.
 static func _poke(W: World, f: Fighter, state: StringName, move: StringName = &"", frame: int = 0, from: StringName = &"") -> void:
 	W.frame += 1

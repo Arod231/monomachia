@@ -1,7 +1,7 @@
 {
-	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the parried attacker's rebound, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown and the KO, the crossfades' lengths, and the hand-keyed clips of the states with their own. Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
+	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the parried attacker's rebound, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown and the KO, the Katana string's transitions (its bridges and returns to guard), the crossfades' lengths, and the hand-keyed clips of the states with their own. Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
 	"idle": {
-		"clips": {"katana": "CombatIdle1H01", "daggers": "CombatIdle1H01", "greatsword": "CombatIdle2H01", "fists": "CombatIdle01"},
+		"clips": {"katana": "KatanaGuard", "daggers": "CombatIdle1H01", "greatsword": "CombatIdle2H01", "fists": "CombatIdle01"},
 		"fallbacks": {"katana": "Sword_Idle", "daggers": "Sword_Idle", "greatsword": "Sword_Idle", "fists": "Idle"}
 	},
 	"fades": {"attack": 3, "follow_up": 4, "dodge_cancel": 2, "hitstun": 0, "locomotion": 6, "stance": 8, "state": 2, "guard": 3, "rebound": 4},
@@ -36,5 +36,9 @@
 	"ko": {
 		"clips": {"front": ["CombatDeath01", "CombatDeath02"], "behind": ["CombatDeath03", "CombatDeath04"]},
 		"fallback": "Death01"
+	},
+	"transitions": {
+		"bridges": {"k_l2": {"k_l1": "RightCutToReturnCut"}, "k_l3": {"k_l2": "ReturnCutToKesaCut"}, "k_l4": {"k_l3": "KesaCutToCrownCut"}},
+		"returns": {"k_l1": "RightCutToGuard", "k_l2": "ReturnCutToGuard", "k_l3": "KesaCutToGuard", "k_l4": "CrownCutToGuard"}
 	}
 }

@@ -792,3 +792,31 @@ func test_the_knockdown_and_ko_groups_are_checked() -> void:
 	assert_true(Array(t.errors).has("ko.clips.behind: must be a list of 2 clip ids"), "a death missing: %s" % t.errors)
 	t = _read_text(_edited("\"fallback\": \"Death01\"", "\"fallback\": \"Death01\", \"spare\": 1"))
 	assert_true(Array(t.errors).has("ko: unknown field spare"), "an unknown ko field: %s" % t.errors)
+
+
+func test_the_transitions_are_optional_and_checked() -> void:
+	# milestone-1 task 33: the Katana's keyed guard, the light string's
+	# bridges by the move each follows, and each light's return to guard
+	var live: StateClips = StateClips.read()
+	assert_eq(live.idle[&"katana"], &"KatanaGuard", "the Katana's keyed guard idle")
+	assert_eq(live.bridges, {&"k_l2": {&"k_l1": &"RightCutToReturnCut"}, &"k_l3": {&"k_l2": &"ReturnCutToKesaCut"},
+		&"k_l4": {&"k_l3": &"KesaCutToCrownCut"}}, "a bridge for each follow-up pair of the light string")
+	assert_eq(live.returns, {&"k_l1": &"RightCutToGuard", &"k_l2": &"ReturnCutToGuard", &"k_l3": &"KesaCutToGuard",
+		&"k_l4": &"CrownCutToGuard"} as Dictionary[StringName, StringName], "a return for each light")
+	var frozen: StateClips = StateClips.read(FrozenStateClips.PATH)
+	assert_eq([frozen.bridges.size(), frozen.returns.size()], [0, 0], "none in a table without the group")
+	var t: StateClips = _read_text(_edited("\"fades\": {", "\"transitions\": {\"bridges\": {\"k_l2\": {\"k_l1\": \"B\"}}, \"returns\": {\"k_l1\": \"R\"}}, \"fades\": {"))
+	assert_eq(Array(t.errors), [], "read cleanly")
+	assert_eq(t.bridges, {&"k_l2": {&"k_l1": &"B"}})
+	assert_eq(t.returns, {&"k_l1": &"R"} as Dictionary[StringName, StringName])
+	var cases: Dictionary = {
+		"\"transitions\": [], ": "transitions: not an object",
+		"\"transitions\": {\"bridges\": {}, \"returns\": {}, \"spare\": 1}, ": "transitions: unknown field spare",
+		"\"transitions\": {\"returns\": {}}, ": "transitions: missing bridges",
+		"\"transitions\": {\"bridges\": {\"k_l2\": \"B\"}, \"returns\": {}}, ": "transitions.bridges.k_l2: must be an object of clip ids by the move it follows",
+		"\"transitions\": {\"bridges\": {\"k_l2\": {\"k_l1\": \"\"}}, \"returns\": {}}, ": "transitions.bridges.k_l2.k_l1: must be a clip id (a non-empty string)",
+		"\"transitions\": {\"bridges\": {}, \"returns\": {\"k_l1\": 3}}, ": "transitions.returns.k_l1: must be a clip id (a non-empty string)",
+	}
+	for group: String in cases:
+		t = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))
+		assert_eq(Array(t.errors), [cases[group]], group)
