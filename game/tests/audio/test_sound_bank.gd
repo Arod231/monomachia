@@ -2,12 +2,13 @@ extends GutTest
 ## The event-to-sound table: every rules event has an entry, every file it
 ## names exists and loads, and the demo's sub-selection rules hold.
 
-## The web demo's event list (v0.1-web-mvp:src/sim/events.ts) plus the menu sounds.
+## The web demo's event list (v0.1-web-mvp:src/sim/events.ts) plus the menu sounds,
+## its weaponBounce become weaponStuck (milestone-1 task 86).
 const EXPECTED_EVENTS: Array[StringName] = [
 	&"swing", &"telegraph", &"hit", &"block", &"parry", &"counter", &"evade", &"disarm",
 	&"stagger", &"dodge", &"jump", &"land", &"step", &"ko", &"ultReady", &"ultStart",
 	&"ultChoice", &"ultWave", &"ultDash", &"ultImpale", &"ultBurst", &"ultLightning",
-	&"recall", &"pickup", &"recallBurst", &"weaponBounce", &"counterReady", &"backstabReady",
+	&"recall", &"pickup", &"recallBurst", &"weaponStuck", &"counterReady", &"backstabReady",
 	&"roundStart", &"fight", &"roundOver", &"matchOver",
 	&"ui_move", &"ui_select", &"ui_back",
 ]
@@ -125,12 +126,10 @@ func test_ultimate_telegraph_is_silent_but_others_warn() -> void:
 	assert_eq(_cue_names({"t": "telegraph", "kind": "ult"}), [] as Array[StringName])
 
 
-func test_weapon_bounce_is_quieter_when_slow_and_clatters_when_fast() -> void:
-	var slow: Array[Dictionary] = SoundBank.cues_for({"t": "weaponBounce", "speed": 2.0})
-	assert_eq(slow.size(), 1)
-	assert_almost_eq(float(slow[0]["volume_db"]), linear_to_db(0.25), 0.01)
-	var fast := _cue_names({"t": "weaponBounce", "speed": 9.0})
-	assert_eq(fast, [&"weapon_bounce", &"weapon_clatter"] as Array[StringName])
+## Until task 91 gives it its own sound (milestone-1 task 86).
+func test_a_weapon_sticking_in_the_ground_lands_with_the_old_fast_bounce() -> void:
+	assert_eq(_cue_names({"t": "weaponStuck", "owner": 0}), [&"weapon_bounce", &"weapon_clatter"] as Array[StringName])
+	assert_eq(_cue_names({"t": "weaponBounce", "speed": 9.0}), [] as Array[StringName], "the bounce retired")
 
 
 func test_event_fields_work_with_string_name_keys() -> void:

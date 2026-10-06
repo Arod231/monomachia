@@ -87,6 +87,8 @@ func test_the_kept_timings_are_unchanged() -> void:
 	assert_eq([SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER, SimConst.PARRIER_RECOVERY], [26, 14, 7], "the parry recoil")
 	assert_eq([SimConst.PARRY_SPAM_WINDOW, SimConst.PARRY_SPAM_PENALTY, SimConst.PARRY_MIN_WINDOW], [30, 3, 2], "the parry-spam shrink")
 	assert_eq([ProtectedTimings.block_hitstop(5), ProtectedTimings.block_hitstop(9), ProtectedTimings.block_hitstop(4)], [3, 7, 3], "a block's hit-stop: the move's less 2, at least 3")
+	# frozen with them (P35; milestone-1 task 103 built it): about a second
+	assert_eq([SimConst.FINISHER_PROMPT_FRAMES, SimConst.FINISHER_PROMPT_SLOWMO], [18, 0.3], "the finisher prompt: 18 rules frames at 0.3x")
 
 
 # ------------------------------------------------------------------ a move's own values

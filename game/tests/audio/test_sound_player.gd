@@ -136,12 +136,12 @@ func test_level_and_pitch_follow_the_cue() -> void:
 	assert_ne(log[0]["pitch"], log[1]["pitch"], "the pitch varies")
 
 
-func test_an_event_s_extra_level_applies() -> void:
+func test_a_stuck_weapon_plays_on_the_foley_bus_at_its_cue_level() -> void:
 	var player := _player()
 	var log := _record(player)
-	player.play_event({"t": "weaponBounce", "speed": 2.0})
-	assert_eq(_cues(log), [&"weapon_bounce"] as Array[StringName])
-	assert_almost_eq(float(log[0]["volume_db"]), -6.0 + linear_to_db(0.25), 0.001)
+	player.play_event({"t": "weaponStuck", "owner": 0})
+	assert_eq(_cues(log), [&"weapon_bounce", &"weapon_clatter"] as Array[StringName])
+	assert_almost_eq(float(log[0]["volume_db"]), -6.0, 0.001)
 	assert_eq(log[0]["bus"], &"Foley")
 
 

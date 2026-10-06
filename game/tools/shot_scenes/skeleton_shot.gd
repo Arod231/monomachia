@@ -80,7 +80,7 @@ const SEED: int = 7
 	"round_start", "exchange", "parry", "watch", "watch_start", "dropped", "results", "main_menu", "title", "mirror", "spacing", "hud_states", "ko", "call",
 	"iai_stance", "iai_vertical", "iai_horizontal", "select_duel", "select_watch", "select_preview",
 	"trail_light", "trail_unblockable", "trail_moonsplitter", "training_swap", "training_panel",
-	"recall_burst", "toasts", "prompts", "marker",
+	"recall_burst", "toasts", "prompts", "marker", "finisher",
 ) var shot: String = "round_start"
 ## The fighters' distance apart for the "spacing" shot (m).
 @export var spacing: float = 2.5
@@ -243,6 +243,17 @@ func _ready() -> void:
 			host.step(steps_after)
 		"call":
 			_call_shot()
+		"finisher":
+			# the stand-in finisher (milestone-1 task 103), 30 frames in: the
+			# Katana's side disarms the other at 5 HP and presses heavy
+			_gameplay(MatchConfig.WATCH)
+			host.step(Match.INTRO_FRAMES + 60)
+			var by: Fighter = host.fighter(0)
+			host.fighter(1).hp = 5.0
+			host.fighter(1).disarm(by, &"parried")
+			host.step(16)
+			by.input.press_frame[Btn.HEAVY] = host.world.frame + 1
+			host.step(30)
 		"hud_states":
 			_gameplay(MatchConfig.DUEL)
 			host.step(Match.INTRO_FRAMES + 60)
@@ -439,8 +450,7 @@ func _prompts_shot() -> void:
 	a.armed = false
 	var b: Fighter = host.fighter(1)
 	var away: Vector3 = Vector3(a.pos.x - b.pos.x, 0.0, a.pos.z - b.pos.z).normalized()
-	var w := DroppedWeapon.new(0, &"katana", V3.make(a.pos.x + away.x * 1.5, 0.0, a.pos.z + away.z * 1.5), V3.make(), Rng.new(SEED))
-	w.grounded = true
+	var w := DroppedWeapon.stuck_at(0, &"katana", V3.make(a.pos.x + away.x * 1.5, 0.0, a.pos.z + away.z * 1.5), 0.0)
 	host.world.weapons.append(w)
 	host.step(2)
 
@@ -468,8 +478,7 @@ func _marker_shot() -> void:
 		_:
 			at += ahead * 1.2 + right * 0.9
 	a.armed = false
-	var w := DroppedWeapon.new(0, &"katana", V3.make(at.x, 0.0, at.z), V3.make(), Rng.new(SEED))
-	w.grounded = true
+	var w := DroppedWeapon.stuck_at(0, &"katana", V3.make(at.x, 0.0, at.z), 0.0)
 	host.world.weapons.append(w)
 	host.step(2)
 

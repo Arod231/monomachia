@@ -149,7 +149,7 @@ func test_the_results_screen_still_plays() -> void:
 	assert_true(host.is_finished())
 	assert_true(audio.ambience.is_playing(), "the arena's ambience plays on")
 	var played := log.size()
-	host.sim_event.emit({"t": &"weaponBounce", "owner": 0, "speed": 9.0, "pos": {"x": 1.0, "y": 0.0, "z": 0.0}})
+	host.sim_event.emit({"t": &"weaponStuck", "owner": 0, "pos": {"x": 1.0, "y": 0.0, "z": 0.0}})
 	assert_eq(_cues(log).slice(played), [&"weapon_bounce", &"weapon_clatter"] as Array[StringName])
 
 

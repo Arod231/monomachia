@@ -37,7 +37,7 @@ extends RefCounted
 ##   jump:          f: int
 ##   land:          f: int
 ##   step:          f: int
-##   ko:            loser: int, winner: int
+##   ko:            loser: int, winner: int, finisher: bool (ended by a finisher, milestone-1 task 103)
 ##   ultReady:      f: int
 ##   ultStart:      f: int, ult: StringName
 ##   ultChoice:     f: int
@@ -48,7 +48,7 @@ extends RefCounted
 ##   ultLightning:  f: int, from: Vec3, to: Vec3
 ##   recall:        f: int
 ##   pickup:        f: int
-##   weaponBounce:  owner: int, pos: Vec3, speed: float
+##   weaponStuck:   owner: int, pos: Vec3 (a disarmed weapon sticks in the ground, milestone-1 task 86)
 ##   counterReady:  f: int
 ##   backstabReady: f: int
 ##   whiff:         f: int, attack: StringName
@@ -61,6 +61,11 @@ extends RefCounted
 ##   standup:       f: int (the knockdown over, the fighter free again; task 16)
 ##   recallBurst:   f: int (the recaller), on: int (the opponent), hit: bool, reach: float,
 ##                  pos: Vec3 (the recall's power-up burst, authored animation task 30b)
+## The finisher's (milestone-1 task 103, FinisherRules):
+##   finisherPrompt:    f: int (the disarmer), victim: int, kind: StringName (&"katana" or &"fists")
+##   finisherPromptEnd: f: int, why: &"finisher" | &"forfeit" | &"timeout" | &"lost"
+##   finisher:          f: int, victim: int, kind: StringName, from_strike: bool
+##   finisherKill:      f: int, victim: int
 
 ## Every SimEvent "t" value, in the order of the TS union.
 const TYPES: Array[StringName] = [
@@ -88,7 +93,7 @@ const TYPES: Array[StringName] = [
 	&"ultLightning",
 	&"recall",
 	&"pickup",
-	&"weaponBounce",
+	&"weaponStuck",
 	&"counterReady",
 	&"backstabReady",
 	&"whiff",
@@ -100,6 +105,10 @@ const TYPES: Array[StringName] = [
 	&"knockdown",
 	&"standup",
 	&"recallBurst",
+	&"finisherPrompt",
+	&"finisherPromptEnd",
+	&"finisher",
+	&"finisherKill",
 ]
 
 ## worldTypes.ts OutcomeKind: what World.evaluate decides for one attack.

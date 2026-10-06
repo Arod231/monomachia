@@ -72,7 +72,7 @@ static func behaviours() -> Array[StringName]:
 	var out: Array[StringName] = []
 	for b: StringName in TrainingBrain.BEHAVIOURS:
 		for id: StringName in offered:
-			if TrainingUpkeep.can_perform(Moves.WEAPONS[id], b):
+			if UnblockableRoutes.can_perform(Moves.WEAPONS[id], b):
 				out.append(b)
 				break
 	return out
