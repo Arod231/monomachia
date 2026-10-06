@@ -4,8 +4,10 @@ extends GutTest
 ## joins by itself), played to the results through the game's main scene with
 ## its match audio, ambience and music. A match fails it when:
 ## [br]- a sound file is missing or won't load (the sound players' missing lists);
-## [br]- a rules event didn't play every cue the sound bank gives it, delayed
-## ones included, or something played that no event asked for;
+## [br]- a rules event didn't play every cue the sound bank gives it for the
+## match's fighters, delayed ones included, or something played that no event
+## asked for (a cue that sounds only some of the time, a light swing's
+## exhale, may play fewer times than asked, never more);
 ## [br]- the ambience doesn't play, or a music track the match needs doesn't
 ## load and play;
 ## [br]- anything logs an error (GUT fails a test on any unexpected error).
@@ -65,18 +67,29 @@ static func _differences(expected: Dictionary, played: Dictionary) -> Array[Stri
 	return out
 
 
+## The cues a footfall plays (the footstep and every fighter's own cloth and
+## gear under it), which follow the fighters' feet, not events.
+static func _footfall_cues() -> Array[StringName]:
+	var out: Array[StringName] = [&"footstep"]
+	for fighter: StringName in SoundBank.FOLEY:
+		out.append_array(SoundBank.FOLEY[fighter].get(&"step", []))
+	return out
+
+
 func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings())) -> void:
 	var fired := {}
 	var expected := {}
+	var sometimes := {}
 	var played := {}
+	var footfall := _footfall_cues()
 	host.sim_event.connect(func(e: Dictionary) -> void:
 		if host.attract:
 			return
 		_count(fired, StringName(e["t"]))
-		for cue: Dictionary in SoundBank.cues_for(e):
-			_count(expected, cue["cue"]))
+		for cue: Dictionary in SoundBank.cues_for(e, audio.cast()):
+			_count(expected if float(cue["chance"]) >= 1.0 else sometimes, cue["cue"]))
 	audio.player.played.connect(func(cue: StringName, _voice: Node) -> void:
-		if cue != &"footstep":
+		if not footfall.has(cue):
 			_count(played, cue))
 	var cfg := MatchConfig.make(MatchConfig.WATCH,
 		MatchSide.computer(&"rogue", pair[0], 0, &"hard"),
@@ -100,6 +113,11 @@ func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings
 	assert_true(host.is_finished(), "the match reached the results")
 	audio.player.advance(5.0)
 	assert_gt(expected.size(), 10, "the match made plenty of sound")
+	for cue: Variant in sometimes:
+		var extra: int = int(played.get(cue, 0)) - int(expected.get(cue, 0))
+		assert_between(extra, 0, int(sometimes[cue]), "%s played no more often than asked" % cue)
+		if extra > 0:
+			played[cue] = int(played[cue]) - extra
 	assert_eq(_differences(expected, played), [] as Array[String], "every event's cues played, and nothing else")
 	assert_eq(audio.player.missing, PackedStringArray(), "no sound file missing")
 	assert_eq((_services().get("ui_sounds") as SoundPlayer).missing, PackedStringArray())

@@ -25,10 +25,14 @@ extends RefCounted
 ##   swing:         f: int, attack: StringName, heavy: bool, weapon: StringName (WeaponId)
 ##   telegraph:     f: int, kind: StringName (CounterKind or &"ult"), attack: StringName
 ##   hit:           attacker: int, target: int, attack: StringName, damage: float, posture: float,
-##                  pos: Vec3, heavy: bool, sound: StringName (HitSound), backstab: bool (optional in TS, always set)
-##   block:         attacker: int, target: int, attack: StringName, posture: float, pos: Vec3, heavy: bool
+##                  pos: Vec3, heavy: bool, sound: StringName (HitSound), backstab: bool (optional in TS, always set),
+##                  weapon: StringName, defender_weapon: StringName (WeaponId, fists for a bare hand: which
+##                  weapons met, milestone-1 task 36; on block and parry too)
+##   block:         attacker: int, target: int, attack: StringName, posture: float, pos: Vec3, heavy: bool,
+##                  weapon: StringName, defender_weapon: StringName
 ##   parry:         parrier: int, attacker: int, pos: Vec3, kind: &"parry" | &"flash" | &"redirect",
-##                  timing: int (frames between the block press and impact, for training feedback), window: int
+##                  timing: int (frames between the block press and impact, for training feedback), window: int,
+##                  weapon: StringName (the attacker's), defender_weapon: StringName (the parrier's)
 ##   counter:       kind: &"stomp" | &"leap" | &"evade", by: int, on: int, pos: Vec3
 ##   evade:         f: int, attacker: int
 ##   disarm:        victim: int, by: int, pos: Vec3, reason: &"parried" | &"blocked" | &"redirect"

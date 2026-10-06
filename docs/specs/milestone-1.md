@@ -164,7 +164,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 106. As a player, I want the two blades to meet at the contact point on a parry, where sparks fly and the clang starts, so that the parry lands where I see it.
 107. As a player, I want a block to show my guard taking the impact, light or heavy, so that blocking feels solid.
 108. As a player, I want a plain parry, a Flash and a redirect to read apart through their own deflect pairs, sounds and sparks, so that I know which one happened.
-109. As a player, I want every parry, Flash and redirect to give a short camera push-in, frozen in hit-stop and turned off by Reduce flashes, so that the moment lands. **(P8, confirmed Oct 4)**
+109. [x] As a player, I want every parry, Flash and redirect to give a short camera push-in, frozen in hit-stop and turned off by Reduce flashes, so that the moment lands. **(P8, confirmed Oct 4)** (Ticked with task 39.)
 110. As a player, I want the stomp against Piercing Thrust and the leap over Swallow Sweep played as paired clips, the two fighters lined up over a few frames so their bodies meet, so that counters look real.
 111. As a player facing an unblockable, I want a red 危 to flash with a sound and the blade to glint red as the wind-up starts, with the attack type reading from the animation, so that I know which counter to use.
 112. As a player in a match, I want an unblockable's reach shown only through the red 危, its sound and the blade's glint, with labels and floor markers only in Training, so that the screen stays clean. **(P6, confirmed Oct 4)**
@@ -224,11 +224,11 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 ### Effects and blood
 
 156. As a player, I want realistic sparks at the contact point on blocks and blade clashes, so that contact reads.
-157. As a player, I want hits to draw blood (a burst on each blade hit, blood on blades and clothes for the whole match, and splatter on the floor that fades), so that the duel has weight.
+157. [x] As a player, I want hits to draw blood (a burst on each blade hit, blood on blades and clothes for the whole match, and splatter on the floor that fades), so that the duel has weight. (Ticked with task 38, in today's toon look; the art conversion carries the stains into the realistic materials.)
 158. As a player, I want a bare-hand hit to show its own impact rather than a blade's blood burst, so that fists read apart from blades. **(P36, confirmed Oct 4)**
 159. As a player, I want air smears on fast swings in place of the brush trails, so that swings read without ink.
 160. As a player, I want dust and smoke where feet, falls and rolls meet the ground, where the clips' feet land, so that movement has weight.
-161. As a player, I want a Blood setting of On, Reduced or Off, shipped in milestone 1 and On by default **(P5, confirmed Oct 4)**, so that I choose.
+161. [x] As a player, I want a Blood setting of On, Reduced or Off, shipped in milestone 1 and On by default **(P5, confirmed Oct 4)**, so that I choose. (Ticked with task 38; the finishers' Reduced and Off cut lands with the finisher tasks.)
 162. As the owner, I want the age rating to cover blood and the Katana finisher's cut, with the Blood setting as the player's control: the sign-off build, answered through the IARC questionnaire Steam offers, rates no higher than PEGI 18 and ESRB Mature 17+, with the finisher's two halves as its strongest content, and the owner answers it at sign-off **(P56, confirmed Oct 4)**, so that the game can be rated and sold.
 163. As a player, I want the ultimate-ready aura as a smouldering glow of embers and heat haze in my side's colour, shown only while my ultimate is ready and I'm not knocked out, so that readiness reads.
 164. As a player, I want Moonsplitter's wave rendered with supernatural energy, lit realistically and standing where the rules put it on each frame, so that the ultimate is both spectacular and honest.
@@ -240,11 +240,11 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 ### Sound and music
 
 169. As a player, I want footsteps where the clips' feet land, sounding like stone, so that movement sounds grounded. **(P21, confirmed Oct 4)**
-170. As a player, I want metal impacts that depend on which weapons meet, a distinct ring on parries and Flash, flesh and bone layers that match the blood, and the Hunter's own cloth and gear movement sounds, so that combat sounds physical.
+170. [x] As a player, I want metal impacts that depend on which weapons meet, a distinct ring on parries and Flash, flesh and bone layers that match the blood, and the Hunter's own cloth and gear movement sounds, so that combat sounds physical. (Ticked with task 36, for milestone 1's weapons: the Katana and bare hands; the other pairs keep the general clangs until milestone 2.)
 171. As a player, I want the deflect pairs, the stuck weapon, the pull-out, the finisher prompt and both finishers to have their own sounds, so that every new event is heard.
 172. As a player, I want the final hit to ring out as the slow motion drains the arena's sound and the music, then a deep drum under Warrior Slain, so that a round's end is felt.
 173. As a player, I want the 危's warning sound distinct from everything else, so that I hear an unblockable coming.
-174. As a player, I want placeholder effort vocals (breaths, kiai shouts on heavies, pain on hits, death cries), so that the fighters aren't silent until a vocals pack is bought after this milestone.
+174. [x] As a player, I want placeholder effort vocals (breaths, kiai shouts on heavies, pain on hits, death cries), so that the fighters aren't silent until a vocals pack is bought after this milestone. (Ticked with task 114.)
 175. [x] As the owner, I want the code-generated score extended with the shakuhachi, the biwa and a low choir beside its taiko, with electronic and metal layers rising at match point, while the menus keep the groovier fusion, so that the sign-off build sounds like the design. (Ticked with task 113.)
 176. As the owner, I want a listening pass on each family's sounds as part of its review, the roll's sound included, so that sound reaches final quality with the moves.
 

@@ -1,7 +1,10 @@
 // The toon surface shared by toon.gdshader and toon_two_sided.gdshader, which
 // differ only in culling. Include it after toon_light.gdshaderinc. Colour
 // comes from base_color, optionally times an albedo texture and the vertex
-// colour; a normal map is used when normal_strength > 0.
+// colour; a normal map is used when normal_strength > 0. A fighter's blood
+// stains (blood_stain.gdshaderinc, milestone-1 task 38) go over the colour.
+
+#include "res://shaders/blood_stain.gdshaderinc"
 
 uniform vec4 base_color : source_color = vec4(0.72, 0.70, 0.66, 1.0);
 uniform sampler2D albedo_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable, hint_default_white;
@@ -32,6 +35,9 @@ void fragment() {
 		float w = toon_noise3(world * wash_scale) * 0.75 + brush * 0.25;
 		w = smoothstep(0.45, 0.85, w);
 		albedo = mix(albedo, albedo * ink_color.rgb * 3.0, w * wash_amount);
+	}
+	if (blood_stain_count > 0) {
+		albedo = blood_over(albedo, world);
 	}
 	ALBEDO = albedo;
 	ROUGHNESS = 1.0;

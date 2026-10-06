@@ -20,7 +20,8 @@ extends Node3D
 ## 3D cue off its own bus, so there is no reverb area.
 ##
 ## Footsteps: [method foot_down] plays the footstep cue where a foot comes
-## down. A drawn fighter steps where its walking and running clips land its
+## down, with the fighter's own cloth and gear (SoundBank.FOLEY: the
+## Hunter's coat and fittings, milestone-1 task 36). A drawn fighter steps where its walking and running clips land its
 ## feet (authored-animation task 29), which the view reports
 ## ([signal MatchView.footfall]); a match stepped without being drawn falls
 ## back on a FootstepCadence, which turns each rules step's movement into a
@@ -116,9 +117,21 @@ func follow_camera() -> void:
 		listener.global_transform = camera.global_transform
 
 
-## A foot comes down at [param at]: plays a footstep there.
-func foot_down(at: Vector3) -> void:
-	player.play_cue(&"footstep", at)
+## A foot of [param side]'s fighter (-1 for nobody's) comes down at
+## [param at]: plays a footstep there, and the fighter's own cloth and gear.
+func foot_down(at: Vector3, side: int = -1) -> void:
+	var sides := cast()
+	var fighter: StringName = sides[side] if side >= 0 and side < sides.size() else &""
+	for cue: StringName in SoundBank.footfall_cues(fighter):
+		player.play_cue(cue, at)
+
+
+## The fighter on each side of the match playing, by side (their ids, for
+## their own cloth, gear and voice); empty before a match.
+func cast() -> Array:
+	if host == null or host.config == null:
+		return []
+	return host.config.sides.map(func(s: MatchSide) -> StringName: return s.fighter_id)
 
 
 ## The ambience an arena's data names: its `ambience_id` (read by name, as
@@ -176,7 +189,7 @@ func _on_match_started(config: MatchConfig) -> void:
 func _on_sim_event(e: Dictionary) -> void:
 	if host.attract:
 		return
-	player.play_event(e, event_position)
+	player.play_event(e, event_position, cast())
 
 
 func _on_stepped(_step: int) -> void:
@@ -186,13 +199,13 @@ func _on_stepped(_step: int) -> void:
 		# a drawn fighter steps where its clips' feet land instead
 		if view != null and view.steps_from_clips(foot["fighter"]):
 			continue
-		foot_down(foot["at"])
+		foot_down(foot["at"], int(foot["fighter"]))
 
 
-func _on_footfall(_side: int, at: Vector3) -> void:
+func _on_footfall(side: int, at: Vector3) -> void:
 	if host == null or host.attract:
 		return
-	foot_down(at)
+	foot_down(at, side)
 
 
 func _on_pause_changed(paused: bool) -> void:

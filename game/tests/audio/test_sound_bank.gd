@@ -63,19 +63,25 @@ func test_every_cue_is_used_by_an_event_or_documented_as_direct() -> void:
 	var used := SoundBank.all_event_cues()
 	for extra: StringName in [&"roll", &"whoosh_heavy", &"whoosh_small", &"whoosh_colossal", &"hit_blade", &"hit_dagger",
 			&"hit_fist", &"hit_fist_heavy", &"hit_colossal", &"clang_heavy", &"parry_flash", &"parry_redirect",
-			&"weapon_clatter"]:
+			&"weapon_clatter", &"clang_katana", &"clang_katana_heavy", &"parry_contact_katana", &"clang_fist", &"redirect_arm"]:
 		used.append(extra)
+	# the fighters' own cloth and gear, and their voices (task 36, task 114)
+	for fighter: StringName in SoundBank.FOLEY:
+		for moment: StringName in SoundBank.FOLEY[fighter]:
+			used.append_array(SoundBank.FOLEY[fighter][moment])
+	for voice: StringName in SoundBank.VOCALS:
+		used.append_array(SoundBank.VOCALS[voice].values())
 	for cue_name: StringName in SoundBank.CUES:
 		assert_true(used.has(cue_name) or direct.has(cue_name), "cue %s is never played" % cue_name)
 
 
 func test_hit_sound_follows_the_event_sound_field() -> void:
-	assert_eq(_cue_names({"t": "hit", "sound": "blade", "heavy": false}), [&"hit_blade"] as Array[StringName])
-	assert_eq(_cue_names({"t": "hit", "sound": "blade", "heavy": true}), [&"hit_blade_heavy"] as Array[StringName])
-	assert_eq(_cue_names({"t": "hit", "sound": "dagger", "heavy": true}), [&"hit_dagger"] as Array[StringName])
+	assert_eq(_cue_names({"t": "hit", "sound": "blade", "heavy": false}), [&"hit_blade", &"hit_flesh"] as Array[StringName])
+	assert_eq(_cue_names({"t": "hit", "sound": "blade", "heavy": true}), [&"hit_blade_heavy", &"hit_flesh", &"crunch"] as Array[StringName])
+	assert_eq(_cue_names({"t": "hit", "sound": "dagger", "heavy": true}), [&"hit_dagger", &"hit_flesh", &"crunch"] as Array[StringName])
 	assert_eq(_cue_names({"t": "hit", "sound": "fist", "heavy": false}), [&"hit_fist"] as Array[StringName])
 	assert_eq(_cue_names({"t": "hit", "sound": "fist", "heavy": true}), [&"hit_fist_heavy"] as Array[StringName])
-	assert_eq(_cue_names({"t": "hit", "sound": "colossal", "heavy": true}), [&"hit_colossal", &"crunch"] as Array[StringName])
+	assert_eq(_cue_names({"t": "hit", "sound": "colossal", "heavy": true}), [&"hit_colossal", &"hit_flesh", &"crunch"] as Array[StringName])
 
 
 func test_block_clang_follows_weight() -> void:
@@ -175,3 +181,187 @@ func test_ambience_bed_is_a_seamless_stereo_loop() -> void:
 	assert_between(stream.get_length(), 60.0, 90.0)
 	assert_eq(stream.loop_begin, 0)
 	assert_almost_eq(stream.loop_end, roundi(stream.get_length() * stream.mix_rate), 1)
+
+
+## The cues an event plays when the fighters on each side are [param cast],
+## without their voices (task 114) unless [param voices].
+func _cast_names(event: Dictionary, cast: Array, voices: bool = false) -> Array[StringName]:
+	var names: Array[StringName] = []
+	for cue: Dictionary in SoundBank.cues_for(event, cast):
+		if voices or not SoundBank.is_vocal(cue["cue"]):
+			names.append(cue["cue"])
+	return names
+
+
+## The cue dictionaries of the fighters' voices an event plays with [param cast].
+func _vocals(event: Dictionary, cast: Array) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for cue: Dictionary in SoundBank.cues_for(event, cast):
+		if SoundBank.is_vocal(cue["cue"]):
+			out.append(cue)
+	return out
+
+
+static func _names(list: Array) -> Array[StringName]:
+	var out: Array[StringName] = []
+	out.assign(list)
+	return out
+
+
+## Metal impacts by the pair of weapons that meet (milestone-1 task 36): the
+## Katana on the Katana has its own steel.
+func test_a_katana_on_katana_block_picks_the_katana_pair_impact() -> void:
+	var light := {"t": "block", "heavy": false, "weapon": &"katana", "defender_weapon": &"katana"}
+	var heavy := {"t": "block", "heavy": true, "weapon": &"katana", "defender_weapon": &"katana"}
+	assert_eq(_cue_names(light), [&"clang_katana"] as Array[StringName])
+	assert_eq(_cue_names(heavy), [&"clang_katana_heavy"] as Array[StringName])
+	for cue: StringName in [&"clang_katana", &"clang_katana_heavy"]:
+		for file: String in SoundBank.CUES[cue]["files"]:
+			for generic: StringName in [&"clang_light", &"clang_heavy"]:
+				assert_false(SoundBank.CUES[generic]["files"].has(file), "%s is the Katana's own, not %s's" % [file, generic])
+
+
+## The Katana against bare hands: a fist on the Katana's guard, and a bare
+## hand turning the blade aside (the redirect's hand on the arm).
+func test_bare_hands_against_the_katana_have_their_own_impacts() -> void:
+	assert_eq(_cue_names({"t": "block", "heavy": false, "weapon": &"fists", "defender_weapon": &"katana"}),
+		[&"clang_fist"] as Array[StringName])
+	assert_eq(_cue_names({"t": "block", "heavy": true, "weapon": &"fists", "defender_weapon": &"katana"}),
+		[&"clang_fist"] as Array[StringName])
+	assert_eq(_cue_names({"t": "parry", "kind": "redirect", "weapon": &"katana", "defender_weapon": &"fists"}),
+		[&"parry_redirect", &"redirect_arm"] as Array[StringName])
+	assert_eq(_cue_names({"t": "parry", "kind": "parry", "weapon": &"fists", "defender_weapon": &"katana"}),
+		[&"clang_fist", &"parry_ring"] as Array[StringName])
+
+
+## Every other pair keeps today's clangs until milestone 2 brings its
+## weapons to final quality, as does an event that names no weapons.
+func test_other_pairs_keep_the_general_clangs() -> void:
+	assert_eq(_cue_names({"t": "block", "heavy": false, "weapon": &"greatsword", "defender_weapon": &"katana"}),
+		[&"clang_light"] as Array[StringName])
+	assert_eq(_cue_names({"t": "block", "heavy": true, "weapon": &"katana", "defender_weapon": &"daggers"}),
+		[&"clang_heavy"] as Array[StringName])
+	assert_eq(_cue_names({"t": "parry", "kind": "parry", "weapon": &"daggers", "defender_weapon": &"daggers"}),
+		[&"parry_contact", &"parry_ring"] as Array[StringName])
+	assert_eq(_cue_names({"t": "parry", "kind": "redirect", "weapon": &"greatsword", "defender_weapon": &"fists"}),
+		[&"parry_redirect"] as Array[StringName])
+
+
+## A parry of the Katana by the Katana rings, distinct from a block: the
+## pair's own contact under the parry ring (a Flash under its longer ring).
+func test_a_katana_parry_plays_the_ring_distinct_from_a_block() -> void:
+	var parry := _cue_names({"t": "parry", "kind": "parry", "weapon": &"katana", "defender_weapon": &"katana"})
+	var flash := _cue_names({"t": "parry", "kind": "flash", "weapon": &"katana", "defender_weapon": &"katana"})
+	var block := _cue_names({"t": "block", "heavy": false, "weapon": &"katana", "defender_weapon": &"katana"})
+	assert_eq(parry, [&"parry_contact_katana", &"parry_ring"] as Array[StringName])
+	assert_eq(flash, [&"parry_contact_katana", &"parry_flash"] as Array[StringName])
+	for cue: StringName in parry:
+		assert_false(block.has(cue), "the parry's %s is not the block's" % cue)
+	for file: String in SoundBank.CUES[&"parry_contact_katana"]["files"]:
+		assert_false(SoundBank.CUES[&"clang_katana"]["files"].has(file))
+
+
+## Flesh and bone layers keyed to the hit: every blade hit adds the flesh
+## layer and a heavy (an ability or ultimate counts) the bone; fists don't
+## cut, and the Impaler's ultimate goes through.
+func test_a_blade_hit_adds_the_flesh_and_bone_layers() -> void:
+	var light := _cue_names({"t": "hit", "sound": "blade", "heavy": false, "weapon": &"katana", "defender_weapon": &"katana"})
+	var heavy := _cue_names({"t": "hit", "sound": "blade", "heavy": true, "weapon": &"katana", "defender_weapon": &"fists"})
+	assert_eq(light, [&"hit_blade", &"hit_flesh"] as Array[StringName])
+	assert_eq(heavy, [&"hit_blade_heavy", &"hit_flesh", &"crunch"] as Array[StringName])
+	assert_false(_cue_names({"t": "hit", "sound": "fist", "heavy": true}).has(&"hit_flesh"), "fists draw no blood")
+	assert_eq(_cue_names({"t": "ultImpale", "f": 0, "target": 1}), [&"hit_blade_heavy", &"hit_flesh", &"crunch"] as Array[StringName])
+	# the cut and the flesh are separate recordings now
+	for file: String in SoundBank.CUES[&"hit_flesh"]["files"]:
+		assert_false(SoundBank.CUES[&"hit_blade"]["files"].has(file))
+		assert_false(SoundBank.CUES[&"hit_blade_heavy"]["files"].has(file))
+
+
+## The Hunter's own cloth and gear (milestone-1 task 36): under every
+## footfall, on each swing, and on dodges, rolls and landings; the Rogue
+## keeps the general cloth.
+func test_the_hunter_s_cloth_and_gear_movement_has_entries() -> void:
+	var hunter: Dictionary = SoundBank.FOLEY[&"hunter"]
+	for moment: StringName in [&"step", &"swing", &"dodge", &"roll", &"land"]:
+		assert_true(hunter.has(moment), "the Hunter moves at %s" % moment)
+		assert_gt((hunter[moment] as Array).size(), 0)
+		for cue: StringName in hunter[moment]:
+			assert_true(SoundBank.CUES.has(cue), "%s is a cue" % cue)
+			assert_eq(SoundBank.CUES[cue]["bus"], SoundBank.BUS_FOLEY, "%s on the foley bus" % cue)
+			assert_true(SoundBank.CUES[cue]["spatial"], "%s is placed" % cue)
+	var cast: Array = [&"rogue", &"hunter"]
+	var swing := {"t": "swing", "f": 1, "weapon": &"katana", "heavy": false}
+	assert_eq(_cast_names(swing, cast), _names([&"whoosh_light"] + hunter[&"swing"]))
+	assert_eq(_cast_names({"t": "swing", "f": 0, "weapon": &"katana", "heavy": false}, cast),
+		[&"whoosh_light"] as Array[StringName], "the Rogue just swings")
+	assert_eq(_cast_names({"t": "dodge", "f": 1, "back": true}, cast), _names([&"dodge_swish"] + hunter[&"dodge"]),
+		"the Hunter's coat in place of the general cloth")
+	assert_eq(_cast_names({"t": "dodge", "f": 0, "back": true}, cast), [&"dodge_swish", &"dodge_cloth"] as Array[StringName])
+	assert_eq(_cast_names({"t": "dodge", "f": 1, "back": false}, cast), _names([&"roll"] + hunter[&"roll"]))
+	assert_eq(_cast_names({"t": "land", "f": 1}, cast), _names([&"land"] + hunter[&"land"]))
+	assert_eq(_cast_names({"t": "land", "f": 0}, cast), [&"land"] as Array[StringName])
+	# without a cast (the old callers), nobody's own foley
+	assert_eq(_cue_names(swing), [&"whoosh_light"] as Array[StringName])
+
+
+func test_a_footfall_plays_the_footstep_and_the_hunter_s_cloth_and_gear() -> void:
+	assert_eq(SoundBank.footfall_cues(&"rogue"), [&"footstep"] as Array[StringName])
+	assert_eq(SoundBank.footfall_cues(&"hunter"), _names([&"footstep"] + SoundBank.FOLEY[&"hunter"][&"step"]))
+	assert_eq(SoundBank.footfall_cues(&""), [&"footstep"] as Array[StringName])
+
+
+## The hooks for the effort vocals (task 114): which events a fighter
+## vocalises on, and at what moment.
+func test_effort_vocal_hooks() -> void:
+	var moments := func(e: Dictionary) -> Array:
+		return SoundBank.vocal_moments(e).map(func(m: Dictionary) -> Array: return [m["moment"], m["side"]])
+	assert_eq(moments.call({"t": "swing", "f": 1, "heavy": true}), [[&"kiai", 1]])
+	assert_eq(moments.call({"t": "swing", "f": 0, "heavy": false}), [[&"exhale", 0]])
+	assert_eq(moments.call({"t": "dodge", "f": 0, "back": false}), [[&"breath", 0]])
+	assert_eq(moments.call({"t": "land", "f": 1}), [[&"breath", 1]])
+	assert_eq(moments.call({"t": "hit", "attacker": 0, "target": 1, "heavy": false}), [[&"pain", 1]])
+	assert_eq(moments.call({"t": "hit", "attacker": 0, "target": 1, "heavy": true}), [[&"pain_heavy", 1]])
+	assert_eq(moments.call({"t": "ko", "loser": 0, "winner": 1}), [[&"death", 0]])
+	assert_eq(moments.call({"t": "ko", "loser": -1, "winner": -1}), [[&"death", 0], [&"death", 1]], "a double K.O.")
+	assert_eq(moments.call({"t": "block", "attacker": 0, "target": 1}), [], "nothing on a block")
+	# a light's exhale is heard about one time in three
+	var exhale: Dictionary = SoundBank.vocal_moments({"t": "swing", "f": 0, "heavy": false})[0]
+	assert_almost_eq(float(exhale["chance"]), 1.0 / 3.0, 0.01)
+
+
+## Placeholder effort vocals (milestone-1 task 114): every fighter speaks
+## with the one male voice, which has a cue for every moment, placed at the
+## fighter and heard on the combat bus.
+func test_every_fighter_has_a_voice_with_every_moment() -> void:
+	for fighter: StringName in MatchSide.FIGHTER_NAMES:
+		var voice: StringName = SoundBank.voice_of(fighter)
+		assert_true(SoundBank.VOCALS.has(voice), "%s speaks" % fighter)
+		for moment: StringName in [&"kiai", &"exhale", &"breath", &"pain", &"pain_heavy", &"death"]:
+			assert_true(SoundBank.VOCALS[voice].has(moment), "%s has a %s" % [voice, moment])
+			var cue: StringName = SoundBank.VOCALS[voice][moment]
+			assert_true(SoundBank.CUES.has(cue), "%s is a cue" % cue)
+			assert_true(SoundBank.is_vocal(cue))
+			assert_eq(SoundBank.CUES[cue]["bus"], SoundBank.BUS_COMBAT)
+			assert_true(SoundBank.CUES[cue]["spatial"], "%s comes from the fighter" % cue)
+			assert_gt((SoundBank.CUES[cue]["files"] as Array).size(), 1, "%s has variations" % cue)
+	assert_eq(SoundBank.voice_of(&""), &"", "nobody named, nobody speaks")
+
+
+func test_the_fighters_vocalise_on_their_moments() -> void:
+	var cast: Array = [&"hunter", &"rogue"]
+	var names := func(e: Dictionary) -> Array:
+		return _vocals(e, cast).map(func(c: Dictionary) -> StringName: return c["cue"])
+	assert_eq(names.call({"t": "swing", "f": 0, "heavy": true, "weapon": &"katana"}), [&"vocal_kiai"])
+	assert_eq(names.call({"t": "swing", "f": 0, "heavy": false, "weapon": &"katana"}), [&"vocal_exhale"])
+	assert_eq(names.call({"t": "dodge", "f": 1, "back": false}), [&"vocal_breath"])
+	assert_eq(names.call({"t": "land", "f": 0}), [&"vocal_breath"])
+	assert_eq(names.call({"t": "hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade"}), [&"vocal_pain"])
+	assert_eq(names.call({"t": "hit", "attacker": 1, "target": 0, "heavy": true, "sound": &"blade"}), [&"vocal_pain_heavy"])
+	assert_eq(names.call({"t": "ko", "loser": 1, "winner": 0, "finisher": true}), [&"vocal_death"])
+	assert_eq(names.call({"t": "block", "attacker": 0, "target": 1, "heavy": true}), [])
+	assert_eq(_vocals({"t": "swing", "f": 0, "heavy": true}, []), [] as Array[Dictionary], "no cast, no voices")
+	# a light's exhale one time in three; the second side two semitones down
+	assert_almost_eq(float(_vocals({"t": "swing", "f": 0, "heavy": false}, cast)[0]["chance"]), 1.0 / 3.0, 0.01)
+	assert_eq(float(_vocals({"t": "swing", "f": 0, "heavy": true}, cast)[0]["chance"]), 1.0)
+	assert_eq(float(_vocals({"t": "swing", "f": 0, "heavy": true}, cast)[0]["pitch_scale"]), 1.0)
+	assert_almost_eq(float(_vocals({"t": "swing", "f": 1, "heavy": true}, cast)[0]["pitch_scale"]), pow(2.0, -2.0 / 12.0), 0.001)

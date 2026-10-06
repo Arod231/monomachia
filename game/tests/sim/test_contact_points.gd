@@ -68,6 +68,31 @@ func test_hit_block_and_parry_start_where_the_blade_crosses_the_defender() -> vo
 		_assert_v3(_pos(e), V3.make(b.x, 1.2, b.z), "the %s's point" % kind)
 
 
+## Which weapons met (milestone-1 task 36): the hit, block and parry events
+## name the attacker's weapon and the defender's, fists for a bare hand, so
+## the sound bank (and the sparks) can tell the pair apart.
+func test_hit_block_and_parry_name_both_fighters_weapons() -> void:
+	var wide: Swing = SF.level_slash(_cut(), 1.2, 60.0, -60.0, 0.8)
+	var parry := func(i: int) -> RawInput: return H.btn(Btn.BLOCK) if i == 13 else H.idle()
+	var defences: Dictionary[StringName, Callable] = {
+		&"hit": Callable(),
+		&"block": func(_i: int) -> RawInput: return H.btn(Btn.BLOCK),
+		&"parry": parry,
+	}
+	for kind: StringName in defences:
+		var e: Dictionary = _first_outcome(_world(wide), defences[kind])
+		assert_eq(e.get("t"), kind, "a %s" % kind)
+		assert_eq(e.get("weapon"), &"katana", "the %s names the attacker's weapon" % kind)
+		assert_eq(e.get("defender_weapon"), &"katana", "and the defender's")
+	# a bare hand parrying turns the blade aside: a redirect, by fists
+	var W: World = _world(wide)
+	W.fighters[1].armed = false
+	var redirect: Dictionary = _first_outcome(W, parry)
+	assert_eq(redirect.get("kind"), &"redirect")
+	assert_eq(redirect.get("weapon"), &"katana")
+	assert_eq(redirect.get("defender_weapon"), &"fists")
+
+
 func test_a_blade_short_of_the_axis_starts_on_its_sweep_inside_the_capsule() -> void:
 	# the grip 0.45 m out: the tip reaches 1.23 m, short of the defender's
 	# axis 1.25 m away, so the contact is on the blade's sweep at 1.2 m,

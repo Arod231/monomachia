@@ -54,8 +54,9 @@ func test_off_by_default_nothing_is_reduced() -> void:
 	assert_eq(view.camera.fov_kick_scale, 1.0)
 	assert_eq(view.effects.flash_scale, 1.0)
 	_parry()
+	assert_eq(view.camera.push_in_scale, 1.0)
 	assert_almost_eq(view.camera.shake, view.parry_shake, 1e-6)
-	assert_eq(view.camera.fov_kick, 3.0)
+	assert_almost_eq(view.camera.push_peak, view.parry_push_in, 1e-6, "the parry's push-in")
 
 
 func test_on_at_match_start_the_scales_are_set() -> void:
@@ -63,15 +64,18 @@ func test_on_at_match_start_the_scales_are_set() -> void:
 	_start()
 	assert_eq(view.camera.shake_scale, 0.15)
 	assert_eq(view.camera.fov_kick_scale, 0.0)
+	assert_eq(view.camera.push_in_scale, 0.0)
 	assert_eq(view.effects.flash_scale, 0.45)
 
 
-## A parry with it on: no kick, the shake scaled, the glow dimmed but full size.
-func test_a_parry_makes_no_kick_a_scaled_shake_and_a_dimmed_flash() -> void:
+## A parry with it on: no push-in (so no blur), the shake scaled, the glow
+## dimmed but full size.
+func test_a_parry_makes_no_push_in_a_scaled_shake_and_a_dimmed_flash() -> void:
 	settings.reduce_flashes = true
 	_start()
 	_parry()
 	assert_eq(view.camera.fov_kick, 0.0, "no field-of-view kick")
+	assert_eq(view.camera.push_amount(), 0.0, "no push-in")
 	assert_almost_eq(view.camera.shake, view.parry_shake * 0.15, 1e-6, "the shake scaled to 0.15")
 	assert_gt(view.effects.flash_count(), 0, "the parry's glow")
 	var dimmed: float = _drawn_flash_alpha(0)
@@ -83,6 +87,8 @@ func test_a_parry_makes_no_kick_a_scaled_shake_and_a_dimmed_flash() -> void:
 	settings.reduce_flashes = false
 	settings.changed.emit()
 	assert_almost_eq(float(view.effects.flash_state(0)["size"]), size_on, 1e-6, "at full size either way")
+	view.render(1.0 / 60.0)
+	assert_null(view.camera.attributes, "and no depth of field")
 
 
 func test_contact_kicks_and_ultimate_kicks_are_off_too() -> void:

@@ -119,18 +119,23 @@ static func _expected_cues(step: Dictionary) -> Array:
 	var out := []
 	for action: Dictionary in step["actions"]:
 		if action.has("event"):
-			for cue: Dictionary in SoundBank.cues_for(action["event"]):
+			for cue: Dictionary in SoundBank.cues_for(action["event"], SoundCheck.CAST):
 				out.append(cue["cue"])
 		elif action.has("cue"):
 			out.append(action["cue"])
+		elif action.has("footfall"):
+			out.append_array(SoundBank.footfall_cues(SoundCheck.CAST[int(action["footfall"])]))
 	out.sort()
 	return out
 
 
+## An event's cues as the sound check plays them, without the fighters'
+## voices (heard with whichever fighter acts, so the same sound either way).
 static func _cue_names(event: Dictionary) -> Array:
 	var out := []
-	for cue: Dictionary in SoundBank.cues_for(event):
-		out.append(cue["cue"])
+	for cue: Dictionary in SoundBank.cues_for(event, SoundCheck.CAST):
+		if not SoundBank.is_vocal(cue["cue"]):
+			out.append(cue["cue"])
 	return out
 
 
@@ -145,10 +150,16 @@ static func _variations() -> Array[Dictionary]:
 		for sound: StringName in AttackDef.HIT_SOUNDS:
 			out.append({"t": &"hit", "sound": sound, "heavy": heavy})
 		out.append({"t": &"block", "heavy": heavy})
+		for pair: Array in SoundBank.PAIR_IMPACTS.keys().map(func(k: StringName) -> PackedStringArray: return String(k).split("+")):
+			out.append({"t": &"block", "heavy": heavy, "weapon": StringName(pair[0]), "defender_weapon": StringName(pair[1])})
 	for kind: StringName in AttackDef.COUNTER_KINDS:
 		out.append({"t": &"telegraph", "kind": kind})
 	for kind: StringName in [&"parry", &"flash", &"redirect"]:
 		out.append({"t": &"parry", "kind": kind})
+	for e: Dictionary in [{"weapon": &"katana", "defender_weapon": &"katana"}, {"weapon": &"fists", "defender_weapon": &"katana"}]:
+		for kind: StringName in [&"parry", &"flash"]:
+			out.append({"t": &"parry", "kind": kind, "weapon": e["weapon"], "defender_weapon": e["defender_weapon"]})
+	out.append({"t": &"parry", "kind": &"redirect", "weapon": &"katana", "defender_weapon": &"fists"})
 	for kind: StringName in [&"stomp", &"leap", &"evade"]:
 		out.append({"t": &"counter", "kind": kind})
 	out.append({"t": &"weaponStuck", "owner": 1})
@@ -255,10 +266,13 @@ func test_the_distance_step_plays_one_hit_at_each_distance() -> void:
 	var steps := _steps_in("Distance")
 	assert_eq(steps.size(), 1)
 	if steps.size() == 1:
+		# each hit plays its layers (the cut, the flesh, the bone, the pain) in one place
+		var per: int = SoundBank.cues_for(check.steps[steps[0]]["actions"][0]["event"], SoundCheck.CAST).size()
 		var got: Array = distances[steps[0]]
-		assert_eq(got.size(), SoundCheck.DISTANCES.size(), "one 3D hit per distance")
-		for k: int in mini(got.size(), SoundCheck.DISTANCES.size()):
-			assert_almost_eq(float(got[k]), SoundCheck.DISTANCES[k], 0.01, "hit %d" % k)
+		assert_eq(got.size(), SoundCheck.DISTANCES.size() * per, "one 3D hit per distance")
+		for k: int in mini(got.size() / per, SoundCheck.DISTANCES.size()):
+			for j: int in per:
+				assert_almost_eq(float(got[k * per + j]), SoundCheck.DISTANCES[k], 0.01, "hit %d" % k)
 
 
 func test_each_step_starts_from_silence() -> void:

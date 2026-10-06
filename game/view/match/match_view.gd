@@ -13,7 +13,10 @@ extends Node3D
 ## StickPose inside FighterView; the combat effects (task 18) are a
 ## CombatEffects child, spawned from _on_sim_event() by the event table
 ## (EffectTable) beside the camera's shake and field-of-view kicks, drawn on
-## the effect clock every frame and cleared at round start.
+## the effect clock every frame and cleared at round start. A parry pushes
+## the camera in instead of kicking it (milestone-1 task 39: parry_push_in,
+## flash_push_in for a Flash or a redirect), held through the hit-stop, with
+## the graphics preset's depth of field.
 ##
 ## A walking or running fighter puts its feet down where its clips land them
 ## (Locomotion, authored-animation task 29): the view reports each as a
@@ -25,7 +28,8 @@ extends Node3D
 ##
 ## Reduce flashes and shaking (task 18.11) follows the player's settings at
 ## match start and whenever they change (apply_reduce_flashes()): the
-## camera's shake scaled to REDUCED_SHAKE, no field-of-view kicks, and the
+## camera's shake scaled to REDUCED_SHAKE, no field-of-view kicks or
+## push-ins, and the
 ## effects' flashes and the fighters' body flashes at REDUCED_FLASH of their
 ## brightness, at full size (the owner's choice, Oct 4, 2026).
 ##
@@ -58,6 +62,10 @@ const FOOTFALL_LAG: int = 4
 @export var counter_shake: float = 0.5
 @export var disarm_shake: float = 0.8
 @export var ko_shake: float = 0.7
+## The parry's push-in (milestone-1 task 39): the share of the way to the
+## camera's look point, on a parry and on a Flash or a redirect.
+@export var parry_push_in: float = 0.15
+@export var flash_push_in: float = 0.25
 ## The camera's kick on contact (plan task 14.12): degrees of field of view
 ## when a strike lands or is blocked, by the class of the attacker's weapon
 ## (its weight), half again for a heavy.
@@ -95,6 +103,9 @@ var swing_debug_view: SwingDebugView
 var effects: CombatEffects
 ## The recall's power-up aura and burst (task 30b), drawn with the effects.
 var recall_aura: RecallAura = RecallAura.new()
+## Blood (milestone-1 task 38): bursts, stains on bodies and blades, the
+## floor's splatter, at the settings' Blood level.
+var blood: BloodEffects
 ## The settings whose Reduce flashes switch the view follows (use_settings();
 ## the game's by default).
 var settings: GameSettings
@@ -126,6 +137,10 @@ func _ready() -> void:
 		effects = CombatEffects.new()
 		add_child(effects)
 		effects.host = host
+	if blood == null:
+		blood = BloodEffects.new()
+		add_child(blood)
+		blood.host = host
 	if settings == null:
 		use_settings(GameServices.settings)
 	if host == null and has_node(host_path):
@@ -136,16 +151,29 @@ func _ready() -> void:
 		set_swing_debug(true)
 
 
-## Follows these settings' Reduce flashes switch: applies it now, and again
-## whenever they change (GameSettings.changed). The settings followed before
-## no longer reach the view.
+## Follows these settings' Reduce flashes switch and Blood level: applies
+## them now, and again whenever they change (GameSettings.changed). The
+## settings followed before no longer reach the view.
 func use_settings(p_settings: GameSettings) -> void:
-	if settings != null and settings.changed.is_connected(apply_reduce_flashes):
-		settings.changed.disconnect(apply_reduce_flashes)
+	if settings != null and settings.changed.is_connected(_apply_settings):
+		settings.changed.disconnect(_apply_settings)
 	settings = p_settings
 	if settings != null:
-		settings.changed.connect(apply_reduce_flashes)
+		settings.changed.connect(_apply_settings)
+	_apply_settings()
+
+
+func _apply_settings() -> void:
 	apply_reduce_flashes()
+	apply_blood()
+
+
+## The Blood setting (milestone-1 task 38): how much blood the match draws,
+## at once (turning it off hides what is there).
+func apply_blood() -> void:
+	if blood != null:
+		blood.setting = settings.blood if settings != null else GameSettings.BLOOD_ON
+		blood.update(effects.clock() if effects != null else 0.0)
 
 
 ## Reduce flashes and shaking (18.11) on or off, as the settings say: the
@@ -156,6 +184,7 @@ func apply_reduce_flashes() -> void:
 	for cam: CameraRig in cameras:
 		cam.shake_scale = REDUCED_SHAKE if on else 1.0
 		cam.fov_kick_scale = 0.0 if on else 1.0
+		cam.push_in_scale = 0.0 if on else 1.0
 	effects.flash_scale = REDUCED_FLASH if on else 1.0
 	body_flash_scale = REDUCED_FLASH if on else 1.0
 
@@ -168,6 +197,8 @@ func bind(p_host: MatchHost) -> void:
 	host = p_host
 	if effects != null:
 		effects.host = host
+	if blood != null:
+		blood.host = host
 	host.match_started.connect(_on_match_started)
 	host.sim_event.connect(_on_sim_event)
 	host.loadout_changed.connect(_on_loadout_changed)
@@ -191,6 +222,9 @@ func render(delta: float) -> void:
 	_feed_trails()
 	_feed_auras()
 	effects.update(effects.clock())
+	blood.update(effects.clock())
+	for cam: CameraRig in cameras:
+		cam.frozen = host.world.hitstop > 0
 	if split != null:
 		for i: int in 2:
 			cameras[i].update_rig(delta, host.display_position(i), host.display_position(1 - i))
@@ -208,6 +242,7 @@ func snap_camera() -> void:
 	_update_dropped()
 	_feed_trails()
 	effects.update(effects.clock())
+	blood.update(effects.clock())
 	if split != null:
 		for i: int in 2:
 			cameras[i].snap(host.display_position(i), host.display_position(1 - i))
@@ -276,6 +311,7 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	_clear_dropped()
 	effects.clear()
 	effects.set_preset(GameServices.graphics_preset())
+	blood.new_match(fighters)
 	_use_split(cfg.mode == MatchConfig.VERSUS and not host.attract)
 	apply_reduce_flashes()
 	var camera_mode: CameraRig.Mode = CameraRig.Mode.FOLLOW
@@ -288,6 +324,8 @@ func _on_match_started(cfg: MatchConfig) -> void:
 		cam.reset_round()
 		cam.shake = 0.0
 		cam.fov_kick = 0.0
+		cam.end_push_in()
+		cam.dof_allowed = GameServices.graphics_preset().push_in_dof
 		cam.current = true
 	snap_camera()
 
@@ -414,6 +452,12 @@ func _shake(amount: float) -> void:
 		cam.add_shake(amount)
 
 
+## Pushes every camera in toward its look point (both halves in Versus).
+func _push_in(amount: float) -> void:
+	for cam: CameraRig in cameras:
+		cam.push_in(amount)
+
+
 ## Kicks every camera's field of view (both halves in Versus).
 func _kick(amount: float) -> void:
 	for cam: CameraRig in cameras:
@@ -441,6 +485,7 @@ func _body_flash(i: int, color: Color, strength: float) -> void:
 func _on_sim_event(e: Dictionary) -> void:
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
+	blood.on_event(e, effects.clock())
 	match e["t"]:
 		&"hit":
 			var heavy: bool = e["heavy"]
@@ -453,7 +498,7 @@ func _on_sim_event(e: Dictionary) -> void:
 			_kick_on_contact(e)
 		&"parry":
 			_shake(parry_shake)
-			_kick(3.0 if e["kind"] == &"parry" else 5.0)
+			_push_in(parry_push_in if e["kind"] == &"parry" else flash_push_in)
 		&"counter":
 			_shake(counter_shake)
 			_kick(6.0)

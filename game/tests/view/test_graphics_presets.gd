@@ -57,10 +57,13 @@ func test_every_preset_follows_ultra_but_for_its_named_cuts() -> void:
 			assert_eq(mine[key], ultra[key], "%s keeps Ultra's %s" % [p.id, key])
 
 
+## The parry push-in's depth of field joins them (milestone-1 task 39: off on
+## Low, the owner's choice, Oct 6).
 func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 	assert_eq(GraphicsPreset.CUTS, [
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
+		&"push_in_dof",
 	] as Array[StringName])
 
 
@@ -100,6 +103,9 @@ func test_low_drops_only_atmosphere_and_upscales_with_fsr_1() -> void:
 	assert_almost_eq(low.render_scale, 2.0 / 3.0, 0.001, "720p at 1080p")
 	assert_eq(low.scaling_3d_mode, Viewport.SCALING_3D_MODE_FSR, "FSR 1 until the laptop bench picks")
 	assert_eq(low.screen_space_aa, Viewport.SCREEN_SPACE_AA_FXAA, "FSR 1 doesn't anti-alias")
+	assert_false(low.push_in_dof, "the push-in without its blur")
+	for id: StringName in [&"medium", &"high", &"ultra"]:
+		assert_true(GraphicsPreset.load_id(id).push_in_dof, id)
 
 
 func test_low_keeps_what_reads_the_fight() -> void:
@@ -204,6 +210,7 @@ func _scene(volumetric: bool = true, ssao: bool = true) -> Node3D:
 		mi.mesh = BoxMesh.new()
 		mi.material_override = m
 		root.add_child(mi)
+	root.add_child(CameraRig.new())
 	return root
 
 
@@ -249,6 +256,7 @@ func test_each_preset_applies_to_the_scene_and_the_viewport() -> void:
 		assert_eq(vp.screen_space_aa, p.screen_space_aa, "%s screen-space AA" % p.id)
 		assert_almost_eq(vp.scaling_3d_scale, p.render_scale, 0.001, "%s render scale" % p.id)
 		assert_eq(vp.scaling_3d_mode, p.scaling_3d_mode, "%s upscaler" % p.id)
+		assert_eq((root.get_child(12) as CameraRig).dof_allowed, p.push_in_dof, "%s push-in depth of field" % p.id)
 
 
 func test_atmosphere_the_scene_lacks_stays_off_and_switching_brings_back_what_it_has() -> void:

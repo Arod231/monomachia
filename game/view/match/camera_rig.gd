@@ -20,6 +20,12 @@ extends Camera3D
 ## field-of-view kicks are hooks for the view (on block, parry, counter,
 ## disarm, heavy hits and KO; see MatchView). The shake's random offsets come
 ## from a fixed seed, so a screenshot with shake is the same on every run.
+## push_in() moves the camera part of the way to its look point and back
+## (milestone-1 task 39: the parry's, and later the recall's and the
+## ultimates'): it closes in over about 3 frames, holds while frozen (MatchView
+## sets that through the hit-stop), then eases back over about 0.4 s, with a
+## far blur (depth of field) while it is in where the graphics preset allows
+## it (dof_allowed; off on Low).
 ## Every number is an exported tunable.
 ##
 ## The math is in follow_target(), watch_target() and menu_target(), which
@@ -30,6 +36,10 @@ enum Mode { FOLLOW, WATCH, MENU }
 
 ## The seed of the shake's random offsets.
 const SHAKE_SEED: int = 0x5EED
+## The furthest a push-in may go toward the look point.
+const PUSH_IN_MAX: float = 0.9
+## Slack on the push-in's timers, so 3 frames of 1/60 s make its 0.05 s.
+const PUSH_EPSILON: float = 1e-5
 
 @export var mode: Mode = Mode.FOLLOW
 
@@ -116,12 +126,33 @@ const SHAKE_SEED: int = 0x5EED
 ## 0.15 and 0).
 @export var shake_scale: float = 1.0
 @export var fov_kick_scale: float = 1.0
+## Scales every push-in (the reduce-flashes-and-shaking setting sets 0).
+@export var push_in_scale: float = 1.0
 ## After a KO the follow camera swings out to the side-on view until the next
 ## round (single screen only).
 @export var ko_orbit_enabled: bool = true
 
+@export_group("Push-in")
+## How long a push-in takes to close in (s): about 3 frames.
+@export var push_in_time: float = 0.05
+## How long it takes to ease back out once it is no longer frozen (s).
+@export var push_out_time: float = 0.4
+## The far blur while pushed in: where it starts past the look point (m),
+## how far it takes to reach full (m), and how much at full.
+@export var push_dof_margin: float = 1.5
+@export var push_dof_transition: float = 6.0
+@export var push_dof_amount: float = 0.08
+
 var shake: float = 0.0
 var fov_kick: float = 0.0
+## The current push-in's peak (the share of the way to the look point), 0
+## when there is none.
+var push_peak: float = 0.0
+## The match is in hit-stop: a push-in holds where it is (MatchView sets it
+## every frame).
+var frozen: bool = false
+## Whether a push-in brings its far blur (the graphics preset's push_in_dof).
+var dof_allowed: bool = true
 ## Seconds since a KO swung the camera out, 0 when it isn't.
 var ko_orbit: float = 0.0
 ## The smoothed player-to-opponent direction (unit, horizontal).
@@ -136,6 +167,11 @@ var arena_far: float = 0.0
 var _time: float = 0.0
 ## The shake's offsets: seeded, so the same shake looks the same every run.
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## The push-in: where it closes in from, its timers, and its blur.
+var _push_from: float = 0.0
+var _push_in_t: float = 0.0
+var _push_out_t: float = 0.0
+var _dof: CameraAttributesPractical
 
 
 func _init() -> void:
@@ -171,6 +207,75 @@ func add_shake(amount: float) -> void:
 
 func kick_fov(amount: float) -> void:
 	fov_kick = amount * fov_kick_scale
+
+
+## Pushes the camera in toward its look point by amount (the share of the way
+## there: MatchView's 0.15 on a parry, 0.25 on a Flash or a redirect): it
+## closes in over push_in_time, holds while frozen (the hit-stop), then eases
+## back out over push_out_time, with a far blur while it is in when
+## dof_allowed. A push-in during another carries on from where the camera is.
+## Scaled by push_in_scale (Reduce flashes sets 0).
+func push_in(amount: float) -> void:
+	var peak: float = clampf(amount * push_in_scale, 0.0, PUSH_IN_MAX)
+	if peak <= 0.0:
+		return
+	_push_from = push_amount()
+	push_peak = maxf(peak, _push_from)
+	_push_in_t = 0.0
+	_push_out_t = 0.0
+
+
+## Ends any push-in at once (match start).
+func end_push_in() -> void:
+	push_peak = 0.0
+	_push_from = 0.0
+	_push_in_t = 0.0
+	_push_out_t = 0.0
+	_apply_dof(0.0, 0.0)
+
+
+## The share of the way to the look point the camera is pushed in now.
+func push_amount() -> float:
+	if push_peak <= 0.0:
+		return 0.0
+	if not _pushed_in():
+		return lerpf(_push_from, push_peak, smoothstep(0.0, push_in_time, _push_in_t))
+	return push_peak * (1.0 - smoothstep(0.0, push_out_time, _push_out_t))
+
+
+func _pushed_in() -> bool:
+	return _push_in_t >= push_in_time - PUSH_EPSILON
+
+
+## Moves the push-in on by delta seconds: in, then held while frozen, then out.
+func _advance_push(delta: float) -> void:
+	if push_peak <= 0.0:
+		return
+	if not _pushed_in():
+		_push_in_t = minf(push_in_time, _push_in_t + delta)
+	elif not frozen:
+		_push_out_t += delta
+		if _push_out_t >= push_out_time - PUSH_EPSILON:
+			end_push_in()
+
+
+## The far blur for a push-in of p, the look point `reach` metres away: off at
+## rest, without dof_allowed, or on a camera given attributes of its own.
+func _apply_dof(p: float, reach: float) -> void:
+	if p <= 0.0 or push_peak <= 0.0 or not dof_allowed:
+		if _dof != null and attributes == _dof:
+			attributes = null
+		return
+	if attributes != null and attributes != _dof:
+		return
+	if _dof == null:
+		_dof = CameraAttributesPractical.new()
+		_dof.dof_blur_far_enabled = true
+		_dof.dof_blur_near_enabled = false
+	_dof.dof_blur_far_distance = reach + push_dof_margin
+	_dof.dof_blur_far_transition = push_dof_transition
+	_dof.dof_blur_amount = push_dof_amount * p / push_peak
+	attributes = _dof
 
 
 ## Swing out to the side after a KO (cleared by reset_round()).
@@ -225,7 +330,10 @@ func _move(delta: float, player: Vector3, opponent: Vector3, p_snap: bool) -> vo
 
 
 func _apply(delta: float) -> void:
-	var at: Vector3 = rig_position
+	_advance_push(delta)
+	var push: float = push_amount()
+	var at: Vector3 = rig_position.lerp(rig_look, push)
+	_apply_dof(push, at.distance_to(rig_look))
 	if shake > 0.001:
 		var s: float = shake * shake_amplitude
 		at += Vector3(_rng.randf() - 0.5, _rng.randf() - 0.5, _rng.randf() - 0.5) * s

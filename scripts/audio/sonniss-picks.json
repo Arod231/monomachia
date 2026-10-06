@@ -202,6 +202,32 @@
       "library": "InMotionAudio - Foley T-Shirt",
       "entry": "InMotionAudio - Foley T-Shirt/FOLYClth_ClothMovement29_InMotionAudio_FoleyT-Shirt.wav"
     },
+    "ima_pats": {
+      "part": 3,
+      "library": "InMotionAudio - Foley T-Shirt",
+      "entry": "InMotionAudio - Foley T-Shirt/FOLYClth_SinglePats04_InMotionAudio_FoleyT-Shirt.wav"
+    },
+    "vox_ai_yah": {
+      "part": 1,
+      "library": "344 Audio - Anime Fight Voices Vol. 1",
+      "entry": "344 Audio - Anime Fight Voices Vol. 1/VOXMale_Warrior Opponent Attack, 'Ai yah' 2_344 Audio_Anime Fight Voices.wav"
+    },
+    "vox_active_yell": {
+      "part": 1,
+      "library": "344 Audio - Anime Fight Voices Vol. 1",
+      "entry": "344 Audio - Anime Fight Voices Vol. 1/VOXMale_Male Adventurer, Active Yell 19_344 Audio_Anime Fight Voices.wav"
+    },
+    "vox_panting": {
+      "part": 5,
+      "library": "SoundBits - Vox Hominis - Human Effort Voices",
+      "entry": "SoundBits - Vox Hominis - Human Effort Voices/HMNBrth_Panting Male 02 04_SNDBTS_VH.wav",
+      "takes": { "floorDb": -50, "minSilence": 0.2 }
+    },
+    "vox_gasp": {
+      "part": 2,
+      "library": "Epic Stock Media - AAA Game Character Police Officer",
+      "entry": "Epic Stock Media - AAA Game Character Police Officer/HMNBrth_Police Officer Gasp Vocal Male Shocked Alert 1.wav"
+    },
     "jse_soft_waves": {
       "part": 3,
       "library": "Just Sound Effects - Rocky Coast of Norway",
@@ -325,55 +351,78 @@
     },
     {
       "file": "hit_blade_01.wav",
-      "use": "Blade into flesh (Katana hits): wet splat, the tail of a sword slice and a body thump",
+      "use": "The cut of a blade hit (Katana hits): the edge's bite, the tail of a sword slice and a body thump; the flesh is its own layer (hit_flesh, milestone-1 task 36)",
       "layers": [
-        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "decay": 0.15 },
-        { "source": "esm_sword_slice", "start": 0.414, "length": 0.3, "fadeIn": 0.004, "fadeOut": 0.18, "gainDb": -5 },
-        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.012, "length": 0.3, "pitch": 2, "gainDb": -8, "lowpass": 1500 }
+        { "source": "esm_sword_slice", "peakIn": [0.35, 0.5], "from": -0.003, "length": 0.3, "fadeOut": 0.18 },
+        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.003, "length": 0.3, "pitch": 2, "gainDb": -7, "lowpass": 1500, "decay": 0.2 }
       ],
-      "process": { "highpass": 70 }
+      "process": { "highpass": 90 }
     },
     {
       "file": "hit_blade_02.wav",
-      "use": "Blade into flesh (Katana hits)",
+      "use": "The cut of a blade hit",
       "layers": [
-        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": 1.5, "decay": 0.15 },
-        { "source": "esm_sword_slice", "start": 0.52, "length": 0.3, "pitch": 2, "fadeIn": 0.004, "fadeOut": 0.18, "gainDb": -4 },
-        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.012, "length": 0.3, "gainDb": -9, "lowpass": 1500 }
+        { "source": "esm_sword_slice", "peakIn": [0.35, 0.5], "from": -0.003, "length": 0.3, "pitch": 2, "fadeOut": 0.18 },
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.003, "length": 0.3, "gainDb": -8, "lowpass": 1500, "decay": 0.2 }
       ],
-      "process": { "highpass": 70 }
+      "process": { "highpass": 90 }
     },
     {
       "file": "hit_blade_03.wav",
-      "use": "Blade into flesh (Katana hits)",
+      "use": "The cut of a blade hit",
       "layers": [
-        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": -1.5, "decay": 0.15 },
-        { "source": "esm_sword_slice", "start": 0.62, "length": 0.3, "pitch": -1, "fadeIn": 0.004, "fadeOut": 0.18, "gainDb": -5 },
-        { "source": "esm_gore", "start": 0.066, "length": 0.3, "gainDb": -9, "fadeOut": 0.15 }
+        { "source": "esm_sword_slice", "peakIn": [0.35, 0.5], "from": -0.003, "length": 0.3, "pitch": -1, "fadeOut": 0.18 },
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.003, "length": 0.3, "pitch": 1, "gainDb": -8, "lowpass": 1400, "decay": 0.2 }
       ],
-      "process": { "highpass": 70 }
+      "process": { "highpass": 90 }
     },
     {
       "file": "hit_blade_heavy_01.wav",
-      "use": "Heavy blade into flesh: gore smash, splat, slice and body thump",
+      "use": "The cut of a heavy blade hit: a deeper slice and a heavier body thump (flesh and bone are their own layers)",
       "layers": [
-        { "source": "esm_gore", "start": 0.08, "length": 0.62, "decay": 0.2, "fadeOut": 0.3 },
-        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "pitch": -2, "gainDb": -3, "decay": 0.15 },
-        { "source": "esm_sword_slice", "start": 0.45, "length": 0.4, "pitch": -2, "fadeIn": 0.004, "fadeOut": 0.2, "gainDb": -5 },
-        { "source": "cf_punch", "take": 3, "anchor": "peak", "from": -0.006, "length": 0.35, "pitch": -3, "gainDb": -6, "lowpass": 1200, "decay": 0.4 }
+        { "source": "esm_sword_slice", "peakIn": [0.35, 0.5], "from": -0.003, "length": 0.4, "pitch": -2, "fadeOut": 0.2 },
+        { "source": "cf_punch", "take": 3, "anchor": "peak", "from": -0.003, "length": 0.35, "pitch": -3, "gainDb": -5, "lowpass": 1200, "decay": 0.3 }
       ],
-      "process": { "highpass": 50 }
+      "process": { "highpass": 60 }
     },
     {
       "file": "hit_blade_heavy_02.wav",
-      "use": "Heavy blade into flesh",
+      "use": "The cut of a heavy blade hit",
       "layers": [
-        { "source": "esm_gore", "start": 0.08, "length": 0.62, "pitch": -2, "decay": 0.2, "fadeOut": 0.3 },
-        { "source": "esm_blood_splat", "start": 0, "end": 0.33, "decay": 0.15 },
-        { "source": "esm_sword_slice", "start": 0.55, "length": 0.4, "pitch": -3, "fadeIn": 0.004, "fadeOut": 0.2, "gainDb": -6 },
-        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.008, "length": 0.35, "pitch": -2, "gainDb": -6, "lowpass": 1200, "decay": 0.3 }
+        { "source": "esm_sword_slice", "peakIn": [0.35, 0.5], "from": -0.003, "length": 0.4, "pitch": -3, "fadeOut": 0.2 },
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.003, "length": 0.35, "pitch": -2, "gainDb": -5, "lowpass": 1200, "decay": 0.3 }
       ],
-      "process": { "highpass": 50 }
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "hit_flesh_01.wav",
+      "use": "The flesh layer under every blade hit: a wet splat (milestone-1 task 36)",
+      "layers": [{ "source": "esm_blood_splat", "start": 0, "end": 0.3, "decay": 0.15 }],
+      "process": { "highpass": 80 }
+    },
+    {
+      "file": "hit_flesh_02.wav",
+      "use": "Flesh layer",
+      "layers": [{ "source": "esm_blood_splat", "start": 0, "end": 0.3, "pitch": 2, "decay": 0.15 }],
+      "process": { "highpass": 80 }
+    },
+    {
+      "file": "hit_flesh_03.wav",
+      "use": "Flesh layer: a wetter splat with a little gore",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.3, "pitch": -1.5, "decay": 0.15 },
+        { "source": "esm_gore", "start": 0.0, "length": 0.3, "gainDb": -10, "decay": 0.12, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 80 }
+    },
+    {
+      "file": "hit_flesh_04.wav",
+      "use": "Flesh layer: a wetter splat with a little gore",
+      "layers": [
+        { "source": "esm_blood_splat", "start": 0, "end": 0.3, "pitch": -3, "decay": 0.15 },
+        { "source": "esm_gore", "start": 0.0, "length": 0.3, "pitch": 2, "gainDb": -11, "decay": 0.12, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 80 }
     },
     {
       "file": "hit_dagger_01.wav",
@@ -856,6 +905,303 @@
         { "source": "ima_case_down", "start": 0.02, "length": 0.3, "pitch": -4, "gainDb": -6, "offset": 0.09, "lowpass": 1500, "fadeOut": 0.15 }
       ],
       "process": { "highpass": 60 }
+    },
+    {
+      "file": "clang_katana_01.wav",
+      "use": "Katana on Katana, a light blow blocked: thin bright steel meeting steel, a short grind of edge on edge (milestone-1 task 36)",
+      "layers": [
+        { "source": "hw_slide", "take": 2, "from": -0.003, "length": 0.32, "pitch": 4, "fadeOut": 0.14 },
+        { "source": "dd_swing_scrape", "start": 0.06, "length": 0.22, "pitch": 3, "gainDb": -13, "highpass": 1800, "offset": 0.008, "fadeIn": 0.01, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 250, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "clang_katana_02.wav",
+      "use": "Katana on Katana, light",
+      "layers": [
+        { "source": "hw_slide", "take": 5, "from": -0.003, "length": 0.32, "pitch": 5, "fadeOut": 0.14 },
+        { "source": "dd_swing_scrape", "start": 0.06, "length": 0.22, "pitch": 5, "gainDb": -14, "highpass": 1800, "offset": 0.008, "fadeIn": 0.01, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 250, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "clang_katana_03.wav",
+      "use": "Katana on Katana, light",
+      "layers": [
+        { "source": "hw_slide", "take": 6, "from": -0.003, "length": 0.32, "pitch": 3, "fadeOut": 0.14 },
+        { "source": "dd_swing_scrape", "start": 0.06, "length": 0.22, "pitch": 2, "gainDb": -13, "highpass": 1800, "offset": 0.008, "fadeIn": 0.01, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 250, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "clang_katana_04.wav",
+      "use": "Katana on Katana, light",
+      "layers": [
+        { "source": "hw_slide", "take": 4, "from": -0.003, "length": 0.32, "pitch": 6, "fadeOut": 0.14 },
+        { "source": "dd_swing_scrape", "start": 0.06, "length": 0.22, "pitch": 4, "gainDb": -14, "highpass": 1800, "offset": 0.008, "fadeIn": 0.01, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 250, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "clang_katana_heavy_01.wav",
+      "use": "Katana on Katana, a heavy blow blocked: the blades' impact, a ringing tail higher and thinner than the general heavy clang, and a long grind",
+      "layers": [
+        { "source": "hw_slide", "take": 3, "from": -0.003, "length": 0.4, "pitch": 1, "fadeOut": 0.16 },
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 0.9, "pitch": 5, "gainDb": -6, "fadeOut": 0.45 },
+        { "source": "dd_swing_scrape", "start": 0.05, "length": 0.4, "pitch": 1, "gainDb": -12, "highpass": 1500, "offset": 0.01, "fadeIn": 0.015, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 120, "maxLength": 1.0, "fadeOut": 0.35 }
+    },
+    {
+      "file": "clang_katana_heavy_02.wav",
+      "use": "Katana on Katana, heavy",
+      "layers": [
+        { "source": "hw_slide", "take": 1, "from": -0.003, "length": 0.4, "pitch": 2, "fadeOut": 0.16 },
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 0.9, "pitch": 6.5, "gainDb": -7, "fadeOut": 0.45 },
+        { "source": "dd_swing_scrape", "start": 0.05, "length": 0.4, "pitch": 2, "gainDb": -12, "highpass": 1500, "offset": 0.01, "fadeIn": 0.015, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 120, "maxLength": 1.0, "fadeOut": 0.35 }
+    },
+    {
+      "file": "clang_katana_heavy_03.wav",
+      "use": "Katana on Katana, heavy",
+      "layers": [
+        { "source": "hw_slide", "take": 6, "from": -0.003, "length": 0.4, "pitch": 0, "fadeOut": 0.16 },
+        { "source": "dd_metal_hit", "peakIn": [0.3, 0.6], "length": 0.9, "pitch": 4, "gainDb": -6, "fadeOut": 0.45 },
+        { "source": "dd_swing_scrape", "start": 0.05, "length": 0.4, "gainDb": -12, "highpass": 1500, "offset": 0.01, "fadeIn": 0.015, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 120, "maxLength": 1.0, "fadeOut": 0.35 }
+    },
+    {
+      "file": "parry_contact_katana_01.wav",
+      "use": "A Katana parrying the Katana: the edges' bright contact and the blade sliding off, played under the parry ring (milestone-1 task 36)",
+      "layers": [
+        { "source": "hw_slide", "take": 3, "from": -0.003, "length": 0.26, "pitch": 7, "fadeOut": 0.1 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.4, "pitch": 8, "gainDb": -6 },
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.3, "pitch": 6, "gainDb": -11, "highpass": 2500, "offset": 0.02, "fadeIn": 0.02, "fadeOut": 0.16 }
+      ],
+      "process": { "highpass": 300 }
+    },
+    {
+      "file": "parry_contact_katana_02.wav",
+      "use": "A Katana parrying the Katana",
+      "layers": [
+        { "source": "hw_slide", "take": 5, "from": -0.003, "length": 0.26, "pitch": 8, "fadeOut": 0.1 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.4, "pitch": 9, "gainDb": -7 },
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.3, "pitch": 7, "gainDb": -12, "highpass": 2500, "offset": 0.02, "fadeIn": 0.02, "fadeOut": 0.16 }
+      ],
+      "process": { "highpass": 300 }
+    },
+    {
+      "file": "parry_contact_katana_03.wav",
+      "use": "A Katana parrying the Katana",
+      "layers": [
+        { "source": "hw_slide", "take": 2, "from": -0.003, "length": 0.26, "pitch": 6, "fadeOut": 0.1 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.4, "pitch": 7, "gainDb": -6 },
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.3, "pitch": 5, "gainDb": -11, "highpass": 2500, "offset": 0.02, "fadeIn": 0.02, "fadeOut": 0.16 }
+      ],
+      "process": { "highpass": 300 }
+    },
+    {
+      "file": "clang_fist_01.wav",
+      "use": "Bare hands on the Katana's guard: a forearm and fist meeting the flat of the blade, a muted steel tick under the thud (milestone-1 task 36)",
+      "layers": [
+        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.003, "length": 0.3, "lowpass": 2500, "decay": 0.2 },
+        { "source": "hw_slide", "take": 4, "from": -0.003, "length": 0.2, "pitch": -4, "gainDb": -10, "lowpass": 3000, "fadeOut": 0.1 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.18, "gainDb": -12, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 70 }
+    },
+    {
+      "file": "clang_fist_02.wav",
+      "use": "Bare hands on the Katana's guard",
+      "layers": [
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.003, "length": 0.3, "pitch": 1, "lowpass": 2500, "decay": 0.2 },
+        { "source": "hw_slide", "take": 2, "from": -0.003, "length": 0.2, "pitch": -3, "gainDb": -11, "lowpass": 3000, "fadeOut": 0.1 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.18, "pitch": 2, "gainDb": -12, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 70 }
+    },
+    {
+      "file": "clang_fist_03.wav",
+      "use": "Bare hands on the Katana's guard",
+      "layers": [
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.003, "length": 0.3, "pitch": -1, "lowpass": 2500, "decay": 0.2 },
+        { "source": "hw_slide", "take": 6, "from": -0.003, "length": 0.2, "pitch": -5, "gainDb": -10, "lowpass": 3000, "fadeOut": 0.1 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.18, "pitch": -1, "gainDb": -12, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 70 }
+    },
+    {
+      "file": "redirect_arm_01.wav",
+      "use": "A bare hand turning the Katana aside: the palm slapping the attacker's arm and the sleeve's cloth (milestone-1 task 36), under the generated redirect",
+      "layers": [
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.22, "fadeOut": 0.12 },
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.003, "length": 0.22, "pitch": 4, "gainDb": -6, "lowpass": 2000, "decay": 0.12 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "redirect_arm_02.wav",
+      "use": "A bare hand turning the Katana aside",
+      "layers": [
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.22, "pitch": 2, "fadeOut": 0.12 },
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.003, "length": 0.22, "pitch": 5, "gainDb": -7, "lowpass": 2000, "decay": 0.12 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "redirect_arm_03.wav",
+      "use": "A bare hand turning the Katana aside",
+      "layers": [
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.22, "pitch": -2, "fadeOut": 0.12 },
+        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.003, "length": 0.22, "pitch": 3, "gainDb": -6, "lowpass": 2000, "decay": 0.12 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "hunter_cloth_step_01.wav",
+      "use": "The Hunter's coat under a footfall: a soft rustle of the long coat's skirts (milestone-1 task 36), with the generated gear tick",
+      "layers": [{ "source": "ima_cloth_24", "peakIn": [0.6, 0.9], "from": -0.03, "length": 0.22, "fadeIn": 0.02, "fadeOut": 0.12 }],
+      "process": { "highpass": 300, "lowpass": 7000 }
+    },
+    {
+      "file": "hunter_cloth_step_02.wav",
+      "use": "The Hunter's coat under a footfall",
+      "layers": [{ "source": "ima_cloth_24", "peakIn": [1.6, 1.9], "from": -0.03, "length": 0.22, "pitch": 1, "fadeIn": 0.02, "fadeOut": 0.12 }],
+      "process": { "highpass": 300, "lowpass": 7000 }
+    },
+    {
+      "file": "hunter_cloth_step_03.wav",
+      "use": "The Hunter's coat under a footfall",
+      "layers": [{ "source": "ima_cloth", "peakIn": [0.9, 1.15], "from": -0.03, "length": 0.22, "pitch": -1, "fadeIn": 0.02, "fadeOut": 0.12 }],
+      "process": { "highpass": 300, "lowpass": 7000 }
+    },
+    {
+      "file": "hunter_cloth_step_04.wav",
+      "use": "The Hunter's coat under a footfall",
+      "layers": [{ "source": "ima_cloth", "peakIn": [0.2, 0.6], "from": -0.03, "length": 0.22, "pitch": 2, "fadeIn": 0.02, "fadeOut": 0.12 }],
+      "process": { "highpass": 300, "lowpass": 7000 }
+    },
+    {
+      "file": "hunter_cloth_swing_01.wav",
+      "use": "The Hunter's sleeves and coat snapping with a swing (milestone-1 task 36)",
+      "layers": [
+        { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.015, "length": 0.24, "pitch": 1, "fadeOut": 0.14 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.15, "gainDb": -8, "offset": 0.01, "fadeOut": 0.08 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "hunter_cloth_swing_02.wav",
+      "use": "The Hunter's sleeves and coat snapping with a swing",
+      "layers": [
+        { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.015, "length": 0.24, "pitch": 3, "fadeOut": 0.14 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.15, "pitch": 2, "gainDb": -9, "offset": 0.01, "fadeOut": 0.08 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "hunter_cloth_swing_03.wav",
+      "use": "The Hunter's sleeves and coat snapping with a swing",
+      "layers": [
+        { "source": "ima_cloth", "peakIn": [0.9, 1.15], "from": -0.02, "length": 0.24, "pitch": 2, "fadeIn": 0.008, "fadeOut": 0.14 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.15, "pitch": -1, "gainDb": -8, "offset": 0.01, "fadeOut": 0.08 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "hunter_cloth_dodge_01.wav",
+      "use": "The Hunter's long coat in a dodge, a roll or a landing: a fuller swirl of cloth (milestone-1 task 36), in place of the general cloth flap",
+      "layers": [
+        { "source": "ima_cloth_24", "peakIn": [0.6, 0.9], "from": -0.05, "length": 0.42, "fadeIn": 0.02, "fadeOut": 0.2 },
+        { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.02, "length": 0.3, "pitch": -2, "gainDb": -5, "offset": 0.03, "fadeOut": 0.18 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "hunter_cloth_dodge_02.wav",
+      "use": "The Hunter's long coat in a dodge, a roll or a landing",
+      "layers": [
+        { "source": "ima_cloth_24", "peakIn": [1.6, 1.9], "from": -0.05, "length": 0.42, "pitch": -1, "fadeIn": 0.02, "fadeOut": 0.2 },
+        { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.02, "length": 0.3, "gainDb": -6, "offset": 0.03, "fadeOut": 0.18 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "hunter_cloth_dodge_03.wav",
+      "use": "The Hunter's long coat in a dodge, a roll or a landing",
+      "layers": [
+        { "source": "ima_cloth", "peakIn": [0.9, 1.15], "from": -0.06, "length": 0.42, "pitch": -2, "fadeIn": 0.02, "fadeOut": 0.2 },
+        { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.02, "length": 0.3, "pitch": 1, "gainDb": -5, "offset": 0.03, "fadeOut": 0.18 }
+      ],
+      "process": { "highpass": 150 }
+    },
+    {
+      "file": "vocal_kiai_01.wav",
+      "use": "A kiai on a heavy, an ability or an ultimate, landing with the blow: the \"yah\" of a warrior's \"Ai yah\", a little deeper (milestone-1 task 114, a placeholder until a vocals pack is bought)",
+      "layers": [{ "source": "vox_ai_yah", "peakIn": [0.45, 0.75], "from": -0.09, "length": 0.36, "pitch": -1, "fadeIn": 0.01, "fadeOut": 0.12 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_kiai_02.wav",
+      "use": "A kiai: the \"Ai yah\" deeper still",
+      "layers": [{ "source": "vox_ai_yah", "peakIn": [0.45, 0.75], "from": -0.09, "length": 0.36, "pitch": -2.5, "fadeIn": 0.01, "fadeOut": 0.12 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_kiai_03.wav",
+      "use": "A kiai: a short battle yell",
+      "layers": [{ "source": "vox_active_yell", "peakIn": [0.1, 0.3], "from": -0.07, "length": 0.28, "pitch": -1, "fadeIn": 0.01, "fadeOut": 0.1 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_kiai_04.wav",
+      "use": "A kiai: the battle yell, lower",
+      "layers": [{ "source": "vox_active_yell", "peakIn": [0.1, 0.3], "from": -0.07, "length": 0.28, "pitch": -3, "fadeIn": 0.01, "fadeOut": 0.1 }],
+      "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_exhale_01.wav",
+      "use": "An exhale on about one light swing in three: a short breath forced out (milestone-1 task 114)",
+      "layers": [{ "source": "vox_panting", "take": 1, "anchor": "peak", "from": -0.05, "length": 0.32, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_exhale_02.wav",
+      "use": "An exhale on a light swing",
+      "layers": [{ "source": "vox_panting", "take": 2, "anchor": "peak", "from": -0.05, "length": 0.32, "pitch": -1, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_exhale_03.wav",
+      "use": "An exhale on a light swing",
+      "layers": [{ "source": "vox_panting", "take": 3, "anchor": "peak", "from": -0.05, "length": 0.32, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_exhale_04.wav",
+      "use": "An exhale on a light swing",
+      "layers": [{ "source": "vox_panting", "take": 4, "anchor": "peak", "from": -0.05, "length": 0.32, "pitch": -1.5, "fadeIn": 0.02, "fadeOut": 0.16 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_breath_01.wav",
+      "use": "A breath on a dodge, a roll or a landing: a fuller breath out (milestone-1 task 114)",
+      "layers": [{ "source": "vox_panting", "take": 5, "from": 0.0, "length": 0.55, "fadeIn": 0.02, "fadeOut": 0.25 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_breath_02.wav",
+      "use": "A breath on a dodge, a roll or a landing",
+      "layers": [{ "source": "vox_panting", "take": 6, "from": 0.0, "length": 0.55, "pitch": -1, "fadeIn": 0.02, "fadeOut": 0.25 }],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "vocal_breath_03.wav",
+      "use": "A breath on a dodge, a roll or a landing: a sharp breath in",
+      "layers": [{ "source": "vox_gasp", "start": 0.0, "end": 0.28, "pitch": -2, "fadeOut": 0.1 }],
+      "process": { "highpass": 120 }
     }
   ]
 }

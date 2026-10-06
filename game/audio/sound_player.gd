@@ -11,8 +11,9 @@ extends Node
 ## a cue the bank doesn't have, is listed in [member missing] and reported
 ## once by each player that asks for it.
 ##
-## [method play_event] expands one rules event into its cues and keeps the
-## delayed ones (the KO gong, the round gong) until [method advance] passes
+## [method play_event] expands one rules event into its cues (rolling for
+## the ones that sound only some of the time, the light swing's exhale) and
+## keeps the delayed ones (the KO gong, the round gong) until [method advance] passes
 ## their delay. A hold ([method set_held]) pauses the playing voices and the
 ## delay clock, and the cues of events played meanwhile wait for the release;
 ## [method play_cue] still plays at once.
@@ -44,6 +45,9 @@ signal played(cue: StringName, voice: Node)
 ## The most a 3D cue nearer than unit_size is raised above its level (dB).
 @export var near_boost_db: float = 3.0
 
+## Plays a cue that sounds only some of the time (its chance) every time:
+## the sound check, so the owner hears each one.
+var every_time: bool = false
 ## Picks variations and pitches. Seed it for repeatable runs.
 var rng := RandomNumberGenerator.new()
 ## Paths that failed to load, and cue names the bank doesn't have.
@@ -59,7 +63,7 @@ var _starts := 0
 static var _streams: Dictionary = {}
 ## The variation each cue played last.
 var _last: Dictionary = {}
-## Cues waiting to start: {cue, at, extra_db, due}, in the order asked.
+## Cues waiting to start: {cue, at, extra_db, pitch_scale, due}, in the order asked.
 var _pending: Array[Dictionary] = []
 var _clock := 0.0
 var _held := false
@@ -90,25 +94,30 @@ func _process(delta: float) -> void:
 ## Plays every cue of one rules event (see [method SoundBank.cues_for]).
 ## [param position_resolver] takes the event and returns where it happened,
 ## a [Vector3], or null to play it flat; spatial cues play there.
-func play_event(event: Dictionary, position_resolver: Callable = Callable()) -> void:
-	var cues := SoundBank.cues_for(event)
+## [param cast] names each side's fighter, for their own cloth, gear and voice.
+func play_event(event: Dictionary, position_resolver: Callable = Callable(), cast: Array = []) -> void:
+	var cues := SoundBank.cues_for(event, cast)
 	if cues.is_empty():
 		return
 	var at: Variant = null
 	if position_resolver.is_valid():
 		at = position_resolver.call(event)
 	for cue: Dictionary in cues:
+		if not every_time and float(cue.get("chance", 1.0)) < 1.0 and rng.randf() >= float(cue["chance"]):
+			continue
 		var delay := float(cue["delay"])
+		var pitch_scale := float(cue.get("pitch_scale", 1.0))
 		if delay > 0.0 or _held:
-			_pending.append({"cue": cue["cue"], "at": at, "extra_db": cue["volume_db"], "due": _clock + delay})
+			_pending.append({"cue": cue["cue"], "at": at, "extra_db": cue["volume_db"], "pitch_scale": pitch_scale, "due": _clock + delay})
 		else:
-			play_cue(cue["cue"], at, float(cue["volume_db"]))
+			play_cue(cue["cue"], at, float(cue["volume_db"]), pitch_scale)
 
 
 ## Starts one cue now and returns its voice, or null if it can't play.
 ## A spatial cue given a position [param at] plays from a 3D voice there.
-## [param extra_db] is added to the cue's own level.
-func play_cue(cue_name: StringName, at: Variant = null, extra_db: float = 0.0) -> Node:
+## [param extra_db] is added to the cue's own level, and [param pitch_scale]
+## multiplies its random pitch (a side's voice, SoundBank.SIDE_PITCH).
+func play_cue(cue_name: StringName, at: Variant = null, extra_db: float = 0.0, pitch_scale: float = 1.0) -> Node:
 	if not SoundBank.CUES.has(cue_name):
 		_report_missing(String(cue_name), "SoundPlayer: no cue %s in the sound bank" % cue_name)
 		return null
@@ -135,7 +144,7 @@ func play_cue(cue_name: StringName, at: Variant = null, extra_db: float = 0.0) -
 	voice.set("stream", stream)
 	voice.set("bus", cue["bus"])
 	voice.set("volume_db", level)
-	voice.set("pitch_scale", SoundBank.random_pitch(cue_name, rng))
+	voice.set("pitch_scale", SoundBank.random_pitch(cue_name, rng) * pitch_scale)
 	voice.call("play")
 	played.emit(cue_name, voice)
 	return voice
@@ -159,7 +168,7 @@ func advance(delta: float) -> void:
 	_pending = waiting
 	due.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["due"]) < float(b["due"]))
 	for cue: Dictionary in due:
-		play_cue(cue["cue"], cue["at"], float(cue["extra_db"]))
+		play_cue(cue["cue"], cue["at"], float(cue["extra_db"]), float(cue.get("pitch_scale", 1.0)))
 
 
 ## Holds or releases everything: the playing voices pause and the delay clock

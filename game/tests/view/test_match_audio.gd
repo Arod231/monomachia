@@ -19,6 +19,9 @@ func before_each() -> void:
 	add_child_autofree(host)
 	audio = host.get_node("Audio")
 	audio.player.auto_run = false
+	# every cue the bank asks for, a light swing's one-in-three exhale too, so
+	# the played cues can be checked one by one against the events
+	audio.player.every_time = true
 
 
 ## Computer against computer on the stand-in arena.
@@ -32,13 +35,18 @@ func _cpu(mode: StringName = MatchConfig.DUEL, seed_value: int = 7) -> MatchConf
 	)
 
 
+## A footfall's cues: the footstep and the Hunter's cloth and gear under it.
+static func _footfall(cue: StringName) -> bool:
+	return SoundBank.footfall_cues(&"hunter").has(cue)
+
+
 ## Every cue the match's sound player starts, with its bus; without the
-## footsteps, which come from the fighters' movement rather than events, when
-## footsteps is false.
+## footsteps (and the cloth and gear under them), which come from the
+## fighters' movement rather than events, when footsteps is false.
 func _record(footsteps: bool = true) -> Array[Dictionary]:
 	var log: Array[Dictionary] = []
 	audio.player.played.connect(func(cue: StringName, voice: Node) -> void:
-		if footsteps or cue != &"footstep":
+		if footsteps or not _footfall(cue):
 			log.append({"cue": cue, "bus": voice.get("bus")}))
 	return log
 
@@ -71,7 +79,7 @@ func test_a_played_duel_plays_its_events_cues_in_order_on_their_buses() -> void:
 	var types := {}
 	for e: Dictionary in events:
 		types[StringName(e["t"])] = true
-		for cue: Dictionary in SoundBank.cues_for(e):
+		for cue: Dictionary in SoundBank.cues_for(e, audio.cast()):
 			if float(cue["delay"]) == 0.0:
 				expected.append(cue["cue"])
 	assert_true(types.has(&"roundStart") and types.has(&"swing"), "the round was called and swung in")
@@ -245,7 +253,7 @@ func test_an_ambience_the_bank_lacks_is_an_error() -> void:
 func _record_places(footsteps: bool = true) -> Array[Dictionary]:
 	var log: Array[Dictionary] = []
 	audio.player.played.connect(func(cue: StringName, voice: Node) -> void:
-		if footsteps or cue != &"footstep":
+		if footsteps or not _footfall(cue):
 			log.append({"cue": cue, "at": (voice as Node3D).global_position if voice is Node3D else null}))
 	return log
 
@@ -284,7 +292,10 @@ func test_a_dodge_plays_at_the_dodging_fighter() -> void:
 	assert_almost_eq(_at(log, &"roll"), _chest(1), Vector3.ONE * 1e-4)
 	host.sim_event.emit({"t": &"dodge", "f": 1, "back": true})
 	assert_almost_eq(_at(log, &"dodge_swish"), _chest(1), Vector3.ONE * 1e-4)
-	assert_almost_eq(_at(log, &"dodge_cloth"), _chest(1), Vector3.ONE * 1e-4)
+	# fighter 1 is the Hunter, whose own coat takes the general cloth's place
+	assert_almost_eq(_at(log, &"hunter_cloth_dodge"), _chest(1), Vector3.ONE * 1e-4)
+	host.sim_event.emit({"t": &"dodge", "f": 0, "back": true})
+	assert_almost_eq(_at(log, &"dodge_cloth"), _chest(0), Vector3.ONE * 1e-4)
 
 
 func test_the_ko_calls_stay_flat_while_the_body_fall_is_placed() -> void:
@@ -317,7 +328,7 @@ func test_in_a_played_duel_every_placed_cue_plays_where_its_event_happened() -> 
 				if e.has(key):
 					at = _chest(int(e[key]))
 					break
-		for cue: Dictionary in SoundBank.cues_for(e):
+		for cue: Dictionary in SoundBank.cues_for(e, audio.cast()):
 			if float(cue["delay"]) == 0.0:
 				var spatial: bool = SoundBank.CUES[cue["cue"]]["spatial"]
 				expected.append({"cue": cue["cue"], "at": at if spatial else null}))
@@ -431,6 +442,27 @@ func test_a_footfall_from_the_view_plays_a_footstep_there() -> void:
 	host.start(_cpu(), true)
 	view.footfall.emit(0, Vector3(0.4, 0.0, -1.2))
 	assert_eq(log.size(), 1, "nothing behind the menus")
+
+
+## The Hunter's own cloth and gear (milestone-1 task 36): under the Hunter's
+## footfalls, where the foot came down, and with the Hunter's swing; the
+## Rogue steps and swings without them.
+func test_the_hunter_s_cloth_and_gear_move_with_the_hunter() -> void:
+	var view: MatchView = host.get_node("View")
+	host.start(_cpu())
+	var log := _record_places()
+	view.footfall.emit(1, Vector3(0.4, 0.0, -1.2))
+	assert_eq(_cues(log), SoundBank.footfall_cues(&"hunter"))
+	for entry: Dictionary in log:
+		assert_almost_eq(entry["at"], Vector3(0.4, 0.0, -1.2), Vector3.ONE * 1e-4, "%s at the foot" % entry["cue"])
+	log.clear()
+	view.footfall.emit(0, Vector3(0.4, 0.0, -1.2))
+	assert_eq(_cues(log), [&"footstep"] as Array[StringName], "the Rogue's step")
+	log.clear()
+	host.sim_event.emit({"t": &"swing", "f": 1, "attack": &"k_l1", "heavy": false, "weapon": &"katana"})
+	assert_eq(_cues(log), SoundBank.cues_for({"t": &"swing", "f": 1, "heavy": false, "weapon": &"katana"}, [&"rogue", &"hunter"]).map(
+		func(c: Dictionary) -> StringName: return c["cue"]))
+	assert_true(_cues(log).has(&"hunter_cloth_swing"), "the Hunter's sleeves snap with the swing")
 
 
 ## Walking in its guard, a drawn fighter's footsteps fall where its clips

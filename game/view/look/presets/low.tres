@@ -31,3 +31,4 @@ minor_decals = false
 particle_ratio = 1.0
 minor_lights = true
 scenery_detail = 2
+push_in_dof = false
