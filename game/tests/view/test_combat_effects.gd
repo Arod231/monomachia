@@ -106,16 +106,27 @@ func test_particles_fly_from_the_contact_fall_and_settle_on_the_floor() -> void:
 	assert_eq(effects.particle_count(), 0, "gone at the end of their life")
 
 
+## Every preset keeps Ultra's particles (milestone-1 task 29: Low drops only
+## atmosphere), so a made-up preset with fewer shows the scaling.
+func _with_particles(ratio: float) -> GraphicsPreset:
+	var p: GraphicsPreset = GraphicsPreset.ultra().duplicate() as GraphicsPreset
+	p.particle_ratio = ratio
+	return p
+
+
 func test_particle_counts_follow_the_preset_dropping_at_most_by_half() -> void:
-	var counts: Dictionary[StringName, int] = {}
 	for id: StringName in GraphicsPreset.IDS:
 		effects.clear()
 		effects.set_preset(GraphicsPreset.load_id(id))
-		counts[id] = effects.burst(Vector3.ZERO, _spark_burst(40), 0.0, 1)
-		assert_eq(effects.particle_count(), counts[id])
-	assert_eq(counts[&"high"], 40, "High draws them all")
-	assert_eq(counts[&"medium"], 24, "Medium its ratio (0.6)")
-	assert_eq(counts[&"low"], 20, "Low half, not its ambient ratio (0.3)")
+		assert_eq(effects.burst(Vector3.ZERO, _spark_burst(40), 0.0, 1), 40, "%s draws them all" % id)
+	var counts: Dictionary[float, int] = {}
+	for ratio: float in [0.6, 0.3]:
+		effects.clear()
+		effects.set_preset(_with_particles(ratio))
+		counts[ratio] = effects.burst(Vector3.ZERO, _spark_burst(40), 0.0, 1)
+		assert_eq(effects.particle_count(), counts[ratio])
+	assert_eq(counts[0.6], 24, "its ratio (0.6)")
+	assert_eq(counts[0.3], 20, "half, not its ambient ratio (0.3)")
 	effects.clear()
 	assert_eq(effects.burst(Vector3.ZERO, _spark_burst(1), 0.0, 1), 1, "never rounded down to nothing")
 
@@ -271,7 +282,7 @@ func test_round_start_clears_the_effects() -> void:
 
 
 func test_a_preset_applied_to_the_tree_reaches_the_effects() -> void:
-	GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(&"low"), effects)
+	GraphicsApplier.apply_to_tree(_with_particles(0.3), effects)
 	assert_eq(effects.particle_scale, 0.5)
-	GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(&"high"), effects)
+	GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(&"low"), effects)
 	assert_eq(effects.particle_scale, 1.0)

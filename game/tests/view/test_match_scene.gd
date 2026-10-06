@@ -284,7 +284,7 @@ func test_rematches_and_restarts_leave_no_stray_nodes() -> void:
 	for k: int in 3:
 		host.step(Match.INTRO_FRAMES + 20)
 		host.sim_event.emit({"t": &"parry", "parrier": 1, "attacker": 0, "kind": &"parry", "pos": at})
-		host.world.weapons.append(DroppedWeapon.new(0, &"katana", V3.make(1.0, 0.0, 1.0), V3.make(), Rng.new(k + 1)))
+		host.world.weapons.append(DroppedWeapon.stuck_at(0, &"katana", V3.make(1.0, 0.0, 1.0), 0.0))
 		view.render(1.0 / 60.0)
 		assert_eq(view.effects.flash_count(), 1, "a flash, drawn from the effects' pool")
 		assert_gt(view.get_child_count(), baseline.size(), "and a dropped weapon")
@@ -299,7 +299,7 @@ func test_rematches_and_restarts_leave_no_stray_nodes() -> void:
 func test_a_dropped_weapon_is_in_the_toon_look() -> void:
 	host.start(_cpu())
 	host.step(Match.INTRO_FRAMES + 5)
-	host.world.weapons.append(DroppedWeapon.new(1, &"daggers", V3.make(1.0, 0.0, 1.0), V3.make(), Rng.new(3)))
+	host.world.weapons.append(DroppedWeapon.stuck_at(1, &"daggers", V3.make(1.0, 0.0, 1.0), 0.0))
 	view.render(1.0 / 60.0)
 	var daggers: Array[Node] = view.get_node("Dropped1/Stick").get_children()
 	assert_eq(daggers.size(), 2, "a pair of daggers")

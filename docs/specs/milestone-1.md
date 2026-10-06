@@ -1,6 +1,6 @@
 # Spec: Milestone 1, the Hunter with the Katana and bare hands at final quality
 
-Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · progress: tasks 2 (the private asset repository) and 3 (the mood board, approved with For Honor's camera framing) done Oct 4 · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
+Oct 4, 2026 · status: approved by the owner on Oct 4, 2026, together with its plan (reviewed once, back to back, for this round only), after the owner confirmed all 56 proposed defaults (P1–P56) as written · progress: tasks 2 (the private asset repository) and 3 (the mood board, approved with For Honor's camera framing) done Oct 4; the groundwork (tasks 4–11, 14, 113, 134), the Blender export (12) the clip import (13) the frame-data generator (15), the committed frame-data table (16), every reader reading it (17) and the band tables with their tests (18) done Oct 5 · the code's branch: `feature/milestone-1`, cut from `master` after `docs/plans/godot-rebuild.md` task 26.4 · this spec and its plan: branch `docs/milestone-1-spec`, through a draft pull request into `feature/godot-rebuild`, so they reach `master` with the consolidation, before the code's branch exists (an exception, for this round only, to CLAUDE.md's rule that the spec, the plan and the code arrive in one pull request)
 
 Read with: `docs/design.md` (section 1, Order of work, and every "(Oct 4)" line), [ADR 0001](../adr/0001-animation-leads-realistic-look.md), the plan `docs/plans/milestone-1.md`, and the roadmap `docs/plans/roadmap.md`.
 
@@ -54,29 +54,29 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 11. [x] As a developer, I want the import tools to read the asset repository wherever the owner keeps it, through today's asset-source setting, so that a real build always uses it.
 12. As a developer, I want clones and CI builds without the asset repository to run on labelled stand-ins (CC0 clips and code-built or committed models), with every test that needs the clips skipping itself, so that CI stays green for anyone.
 13. [x] As a developer, I want a scripted export from the Blender sources to the files the game uses, for clips and for models, so that an edit in Blender reaches the game with one command and no hand steps. (Ticked with task 12.)
-14. As a developer, I want clips edited in Blender or Cascadeur imported like the pack clips (retargeted, mirrored where the manifest says, markers kept), so that a re-keyed move replaces its pack clip in the game.
+14. [x] As a developer, I want clips edited in Blender or Cascadeur imported like the pack clips (retargeted, mirrored where the manifest says, markers kept), so that a re-keyed move replaces its pack clip in the game. (Ticked with task 13.)
 15. [x] As the owner, I want every new model and every clip keyed from scratch to be the project's own art (all rights reserved), with its Blender source in the asset repository; clips re-keyed from a pack clip to stay under the pack's licence, exported only into the asset repository; and the exports of self-made and CC0 models and materials also committed to the public repository inside its size budget **(P23, confirmed Oct 4)**, so that everything shipped can be sold and plain clones and CI see the art they may. (Ticked with task 12.)
-16. As a developer, I want every move's source clip recorded beside its numbers, so that any move can be re-baked from another clip.
-17. As a developer, I want a frame-data generator that reads each attack's clip at its own speed and writes the startup, active and recovery frames, the cancel windows, the branch points and the per-frame travel into a committed frame-data table, and the hit path into the committed swing files, in the same run, so that the clip decides the frame data with no hand overrides.
-18. As a developer, I want the rules, the computer opponent, the move list, the sheets and every other reader of frame data to read that table, so that there is one source of truth.
+16. [x] As a developer, I want every move's source clip recorded beside its numbers, so that any move can be re-baked from another clip. (Ticked with task 16.)
+17. [x] As a developer, I want a frame-data generator that reads each attack's clip at its own speed and writes the startup, active and recovery frames, the cancel windows, the branch points and the per-frame travel into a committed frame-data table, and the hit path into the committed swing files, in the same run, so that the clip decides the frame data with no hand overrides. (Ticked with task 17.)
+18. [x] As a developer, I want the rules, the computer opponent, the move list, the sheets and every other reader of frame data to read that table, so that there is one source of truth. (Ticked with task 17.)
 19. As a developer, I want each attack's travel baked per frame from the hips and foot plants, and its swing sampled relative to the moving body, so that travel isn't counted twice. **(P13, confirmed Oct 4)**
 20. As a developer, I want CI to check that the committed table is complete and that every Katana and bare-hands attack sits inside its timing band and connects from its distance band, so that a clip out of band can't be merged.
-21. As a developer, I want a local-only test that re-bakes every move from the clips and fails on any drift from the committed table, so that the table never falls behind the clips. **(P12, confirmed Oct 4)**
-22. As a developer, I want the Greatsword's and the Daggers' frame data generated from their current clips through the same generator, with no band test until milestone 2, so that one generator serves every weapon. **(P10, confirmed Oct 4)**
+21. [x] As a developer, I want a local-only test that re-bakes every move from the clips and fails on any drift from the committed table, so that the table never falls behind the clips. **(P12, confirmed Oct 4)** (Ticked with task 16.)
+22. [x] As a developer, I want the Greatsword's and the Daggers' frame data generated from their current clips through the same generator, with no band test until milestone 2, so that one generator serves every weapon. **(P10, confirmed Oct 4)** (Ticked with task 17.)
 23. [x] As a developer, I want a replay test in the pipeline phase, in this form: a seeded match run twice gives matching state hashes on every step **(P18, confirmed Oct 4)**, so that the rules stay deterministic for rollback netcode. (Ticked with task 5.)
 24. [x] As a developer, I want a save-and-restore test in the pipeline phase, in this form: save mid-match, restore, step again and compare **(P18, confirmed Oct 4)**, so that the rules can be rolled back later without a retrofit. (Ticked with tasks 134 and 6.)
-25. As a developer, I want both tests to cover a finisher and a stuck weapon, so that the new rules are as deterministic as the old. **(P18, confirmed Oct 4)**
+25. [x] As a developer, I want both tests to cover a finisher and a stuck weapon, so that the new rules are as deterministic as the old. **(P18, confirmed Oct 4)** (Ticked with task 103.)
 26. [x] As a developer, I want matches recordable as input logs that replay to the same result, so that the performance gate, the balance run and bug reports can replay a match exactly. (Ticked with task 6.)
-27. As the owner, I want the Animation Studio slimmed to its gallery, a timeline, markers and chains, so that it does what animation-leads needs and nothing it no longer needs.
-28. As the owner, I want markers set on the Studio's timeline to give each clip's active frames, cancel windows and branch points, and saving to regenerate the frame-data table and report any move outside its band, so that a marker edit is the only way frame data change. **(P12, confirmed Oct 4)**
-29. As the owner, I want the Studio's timeline to show each move's generated frame data against its timing band, and whether it connects from its distance band, so that I see at once whether a clip fits.
-30. As the owner, I want the Studio's chains kept without their speed field or held frames, so that nothing in the Studio can speed up, slow down or freeze a clip.
+27. [x] As the owner, I want the Animation Studio slimmed to its gallery, a timeline, markers and chains, so that it does what animation-leads needs and nothing it no longer needs. (Ticked with task 27.)
+28. [x] As the owner, I want markers set on the Studio's timeline to give each clip's active frames, cancel windows and branch points, and saving to regenerate the frame-data table and report any move outside its band, so that a marker edit is the only way frame data change. **(P12, confirmed Oct 4)** (Ticked with task 27.)
+29. [x] As the owner, I want the Studio's timeline to show each move's generated frame data against its timing band, and whether it connects from its distance band, so that I see at once whether a clip fits. (Ticked with task 25.)
+30. [x] As the owner, I want the Studio's chains kept without their speed field or held frames, so that nothing in the Studio can speed up, slow down or freeze a clip. (Ticked with task 27: the Studio makes neither; today's holds and speeds stay in the data, read-only, until task 19.)
 31. [x] As a developer, I want bone posing, correctives, IK handles, keyed-clip editing, the refinement launcher and the chat panel dropped from the Studio in favour of Blender, so that the tool stays small. (Ticked with task 11.)
 32. As the owner, I want to try the slimmed Studio on the pilot family before the other families start, so that the marker workflow is proven early.
 
 ### Timing, distance and pace
 
-33. As the owner, I want one timing band per move kind for the Katana and bare hands, in a table I approve in this spec, so that the slower, For Honor-like pace is set by design before any clip is keyed. The values are in the timing band table **(P26, confirmed Oct 4)**.
+33. [x] As the owner, I want one timing band per move kind for the Katana and bare hands, in a table I approve in this spec, so that the slower, For Honor-like pace is set by design before any clip is keyed. The values are in the timing band table **(P26, confirmed Oct 4)**. (Ticked with task 18.)
 34. As a player, I want the Katana's lights to land in 400–500 ms (24–30 frames), bare hands faster and every heavy slower, so that the pace is weightier and each weapon class keeps its feel.
 35. As a player, I want every Katana and bare-hands clip played at its own speed, never sped up, slowed down, frozen or stretched on its own while the game runs, apart from the whole-world time effects (hit-stop, the KO's and the finisher's slow motion, the disarmed ultimate's choice), which slow every clip alike, so that the motion I see is the motion that was keyed.
 36. As a player, I want holds, such as the Iai stance, played as authored loops, so that a held charge looks alive rather than frozen.
@@ -111,12 +111,12 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 62. As a Katana player, I want Piercing Thrust and Swallow Sweep re-keyed in the unblockable band with long, readable wind-ups, so that they're feared but answerable.
 63. As a Katana player, I want Moonsplitter re-keyed: the fighter sheathes, the stick picks vertical or horizontal, and a wave crosses the stage, so that the ultimate looks like a finale.
 64. As a player facing Moonsplitter, I want the horizontal wave still jumpable and the vertical one still avoidable by stepping aside, so that the ultimate stays answerable.
-65. As the owner, I want the Katana's Counter Lunge left on today's clip until milestone 2, since no milestone-1 move triggers the evade counter, so that no work goes into a move no milestone-1 match reaches. Its clip plays at 1.0× like every other, with its frame data generated like the Greatsword's and no band test **(P48, confirmed Oct 4)**.
+65. [x] As the owner, I want the Katana's Counter Lunge left on today's clip until milestone 2, since no milestone-1 move triggers the evade counter, so that no work goes into a move no milestone-1 match reaches. Its clip plays at 1.0× like every other, with its frame data generated like the Greatsword's and no band test **(P48, confirmed Oct 4)**. (Ticked with task 17.)
 
 ### The disarm and bare hands
 
-66. As a player, I want a disarm to send the weapon flying the way the blow knocked it (on a parry, the way the deflect sends it) and stick blade-first in the ground at an angle, always inside the walls, so that a disarm reads as a real moment.
-67. As a developer, I want the weapon's flight deterministic, along the knock or deflect direction and inside the walls, with its landing angle as rules state, so that a replay or a rollback lands it in the same place. **(P16, confirmed Oct 4)**
+66. [x] As a player, I want a disarm to send the weapon flying the way the blow knocked it (on a parry, the way the deflect sends it) and stick blade-first in the ground at an angle, always inside the walls, so that a disarm reads as a real moment. (Ticked with task 86.)
+67. [x] As a developer, I want the weapon's flight deterministic, along the knock or deflect direction and inside the walls, with its landing angle as rules state, so that a replay or a rollback lands it in the same place. **(P16, confirmed Oct 4)** (Ticked with task 86.)
 68. As a disarmed player, I want to pick my weapon up by pulling it out of the ground, taking as long as its clip, so that the pick-up looks and plays as it should. **(P16, confirmed Oct 4)**
 69. As a player whose opponent is disarmed, I want to stand in their way to keep the advantage, so that the disarm game stays live.
 70. As a disarmed player, I want to move faster, dodge farther and jump higher than when armed, so that bare hands keep their agility.
@@ -129,7 +129,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 77. As a disarmed player, I want the recall's power-up (the roar, the golden burst, the weapon flying back into my hands, a nearby opponent blasted off their feet) at final quality, the burst still reaching an opponent within the weapon's duelling distance and knocking them back about 2.0 m as today, now through the reaction clip's travel **(P43, confirmed Oct 4)**, so that re-arming feels like a power-up.
 78. As a disarmed player, I want Breaker Palm re-keyed with its crouch into the uppercut as its own travel, so that the ultimate's lunge is real.
 79. As the owner, I want all fighters to share one bare-hands moveset, re-animated at the new quality, until the breadth phase brings per-fighter styles, so that milestone 1 stays in scope.
-80. As the owner, I want bare hands' Counter Lunge left on today's clip until milestone 2, played at 1.0× with generated frame data and no band test **(P48, confirmed Oct 4)**, so that no work goes into an unreachable move.
+80. [x] As the owner, I want bare hands' Counter Lunge left on today's clip until milestone 2, played at 1.0× with generated frame data and no band test **(P48, confirmed Oct 4)**, so that no work goes into an unreachable move. (Ticked with task 17.)
 
 ### Movement and the body
 
@@ -172,17 +172,17 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### Finishers
 
-114. As a player who disarms an opponent at 5% HP or less, I want the disarm to play in slow motion and give me one timed prompt, so that I can end the round with a finisher. (5% is 5 HP at today's 100 maximum.)
+114. [x] As a player who disarms an opponent at 5% HP or less, I want the disarm to play in slow motion and give me one timed prompt, so that I can end the round with a finisher. (5% is 5 HP at today's 100 maximum.) (Ticked with task 103.)
 115. As a player, I want the prompt to be heavy, shown as the button's glyph over the disarmed fighter and pressed within about a second of slow motion, so that it's clear what to press and when.
-116. As a player, I want a press made before the prompt appears not to count, the input buffer included, so that mashing can't take the finisher.
-117. As a player who misses the prompt, I want the disarm to play out as normal, so that the round goes on.
-118. As a player being finished, I want no escape once the finisher starts, so that defence happens before the disarm, as with strings.
+116. [x] As a player, I want a press made before the prompt appears not to count, the input buffer included, so that mashing can't take the finisher. (Ticked with task 103.)
+117. [x] As a player who misses the prompt, I want the disarm to play out as normal, so that the round goes on. (Ticked with task 103.)
+118. [x] As a player being finished, I want no escape once the finisher starts, so that defence happens before the disarm, as with strings. (Ticked with task 103.)
 119. As a Katana player, I want the Katana's finisher: I sheathe, then draw in a lightning-fast iai slash that carries me through to stand behind the opponent; I re-sheathe, and as the guard clicks home blood sprays along the cut and the opponent falls in two halves, cut diagonally from one shoulder to the opposite hip, so that the finisher is the game's signature moment.
 120. As a disarmed player who redirects an armed opponent at 5% HP or less into a disarm, I want the bare-hands finisher: I turn their last attack aside, then drop them with a crushing palm to the chest or a blow to the throat, cutting nothing, so that bare hands can finish too. When a disarmed fighter disarms by a blocked Breaker Palm or a fully charged Roundhouse instead, the same finisher opens and plays from its strike, skipping the turn-aside **(P52, confirmed Oct 4)**.
 121. As a player, I want each finisher played as a paired clip with its own cinematic shot, so that it reads as a killing move.
 122. As a player with Blood set to Reduced, I want the Katana's finisher to show the cut with less blood and the body staying whole, and with Blood Off no blood at all, so that I choose how graphic it is.
-123. As a player against the computer, I want it to use finishers too, landing them more often on higher difficulties **(P3, confirmed Oct 4)**, at the rates in the computer's finisher rates table **(P55, confirmed Oct 4)**, so that it plays by the same rules.
-124. As a Training player, I want a finisher to play in full and the HP then to refill, so that I can practise finishing. **(P3, confirmed Oct 4)**
+123. [x] As a player against the computer, I want it to use finishers too, landing them more often on higher difficulties **(P3, confirmed Oct 4)**, at the rates in the computer's finisher rates table **(P55, confirmed Oct 4)**, so that it plays by the same rules. (Ticked with task 107.)
+124. [x] As a Training player, I want a finisher to play in full and the HP then to refill, so that I can practise finishing. **(P3, confirmed Oct 4)** (Ticked with task 107.)
 125. As the owner, I want a finisher to end the round as a KO, called Warrior Slain, so that rounds end one way.
 
 ### Round flow, cinematics and the camera
@@ -255,8 +255,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 179. As a player, I want the finisher prompt designed as the heavy button's glyph, from the device I last used, over the disarmed fighter, so that I can read it in the slow motion.
 180. As a player, I want the HUD's off-screen marker for my dropped weapon restyled and lifted to clear the stuck weapon's hilt, so that I can always find my weapon. **(P7, confirmed Oct 4)**
 181. As a player, I want the menus to take the new theme (colours, fonts and panels) so nothing looks ink-wash, with their layouts redone later, so that the game looks consistent.
-182. As a player, I want four graphics presets (Ultra, High, Medium and Low), with Ultra as the reference preset, so that the game runs on my machine.
-183. As a player, I want the first launch to pick a preset from my graphics card, so that the game starts well without fiddling.
+182. [x] As a player, I want four graphics presets (Ultra, High, Medium and Low), with Ultra as the reference preset, so that the game runs on my machine. (Ticked with task 29.)
+183. [x] As a player, I want the first launch to pick a preset from my graphics card, so that the game starts well without fiddling. (Ticked with task 29.)
 184. As a player, I want Ultra to render at about 1440p–1800p and upscale to 4K with FSR 2.2, and Low to drop only atmosphere (volumetric fog becomes height fog, petals stop casting light, no ambient occlusion, fewer decals) while keeping the palettes, the rim lights, blood, the 危 and the cinematic shots, so that every preset reads the fight.
 185. As a player, I want Settings to hold the Blood setting, and Reduce flashes to cover every new effect, shake and push-in, so that comfort options stay complete. **(P7, confirmed Oct 4)**
 186. As a player reading How to play, I want it to describe finishers, Warrior Slain and the slower pace, so that it matches the game.
@@ -266,8 +266,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 187. As a player, I want the computer to read the generated frame-data table, so that its defence follows the clips as they're re-animated. **(P17, confirmed Oct 4)**
 188. As a player, I want the computer to time its defence from each swing's first touch and ignore moves that can't reach, so that it defends fairly at the new pace.
-189. As a Training player, I want the dummy to perform every milestone-1 unblockable (Piercing Thrust and Swallow Sweep) through one shared routes table, and the Katana dummy's heavies to alternate both Iai variants, so that I can drill every counter the milestone has.
-190. As a developer, I want counterlab to show the stomp and the leap reached, with the evade waiting for milestone 2, so that every reachable counter is proven.
+189. [x] As a Training player, I want the dummy to perform every milestone-1 unblockable (Piercing Thrust and Swallow Sweep) through one shared routes table, and the Katana dummy's heavies to alternate both Iai variants, so that I can drill every counter the milestone has. (Ticked with task 83.)
+190. [x] As a developer, I want counterlab to show the stomp and the leap reached, with the evade waiting for milestone 2, so that every reachable counter is proven. (Ticked with task 83.)
 191. As a player, I want the computer to use and answer the Iai (quick draws, walking in sheathed, both variants, the follow-ups, dodging out when attacked; against a sheathed opponent, keeping out of range, punishing or parrying the release), landing it from the Iai's distance band, so that it plays the Katana well.
 192. As a player, I want the computer to deal with a stuck weapon (standing in my way when I'm disarmed, running for its own when it is), so that the disarm game stays live against it.
 193. As a player, I want the computer to use its ultimates by today's rules at the new pace (Moonsplitter when the opponent is 2.5–14 m away and neither knocked out nor invulnerable; when disarmed, the recall when the opponent is farther than 2.5 m and Breaker Palm when closer), with those distances rechecked against the distance bands, so that ultimates appear in its play.

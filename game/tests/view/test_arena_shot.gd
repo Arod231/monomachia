@@ -192,7 +192,7 @@ func test_a_bench_entry_can_hide_parts_of_the_match() -> void:
 
 
 func test_a_bad_bench_entry_says_what_is_wrong() -> void:
-	assert_string_contains(ArenaShot.bench_entry("ultra")["error"], "no preset 'ultra'")
+	assert_string_contains(ArenaShot.bench_entry("extreme")["error"], "no preset 'extreme'")
 	assert_string_contains(ArenaShot.bench_entry("high:bloom=true")["error"], "no preset setting 'bloom'")
 	assert_string_contains(ArenaShot.bench_entry("high:outline_props=maybe")["error"], "outline_props")
 	assert_string_contains(ArenaShot.bench_entry("high:shadow_atlas_size")["error"], "shadow_atlas_size")
@@ -245,8 +245,8 @@ func test_an_entry_hides_what_it_names_and_the_next_shows_it_again() -> void:
 
 
 func test_entries_that_cannot_run_are_reported_and_dropped_before_timing() -> void:
-	var rig: ArenaShot = _bench_rig(["ultra", "low", "low:hide=Nothing", "low"], 2)
-	assert_push_error("no preset 'ultra'")
+	var rig: ArenaShot = _bench_rig(["extreme", "low", "low:hide=Nothing", "low"], 2)
+	assert_push_error("no preset 'extreme'")
 	assert_push_error("no node 'Nothing'")
 	assert_push_error("'low': it is listed twice")
 	assert_eq(rig.bench, PackedStringArray(["low"]))

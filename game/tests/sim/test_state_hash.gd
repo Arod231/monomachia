@@ -51,6 +51,8 @@ func test_a_seeded_match_run_twice_gives_the_same_hash_on_every_step() -> void:
 	assert_eq(a.sim_match.phase, &"matchEnd", "the match ends inside the limit")
 	assert_eq(first_diff, -1, "no step's hash differs (first at step %d)" % first_diff)
 	assert_eq(a.sim_match.match_winner, b.sim_match.match_winner)
+	var disarms: int = a.world.fighters[0].stats.disarms + a.world.fighters[1].stats.disarms
+	assert_gt(disarms, 0, "through a disarm, its weapon flying and sticking (milestone-1 task 86)")
 
 
 func test_another_seed_soon_gives_another_hash() -> void:
@@ -135,7 +137,7 @@ func test_every_rules_field_is_in_its_snapshot_or_named_not_state() -> void:
 	]
 	var ai: AIBrain = AIBrain.new(w.fighters[0], AIBrain.DIFFICULTY[&"normal"], 3)
 	cases.append([ai, AIBrain.SNAPSHOT_SKIP, ai.snapshot()])
-	var dropped: DroppedWeapon = DroppedWeapon.new(0, &"katana", V3.make(), V3.make(), Rng.new(1))
+	var dropped: DroppedWeapon = DroppedWeapon.new(0, &"katana", V3.make(0.0, 1.3, 0.0), V3.make(2.0, 0.0, 1.0), 0.5)
 	cases.append([dropped, [] as Array[StringName], dropped.snapshot()])
 	var wave: SlashWave = SlashWave.new(w.fighters[0], &"vertical", 0.0, 0.0, 0.0, 1.0)
 	cases.append([wave, [] as Array[StringName], wave.snapshot()])

@@ -158,7 +158,9 @@ func test_meteor_drop_knocks_down() -> void:
 func test_a_plain_heavy_does_not_knock_down() -> void:
 	var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 2.2)
 	var r: H.Rec = H.Rec.new()
-	H.run(W, 40, H.tap_at(0, Btn.HEAVY), IDLE, r)
+	# just past its active frames (the table's)
+	var heavy: AttackDef = Moves.GREATSWORD.moves[&"g_h1"]
+	H.run(W, heavy.startup + heavy.active + 6, H.tap_at(0, Btn.HEAVY), IDLE, r)
 	assert_eq(r.find(&"hit").get("attack"), &"g_h1")
 	assert_false(r.has(&"knockdown"))
 	assert_eq(W.fighters[1].state, &"hitstun")

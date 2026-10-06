@@ -151,8 +151,7 @@ static func _variations() -> Array[Dictionary]:
 		out.append({"t": &"parry", "kind": kind})
 	for kind: StringName in [&"stomp", &"leap", &"evade"]:
 		out.append({"t": &"counter", "kind": kind})
-	for speed: float in [1.0, SoundBank.CLATTER_SPEED]:
-		out.append({"t": &"weaponBounce", "speed": speed})
+	out.append({"t": &"weaponStuck", "owner": 1})
 	return out
 
 

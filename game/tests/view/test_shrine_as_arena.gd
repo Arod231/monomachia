@@ -68,25 +68,31 @@ func test_computer_matches_back_fighters_against_the_wall_but_never_through_it()
 	assert_lt(highest_feet, FEET_CEILING, "no fighter's feet went higher than FEET_CEILING")
 
 
-func test_a_weapon_dropped_at_the_wall_lies_wholly_inside_the_parapet() -> void:
-	# A dropped weapon is drawn centred on its rules position along its length
-	# (MatchView), so the worst case is lying straight out at its furthest.
+func test_a_weapon_disarmed_at_the_wall_stays_wholly_inside_the_parapet() -> void:
+	# A dropped weapon flies centred on its rules position along its length
+	# and sticks with its point at it, leaning back STUCK_WEAPON_LEAN along its
+	# flight (MatchView, milestone-1 task 86). The worst cases: lying straight
+	# out at its furthest in flight, and stuck with the whole length leaning
+	# outward.
 	for id: StringName in Moves.PLAYABLE_WEAPONS:
 		var model: Node3D = WeaponLook.load_id(id).instantiate()
 		add_child_autofree(model)
-		var half: float = WeaponTests._bounds(model).size.y * 0.5
-		var W: World = SimHelpers.make_world(Moves.WEAPONS[id])
-		var victim: Fighter = W.fighters[0]
-		victim.pos = V3.make(0.0, 0.0, 14.5)
-		W.fighters[1].pos = V3.make()
-		W.spawn_dropped_weapon(victim, W.fighters[1])
-		var furthest: float = 0.0
-		for _i: int in 300:
-			W.step([RawInput.empty(), RawInput.empty()])
-			furthest = maxf(furthest, JsMath.hypot(W.weapons[0].pos.x, W.weapons[0].pos.z))
-		assert_true(W.weapons[0].grounded, "%s comes to rest" % id)
-		assert_gt(furthest, SimConst.ARENA_RADIUS - 1.0, "%s reached the wall" % id)
-		assert_lte(furthest + half, def.wall_inner_radius(), "%s, %.2f m long, never pokes into the parapet" % [id, half * 2.0])
+		var length: float = WeaponTests._bounds(model).size.y
+		for heading: float in [0.0, PI / 4.0, PI / 2.0, -PI / 2.0]:
+			var W: World = SimHelpers.make_world(Moves.WEAPONS[id])
+			var victim: Fighter = W.fighters[0]
+			victim.pos = V3.make(0.0, 0.0, 14.5)
+			W.fighters[1].pos = V3.make(-JsMath.sin(heading) * 2.0, 0.0, 14.5 - JsMath.cos(heading) * 2.0)
+			victim.disarm(W.fighters[1], &"parried")
+			var furthest: float = 0.0
+			for _i: int in 120:
+				W.step([RawInput.empty(), RawInput.empty()])
+				furthest = maxf(furthest, JsMath.hypot(W.weapons[0].pos.x, W.weapons[0].pos.z))
+			var label: String = "%s, %.2f m long, flying %.0f° off straight out" % [id, length, rad_to_deg(heading)]
+			assert_true(W.weapons[0].grounded, label + ": it sticks")
+			assert_lte(furthest + length * 0.5, def.wall_inner_radius(), label + ": never pokes into the parapet in flight")
+			var stuck: float = JsMath.hypot(W.weapons[0].pos.x, W.weapons[0].pos.z)
+			assert_lte(stuck + length * sin(SimConst.STUCK_WEAPON_LEAN), def.wall_inner_radius(), label + ": nor stuck")
 
 
 ## A physics space holding the shrine's props (bought art included) and the

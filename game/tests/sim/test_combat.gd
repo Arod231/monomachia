@@ -378,10 +378,12 @@ func _stomped(w: WeaponDef, move: StringName, lead: int, gap: float = 2.2) -> Ar
 
 
 func test_a_stomp_lands_on_the_blades_tip_at_the_thrusters_pin_distance() -> void:
-	var cases: Array = [[Moves.KATANA, &"k_thrust", 20], [Moves.DAGGERS, &"d_needle", 12], [Moves.GREATSWORD, &"g_dh", 14]]
+	# the defender dodges in this many frames before the thrust's startup
+	# ends (its frames the table's, milestone-1 task 17)
+	var cases: Array = [[Moves.KATANA, &"k_thrust", 6], [Moves.DAGGERS, &"d_needle", 8], [Moves.GREATSWORD, &"g_dh", 8]]
 	for c: Array in cases:
 		var w: WeaponDef = c[0]
-		var r: Array = _stomped(w, c[1], c[2])
+		var r: Array = _stomped(w, c[1], (w.moves[c[1]] as AttackDef).startup - int(c[2]))
 		var W: World = r[0]
 		var a: Fighter = W.fighters[0]
 		var b: Fighter = W.fighters[1]

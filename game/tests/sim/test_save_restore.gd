@@ -1,8 +1,8 @@
 extends GutTest
 ## Snapshot and restore (milestone-1 task 134, story 24): the rules saved
 ## mid-match, restored and stepped again give the same hash as the original
-## on every step, at several points of a seeded match, through a disarm and a
-## K.O. The inputs are the ones the match was played with (recorded from the
+## on every step, at several points of a seeded match, through a disarm (its
+## weapon flying and stuck, milestone-1 task 86) and a K.O. The inputs are the ones the match was played with (recorded from the
 ## computer's brains), so this tests the rules alone; task 6 adds the brains.
 
 ## Twelve minutes of rules time, as the soak allows.
@@ -94,7 +94,12 @@ func before_all() -> void:
 	var probe: Run = _play(21, [], false)
 	assert_gt(probe.first_disarm, 0, "the seed's match has a disarm")
 	assert_gt(probe.first_ko, 0, "and a K.O.")
-	var points: Array[int] = [0, 300, probe.first_disarm, probe.first_ko, probe.first_ko + Match.ROUND_END_FRAMES / 2]
+	# the disarm's step, its weapon in flight past the hit-stop, and stuck
+	# (milestone-1 task 86)
+	var points: Array[int] = [
+		0, 300, probe.first_disarm, probe.first_disarm + 20, probe.first_disarm + 80,
+		probe.first_ko, probe.first_ko + Match.ROUND_END_FRAMES / 2,
+	]
 	_run = _play(21, points)
 	assert_eq(_run.inputs.size(), probe.inputs.size(), "saving changes nothing")
 

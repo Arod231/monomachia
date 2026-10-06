@@ -70,9 +70,42 @@ func test_rules_length_markers_and_foot_contacts_read() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
+func test_an_exported_clip_reads_with_or_without_its_origin() -> void:
+	var path: String = "user://test_clip_manifest_exported.json"
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(JSON.stringify({"sets": {"HumanM": "Male"}, "clips": {
+		"Finisher": {"export": "exports/clips/finisher.glb", "groups": ["katana"], "props": true,
+			"markers": {"windup": 0, "contact": 9, "contact_end": 12, "settle": 20}},
+		"Attack1H01_R": {"export": "exports/clips/attack1h01_r.glb", "pack": "P", "dir": "D", "source": "Attack1H01_R",
+			"mirror": true, "groups": ["katana"], "markers": {"windup": 0, "contact": 9, "contact_end": 12, "settle": 20}},
+		"Plain": {"pack": "P", "dir": "D", "source": "Plain", "groups": ["katana"],
+			"markers": {"windup": 0, "contact": 9, "contact_end": 12, "settle": 20}},
+	}}))
+	f.close()
+	var m: ClipManifest = ClipManifest.read(path)
+	assert_eq(m.errors, PackedStringArray())
+	var fresh: ClipManifest.Clip = m.clips[&"Finisher"]
+	assert_true(fresh.exported(), "named by its export")
+	assert_eq(fresh.export_path, "exports/clips/finisher.glb")
+	assert_false(fresh.has_origin(), "keyed from scratch: no pack clip behind it")
+	assert_true(fresh.props, "keeps its prop bones")
+	var replaced: ClipManifest.Clip = m.clips[&"Attack1H01_R"]
+	assert_true(replaced.exported())
+	assert_true(replaced.has_origin(), "the pack clip it replaces stays its origin")
+	assert_eq([replaced.pack, replaced.dir, replaced.source], ["P", "D", "Attack1H01_R"])
+	assert_true(replaced.mirror, "mirrored like a pack clip")
+	assert_false(replaced.props, "no props unless asked")
+	assert_false(m.clips[&"Plain"].exported(), "a pack clip")
+	assert_eq(m.sourced().size(), 3, "exported clips have a file of their own")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
 func test_every_clip_names_its_file() -> void:
 	var m: ClipManifest = ClipManifest.read()
 	for clip: ClipManifest.Clip in m.sourced():
+		if clip.exported():
+			assert_true(clip.export_path.begins_with("exports/") and clip.export_path.ends_with(".glb"), "%s: %s" % [clip.id, clip.export_path])
+			continue
 		var f: String = clip.file(&"HumanM", "Male")
 		# a shared clip's files (the masked poses) sit in one folder for both sets
 		var folder: String = clip.dir if clip.shared else "Male/"
@@ -106,6 +139,11 @@ func test_a_bad_manifest_is_reported() -> void:
 			"foot_contacts": {"left": [[4, 2]], "right": [[0, 3]]}},
 		"I": {"pack": "P", "dir": "D", "source": "I", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3},
 			"foot_contacts": {"left": [[0, 3]]}},
+		"J": {"export": "C:/clips/j.glb", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
+		"K": {"export": "exports/clips/k.glb", "pack": "P", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
+		"L": {"pack": "P", "dir": "D", "source": "L", "props": "yes", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
+		"M": {"compose": {"upper": "A", "legs": "H"}, "export": "exports/clips/m.glb", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
+		"N": {"export": "exports/../n.glb", "groups": ["katana"], "markers": {"windup": 0, "contact": 1, "contact_end": 2, "settle": 3}},
 	}}))
 	f.close()
 	var m: ClipManifest = ClipManifest.read(path)
@@ -124,6 +162,12 @@ func test_a_bad_manifest_is_reported() -> void:
 	assert_string_contains(text, "H: foot_contacts left must be [plant, lift] source frames, in order, each lift at or after its plant")
 	assert_string_contains(text, "I: foot_contacts gives left and right")
 	assert_false(text.contains("E: no pack"), "a composed clip has no file")
+	assert_string_contains(text, "J: export must be a .glb under the asset repository's exports/")
+	assert_string_contains(text, "N: export must be a .glb under the asset repository's exports/")
+	assert_string_contains(text, "K: an exported clip names all of pack, dir and source as its origin, or none")
+	assert_string_contains(text, "L: props is true or false")
+	assert_string_contains(text, "M: a composed clip has no export")
+	assert_false(text.contains("K: no dir"), "an exported clip's origin is optional")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 

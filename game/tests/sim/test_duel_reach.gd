@@ -9,7 +9,13 @@ extends GutTest
 ## 15-20 cm deep (SwingReach.inside(), authored-animation task 24). Its
 ## lunge ends on the frame it first touches, so the front foot lands on
 ## contact, and from 6 m it whiffs. The check itself is tested on synthetic
-## lights.
+## lights. Since milestone-1 task 17 the Greatsword's and the Daggers' moves
+## play their clips at 1.0x with no band test until milestone 2 re-keys them
+## (the spec's P10): what they get wrong is printed, not failed
+## (MILESTONE_2). Since milestone-1 task 18 a Katana or bare-hands light
+## taken off the band tables' waiting list is held by the distance-band test
+## (test_move_bands.gd) instead, so this guards today's reach only for the
+## moves still waiting (still_waits()).
 
 const RT := preload("res://tests/sim/reach_table.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
@@ -21,6 +27,8 @@ const WHIFF_FROM: float = 6.0
 ## frame 12, the demo's; its baked swing ends it on 13 (authored-animation
 ## task 9).
 const DEMO_LUNGE_END: int = 12
+## The weapons whose reach waits for milestone 2.
+const MILESTONE_2: Array[StringName] = [&"greatsword", &"daggers"]
 
 
 ## What light `id` of `w` gets wrong against the rule, or nothing.
@@ -46,12 +54,21 @@ static func _problems(w: WeaponDef, id: StringName) -> Array[String]:
 	return out
 
 
+## Whether today's reach checks still guard move `id` of `w`: every move of
+## every move the band tests don't hold (MoveBands.is_held()): a weapon with
+## no bands, a Counter Lunge, and a banded weapon's moves still on the
+## waiting list.
+static func still_waits(w: WeaponDef, id: StringName) -> bool:
+	var kind: StringName = StringName(FrameDataTable.shared().row(w.id, id).get("kind", ""))
+	return not MoveBands.shared().is_held(w.id, id, kind)
+
+
 ## Every problem of every light of the string with a swing on `w`.
 static func _weapon_problems(w: WeaponDef) -> Array[String]:
 	var out: Array[String] = []
 	for id: StringName in w.moves:
 		var m: AttackDef = w.moves[id]
-		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) == &"string_light":
+		if m.swing != null and RT.strikes(m) and RT.kind_of(w, id) == &"string_light" and still_waits(w, id):
 			out.append_array(_problems(w, id))
 	return out
 
@@ -76,6 +93,10 @@ func test_a_fist_is_measured_by_its_depth_and_a_blade_by_its_length_inside() -> 
 func test_every_light_with_a_swing_puts_15_to_20_cm_into_a_defender_at_the_duelling_distance() -> void:
 	var problems: Array[String] = []
 	for id: StringName in Moves.WEAPONS:
+		if MILESTONE_2.has(id):
+			for p: String in _weapon_problems(Moves.WEAPONS[id]):
+				gut.p("milestone 2: " + p)
+			continue
 		problems.append_array(_weapon_problems(Moves.WEAPONS[id]))
 	assert_eq(problems, [] as Array[String])
 

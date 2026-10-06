@@ -1,5 +1,5 @@
 {
-	"about": "The ClipDirector Shots of tests/view/test_state_clips.gd's scripted bout, recorded from the clip constants before they moved to state_clips.json. Rewrite with MONOMACHIA_RECORD_STATE_CLIPS=1 (see the test).",
+	"about": "The ClipDirector Shots of tests/view/test_state_clips.gd's scripted bout, recorded from the clip constants before they moved to state_clips.json, thinned (see the test). Each shot is a list of Bout.KEYS. Rewrite with MONOMACHIA_RECORD_STATE_CLIPS=1.",
 	"idle katana libs=true": [
 		[0,"legs",null,"=",null,false,false,0,0,"HumanM/CombatIdle1H01","","free","",null,1.0,1.0],
 		[0,"legs",null,"=",null,false,false,0,0,"HumanF/CombatIdle1H01","","free","",null,1.0,1.0]
@@ -496,7 +496,7 @@
 		[34,"attack",["HumanM/Attack2H01",0.266667],"=",["HumanM/ObjectGripShoulder02_R",0.0],true,false,6,1,"","g_l1","attack","",null,0.925926,1.0],
 		[35,"attack",["HumanM/Attack2H01",0.266667],"=",["HumanM/ObjectGripShoulder02_R",0.0],true,false,6,2,"","g_l1","attack","",null,0.740741,1.0],
 		[36,"attack",["HumanM/Attack2H01",0.266667],"=",["HumanM/ObjectGripShoulder02_R",0.0],true,false,6,3,"","g_l1","attack","",null,0.5,1.0],
-		[47,"attack",["HumanM/Attack2H01",0.419048],["HumanM/Attack2H01",0.4],null,false,false,6,14,"","g_l1","attack","",null,0.0,1.0]
+		[47,"attack",["HumanM/Attack2H01",0.4],["HumanM/Attack2H01",0.383333],null,false,false,6,14,"","g_l1","attack","",null,0.0,1.0]
 	],
 	"carry guard libs=true": [
 		[0,"legs",null,"=",null,false,false,0,0,"","","free","",null,1.0,1.0],

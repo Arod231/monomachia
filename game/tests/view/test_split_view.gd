@@ -174,14 +174,18 @@ func test_the_arena_s_camera_data_reaches_both() -> void:
 func test_the_graphics_preset_applies_to_both_halves() -> void:
 	_start(_versus())
 	var preset: GraphicsPreset = GameServices.graphics_preset()
+	# A viewport stores its scale in single precision, so 2/3 comes back a
+	# hair off the preset's double.
 	for vp: SubViewport in view.split.viewports:
 		assert_eq(vp.msaa_3d, preset.msaa_3d, vp.name)
-		assert_eq(vp.scaling_3d_scale, preset.render_scale, vp.name)
+		assert_almost_eq(vp.scaling_3d_scale, preset.render_scale, 1e-6, vp.name)
+		assert_eq(vp.scaling_3d_mode, preset.scaling_3d_mode, "%s upscales as the preset says" % vp.name)
 		assert_true(vp.is_in_group(GraphicsApplier.VIEWPORTS_GROUP), "%s follows Settings" % vp.name)
 	var low: GraphicsPreset = GraphicsPreset.load_id(&"low")
 	GraphicsApplier.apply_to_group(low, get_tree())
 	for vp: SubViewport in view.split.viewports:
-		assert_eq(vp.scaling_3d_scale, low.render_scale, "%s took the new preset" % vp.name)
+		assert_almost_eq(vp.scaling_3d_scale, low.render_scale, 1e-6, "%s took the new preset" % vp.name)
+		assert_eq(vp.scaling_3d_mode, low.scaling_3d_mode, "%s took the new upscaler" % vp.name)
 	GraphicsApplier.apply_to_group(preset, get_tree())
 
 

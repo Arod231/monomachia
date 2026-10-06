@@ -21,8 +21,9 @@ const ROUNDS_TO_WIN: int = 3
 const ARENA_RADIUS: float = 15.0 # inner wall radius (m); the demo's was 11.5
 ## The Impaler's dash ends this far inside the wall (the demo's 10.8 m stop).
 const IMPALER_WALL_MARGIN: float = 0.7
-## Dropped weapons bounce off a ring this far inside the wall.
-const WEAPON_BOUNCE_MARGIN: float = 0.8
+## A disarmed weapon sticks no nearer the wall than this (milestone-1 task
+## 86): its flight is shortened to land on a ring this far inside it.
+const STUCK_WEAPON_MARGIN: float = 0.8
 const FIGHTER_RADIUS: float = 0.42
 const GRAVITY: float = 30.0 # m/s^2 (snappy, game-like)
 const JUMP_CLEAR: float = 0.3 # feet height above which low attacks miss
@@ -107,8 +108,37 @@ const KNOCKDOWN_GUARD_FRAMES: int = 15
 ## unblockable: Mountain Slam, Meteor Drop and Leaping Smash.
 const KNOCKDOWN_MOVES: Array[StringName] = [&"g_slam", &"g_jh", &"g_sh"]
 
+# --- Finisher (milestone-1 task 103) ----------------------------------------
+## A disarm of a fighter at this share of HP_MAX or less (5 HP) opens the
+## finisher prompt for the disarmer.
+const FINISHER_HP_SHARE: float = 0.05
+## The prompt: rules frames, played at this slow motion (P35: about 1 s).
+const FINISHER_PROMPT_FRAMES: int = 18
+const FINISHER_PROMPT_SLOWMO: float = 0.3
+## The stand-in finisher, both weapons', until tasks 104 and 105 read each
+## from its clip in the table (the owner's numbers, Oct 5): the finisher lines
+## up FINISHER_GAP from the victim, face to face, over FINISHER_LINE_UP_FRAMES;
+## it lasts FINISHER_FRAMES, the round ending at FINISHER_KILL_FRAME. Bare
+## hands' finisher with no attack to turn aside (P52) starts at
+## FINISHER_STRIKE_FRAME.
+const FINISHER_LINE_UP_FRAMES: int = 6
+const FINISHER_GAP: float = 1.2
+const FINISHER_FRAMES: int = 80
+const FINISHER_KILL_FRAME: int = 56
+const FINISHER_STRIKE_FRAME: int = 32
+
 # --- Disarm ----------------------------------------------------------------
 const DISARM_STAGGER: int = 26 # the disarmed fighter reels back
+# The disarmed weapon's flight (milestone-1 task 86, the owner's numbers of
+# Oct 5): it follows the blade's motion at contact, unless the blade moves
+# slower than DISARM_BLADE_MIN_SPEED across the ground; it flies
+# DISARM_FLIGHT metres at DISARM_FLIGHT_SPEED, rising DISARM_FLIGHT_PEAK above
+# the straight line, and sticks STUCK_WEAPON_LEAN from vertical.
+const DISARM_BLADE_MIN_SPEED: float = 0.5 # m/s
+const DISARM_FLIGHT: float = 3.5 # m
+const DISARM_FLIGHT_SPEED: float = 6.4 # m/s across the ground: 3.5 m in 33 frames
+const DISARM_FLIGHT_PEAK: float = 1.0 # m
+const STUCK_WEAPON_LEAN: float = 25.0 * PI / 180.0
 const PICKUP_RANGE: float = 1.25
 const PICKUP_FRAMES: int = 24
 const PICKUP_ATTACH_FRAME: int = 14

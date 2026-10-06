@@ -53,6 +53,12 @@ extends RefCounted
 ## - lunge_from(), lunge_share(), reach() and reach_arc() are the rebuild's
 ##   (task 7.13): the first two are Fighter's lunge sums, shared with
 ##   SwingReach.first_contact(); the others give a swing's reach and arc.
+## - Since milestone-1 task 17 a weapon's moves take their frame data from
+##   the frame-data table (FrameDataTable, generated from their clips):
+##   finalize_moves() given the weapon fills startup, active, recovery, the
+##   dodge-cancel window and the travel (TABLE_FIELDS) from each move's row,
+##   and a record with a row must set none of them. A record without a row
+##   (the ultimates' scripted hits, test moves) keeps its own.
 
 const ATTACK_TYPES: Array[StringName] = [
 	&"slash", &"overhead", &"thrust", &"sweep", &"slam", &"spin", &"bash", &"stab", &"punch", &"kick",
@@ -109,6 +115,9 @@ var chain_heavy: StringName = &""
 ## a dodge cancels the recovery from this frame (every heavy gets one; the
 ## fighter opens it later by half any extra recovery, and not in the air)
 var dodge_cancel_from: int = UNSET
+## the dodge-cancel window's last frame, from the frame-data table (UNSET
+## without one); the rules read it from milestone-1 task 20
+var dodge_cancel_to: int = UNSET
 var multi_hit: int = 0
 var multi_interval: int = UNSET
 ## performed in the air (jump attacks)
@@ -140,6 +149,11 @@ var release_variant: StringName = &""
 ## a dodge attack that lunges on along the dodge before it, not along the
 ## facing (Passing Cut)
 var lunge_along_dodge: bool = false
+## the body's travel over each frame of the move from the frame-data table,
+## [forward m, sideways m, turn degrees] per frame from frame 0, flattened
+## (FrameDataTable); empty without a row. The rules move by it from
+## milestone-1 task 21
+var travel: PackedFloat64Array = PackedFloat64Array()
 ## the path the weapon travels through the move (task 7, the rebuild's), put
 ## on it from the weapon's swing file when the weapon is built
 ## (WeaponDef.from_dict); null until the move has one. A record may also
@@ -152,10 +166,12 @@ const KEYS: Array[String] = [
 	"posture", "knockback", "range", "min_range", "arc", "lunge", "lunge_start", "lunge_end",
 	"track_startup", "track_active", "hitstun", "blockstun", "hitstop", "unblockable", "counter",
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
-	"multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable", "sound",
-	"trail", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "swing",
+	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
+	"sound", "trail", "invuln", "hop", "side_start", "side_end", "charge_move",
+	"release_variant", "lunge_along_dodge", "travel", "swing",
 ]
+## The fields a weapon's move takes from its row of the frame-data table.
+const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel"]
 
 
 ## Builds an AttackDef from a move record (snake_case keys). Missing keys keep
@@ -196,6 +212,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	m.chain_light = StringName(d.get("chain_light", &""))
 	m.chain_heavy = StringName(d.get("chain_heavy", &""))
 	m.dodge_cancel_from = int(d.get("dodge_cancel_from", UNSET))
+	m.dodge_cancel_to = int(d.get("dodge_cancel_to", UNSET))
 	m.multi_hit = int(d.get("multi_hit", 0))
 	m.multi_interval = int(d.get("multi_interval", UNSET))
 	m.airborne = bool(d.get("airborne", false))
@@ -211,17 +228,23 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	m.charge_move = bool(d.get("charge_move", false))
 	m.release_variant = StringName(d.get("release_variant", &""))
 	m.lunge_along_dodge = bool(d.get("lunge_along_dodge", false))
+	m.travel = PackedFloat64Array(d.get("travel", PackedFloat64Array()))
 	m.swing = d.get("swing", null)
 	return m
 
 
 ## Fill in derived defaults so move files can stay terse.
 ## Takes { id: move record } and returns { id: AttackDef } in the same order.
-## Each `not m.has(key)` is the TS `m.key === undefined`.
-static func finalize_moves(moves: Dictionary) -> Dictionary[StringName, AttackDef]:
+## Each `not m.has(key)` is the TS `m.key === undefined`. Given the
+## weapon, a move with a row in the frame-data table takes its TABLE_FIELDS
+## from it (milestone-1 task 17); its record setting one is an error.
+static func finalize_moves(moves: Dictionary, weapon: StringName = &"") -> Dictionary[StringName, AttackDef]:
 	var out: Dictionary[StringName, AttackDef] = {}
 	for move_id: Variant in moves:
 		var m: Dictionary = (moves[move_id] as Dictionary).duplicate()
+		var row: Dictionary = FrameDataTable.shared().row(weapon, StringName(move_id)) if weapon != &"" else {}
+		if not row.is_empty():
+			_take_row(m, row, StringName(move_id))
 		var is_unblockable: bool = bool(m.get("unblockable", false))
 		var move_kind: StringName = StringName(m.get("kind", &""))
 		if not m.has("track_startup"):
@@ -252,6 +275,28 @@ static func finalize_moves(moves: Dictionary) -> Dictionary[StringName, AttackDe
 			m["hand"] = &"R"
 		out[StringName(move_id)] = from_dict(m)
 	return out
+
+
+## Puts a move's row of the frame-data table into its record `m`.
+static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName) -> void:
+	for field: String in TABLE_FIELDS:
+		if m.has(field):
+			push_error("%s sets %s; its frame data come from the frame-data table" % [move_id, field])
+	m["startup"] = int(row["startup"])
+	m["active"] = int(row["active"])
+	m["recovery"] = int(row["recovery"])
+	var cancel: Array = row.get("dodge_cancel", [])
+	if not cancel.is_empty():
+		m["dodge_cancel_from"] = int(cancel[0])
+		m["dodge_cancel_to"] = int(cancel[1])
+	else:
+		m.erase("dodge_cancel_from")
+	var travel: PackedFloat64Array = PackedFloat64Array()
+	for step: Variant in row["travel"]:
+		travel.append(float(step[0]))
+		travel.append(float(step[1]))
+		travel.append(float(step[2]))
+	m["travel"] = travel
 
 
 ## totalFrames(m)

@@ -343,14 +343,14 @@ func _build() -> void:
 	model = FighterLook.instantiate_fighter(fighter_id)
 	model.autoplay_idle = false
 	viewport.add_child(model)
-	_add_libraries()
+	add_libraries(model)
 	var weapon: StringName = weapon_for(entry)
 	if weapon != &"":
 		model.attach_weapon(WeaponLook.load_id(weapon))
 	var chain: Array[String] = _chain()
 	if chain.is_empty():
 		# nothing to play: the idle, held
-		_poser = ClipPoser.new(model, [_still_clip()] as Array[String])
+		_poser = ClipPoser.new(model, [still_clip(model)] as Array[String])
 		duration = 0.0
 	else:
 		_poser = ClipPoser.new(model, chain)
@@ -360,11 +360,11 @@ func _build() -> void:
 	_request_render()
 
 
-## The shared libraries on the fighter's player: the Iglesias sets (with the
+## The shared libraries on `m`'s player: the Iglesias sets (with the
 ## packs; checked once here) and the hand-keyed clips; the CC0 library is the
-## fighter's own.
-func _add_libraries() -> void:
-	var player: AnimationPlayer = model.animation_player
+## fighter's own. The editor shares it.
+static func add_libraries(m: FighterModel) -> void:
+	var player: AnimationPlayer = m.animation_player
 	var sets: Dictionary[StringName, AnimationLibrary] = StudioLibraries.sets()
 	for set_name: StringName in sets:
 		player.add_animation_library(set_name, sets[set_name])
@@ -376,15 +376,23 @@ func _add_libraries() -> void:
 ## The chain to play, qualified for the fighter's player: the entry's clips if
 ## they are all there, else its fallbacks, else empty.
 func _chain() -> Array[String]:
-	var chain: Array[String] = _qualify(entry.clips)
-	if not chain.is_empty() and _plays(chain):
-		_stretched = false
-		return chain
-	var fallback: Array[String] = _qualify(entry.fallbacks)
-	if not fallback.is_empty() and _plays(fallback):
-		_stretched = entry.kind == StudioCatalogue.KIND_MOVE
-		return fallback
-	return [] as Array[String]
+	var found: Array = chain_on(model, entry, fighter_id)
+	_stretched = found[1]
+	return found[0]
+
+
+## What `e` plays on `m` (fighter `fid`), qualified for its player:
+## [the chain, whether it is a move's fallback (played stretched over the
+## move)]: the entry's clips if they are all there, else its fallbacks, else
+## an empty chain. The editor shares it.
+static func chain_on(m: FighterModel, e: StudioCatalogue.Entry, fid: StringName) -> Array:
+	var chain: Array[String] = _qualify(e.clips, e, fid)
+	if not chain.is_empty() and _plays(m, chain):
+		return [chain, false]
+	var fallback: Array[String] = _qualify(e.fallbacks, e, fid)
+	if not fallback.is_empty() and _plays(m, fallback):
+		return [fallback, e.kind == StudioCatalogue.KIND_MOVE]
+	return [[] as Array[String], false]
 
 
 func _rate() -> float:
@@ -404,26 +412,26 @@ func _move_seconds() -> float:
 
 
 ## `ids` (ClipChain entries) as the fighter's animation names.
-func _qualify(ids: Array[String]) -> Array[String]:
+static func _qualify(ids: Array[String], e: StudioCatalogue.Entry, fid: StringName) -> Array[String]:
 	var out: Array[String] = []
-	var set_name: StringName = ClipLibraries.set_for(fighter_id, _swing())
+	var set_name: StringName = ClipLibraries.set_for(fid, _swing(e))
 	for id: String in ids:
 		out.append(ClipChain.qualified(set_name, id))
 	return out
 
 
 ## The move's baked swing, for the clip set it asks for, or null.
-func _swing() -> Swing:
-	var def: WeaponDef = Moves.WEAPONS.get(entry.group)
-	if entry.kind == StudioCatalogue.KIND_MOVE and def != null and def.moves.has(entry.id):
-		return def.moves[entry.id].swing
+static func _swing(e: StudioCatalogue.Entry) -> Swing:
+	var def: WeaponDef = Moves.WEAPONS.get(e.group)
+	if e.kind == StudioCatalogue.KIND_MOVE and def != null and def.moves.has(e.id):
+		return def.moves[e.id].swing
 	return null
 
 
 ## Whether every clip of `chain` is on the fighter's player and the parts fit
 ## their clips (what ClipPoser needs).
-func _plays(chain: Array[String]) -> bool:
-	var player: AnimationPlayer = model.animation_player
+static func _plays(m: FighterModel, chain: Array[String]) -> bool:
+	var player: AnimationPlayer = m.animation_player
 	var entries: Array[String] = []
 	var lengths: Dictionary = {}
 	for part: String in chain:
@@ -442,8 +450,14 @@ func _plays(chain: Array[String]) -> bool:
 
 
 ## The idle for the held weapon, from the CC0 library.
-func _still_clip() -> String:
-	return "%s/%s" % [FighterModel.LIBRARY, model.idle_clip()]
+static func still_clip(m: FighterModel) -> String:
+	return "%s/%s" % [FighterModel.LIBRARY, m.idle_clip()]
+
+
+## Shows the entry's badges again (after the Studio's edits change one).
+func refresh_badges() -> void:
+	if is_node_ready():
+		_set_chips()
 
 
 func _set_chips() -> void:
