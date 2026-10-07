@@ -1,8 +1,10 @@
 extends GutTest
 ## The HUD's announcements (task 24.2): each event's kanji, words, subline and
-## length, and the demo's entrance (scale in from 1.35 while fading in over
-## the first 12%, hold, fade out from 78% while easing to 0.98), all on the
-## host's rules steps, so a pause freezes them and slow motion stretches them.
+## length, and the entrance (the words fading in over the first 12%, hold,
+## fade out from 78% while easing to 0.98; since milestone-1 task 54 the
+## kanji are painted in by a brush wipe in place of the demo's scale-in from
+## 1.35, which test_hud_style.gd checks), all on the host's rules steps, so a
+## pause freezes them and slow motion stretches them.
 
 var host: MatchHost
 var hud: MatchHud
@@ -30,13 +32,13 @@ func _on_screen() -> Array[String]:
 	return [hud.announcement_kanji(), hud.announcement_text(), hud.announcement_sub()]
 
 
-func test_the_entrance_scales_in_holds_and_fades_out() -> void:
+func test_the_entrance_fades_in_holds_and_fades_out() -> void:
 	assert_eq(AnnouncementEntrance.alpha(0.0), 0.0)
-	assert_eq(AnnouncementEntrance.scale(0.0), 1.35)
+	assert_eq(AnnouncementEntrance.scale(0.0), 1.0, "no scale-in")
 	assert_eq(AnnouncementEntrance.alpha(0.12), 1.0)
 	assert_eq(AnnouncementEntrance.scale(0.12), 1.0)
 	assert_almost_eq(AnnouncementEntrance.alpha(0.06), 0.5, 0.0001)
-	assert_almost_eq(AnnouncementEntrance.scale(0.06), 1.175, 0.0001)
+	assert_eq(AnnouncementEntrance.scale(0.06), 1.0)
 	assert_eq(AnnouncementEntrance.alpha(0.5), 1.0)
 	assert_eq(AnnouncementEntrance.alpha(0.78), 1.0)
 	assert_eq(AnnouncementEntrance.scale(0.78), 1.0)

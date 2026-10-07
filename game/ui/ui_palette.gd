@@ -1,31 +1,41 @@
 class_name UiPalette
-## The UI's colours: the demo's palette (v0.1-web-mvp:src/ui/style.css's :root), for the
-## UI theme (ui/theme/ink_wash.tres holds the same values) and for UI code
-## that colours things as they change (the HUD's bars, the results' winner).
-## The 3D look's colours are LookPalette's.
+## The UI's colours: the mood board's UI page, style A, lacquer and gold
+## (milestone-1 task 53; the asset repository's moodboard/index.html, its
+## .ui-a rules), for the UI theme (UiTheme.build() makes
+## ui/theme/lacquer_gold.tres from them) and for UI code that colours things
+## as they change (the HUD's bars, the results' winner). The 3D look's
+## colours are LookPalette's.
 
-const INK: Color = Color("#0f0b0b")
-const INK_2: Color = Color("#1a1312")
-const INK_3: Color = Color("#2b1e1b")
-## Rules and borders.
-const LINE: Color = Color("#4a352c")
-## Text.
-const PAPER: Color = Color("#eadfca")
-## Quieter text: eyebrows, labels, notes.
-const PAPER_DIM: Color = Color("#b0a189")
-## The red accent: focus bars, seals, kanji.
-const LACQUER: Color = Color("#b3261e")
-const LACQUER_DEEP: Color = Color("#6d1410")
-const GOLD: Color = Color("#c9a15a")
-const GOLD_DIM: Color = Color("#8a6d3c")
-## A focused or hovered button's text (the demo's .btn:focus).
-const LIT_TEXT: Color = Color("#ffe6b0")
-const INDIGO: Color = Color("#4a82bd")
+## Black urushi lacquer: the ground, a panel's warm top and a raised box
+## (buttons, chosen options, key caps).
+const LACQUER: Color = Color("#060505")
+const LACQUER_WARM: Color = Color("#16110d")
+const LACQUER_RAISED: Color = Color("#231a12")
+## Gold: hairlines and accents; the lit and chosen; quieter edges; and the
+## pale gold of lit text.
+const GOLD: Color = Color("#b8955a")
+const GOLD_BRIGHT: Color = Color("#d7b14b")
+const GOLD_DIM: Color = Color("#7a6340")
+const GOLD_PALE: Color = Color("#f0d9a8")
+## Rules and an unlit box's border: gold at 40% over the lacquer.
+const LINE: Color = Color("#4d3f27")
+## Text, and quieter text: eyebrows, labels, notes.
+const IVORY: Color = Color("#e6dcc4")
+const IVORY_DIM: Color = Color("#a59d8c")
+## Brushed kanji, a shade brighter than the text.
+const KANJI: Color = Color("#efe6d2")
+## The sides: crimson against indigo, each with its deep lacquer (the HP
+## bars' foot). Crimson is also the title's seal and a lost match.
+const CRIMSON: Color = Color("#c0392f")
+const CRIMSON_DEEP: Color = Color("#7d1a1d")
+const INDIGO: Color = Color("#5a78c0")
+const INDIGO_DEEP: Color = Color("#1d2a4d")
 const JADE: Color = Color("#6fd6b8")
-const POSTURE: Color = Color("#e7a53b")
-## Posture at 70% or more (the demo's hot fill).
-const POSTURE_HOT: Color = Color("#f06a2a")
+## Posture in gold, top to foot (the mock-up's posture bar); at 70% or more
+## amber; full, it turns crimson (CRIMSON to CRIMSON_DEEP) and blinks.
+const POSTURE: Color = Color("#e8cf96")
+const POSTURE_FOOT: Color = Color("#a8853f")
+const POSTURE_HOT: Color = Color("#e39a3b")
+const POSTURE_HOT_FOOT: Color = Color("#9a5a1c")
 const DANGER: Color = Color("#ff3b25")
-const HP_HI: Color = Color("#d94a2b")
-const HP_LO: Color = Color("#7c1410")
 const SHADOW: Color = Color(0.0, 0.0, 0.0, 0.55)

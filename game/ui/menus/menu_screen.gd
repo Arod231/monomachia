@@ -2,7 +2,7 @@ class_name MenuScreen
 extends MenuPage
 ## A menu page laid out as a panel centred over the live duel behind it: a
 ## heading, some text and a column of entries and rows. The UI theme
-## (ui/theme/ink_wash.tres) draws the panel, the headings (UiTheme.DISPLAY)
+## (ui/theme/lacquer_gold.tres) draws the panel, the headings (UiTheme.DISPLAY)
 ## and the entries (UiTheme.MENU_ENTRY). MenuPage walks it with the keys,
 ## the mouse or a controller.
 
@@ -38,7 +38,7 @@ func add_heading(text: String, font_size: int = 52) -> Label:
 
 
 ## An entry, with an optional sublabel on its right (the demo's .mbtn small:
-## small spaced capitals in the dimmed paper), named "Sub".
+## small spaced capitals in the dimmed ivory), named "Sub".
 func add_button(text: String, sub: String, on_pressed: Callable) -> Button:
 	var b: Button = Button.new()
 	b.text = text
@@ -46,7 +46,7 @@ func add_button(text: String, sub: String, on_pressed: Callable) -> Button:
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.custom_minimum_size = Vector2(380.0, 56.0)
 	if sub != "":
-		var small: Label = UiTheme.label(sub, UiTheme.EYEBROW, 14)
+		var small: Label = UiTheme.label(sub, UiTheme.EYEBROW, 13)
 		small.name = "Sub"
 		small.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		small.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
