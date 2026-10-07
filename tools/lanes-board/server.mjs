@@ -1,6 +1,6 @@
 // The Project Manager (the lanes board): a live page of every plan and every worktree in the
-// Monomachia repo. It reads the plans it follows (the roadmap, milestone 1, the
-// Godot rebuild, and authored animation as closed history; PLANS in plans.mjs)
+// Monomachia repo. It reads the plans it follows (the roadmap, milestone 1 with
+// its Elden Ring Katana plan, the Godot rebuild, and authored animation as closed history; PLANS in plans.mjs)
 // from every branch and worktree, each worktree's git state and its Claude Code
 // session's last activity, so it follows the other sessions without anyone
 // asking. Its default view, the Roadmap tab, shows the roadmap's phases with the
@@ -13,7 +13,9 @@
 // on the latest master for the owner to prompt from the Claude app ("New
 // session"), end a launched session's work, answer a session (through
 // relay-hook.mjs), see how full each session's context is (a gauge and a
-// turn-by-turn chart, rules in sessions.mjs), and open the second brain. It never fetches or takes git locks.
+// turn-by-turn chart, rules in sessions.mjs), open the second brain, and (on
+// the phone's Launch tab) restart the board itself, which its loop on the PC
+// brings back on the latest master (restart.mjs). It never fetches or takes git locks.
 //   npm run board   ->   http://localhost:5197
 // It also listens on this PC's Tailscale addresses, so the owner's phone can open
 // it (http://<tailscale ip>:5197 or http://<pc name>:5197); a phone gets the
@@ -42,8 +44,16 @@ import { ghRunner, mergeWatch } from './merge-api.mjs';
 import { mediaApi } from './media-api.mjs';
 import { docsApi } from './docs-api.mjs';
 import { LAUNCH_FRESH_MS, createStarter, firstPrompt, linkCandidates, linkLaunches, newSessionLaunch, pressResult, startView } from './launcher.mjs';
+import { parentCommandLine, restartApi, restartLoopOf } from './restart.mjs';
 
 const run = promisify(execFile);
+
+// The restart button works only under the loop that starts the board again
+// (follow.cmd or run.cmd), found from the parent's command line at start.
+// LANES_RESTART_LOOP names another such loop; '0' turns the button off.
+let restartLoop = process.env.LANES_RESTART_LOOP && process.env.LANES_RESTART_LOOP !== '0' ? process.env.LANES_RESTART_LOOP : null;
+if (!process.env.LANES_RESTART_LOOP) parentCommandLine(run).then((line) => { restartLoop = restartLoopOf(line); });
+const restartRoutes = restartApi({ loop: () => restartLoop });
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const STATE = process.env.LANES_STATE ?? path.join(os.homedir(), '.claude', 'lanes-board');
 const PORT = Number(process.env.PORT || 5197);
@@ -580,7 +590,7 @@ async function loop() {
 const first = loop();
 async function data() {
   if (!cached) await first;
-  return cached ? { ...cached, error: lastError } : { error: lastError ?? 'no data yet' };
+  return cached ? { ...cached, error: lastError, board: restartRoutes.info() } : { error: lastError ?? 'no data yet', board: restartRoutes.info() };
 }
 
 // ---------- launching sessions ----------
@@ -842,6 +852,7 @@ async function handle(req, res) {
       else if (req.url === '/launch/retry') result = await retryLaunch(body);
       else if (req.url === '/session/new') result = { launched: await newSession() };
       else if (req.url === '/end') result = { ended: await endLaunch(body) };
+      else if (req.url === '/restart') result = restartRoutes.post(req.url);
       else if (req.url === '/open') {
         if (!/^local_[0-9a-f-]{36}$/.test(body.session ?? '')) throw new Error('Bad session id');
         await openInApp(`claude://code/needs-input?session=${body.session}`);

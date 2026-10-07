@@ -184,6 +184,20 @@ export function launchStartText(start) {
 }
 
 // ---------- a new session ----------
+// The "Restart the Project Manager" button on the phone's Launch tab: whether
+// it can be pressed and its line, from /data's board (restart.mjs) and whether
+// this page asked for a restart that hasn't come back yet.
+export function restartStatus(board, waiting) {
+  if (waiting || board?.restarting) {
+    return { enabled: false, text: 'Restarting: the Project Manager comes back on the latest master in about 40 seconds, and this page reloads by itself.' };
+  }
+  if (!board) return { enabled: false, text: 'The Project Manager is still starting.' };
+  if (!board.restartable) {
+    return { enabled: false, text: "This Project Manager wasn't started by its restart loop on the PC, so it can't restart itself: restart it on the PC." };
+  }
+  return { enabled: true, text: 'Stops the Project Manager; its loop on the PC moves it to the latest master and starts it again in about 40 seconds. Use it after a change to the board or a new plan merges.' };
+}
+
 // The "New session" button's line: how the newest session it started (a launch
 // with kind 'session' in /data) is getting on, until it has been started this
 // long; null when there's nothing to say.
