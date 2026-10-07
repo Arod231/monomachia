@@ -53,6 +53,24 @@ public static class LanesSessionLock {
     return flags == 0;
   }
 }
+// The visible top-level windows of the given processes, found with Win32 so
+// that no other program is asked anything: walking the desktop through UI
+// Automation waits on every busy window, whoever's it is.
+public static class LanesWindows {
+  delegate bool EnumProc(IntPtr hwnd, IntPtr lParam);
+  [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc proc, IntPtr lParam);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
+  public static IntPtr[] Of(int[] pids) {
+    var found = new System.Collections.Generic.List<IntPtr>();
+    EnumWindows((hwnd, _) => {
+      uint pid; GetWindowThreadProcessId(hwnd, out pid);
+      if (IsWindowVisible(hwnd) && Array.IndexOf(pids, (int)pid) >= 0) found.Add(hwnd);
+      return true;
+    }, IntPtr.Zero);
+    return found.ToArray();
+  }
+}
 '@
   if ($LockOnly) { if ([LanesSessionLock]::Locked()) { Answer 'locked' } else { Answer 'unlocked' } }
   if ([LanesSessionLock]::Locked()) { Answer 'locked' }
@@ -78,9 +96,8 @@ public static class LanesSessionLock {
   # The app's top-level windows (for the Claude app, its own claude.exe: its
   # sessions' claude.exe processes have none).
   $windows = {
-    $ids = if ($AppPid) { @($AppPid) } else { @(Get-Process -Name $App -ErrorAction SilentlyContinue | ForEach-Object { $_.Id }) }
-    @($AE::RootElement.FindAll($TS::Children, [System.Windows.Automation.Condition]::TrueCondition) |
-      Where-Object { $ids -contains $_.Current.ProcessId })
+    [int[]]$ids = if ($AppPid) { @($AppPid) } else { @(Get-Process -Name $App -ErrorAction SilentlyContinue | ForEach-Object { $_.Id }) }
+    @(foreach ($h in [LanesWindows]::Of($ids)) { try { $AE::FromHandle($h) } catch { } })
   }
   # The box holding the prompt, in any of them.
   $findBox = {
