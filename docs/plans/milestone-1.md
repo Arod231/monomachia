@@ -543,10 +543,12 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: `ToonMaterials`, the outline shader, `InkWashPass` and `InkGrade` retire; physically based materials and one colour grade replace them in every scene; the clean-play camera effects as the look test settled them; `test_look.gd`, `test_ink_wash.gd` and the toon assertion in `test_weapons.gd` replaced.
   - Check: look tests (no toon or outline material on any fighter, weapon or arena node; the grade on every camera); shots of the gameplay, Watch and menu views reviewed beside the look test.
   - Blocked by: 42 (and the owner's OK) · Stories: 135, 140, 206
+  - Decided with the owner (Oct 7, before building; a look side lane in `lane/m1-43-44-48`, so a Done note only): the owner's OK on the Godot check came with merging #94, so Godot stays and the art conversion starts. The look test's settled choices carry over as approved at task 30: its environment and grade, its clean-play camera effects (the film grain included) and Camera 2's framing for the game's camera.
 - [ ] **44. Key and rim lights on the fighters only.** The fighters stand out of the dark without outlines.
   - Delivers: a key and a rim light per fighter on the fighters' light layer only; `LookPalette.FIGHTER_LAYER` kept.
   - Check: a test that the lights touch only the fighter layer; shots in the dark corners of the Shrine reviewed.
   - Blocked by: 43 · Stories: 142
+  - Decided with the owner (Oct 7, before building): each fighter's key and rim are aimed from that fighter, as in the look test (the key ahead and to the left toward the opponent, the rim behind and above), so the gameplay camera, Watch and both Versus halves see the same lighting. The arena's red moon rim stays beside them (task 49 retunes it). The key lights cast shadows on every preset but Low.
 - [ ] **45. The Hunter re-dyed crimson and indigo.** The Hunter's two palettes become realistic dyed materials with wear and oriental patterns, reading apart in colour and in grey.
   - Delivers: two physically based palettes (crimson, indigo) on the re-textured body, with wear and patterns; a grey-readability test; a neutral face. (Oct 6, ADR 0002: on the body re-proportioned by `docs/plans/katana-elden-ring.md` task 3, in place of "no remodel of the body".)
   - Check: the grey test (prior art `test_palettes.gd`'s area test) passes from every side; shots of both sides at Ultra and Low reviewed.
@@ -563,6 +565,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: wisteria with dark bark in place of the pines and dead trees, glowing purple blossoms that light the fight, a canopy that never hides the moon or the fighters, glowing petals falling; Blender and CC0 sources, partly built by script.
   - Check: `test_moonlit_shrine.gd` updated for the trees; the camera's view of both fighters never blocked (shots from the gameplay and Watch cameras at the wall); size budget kept.
   - Blocked by: 12, 43 · Stories: 147, 149
+  - Decided with the owner (Oct 7, before building): five unique giant wisteria, modelled live in Blender over its MCP connection, saved as sources in the asset repository and brought in by `npm run export`. They stand in today's five ledge spots, with sprawling thick roots that grip the ledge and crawl over the wall's lip and down the platform's sides but stop short of the walkable floor. Bark and blossom textures are CC0 scans (Poly Haven or ambientCG), each download named to the owner first. The blossoms light the fight with a few soft purple lights under each canopy on every preset, plus a handful of lights drifting with the falling petals, off on Low (`petal_lights`). Small wisteria, scaled from the same models, replace the pines and dead trees on the floating rocks.
 - [ ] **131. Banners and grass.** Banners hang about the Shrine and grass grows in the broken paving.
   - Delivers: banner and grass models and their placements, from Blender and CC0 sources.
   - Check: `test_moonlit_shrine.gd` covers them; the fighters' view never blocked; size budget kept; shots reviewed.
