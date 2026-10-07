@@ -75,4 +75,4 @@ Note anything that gets in the way of keying the next families.
 
 ## The verdict
 
-(Task 41: your verdict, any protected-timing changes, and each note with the fix or task that answers it.)
+Oct 7, 2026: **approved** by the owner (task 41), with no notes and no change to the protected timings. The protected timings are frozen at task 22's retune: the spec's protected-timing table and `test_protected_timings.gd` stand, and changing one now needs your OK and an entry in the spec. The pilot's owner columns (6, 7 and 17) are ticked on the approval. The clip rows' failures above stand as recorded; `docs/plans/katana-elden-ring.md` tasks 19 and 20 redo those clips for the new strings.

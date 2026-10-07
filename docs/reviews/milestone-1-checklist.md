@@ -36,13 +36,13 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Right Cut `k_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
-| Return Cut `k_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
-| Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
-| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
-| The light deflect pairs `clip_deflect_light` | keyed clips (task 34) | – | – | ✗ | ✓ | ✓ | – | ☐ | ✗ | ✗ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☐ |
-| Light hit reactions `clip_hit_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | – | – | ✓ | – | ✓ | ✓ | – | – | ☐ |
-| Light block reactions `clip_block_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | ✓ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☐ |
+| Right Cut `k_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
+| Return Cut `k_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
+| Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
+| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
+| The light deflect pairs `clip_deflect_light` | keyed clips (task 34) | – | – | ✗ | ✓ | ✓ | – | ☑ | ✗ | ✗ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
+| Light hit reactions `clip_hit_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | – | – | ✓ | – | ✓ | ✓ | – | – | ☑ |
+| Light block reactions `clip_block_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | ✓ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
 
 ## 2. Guard movement and dodges
 
