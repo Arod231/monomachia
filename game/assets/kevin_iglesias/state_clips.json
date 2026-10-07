@@ -57,7 +57,7 @@
 	"own_speed": {"HitLightHighFront": "hand_on", "HitLightLowFront": "hand_on", "HitLightHighLeft": "hand_on", "HitLightLowLeft": "hand_on", "HitLightHighRight": "hand_on", "HitLightLowRight": "hand_on", "HitLightHighBack": "hand_on", "HitLightLowBack": "hand_on", "BlockLightKatana": "hand_on"},
 	"grips": {
 		"katana": {
-			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H"},
+			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise"]},
 			"two_handed": {"idle": "KatanaGuard", "guard": ["KatanaBlockLoop", "KatanaBlockHit"], "carry": "KatanaGuard"},
 			"regrip": {"one_handed": "KatanaRegripTo1H", "two_handed": "KatanaRegripTo2H"}
 		}

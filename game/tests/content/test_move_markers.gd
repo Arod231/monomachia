@@ -12,8 +12,8 @@ const REAL: Array[StringName] = [&"k_lunge", &"f_lunge"]
 ## The moves re-keyed since, on real markers placed to their frame counts,
 ## within half a source frame of their clips' events (the light string: task 31,
 ## Right Cut and Return Cut; task 32, Kesa Cut and Crown Cut; and Breaker Palm,
-## task 99).
-const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"f_breaker"]
+## task 99; the one-handed grip's own hits 1 and 2, KE task 11).
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"f_breaker"]
 const REAL_WEAPONS: Array[StringName] = [&"greatsword", &"daggers"]
 
 

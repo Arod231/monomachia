@@ -19,6 +19,14 @@ extends RefCounted
 const LIGHT_LANDS: int = 29
 
 static var _worlds: Array[World] = []
+## The grip make_world() puts a gripped weapon's fighters in: two hands,
+## whose string is still today's four lights (Right Cut first), which the
+## rule tests are written round, since KE task 11 keyed the one-handed
+## grip's own hits 1 and 2. A test of the other grip sets it on the
+## fighter, or this before building its world (&"" leaves each weapon's
+## first grip, the one rounds start in); dispose_all() puts it back.
+const DEFAULT_GRIP: StringName = WeaponGrip.TWO_HANDED
+static var grip: StringName = DEFAULT_GRIP
 
 
 ## abilities: { "a"?: [id, id], "b"?: [id, id] }
@@ -44,6 +52,9 @@ static func make_world(
 	# mid-round, in guard: neither Greatsword is on the shoulder (task 15)
 	a.shouldered = false
 	b.shouldered = false
+	for f: Fighter in [a, b]:
+		if grip != &"" and f.weapon != null and f.weapon.grip(grip) != null:
+			f.grip = grip
 	return track(W)
 
 
@@ -53,11 +64,13 @@ static func track(W: World) -> World:
 	return W
 
 
-## Disposes every world made or tracked since the last call.
+## Disposes every world made or tracked since the last call, and puts
+## make_world()'s grip back.
 static func dispose_all() -> void:
 	for W: World in _worlds:
 		W.dispose()
 	_worlds.clear()
+	grip = DEFAULT_GRIP
 
 
 ## btn(...B)

@@ -1417,6 +1417,44 @@
 				"katana"
 			]
 		},
+		"SlantingCut": {
+			"export": "exports/clips/slanting_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H02_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 12,
+				"contact_end": 14,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 9], [15, 44]], "right": [[0, 2], [8, 10], [17, 44]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"BackhandRise": {
+			"export": "exports/clips/backhand_rise.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H04_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 13,
+				"contact_end": 15,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 10], [16, 42]], "right": [[0, 3], [9, 11], [17, 42]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"KatanaGuard1H": {
 			"export": "exports/clips/katana_guard_1h.glb",
 			"pack": "Human Melee Animations",

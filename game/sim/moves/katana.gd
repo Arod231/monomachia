@@ -29,6 +29,22 @@ const MOVES: Dictionary = {
 		"damage": 7, "posture": 7, "knockback": 0.6,
 		"range": 2.3, "arc": 60, "lunge": 0.7, "lunge_end": 15,
 	},
+	# the one-handed string's own hits (KE tasks 11 and 12), Elden Ring's,
+	# keyed one-handed from the pack's one-handed attacks: today's lights'
+	# damage and posture, the two-handed hits about 15% more (D3); each
+	# chains to the string's next hit and branches to the grip's heavy
+	&"k_1l1": {
+		"id": &"k_1l1", "name": "Slanting Cut", "kind": &"light", "type": &"slash", "anim": &"diagDown",
+		"side_start": &"right", "side_end": &"left", "grip": &"one_handed",
+		"damage": 5, "posture": 5, "knockback": 0.35,
+		"range": 2.2, "arc": 100, "chain_light": &"k_1l2", "chain_heavy": &"k_coil",
+	},
+	&"k_1l2": {
+		"id": &"k_1l2", "name": "Backhand Rise", "kind": &"light", "type": &"slash", "anim": &"diagUp",
+		"side_start": &"left", "side_end": &"right", "grip": &"one_handed",
+		"damage": 5, "posture": 5, "knockback": 0.35,
+		"range": 2.2, "arc": 110, "chain_light": &"k_l3", "chain_heavy": &"k_coil",
+	},
 	# the heavy: sheathe for 9 frames (up to the fighter's charge check,
 	# CHARGE_CHECK_FRAME: held, the stance is the charge, walked in at the
 	# blocking walk's speed), then draw in 14, lunging only once the sheathe ends
@@ -151,6 +167,9 @@ const MOVES: Dictionary = {
 ## Both grips' strings until their hits are re-keyed: today's four lights,
 ## Crown Cut again as hit 5.
 const STAND_IN_STRING: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"]
+## The one-handed string: its own hits 1 and 2 (KE task 11), the stand-ins
+## for hits 3 to 5 until KE task 12.
+const ONE_HANDED_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_l3", &"k_l4", &"k_l4"]
 
 
 ## KATANA
@@ -189,11 +208,12 @@ static func build() -> WeaponDef:
 		"off_hand_grip": V3.make(0.0, -0.15, 0.0),
 		# Elden Ring's two grips (KE task 5), each with its five-hit string,
 		# standing in as today's four lights with Crown Cut again as hit 5
-		# until the re-keys (KE tasks 11-14); a two-handed block takes less
+		# until the re-keys (KE tasks 11-14; the one-handed hits 1 and 2 are
+		# keyed); a two-handed block takes less
 		# posture (D2). Each hit's heavy branch is the grip's heavy, and the
 		# vertical Iai's heavy follow-up the grip's too (KE task 7, D5)
 		"grips": [
-			WeaponGrip.make(WeaponGrip.ONE_HANDED, STAND_IN_STRING, 0.7, &"k_coil", &"k_coil"),
+			WeaponGrip.make(WeaponGrip.ONE_HANDED, ONE_HANDED_STRING, 0.7, &"k_coil", &"k_coil"),
 			WeaponGrip.make(WeaponGrip.TWO_HANDED, STAND_IN_STRING, 0.5, &"k_h2", &"k_h1f"),
 		],
 	})

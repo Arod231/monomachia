@@ -43,4 +43,11 @@ func test_a_hard_computer_plays_the_string_on_past_its_opener() -> void:
 
 func test_its_follow_ups_keep_up_with_its_openers() -> void:
 	var swings: Dictionary[StringName, int] = _swings(71, 3600)
-	assert_gt(swings.get(&"k_l2", 0), swings.get(&"k_l1", 0) / 4, "Return Cut follows often (%s)" % swings)
+	# by hit, in either grip: it switches grips as it plays (KE task 8), and
+	# the one-handed grip's hits 1 and 2 are its own since KE task 11
+	var hits: Array[int] = [0, 0, 0]
+	for id: StringName in swings:
+		var n: int = Moves.KATANA.string_position(id)
+		if n == 1 or n == 2:
+			hits[n] += swings[id]
+	assert_gt(hits[2], hits[1] / 4, "hit 2 follows often (%s)" % swings)

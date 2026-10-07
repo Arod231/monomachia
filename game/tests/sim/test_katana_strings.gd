@@ -41,6 +41,16 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 		"name": "Heaven Splitter", "damage": 15, "posture": 18,
 		"light": &"", "heavy": &"k_h1f", "sides": [&"centre", &"centre"],
 	},
+	# the one-handed string's hits 1 and 2 (KE task 11): today's lights'
+	# damage and posture (the two-handed about 15% more, D3)
+	&"k_1l1": {
+		"name": "Slanting Cut", "damage": 5, "posture": 5,
+		"light": &"k_1l2", "heavy": &"k_coil", "sides": [&"right", &"left"],
+	},
+	&"k_1l2": {
+		"name": "Backhand Rise", "damage": 5, "posture": 5,
+		"light": &"k_l3", "heavy": &"k_coil", "sides": [&"left", &"right"],
+	},
 	# the one-handed heavy (KE task 7): Heaven Splitter's clip until its
 	# re-key, about 85% of its damage (D3)
 	&"k_coil": {
@@ -73,6 +83,12 @@ func _init() -> void:
 	rows = ROWS
 
 
+# The pilot's four lights are the two-handed string's until KE task 13 keys
+# its own: these tests play them two-handed (SimHelpers.grip); the
+# one-handed string's own hits (KE task 11) are played one-handed where a
+# test says so.
+
+
 # ------------------------------------------------------------------ the light string
 
 func test_four_lights_hit_with_right_cut_return_cut_kesa_cut_and_crown_cut() -> void:
@@ -80,20 +96,30 @@ func test_four_lights_hit_with_right_cut_return_cut_kesa_cut_and_crown_cut() -> 
 	assert_eq(r.ids(&"hit"), [&"k_l1", &"k_l2", &"k_l3", &"k_l4"] as Array[StringName])
 
 
+## KE task 11: a fighter starts one-handed, and the one-handed string opens
+## with Slanting Cut and Backhand Rise, then the stand-ins (Kesa Cut, Crown
+## Cut) until task 12.
+func test_the_one_handed_string_opens_with_slanting_cut_and_backhand_rise() -> void:
+	SimHelpers.grip = WeaponGrip.ONE_HANDED
+	var light: int = Btn.LIGHT
+	assert_eq(_play([light, light, light]).ids(&"hit"), [&"k_1l1", &"k_1l2", &"k_l3"] as Array[StringName])
+
+
 func test_a_heavy_ends_the_one_handed_string_on_crescent_coil() -> void:
-	# a fighter starts one-handed; every hit's heavy branch is the grip's heavy
-	# (KE task 7; the two-handed grip's in test_grip_heavies)
+	# every hit's heavy branch is the grip's heavy (KE task 7; the two-handed
+	# grip's in test_grip_heavies)
+	SimHelpers.grip = WeaponGrip.ONE_HANDED
 	var light: int = Btn.LIGHT
 	var heavy: int = Btn.HEAVY
-	assert_eq(_play([light, heavy]).ids(&"hit"), [&"k_l1", &"k_coil"] as Array[StringName], "L-H: Right Cut, Crescent Coil")
+	assert_eq(_play([light, heavy]).ids(&"hit"), [&"k_1l1", &"k_coil"] as Array[StringName], "L-H: Slanting Cut, Crescent Coil")
 	assert_eq(
 		_play([light, light, heavy]).ids(&"hit"),
-		[&"k_l1", &"k_l2", &"k_coil"] as Array[StringName],
-		"L-L-H: Return Cut, Crescent Coil",
+		[&"k_1l1", &"k_1l2", &"k_coil"] as Array[StringName],
+		"L-L-H: Backhand Rise, Crescent Coil",
 	)
 	assert_eq(
 		_play([light, light, light, heavy]).ids(&"hit"),
-		[&"k_l1", &"k_l2", &"k_l3", &"k_coil"] as Array[StringName],
+		[&"k_1l1", &"k_1l2", &"k_l3", &"k_coil"] as Array[StringName],
 		"L-L-L-H: Kesa Cut, Crescent Coil",
 	)
 
@@ -104,7 +130,7 @@ func test_crown_cut_again_as_hit_5_ends_the_string() -> void:
 	var light: int = Btn.LIGHT
 	_assert_starts_nothing_in([light, light, light, light, light], [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"], [light])
 	# its heavy branch is the grip's heavy, as every hit's (KE task 7)
-	assert_eq(_play([light, light, light, light, light, Btn.HEAVY]).ids(&"swing").back(), &"k_coil")
+	assert_eq(_play([light, light, light, light, light, Btn.HEAVY]).ids(&"swing").back(), &"k_h2")
 
 
 func test_stopping_after_any_hit_ends_the_string_when_that_move_ends() -> void:
@@ -441,6 +467,7 @@ func _play_sideways(presses: Array[int]) -> PlayedString:
 func test_the_vertical_iai_goes_on_to_the_grip_s_heavy() -> void:
 	# one-handed, Crescent Coil, which ends the string (KE task 7, D5; the
 	# two-handed grip's Rising Heaven in test_grip_heavies)
+	SimHelpers.grip = WeaponGrip.ONE_HANDED
 	var heavy: int = Btn.HEAVY
 	assert_eq(
 		_play([heavy, heavy, heavy]).ids(&"swing"),
@@ -462,8 +489,20 @@ func test_the_horizontal_iai_goes_on_to_returning_draw_or_return_cut() -> void:
 	)
 	assert_eq(
 		_play_sideways([heavy, light, heavy]).ids(&"swing"),
-		[&"k_iai_h", &"k_l2", &"k_coil"] as Array[StringName],
-		"or to the grip's heavy, Crescent Coil",
+		[&"k_iai_h", &"k_l2", &"k_h2"] as Array[StringName],
+		"or to the grip's heavy, Heaven Splitter",
+	)
+	# one-handed, its light is the one-handed string's hit 2 (KE task 11)
+	SimHelpers.grip = WeaponGrip.ONE_HANDED
+	assert_eq(
+		_play_sideways([heavy, light, light]).ids(&"swing"),
+		[&"k_iai_h", &"k_1l2", &"k_l3"] as Array[StringName],
+		"one-handed: Backhand Rise, then on through the string",
+	)
+	assert_eq(
+		_play_sideways([heavy, light, heavy]).ids(&"swing"),
+		[&"k_iai_h", &"k_1l2", &"k_coil"] as Array[StringName],
+		"or to the one-handed grip's heavy, Crescent Coil",
 	)
 
 

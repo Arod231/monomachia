@@ -244,16 +244,23 @@ func test_local_the_katana_stays_in_hand_through_a_grip_switch() -> void:
 ## The per-move checklist's item 10 (milestone-1 task 40): each keyed move's
 ## clip, every deflect pair and the light block keep the off hand on the
 ## Katana's grip (within NEAR) on every rules frame, on both fighters, the
-## worst recorded by row (a bare-hands move holds nothing: item 10 doesn't
-## apply). Recorded for the owner, not held: task 40 reports
+## worst recorded by row (a bare-hands move holds nothing, and a one-handed
+## grip's own hit lets the off hand go, KE task 11: item 10 doesn't apply).
+## Recorded for the owner, not held: task 40 reports
 ## these, and the new strings re-key them.
 func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
 		return
+	var sc: StateClips = StateClips.read()
 	var rows: Dictionary[StringName, Array] = {}
+	var free: int = 0
 	for m: Array in ChecklistResults.keyed_moves():
-		if m[0] != &"fists":
+		var clip: StringName = (Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0] if m[0] != &"fists" else &""
+		if clip != &"" and sc.one_handed(m[0], clip):
+			ChecklistResults.record_problems(10, m[1], [] as Array[String])
+			free += 1
+		elif m[0] != &"fists":
 			rows[m[1]] = [(Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0]]
 	var clip_rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
 	rows[&"clip_deflect_light"] = clip_rows[&"clip_deflect_light"]
@@ -287,3 +294,4 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 			ChecklistResults.record_problems(10, row, by_clip.values()[0])
 	gut.p("the keyed clips' off hand, worst over every rules frame:\n" + "\n".join(lines))
 	assert_eq(worst.size(), 13, "four lights, four pairs and the block")
+	assert_eq(free, 2, "the one-handed grip's own hits 1 and 2 (KE task 11), the off hand free")

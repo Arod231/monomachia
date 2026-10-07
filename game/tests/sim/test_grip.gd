@@ -13,11 +13,19 @@ const CLOSE: float = 0.005
 const ONE: StringName = WeaponGrip.ONE_HANDED
 const TWO: StringName = WeaponGrip.TWO_HANDED
 
-## Today's four lights, Crown Cut repeated as hit 5: both grips' stand-in
-## string (the plan's Notes).
+## Today's four lights, Crown Cut repeated as hit 5: the two-handed grip's
+## stand-in string (the plan's Notes) until KE task 13 keys its own.
 const STAND_IN: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"]
+## The one-handed string: its own hits 1 and 2 (KE task 11), the stand-ins
+## after until KE task 12.
+const ONE_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_l3", &"k_l4", &"k_l4"]
 ## A two-handed string unlike the one-handed one, to tell the grips apart.
 const TEST_TWO: Array[StringName] = [&"k_l4", &"k_l3", &"k_l1", &"k_l2", &"k_l3"]
+
+
+# rounds start in the first grip, one-handed: these tests begin there
+func before_each() -> void:
+	H.grip = &""
 
 
 func after_each() -> void:
@@ -80,12 +88,12 @@ static func _string(W: World, lights: int, switch_at: Array[int] = []) -> Array[
 
 # ------------------------------------------------------------------ the grips declared
 
-func test_the_katana_declares_two_grips_with_today_s_lights_as_both_strings() -> void:
+func test_the_katana_declares_two_grips_with_their_strings() -> void:
 	var w: WeaponDef = Moves.KATANA
 	assert_eq(w.grips.size(), 2)
 	assert_eq([w.grips[0].id, w.grips[1].id], [ONE, TWO], "one-handed first: rounds start in it")
-	assert_eq(w.grips[0].string, STAND_IN, "one-handed: today's lights, Crown Cut again as hit 5")
-	assert_eq(w.grips[1].string, STAND_IN, "two-handed: the same stand-ins")
+	assert_eq(w.grips[0].string, ONE_STRING, "one-handed: Slanting Cut and Backhand Rise, then today's lights, Crown Cut again as hit 5")
+	assert_eq(w.grips[1].string, STAND_IN, "two-handed: today's lights, Crown Cut again as hit 5")
 	assert_almost_eq(w.grips[0].block_mitigation, 0.7, CLOSE, "D2: one-handed")
 	assert_almost_eq(w.grips[1].block_mitigation, 0.5, CLOSE, "D2: two-handed")
 
@@ -149,7 +157,7 @@ func test_switching_mid_attack_keeps_the_move_playing() -> void:
 	var frame: int = a.atk.frame
 	W.step([_with_grip(H.idle()), H.idle()])
 	assert_eq(a.grip, TWO)
-	assert_eq([a.state, a.atk.def.id, a.atk.frame], [&"attack", &"k_l1", frame + 1], "Right Cut plays on")
+	assert_eq([a.state, a.atk.def.id, a.atk.frame], [&"attack", &"k_1l1", frame + 1], "Slanting Cut plays on")
 
 
 func test_switching_works_in_the_iai_stance() -> void:
@@ -242,7 +250,7 @@ func test_both_grips_play_five_lights_and_the_string_ends_after_hit_5() -> void:
 		var W: World = H.make_world()
 		if grip == TWO:
 			W.step([_with_grip(H.idle()), H.idle()])
-		assert_eq(_string(W, 6), STAND_IN, "%s: five hits, and a sixth light starts nothing (D4)" % grip)
+		assert_eq(_string(W, 6), ONE_STRING if grip == ONE else STAND_IN, "%s: five hits, and a sixth light starts nothing (D4)" % grip)
 		assert_eq(W.fighters[0].state, &"free", "%s: free after the last hit" % grip)
 
 

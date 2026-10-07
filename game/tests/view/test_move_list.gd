@@ -78,14 +78,19 @@ func test_each_grip_lists_its_string_hit_by_hit_then_its_heavy_branches() -> voi
 		var heavies: Array[String] = ["Light → Heavy: Crescent Coil"]
 		if section == MoveList.Section.TWO_HANDED:
 			heavies = ["Light → Heavy: Heaven Splitter", "Light → Heavy → Heavy: Rising Heaven"]
-		var want: Array[String] = [
-			"Light: Right Cut", "Light → Light: Return Cut", "Light → Light → Light: Kesa Cut",
+		# the one-handed grip's own hits 1 and 2 (KE task 11)
+		var opening: Array[String] = ["Light: Slanting Cut", "Light → Light: Backhand Rise"]
+		if section == MoveList.Section.TWO_HANDED:
+			opening = ["Light: Right Cut", "Light → Light: Return Cut"]
+		var want: Array[String] = opening.duplicate()
+		want.append_array([
+			"Light → Light → Light: Kesa Cut",
 			"Light → Light → Light → Light: Crown Cut", "Light → Light → Light → Light → Light: Crown Cut",
-		]
+		])
 		want.append_array(heavies)
 		assert_eq(inputs, want, MoveList.SECTION_NAMES[section])
 	# every hit branches into the grip's heavy (KE task 7)
-	assert_eq(_row(rows, &"k_coil", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Return Cut", "Kesa Cut", "Crown Cut"]))
+	assert_eq(_row(rows, &"k_coil", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Backhand Rise", "Kesa Cut", "Crown Cut"]))
 	assert_eq(_row(rows, &"k_h2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Return Cut", "Kesa Cut", "Crown Cut"]))
 	assert_eq(_row(rows, &"k_l2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Iai Slash (horizontal)"]), "the horizontal Iai's light plays hit 2")
 
@@ -122,7 +127,8 @@ func test_other_ways_into_a_follow_up_are_listed() -> void:
 	var rows: Array[MoveList.Row] = MoveList.rows(Moves.KATANA)
 	assert_eq(Array(_row(rows, &"k_h1f", MoveList.Section.STRING).also_after), [], "the Iai's: one way in")
 	assert_eq(Array(_row(rows, &"k_h1f", MoveList.Section.TWO_HANDED).also_after), [], "Heaven Splitter's: one way in")
-	assert_eq(Array(_row(rows, &"k_l1", MoveList.Section.ONE_HANDED).also_after), [])
+	assert_eq(Array(_row(rows, &"k_1l1", MoveList.Section.ONE_HANDED).also_after), [])
+	assert_eq(_row(rows, &"k_1l2", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Iai Slash (horizontal)"]), "the horizontal Iai's light plays the grip's hit 2")
 
 
 func test_strings_read_light_first_then_each_heavy_branch() -> void:

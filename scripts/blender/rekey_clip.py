@@ -849,11 +849,20 @@ def one_hand(arm, scene, length, spec):
     (about the level line across it) and swung spec["out"] degrees out to the
     right (about the vertical; the clip faces -Y, its right toward -X), the
     clip's own motion kept around it (either a number, or [frame, degrees]
-    pairs, a monotone cubic through them). The arm and the off hand are as the
-    clip has them. Keyed."""
+    pairs, a monotone cubic through them). With spec["clearance"] (m), a
+    blade that then comes nearer the body (BODY and the free left arm) is
+    turned on about the wrist, a degree at a time, straight away from it
+    until it clears (KE task 11: the backhand's wind-up past the head, the
+    return to the low guard past the thigh). The arm and the off hand are as
+    the clip has them. Keyed."""
     mw = arm.matrix_world
     pbs = arm.pose.bones
     hand = pbs["B-hand.R"]
+    def off_arm():
+        # the free left arm, which the blade must clear too: its upper arm
+        # and forearm, 7 cm round (as arm_capsules())
+        sh, el, wr = (mw @ pbs[b].head for b in ("B-upperArm.L", "B-forearm.L", "B-hand.L"))
+        return [(sh, el, 0.07), (el, wr, 0.07)]
     up = mathutils.Vector((0.0, 0.0, 1.0))
     def over_time(v):
         if isinstance(v, list):
@@ -861,6 +870,8 @@ def one_hand(arm, scene, length, spec):
             return lambda n: math.radians(f(float(n)))
         return lambda n: math.radians(float(v))
     lower_at, out_at = over_time(spec.get("lower", 0.0)), over_time(spec.get("out", 0.0))
+    clearance = float(spec.get("clearance", 0.0))
+    pushed = {}
     for n in range(length + 1):
         lower, out = lower_at(n), out_at(n)
         scene.frame_set(1 + n)
@@ -875,6 +886,18 @@ def one_hand(arm, scene, length, spec):
         wrist = m.to_translation()
         hand.matrix = mw.inverted() @ (mathutils.Matrix.Translation(wrist) @ turn @ mathutils.Matrix.Translation(-wrist) @ m)
         bpy.context.view_layer.update()
+        for step in range(60 if clearance > 0 else 0):
+            prop = mw @ pbs["B-handProp.R"].matrix
+            blade = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+            clear, away = blade_clearance(body_capsules(arm) + off_arm(), prop.to_translation(), blade)
+            axis = blade.cross(away) if away is not None else mathutils.Vector()
+            if clear >= clearance or axis.length < 1e-6:
+                break
+            m = mw @ hand.matrix
+            nudge = mathutils.Matrix.Rotation(math.radians(1.0), 4, axis.normalized())
+            hand.matrix = mw.inverted() @ (mathutils.Matrix.Translation(wrist) @ nudge @ mathutils.Matrix.Translation(-wrist) @ m)
+            bpy.context.view_layer.update()
+            pushed[n] = step + 1
         hand.keyframe_insert("rotation_quaternion", frame=1 + n, group=hand.name)
         hand.keyframe_insert("location", frame=1 + n, group=hand.name)
     scene.frame_set(1)
@@ -882,6 +905,9 @@ def one_hand(arm, scene, length, spec):
     prop = mw @ pbs["B-handProp.R"].matrix
     blade = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
     print(f"rekey_clip: the blade re-aimed, {math.degrees(math.asin(max(-1.0, min(1.0, blade.z)))):.0f} degrees from level on frame 0", flush=True)
+    if clearance > 0:
+        turned = ", ".join(f"{n}: {d}" for n, d in sorted(pushed.items())) or "none"
+        print(f"rekey_clip: turned on to clear the body by {clearance * 100:.0f} cm (frame: degrees): {turned}", flush=True)
 
 
 # The bones a transition (blend_from()) leaves to the leg IK.

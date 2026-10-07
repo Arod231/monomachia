@@ -78,6 +78,9 @@ func test_each_move_has_its_band_kind() -> void:
 		&"k_sl": &"sprint_light", &"k_sh": &"sprint_heavy", &"k_dl": &"dodge_light", &"k_dh": &"dodge_heavy",
 		&"k_bl": &"backstep_light", &"k_bh": &"backstep_heavy", &"k_jl": &"jump_light", &"k_jh": &"jump_heavy",
 		&"k_flash": &"block_ability", &"k_thrust": &"unblockable", &"k_sweep": &"unblockable", &"k_lunge": &"counter_lunge",
+		# a grip's own string hits take its rows (KE task 11); the stand-ins
+		# every grip plays keep the shared one
+		&"k_1l1": &"string_light_1h", &"k_1l2": &"string_light_1h", &"k_l3": &"string_light",
 	}
 	for id: StringName in want:
 		assert_eq(FrameDataRows.kind_of(katana, id), want[id], String(id))

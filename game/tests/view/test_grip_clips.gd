@@ -17,6 +17,8 @@ const REGRIP_LENGTH: float = 0.2
 
 func before_each() -> void:
 	FrozenStateClips.install()
+	# from a round's start, one-handed
+	H.grip = &""
 
 
 func after_each() -> void:
@@ -228,15 +230,15 @@ func test_the_table_refuses_a_grip_without_its_clips() -> void:
 static func _one_handed(moves: Array[StringName] = []) -> ClipDirector.Context:
 	var ctx: ClipDirector.Context = _ctx()
 	(StateClips.shared().grip_clips[&"katana"][ONE] as Dictionary)[&"moves"] = moves
-	# the stand-in light's clip, so it plays
+	# the one-handed light's clip, so it plays
 	for set_name: StringName in ClipLibraries.SETS:
 		ctx.lengths["%s/%s" % [set_name, _light_clip()]] = 2.0
 	return ctx
 
 
-## Right Cut's clip, the one-handed string's stand-in hit 1.
+## The one-handed string's hit 1's clip (Slanting Cut's since KE task 11).
 static func _light_clip() -> StringName:
-	return (Moves.KATANA.moves[&"k_l1"] as AttackDef).swing.clips[0]
+	return (Moves.KATANA.moves[Moves.KATANA.grip(ONE).hit(1)] as AttackDef).swing.clips[0]
 
 
 func test_a_round_starts_with_the_off_hand_off_the_handle() -> void:
@@ -288,7 +290,7 @@ func test_a_two_handed_clip_takes_the_off_hand_back() -> void:
 	var W: World = H.make_world()
 	var shot: ClipDirector.Shot = _next(W, null, ctx)
 	shot = _next(W, shot, ctx, H.btn(Btn.LIGHT))
-	assert_eq(shot.drive, ClipDirector.ATTACK, "the stand-in light, a two-handed clip")
+	assert_eq(shot.drive, ClipDirector.ATTACK, "the light, its clip not among the frozen grip's moves: a two-handed clip")
 	for i: int in ClipDirector.OFF_HAND_FRAMES - 1:
 		shot = _next(W, shot, ctx)
 	assert_eq(shot.off_hand, 1.0, "on the handle within %d rules frames" % ClipDirector.OFF_HAND_FRAMES)
