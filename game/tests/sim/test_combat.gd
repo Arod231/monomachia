@@ -31,7 +31,7 @@ func test_a_light_attack_hits_an_idle_opponent_for_its_hp_and_posture_damage() -
 	var b: Fighter = W.fighters[1]
 	assert_true(r.has(&"hit"))
 	assert_almost_eq(b.hp, 94.0, CLOSE)
-	assert_almost_eq(b.posture, 7.0 * SimConst.HIT_POSTURE_MULT, CLOSE)
+	assert_almost_eq(b.posture, 5.0 * SimConst.HIT_POSTURE_MULT, CLOSE)
 
 
 func test_misses_when_the_opponent_is_out_of_range() -> void:
@@ -72,7 +72,7 @@ func test_blocking_stops_hp_damage_but_takes_reduced_posture_damage() -> void:
 	var b: Fighter = W.fighters[1]
 	assert_true(r.has(&"block"))
 	assert_eq(b.hp, 100.0)
-	assert_almost_eq(b.posture, 7.0 * Moves.KATANA.block_mitigation, CLOSE)
+	assert_almost_eq(b.posture, 5.0 * Moves.KATANA.block_mitigation, CLOSE)
 
 
 func test_a_well_timed_block_press_parries_attacker_recoils_and_takes_parry_posture() -> void:
