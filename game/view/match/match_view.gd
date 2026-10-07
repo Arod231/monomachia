@@ -193,8 +193,9 @@ func apply_blood() -> void:
 
 
 ## Reduce flashes and shaking (18.11) on or off, as the settings say: the
-## camera's shake scale and field-of-view kicks, the effects' flash
-## brightness and the body flashes'.
+## camera's shake scale and field-of-view kicks, the effects' flash and spark
+## brightness, the contact lights' (halved, milestone-1 task 37) and the body
+## flashes'.
 func apply_reduce_flashes() -> void:
 	var on: bool = settings != null and settings.reduce_flashes
 	for cam: CameraRig in cameras:
@@ -202,6 +203,7 @@ func apply_reduce_flashes() -> void:
 		cam.fov_kick_scale = 0.0 if on else 1.0
 		cam.push_in_scale = 0.0 if on else 1.0
 	effects.flash_scale = REDUCED_FLASH if on else 1.0
+	effects.light_scale = CombatEffects.REDUCED_LIGHT if on else 1.0
 	body_flash_scale = REDUCED_FLASH if on else 1.0
 
 
@@ -235,7 +237,7 @@ func _process(delta: float) -> void:
 func render(delta: float) -> void:
 	update_fighters(delta)
 	_update_dropped()
-	_feed_trails()
+	_feed_smears()
 	_feed_auras()
 	effects.update(effects.clock())
 	blood.update(effects.clock())
@@ -257,7 +259,7 @@ func snap_camera() -> void:
 		return
 	update_fighters(0.0)
 	_update_dropped()
-	_feed_trails()
+	_feed_smears()
 	effects.update(effects.clock())
 	blood.update(effects.clock())
 	if split != null:
@@ -277,18 +279,17 @@ func update_fighters(delta: float) -> void:
 			footfall.emit(i, at)
 
 
-## Lays each held blade, as posed this frame, into its trail, with the
-## trail rules' strength and colour (TrailState) on the frame shown.
-func _feed_trails() -> void:
+## Lays each held blade, as posed this frame, into its air smear, with the
+## smear rules' strength and tint (TrailState) on the frame shown.
+func _feed_smears() -> void:
 	var t: float = effects.clock()
 	var a: float = host.alpha()
 	for i: int in fighters.size():
 		var rules: TrailState = TrailState.of(host.fighter(i), a)
 		var blades: Array[PackedVector3Array] = fighters[i].blade_segments()
-		var width: float = fighters[i].trail_width()
 		for hand: int in mini(2, blades.size()):
-			var span: PackedVector3Array = WeaponTrail.span(blades[hand][0], blades[hand][1], width)
-			effects.feed_trail(i, hand, t, span[0], span[1], rules.intensity(hand), rules.kind)
+			var span: PackedVector3Array = AirSmear.span(blades[hand][0], blades[hand][1])
+			effects.feed_smear(i, hand, t, span[0], span[1], rules.intensity(hand), rules.kind)
 
 
 ## Throws each recalling fighter's power-up aura (RecallAura, task 30b) for

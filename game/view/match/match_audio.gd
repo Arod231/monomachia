@@ -27,6 +27,17 @@ extends Node3D
 ## back on a FootstepCadence, which turns each rules step's movement into a
 ## footfall every stride, at the fighter's feet.
 ##
+## The deflect pairs' sounds (milestone-1 task 136): on a steel-on-steel
+## parry ([method SoundBank.sounds_deflect_pair]) each half the clips play
+## sounds its own cues ([constant SoundBank.DEFLECT_SOUNDS]) on its frames,
+## counted in the world's frames from the parry, so the parry's hit-stop
+## holds them as it holds the clips. The pair is the one the clips play
+## ([method ClipDirector.pick_pair], a move without its own borrowing the
+## nearest light's), picked with or without the clip libraries; a half sounds
+## while its fighter plays it (the parried attacker recoiling or stunned by the
+## parry, not disarmed; the parrier in its recovery or standing on), and a
+## half cut short drops its later cues.
+##
 ## The arena's ambience: a played match fades in the loop its arena's data
 ## names ([method ambience_cue]) on a [FadedLoop]. It plays on through pauses,
 ## the results and a rematch in the same arena, and fades out on a quit or
@@ -58,6 +69,12 @@ var listener: AudioListener3D
 var camera: Camera3D
 var footsteps := FootstepCadence.new()
 var ambience: FadedLoop
+## Parries this step whose deflect pairs' sounds are picked once the step is
+## done (task 136), when the fighters stand in the states the parry left.
+var _parries: Array[Dictionary] = []
+## The deflect pairs' cues waiting on their frames: {cue, frame (the world
+## frame it starts on), side, half, place, at (the contact)}.
+var _pair_cues: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -179,6 +196,7 @@ func event_position(e: Dictionary) -> Variant:
 
 func _on_match_started(config: MatchConfig) -> void:
 	player.stop_all()
+	stop_pair_sounds()
 	footsteps.reset()
 	if host.attract:
 		ambience.stop()
@@ -190,11 +208,14 @@ func _on_sim_event(e: Dictionary) -> void:
 	if host.attract:
 		return
 	player.play_event(e, event_position, cast())
+	if SoundBank.sounds_deflect_pair(e):
+		_parries.append(e)
 
 
 func _on_stepped(_step: int) -> void:
 	if host.attract:
 		return
+	update_pair_sounds()
 	for foot: Dictionary in footsteps.update(host.world.fighters, host.world.frame):
 		# a drawn fighter steps where its clips' feet land instead
 		if view != null and view.steps_from_clips(foot["fighter"]):
@@ -214,7 +235,77 @@ func _on_pause_changed(paused: bool) -> void:
 
 func _on_stopped() -> void:
 	player.stop_all()
+	stop_pair_sounds()
 	ambience.stop()
+
+
+## Picks the deflect pairs' sounds of the parries just made and starts each
+## waiting cue whose frame the world has reached (task 136); done after every
+## step.
+func update_pair_sounds() -> void:
+	if host == null or not host.is_started():
+		return
+	for e: Dictionary in _parries:
+		_pick_pair_sounds(e)
+	_parries.clear()
+	var waiting: Array[Dictionary] = []
+	for c: Dictionary in _pair_cues:
+		var f: Fighter = host.fighter(int(c["side"]))
+		if not plays_half(f, c["half"]):
+			continue
+		if host.world.frame >= int(c["frame"]):
+			player.play_cue(c["cue"], _pair_place(c, f))
+		else:
+			waiting.append(c)
+	_pair_cues = waiting
+
+
+## Drops every deflect pair sound not yet played.
+func stop_pair_sounds() -> void:
+	_parries.clear()
+	_pair_cues.clear()
+
+
+## Whether fighter [param f] is still playing its half [param half] of a
+## deflect pair, as ClipDirector plays them: the recoil while parried and
+## not guarding again, the deflect through the recovery and on while it
+## stands.
+static func plays_half(f: Fighter, half: StringName) -> bool:
+	if half == &"recoil":
+		return ClipDirector.PARRIED_STATES.has(f.state) and f.stun_cause == &"" and not f.blocking
+	return f.state == &"parryAnim" or f.state == &"free"
+
+
+func _pick_pair_sounds(e: Dictionary) -> void:
+	var attacker := int(e.get("attacker", -1))
+	var parrier := int(e.get("parrier", -1))
+	if attacker < 0 or attacker > 1 or parrier < 0 or parrier > 1:
+		return
+	var direction: StringName = ClipDirector.pick_pair(host.fighter(attacker)).get(&"direction", &"")
+	if direction == &"":
+		return
+	var at: Variant = event_position(e)
+	for half: Array in [[parrier, &"deflect"], [attacker, &"recoil"]]:
+		var side: int = half[0]
+		if half[1] == &"deflect" and host.fighter(side).state != &"parryAnim":
+			continue
+		if not plays_half(host.fighter(side), half[1]):
+			continue
+		for cue: Dictionary in SoundBank.deflect_pair_cues(direction, half[1]):
+			_pair_cues.append({"cue": cue["cue"], "frame": host.world.frame + int(cue["frame"]), "side": side,
+				"half": half[1], "place": cue["place"], "at": at})
+
+
+## Where a deflect pair's cue sounds: where the blades met, or its fighter's
+## chest or feet as it stands now.
+func _pair_place(c: Dictionary, f: Fighter) -> Variant:
+	match c["place"]:
+		&"contact":
+			return c["at"]
+		&"feet":
+			return Vector3(f.pos.x, f.pos.y, f.pos.z)
+		_:
+			return Vector3(f.pos.x, f.pos.y + chest_height, f.pos.z)
 
 
 static func _vector(d: Dictionary) -> Vector3:

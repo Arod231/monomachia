@@ -6,11 +6,18 @@ extends Node
 ## and held in the hit-stop; 40: eased back out). --push=0 draws the same
 ## frame without the push-in, to set beside it. Render it with
 ##   npm run shots -- res://tools/shot_scenes/parry.tscn shots/parry_in.png 10 --after=6
+## --event=block or hit steps to the --parries= block or hit instead (a
+## parry by default), with --heavy=1 for a heavy one only, for the sparks,
+## puffs and blood at a contact (milestone-1 task 37).
 
 const SEED: int = 11
 
 @export var parries: int = 1
 @export var kind: StringName = &""
+## The contact to step to: parry, block or hit.
+@export var event: StringName = &"parry"
+## Only a heavy block or hit counts.
+@export var heavy_only: bool = false
 @export var after: int = 6
 @export var push: bool = true
 @export var settle_frames: int = 10
@@ -38,6 +45,10 @@ func _ready() -> void:
 			after = int(a.trim_prefix("--after="))
 		elif a.begins_with("--push="):
 			push = a.trim_prefix("--push=") != "0"
+		elif a.begins_with("--event="):
+			event = StringName(a.trim_prefix("--event="))
+		elif a.begins_with("--heavy="):
+			heavy_only = a.trim_prefix("--heavy=") != "0"
 	host = (load("res://view/match/match_host.tscn") as PackedScene).instantiate()
 	host.auto_run = false
 	add_child(host)
@@ -69,5 +80,7 @@ func _ready() -> void:
 
 
 func _on_event(e: Dictionary) -> void:
-	if e["t"] == &"parry" and (kind == &"" or e["kind"] == kind):
+	if e["t"] != event or (heavy_only and not bool(e.get("heavy", false))):
+		return
+	if event != &"parry" or kind == &"" or e["kind"] == kind:
 		_parries += 1

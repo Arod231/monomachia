@@ -10,4 +10,3 @@ display_name = "Twin Daggers"
 scene = ExtResource("2_scene")
 paired = true
 grip_radius = 0.0163
-trail_width = 0.2

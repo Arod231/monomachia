@@ -10,4 +10,3 @@ display_name = "Katana"
 scene = ExtResource("2_scene")
 two_handed = true
 grip_radius = 0.0138
-trail_width = 0.55

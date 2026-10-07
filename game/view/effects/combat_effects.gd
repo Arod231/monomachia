@@ -1,8 +1,10 @@
 class_name CombatEffects
 extends Node3D
-## The match's combat effects (plan task 18): glow flashes, rings and
-## particles, each drawn from a fixed pool (one MultiMesh per kind), so an
-## effect never adds a node, and a match leaves nothing behind.
+## The match's combat effects (plan task 18; milestone-1 task 37): glow
+## flashes, rings, particles, sparks and puffs, each drawn from a fixed pool
+## (one MultiMesh per kind), and the sparks' contact lights from a small
+## fixed set, so an effect never adds a node, and a match leaves nothing
+## behind.
 ##
 ## Every effect is timed on the effect clock (clock()): the world frame on
 ## show, which is the frame before the last step plus the host's alpha. It
@@ -15,22 +17,39 @@ extends Node3D
 ##
 ## MatchView owns one, spawns the event table's effects (EffectTable) from
 ## on_event(), updates it every drawn frame and clears it at round start.
-## Particle counts follow the graphics preset, dropping at most by half on
-## Low so hits still read (set_preset()).
+## Particle and spark counts follow the graphics preset, dropping at most by
+## half on Low so contact still reads, and the contact lights show only where
+## the preset allows them (GraphicsPreset.spark_light: Ultra and High)
+## (set_preset()). Reduce flashes (18.11) dims the flashes, rings and sparks
+## (flash_scale) and halves the lights (light_scale).
 ##
-## It also keeps the blades' brush-stroke trails (WeaponTrail), one per side
-## and hand, fed by MatchView every drawn frame (feed_trail()) and aged on
-## the same clock.
+## Sparks (milestone-1 task 37) are hot streaks thrown from a contact, falling
+## under gravity and dying on the floor, drawn along their flight
+## (shaders/spark_streak.gdshader) and cooling from white-yellow through
+## orange to red as they age. Puffs are a bare hand's dull cloud of dust and
+## cloth (shaders/effect_puff.gdshader). A contact light is a warm omni light
+## at the contact that fades over a few frames, lighting both fighters and
+## the blades.
+##
+## It also keeps the blades' air smears (AirSmear), one per side and hand,
+## fed by MatchView every drawn frame (feed_smear()) and aged on the same
+## clock.
 
 ## The pools, by name, for drawn().
 const FLASHES: StringName = &"Flashes"
 const RINGS: StringName = &"Rings"
 const PARTICLES: StringName = &"Particles"
+const SPARKS: StringName = &"Sparks"
+const PUFFS: StringName = &"Puffs"
 
 ## How many of each the pools hold; past that, the oldest go.
 const FLASH_CAPACITY: int = 64
 const RING_CAPACITY: int = 32
 const PARTICLE_CAPACITY: int = 1200
+const SPARK_CAPACITY: int = 400
+const PUFF_CAPACITY: int = 64
+## The contact lights: few, since a light costs every surface it touches.
+const LIGHT_CAPACITY: int = 3
 ## The least share of a burst's particles a preset draws (Low's ambient
 ## ratio is 0.3; combat particles keep at least half).
 const MIN_PARTICLE_SCALE: float = 0.5
@@ -41,9 +60,36 @@ const FLASH_SPRITE: float = 1.6
 const FLASH_ENERGY: float = 1.6
 const RING_ENERGY: float = 2.0
 const PARTICLE_ENERGY: float = 2.5
+const SPARK_ENERGY: float = 9.0
+
+## Sparks fall at this (m/s²) and land on the floor (y 0), where they die
+## within SPARK_FLOOR_LIFE frames.
+const SPARK_GRAVITY: float = 9.8
+const SPARK_FLOOR_LIFE: float = 5.0
+## A spark's streak is as long as it flies in this long (s), a short
+## exposure's smear, and never under its width.
+const SPARK_EXPOSURE: float = 0.022
+const SPARK_WIDTH: float = 0.012
+## Frames a spark has flown when it is first shown: the effect clock stands
+## still through the contact's hit-stop, so the frozen frame shows the burst
+## already leaving the steel, not a knot at the contact.
+const SPARK_HEAD_START: float = 1.5
+## A spark's heat as it ages: white-yellow, orange, then a dull red.
+const SPARK_HOT: Color = Color(1.0, 0.84, 0.5)
+const SPARK_WARM: Color = Color(1.0, 0.5, 0.14)
+const SPARK_COOL: Color = Color(0.7, 0.16, 0.05)
+## A puff's dust: a dull grey-brown that the night's tone dims.
+const PUFF_COLOR: Color = Color(0.42, 0.39, 0.35, 0.8)
+## How much a puff grows across over its life, and how fast it drifts (m/s).
+const PUFF_GROWTH: float = 2.4
+const PUFF_SPEED: float = 0.45
+## How much of a contact light Reduce flashes leaves.
+const REDUCED_LIGHT: float = 0.5
 
 const GLOW_SHADER: Shader = preload("res://shaders/particle_glow.gdshader")
 const RING_SHADER: Shader = preload("res://shaders/effect_ring.gdshader")
+const SPARK_SHADER: Shader = preload("res://shaders/spark_streak.gdshader")
+const PUFF_SHADER: Shader = preload("res://shaders/effect_puff.gdshader")
 
 ## Floats per instance in a pool's buffer: a 3x4 transform, a colour, and
 ## for rings the custom data (facing the camera, band width).
@@ -90,20 +136,41 @@ class Particle:
 		return p
 
 
+## A contact light, timed in world frames on the effect clock: its energy
+## fades with the square of what is left of its life.
+class ContactLight:
+	var born: float = 0.0
+	var life: float = 1.0
+	var at: Vector3 = Vector3.ZERO
+	var energy: float = 1.0
+	var reach: float = 2.5
+
+
 ## The host whose clock the effects keep (MatchView sets it).
 var host: MatchHost
 ## The share of each burst's particles drawn (set_preset()).
 var particle_scale: float = 1.0
-## Multiplies how bright flashes and rings are (18.11's reduce flashes).
+## Multiplies how bright flashes, rings and sparks are (18.11's reduce
+## flashes).
 var flash_scale: float = 1.0
+## Multiplies how bright the contact lights are (REDUCED_LIGHT under reduce
+## flashes).
+var light_scale: float = 1.0
+## Whether contact lights show (the preset's spark_light).
+var lights_allowed: bool = true
 ## The clock at the last update().
 var now: float = 0.0
 
 var _flashes: Array[Fx] = []
 var _rings: Array[Fx] = []
 var _particles: Array[Particle] = []
-## The blades' trails: side * 2 + hand (TrailState.RIGHT or LEFT).
-var trails: Array[WeaponTrail] = []
+var _sparks: Array[Particle] = []
+var _puffs: Array[Particle] = []
+var _lights: Array[ContactLight] = []
+## The blades' air smears: side * 2 + hand (TrailState.RIGHT or LEFT).
+var smears: Array[AirSmear] = []
+## The contact lights' nodes; the newest light shows in the first.
+var _light_nodes: Array[OmniLight3D] = []
 var _pools: Dictionary[StringName, MultiMeshInstance3D] = {}
 var _buffers: Dictionary[StringName, PackedFloat32Array] = {}
 
@@ -113,12 +180,24 @@ func _init() -> void:
 	_add_pool(FLASHES, FLASH_CAPACITY, _glow_material(FLASH_ENERGY), false)
 	_add_pool(RINGS, RING_CAPACITY, _ring_material(), true)
 	_add_pool(PARTICLES, PARTICLE_CAPACITY, _glow_material(PARTICLE_ENERGY), false)
+	_add_pool(SPARKS, SPARK_CAPACITY, _shader_material(SPARK_SHADER, SPARK_ENERGY), false)
+	_add_pool(PUFFS, PUFF_CAPACITY, _shader_material(PUFF_SHADER, -1.0), false)
+	for k: int in LIGHT_CAPACITY:
+		var light: OmniLight3D = OmniLight3D.new()
+		light.name = "ContactLight%d" % k
+		light.light_color = EffectTable.SPARK_LIGHT
+		light.shadow_enabled = false
+		light.light_volumetric_fog_energy = 0.0
+		light.omni_attenuation = 2.0
+		light.visible = false
+		add_child(light)
+		_light_nodes.append(light)
 	for side: int in 2:
 		for hand: String in ["R", "L"]:
-			var trail: WeaponTrail = WeaponTrail.new()
-			trail.name = "Trail%d%s" % [side, hand]
-			add_child(trail)
-			trails.append(trail)
+			var smear: AirSmear = AirSmear.new()
+			smear.name = "Smear%d%s" % [side, hand]
+			add_child(smear)
+			smears.append(smear)
 
 
 # ------------------------------------------------------------------ clock and preset
@@ -132,9 +211,11 @@ func clock() -> float:
 	return float(host.world.frame) - 1.0 + host.alpha()
 
 
-## Takes a graphics preset's particle ratio, at least MIN_PARTICLE_SCALE.
+## Takes a graphics preset's particle ratio, at least MIN_PARTICLE_SCALE,
+## and whether it allows the contact lights.
 func set_preset(preset: GraphicsPreset) -> void:
 	particle_scale = maxf(preset.particle_ratio, MIN_PARTICLE_SCALE) if preset != null else 1.0
+	lights_allowed = preset.spark_light if preset != null else true
 
 
 ## How many particles a burst of `count` draws at the current preset: at
@@ -147,7 +228,8 @@ func scaled_count(count: int) -> int:
 
 ## Spawns the table's effects for rules event `e` at its "pos", born on world
 ## frame `frame` (the frame the event happened on). An event without a
-## contact point spawns nothing.
+## contact point spawns nothing. Sparks and puffs are scattered by the
+## event's frame, so the same contact always throws them the same way.
 func on_event(e: Dictionary, frame: int) -> void:
 	var p: Variant = e.get("pos", null)
 	if not p is Dictionary:
@@ -157,6 +239,32 @@ func on_event(e: Dictionary, frame: int) -> void:
 		match fx["kind"]:
 			EffectTable.FLASH:
 				flash(at, fx["color"], fx["size"], fx["life"], float(frame))
+			EffectTable.SPARKS:
+				sparks(at, spark_aim(e, fx["aim"], at), fx, float(frame), frame * 7919 + 1)
+			EffectTable.PUFF:
+				puff(at, fx, float(frame), frame * 104729 + 3)
+			EffectTable.LIGHT:
+				contact_light(at, fx["energy"], fx["range"], fx["life"], float(frame))
+
+
+## Which way a spark burst for event `e` at `at` flies (unit): along the
+## parried blade's sweep (the event's "dir") for AIM_SWEEP, else off the
+## defender's guard (the event's "target") toward the attacker; tipped up a
+## little either way, as sparks leap off the steel. Up when neither can be
+## found.
+func spark_aim(e: Dictionary, aim: StringName, at: Vector3) -> Vector3:
+	var d: Vector3 = Vector3.ZERO
+	if aim == EffectTable.AIM_SWEEP and e.get("dir", null) is Dictionary:
+		var s: Dictionary = e["dir"]
+		d = Vector3(float(s["x"]), float(s["y"]), float(s["z"]))
+	elif host != null and host.is_started() and e.has("target"):
+		var target: int = int(e["target"])
+		if target == 0 or target == 1:
+			var f: Fighter = host.fighter(target)
+			d = Vector3(at.x - f.pos.x, 0.0, at.z - f.pos.z)
+	if d.length() < 1e-6:
+		return Vector3.UP
+	return (d.normalized() + Vector3(0.0, 0.6, 0.0)).normalized()
 
 
 ## A glow at `at` that grows from 0.55 to 1.3 times `size` across while it
@@ -230,27 +338,99 @@ func burst(at: Vector3, spec: Dictionary, born: float, seed: int) -> int:
 	return n
 
 
+## Throws a burst of sparks from `at` toward `dir` (unit; zero for every
+## way), born on `born`, scattered by `seed` (the same seed throws them the
+## same way). `spec` (EffectTable's sparks): "count" before the preset's
+## scale, "speed" (m/s, each up to half either way), "spread" (degrees from
+## dir), "life" in frames (each up to 40% less). They fall at SPARK_GRAVITY
+## and die on the floor within SPARK_FLOOR_LIFE frames. Returns how many
+## were thrown.
+func sparks(at: Vector3, dir: Vector3, spec: Dictionary, born: float, seed: int) -> int:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = seed
+	var n: int = scaled_count(int(spec.get("count", 0)))
+	var speed: float = float(spec.get("speed", 4.0))
+	var life: float = float(spec.get("life", 14))
+	var spread: float = deg_to_rad(float(spec.get("spread", 60.0)))
+	for k: int in n:
+		var p: Particle = Particle.new()
+		p.born = born
+		p.life = maxf(1.0, life * (1.0 - 0.4 * rng.randf()))
+		p.p0 = at
+		p.v = _scatter(rng, dir, spread) * speed * (1.0 + 0.5 * rng.randf_range(-1.0, 1.0))
+		p.gravity = SPARK_GRAVITY
+		p.floor_y = 0.0
+		p.t_land = _landing(p)
+		if p.t_land < INF:
+			p.life = minf(p.life, p.t_land / SimConst.DT + SPARK_FLOOR_LIFE)
+		p.size = SPARK_WIDTH
+		p.color = SPARK_HOT
+		_push(_sparks, p, SPARK_CAPACITY)
+	return n
+
+
+## A puff of dust and cloth at `at`, born on `born`, scattered by `seed`:
+## "count" soft clouds (before the preset's scale) of about "size" across,
+## drifting slowly out and up, growing and thinning out over "life" frames.
+## Returns how many.
+func puff(at: Vector3, spec: Dictionary, born: float, seed: int) -> int:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = seed
+	var n: int = scaled_count(int(spec.get("count", 0)))
+	var size: float = float(spec.get("size", 0.16))
+	var life: float = float(spec.get("life", 22))
+	for k: int in n:
+		var p: Particle = Particle.new()
+		p.born = born
+		p.life = maxf(1.0, life * (1.0 - 0.3 * rng.randf()))
+		p.p0 = at
+		p.v = (_scatter(rng, Vector3.ZERO, PI) + Vector3(0.0, 0.4, 0.0)) * PUFF_SPEED * rng.randf_range(0.5, 1.0)
+		p.size = size * rng.randf_range(0.7, 1.0)
+		p.size_end = p.size * PUFF_GROWTH
+		p.color = PUFF_COLOR
+		_push(_puffs, p, PUFF_CAPACITY)
+	return n
+
+
+## A warm light at `at` from `born`, `energy` at its peak and reaching
+## `reach` metres, fading over `life` frames. The newest takes the oldest's
+## place past LIGHT_CAPACITY.
+func contact_light(at: Vector3, energy: float, reach: float, life: int, born: float) -> void:
+	var l: ContactLight = ContactLight.new()
+	l.at = at
+	l.energy = energy
+	l.reach = reach
+	l.life = float(maxi(1, life))
+	l.born = born
+	_push(_lights, l, LIGHT_CAPACITY)
+
+
 ## Lays down side `side`'s blade in hand `hand` (TrailState.RIGHT or
-## LEFT) for its trail at clock `t`: the trailing span from `inner` to
-## `tip`, with TrailState's strength and kind.
-func feed_trail(side: int, hand: int, t: float, inner: Vector3, tip: Vector3, strength: float, kind: StringName) -> void:
-	trails[side * 2 + hand].feed(t, inner, tip, strength, kind)
+## LEFT) for its air smear at clock `t`: the smearing span from `inner` to
+## `tip` (AirSmear.span()), with TrailState's strength and kind.
+func feed_smear(side: int, hand: int, t: float, inner: Vector3, tip: Vector3, strength: float, kind: StringName) -> void:
+	smears[side * 2 + hand].feed(t, inner, tip, strength, kind)
 
 
-## The trail of side `side`'s hand `hand`.
-func trail(side: int, hand: int) -> WeaponTrail:
-	return trails[side * 2 + hand]
+## The air smear of side `side`'s hand `hand`.
+func smear(side: int, hand: int) -> AirSmear:
+	return smears[side * 2 + hand]
 
 
 ## Removes every effect (round start, a new match).
 func clear() -> void:
-	for tr: WeaponTrail in trails:
-		tr.clear()
+	for sm: AirSmear in smears:
+		sm.clear()
 	_flashes.clear()
 	_rings.clear()
 	_particles.clear()
+	_sparks.clear()
+	_puffs.clear()
+	_lights.clear()
 	for pool: StringName in _pools:
 		_pools[pool].multimesh.visible_instance_count = 0
+	for light: OmniLight3D in _light_nodes:
+		light.visible = false
 
 
 # ------------------------------------------------------------------ drawing
@@ -266,6 +446,13 @@ func update(t: float) -> void:
 		if t - p.born < p.life:
 			living.append(p)
 	_particles = living
+	_sparks = _alive_particles(_sparks, t)
+	_puffs = _alive_particles(_puffs, t)
+	var lit: Array[ContactLight] = []
+	for l: ContactLight in _lights:
+		if t - l.born < l.life:
+			lit.append(l)
+	_lights = lit
 
 	var buf: PackedFloat32Array = _buffers[FLASHES]
 	for i: int in _flashes.size():
@@ -295,8 +482,35 @@ func update(t: float) -> void:
 		_write(buf, i, 0, Basis.from_scale(Vector3(d, d, d)), s["pos"], s["color"])
 	_flush(PARTICLES, _particles.size())
 
-	for tr: WeaponTrail in trails:
-		tr.update(t)
+	buf = _buffers[SPARKS]
+	for i: int in _sparks.size():
+		var s: Dictionary = spark_state(i)
+		var streak: Vector3 = s["streak"]
+		var across: Vector3 = Vector3.UP if absf(streak.normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
+		var w: float = s["width"]
+		var basis: Basis = Basis(streak, across * w, streak.cross(across).normalized() * w)
+		_write(buf, i, 0, basis, s["pos"], _faded(s["color"], flash_scale))
+	_flush(SPARKS, _sparks.size())
+
+	buf = _buffers[PUFFS]
+	for i: int in _puffs.size():
+		var s: Dictionary = puff_state(i)
+		var d: float = s["size"]
+		_write(buf, i, 0, Basis.from_scale(Vector3(d, d, d)), s["pos"], s["color"])
+	_flush(PUFFS, _puffs.size())
+
+	for k: int in _light_nodes.size():
+		var node: OmniLight3D = _light_nodes[k]
+		var i: int = _lights.size() - 1 - k
+		node.visible = lights_allowed and i >= 0
+		if node.visible:
+			var s: Dictionary = light_state(i)
+			node.position = s["pos"]
+			node.light_energy = s["energy"]
+			node.omni_range = s["range"]
+
+	for sm: AirSmear in smears:
+		sm.update(t)
 
 
 ## How many instances a pool draws now.
@@ -314,6 +528,32 @@ func ring_count() -> int:
 
 func particle_count() -> int:
 	return _particles.size()
+
+
+func spark_count() -> int:
+	return _sparks.size()
+
+
+func puff_count() -> int:
+	return _puffs.size()
+
+
+func light_count() -> int:
+	return _lights.size()
+
+
+## How many contact lights show now (none where the preset allows none).
+func lights_shown() -> int:
+	var n: int = 0
+	for light: OmniLight3D in _light_nodes:
+		if light.visible:
+			n += 1
+	return n
+
+
+## The contact lights' nodes, for checks.
+func light_nodes() -> Array[OmniLight3D]:
+	return _light_nodes
 
 
 ## Flash i at the last update: "pos", "size", "color", "alpha", "born".
@@ -349,10 +589,59 @@ func particle_state(i: int) -> Dictionary:
 	return {"pos": p.pos_at(age * SimConst.DT), "size": lerpf(p.size, p.size_end, k), "color": c, "born": p.born}
 
 
+## Spark i at the last update: "pos" (its streak's middle), "streak" (from
+## its tail to its head along its flight, as long as it flies in
+## SPARK_EXPOSURE and never under its width), "width", "color" (its heat as
+## it cools, its alpha the fade), "landed", "born".
+func spark_state(i: int) -> Dictionary:
+	var p: Particle = _sparks[i]
+	var age: float = maxf(0.0, now - p.born) + SPARK_HEAD_START
+	var k: float = clampf(age / p.life, 0.0, 1.0)
+	var seconds: float = age * SimConst.DT
+	var landed: bool = seconds >= p.t_land
+	var v: Vector3 = Vector3.ZERO if landed else p.v + Vector3(0.0, -p.gravity * seconds, 0.0)
+	var streak: Vector3 = v * SPARK_EXPOSURE
+	if streak.length() < p.size:
+		streak = (v.normalized() if v.length() > 1e-6 else Vector3.RIGHT) * p.size
+	var heat: Color = SPARK_HOT.lerp(SPARK_WARM, k * 2.0) if k < 0.5 else SPARK_WARM.lerp(SPARK_COOL, (k - 0.5) * 2.0)
+	heat.a = 1.0 - k * k
+	return {"pos": p.pos_at(seconds) - streak * 0.5, "streak": streak, "width": p.size, "color": heat,
+		"landed": landed, "born": p.born}
+
+
+## Puff i at the last update: "pos", "size", "color" (its alpha thinning
+## out), "born".
+func puff_state(i: int) -> Dictionary:
+	var p: Particle = _puffs[i]
+	var age: float = maxf(0.0, now - p.born)
+	var k: float = clampf(age / p.life, 0.0, 1.0)
+	var c: Color = p.color
+	c.a *= (1.0 - k) * smoothstep(0.0, 0.1, k)
+	# the cloud slows as it spreads
+	var drift: float = (1.0 - (1.0 - k) * (1.0 - k)) * p.life * SimConst.DT * 0.5
+	return {"pos": p.p0 + p.v * drift, "size": lerpf(p.size, p.size_end, sqrt(k)), "color": c, "born": p.born}
+
+
+## Contact light i at the last update: "pos", "energy" (fading with the
+## square of what is left of its life, times light_scale), "range", "born".
+func light_state(i: int) -> Dictionary:
+	var l: ContactLight = _lights[i]
+	var k: float = _progress(l.born, l.life)
+	return {"pos": l.at, "energy": l.energy * (1.0 - k) * (1.0 - k) * light_scale, "range": l.reach, "born": l.born}
+
+
 # ------------------------------------------------------------------ inside
 
 func _progress(born: float, life: float) -> float:
 	return clampf(maxf(0.0, now - born) / life, 0.0, 1.0)
+
+
+static func _alive_particles(list: Array[Particle], t: float) -> Array[Particle]:
+	var out: Array[Particle] = []
+	for p: Particle in list:
+		if t - p.born < p.life:
+			out.append(p)
+	return out
 
 
 static func _alive(list: Array[Fx], t: float) -> Array[Fx]:
@@ -459,6 +748,15 @@ static func _glow_material(energy: float) -> ShaderMaterial:
 	var m: ShaderMaterial = ShaderMaterial.new()
 	m.shader = GLOW_SHADER
 	m.set_shader_parameter(&"energy", energy)
+	return m
+
+
+## A material on `shader`, with its energy where `energy` is 0 or more.
+static func _shader_material(shader: Shader, energy: float) -> ShaderMaterial:
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = shader
+	if energy >= 0.0:
+		m.set_shader_parameter(&"energy", energy)
 	return m
 
 

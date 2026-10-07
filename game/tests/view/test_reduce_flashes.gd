@@ -53,6 +53,7 @@ func test_off_by_default_nothing_is_reduced() -> void:
 	assert_eq(view.camera.shake_scale, 1.0)
 	assert_eq(view.camera.fov_kick_scale, 1.0)
 	assert_eq(view.effects.flash_scale, 1.0)
+	assert_eq(view.effects.light_scale, 1.0, "the sparks' contact light whole")
 	_parry()
 	assert_eq(view.camera.push_in_scale, 1.0)
 	assert_almost_eq(view.camera.shake, view.parry_shake, 1e-6)
@@ -66,6 +67,7 @@ func test_on_at_match_start_the_scales_are_set() -> void:
 	assert_eq(view.camera.fov_kick_scale, 0.0)
 	assert_eq(view.camera.push_in_scale, 0.0)
 	assert_eq(view.effects.flash_scale, 0.45)
+	assert_eq(view.effects.light_scale, 0.5, "the sparks' contact light halved (milestone-1 task 37)")
 
 
 ## A parry with it on: no push-in (so no blur), the shake scaled, the glow

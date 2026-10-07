@@ -76,20 +76,39 @@ static func _footfall_cues() -> Array[StringName]:
 	return out
 
 
+## The deflect pairs' cues (milestone-1 task 136), which a steel parry
+## plays on their frames as the pair's halves play, not with its event.
+static func _pair_cues() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for direction: StringName in SoundBank.DEFLECT_SOUNDS:
+		for half: StringName in [&"deflect", &"recoil"]:
+			for c: Dictionary in SoundBank.deflect_pair_cues(direction, half):
+				if not out.has(c["cue"]):
+					out.append(c["cue"])
+	return out
+
+
 func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings())) -> void:
 	var fired := {}
 	var expected := {}
 	var sometimes := {}
 	var played := {}
 	var footfall := _footfall_cues()
+	var pair_cues := _pair_cues()
+	var pair_played := {}
+	var steel_parries := [0]
 	host.sim_event.connect(func(e: Dictionary) -> void:
 		if host.attract:
 			return
 		_count(fired, StringName(e["t"]))
+		if SoundBank.sounds_deflect_pair(e):
+			steel_parries[0] += 1
 		for cue: Dictionary in SoundBank.cues_for(e, audio.cast()):
 			_count(expected if float(cue["chance"]) >= 1.0 else sometimes, cue["cue"]))
 	audio.player.played.connect(func(cue: StringName, _voice: Node) -> void:
-		if not footfall.has(cue):
+		if pair_cues.has(cue):
+			_count(pair_played, cue)
+		elif not footfall.has(cue):
 			_count(played, cue))
 	var cfg := MatchConfig.make(MatchConfig.WATCH,
 		MatchSide.computer(&"rogue", pair[0], 0, &"hard"),
@@ -119,6 +138,18 @@ func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings
 		if extra > 0:
 			played[cue] = int(played[cue]) - extra
 	assert_eq(_differences(expected, played), [] as Array[String], "every event's cues played, and nothing else")
+	# each steel parry sounds its pair's halves once at most: a scrape and a
+	# cloth snap, a whoosh and a stagger
+	var scrapes := 0
+	var halves := 0
+	for cue: Variant in pair_played:
+		halves += int(pair_played[cue])
+		if String(cue).begins_with("deflect_scrape_"):
+			scrapes += int(pair_played[cue])
+	assert_lte(scrapes, steel_parries[0], "a scrape a steel parry at most")
+	assert_lte(halves, 4 * steel_parries[0], "four pair cues a steel parry at most")
+	if steel_parries[0] > 0:
+		assert_gt(scrapes, 0, "%d steel parries sounded their pairs" % steel_parries[0])
 	assert_eq(audio.player.missing, PackedStringArray(), "no sound file missing")
 	assert_eq((_services().get("ui_sounds") as SoundPlayer).missing, PackedStringArray())
 	assert_gt(footsteps[0], 0, "footsteps")

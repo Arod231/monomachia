@@ -125,6 +125,50 @@ const CUES: Dictionary = {
 		"files": ["gen_parry_redirect.wav"],
 		"volume_db": -2.0, "pitch": Vector2(0.96, 1.04), "bus": BUS_COMBAT, "spatial": true,
 	},
+	# the deflect pairs' halves (milestone-1 task 136; see DEFLECT_SOUNDS): the
+	# parrier's steel scrape by the cut's direction, the horizontal cuts a
+	# longer slide and the overhead a short bite, and the cloth as its guard
+	# turns; the attacker's blade thrown back, by direction, and its stagger
+	&"deflect_scrape_right_to_left": {
+		"files": ["deflect_scrape_right_to_left_01.wav", "deflect_scrape_right_to_left_02.wav", "deflect_scrape_right_to_left_03.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.97, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"deflect_scrape_left_to_right": {
+		"files": ["deflect_scrape_left_to_right_01.wav", "deflect_scrape_left_to_right_02.wav", "deflect_scrape_left_to_right_03.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.97, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"deflect_scrape_diagonal": {
+		"files": ["deflect_scrape_diagonal_01.wav", "deflect_scrape_diagonal_02.wav", "deflect_scrape_diagonal_03.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.97, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"deflect_scrape_overhead": {
+		"files": ["deflect_scrape_overhead_01.wav", "deflect_scrape_overhead_02.wav", "deflect_scrape_overhead_03.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.97, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"deflect_cloth": {
+		"files": ["deflect_cloth_01.wav", "deflect_cloth_02.wav", "deflect_cloth_03.wav"],
+		"volume_db": -8.0, "pitch": Vector2(0.94, 1.08), "bus": BUS_FOLEY, "spatial": true,
+	},
+	&"recoil_whoosh_right_to_left": {
+		"files": ["recoil_whoosh_right_to_left_01.wav", "recoil_whoosh_right_to_left_02.wav"],
+		"volume_db": -8.0, "pitch": Vector2(0.95, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"recoil_whoosh_left_to_right": {
+		"files": ["recoil_whoosh_left_to_right_01.wav", "recoil_whoosh_left_to_right_02.wav"],
+		"volume_db": -8.0, "pitch": Vector2(0.95, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"recoil_whoosh_diagonal": {
+		"files": ["recoil_whoosh_diagonal_01.wav", "recoil_whoosh_diagonal_02.wav"],
+		"volume_db": -5.0, "pitch": Vector2(0.95, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"recoil_whoosh_overhead": {
+		"files": ["recoil_whoosh_overhead_01.wav", "recoil_whoosh_overhead_02.wav"],
+		"volume_db": -3.0, "pitch": Vector2(0.95, 1.06), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"recoil_stagger": {
+		"files": ["recoil_stagger_01.wav", "recoil_stagger_02.wav", "recoil_stagger_03.wav"],
+		"volume_db": -8.0, "pitch": Vector2(0.93, 1.06), "bus": BUS_FOLEY, "spatial": true,
+	},
 	&"disarm_sting": {
 		"files": ["gen_disarm_sting.wav"],
 		"volume_db": -1.0, "pitch": Vector2(0.98, 1.02), "bus": BUS_COMBAT, "spatial": false,
@@ -381,6 +425,38 @@ const PAIR_IMPACTS: Dictionary = {
 	&"fists+katana": {&"block": &"clang_fist", &"block_heavy": &"clang_fist", &"parry": &"clang_fist", &"redirect": &"redirect_arm"},
 }
 
+## The deflect pairs' own sounds (milestone-1 task 136), by the cut direction
+## a pair names (StateClips.DEFLECT_DIRECTIONS) and then by half: the
+## parrier's deflect and the attacker's recoil, each a list of [cue, frame,
+## place]. The frame is how many of the world's frames after the parry the
+## cue starts: each half plays from its contact frame at 1.0x and a hit-stop
+## holds it, so MatchAudio counts the frames the world moves. The place is
+## where it sounds: where the blades meet, or that half's fighter's chest or
+## feet. They play over the parry's own contact and ring, whichever pair the
+## clips play (a move without its own borrows the nearest light's), for steel
+## on steel only (sounds_deflect_pair()). The deflect scrapes on the contact
+## and its cloth snaps as the guard turns, 2 frames on; the recoil's blade
+## is thrown back from the first frame the clip moves again (its knock, from
+## the contact over 6 source frames) and the stagger lands as the knock ends.
+const DEFLECT_SOUNDS: Dictionary = {
+	&"right_to_left": {
+		&"deflect": [[&"deflect_scrape_right_to_left", 0, &"contact"], [&"deflect_cloth", 2, &"chest"]],
+		&"recoil": [[&"recoil_whoosh_right_to_left", 1, &"chest"], [&"recoil_stagger", 12, &"feet"]],
+	},
+	&"left_to_right": {
+		&"deflect": [[&"deflect_scrape_left_to_right", 0, &"contact"], [&"deflect_cloth", 2, &"chest"]],
+		&"recoil": [[&"recoil_whoosh_left_to_right", 1, &"chest"], [&"recoil_stagger", 12, &"feet"]],
+	},
+	&"diagonal": {
+		&"deflect": [[&"deflect_scrape_diagonal", 0, &"contact"], [&"deflect_cloth", 2, &"chest"]],
+		&"recoil": [[&"recoil_whoosh_diagonal", 1, &"chest"], [&"recoil_stagger", 12, &"feet"]],
+	},
+	&"overhead": {
+		&"deflect": [[&"deflect_scrape_overhead", 0, &"contact"], [&"deflect_cloth", 2, &"chest"]],
+		&"recoil": [[&"recoil_whoosh_overhead", 1, &"chest"], [&"recoil_stagger", 12, &"feet"]],
+	},
+}
+
 ## Each fighter's own cloth and gear (milestone-1 task 36), by fighter id and
 ## moment: under a footfall (step), with a swing, in a backstep (dodge, in
 ## place of the general cloth flap), in a roll and on a landing. A fighter not
@@ -520,6 +596,26 @@ static func cues_for(event: Dictionary, cast: Array = []) -> Array[Dictionary]:
 			var cue := _cue(voice[m["moment"]], 0.0, m["chance"])
 			cue["pitch_scale"] = SIDE_PITCH[side] if side < SIDE_PITCH.size() else 1.0
 			out.append(cue)
+	return out
+
+
+## Whether a rules event's parry sounds its deflect pair (task 136): steel on
+## steel, a parry or a Flash; not a redirect, nor a parry a bare hand takes
+## part in.
+static func sounds_deflect_pair(event: Dictionary) -> bool:
+	if StringName(str(_field(event, "t", ""))) != &"parry" or str(_field(event, "kind", "parry")) == "redirect":
+		return false
+	return str(_field(event, "weapon", "")) != "fists" and str(_field(event, "defender_weapon", "")) != "fists"
+
+
+## One half ([param half], &"deflect" or &"recoil") of the deflect pair
+## sounds for [param direction] ([constant DEFLECT_SOUNDS]), each
+## [code]{"cue": StringName, "frame": int, "place": StringName}[/code];
+## empty for a direction with none.
+static func deflect_pair_cues(direction: StringName, half: StringName) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry: Array in DEFLECT_SOUNDS.get(direction, {}).get(half, []):
+		out.append({"cue": entry[0], "frame": int(entry[1]), "place": entry[2]})
 	return out
 
 

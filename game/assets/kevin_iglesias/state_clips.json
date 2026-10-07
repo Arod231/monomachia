@@ -42,10 +42,10 @@
 	},
 	"deflects": {
 		"pairs": {
-			"k_l1": {"deflect": "RightCutDeflect", "deflect_contact": 2, "recoil": "RightCutRecoil", "recoil_contact": 15},
-			"k_l2": {"deflect": "ReturnCutDeflect", "deflect_contact": 2, "recoil": "ReturnCutRecoil", "recoil_contact": 14},
-			"k_l3": {"deflect": "KesaCutDeflect", "deflect_contact": 2, "recoil": "KesaCutRecoil", "recoil_contact": 14.5},
-			"k_l4": {"deflect": "CrownCutDeflect", "deflect_contact": 2, "recoil": "CrownCutRecoil", "recoil_contact": 15.5}
+			"k_l1": {"direction": "right_to_left", "deflect": "RightCutDeflect", "deflect_contact": 2, "recoil": "RightCutRecoil", "recoil_contact": 15},
+			"k_l2": {"direction": "left_to_right", "deflect": "ReturnCutDeflect", "deflect_contact": 2, "recoil": "ReturnCutRecoil", "recoil_contact": 14},
+			"k_l3": {"direction": "diagonal", "deflect": "KesaCutDeflect", "deflect_contact": 2, "recoil": "KesaCutRecoil", "recoil_contact": 14.5},
+			"k_l4": {"direction": "overhead", "deflect": "CrownCutDeflect", "deflect_contact": 2, "recoil": "CrownCutRecoil", "recoil_contact": 15.5}
 		}
 	},
 	"reactions": {
