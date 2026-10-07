@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://view/match/shot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"finisher_fists"
+about = &"attacker"
+times = PackedFloat32Array(0, 1.2, 2.8)
+positions = PackedVector3Array(-1.8, 1.4, 0.4, -1.5, 1.1, 1.6, -0.4, 1.3, 2.6)
+looks = PackedVector3Array(0, 1.2, 0.8, 0, 1.1, 0.9, 0, 1, 0.8)
+fovs = PackedFloat32Array(46, 40, 38)
+dof_margin = 1.0
+dof_amount = 0.1
