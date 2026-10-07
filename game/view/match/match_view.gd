@@ -22,6 +22,11 @@ extends Node3D
 ## task 70, reaction_of()): from where it landed, by its weight and the
 ## attacker's weapon, the guard alone on a block; picture only.
 ##
+## The shot director (milestone-1 task 97, `shots`) takes every event: a
+## connecting ultimate, a finisher or the match-winning KO hands every camera
+## (both halves in Versus) to its cinematic shot for as long as it plays, and
+## the recall pushes them in instead.
+##
 ## A walking or running fighter puts its feet down where its clips land them
 ## (Locomotion, authored-animation task 29): the view reports each as a
 ## footfall, for the match's sound to play its footstep there (MatchAudio).
@@ -114,6 +119,9 @@ var recall_aura: RecallAura = RecallAura.new()
 ## Blood (milestone-1 task 38): bursts, stains on bodies and blades, the
 ## floor's splatter, at the settings' Blood level.
 var blood: BloodEffects
+## The shot director (milestone-1 task 97): chooses and plays the cinematic
+## shots.
+var shots: ShotDirector = ShotDirector.new()
 ## The settings whose Reduce flashes switch the view follows (use_settings();
 ## the game's by default).
 var settings: GameSettings
@@ -233,6 +241,7 @@ func render(delta: float) -> void:
 	blood.update(effects.clock())
 	for cam: CameraRig in cameras:
 		cam.frozen = host.world.hitstop > 0
+	_show_shot(delta)
 	if split != null:
 		for i: int in 2:
 			cameras[i].update_rig(delta, host.display_position(i), host.display_position(1 - i))
@@ -327,12 +336,14 @@ func _on_match_started(cfg: MatchConfig) -> void:
 		camera_mode = CameraRig.Mode.MENU
 	elif cfg.mode == MatchConfig.WATCH:
 		camera_mode = CameraRig.Mode.WATCH
+	shots.stop()
 	for cam: CameraRig in cameras:
 		cam.mode = camera_mode
 		cam.reset_round()
 		cam.shake = 0.0
 		cam.fov_kick = 0.0
 		cam.end_push_in()
+		cam.end_shot()
 		cam.dof_allowed = GameServices.graphics_preset().push_in_dof
 		cam.current = true
 	snap_camera()
@@ -472,6 +483,18 @@ func _kick(amount: float) -> void:
 		cam.kick_fov(amount)
 
 
+## Moves the cinematic shot on by `delta` seconds of real time and hands
+## every camera its view, or back to the gameplay framing once it is done.
+func _show_shot(delta: float) -> void:
+	shots.advance(delta, host.world.frame)
+	var v: Dictionary = shots.view([host.display_position(0), host.display_position(1)])
+	for cam: CameraRig in cameras:
+		if v.is_empty():
+			cam.end_shot()
+		else:
+			cam.show_shot(v)
+
+
 # ------------------------------------------------------------------ events
 
 ## Kicks the camera for a hit or block event `e`, by the weight of the
@@ -520,6 +543,9 @@ func _on_sim_event(e: Dictionary) -> void:
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
 	blood.on_event(e, effects.clock())
+	var asked: Dictionary = shots.on_event(e, host.world)
+	if asked.has("push_in"):
+		_push_in(float(asked["push_in"]))
 	var push: Dictionary = reaction_of(e, host.world)
 	if not push.is_empty():
 		fighters[int(push["side"])].react(push["contact"], push["from"], push["strength"], push["parts"], push["arms"], float(host.world.frame))

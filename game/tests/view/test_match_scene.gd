@@ -240,6 +240,39 @@ func test_a_fighter_hit_mid_swing_keeps_its_arms_on_the_swing() -> void:
 	assert_almost_eq(float(after["arms"]), 1.0, 1e-6, "in full once the swing is past its active frames")
 
 
+## The shot director on the match (milestone-1 task 97): a connecting
+## ultimate takes the camera for its shot, Reduce flashes keeps it, the
+## recall pushes in instead, and a new round hands the camera back.
+func test_a_connecting_ultimate_plays_its_shot_on_the_camera() -> void:
+	var s: GameSettings = GameSettings.new()
+	s.reduce_flashes = true
+	view.use_settings(s)
+	host.start(_cpu())
+	var W: World = host.world
+	W.fighters[1].enter_hitstun(75)
+	host.sim_event.emit({"t": &"hit", "attacker": 0, "target": 1, "attack": &"u_moon_v", "heavy": true, "sound": &"blade",
+		"pos": {"x": 0.0, "y": 1.2, "z": 0.0}})
+	assert_eq(view.shots.playing_id(), &"moonsplitter")
+	view.render(1.0 / 60.0)
+	assert_true(view.camera.in_shot(), "the camera plays it, Reduce flashes or not")
+	var at: Array[Vector3] = [host.display_position(0), host.display_position(1)]
+	var want: Vector3 = view.shots.view(at)["pos"]
+	assert_almost_eq(view.camera.global_transform.origin.distance_to(want), 0.0, 0.05, "where the shot puts it")
+	host.sim_event.emit({"t": &"roundStart", "round": 2})
+	view.render(1.0 / 60.0)
+	assert_false(view.camera.in_shot(), "a new round hands back")
+	view.camera.end_push_in()
+	host.sim_event.emit({"t": &"recallBurst", "f": 0, "on": 1, "hit": false, "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
+	assert_false(view.shots.active(), "the recall has no shot")
+	assert_eq(view.camera.push_in_scale, 0.0, "(its push-in is off under Reduce flashes)")
+	s.reduce_flashes = false
+	view.apply_reduce_flashes()
+	host.sim_event.emit({"t": &"recallBurst", "f": 0, "on": 1, "hit": false, "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
+	assert_almost_eq(view.camera.push_peak, ShotDirector.RECALL_PUSH_IN, 1e-6, "a push-in")
+	host.start(_cpu())
+	assert_false(view.shots.active(), "a new match starts without a shot")
+
+
 func test_the_hud_times_announcements_on_rules_steps() -> void:
 	host.start(_cpu())
 	assert_eq(hud.announcement_text(), "Round 1", "the intro calls the round")
