@@ -2,8 +2,9 @@ extends GutTest
 ## The look test scene (milestone-1 task 30): built headless in its own
 ## viewport, it has the realistic look's parts and the features Godot check 6
 ## lists, the fighter plays the light string, the camera is the board's
-## Camera 2, and the game's own Shrine keeps the toon look. How it looks, and
-## the bench, are judged in a real window (shots and npm run bench:look).
+## Camera 2; since the art conversion (task 43) the game's own Shrine and
+## camera are what it shows. How it looks, and the bench, are judged in a
+## real window (shots and npm run bench:look).
 
 
 func _look(extra: Dictionary = {}) -> LookTest:
@@ -40,25 +41,24 @@ static func _materials(root: Node) -> Array[Material]:
 static func _toon(m: Material) -> bool:
 	if not m is ShaderMaterial or (m as ShaderMaterial).shader == null:
 		return false
-	var sh: Shader = (m as ShaderMaterial).shader
-	return sh == ToonMaterials.TOON_SHADER or sh == ToonMaterials.TOON_TWO_SIDED_SHADER or sh.code.contains(LookMaterials.TOON_LIGHT)
+	return (m as ShaderMaterial).shader.code.contains("void light()")
 
 
 func test_the_stage_is_physically_based_with_no_ink() -> void:
 	var t: LookTest = _look()
-	assert_eq(t.stage.find_children("*", "InkWashPass", true, false).size(), 0, "no ink-wash pass")
 	var toon: int = 0
 	var lines: int = 0
+	var physical: int = 0
 	for m: Material in _materials(t.stage):
 		if _toon(m):
 			toon += 1
-		if m != null and m.next_pass != null and m.next_pass is ShaderMaterial \
-				and (m.next_pass as ShaderMaterial).shader == ToonMaterials.OUTLINE_SHADER:
+		if m != null and m.next_pass != null:
 			lines += 1
-	assert_eq(toon, 0, "no toon material left on the fighter, the Katana or the Shrine")
+		if LookMaterials.is_physical(m):
+			physical += 1
+	assert_eq(toon, 0, "no toon material on the fighter, the Katana or the Shrine")
 	assert_eq(lines, 0, "no ink outlines")
-	assert_gt(t.materials.counts["standard"], 5, "toon materials made physically based")
-	assert_gt(t.materials.counts["relit"], 2, "the floor, the rock and the Katana re-lit")
+	assert_gt(physical, 5, "physically based materials")
 
 
 func test_the_katana_s_blade_is_steel() -> void:
@@ -69,16 +69,16 @@ func test_the_katana_s_blade_is_steel() -> void:
 			blade = m as ShaderMaterial
 	assert_not_null(blade, "the blade keeps its temper line")
 	if blade != null:
-		assert_eq(blade.get_shader_parameter(&"look_metallic"), 1.0)
-		assert_lt(float(blade.get_shader_parameter(&"look_roughness")), 0.3)
-		assert_true(blade.shader.code.contains(LookMaterials.PBR_LIGHT), "lit physically")
+		assert_string_contains(blade.shader.code, "uniform float metallic : hint_range(0.0, 1.0) = 1.0;", "metal")
+		assert_string_contains(blade.shader.code, "uniform float roughness : hint_range(0.0, 1.0) = 0.2;", "polished")
+		assert_false(_toon(blade), "lit physically")
 
 
 func test_the_environment_is_the_look_s() -> void:
 	var t: LookTest = _look()
 	var e: Environment = t.environment
 	assert_true(e.volumetric_fog_enabled, "volumetric fog")
-	assert_eq(e.volumetric_fog_albedo, LookTest.MIST, "of the mist's colour")
+	assert_eq(e.volumetric_fog_albedo, LookPalette.MIST, "of the mist's colour")
 	assert_true(e.ssao_enabled, "ambient occlusion")
 	assert_true(e.glow_enabled, "bloom")
 	assert_lt(e.glow_bloom, 0.1, "subtle")
@@ -86,7 +86,7 @@ func test_the_environment_is_the_look_s() -> void:
 	assert_eq(e.tonemap_mode, Environment.TONE_MAPPER_AGX)
 	assert_true(e.adjustment_enabled, "the grade")
 	var curve: Gradient = (e.adjustment_color_correction as GradientTexture1D).gradient
-	assert_eq(curve.sample(0.0), LookTest.NIGHT_INK, "black lifted to the night's ink, never pure black")
+	assert_eq(curve.sample(0.0), LookPalette.NIGHT_INK, "black lifted to the night's ink, never pure black")
 	assert_same((t.arena.get_node(^"WorldEnvironment") as WorldEnvironment).environment, e)
 
 
@@ -95,7 +95,7 @@ func test_the_features_the_milestone_needs_are_there() -> void:
 	# anti-aliasing and FSR 2.2, spring bones and skeleton modifiers
 	var t: LookTest = _look()
 	assert_gte(t.stage.find_children("*", "Decal", true, false).size(), 2, "decals")
-	assert_eq(t.stage.find_children("*", "GPUParticles3D", true, false).filter(func(n: Node) -> bool: return n.name == &"Dust").size(), 1, "GPU particles")
+	assert_eq(t.arena.find_children("Dust", "GPUParticles3D", false, false).size(), 1, "GPU particles (the Shrine's dust)")
 	var vp: Viewport = t.stage.get_viewport()
 	assert_eq(vp.scaling_3d_mode, Viewport.SCALING_3D_MODE_FSR2, "FSR 2.2 at Ultra")
 	assert_almost_eq(vp.scaling_3d_scale, 0.67, 0.005, "from 67%")
@@ -113,15 +113,17 @@ func test_the_features_the_milestone_needs_are_there() -> void:
 
 func test_the_key_and_rim_light_only_fighters() -> void:
 	var t: LookTest = _look()
+	var mine: int = LookPalette.side_layer(t.fighter.side)
 	for light: Light3D in [t.key_light, t.rim_light]:
-		assert_eq(light.light_cull_mask, LookPalette.FIGHTER_LAYER, "%s touches fighters only" % light.name)
+		assert_eq(light.light_cull_mask, mine, "%s touches the fighter only" % light.name)
+		assert_true(t.fighter.lights.is_ancestor_of(light), "%s is the fighter's own (task 44)" % light.name)
 	var lit: int = 0
 	for g: GeometryInstance3D in _geometry(t.fighter):
-		if g.layers & LookPalette.FIGHTER_LAYER:
+		if g.layers & mine:
 			lit += 1
-	assert_gt(lit, 0, "the fighter is on the fighters' layer")
+	assert_gt(lit, 0, "the fighter is on its side's layer")
 	for g: GeometryInstance3D in _geometry(t.arena):
-		assert_eq(g.layers & LookPalette.FIGHTER_LAYER, 0, "%s isn't" % g.name)
+		assert_eq(g.layers & LookPalette.SIDE_LAYERS_MASK, 0, "%s isn't" % g.name)
 
 
 func test_the_camera_is_camera_2() -> void:
@@ -129,12 +131,12 @@ func test_the_camera_is_camera_2() -> void:
 	var c: CameraRig = t.rig_camera
 	assert_not_null(c)
 	assert_eq([c.follow_back, c.follow_side, c.follow_close_side, c.follow_close_from, c.follow_height, c.base_fov],
-		[4.49, 1.0, 0.6, 4.62, 2.01, 55.0], "the board's numbers, the distances by 1.32 for the 3.3 m duel and the height by 1.15 for the taller bodies (KE tasks 2 and 3)")
-	# at Camera 2's base distance: 4.49 m back, 1.0 m right, 2.01 m up
+		[4.49, 1.1, 1.0, 4.62, 2.01, 55.0], "the board's numbers (1.0 m to the side nudged out, Oct 7), the distances by 1.32 for the 3.3 m duel and the height by 1.15 for the taller bodies (KE tasks 2 and 3), the close swing widened for their shoulders; the game camera's own since task 43")
+	# at Camera 2's base distance: 4.49 m back, 1.1 m right, 2.01 m up
 	var target: Dictionary = c.follow_target(Vector3.ZERO, Vector3(0.0, 0.0, 4.62), Vector3(0.0, 0.0, 1.0))
 	var pos: Vector3 = target["pos"]
 	assert_almost_eq(pos.z, -4.49, 0.05, "back")
-	assert_almost_eq(absf(pos.x), 1.0, 0.05, "to the side")
+	assert_almost_eq(absf(pos.x), 1.1, 0.05, "to the side")
 	assert_almost_eq(pos.y, 2.01, 0.05, "up")
 
 
@@ -175,19 +177,6 @@ func test_the_cord_swings_on_its_spring_bones() -> void:
 		if not got.is_empty():
 			most = maxf(most, (got[0] as Vector3).distance_to(rest))
 	assert_gt(most, 0.01, "the tip swung off its pose (%.4f m at most)" % most)
-
-
-func test_the_game_s_shrine_keeps_the_toon_look() -> void:
-	var t: LookTest = _look()
-	var shrine: Node3D = (load("res://arenas/moonlit_shrine/moonlit_shrine.tscn") as PackedScene).instantiate() as Node3D
-	add_child_autofree(shrine)
-	assert_eq(shrine.find_children("*", "InkWashPass", true, false).size(), 1, "its ink-wash pass")
-	var toon: int = 0
-	for m: Material in _materials(shrine):
-		if _toon(m):
-			toon += 1
-	assert_gt(toon, 5, "its toon materials, untouched by the look test's")
-	assert_ne((shrine.get_node(^"WorldEnvironment") as WorldEnvironment).environment, t.environment)
 
 
 ## The pilot's effects in the look (milestone-1 task 37): each light's strike

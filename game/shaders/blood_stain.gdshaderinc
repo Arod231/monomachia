@@ -2,9 +2,9 @@
 // each blade hit landed. BloodEffects keeps the spots in the space of the
 // bone nearest each hit and hands them over every frame in world space, so
 // they ride the body; a spot is a ragged-edged sphere the surface darkens to
-// blood inside. Shared by the toon surface now and by the realistic
-// materials the art conversion brings. Include it after
-// toon_light.gdshaderinc (it uses toon_noise3).
+// blood inside. The physically based surface (surface.gdshaderinc) includes it.
+
+#include "res://shaders/look_noise.gdshaderinc"
 
 // xyz: the spot's centre (world, m); w: its radius (m).
 uniform vec4 blood_stains[12];
@@ -18,7 +18,7 @@ vec3 blood_over(vec3 albedo, vec3 world) {
 		vec4 s = blood_stains[i];
 		float d = distance(world, s.xyz) / max(s.w, 0.001);
 		// ragged edges and a few drops past them
-		float ragged = toon_noise3(world * 14.0 + float(i) * 3.1) * 0.6 + toon_noise3(world * 38.0) * 0.4;
+		float ragged = look_noise3(world * 14.0 + float(i) * 3.1) * 0.6 + look_noise3(world * 38.0) * 0.4;
 		wet = max(wet, smoothstep(1.0, 0.6, d + (ragged - 0.5) * 0.8));
 	}
 	// soaked cloth is darker than the blood on top of it

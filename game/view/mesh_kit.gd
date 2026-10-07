@@ -7,22 +7,12 @@ extends RefCounted
 ##
 ## Front faces are clockwise, as Godot expects. A mirroring transform (negative
 ## determinant) would turn them inside out, so builders don't use one.
-## commit(true) also bakes smoothed normals into CUSTOM0 for the outline
-## shader, so hard-edged pieces (boxes, stepped lanterns) get an unbroken
-## inverted-hull line.
 ##
 ## Usage:
 ##   var kit := MeshKit.new()
 ##   kit.color = Color(0.42, 0.4, 0.38)
 ##   kit.box(Transform3D(Basis(), Vector3(0, 0.5, 0)), Vector3(1, 1, 1))
-##   var mesh: ArrayMesh = kit.commit(true)
-
-## Positions that round to the same point of this grid (2 mm) share one
-## smoothed outline normal.
-const WELD_STEPS_PER_METRE: float = 500.0
-## The furthest a hull may push a vertex, in outline widths. A box corner
-## needs sqrt(3); a sharper edge would need more and would spike.
-const MAX_MITER: float = 3.0
+##   var mesh: ArrayMesh = kit.commit()
 
 var color: Color = Color.WHITE
 var _st: SurfaceTool
@@ -366,70 +356,9 @@ func _vertex(v: Vector3, n: Vector3, uv: Vector2, c: Color) -> void:
 	_count += 1
 
 
-## Finishes the mesh. With outline_normals, smoothed normals are baked into
-## CUSTOM0 for the outline shader.
-func commit(outline_normals: bool = false) -> ArrayMesh:
-	var m: ArrayMesh = _st.commit()
-	if outline_normals and m.get_surface_count() > 0:
-		m = _with_outline_normals(m)
-	return m
-
-
-## Returns a copy of mesh whose surfaces carry smoothed normals in CUSTOM0.
-## xyz is the direction to push each position: the sum of the distinct
-## normals met there, so a face split into more triangles doesn't pull it its
-## way. w is how far to push, in outline widths, so that every face there
-## moves out by the whole width (sqrt(3) at a box corner), at most MAX_MITER.
-## Made for MeshKit's own static meshes: blend shapes and skinning flags are
-## not carried over.
-static func _with_outline_normals(source: ArrayMesh) -> ArrayMesh:
-	var out := ArrayMesh.new()
-	for s: int in source.get_surface_count():
-		var arrays: Array = source.surface_get_arrays(s)
-		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var norms: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-		var distinct: Dictionary[Vector3i, PackedVector3Array] = {}
-		for i: int in verts.size():
-			var key: Vector3i = _weld_key(verts[i])
-			var found: PackedVector3Array = distinct.get(key, PackedVector3Array())
-			var known: bool = false
-			for m: Vector3 in found:
-				known = known or m.dot(norms[i]) > 0.9999
-			if not known:
-				found.append(norms[i])
-				distinct[key] = found
-		var pushes: Dictionary[Vector3i, Vector4] = {}
-		for key: Vector3i in distinct:
-			var sum := Vector3.ZERO
-			for m: Vector3 in distinct[key]:
-				sum += m
-			var dir: Vector3 = sum.normalized()
-			# The face the direction leans away from most needs the longest push.
-			var least: float = 1.0
-			for m: Vector3 in distinct[key]:
-				least = minf(least, dir.dot(m))
-			var miter: float = MAX_MITER if least * MAX_MITER <= 1.0 else 1.0 / least
-			pushes[key] = Vector4(dir.x, dir.y, dir.z, miter)
-		var custom := PackedFloat32Array()
-		custom.resize(verts.size() * 4)
-		for i: int in verts.size():
-			var push: Vector4 = pushes[_weld_key(verts[i])]
-			if Vector3(push.x, push.y, push.z) == Vector3.ZERO:
-				# Opposite faces cancelled out: push along this one alone.
-				push = Vector4(norms[i].x, norms[i].y, norms[i].z, 1.0)
-			custom[i * 4] = push.x
-			custom[i * 4 + 1] = push.y
-			custom[i * 4 + 2] = push.z
-			custom[i * 4 + 3] = push.w
-		arrays[Mesh.ARRAY_CUSTOM0] = custom
-		var flags: int = Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
-		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
-		out.surface_set_material(s, source.surface_get_material(s))
-	return out
-
-
-static func _weld_key(v: Vector3) -> Vector3i:
-	return Vector3i((v * WELD_STEPS_PER_METRE).round())
+## Finishes the mesh.
+func commit() -> ArrayMesh:
+	return _st.commit()
 
 
 ## A MultiMeshInstance3D drawing mesh at every transform, tinted by colors

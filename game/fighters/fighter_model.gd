@@ -18,11 +18,11 @@ extends Node3D
 ## - `idle_clip()` / `play_idle()`: the clip to idle in with the held weapon;
 ## - `apply_palette()`: switches between the look's two palettes.
 ##
-## Every surface is drawn in the toon look (ToonMaterials.fighter_from(): the
-## imported texture, normal map and vertex colour kept, drawn from both sides
-## like the import, with an ink outline), and every mesh is on the fighters'
-## render layer (LookPalette.FIGHTER_LAYER), so the arena's rim light finds
-## it. The palettes recolour the toon materials.
+## Every surface is drawn in the realistic look (LookMaterials.fighter_from():
+## physically based, the imported texture, normal map and vertex colour
+## kept, drawn from both sides like the import), and every mesh is on the
+## fighters' render layer (LookPalette.FIGHTER_LAYER), so the fighters' own
+## lights find it. The palettes recolour those materials.
 ##
 ## Built nodes are not owned by the scene, so they are never saved into it;
 ## the skeleton alone is owned by this node, so that its unique name resolves.
@@ -156,9 +156,10 @@ func _dress(index: int) -> void:
 		_override(entry, "headwear", p)
 
 
-## Gives a surface the toon version of its imported material, recoloured for
+## Gives a surface the physically based version of its imported material
+## (LookMaterials), recoloured for
 ## palette `p` (on a copy of the import): the outfit takes the palette's
-## texture, the hair and the headwear its colours. The toon materials are
+## texture, the hair and the headwear its colours. The materials are
 ## cached, so switching back and forth makes no new ones. (No lambdas here:
 ## one made in the palette's setter kept the scripts alive at exit.)
 func _override(entry: Array, kind: String, p: FighterPalette) -> void:
@@ -174,7 +175,7 @@ func _override(entry: Array, kind: String, p: FighterPalette) -> void:
 				m.albedo_color = p.hair_color
 			"headwear":
 				m.albedo_color = p.headwear_color
-		_materials[key] = ToonMaterials.fighter_from(m)
+		_materials[key] = LookMaterials.fighter_from(m)
 	(entry[0] as MeshInstance3D).set_surface_override_material(entry[1], _materials[key])
 
 
@@ -339,8 +340,9 @@ func _take_headwear(head: MeshInstance3D) -> void:
 
 
 ## Puts every mesh on the fighters' layer, finds the surfaces the palettes
-## recolour (_dress() puts those in the toon look), and puts every other
-## surface (the skin, the eyes, the hat's band) in the toon look now.
+## recolour (_dress() gives those their materials), and gives every other
+## surface (the skin, the eyes, the hat's band) its physically based
+## material now.
 func _collect_surfaces() -> void:
 	for node: Node in skeleton.find_children("*", "MeshInstance3D", true, false):
 		var mi: MeshInstance3D = node
@@ -348,7 +350,7 @@ func _collect_surfaces() -> void:
 		for s: int in mi.mesh.get_surface_count():
 			var mat: Material = mi.get_active_material(s)
 			if not (mat is BaseMaterial3D):
-				push_error("FighterModel: %s surface %d has no imported material to draw in the toon look" % [mi.name, s])
+				push_error("FighterModel: %s surface %d has no imported material to draw in the look" % [mi.name, s])
 				continue
 			if StringName(mat.resource_name) == look.outfit_material:
 				_outfit_surfaces.append([mi, s, mat])
@@ -357,12 +359,12 @@ func _collect_surfaces() -> void:
 			elif mat.resource_name == HEADWEAR_CLOTH.resource_name:
 				_headwear_surfaces.append([mi, s, mat])
 			else:
-				var toon: ShaderMaterial = ToonMaterials.fighter_from(mat)
-				mi.set_surface_override_material(s, toon)
+				var physical: ShaderMaterial = LookMaterials.fighter_from(mat)
+				mi.set_surface_override_material(s, physical)
 				# Held here too: a material only the override holds is freed
 				# before the mesh instance lets go of it, which the renderer
 				# reports.
-				_materials["toon:%d:%d" % [mi.get_instance_id(), s]] = toon
+				_materials["own:%d:%d" % [mi.get_instance_id(), s]] = physical
 
 
 ## A node's transform relative to one of its ancestors.

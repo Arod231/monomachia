@@ -17,8 +17,8 @@ extends Node3D
 ## facing), and at the next update, with the body posed for the frame shown,
 ## it is kept in the space of the bone nearest that spot, so it rides the
 ## body (the rules may run ahead of the drawing); every update hands the stains to the
-## fighter's materials in world space (blood_stain.gdshaderinc, in the toon
-## surface now and the realistic materials later). The blade's blood is the
+## fighter's materials in world space (blood_stain.gdshaderinc, in the
+## physically based surface, LookMaterials). The blade's blood is the
 ## Katana blade shader's blood_amount. The burst keeps the effect clock
 ## (CombatEffects.clock()), so it holds still in hit-stop like the sparks.
 ## Picture only: it reads rules events and never changes the rules.
@@ -249,7 +249,7 @@ func splat_alpha(i: int) -> float:
 
 
 ## The materials a fighter's body draws with that take blood stains: every
-## toon surface under its skeleton, not its weapons'.
+## surface under its skeleton, not its weapons'.
 static func body_materials(view: FighterView) -> Array[ShaderMaterial]:
 	var out: Array[ShaderMaterial] = []
 	if view == null or view.model == null:
@@ -260,7 +260,7 @@ static func body_materials(view: FighterView) -> Array[ShaderMaterial]:
 			continue
 		for s: int in mi.mesh.get_surface_count():
 			var m: Material = mi.get_active_material(s)
-			if m is ShaderMaterial and (m as ShaderMaterial).shader in [ToonMaterials.TOON_SHADER, ToonMaterials.TOON_TWO_SIDED_SHADER]:
+			if m is ShaderMaterial and LookMaterials.is_surface_shader((m as ShaderMaterial).shader):
 				out.append(m)
 	return out
 

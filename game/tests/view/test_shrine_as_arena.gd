@@ -145,7 +145,7 @@ func test_no_prop_reaches_into_the_room_the_match_cameras_move_in() -> void:
 	# cameras pass over the parapet, which is checked on its own.
 	var space: PhysicsDirectSpaceState3D = await _prop_space([&"Parapet"])
 	var rig: CameraRig = autofree(CameraRig.new())
-	rig.apply_arena(def.camera_max_radius, def.camera_far)
+	_apply_shrine(rig)
 	var band: Vector2 = _camera_heights(rig)
 	var room := CylinderShape3D.new()
 	room.radius = rig.arena_limit() + CLEARANCE
@@ -161,13 +161,29 @@ func test_no_prop_reaches_into_the_room_the_match_cameras_move_in() -> void:
 	assert_eq(inside, [] as Array[String], "props within %.2f m of the centre, %.2f to %.2f m up" % [room.radius, band.x - CLEARANCE, band.y + CLEARANCE])
 
 
+## Camera 2's 1.75 m is lower than the parapet's top with its shake and near
+## plane, so the cameras rise over the rim before they reach it (milestone-1
+## task 43, the owner's choice, Oct 7): from camera_rim_full() out they sit
+## at camera_rim_height, which clears it.
 func test_the_cameras_pass_over_the_parapet_clear_of_their_near_plane() -> void:
 	var shrine: Node3D = (load(SHRINE_SCENE) as PackedScene).instantiate()
 	add_child_autofree(shrine)
 	var parapet: MeshInstance3D = shrine.find_child("Parapet", true, false)
 	var top: float = (parapet.global_transform * parapet.get_aabb()).end.y
 	var rig: CameraRig = autofree(CameraRig.new())
-	assert_lt(top, _camera_heights(rig).x - NEAR_REACH, "the parapet's top (%.2f m) stays under the lowest camera" % top)
+	_apply_shrine(rig)
+	var shake: float = rig.shake_max * rig.shake_amplitude * 0.5
+	assert_lt(top, def.camera_rim_height - shake - maxf(NEAR_REACH, CLEARANCE),
+		"the parapet's top (%.2f m) stays under the risen cameras" % top)
+	assert_lte(def.camera_rim_full() + CLEARANCE, def.wall_inner_radius(), "risen before the parapet's inner face")
+	var lowest: float = _camera_heights(rig).x
+	for r: float in [def.camera_rim_full(), def.wall_radius, rig.arena_limit()]:
+		assert_gte(rig.rise_over_rim(Vector3(r, lowest, 0.0)).y, def.camera_rim_height - 1e-5, "over the rim at %.2f m" % r)
+
+
+## The shrine's camera data on a rig, its rim included.
+func _apply_shrine(rig: CameraRig) -> void:
+	rig.apply_arena(def.camera_max_radius, def.camera_far, def.camera_rim_height, def.camera_rim_from(), def.camera_rim_full())
 
 
 ## The sweep that found the cameras in the props at the old 19.5 m limit, kept
@@ -178,7 +194,7 @@ func test_the_cameras_pass_over_the_parapet_clear_of_their_near_plane() -> void:
 func test_the_follow_camera_round_the_wall_never_meets_a_prop() -> void:
 	var space: PhysicsDirectSpaceState3D = await _prop_space([])
 	var rig: CameraRig = autofree(CameraRig.new())
-	rig.apply_arena(def.camera_max_radius, def.camera_far)
+	_apply_shrine(rig)
 	var ball := SphereShape3D.new()
 	ball.radius = CLEARANCE
 	var query := PhysicsShapeQueryParameters3D.new()
@@ -192,7 +208,7 @@ func test_the_follow_camera_round_the_wall_never_meets_a_prop() -> void:
 				var player: Vector3 = ShrineLayout.polar(deg, r)
 				var opponent: Vector3 = player + (-player).normalized().rotated(Vector3.UP, deg_to_rad(bearing)) * d
 				var direction: Vector3 = (opponent - player).normalized()
-				path.append(rig.clamp_to_arena(rig.follow_target(player, opponent, direction)["pos"]))
+				path.append(rig.rise_over_rim(rig.clamp_to_arena(rig.follow_target(player, opponent, direction)["pos"])))
 			for i: int in path.size():
 				var names: Array[String] = []
 				query.transform = Transform3D(Basis(), path[i])

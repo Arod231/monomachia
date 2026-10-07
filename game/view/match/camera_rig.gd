@@ -53,11 +53,17 @@ const PUSH_EPSILON: float = 1e-5
 @export var mode: Mode = Mode.FOLLOW
 
 @export_group("Follow")
+## The follow camera is framed as the mood board's Camera 2, For Honor's,
+## settled in the look test (milestone-1 tasks 30 and 43): about 3.4 m back,
+## 1.1 m to the right (Camera 2's 1.0 m, nudged out so the player's shoulders
+## never hide the opponent's at 3.5 m; the owner's choice, Oct 7), swinging
+## out 0.6 m for each metre closer than 3.5 m, 1.75 m up, a 55° field of
+## view. Near the wall it rises over the arena's rim (rise_over_rim()).
 ## Distance behind the player (m).
-@export var follow_back: float = 6.07
+@export var follow_back: float = 4.49
 ## Extra distance per metre of separation past follow_far_from.
 @export var follow_back_per_metre: float = 0.25
-@export var follow_far_from: float = 3.96
+@export var follow_far_from: float = 4.62
 ## Separation past follow_far_from counts up to this many metres.
 @export var follow_far_cap: float = 8.0
 ## Extra distance per metre the fighters are closer than follow_close_from
@@ -71,9 +77,9 @@ const PUSH_EPSILON: float = 1e-5
 @export var follow_close_side: float = 1.0
 @export var follow_close_from: float = 4.62
 ## Offset to the player's right (m); positive is right.
-@export var follow_side: float = 1.35
+@export var follow_side: float = 1.1
 ## Camera height above the floor (m).
-@export var follow_height: float = 2.24
+@export var follow_height: float = 2.01
 ## Extra height per metre of separation past follow_far_from.
 @export var follow_height_per_metre: float = 0.08
 ## How much of the player's jump height the camera follows.
@@ -116,7 +122,7 @@ const PUSH_EPSILON: float = 1e-5
 @export var look_damping: float = 12.0
 
 @export_group("Lens")
-@export var base_fov: float = 60.0
+@export var base_fov: float = 55.0
 @export var near_clip: float = 0.1
 ## The far clip without arena data (an arena's camera_far replaces it).
 @export var far_clip: float = 900.0
@@ -174,6 +180,11 @@ var rig_look: Vector3 = Vector3(0.0, 1.2, 0.0)
 ## apply_arena(); 0 when the arena has none.
 var arena_max_radius: float = 0.0
 var arena_far: float = 0.0
+## The arena's rim (ArenaDef.camera_rim_height, camera_rim_from() and
+## camera_rim_full()), set by apply_arena(); a 0 height when it has none.
+var arena_rim_height: float = 0.0
+var arena_rim_from: float = 0.0
+var arena_rim_full: float = 0.0
 var _time: float = 0.0
 ## The shake's offsets: seeded, so the same shake looks the same every run.
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -207,13 +218,19 @@ func _apply_lens() -> void:
 
 
 ## Takes an arena's camera data: how far from the centre the camera may go
-## (ArenaDef.camera_max_radius) and the far clip its backdrop needs
-## (ArenaDef.camera_far). 0 for either restores the default
-## (ARENA_RADIUS + arena_margin, far_clip).
-func apply_arena(max_radius: float, far_plane: float) -> void:
+## (ArenaDef.camera_max_radius), the far clip its backdrop needs
+## (ArenaDef.camera_far), and the rim it rises over near the wall (the
+## least height, and the radii it eases up between). 0 for the first two
+## restores the default (ARENA_RADIUS + arena_margin, far_clip); a 0 rim
+## height means no rise.
+func apply_arena(max_radius: float, far_plane: float, rim_height: float = 0.0, rim_from: float = 0.0,
+		rim_full: float = 0.0) -> void:
 	arena_max_radius = maxf(0.0, max_radius)
 	arena_far = maxf(0.0, far_plane)
 	far = arena_far if arena_far > 0.0 else far_clip
+	arena_rim_height = maxf(0.0, rim_height)
+	arena_rim_full = rim_full
+	arena_rim_from = minf(rim_from, rim_full)
 
 
 # ------------------------------------------------------------------ hooks
@@ -385,7 +402,7 @@ func _move(delta: float, player: Vector3, opponent: Vector3, p_snap: bool) -> vo
 	var tpos: Vector3 = target["pos"]
 	var tlook: Vector3 = target["look"]
 	if mode != Mode.MENU:
-		tpos = clamp_to_arena(tpos)
+		tpos = rise_over_rim(clamp_to_arena(tpos))
 	if p_snap:
 		rig_position = tpos
 		rig_look = tlook
@@ -514,6 +531,17 @@ func menu_target(time: float) -> Dictionary:
 ## camera_max_radius, else ARENA_RADIUS + arena_margin.
 func arena_limit() -> float:
 	return arena_max_radius if arena_max_radius > 0.0 else SimConst.ARENA_RADIUS + arena_margin
+
+
+## Near the wall the camera rises over the arena's rim: from arena_rim_from
+## out to arena_rim_full it eases up to at least arena_rim_height, and stays
+## there further out. Elsewhere, or with no rim, p is unchanged.
+func rise_over_rim(p: Vector3) -> Vector3:
+	if arena_rim_height <= 0.0 or p.y >= arena_rim_height:
+		return p
+	var t: float = smoothstep(arena_rim_from, maxf(arena_rim_full, arena_rim_from + 1e-3), Vector2(p.x, p.z).length())
+	p.y = lerpf(p.y, arena_rim_height, t)
+	return p
 
 
 ## The arena clamp: no further than arena_limit() from the centre.

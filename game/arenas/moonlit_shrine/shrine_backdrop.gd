@@ -13,7 +13,7 @@ extends RefCounted
 ## - Mist, puffs on the clouds and at the waterfalls' feet, and CragMist round
 ##   the crag's tip, on the below-deck layer with the crag.
 ## All of it is far away and cheap: unshaded shaders on the look's noise (the
-## cliffs' rock and buildings are toon-lit), no shadows and no outlines. The
+## cliffs' rock and buildings are lit), and no shadows. The
 ## presets trim it by scenery detail (DETAIL).
 
 const CLOUD_SEA: Shader = preload("res://shaders/cloud_sea.gdshader")
@@ -232,7 +232,7 @@ static func _cliffs(layout: ShrineLayout) -> Node3D:
 	var spires := MeshKit.instance(rock.commit(), _cliff_rock(), false)
 	spires.name = "Spires"
 	node.add_child(spires)
-	kits.finish(node, ShrineProps.materials(false), [], kits.keys())
+	kits.finish(node, ShrineProps.materials(), kits.keys())
 	var waterfalls := MeshKit.instance(falls.commit(), _material(WATERFALL, {}), false)
 	waterfalls.name = "Waterfalls"
 	node.add_child(waterfalls)

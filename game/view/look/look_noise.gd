@@ -9,11 +9,11 @@ extends RefCounted
 ## - R, G, B: three independent value noises with CELLS lattice cells across
 ##   the texture, smoothstep-interpolated like the shaders' own value noise, so
 ##   thresholds tuned for one suit the other;
-## - A: white noise, one random value per texel (paper grain specks).
+## - A: white noise, one random value per texel.
 ##
 ## Shaders include res://shaders/look_noise.gdshaderinc, whose look_noise()
 ## returns value noise with one cell per unit, like a procedural noise(p).
-## Materials get the texture through apply_to(); ToonMaterials does that for
+## Materials get the texture through apply_to(); LookMaterials does that for
 ## every material it makes.
 
 const SIZE: int = 256

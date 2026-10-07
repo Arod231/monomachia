@@ -17,5 +17,6 @@ spawn_points = Array[Transform3D]([Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0
 gate_anchors = Array[Transform3D]([Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -16.9), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 16.9)])
 camera_max_radius = 16.2
 camera_far = 3000.0
+camera_rim_height = 2.05
 ambience_id = &"ambience_shrine"
 environment = ExtResource("2")

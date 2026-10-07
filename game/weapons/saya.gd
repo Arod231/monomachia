@@ -96,10 +96,10 @@ static func build(weapon: Node3D) -> Saya:
 		st.add_vertex(middle)
 	st.generate_normals()
 	saya.mesh = st.commit()
-	var toon: ShaderMaterial = ToonMaterials.weapon(LACQUER, false)
-	saya.set_surface_override_material(0, toon)
+	var lacquer: ShaderMaterial = LookMaterials.weapon(LACQUER, false)
+	saya.set_surface_override_material(0, lacquer)
 	# kept in the metadata too, as WeaponLook.instantiate() does
-	saya.set_meta(&"toon_materials", [toon] as Array[Material])
+	saya.set_meta(&"look_materials", [lacquer] as Array[Material])
 	return saya
 
 
