@@ -52,12 +52,13 @@ const SCARF_SLOPE: float = 0.25
 ## How far the drape fills hollows (smoothing iterations).
 const DRAPE_ITERATIONS: int = 30
 
-## Tricorn sizes, in metres.
+## Tricorn sizes, in metres; the brim grew by 1.15 with the taller bodies
+## (KE task 3).
 const HAT_BAND_ABOVE_BROWS: float = 0.014
 const HAT_FORWARD_TILT_DEG: float = 9.0
 const HAT_CLEARANCE: float = 0.007
-const HAT_BRIM: float = 0.072
-const HAT_FRONT_BRIM: float = 0.085
+const HAT_BRIM: float = 0.083
+const HAT_FRONT_BRIM: float = 0.098
 const HAT_BAND_HEIGHT: float = 0.02
 const HAT_RING_SEGMENTS: int = 96
 

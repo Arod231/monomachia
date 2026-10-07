@@ -8,6 +8,8 @@ extends RefCounted
 ## Milestone 1 proves the stomp and the leap reachable against the Katana's
 ## Piercing Thrust and Swallow Sweep (milestone-1 task 83); the evade's case,
 ## against the Greatsword's slam, returns with the Greatsword in milestone 2.
+## Since KE task 9 each case runs once per grip of the countering brain's
+## Katana (grips()), the brain holding that grip throughout.
 
 ## [drill, the dummy's weapon, the counter that beats it]
 const CASES: Array = [
@@ -16,13 +18,27 @@ const CASES: Array = [
 ]
 
 
-## Runs one case for `frames` steps and returns its tally: "attempts" (the
-## dummy's telegraphs), "counter:<kind>" for each counter landed (by either
-## side), "hit" (the dummy's hits) and "whiff" (its whiffs).
-static func run(drill: StringName, weapon: StringName, frames: int) -> Dictionary[String, int]:
+## The grips the countering brain's Katana runs each case in (KE task 9),
+## or [&""] for one without grips.
+static func grips() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for g: WeaponGrip in Moves.KATANA.grips:
+		out.append(g.id)
+	if out.is_empty():
+		out.append(&"")
+	return out
+
+
+## Runs one case for `frames` steps, the countering brain holding `grip`
+## (&"" its first), and returns its tally: "attempts" (the dummy's
+## telegraphs), "counter:<kind>" for each counter landed (by either side),
+## "hit" (the dummy's hits) and "whiff" (its whiffs).
+static func run(drill: StringName, weapon: StringName, frames: int, grip: StringName = &"") -> Dictionary[String, int]:
 	var W: World = World.new(FighterConfig.make(Moves.WEAPONS[weapon]), FighterConfig.make(Moves.KATANA), 5)
 	for f: Fighter in W.fighters:
 		f.set_state(&"free")
+	if grip != &"":
+		W.fighters[1].grip = grip
 	var dummy: TrainingBrain = TrainingBrain.new(W.fighters[0])
 	dummy.set_behaviour(drill)
 	var ai: AIBrain = AIBrain.new(W.fighters[1], counter_params(), 3)
@@ -50,7 +66,7 @@ static func run(drill: StringName, weapon: StringName, frames: int) -> Dictionar
 
 
 ## The countering brain: { ...DIFFICULTY.hard, counter: 1, parry: 0, dodge: 0,
-## block: 0, aggression: 0, guard: 0 }.
+## block: 0, aggression: 0, guard: 0 }, never switching grip (KE task 9).
 static func counter_params() -> AIBrain.AIParams:
 	var params: AIBrain.AIParams = AIBrain.DIFFICULTY[&"hard"].copy()
 	params.counter = 1.0
@@ -59,6 +75,7 @@ static func counter_params() -> AIBrain.AIParams:
 	params.block = 0.0
 	params.aggression = 0.0
 	params.guard = 0.0
+	params.gripping(false, 0.0, 0.0)
 	return params
 
 

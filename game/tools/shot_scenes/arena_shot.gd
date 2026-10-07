@@ -77,7 +77,7 @@ const MARKER_COLOR := Color(0.3, 0.9, 1.0)
 const TITLE_COLOR := Color(0.92, 0.92, 0.95)
 ## The overlay's marks: a ring on each spawn (fighter-sized) and on each gate,
 ## lifted clear of the floor and the gate's props, and an arrow for facing.
-const SPAWN_MARK_RADIUS: float = 0.42
+const SPAWN_MARK_RADIUS: float = 0.5
 const SPAWN_MARK_LIFT: float = 2.0
 const GATE_MARK_RADIUS: float = 0.6
 const GATE_MARK_LIFT: float = 8.0

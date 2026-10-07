@@ -312,7 +312,7 @@ func test_a_locked_elbow_and_a_grip_out_of_reach_fail() -> void:
 	_assert_at(SwingCheck.check(_move(_cut_with(rogue, 8, straight), 8, 3, 14), _sword(), rogue), ["right_hand", "elbow locks"], 8.0, "an elbow at 177°")
 	var far: Swing.KeyPose = _key(rogue, &"right", 8, _v(0.0, -0.1, 1.0), _v(0.0, -0.1, 1.0), _v(1.0, 0.3, 0.0))
 	far.grip = V3.add(far.grip, V3.make(0.0, 0.0, 0.1))
-	_assert_at(SwingCheck.check(_move(_cut_with(rogue, 8, far), 8, 3, 14), _sword(), rogue), ["right_hand", "10.0 cm out of the arm's reach"], 8.0,
+	_assert_at(SwingCheck.check(_move(_cut_with(rogue, 8, far), 8, 3, 14), _sword(), rogue), ["right_hand", "10.1 cm out of the arm's reach"], 8.0,
 			"a grip 10 cm past reach")
 
 
@@ -342,7 +342,7 @@ func test_the_check_looks_between_frames() -> void:
 	for x: float in [0.3, -0.3]:
 		var k: Swing.KeyPose = Swing.KeyPose.new()
 		k.frame = 4 if x > 0.0 else 5
-		k.grip = V3.make(x, 1.6, 0.25)
+		k.grip = V3.make(x, 1.835, 0.25)
 		k.blade = V3.make(0.0, 1.0, 0.0)
 		k.edge = V3.make(0.0, 0.0, 1.0)
 		keys.append(k)

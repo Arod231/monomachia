@@ -7,7 +7,8 @@ extends SceneTree
 ##
 ## The model, in weapon space (see WeaponLook): origin at the centre of the
 ## right hand's grip, +Y toward the tip, +X toward the edge.
-## - Blade: 0.72 m from the guard, single-edged, curved in one smooth arc:
+## - Blade: 1.333 m from the guard (1.30 m from the habaki to the point, KE
+##   task 2), single-edged, curved in one smooth arc:
 ##   the centre line bends back (toward -X) by SORI * s^2 along its length
 ##   fraction s, so the edge is on the convex side and the arc's depth
 ##   against the straight line from guard to point (the sori) is SORI / 4,
@@ -35,7 +36,7 @@ const MATERIALS: Array[String] = [
 	"res://weapons/katana/materials/fittings.tres",
 ]
 
-const BLADE_LENGTH: float = 0.72
+const BLADE_LENGTH: float = 1.333
 const GRIP_LENGTH: float = 0.26
 ## The tsuba's grip-side face, 5 cm above the right hand's centre.
 const GUARD_Y: float = 0.05

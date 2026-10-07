@@ -1,11 +1,14 @@
 # Runs inside Blender (headless) for scripts/blender/export.mjs: exports the
 # open .blend to one GLB (milestone-1 task 12). It refuses a clip or fighter
 # source whose armature lacks the Kevin Iglesias rig's bones, since task 13's
-# import retargets and mirrors those clips through the Iglesias bone map.
+# import retargets and mirrors those clips through the Iglesias bone map. A
+# body part (KE task 3) goes out as a .gltf and its .bin, without images (the
+# export keeps the original part's materials), and is refused without the
+# Quaternius rig's bones (the bones given).
 #
 #   blender -b <source.blend> --factory-startup --python-exit-code 1 \
-#     --python scripts/blender/export_blend.py -- --kind <clip|fighter|weapon|shrine> \
-#     --out <file.glb> [--bones <bones.json>]
+#     --python scripts/blender/export_blend.py -- --kind <clip|fighter|weapon|shrine|body> \
+#     --out <file.glb, or file.gltf for a body> [--bones <bones.json>]
 #
 # Exit codes: 0 exported, 3 refused (the reason on a line starting
 # "export_blend: refused:"); anything else is a Blender or script failure.
@@ -16,9 +19,10 @@ import sys
 import bpy
 
 REFUSED = 3
-# The kinds whose sources carry the Iglesias armature, and whose exports keep
-# their animations (only clips do; a fighter's motion comes from the clips).
-RIGGED = {"clip", "fighter"}
+# The kinds whose sources carry an armature (the Iglesias one, or a body
+# part's Quaternius one), and whose exports keep their animations (only clips
+# do; a fighter's motion comes from the clips).
+RIGGED = {"clip", "fighter", "body"}
 ANIMATED = {"clip"}
 
 
@@ -32,8 +36,8 @@ def args():
             raise SystemExit(f"export_blend: unknown or empty argument {argv[i]}")
         out[key] = argv[i + 1]
         i += 2
-    if out["kind"] not in {"clip", "fighter", "weapon", "shrine"} or not out["out"]:
-        raise SystemExit("export_blend: needs --kind clip|fighter|weapon|shrine and --out")
+    if out["kind"] not in {"clip", "fighter", "weapon", "shrine", "body"} or not out["out"]:
+        raise SystemExit("export_blend: needs --kind clip|fighter|weapon|shrine|body and --out")
     return out
 
 
@@ -45,11 +49,13 @@ def refuse(reason):
     os._exit(REFUSED)
 
 
-def rig(bones):
-    """The armature holding every Iglesias bone, or a refusal naming the gap."""
+def rig(bones, kind):
+    """The armature holding every bone of the kind's rig, or a refusal naming
+    the gap."""
+    rig_name = "the Quaternius" if kind == "body" else "the Kevin Iglesias"
     armatures = [o for o in bpy.data.objects if o.type == "ARMATURE"]
     if not armatures:
-        refuse("no armature (a clip or fighter is keyed on the Kevin Iglesias rig)")
+        refuse("no armature (a clip or fighter is keyed on the Kevin Iglesias rig, a body part rigged on the Quaternius one)")
     best, missing = None, None
     for a in armatures:
         names = {b.name for b in a.data.bones}
@@ -58,7 +64,7 @@ def rig(bones):
             best, missing = a, gap
     if missing:
         shown = ", ".join(missing[:6]) + (" and %d more" % (len(missing) - 6) if len(missing) > 6 else "")
-        refuse(f"the armature {best.name} lacks the Kevin Iglesias rig's bones {shown}")
+        refuse(f"the armature {best.name} lacks {rig_name} rig's bones {shown}")
     return best
 
 
@@ -70,7 +76,7 @@ def main():
             raise SystemExit("export_blend: a rigged kind needs --bones")
         with open(a["bones"], encoding="utf-8") as f:
             bones = json.load(f)
-    armature = rig(bones) if a["kind"] in RIGGED else None
+    armature = rig(bones, a["kind"]) if a["kind"] in RIGGED else None
     if a["kind"] in ANIMATED and not bpy.data.actions:
         refuse("a clip source has no action")
     options = dict(
@@ -87,6 +93,11 @@ def main():
         # a clip's frame k plays at k/30 s and it lasts its length/30 s
         export_anim_slide_to_zero=True,
     )
+    if a["kind"] == "body":
+        # the meshes, skin and skeleton; the game copy keeps the original
+        # part's materials and its texture files
+        options["export_format"] = "GLTF_SEPARATE"
+        options["export_image_format"] = "NONE"
     if a["kind"] == "clip":
         # a clip is the armature and its motion, no meshes
         for o in bpy.context.view_layer.objects:
