@@ -268,7 +268,8 @@ const BakeSwings := preload("res://tools/bake_swings.gd")
 
 
 ## Every move re-baked from the real clips matches the committed swing files
-## and frame-data table (milestone-1 task 16: any drift fails).
+## and frame-data table (milestone-1 task 16: any drift fails); each keyed
+## move's result is recorded for the per-move checklist's item 16 (task 40).
 func test_local_every_move_matches_a_fresh_bake() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
@@ -277,6 +278,7 @@ func test_local_every_move_matches_a_fresh_bake() -> void:
 	var table: MoveClips = MoveClips.read(manifest)
 	var checked: int = 0
 	var rows: Dictionary = {}
+	var drift: Dictionary = {}
 	for wid: StringName in table.moves:
 		if table.of(wid).is_empty():
 			continue
@@ -285,12 +287,24 @@ func test_local_every_move_matches_a_fresh_bake() -> void:
 		var out: Dictionary = BakeSwings.bake_weapon(wid, table, manifest, self, old)
 		assert_eq(out["errors"], [] as Array[String], "%s bakes" % wid)
 		assert_eq(out["text"], old, "%s's swing file is what a fresh bake writes (node scripts/godot.mjs bake)" % wid)
+		var fresh: Variant = JSON.parse_string(out["text"])
+		var kept: Variant = JSON.parse_string(old) if old != "" else {}
+		for m: Array in ChecklistResults.keyed_moves():
+			if m[0] != wid:
+				continue
+			var problems: Array[String] = []
+			if fresh is not Dictionary or kept is not Dictionary 					or (fresh as Dictionary).get("swings", {}).get(String(m[1])) != (kept as Dictionary).get("swings", {}).get(String(m[1])):
+				problems.append("its swing drifts from a fresh bake")
+			drift[m[1]] = problems
 		rows[String(wid)] = out["rows"]
 		checked += 1
 	assert_true(checked <= table.moves.size(), "%d weapons re-baked" % checked)
 	var extras: Dictionary = BakeSwings.bake_extras(manifest, self)
 	assert_eq(extras["errors"], [] as Array[String])
 	var text: String = FrameDataRows.table_text(rows, extras["gaits"], extras["clips"], FrameDataRows.NOT_KEYED_YET)
+	var table_drifts: bool = text != FileAccess.get_file_as_string(FrameDataTable.PATH)
+	for id: StringName in drift:
+		ChecklistResults.record_problems(16, id, drift[id] + (["the frame-data table drifts from a fresh bake"] if table_drifts else []))
 	assert_eq(text, FileAccess.get_file_as_string(FrameDataTable.PATH), "the frame-data table is what a fresh bake writes, source checksums and all")
 
 

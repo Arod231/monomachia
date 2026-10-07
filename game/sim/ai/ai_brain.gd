@@ -36,6 +36,9 @@ extends RefCounted
 
 ## Difficulty: &"easy" | &"normal" | &"hard"
 const DIFFICULTIES: Array[StringName] = [&"easy", &"normal", &"hard"]
+## A string's follow-up is pressed this many frames before the move's branch
+## point into it, inside the input buffer (SimConst.INPUT_BUFFER).
+const COMBO_LEAD: int = 4
 
 
 class AIParams:
@@ -140,7 +143,10 @@ var _next_think: int = 0
 var _attack_cooldown_until: int = 0
 var _combo_left: int = 0
 var _combo_btn: int = Btn.LIGHT
-var _next_combo_press: int = 0
+## The string's last press is a heavy.
+var _combo_finish_heavy: bool = false
+## The move whose follow-up the string last pressed for (one press a move).
+var _combo_pressed: StringName = &""
 var _charge_until: int = -1
 var _strafe: int = 1
 var _strafe_until: int = 0
@@ -314,12 +320,20 @@ func _think() -> RawInput:
 		_charge_until = -1
 		_hold_mask &= ~(1 << Btn.HEAVY)
 
-	# Continue a combo string.
+	# Continue a combo string: each press lands COMBO_LEAD frames before the
+	# move's branch point into its follow-up (the table's, milestone-1 task
+	# 20), inside the input buffer, so slow re-keyed lights chain too (task 40).
 	if _combo_left > 0 and me.state == &"attack":
-		if frame >= _next_combo_press:
-			_tap(_combo_btn, frame, 2)
-			_combo_left -= 1
-			_next_combo_press = frame + 8
+		var at: AttackState = me.atk
+		if at != null and at.def.id != _combo_pressed:
+			var btn: int = Btn.HEAVY if _combo_finish_heavy and _combo_left == 1 else _combo_btn
+			var follow: StringName = at.def.chain_heavy if btn == Btn.HEAVY else at.def.chain_light
+			if follow == &"":
+				_combo_left = 0
+			elif at.frame >= at.def.branch_window(follow)[0] - COMBO_LEAD:
+				_tap(btn, frame, 2)
+				_combo_left -= 1
+				_combo_pressed = at.def.id
 		return _output(frame)
 	if me.state != &"attack":
 		_combo_left = 0
@@ -665,16 +679,14 @@ func _lift_drift() -> float:
 
 
 func _start_combo(frame: int, length: int, finish_heavy: bool) -> void:
-	# the follow-up presses wait out the first attack's lift off the shoulder
-	var lift: int = me.shoulder_lift()
+	# the follow-up presses wait for each move's branch point, so the first
+	# attack's lift off the shoulder is waited out too
 	_tap(Btn.LIGHT, frame, 2)
 	_combo_left = length - 1
 	_combo_btn = Btn.LIGHT
-	_next_combo_press = frame + lift + 8
-	if finish_heavy and length > 1:
-		# replace the last press with a heavy
-		_combo_left = length - 2
-		_tap(Btn.HEAVY, frame + lift + 8 * (length - 1), 2)
+	# the last press a heavy
+	_combo_finish_heavy = finish_heavy and length > 1
+	_combo_pressed = &""
 	_move_x = 0.0
 	_move_y = 0.0
 
@@ -711,7 +723,8 @@ func _pick_attack(frame: int, _d: float) -> void:
 		_attack_cooldown_until = frame + 30
 		return
 	if r < 0.55:
-		var length: int = rng.int(1, 3)
+		# up to the Katana's whole light string (milestone-1 task 40)
+		var length: int = rng.int(1, 4)
 		var finish_heavy: bool = rng.chance(0.25)
 		_start_combo(frame, length, finish_heavy)
 		_attack_cooldown_until = frame + 24 + SimMath.js_round((1.0 - P.aggression) * 40.0)

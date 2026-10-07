@@ -512,3 +512,92 @@ func test_local_every_katana_move_s_feet_and_blade_print_their_worst() -> void:
 		ChecklistResults.record(8, move_id, w.slide <= PoseCheck.FOOT_SLIDE_MAX, "worst %.1f cm at frame %d" % [w.slide * 100.0, w.slide_frame])
 		ChecklistResults.record(9, move_id, w.blade_gap >= PoseCheck.BLADE_CLEARANCE, "worst %.1f cm at frame %d" % [w.blade_gap * 100.0, w.blade_frame])
 	gut.p("hunter, Katana moves with the clips, worst over every rules frame:\n" + "\n".join(lines))
+
+
+## The per-move checklist's items 8 and 9 for the clip rows (milestone-1 task
+## 40): the Hunter with the clips is struck by each of the string's lights
+## from the front, each side and behind (standing, then guarding from the
+## front), and has each light parried and parries each one, the rules moving
+## the body; every rules frame its reaction, recoil or deflect plays is
+## measured, and each clip's worst foot slide and blade clearance are
+## recorded by row (a hit reaction's blade isn't checked). Recorded for the
+## owner, not held: task 40 reports these, the new strings re-key them.
+func test_local_the_reaction_clips_feet_and_blade_are_recorded() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	var bench: MoveBench = _bench(&"hunter")
+	var block: RawInput = RawInput.make(0.0, 0.0, 1 << Btn.BLOCK)
+	## worst by clip: [slide (m), its frame, blade gap (m), its frame]
+	var worst: Dictionary[StringName, Array] = {}
+	var measure: Callable = func(track: PoseCheck.FootTrack, n: int) -> void:
+		var shot: ClipDirector.Shot = bench.view.shot
+		if shot == null or shot.clip == null:
+			return
+		var clip := StringName(String(shot.clip.name).get_file())
+		var r: PoseCheck.Report = bench.check.measure(await bench.frame(), false, track)
+		var w: Array = worst.get(clip, [0.0, 0, INF, 0])
+		for side: String in r.feet:
+			if r.feet[side] > w[0]:
+				w[0] = r.feet[side]
+				w[1] = n
+		if r.blade_gap < w[2]:
+			w[2] = r.blade_gap
+			w[3] = n
+		worst[clip] = w
+	for light: StringName in [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]:
+		var startup: int = Moves.KATANA.moves[light].startup
+		# struck: from the front, each side and behind, then guarding
+		for c: Array in [[0.0, false], [90.0, false], [-90.0, false], [180.0, false], [0.0, true]]:
+			bench.stand()
+			bench.attacker.yaw = SimMath.wrap_angle(bench.attacker.yaw + deg_to_rad(c[0]))
+			bench.attacker.blind_until = 1 << 30
+			bench.defender.start_attack(light)
+			var track: PoseCheck.FootTrack = PoseCheck.FootTrack.new(bench.check)
+			var n: int = 0
+			for i: int in 160:
+				bench.drive(block if c[1] else RawInput.empty())
+				if bench.attacker.state == &"hitstun" or bench.attacker.state == &"blockstun":
+					n += 1
+					await measure.call(track, n)
+				elif n > 0:
+					break
+		# parried: the fighter's light, the opponent's guard pressed 3 frames
+		# before it lands; then parrying: the opponent's light, its own guard
+		for parrier: bool in [false, true]:
+			bench.stand()
+			var striker: Fighter = bench.defender if parrier else bench.attacker
+			striker.start_attack(light)
+			var track: PoseCheck.FootTrack = PoseCheck.FootTrack.new(bench.check)
+			var n: int = 0
+			for i: int in 160:
+				var guard: RawInput = block if i >= startup - 3 else RawInput.empty()
+				if parrier:
+					bench.drive(guard)
+				else:
+					bench.drive(RawInput.empty(), guard)
+				var shot: ClipDirector.Shot = bench.view.shot
+				if shot != null and (shot.phase == &"recoil" or shot.phase == &"deflect"):
+					n += 1
+					await measure.call(track, n)
+				elif n > 0:
+					break
+	var rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
+	var lines: PackedStringArray = []
+	for row: StringName in rows:
+		var feet: Dictionary = {}
+		var blades: Dictionary = {}
+		for clip: StringName in rows[row]:
+			if not worst.has(clip):
+				feet[clip] = ["not reached by the bench's strikes"]
+				blades[clip] = feet[clip]
+				continue
+			var w: Array = worst[clip]
+			lines.append("%-22s slide %4.1f cm (fr %d)  blade %5.1f cm (fr %d)" % [clip, w[0] * 100.0, w[1], w[2] * 100.0, w[3]])
+			feet[clip] = [] if w[0] <= PoseCheck.FOOT_SLIDE_MAX else ["slides %.1f cm at frame %d" % [w[0] * 100.0, w[1]]]
+			blades[clip] = [] if w[2] >= PoseCheck.BLADE_CLEARANCE else ["blade %.1f cm from the body at frame %d" % [w[2] * 100.0, w[3]]]
+		ChecklistResults.record_clips(8, row, feet)
+		if row != &"clip_hit_light":
+			ChecklistResults.record_clips(9, row, blades)
+	gut.p("the Hunter's reaction clips with the licensed clips, worst over every rules frame:\n" + "\n".join(lines))
+	assert_gt(worst.size(), 0, "the bench reached the reaction clips")

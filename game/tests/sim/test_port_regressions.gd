@@ -226,7 +226,7 @@ func test_a_negative_guard_crush_is_kept() -> void:
 	_patch("guard_crush", -0.5)
 	var t: Trace = _run_patched(STEPS, _light_at_0, _hold_block, func(W: World) -> void: W.fighters[1].posture = 40.0)
 	assert_eq([t.count(&"block"), t.count(&"hit")], [1, 0], "the Right Cut is blocked")
-	assert_almost_eq(float(t.find(&"block")["posture"]), 7.0 * -0.5, 1e-9, "the block's posture cost keeps the negative multiplier (Right Cut's 7 × -0.5)")
+	assert_almost_eq(float(t.find(&"block")["posture"]), 5.0 * -0.5, 1e-9, "the block's posture cost keeps the negative multiplier (Right Cut's 5 × -0.5)")
 	var rises: int = 0
 	for k: int in range(1, t.posture.size()):
 		if t.posture[k] > t.posture[k - 1]:

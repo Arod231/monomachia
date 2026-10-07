@@ -199,3 +199,49 @@ func test_local_the_katana_stays_in_hand_through_a_grip_switch() -> void:
 					var gap: float = _off_hand_gap(f, poses)
 					assert_lt(gap, NEAR, "%s %s %s at %.2f s: off hand %.1f cm off" % [pair[0], grip, clip, length * i / 4.0, gap * 100.0])
 					assert_lt(_grip_centre(f, poses, "Right").distance_to(f.weapons[0].transform.origin), 0.05, "%s %s %s: in the right fist" % [pair[0], grip, clip])
+
+
+## The per-move checklist's item 10 (milestone-1 task 40): each keyed move's
+## clip, every deflect pair and the light block keep the off hand on the
+## Katana's grip (within NEAR) on every rules frame, on both fighters, the
+## worst recorded by row. Recorded for the owner, not held: task 40 reports
+## these, and the new strings re-key them.
+func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	var rows: Dictionary[StringName, Array] = {}
+	for m: Array in ChecklistResults.keyed_moves():
+		rows[m[1]] = [(Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0]]
+	var clip_rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
+	rows[&"clip_deflect_light"] = clip_rows[&"clip_deflect_light"]
+	rows[&"clip_block_light"] = clip_rows[&"clip_block_light"]
+	## the worst gap by clip: [gap (m), where]
+	var worst: Dictionary[StringName, Array] = {}
+	for pair: Array in [[&"hunter", &"HumanM"], [&"rogue", &"HumanF"]]:
+		var f: FighterModel = _fighter(pair[0], &"katana")
+		var lib: AnimationLibrary = ClipLibraries.load_set(pair[1])
+		f.animation_player.add_animation_library(pair[1], lib)
+		for row: StringName in rows:
+			for clip: StringName in rows[row]:
+				var length: float = lib.get_animation(clip).length
+				var w: Array = worst.get(clip, [0.0, ""])
+				for i: int in int(length * 60.0) + 1:
+					_at(f, "%s/%s" % [pair[1], clip], i / 60.0)
+					var gap: float = _off_hand_gap(f, await _posed(f))
+					if gap > w[0]:
+						w = [gap, "%s at rules frame %d" % [pair[0], i]]
+				worst[clip] = w
+	var lines: PackedStringArray = []
+	for row: StringName in rows:
+		var by_clip: Dictionary = {}
+		for clip: StringName in rows[row]:
+			var w: Array = worst[clip]
+			lines.append("%-22s off hand %4.1f cm off the grip (%s)" % [clip, w[0] * 100.0, w[1]])
+			by_clip[clip] = [] if w[0] < NEAR else ["off hand %.1f cm off the grip, %s" % [w[0] * 100.0, w[1]]]
+		if row.begins_with("clip_"):
+			ChecklistResults.record_clips(10, row, by_clip)
+		else:
+			ChecklistResults.record_problems(10, row, by_clip.values()[0])
+	gut.p("the keyed clips' off hand, worst over every rules frame:\n" + "\n".join(lines))
+	assert_eq(worst.size(), 13, "four lights, four pairs and the block")
