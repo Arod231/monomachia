@@ -140,7 +140,7 @@ func _line(p: Dictionary) -> PanelContainer:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var box := StyleBoxFlat.new()
-	box.bg_color = Color(UiPalette.INK, 0.78)
+	box.bg_color = Color(UiPalette.LACQUER, 0.78)
 	box.border_color = UiPalette.GOLD if urgent else UiPalette.LINE
 	box.set_border_width_all(1)
 	box.content_margin_left = 14.0
@@ -162,6 +162,6 @@ func _line(p: Dictionary) -> PanelContainer:
 			l.text = String(part)
 			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			l.add_theme_font_size_override("font_size", TEXT_SIZE)
-			l.add_theme_color_override("font_color", URGENT_TEXT if urgent else UiPalette.PAPER)
+			l.add_theme_color_override("font_color", URGENT_TEXT if urgent else UiPalette.IVORY)
 			row.add_child(l)
 	return panel

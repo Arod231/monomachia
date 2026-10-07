@@ -45,7 +45,7 @@ const TONE_COLORS: Dictionary = {
 	Tone.GOLD: Color("#ffd98a"),
 	Tone.JADE: UiPalette.JADE,
 	Tone.RED: Color("#ff6a4a"),
-	Tone.DIM: UiPalette.PAPER_DIM,
+	Tone.DIM: UiPalette.IVORY_DIM,
 	Tone.BLUE: Color("#8cbcf0"),
 }
 ## In Watch, each side's tone (赤 0, 青 1).
@@ -257,7 +257,7 @@ func _rebuild() -> void:
 static func _label(node_name: String, text: String, variation: StringName, font_size: int, outline: int) -> Label:
 	var l: Label = UiTheme.label(text, variation, font_size)
 	l.name = node_name
-	l.add_theme_color_override("font_outline_color", Color(UiPalette.INK, 0.85))
+	l.add_theme_color_override("font_outline_color", Color(UiPalette.LACQUER, 0.85))
 	l.add_theme_constant_override("outline_size", outline)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l

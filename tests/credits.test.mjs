@@ -89,7 +89,8 @@ describe('CREDITS.md', () => {
 
   it('names the work behind every licence file in the game folder', () => {
     const files = licenceFiles();
-    assert.ok(files.includes('game/ui/fonts/ZenAntique-OFL.txt'));
+    assert.ok(files.includes('game/ui/fonts/ShipporiMinchoB1-OFL.txt'));
+    assert.ok(files.includes('game/ui/fonts/YujiBoku-OFL.txt'));
     for (const file of files) {
       const addon = file.match(/^game\/addons\/([^/]+)\//);
       const work = addon ? addon[1].toUpperCase() : spaced(file.split('/').pop().split(/[-_]/)[0]);
