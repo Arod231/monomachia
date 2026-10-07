@@ -1,7 +1,9 @@
 extends GutTest
 ## FighterView, a side's real fighter in the match: placed where the rules
-## put it, its model kept across matches, its weapon posed from the stick
-## pose with both hands on the grips through whole attacks, the crouch over
+## put it, its model kept across matches, the Katana riding the clip's hands
+## in every state (milestone-1 task 135) with the clip libraries and with the
+## CC0 stand-ins, the other weapons posed from the stick pose with both hands
+## on the grips, through whole attacks, the crouch over
 ## planted feet, the KO fall, disarming, and the flashes and glows as
 ## overlays (the legs and the clip on the rules' clock: test_locomotion.gd).
 
@@ -14,6 +16,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	FrozenStateClips.restore()
+	ClipLibraries.force_missing = false
 	SimHelpers.dispose_all()
 
 
@@ -69,6 +72,32 @@ func _grip_miss(v: FighterView, poses: Array[Transform3D]) -> float:
 	return worst
 
 
+## How far the hands are off what they hold, in a posed skeleton (the
+## worst): each weapon's grip from its own hand's fist (the right's, or a
+## pair's own), and a two-handed weapon's OffHandGrip from the left fist.
+func _held_miss(v: FighterView, poses: Array[Transform3D]) -> float:
+	var m: FighterModel = v.model
+	var worst: float = 0.0
+	for i: int in m.weapons.size():
+		var side: String = FighterRig.SIDES[i]
+		var fist: Vector3 = _bone(v, poses, side + "Hand") * m.rig.fist(side).origin
+		worst = maxf(worst, fist.distance_to(m.weapons[i].transform.origin))
+	if not m.weapon_look.paired:
+		var w: Node3D = m.weapons[0]
+		var off: Vector3 = w.transform * WeaponLook.marker(w, WeaponLook.OFF_HAND_GRIP).position
+		worst = maxf(worst, (_bone(v, poses, "LeftHand") * m.rig.fist("Left").origin).distance_to(off))
+	return worst
+
+
+## The clip libraries' modes to run in: the CC0 stand-ins (forced, as CI
+## plays), and the Iglesias clips where they are installed.
+static func _modes() -> Array[bool]:
+	var out: Array[bool] = [true]
+	if ClipLibraries.available():
+		out.append(false)
+	return out
+
+
 ## The inside angle at an elbow, in degrees (180 is a locked arm).
 func _elbow(v: FighterView, poses: Array[Transform3D], side: String) -> float:
 	var shoulder: Vector3 = _bone(v, poses, side + "UpperArm").origin
@@ -105,11 +134,29 @@ func test_the_model_is_kept_while_the_fighter_is_the_same() -> void:
 	assert_false(is_instance_valid(model), "the old one is freed")
 
 
-## Each fighter with each weapon in its guard: the weapon is posed along the
-## stick pose's blade, and both hands are on its grips.
+## Each fighter with the Katana in its guard, on the CC0 stand-ins and on
+## the clip libraries: the weapon rides the clip's hands (fixed), the off
+## hand on its grip (milestone-1 task 135).
 func test_the_guard_puts_the_weapon_in_both_hands() -> void:
+	for missing: bool in _modes():
+		ClipLibraries.force_missing = missing
+		for id: StringName in FighterLook.IDS:
+			var W: World = _world()
+			var v: FighterView = _view(id, Moves.KATANA)
+			_update(v, W.fighters[0])
+			var what: String = "%s (packs missing: %s)" % [id, missing]
+			assert_true(v.model.rig.is_fixed(), "%s: the weapon rides the clip's hand" % what)
+			var poses: Array[Transform3D] = await _posed(v)
+			assert_lt(_held_miss(v, poses), NEAR, "%s: the hands on the grips" % what)
+			SimHelpers.dispose_all()
+
+
+## Until task 60 retires the stand-in poses, the Greatsword and the Daggers
+## stand in their guard posed along the stick pose's blade, both hands on
+## the grips.
+func test_the_stand_in_guard_puts_the_other_weapons_in_both_hands() -> void:
 	for id: StringName in FighterLook.IDS:
-		for weapon: WeaponDef in [Moves.KATANA, Moves.GREATSWORD, Moves.DAGGERS]:
+		for weapon: WeaponDef in [Moves.GREATSWORD, Moves.DAGGERS]:
 			var W: World = _world(weapon)
 			var v: FighterView = _view(id, weapon)
 			_update(v, W.fighters[0])
@@ -120,6 +167,115 @@ func test_the_guard_puts_the_weapon_in_both_hands() -> void:
 			assert_true(v.model.rig.drives("Right") and v.model.rig.drives("Left"), "%s %s: both hands on it" % [id, weapon.id])
 			var poses: Array[Transform3D] = await _posed(v)
 			assert_lt(_grip_miss(v, poses), NEAR, "%s %s: the grips land" % [id, weapon.id])
+
+
+## Milestone-1 task 135: through free movement (standing, walking each
+## way, the guard up) and every hit of the light string, both fighters
+## hold the Katana in the clip's hands, on the CC0 stand-ins and on the clip
+## libraries: fixed, the hands on the grips.
+func test_the_weapon_rides_the_clips_hands_in_every_state() -> void:
+	for missing: bool in _modes():
+		ClipLibraries.force_missing = missing
+		for id: StringName in FighterLook.IDS:
+			var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 4.0)
+			var f: Fighter = W.fighters[0]
+			var v: FighterView = _view(id, Moves.KATANA)
+			var what: String = "%s (packs missing: %s)" % [id, missing]
+			var states: Dictionary[StringName, bool] = {}
+			var moves: Dictionary[StringName, bool] = {}
+			var worst: float = 0.0
+			var loose: int = 0
+			# stand, walk forward, back and sideways, raise the guard,
+			# then the light string, pressed on until it ends
+			var plan: Array[RawInput] = []
+			for i: int in 6:
+				plan.append(SimHelpers.idle())
+			for dir: Vector2 in [Vector2(0.0, 1.0), Vector2(0.0, -1.0), Vector2(1.0, 0.0), Vector2(-1.0, 0.0)]:
+				for i: int in 16:
+					plan.append(SimHelpers.move(dir.x, dir.y))
+			for i: int in 12:
+				plan.append(SimHelpers.btn(Btn.BLOCK))
+			for i: int in 6:
+				plan.append(SimHelpers.idle())
+			var step: int = 0
+			var attacked: bool = false
+			while step < 400:
+				var input: RawInput = SimHelpers.idle()
+				if step < plan.size():
+					input = plan[step]
+				elif step % 4 == 0:
+					input = SimHelpers.btn(Btn.LIGHT)
+				W.step([input, SimHelpers.idle()])
+				step += 1
+				_update(v, f)
+				var poses: Array[Transform3D] = await _posed(v)
+				states[f.state] = true
+				if f.state == &"attack":
+					attacked = true
+					moves[f.atk.def.id] = true
+				if not v.model.rig.is_fixed():
+					loose += 1
+				worst = maxf(worst, _held_miss(v, poses))
+				if attacked and f.state == &"free" and step > plan.size() + 60:
+					break
+			gut.p("%s: states %s, moves %s, hands within %.1f mm" % [what, states.keys(), moves.keys(), worst * 1000.0])
+			assert_true(states.has(&"free") and attacked, "%s: moved and attacked" % what)
+			assert_eq(loose, 0, "%s: fixed in the clip's hands throughout" % what)
+			assert_lt(worst, NEAR, "%s: the hands on the grips" % what)
+			for light: StringName in [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]:
+				assert_true(moves.has(light), "%s: the string's %s" % [what, light])
+			SimHelpers.dispose_all()
+
+
+## Local-only (milestone-1 task 33): on the live clip tables, both fighters
+## stand in the Katana's keyed guard, play the light string stopped after
+## one to four lights with each bridge between its hits and the last light's
+## return to guard, and hold the weapon in the clip's hands throughout.
+func test_local_the_katana_stays_in_hand_through_its_guard_bridges_and_returns() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	StateClips.use(StateClips.read())
+	var lights: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
+	var bridges: Array[String] = ["RightCutToReturnCut", "ReturnCutToKesaCut", "KesaCutToCrownCut"]
+	var returns: Array[String] = ["RightCutToGuard", "ReturnCutToGuard", "KesaCutToGuard", "CrownCutToGuard"]
+	for id: StringName in FighterLook.IDS:
+		for n: int in [1, 2, 3, 4]:
+			var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 4.0)
+			var f: Fighter = W.fighters[0]
+			var v: FighterView = _view(id, Moves.KATANA)
+			var what: String = "%s, %d light%s" % [id, n, "" if n == 1 else "s"]
+			var shown: Dictionary[String, bool] = {}
+			var started: Array[AttackState] = []
+			var worst: float = 0.0
+			var loose: int = 0
+			var after: int = 0
+			for step: int in 300:
+				var press: bool = step >= 4 and started.size() < n and step % 4 == 0
+				W.step([SimHelpers.btn(Btn.LIGHT) if press else SimHelpers.idle(), SimHelpers.idle()])
+				if f.state == &"attack" and not started.has(f.atk):
+					started.append(f.atk)
+				_update(v, f)
+				var poses: Array[Transform3D] = await _posed(v)
+				if v.shot.clip != null:
+					shown[String(v.shot.clip.name).get_file()] = true
+				if not v.model.rig.is_fixed():
+					loose += 1
+				worst = maxf(worst, _held_miss(v, poses))
+				if step == 0:
+					assert_eq(String(v.shot.idle).get_file(), "KatanaGuard", "%s: the keyed guard" % what)
+				if not started.is_empty() and f.state == &"free":
+					after += 1
+					if after > 40:
+						break
+			assert_eq(started.map(func(a: AttackState) -> StringName: return a.def.id), lights.slice(0, n), "%s: the string" % what)
+			for i: int in n - 1:
+				assert_true(shown.has(bridges[i]), "%s: bridged by %s (shown %s)" % [what, bridges[i], shown.keys()])
+			assert_false(shown.has(bridges[n - 1]) if n < 4 else false, "%s: no bridge past the string's end" % what)
+			assert_true(shown.has(returns[n - 1]), "%s: returned to guard by %s (shown %s)" % [what, returns[n - 1], shown.keys()])
+			assert_eq(loose, 0, "%s: fixed in the clip's hands throughout" % what)
+			assert_lt(worst, NEAR, "%s: the hands on the grips" % what)
+			SimHelpers.dispose_all()
 
 
 ## Local-only: through every frame of a light and a heavy attack the Hunter
@@ -341,6 +497,87 @@ func test_inertial_blending_runs_first_in_the_rig() -> void:
 	for later: StringName in [&"BodyLayer", &"LegIK", &"HandGrip"]:
 		assert_gt(order.find(later), 0, "%s after it" % later)
 	assert_same(v.model.rig.inertial, v.model.skeleton.get_node(^"InertialBlend"))
+
+
+# ------------------------------------------------------------------ the physical reaction layer (milestone-1 task 70)
+
+func test_the_reaction_layer_runs_right_after_inertial_blending() -> void:
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	var order: Array[StringName] = []
+	for child: Node in v.model.skeleton.get_children():
+		if child is SkeletonModifier3D:
+			order.append(child.name)
+	assert_eq(order[1], &"PhysicalReactionLayer", "after inertial blending: %s" % [order])
+	for later: StringName in [&"BodyLayer", &"LegIK", &"HandGrip"]:
+		assert_gt(order.find(later), 1, "%s after it" % later)
+	assert_same(v.model.rig.reaction, v.model.skeleton.get_node(^"PhysicalReactionLayer"))
+
+
+func test_the_reaction_layer_runs_on_the_world_s_time_and_a_new_world_clears_it() -> void:
+	var W: World = _world()
+	var f: Fighter = W.fighters[0]
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	_step(W, 3)
+	_update(v, f, 0.25)
+	assert_almost_eq(v.model.rig.reaction.time, float(W.frame) - 1.0 + 0.25, 1e-9, "the world's frame and alpha")
+	v.react(Vector3(0.0, 1.4, 0.2), Vector3(0.0, 1.4, 2.0), 1.0, PhysicalReactionLayer.HIT, 1.0, float(W.frame))
+	assert_true(v.model.rig.reaction.reacting())
+	var W2: World = _world()
+	_update(v, W2.fighters[0])
+	assert_false(v.model.rig.reaction.reacting(), "a new match starts still")
+
+
+func test_a_blow_from_in_front_pushes_the_head_back_wherever_the_fighter_stands() -> void:
+	var W: World = _world()
+	var f: Fighter = W.fighters[0]
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	var at: Vector3 = Vector3(2.0, 0.0, -1.0)
+	var yaw: float = 0.7
+	v.update_from(f, at, yaw, 1.0, 1.0 / 60.0, 0.0)
+	await _posed(v)
+	var before: Array[Transform3D] = await _posed(v)
+	# the attacker 2 m in front of it (the fighter faces +Z turned by yaw),
+	# the blade landing on the chest: on the push's frame (hit-stop holds the
+	# world there) the kick shows
+	var ahead: Vector3 = Vector3(sin(yaw), 0.0, cos(yaw))
+	v.react(at + Vector3(0.0, 1.4, 0.0) + ahead * 0.2, at + Vector3(0.0, 1.4, 0.0) + ahead * 2.0, 1.7,
+		PhysicalReactionLayer.HIT, 1.0, float(W.frame))
+	v.update_from(f, at, yaw, 1.0, 1.0 / 60.0, 0.0)
+	var after: Array[Transform3D] = await _posed(v)
+	var head_before: Vector3 = _bone(v, before, "Head").origin
+	var head_after: Vector3 = _bone(v, after, "Head").origin
+	assert_lt(head_after.z - head_before.z, -0.005, "back, in the fighter's own frame (%s to %s)" % [head_before, head_after])
+	assert_almost_eq(head_after.x - head_before.x, 0.0, 0.01, "not to the side")
+
+
+func test_the_rules_are_the_same_with_the_reaction_layer_off() -> void:
+	# picture only: two seeded computer matches, one shown with the layer on
+	# and pushed by every hit and block, one with it off, step to the same
+	# state
+	var hashes: Array[String] = []
+	var pushes: Array[int] = []
+	for on: bool in [true, false]:
+		var W: World = _world()
+		var views: Array[FighterView] = [_view(&"hunter", Moves.KATANA), _view(&"rogue", Moves.KATANA, 1)]
+		var brains: Array[AIBrain] = [AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"].copy(), 3),
+			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"].copy(), 4)]
+		for i: int in 2:
+			views[i].model.rig.reaction.active = on
+		var pushed: int = 0
+		for step: int in 600:
+			W.step([brains[0].think(), brains[1].think()])
+			for e: Dictionary in W.drain_events():
+				var r: Dictionary = MatchView.reaction_of(e, W)
+				if not r.is_empty():
+					pushed += 1
+					views[int(r["side"])].react(r["contact"], r["from"], r["strength"], r["parts"], r["arms"], float(W.frame))
+			for i: int in 2:
+				_update(views[i], W.fighters[i])
+				views[i].model.skeleton.advance(1.0 / 60.0)
+		hashes.append(W.state_hash())
+		pushes.append(pushed)
+	assert_gt(pushes[0], 0, "the match had blows to show")
+	assert_eq(hashes[0], hashes[1])
 
 
 func test_a_hand_off_asks_the_rig_for_its_blend_on_the_world_s_time() -> void:

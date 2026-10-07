@@ -321,16 +321,7 @@ svg.focus .edge.rel.down { stroke-dasharray: 6 4; }
 .away input:checked::after { left: 16px; }
 .away input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .away.on { font-weight: 600; }
-.awayn { min-width: 18px; height: 18px; border-radius: 9px; background: var(--owner); color: #0b0b0b; font-size: 11px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; }
-#qList { max-width: 860px; display: flex; flex-direction: column; gap: 14px; }
-.qgroup { display: flex; flex-direction: column; gap: 8px; }
-.qgh { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 13px; }
-.qgh b { font-size: 14px; }
-.qgh .k { color: var(--muted); font-size: 12px; }
-.qgh .k:last-child { margin-left: auto; }
-.qsub { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 6px; }
 pre.code.pv { margin-top: 6px; font-size: 11px; max-height: 200px; background: var(--page); }
-textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px; }
 #sPend:empty { display: none; }
 #sPend { padding: 10px 14px 0; display: flex; flex-direction: column; gap: 8px; max-height: 55%; overflow: auto; flex: none; }
 .pcard { border: 1px solid var(--owner); border-radius: 10px; padding: 10px 12px; background: var(--card); }
@@ -347,7 +338,6 @@ textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px
 .plan code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; }
 .pcard .sum { font-size: 13px; margin-bottom: 6px; }
 .pcard .plan.last { max-height: 220px; margin-bottom: 4px; }
-.pcard textarea.turnreply { width: 100%; margin-top: 8px; }
 .hookwarn { border: 1px solid var(--owner); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; background: var(--card); }
 .hookwarn ul { margin: 6px 0; padding-left: 20px; }
 /* The bell */
@@ -363,7 +353,6 @@ textarea.freeform { width: 100%; margin-top: 8px; font: inherit; font-size: 13px
 .brec .bd { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brec .k { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .bempty { padding: 14px; font-size: 13px; color: var(--muted); }
-.pcard.flash, .qgroup.flash { outline: 3px solid var(--owner); outline-offset: 2px; }
 pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 .q { margin-top: 8px; }
 .q .qh { font-size: 13px; margin-bottom: 6px; }
@@ -372,7 +361,6 @@ pre.code { margin: 0; padding: 8px 10px; background: var(--surface); border-radi
 .opt { text-align: left; font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--card); color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
 .opt span { font-size: 12px; color: var(--text-2); }
 .opt:hover { border-color: var(--text-2); }
-.opt.on { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
 .opt[disabled] { cursor: default; }
 #sLog { flex: 1; overflow: auto; padding: 10px 14px; min-height: 0; }
 .msg { margin: 8px 0; font-size: 13px; }
@@ -392,7 +380,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
 #sLog .more { text-align: center; }
 /* A session's state, facts and commands (sessions-ui.mjs) */
 .state { display: inline-block; font-size: 11px; border-radius: 4px; padding: 0 6px; background: var(--surface); color: var(--text-2); border: 1px solid var(--border); white-space: nowrap; animation: none; }
-.state.waiting, .state.asked { background: var(--owner); color: #0b0b0b; border-color: transparent; }
+.state.asked { background: var(--owner); color: #0b0b0b; border-color: transparent; }
 .state.working { background: var(--ready); color: #fff; border-color: transparent; }
 .state.stopping { background: var(--working); color: #fff; border-color: transparent; }
 .shd .facts { margin-top: 6px; display: grid; gap: 2px; font-size: 12px; color: var(--text-2); }
@@ -433,7 +421,6 @@ details.tl pre { margin: 4px 0 4px 14px; }
       <button role="tab" data-view="roadmap">Roadmap</button>
       <button role="tab" data-view="progress">Progress</button>
       <button role="tab" data-view="graph">Graph</button>
-      <button role="tab" data-view="questions">Questions <span class="count" id="qCount"></span></button>
       <button role="tab" data-view="sessions">Sessions <span class="count" id="sessCount"></span></button>
     </nav>
     <span id="awayBox"></span>
@@ -507,24 +494,19 @@ details.tl pre { margin: 4px 0 4px 14px; }
     </div>
   </div>
 
-  <div id="v-questions" class="view" hidden>
-    <p class="m" style="margin:0 0 12px">While Away is on, every session's permission prompts, plans and finished turns wait here, oldest first. Switching Away off hands them all back to the app. Questions always stay in the app; the bell tells you when a session waits on one.</p>
-    <div id="qList"><div class="empty">Loading…</div></div>
-  </div>
-
   <div id="v-sessions" class="view" hidden>
     <div class="sbody">
       <aside class="slist">
         <div class="sf">
           <input type="search" id="sFind" placeholder="Filter by title or folder" aria-label="Filter sessions">
-          <label><input type="checkbox" id="sWaiting"> Only sessions waiting on you</label>
+          <label><input type="checkbox" id="sWaiting"> Only sessions asking you in the app</label>
           <label><input type="checkbox" id="sOlder"> Older sessions, kept for what they posted</label>
         </div>
+        <div id="sHooks"></div>
         <ul id="sList"></ul>
       </aside>
       <section class="sdetail" id="sDetail">
         <div class="shd" id="sHead"><div class="empty">Pick a session on the left.</div></div>
-        <div class="mergebox" id="sMerge" hidden></div>
         <div class="mergebox" id="sRemote" hidden></div>
         <div id="sPend"></div>
         <div id="sVis"></div>
@@ -532,7 +514,7 @@ details.tl pre { margin: 4px 0 4px 14px; }
         <div id="sLog"></div>
         <div class="comp" id="sComp" hidden>
           <textarea id="sText" rows="3" placeholder="Reply to this session (Ctrl+Enter sends)"></textarea>
-          <div class="row"><span class="m" id="sNote"></span><button class="btn small ghost" id="sUnqueue" hidden>Withdraw queued reply</button><button class="btn primary" id="sSend">Send</button></div>
+          <div class="row"><span class="m" id="sNote"></span><button class="btn small ghost" id="sUnqueue" hidden>Withdraw queued reply</button><button class="btn primary" id="sSend">Queue reply</button></div>
         </div>
       </section>
     </div>
@@ -619,9 +601,10 @@ const pct = (done, total) => (total ? Math.round((done / total) * 100) : 0);
 
 // ---------- views ----------
 
-const VIEWS = ['roadmap', 'progress', 'graph', 'questions', 'sessions'];
+const VIEWS = ['roadmap', 'progress', 'graph', 'sessions'];
 let view = 'roadmap';
 function setView(v, push = true) {
+  if (v === 'questions') v = 'sessions'; // the old Questions tab's links
   if (!VIEWS.includes(v)) v = 'roadmap';
   view = v;
   for (const b of document.querySelectorAll('.tabs [data-view]')) b.setAttribute('aria-selected', String(b.dataset.view === v));
@@ -631,7 +614,6 @@ function setView(v, push = true) {
   closeMenu();
   if (v === 'graph') renderGraph(true);
   if (v === 'sessions') { renderSessionList(); pollSession(true); }
-  if (v === 'questions') { qSig = null; renderQuestions(); pollQuestions(true); }
   if (v === 'roadmap' || v === 'progress') render();
 }
 document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
@@ -656,7 +638,7 @@ function renderKpis() {
   const html = cur + m1
     + `<div class="kpi"><div class="l">Ready now</div><div class="v">${k.readyRefs.length}</div><div class="s">in the current phase${c.blocked ? ` · ${c.blocked} blocked` : ''}${c.owner ? ` · ${c.owner} wait on your OK` : ''}</div></div>
     <div class="kpi"><div class="l">Active lanes</div><div class="v">${k.activeLanes} <small>of ${data.lanes.filter(laneLive).length} with work</small></div><div class="s">${k.onTask} on a task · session in the last 3 min</div></div>
-    <a class="kpi" href="#questions" title="Open the Questions tab"><div class="l">Waiting on you</div><div class="v">${waits}</div><div class="s">questions, review gates and ready PRs</div></a>`;
+    <a class="kpi" href="#progress" title="Open the Progress tab's list"><div class="l">Waiting on you</div><div class="v">${waits}</div><div class="s">questions in the app, review gates and ready PRs</div></a>`;
   setHtml(view === 'roadmap' ? 'kpisR' : 'kpis', html);
 }
 
@@ -783,13 +765,6 @@ $('track').addEventListener('click', (e) => {
 
 function waitingItems() {
   const items = [];
-  // What sessions hold for the owner while Away is on: answered in the Questions tab.
-  for (const s of sessions.list) {
-    for (const p of s.pending) {
-      const what = window.S ? S.waitingText(p) : 'needs you';
-      items.push({ sw: 'owner', text: `${s.title} ${what}`, k: ago(p.time), answer: true });
-    }
-  }
   for (const p of data.plans) {
     for (const [id, t] of Object.entries(p.tasks)) {
       if (t.status === 'owner') items.push({ sw: 'owner', text: `${taskName(p.key, id)} ${t.title} can start once you OK ${t.ownerOk.map((g) => taskName(p.key, g)).join(', ')}`, k: p.name });
@@ -808,8 +783,8 @@ function waitingItems() {
 }
 function renderWaiting() {
   const items = waitingItems();
-  $('waiting').innerHTML = `<div class="sh"><h2>Waiting on you</h2><a class="m" href="#questions">Questions tab</a></div>` + (items.length
-    ? `<ul class="wait">${items.map((i) => `<li><i class="sw ${i.sw}"></i><span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}</span><span class="k">${esc(i.k)}</span>${i.answer ? '<a class="btn small" href="#questions">Answer</a>' : ''}${i.view ? `<button class="btn small" data-view-session="${esc(i.view)}">View</button>` : ''}${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open</button>` : ''}</li>`).join('')}</ul>`
+  $('waiting').innerHTML = `<div class="sh"><h2>Waiting on you</h2><span class="m">questions are answered in the Claude app, pull requests merged on GitHub</span></div>` + (items.length
+    ? `<ul class="wait">${items.map((i) => `<li><i class="sw ${i.sw}"></i><span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.text)}</a>` : esc(i.text)}</span><span class="k">${esc(i.k)}</span>${i.view ? `<button class="btn small" data-view-session="${esc(i.view)}">View</button>` : ''}${i.open ? `<button class="btn small" data-open="${esc(i.open)}">Open</button>` : ''}</li>`).join('')}</ul>`
     : `<div class="empty">Nothing right now.</div>`);
 }
 
@@ -1416,13 +1391,12 @@ window.addEventListener('resize', () => { if (view === 'graph' && !gView[gOpt.pl
 }
 
 // ---------- sessions ----------
-// Every Claude session active in the last three days. While Away is on, each
-// hands its permission prompts, its plans and the end of each turn to the
-// Project Manager (relay-hook.mjs), answered here or in the Questions tab; its
-// questions stay in the app, and the bell says when one waits.
+// Every Claude session active in the last three days. Its questions,
+// permission prompts and plans are answered in the Claude app, never here; the
+// bell says when one asks. Replies, Show me, Stop now and End work reach it
+// through the relay folder (relay-hook.mjs, stop-hook.mjs).
 
-const sessions = { list: [], older: [], detail: null, limit: 300, drafts: {} };
-let merge = null;
+const sessions = { list: [], older: [], detail: null, limit: 300, drafts: {}, hooks: null };
 let viewer = null; // the full-screen viewer of a session's visuals (sessions-ui.mjs mountViewer)
 let reader = null; // the full-screen reader of its Markdown documents (sessions-ui.mjs mountReader)
 let docsTimer = null;
@@ -1438,7 +1412,6 @@ function selectSession(id) {
   sessions.detail = null;
   sessions.limit = 300;
   sSigs = {};
-  merge?.hide();
   remote?.hide();
   sOpenTools.clear();
   $('sText').value = sessions.drafts[id] ?? '';
@@ -1500,7 +1473,7 @@ function renderSessionList() {
   }
   const only = $('sWaiting').checked;
   const list = sessions.list.filter((s) => (!only || S.sessionNeeds(s)) && (!q || `${s.title} ${s.cwd}`.toLowerCase().includes(q)));
-  const sig = JSON.stringify([list.map((s) => [s.id, s.title, s.active, s.pending, s.asking, s.queued, Math.round((Date.now() - s.activity) / 60000), s.context?.tokens, s.state, s.stopping]), sSel, !!window.U]);
+  const sig = JSON.stringify([list.map((s) => [s.id, s.title, s.active, s.asking, s.queued, Math.round((Date.now() - s.activity) / 60000), s.context?.tokens, s.state, s.stopping]), sSel, !!window.U]);
   if (sig === sSigs.list || !window.U || !window.S) return;
   sSigs.list = sig;
   $('sList').innerHTML = list.map((s) => `<li data-sess="${esc(s.id)}" class="${s.id === sSel ? 'on' : ''}" title="${esc(s.cwd ?? '')}">
@@ -1513,25 +1486,22 @@ $('sFind').addEventListener('input', renderSessionList);
 $('sWaiting').addEventListener('change', renderSessionList);
 $('sOlder').addEventListener('change', renderSessionList);
 
+// A question or a step waiting in the app, which this page can't answer.
 function renderPending(d) {
-  const away = !!d.away?.on;
-  const cards = d.pending.map((p) => S.pendingCard(p));
-  // A question or a step waiting in the app, which this page can't answer.
-  if (d.open?.name === 'AskUserQuestion' && !d.pending.some((p) => p.kind === 'question')) {
-    cards.push(`<div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b><span class="k">${esc(ago(d.open.time))}</span></div>
-      ${S.questionsHtml(d.open.questions ?? [], false)}
+  const cards = [];
+  if (d.open?.name === 'AskUserQuestion') {
+    cards.push(`<div class="pcard info"><div class="ch"><i class="sw owner"></i><b>Asks you, in the app</b><span class="k" data-t="${Number(d.open.time) || ''}">${esc(ago(d.open.time))}</span></div>
+      ${S.questionsHtml(d.open.questions ?? [])}
       <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Answer in the app</button>` : ''}<span class="m">Questions are answered in the app.</span></div></div>`);
-  } else if (d.open && !d.pending.length && !d.active && Date.now() - (d.open.time ?? 0) > 30000) {
-    cards.push(`<div class="pcard info"><div class="ch"><b>Its last step hasn't finished: ${esc(d.open.name)}</b><span class="k">${esc(ago(d.open.time))}</span></div>
+  } else if (d.open && !d.active && Date.now() - (d.open.time ?? 0) > 30000) {
+    cards.push(`<div class="pcard info"><div class="ch"><b>Its last step hasn't finished: ${esc(d.open.name)}</b><span class="k" data-t="${Number(d.open.time) || ''}">${esc(ago(d.open.time))}</span></div>
       <pre class="code">${esc(d.open.summary ?? '')}</pre>
-      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Open in the app</button>` : ''}<span class="m">If it's waiting for your approval, answer it in the app${away ? '' : ', or switch Away on for the next one'}.</span></div></div>`);
+      <div class="row">${d.app ? `<button class="btn" data-open="${esc(d.app)}">Open in the app</button>` : ''}<span class="m">If it's waiting for your approval, answer it in the app.</span></div></div>`);
   }
-  const sig = JSON.stringify([d.pending.map((p) => [p.id, p.summary?.detail]), d.open?.id, d.open && !d.active, away]);
+  const sig = JSON.stringify([d.open?.id, d.open && !d.active]);
   if (sig === sSigs.pend) { S.refreshTimes($('sPend')); return; }
   sSigs.pend = sig;
-  const kept = S.captureCards($('sPend'));
   $('sPend').innerHTML = cards.join('');
-  S.restoreCards($('sPend'), kept);
 }
 function renderLog(d) {
   const log = $('sLog');
@@ -1555,7 +1525,7 @@ function renderSessionDetail() {
     $('sHead').innerHTML = `<div class="row1"><h2>${esc(s?.title ?? 'Loading…')}</h2></div>`;
     return;
   }
-  const headSig = JSON.stringify([d.id, d.title, d.cwd, d.active, d.away?.on, d.app, Math.round((Date.now() - d.activity) / 60000),
+  const headSig = JSON.stringify([d.id, d.title, d.cwd, d.active, d.app, Math.round((Date.now() - d.activity) / 60000),
     d.context?.tokens, d.context?.series.length, d.context?.compactions.length, d.state, d.stopping, d.summary, d.branch, d.task, d.pr, !!window.U && !!window.S]);
   if (headSig !== sSigs.head && window.U && window.S) {
     // The context gauge and its chart, turn by turn, with compactions ticked.
@@ -1574,8 +1544,7 @@ function renderSessionDetail() {
       <div class="facts">${S.sessionFactsHtml(d)}</div>
       ${S.commandBarHtml(d)}<div class="m" id="sCmdNote">${esc(note)}</div>
       ${ctxHtml}
-      <div class="m">${d.away?.on ? 'Away is on: its permission prompts and plans wait here (for up to 24 minutes each), and when a turn ends it waits for your reply. Its questions stay in the app.'
-        : "Away is off: it asks in the app's own dialogs. A reply sent from here reaches it before its next step, or when its turn next ends."}</div>`;
+      <div class="m">It asks for approvals and answers in the Claude app. A reply sent from here reaches it before its next step, or when its turn next ends.</div>`;
   }
   if (!window.S) return;
   renderPending(d);
@@ -1585,34 +1554,14 @@ function renderSessionDetail() {
   renderLog(d);
   // The reply box (none for a deleted session).
   $('sComp').hidden = !!d.gone;
-  const waiting = d.pending.find((p) => p.kind === 'stop');
   const queued = d.queued ?? [];
-  $('sSend').textContent = waiting ? 'Send' : 'Queue reply';
   $('sUnqueue').hidden = !queued.length;
   $('sUnqueue').textContent = queued.length > 1 ? `Withdraw ${queued.length} queued messages` : 'Withdraw queued reply';
-  $('sNote').textContent = waiting ? 'It\'s waiting for you: your reply goes straight in.'
-    : queued.length ? `Queued: "${shorten(queued[0].text.replace(/^The owner replied from the Project Manager:\s*/, ''), 60)}"${queued.length > 1 ? ` and ${queued.length - 1} more` : ''}. ${d.active ? 'It gets them before its next step.' : 'It gets them when its turn next ends.'}`
+  $('sNote').textContent = queued.length ? `Queued: "${shorten(queued[0].text.replace(/^The owner replied from the Project Manager:\s*/, ''), 60)}"${queued.length > 1 ? ` and ${queued.length - 1} more` : ''}. ${d.active ? 'It gets them before its next step.' : 'It gets them when its turn next ends.'}`
     : d.active ? 'It\'s working: your reply reaches it before its next step.'
     : 'It\'s idle: your reply goes in when its turn next ends. To wake it now, type in the app.';
 }
 
-// Answering a held item's card, here or in the Questions tab (sessions-ui.mjs
-// reads the card). An answered card leaves at once; a late one says why.
-async function answerClick(e) {
-  const opt = e.target.closest('.opt:not([disabled])');
-  if (opt) { S.toggleOpt(opt); return true; }
-  const b = e.target.closest('button');
-  const card = b?.closest('.pcard');
-  const body = b && window.S ? S.answerFor(b, card) : null;
-  if (!body) return false;
-  if (body.error) { alert(body.error); return true; }
-  b.disabled = true;
-  try { await post('/relay/answer', body); card?.remove(); sSigs.pend = null; qSig = null; }
-  catch (err) { alert(`Couldn't answer: ${err.message}`); b.disabled = false; }
-  pollSession(true); pollSessions(true); pollQuestions(true);
-  return true;
-}
-$('qList').addEventListener('click', answerClick);
 $('sDetail').addEventListener('click', async (e) => {
   const fig = e.target.closest('[data-vis]');
   if (fig && sessions.detail?.visuals) { viewer?.open(sessions.detail.visuals, Number(fig.dataset.vis)); return; }
@@ -1620,12 +1569,10 @@ $('sDetail').addEventListener('click', async (e) => {
   if (work && sessions.detail?.workImages) { viewer?.open(sessions.detail.workImages, Number(work.dataset.work)); return; }
   const docb = e.target.closest('[data-doc]');
   if (docb && sessions.docs) { reader?.open(sSel, sessions.docs.docs[Number(docb.dataset.doc)]); return; }
-  if (await answerClick(e)) return;
   const b = e.target.closest('button');
   if (!b) return;
   if (b.dataset.more !== undefined) { sessions.limit += 300; sSigs.log = null; pollSession(true); }
-  else if (b.dataset.cmd === 'merge') { remote?.hide(); merge?.toggle(); }
-  else if (b.dataset.cmd === 'compact' || b.dataset.cmd === 'app') { merge?.hide(); remote?.show(b.dataset.cmd); }
+  else if (b.dataset.cmd === 'compact' || b.dataset.cmd === 'app') remote?.show(b.dataset.cmd);
   else if (b.dataset.cmd) sessionCommand(b);
   else if (b.id === 'sUnqueue') { try { await post('/relay/unqueue', { session: sSel }); } catch {} pollSession(true); pollSessions(true); }
   else if (b.id === 'sSend') sendReply();
@@ -1667,6 +1614,8 @@ async function pollSessions(once) {
     if (d.sessions) {
       sessions.list = d.sessions;
       sessions.older = d.older ?? [];
+      sessions.hooks = d.hooks ?? null;
+      renderHooks();
       renderSessionList();
       if (view === 'progress' && data && window.U) { renderKpis(); renderWaiting(); }
       if (view === 'roadmap' && data && window.U) renderKpis();
@@ -1687,66 +1636,54 @@ async function pollSession(once) {
   if (once !== true) { clearTimeout(sessionTimer); sessionTimer = setTimeout(pollSession, 2000); }
 }
 
-// ---------- the Questions tab and the Away switch ----------
-// /questions (sessions-api.mjs): what's held, grouped by session, and the
-// questions asked in the app. The header's switch shows on every tab.
-
-let questions = null;
-let qSig = null;
-let awaySeen = null; // the switch's HTML as last set (the DOM writes it back differently)
-function renderQuestions() {
-  if (!questions || !window.S) return;
-  $('qCount').textContent = questions.count ? String(questions.count) : '';
-  const away = S.awayHtml(questions);
-  if (awaySeen !== away) { awaySeen = away; $('awayBox').innerHTML = away; }
-  if (view !== 'questions') return;
-  const sig = JSON.stringify([questions.away.on, questions.hooks?.problems, questions.groups.map((g) => [g.session, g.title, g.task?.ref, g.items.map((p) => [p.id, p.summary?.detail])]),
-    questions.asked.map((a) => [a.session, a.time])]);
-  if (sig === qSig) { S.refreshTimes($('qList')); return; }
-  qSig = sig;
-  const kept = S.captureCards($('qList'));
-  $('qList').innerHTML = S.questionsTabHtml(questions, { openLabel: 'Open in the app' });
-  S.restoreCards($('qList'), kept);
+// When the hooks in user settings aren't this version's, the Sessions list says so.
+let hooksSeen = null;
+function renderHooks() {
+  if (!window.S) return;
+  const html = S.hooksNoticeHtml(sessions.hooks);
+  if (html !== hooksSeen) { hooksSeen = html; $('sHooks').innerHTML = html; }
 }
-let questionsTimer = null;
-async function pollQuestions(once) {
+
+// ---------- the Away switch ----------
+// /away (sessions-api.mjs): while it's on, the bell's news reaches the phone's
+// lock screen. The header's switch shows on every tab.
+
+let away = null;
+let awaySeen = null; // the switch's HTML as last set (the DOM writes it back differently)
+function renderAway() {
+  if (!away || !window.S) return;
+  const html = S.awayHtml(away);
+  if (awaySeen !== html) { awaySeen = html; $('awayBox').innerHTML = html; }
+}
+let awayTimer = null;
+async function pollAway(once) {
   try {
-    const d = await (await fetch('/questions', { cache: 'no-store' })).json();
-    if (d.away) { questions = d; renderQuestions(); }
+    const d = await (await fetch('/away', { cache: 'no-store' })).json();
+    if (typeof d.on === 'boolean') { away = d; renderAway(); }
   } catch { /* the stamp shows the server's state */ }
-  if (once !== true) { clearTimeout(questionsTimer); questionsTimer = setTimeout(pollQuestions, view === 'questions' ? 2500 : 5000); }
+  if (once !== true) { clearTimeout(awayTimer); awayTimer = setTimeout(pollAway, 10000); }
 }
 document.addEventListener('change', async (e) => {
   if (!e.target.matches('[data-away]')) return;
-  const on = e.target.checked;
-  const n = questions?.groups.reduce((k, g) => k + g.items.length, 0) ?? 0;
-  if (!on && n && !confirm(`Switch Away off? The ${n} item${n === 1 ? '' : 's'} waiting go back to the app's own dialogs.`)) { e.target.checked = true; return; }
-  try { await post('/relay/away', { on }); } catch (err) { alert(`Couldn't switch Away: ${err.message}`); }
-  pollQuestions(true); pollSession(true);
+  try { await post('/relay/away', { on: e.target.checked }); } catch (err) { alert(`Couldn't switch Away: ${err.message}`); }
+  pollAway(true);
 });
-window.addEventListener('modules-ready', () => { qSig = null; renderQuestions(); });
+window.addEventListener('modules-ready', () => { renderAway(); renderHooks(); });
 
 // ---------- the bell ----------
 // Shared with the phone page (sessions-ui.mjs mountBell): a tap on a record
-// opens its question or its session here.
+// opens its session here.
 window.addEventListener('modules-ready', () => {
-  // The Merge panel on a session (sessions-ui.mjs mountMerge).
-  merge = S.mountMerge({ panel: $('sMerge'), post, session: () => sSel, say: (t) => { $('sCmdNote').textContent = t; } });
   remote = S.mountRemote({ panel: $('sRemote'), detail: () => (sessions.detail?.id === sSel ? sessions.detail : null), say: (t) => { $('sCmdNote').textContent = t; } });
   viewer = S.mountViewer();
   reader = S.mountReader();
   renderDocs();
-  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ tab, item, session, merge: pr, visuals }) => {
-    if (tab === 'sessions' && session) {
-      setView('sessions'); selectSession(session); if (pr) merge.show();
-      // New visuals: once the page has them, bring them into view.
-      if (visuals) { let n = 40; const look = () => { if (sessions.detail?.id === session && $('sVis').firstChild) $('sVis').scrollIntoView({ block: 'start' }); else if (n-- > 0) setTimeout(look, 150); }; look(); }
-      return;
-    }
-    setView('questions');
-    qSig = null;
-    pollQuestions(true);
-    S.revealQuestion($('qList'), { item, session });
+  S.mountBell({ box: $('bellBox'), panel: $('bellPanel'), post, go: ({ session, visuals }) => {
+    setView('sessions');
+    if (!session) return;
+    selectSession(session);
+    // New visuals: once the page has them, bring them into view.
+    if (visuals) { let n = 40; const look = () => { if (sessions.detail?.id === session && $('sVis').firstChild) $('sVis').scrollIntoView({ block: 'start' }); else if (n-- > 0) setTimeout(look, 150); }; look(); }
   } });
 }, { once: true });
 
@@ -1771,7 +1708,7 @@ setView(location.hash.slice(1), false);
 poll();
 pollSessions();
 pollSession();
-pollQuestions();
+pollAway();
 
 const tip = $('tip');
 document.addEventListener('mouseover', (e) => {

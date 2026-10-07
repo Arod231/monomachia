@@ -1,0 +1,18 @@
+{
+	"about": "The light hit reaction low from behind, turned to lurch forward (milestone-1 task 35): CombatDamage02's reel on bent knees retimed to the light hitstun (24 rules frames, 12 source frames) at its own speed and lowered (the hips dropped and the chest bent forward, most at the reel's peak), made two-handed by the lights' pass. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatDamage02.fbx",
+	"out": "blender/clips/hit_low_back.blend",
+	"remap": [[0, 0], [1, 4], [4, 11], [12, 32]],
+	"turn": 180,
+	"lower": {
+		"drop": 0.08,
+		"bend": 15,
+		"peak": 4
+	},
+	"two_hands": {
+		"grip": 0.11,
+		"hold": [0.32, 0.12],
+		"square": 0.6,
+		"clearance": 0.08
+	}
+}

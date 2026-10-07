@@ -12,7 +12,9 @@ extends Resource
 ## (FSR 2.2's Balanced mode); Medium also drops ambient occlusion and the minor
 ## decals; Low renders at 67% with FSR 1 (until the laptop bench picks its
 ## upscaler) and drops all four atmosphere items, keeping the palettes, the
-## rim lights, blood, the 危 and the cinematic shots.
+## rim lights, blood, the 危 and the cinematic shots. Low also drops the
+## parry push-in's depth of field (push_in_dof, milestone-1 task 39; the
+## owner's choice, Oct 6).
 ##
 ## The first launch picks a preset from the graphics card's name (for_card(),
 ## the rules in CARDS); a card no rule names gets UNKNOWN_CARD_ID.
@@ -35,6 +37,7 @@ const CARDS: String = "res://view/look/presets/cards.json"
 const CUTS: Array[StringName] = [
 	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
+	&"push_in_dof",
 ]
 
 @export var id: StringName = &"high"
@@ -100,6 +103,9 @@ const CUTS: Array[StringName] = [
 @export var minor_lights: bool = true
 ## Distant scenery detail: 0 = silhouettes only, 1 = with props, 2 = all.
 @export_range(0, 2) var scenery_detail: int = 2
+## The far blur (depth of field) while the camera is pushed in on a parry
+## (CameraRig.dof_allowed).
+@export var push_in_dof: bool = true
 
 
 ## Loads a preset by id (low, medium, high or ultra); null for any other id.

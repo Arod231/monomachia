@@ -1,5 +1,5 @@
 // The bell's routes, mounted by server.mjs: every sweepMs (and on each look) it
-// turns the relay's held items and the events the relay hook noted
+// turns the events the relay hook noted
 // (events.jsonl, read on from where it left off), and the media sessions
 // posted, into notification records (rules in bell.mjs), kept in one file so
 // every device shares the read flags.
@@ -9,12 +9,11 @@ import { mkdir, open, readFile, rename, stat, writeFile } from 'node:fs/promises
 import path from 'node:path';
 import { bellUpdate, bellView, eventsDue, markRead } from './bell.mjs';
 
-// file: notifications.json; relay: the relay folder; held(): the items held
-// now; titlesOf(ids): Map of session id -> title; posts(): the media sessions
+// file: notifications.json; relay: the relay folder; titlesOf(ids): Map of session id -> title; posts(): the media sessions
 // posted (media-api.mjs); asking(): the ids of sessions with a question open
 // in the app now; onNew(records): told of each look's new records (lock-screen
 // push, push-api.mjs), after they are saved.
-export function bellApi({ file, relay, held, titlesOf, posts = () => [], asking = async () => null, onNew = () => {}, sweepMs = 0 }) {
+export function bellApi({ file, relay, titlesOf, posts = () => [], asking = async () => null, onNew = () => {}, sweepMs = 0 }) {
   let state;
   let busy = Promise.resolve();
   // One look at a time: a sweep, a read and a mark never overlap.
@@ -80,11 +79,10 @@ export function bellApi({ file, relay, held, titlesOf, posts = () => [], asking 
     const before = await load();
     let { events, at, size } = await newEvents(before?.eventsAt ?? 0);
     if (at === size && await rotateIfDue().catch(() => false)) at = 0;
-    const pending = await held();
     const posted = await posts();
     const askingNow = await Promise.resolve(asking()).then((ids) => (ids ? new Set(ids) : null), () => null);
-    const titles = await titlesOf([...new Set([...pending, ...events, ...posted].map((x) => x.session).filter(Boolean))]);
-    let next = bellUpdate(before, { pending, events, posts: posted, asking: askingNow, titleOf: (id) => titles.get(id) ?? '(untitled)' });
+    const titles = await titlesOf([...new Set([...events, ...posted].map((x) => x.session).filter(Boolean))]);
+    let next = bellUpdate(before, { events, posts: posted, asking: askingNow, titleOf: (id) => titles.get(id) ?? '(untitled)' });
     if (at !== (before?.eventsAt ?? 0)) next = { ...next, eventsAt: at };
     await save(next);
     const had = new Set((before?.records ?? []).map((r) => r.id));

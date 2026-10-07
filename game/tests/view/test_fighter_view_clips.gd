@@ -1,10 +1,9 @@
 extends GutTest
 ## The fighter view playing the clip director's answer (authored-animation
 ## task 8): the idle by weapon class, an attack with a baked swing on its clip
-## with the crossfades, the weapon fixed in the Hunter's hand or posed on the
-## path, and the "animation packs missing" note. Without the packs (forced
-## here, and on CI) the fallback clips play; the Hunter's clip-held weapon
-## needs the packs and runs locally.
+## with the crossfades, the Katana fixed in the clip's hand (milestone-1 task
+## 135), and the "animation packs missing" note. Without the packs (forced
+## here, and on CI) the fallback clips play; the Iglesias clips run locally.
 
 const CD := preload("res://tests/view/test_clip_director.gd")
 const SF := preload("res://tests/sim/swing_fixtures.gd")
@@ -66,17 +65,16 @@ func test_the_attack_plays_its_fallback_clip_without_the_packs() -> void:
 	assert_eq(_authored(v), 0.0, "the legs alone")
 	W.step([SimHelpers.btn(Btn.LIGHT), SimHelpers.idle()])
 	var amounts: Array[float] = []
-	var swing: Swing = f.atk.def.swing
 	while f.state == &"attack":
-		_show(v, f)
+		var poses: Array[Transform3D] = _show(v, f)
 		amounts.append(_authored(v))
 		var clip: AnimationNodeAnimation = (v.locomotion.tree.tree_root as AnimationNodeBlendTree).get_node(&"clip_a")
 		if amounts[-1] > 0.0:
 			assert_eq(clip.animation, &"ual/Sword_Attack", "frame %d: the swing's fallback clip" % f.atk.frame)
-		assert_false(v.model.rig.is_fixed(), "the fallback's weapon is posed, not in the clip's hand")
-		if f.atk.frame >= 8:
-			var want: Vector3 = SwingPlayer.to_skeleton(swing.tick(&"right_hand", f.atk.frame - 1).grip)
-			assert_lt(v.model.weapons[0].transform.origin.distance_to(want), 0.01, "frame %d: posed on the baked path" % f.atk.frame)
+		# the Katana rides the fallback clip's hand too (milestone-1 task 135)
+		assert_true(v.model.rig.is_fixed(), "frame %d: the weapon in the fallback clip's hand" % f.atk.frame)
+		var hand: Vector3 = poses[v.model.skeleton.find_bone("RightHand")] * v.model.rig.fist("Right").origin
+		assert_lt(hand.distance_to(v.model.weapons[0].transform.origin), 0.01, "frame %d: the hand on the handle" % f.atk.frame)
 		W.step([SimHelpers.idle(), SimHelpers.idle()])
 	assert_eq(amounts[0], 1.0, "the swing's clip whole from its first frame (the rig blends inertially, task 23)")
 	assert_eq(amounts[3], 1.0)
@@ -103,7 +101,7 @@ func test_the_view_stands_in_the_classs_idle_and_holds_planted_feet() -> void:
 	assert_true(v.foot_lock.holds("Right") and v.foot_lock.holds("Left"), "standing: both feet held")
 
 
-func test_local_the_hunter_holds_the_weapon_in_the_clips_hand() -> void:
+func test_local_both_fighters_hold_the_katana_in_the_clips_hand() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
 		return
@@ -121,14 +119,13 @@ func test_local_the_hunter_holds_the_weapon_in_the_clips_hand() -> void:
 		var poses: Array[Transform3D] = _show(v, f)
 		var clip: AnimationNodeAnimation = (v.locomotion.tree.tree_root as AnimationNodeBlendTree).get_node(&"clip_a")
 		assert_eq(String(clip.animation), "%s/Attack1H01_R" % ClipLibraries.FIGHTER_SETS[id], "%s plays the clip of its own set" % id)
-		if id == &"hunter":
-			assert_true(v.model.rig.is_fixed(), "the Hunter: the weapon rides the clip's hand")
-			assert_true(v.model.rig.body.hips_offset.is_equal_approx(SwingPlayer.to_skeleton(k.moves[&"k_l1"].swing.reach_at(SwingPlayer.swing_frame(f, 1.0)))),
-				"its reach correction carries the body")
-			var hand: Vector3 = poses[v.model.skeleton.find_bone("RightHand")] * v.model.rig.fist("Right").origin
-			assert_lt(hand.distance_to(v.model.weapons[0].transform.origin), 0.01, "the hand on the handle")
-		else:
-			assert_false(v.model.rig.is_fixed(), "the Rogue: the weapon posed on the shared path")
+		# both fighters hold the Katana in the clip's hand (milestone-1 task
+		# 135), the Rogue's on the Hunter's baked path no longer
+		assert_true(v.model.rig.is_fixed(), "%s: the weapon rides the clip's hand" % id)
+		assert_true(v.model.rig.body.hips_offset.is_equal_approx(SwingPlayer.to_skeleton(k.moves[&"k_l1"].swing.reach_at(SwingPlayer.swing_frame(f, 1.0)))),
+			"%s: its reach correction carries the body" % id)
+		var hand: Vector3 = poses[v.model.skeleton.find_bone("RightHand")] * v.model.rig.fist("Right").origin
+		assert_lt(hand.distance_to(v.model.weapons[0].transform.origin), 0.01, "%s: the hand on the handle" % id)
 
 
 func test_the_stomp_plays_its_keyed_clip_with_the_weapon_in_hand() -> void:

@@ -1,0 +1,13 @@
+{
+	"about": "Right Cut's recoil (katana.k_l1 parried), milestone-1 task 34: Right Cut's own clip up to its contact frame (15, where it is parried from 2.5 m), where the blades meet, then thrown back: held there, everything above the legs knocked toward its cocked wind-up (frame 10) and the chest leaning back, over the parry recoil's frames. The time warp is the light's own up to the contact. Played from the contact frame by the parried attacker; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/right_cut.blend",
+	"out": "blender/clips/right_cut_recoil.blend",
+	"remap": [[0, 0], [14, 14], [15, 15], [29, 15]],
+	"knock": {
+		"from": 15,
+		"frames": 6,
+		"toward": 10,
+		"share": 0.7,
+		"lean": 12
+	}
+}

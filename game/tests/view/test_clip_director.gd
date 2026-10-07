@@ -256,6 +256,7 @@ func test_a_state_clip_at_its_own_speed_loops_or_hands_on() -> void:
 	f.sf = 10
 	assert_almost_eq(ClipDirector.reaction_clip(f, ctx, &"hitstun", 0).time, 10.0 / 60.0, 1e-9, "1.0, not fitted to the hitstun")
 	sc.hit_clips[1] = &"CombatDamage01"
+	f.keep_impact(f.pos, true)
 	f.enter_hitstun(90)
 	for sf: int in [30, 59]:
 		f.sf = sf
@@ -282,6 +283,134 @@ func test_today_no_katana_or_bare_hands_move_has_real_markers_but_the_counter_lu
 				assert_true(def.real_markers, "%s: its own clip's markers (P48)" % id)
 			elif FrameDataTable.shared().row(w.id, id).has("stand_in"):
 				assert_false(def.real_markers, "%s: a stand-in until its family re-keys it" % id)
+
+
+# ------------------------------------------------------------------ transitions (milestone-1 task 33)
+
+## The frozen table with the string's first bridge (Right Cut into Return
+## Cut, 8 source frames) and Right Cut's return to guard (12), and a context
+## whose tree has them; Return Cut re-keyed (real markers), as the string's
+## lights are. Undone by after_each.
+func _transitions() -> ClipDirector.Context:
+	var t: StateClips = StateClips.read(FrozenStateClips.PATH)
+	t.bridges[&"k_l2"] = {&"k_l1": &"Bridge_k_l1_k_l2"}
+	t.returns[&"k_l1"] = &"Return_k_l1"
+	StateClips.use(t)
+	Moves.KATANA.moves[&"k_l2"].real_markers = true
+	var ctx: ClipDirector.Context = _ctx()
+	for set_name: StringName in ClipLibraries.SETS:
+		ctx.lengths["%s/Bridge_k_l1_k_l2" % set_name] = 8.0 / 30.0
+		ctx.lengths["%s/Return_k_l1" % set_name] = 12.0 / 30.0
+		ctx.lengths["%s/Parry1H01_R_Loop" % set_name] = 1.0
+	return ctx
+
+
+## A follow-up started from the move its bridge is keyed from plays the
+## bridge at 1.0x over its first frames, then its own clip exactly where it
+## would have been without one, before its active frames and with no blend
+## (the bridge ends in that pose); the rules' frames are untouched.
+func test_a_chained_follow_up_plays_its_bridge_then_its_own_clip() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _transitions()
+	var follow: AttackDef = Moves.KATANA.moves[&"k_l2"]
+	var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+	_poke(W, f, &"attack", &"k_l1", 20)
+	shot = ClipDirector.step(shot, f, ctx)
+	for frame: int in 30:
+		_poke(W, f, &"attack", &"k_l2", frame, &"k_l1")
+		shot = ClipDirector.step(shot, f, ctx)
+		if frame < 16:
+			assert_eq(shot.clip.name, "HumanM/Bridge_k_l1_k_l2", "frame %d: the bridge" % frame)
+			assert_almost_eq(shot.clip.time, frame / 60.0, 1e-9, "frame %d: at 1.0x from its start" % frame)
+		else:
+			assert_eq(shot.clip.name, "HumanM/Clip_k_l2", "frame %d: the follow-up's own clip" % frame)
+			assert_almost_eq(shot.clip.time, follow.swing.marks[0] / 30.0 + frame / 60.0, 1e-9, "frame %d: where it would be without the bridge" % frame)
+		assert_eq(shot.drive, ClipDirector.ATTACK)
+		if frame == 16:
+			assert_eq(shot.blend, 0, "handed on with no blend")
+	assert_lt(16, follow.startup, "handed on before the active frames")
+
+
+## No bridge for an opener, for a follow-up from a move it has none from, or
+## without the packs (the fallback plays as before).
+func test_only_a_follow_up_from_its_move_plays_a_bridge() -> void:
+	var ctx: ClipDirector.Context = _transitions()
+	for from: StringName in [&"", &"k_h2"]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		_poke(W, f, &"attack", &"k_l2", 3, from)
+		assert_eq(ClipDirector.step(null, f, ctx).clip.name, "HumanM/Clip_k_l2", "from %s: its own clip" % [from if from != &"" else &"the guard"])
+	var W2: World = SimHelpers.make_world()
+	_poke(W2, W2.fighters[0], &"attack", &"k_l2", 3, &"k_l1")
+	assert_eq(ClipDirector.step(null, W2.fighters[0], _ctx(&"hunter", false)).clip.name, "ual/Sword_Attack", "without the packs: the fallback")
+
+
+## A light played out with no follow-up hands on to its return to guard,
+## whole body at 1.0x from its start, while the fighter stands in the free
+## state; then the legs' idle.
+func test_a_light_with_no_follow_up_returns_to_guard() -> void:
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	var ctx: ClipDirector.Context = _transitions()
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+	_poke(W, f, &"attack", &"k_l1", cut.total_frames() - 1)
+	shot = ClipDirector.step(shot, f, ctx)
+	for i: int in 24:
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq([shot.drive, shot.phase, shot.move], [ClipDirector.STATE, &"return", &"k_l1"], "step %d: returning" % i)
+		assert_eq(shot.clip.name, "HumanM/Return_k_l1")
+		assert_almost_eq(shot.clip.time, i / 60.0, 1e-9, "step %d: at 1.0x" % i)
+		assert_false(shot.upper, "the whole body")
+	_poke(W, f, &"free")
+	shot = ClipDirector.step(shot, f, ctx)
+	assert_eq(shot.drive, ClipDirector.LEGS, "then the legs' idle")
+
+
+## Moving or raising the guard hands the return on at once (to the legs or
+## the guard), and it doesn't come back; a light cut short or played
+## without the packs returns through the legs as before.
+func test_moving_or_guarding_ends_the_return() -> void:
+	var ctx: ClipDirector.Context = _transitions()
+	var cut: AttackDef = Moves.KATANA.moves[&"k_l1"]
+	for how: String in ["move", "guard"]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+		_poke(W, f, &"attack", &"k_l1", cut.total_frames() - 1)
+		shot = ClipDirector.step(shot, f, ctx)
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq(shot.phase, &"return", "%s: returning" % how)
+		if how == "move":
+			f.vel = V3.make(1.2, 0.0, 0.0)
+		else:
+			f.blocking = true
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq(shot.phase, &"" if how == "move" else &"guard", "%s: handed on" % how)
+		f.vel = V3.make()
+		f.blocking = false
+		_poke(W, f, &"free")
+		shot = ClipDirector.step(shot, f, ctx)
+		assert_eq(shot.drive, ClipDirector.LEGS, "%s: and it doesn't come back" % how)
+	var W2: World = SimHelpers.make_world()
+	var f2: Fighter = W2.fighters[0]
+	var plain: ClipDirector.Context = _ctx(&"hunter", false)
+	var s2: ClipDirector.Shot = ClipDirector.step(null, f2, plain)
+	_poke(W2, f2, &"attack", &"k_l1", cut.total_frames() - 1)
+	s2 = ClipDirector.step(s2, f2, plain)
+	_poke(W2, f2, &"free")
+	assert_eq(ClipDirector.step(s2, f2, plain).drive, ClipDirector.LEGS, "without the packs: the legs")
+	var W3: World = SimHelpers.make_world()
+	var f3: Fighter = W3.fighters[0]
+	var s3: ClipDirector.Shot = ClipDirector.step(null, f3, ctx)
+	_poke(W3, f3, &"attack", &"k_l1", 6)
+	s3 = ClipDirector.step(s3, f3, ctx)
+	_poke(W3, f3, &"free")
+	assert_eq(ClipDirector.step(s3, f3, ctx).drive, ClipDirector.LEGS, "cut short in its startup: the legs")
 
 
 ## Pokes fighter `f` into a state for the director's next step.
@@ -773,8 +902,10 @@ func test_hitstun_plays_the_light_or_heavy_recoil() -> void:
 		var f: Fighter = W.fighters[0]
 		var shot: ClipDirector.Shot = _next(W, null, ctx)
 		assert_eq(shot.drive, ClipDirector.LEGS)
-		# a light's 14 frames, a heavy's 26, an ultimate's 40
+		# a light's 14 frames, a heavy's 26, an ultimate's 40: picked by the
+		# hit's weight (milestone-1 task 35), kept by the rules
 		for case: Array in [[14, &"CombatDamage01", &"Hit_Chest"], [26, &"CombatDamage02", &"Hit_Head"], [40, &"CombatDamage02", &"Hit_Head"]]:
+			f.keep_impact(f.pos, case[0] > 14)
 			f.enter_hitstun(case[0])
 			W.frame += 1
 			shot = ClipDirector.step(shot, f, ctx)
@@ -931,88 +1062,294 @@ func _attacking(ctx: ClipDirector.Context, frames: int) -> Array:
 	return [W, shot]
 
 
-func test_a_parried_attack_runs_back_then_staggers() -> void:
+# ------------------------------------------------------------------ light reactions (milestone-1 task 35)
+
+const SIDES: Array[String] = ["front", "left", "right", "back"]
+
+
+## The frozen table with made-up light reactions for the Katana (R_<side>_<high
+## or low>, 12 source frames) and its light block (B_light, 8), each at its
+## own speed, and a reaction context whose tree has them. Undone by
+## after_each.
+func _react_ctx(libraries: bool = true) -> ClipDirector.Context:
+	var t: StateClips = StateClips.read(FrozenStateClips.PATH)
+	var hits: Dictionary[StringName, StringName] = {}
+	for side: String in SIDES:
+		for height: String in ["high", "low"]:
+			var id: StringName = StringName("R_%s_%s" % [side, height])
+			hits[StringName("%s_%s" % [side, height])] = id
+			t.own_speed[id] = &"hand_on"
+	t.light_hits[&"katana"] = hits
+	t.light_blocks[&"katana"] = &"B_light"
+	t.own_speed[&"B_light"] = &"hand_on"
+	StateClips.use(t)
+	var ctx: ClipDirector.Context = _reaction_ctx(libraries)
+	for set_name: StringName in ClipLibraries.SETS:
+		for id: StringName in hits.values():
+			ctx.lengths["%s/%s" % [set_name, id]] = 12.0 / 30.0
+		ctx.lengths["%s/B_light" % set_name] = 8.0 / 30.0
+	return ctx
+
+
+## A point `right` m to `f`'s right, `ahead` m ahead of it and `up` m up.
+static func _around(f: Fighter, right: float, up: float, ahead: float) -> V3:
+	return SimMath.local_to_world(f.pos, f.yaw, V3.make(right, up, ahead))
+
+
+## A light hit plays the light reaction for where it landed on the defender
+## (its side by the contact's bearing, high or low by its height), whole body
+## at its own speed from the hitstun's first frame, handing on at its end.
+func test_a_light_hit_plays_the_reaction_for_where_it_landed() -> void:
+	var ctx: ClipDirector.Context = _react_ctx()
+	var places: Dictionary[String, Vector2] = {"front": Vector2(0.05, 0.3), "left": Vector2(-0.3, 0.05), "right": Vector2(0.3, -0.05), "back": Vector2(0.0, -0.3)}
+	for side: String in SIDES:
+		for height: String in ["high", "low"]:
+			var W: World = SimHelpers.make_world()
+			var f: Fighter = W.fighters[0]
+			var at: Vector2 = places[side]
+			f.keep_impact(_around(f, at.x, 1.4 if height == "high" else 0.7, at.y), false)
+			f.set_state(&"hitstun", ProtectedTimings.for_weapon(&"katana").hitstun(&"light"))
+			var shot: ClipDirector.Shot = null
+			for sf: int in 8:
+				f.sf = sf
+				W.frame += 1
+				shot = ClipDirector.step(shot, f, ctx)
+				assert_eq(shot.clip.name, "HumanM/R_%s_%s" % [side, height], "%s %s, frame %d" % [side, height, sf])
+				assert_almost_eq(shot.clip.time, sf / 60.0, 1e-9, "%s %s: 1.0x from the hitstun's start" % [side, height])
+				assert_false(shot.upper, "the whole body")
+	assert_eq(ClipDirector.HIT_HIGH_FROM, 1.0, "high from 1 m up")
+
+
+## A heavy hit keeps the heavy recoil, and a light one with no light
+## reactions for its weapon keeps the light recoil, whatever its hitstun's
+## length: the re-keyed Katana lights' 24 frames once read as a heavy's.
+func test_the_hit_s_weight_picks_the_recoil_not_its_hitstun() -> void:
 	var ctx: ClipDirector.Context = _reaction_ctx()
+	var sc: StateClips = StateClips.shared()
+	for heavy: bool in [false, true]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		f.keep_impact(_around(f, 0.0, 1.3, 0.3), heavy)
+		f.set_state(&"hitstun", 24)
+		var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+		assert_eq(shot.clip.name, "HumanM/" + String(sc.hit_clips[1 if heavy else 0]), "a %s hit of 24 frames" % ("heavy" if heavy else "light"))
+	var react: ClipDirector.Context = _react_ctx()
+	var W2: World = SimHelpers.make_world()
+	var f2: Fighter = W2.fighters[0]
+	f2.keep_impact(_around(f2, 0.0, 1.3, 0.3), true)
+	f2.set_state(&"hitstun", 41)
+	assert_eq(ClipDirector.step(null, f2, react).clip.name, "HumanM/" + String(sc.hit_clips[1]), "a heavy keeps the heavy recoil beside the light reactions")
+
+
+## A light block plays the weapon's light block reaction on the upper body
+## at its own speed; a heavy one keeps the guard's Parry Hit fitted to the
+## blockstun. Without the packs the fallbacks play as before.
+func test_a_light_block_plays_its_reaction() -> void:
+	var ctx: ClipDirector.Context = _react_ctx()
+	for heavy: bool in [false, true]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		f.keep_impact(_around(f, 0.0, 1.2, 0.4), heavy)
+		var frames: int = ProtectedTimings.for_weapon(&"katana").blockstun(&"heavy" if heavy else &"light")
+		f.set_state(&"blockstun", frames)
+		f.blocking = true
+		f.sf = 4
+		var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+		assert_true(shot.upper, "on the upper body")
+		if heavy:
+			assert_eq(shot.clip.name, "HumanM/" + String(StateClips.shared().guard_clips[&"katana"][1]), "a heavy block: the Parry Hit")
+		else:
+			assert_eq(shot.clip.name, "HumanM/B_light", "a light block: its reaction")
+			assert_almost_eq(shot.clip.time, 4.0 / 60.0, 1e-9, "at its own speed")
+	var plain: ClipDirector.Context = _react_ctx(false)
+	var W3: World = SimHelpers.make_world()
+	var f3: Fighter = W3.fighters[0]
+	f3.keep_impact(_around(f3, 0.0, 1.4, 0.3), false)
+	f3.set_state(&"hitstun", 24)
+	assert_eq(ClipDirector.step(null, f3, plain).clip.name, "ual/" + String(StateClips.shared().hit_fallbacks[0]), "without the packs: the fallback")
+
+
+# ------------------------------------------------------------------ deflect pairs (milestone-1 task 34)
+
+## The frozen table with deflect pairs for Right Cut (made up here, its
+## contacts at source frames 14 and 2) and for Kesa Cut and Crown Cut (whose
+## real baked swings give the nearest-light pick its directions), and a
+## reaction context whose tree has every half. Undone by after_each.
+func _pairs_ctx(libraries: bool = true) -> ClipDirector.Context:
+	var t: StateClips = StateClips.read(FrozenStateClips.PATH)
+	for move: StringName in [&"k_l1", &"k_l3", &"k_l4"]:
+		t.deflect_pairs[move] = {&"deflect": StringName("Deflect_" + move), &"deflect_contact": 2.0,
+			&"recoil": StringName("Recoil_" + move), &"recoil_contact": 14.0}
+	StateClips.use(t)
+	var ctx: ClipDirector.Context = _reaction_ctx(libraries)
+	for set_name: StringName in ClipLibraries.SETS:
+		for move: StringName in [&"k_l1", &"k_l3", &"k_l4"]:
+			ctx.lengths["%s/Deflect_%s" % [set_name, move]] = 26.0 / 30.0
+			ctx.lengths["%s/Recoil_%s" % [set_name, move]] = 28.0 / 30.0
+	return ctx
+
+
+## Fighter `f` parried on move `move` (the rules' record, Fighter.keep_parry())
+## sweeping `sweep` in the attacker's frame.
+static func _parried(f: Fighter, move: StringName, sweep: V3 = V3.make(1.0, 0.0, 0.0)) -> void:
+	f.keep_parry(move, 28, V3.make(0.0, 1.2, 1.2), SimMath.local_to_world(V3.make(), f.yaw, sweep), f.yaw)
+
+
+## A parried light plays its recoil, the pair's half for the attacker, whole
+## body at 1.0x from its contact frame where the blades met, through the
+## recoil; the guard comes back once the recoil allows it and the fighter
+## blocks. The rebound (the attack's clip run backwards) is gone.
+func test_a_parried_light_plays_its_recoil_from_the_contact_frame() -> void:
+	var ctx: ClipDirector.Context = _pairs_ctx()
 	var got: Array = _attacking(ctx, 12)
 	var W: World = got[0]
 	var f: Fighter = W.fighters[0]
 	var shot: ClipDirector.Shot = got[1]
-	var met: ClipDirector.Clip = shot.clip
-	# a block's parry: the attacker recoils
+	_parried(f, &"k_l1")
 	f.enter_recoil(SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER)
-	f.atk = null
-	W.frame += 1
-	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq([shot.drive, shot.phase, shot.clip.name], [ClipDirector.STATE, &"rebound", met.name], "its own clip")
-	assert_almost_eq(shot.clip.time, met.time, 1e-9, "from where the parry met it")
-	assert_eq(shot.upper, false, "the whole body")
-	var times: Array[float] = [shot.clip.time]
-	while f.sf < StateClips.shared().rebound_frames:
-		f.sf += 1
+	for sf: int in SimConst.PARRY_RECOIL_GUARD_AFTER + 1:
+		f.sf = sf
 		W.frame += 1
 		shot = ClipDirector.step(shot, f, ctx)
-		if f.sf < StateClips.shared().rebound_frames:
-			assert_eq(shot.phase, &"rebound")
-			assert_almost_eq(shot.clip.time, maxf(0.0, met.time - float(f.sf) * StateClips.shared().rebound_speed / 60.0), 1e-9, "backwards at 2.0 (frame %d)" % f.sf)
-			times.append(shot.clip.time)
-	for i: int in times.size() - 1:
-		assert_lte(times[i + 1], times[i], "running backwards, holding at its start: %s" % [times])
-	assert_lt(times[-1], times[0], "it runs back")
-	# handed over to the stagger
-	assert_eq([shot.phase, shot.clip.name, shot.fade], [&"stun", "HumanM/Stun01", StateClips.shared().fades[&"rebound"]], "then Stun01, faded over 4 frames")
-	assert_eq(shot.from.name, met.name, "from the rebound's last pose")
-	var rest: int = SimConst.PARRY_RECOIL - StateClips.shared().rebound_frames
-	f.sf = StateClips.shared().rebound_frames + 6
-	W.frame += 1
-	shot = ClipDirector.step(shot, f, ctx)
-	assert_almost_eq(shot.clip.time, ClipDirector.fitted_time(6, rest, ctx.lengths["HumanM/Stun01"]), 1e-9, "over the rest of the recoil")
-	# the guard back up once the recoil allows it
+		assert_eq([shot.drive, shot.phase, shot.clip.name], [ClipDirector.STATE, &"recoil", "HumanM/Recoil_k_l1"], "frame %d: the recoil" % sf)
+		assert_almost_eq(shot.clip.time, 14.0 / 30.0 + sf / 60.0, 1e-9, "frame %d: 1.0x from its contact frame" % sf)
+		assert_false(shot.upper, "the whole body")
+		if sf == 0:
+			assert_eq([shot.fade, shot.blend], [0, 0], "cut in: the blades meet on the contact frame")
+	assert_eq(shot.pair.get(&"recoil"), &"Recoil_k_l1", "the shot carries its pair")
 	f.sf = SimConst.PARRY_RECOIL_GUARD_AFTER + 1
 	f.blocking = true
 	W.frame += 1
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.phase, &"guard", "blocking again")
+	assert_eq(shot.phase, &"guard", "the guard back up")
 
 
-func test_a_flash_or_redirect_stun_rebounds_too_but_not_a_stomp() -> void:
-	var ctx: ClipDirector.Context = _reaction_ctx()
-	for stun: int in [ProtectedTimings.for_weapon(&"katana").flash_stun, ProtectedTimings.for_weapon(&"katana").redirect_stun]:
-		var got: Array = _attacking(ctx, 12)
-		var W: World = got[0]
-		var f: Fighter = W.fighters[0]
-		var shot: ClipDirector.Shot = got[1]
-		var met: ClipDirector.Clip = shot.clip
-		f.enter_stun(stun)
-		f.atk = null
+## A Flash's or a Redirect's stun plays the recoil too, then Stun01 over the
+## rest of the stun; a stomp's stun, and a recoil with no parry behind it,
+## play their own clips from their start.
+func test_a_long_stun_plays_its_recoil_then_staggers() -> void:
+	var ctx: ClipDirector.Context = _pairs_ctx()
+	var stun: int = ProtectedTimings.for_weapon(&"katana").flash_stun
+	var got: Array = _attacking(ctx, 12)
+	var W: World = got[0]
+	var f: Fighter = W.fighters[0]
+	var shot: ClipDirector.Shot = got[1]
+	_parried(f, &"k_l1")
+	f.enter_stun(stun)
+	W.frame += 1
+	shot = ClipDirector.step(shot, f, ctx)
+	assert_eq([shot.phase, shot.clip.name], [&"recoil", "HumanM/Recoil_k_l1"], "the flash's stun recoils")
+	var played: int = int(roundf((28.0 - 14.0) / 30.0 * 60.0))
+	while f.sf < played + 6:
+		f.sf += 1
 		W.frame += 1
 		shot = ClipDirector.step(shot, f, ctx)
-		assert_eq([shot.phase, shot.clip.name], [&"rebound", met.name], "a %d-frame stun rebounds" % stun)
-		f.sf = StateClips.shared().rebound_frames
-		W.frame += 1
-		shot = ClipDirector.step(shot, f, ctx)
-		assert_eq([shot.phase, shot.clip.name], [&"stun", "HumanM/Stun01"])
+		if f.sf < played:
+			assert_eq(shot.phase, &"recoil", "frame %d: still recoiling" % f.sf)
+	assert_eq([shot.phase, shot.clip.name], [&"stun", "HumanM/Stun01"], "then Stun01")
+	assert_almost_eq(shot.clip.time, ClipDirector.state_time(&"Stun01", 6, stun - played, ctx.lengths["HumanM/Stun01"]), 1e-9,
+		"over the rest of the stun")
 	var got2: Array = _attacking(ctx, 12)
 	var f2: Fighter = (got2[0] as World).fighters[0]
 	var pinned: String = KeyedClips.anim_name(KeyedClips.PINNED)
 	ctx.lengths[pinned] = 70.0 / 60.0
+	_parried(f2, &"k_l1")
 	f2.enter_stun(ProtectedTimings.for_weapon(&"katana").stomp_stun, &"stunned", &"stomp")
-	f2.atk = null
 	(got2[0] as World).frame += 1
 	var shot2: ClipDirector.Shot = ClipDirector.step(got2[1], f2, ctx)
-	assert_eq(shot2.clip.name, pinned, "the stomp's own keyed clip, no rebound")
-	assert_null(shot2.rebound)
+	assert_eq(shot2.clip.name, pinned, "the stomp's own keyed clip, no recoil")
+	var W3: World = SimHelpers.make_world()
+	var f3: Fighter = W3.fighters[0]
+	var shot3: ClipDirector.Shot = _next(W3, null, ctx)
+	f3.enter_recoil(SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER)
+	W3.frame += 1
+	shot3 = ClipDirector.step(shot3, f3, ctx)
+	assert_eq([shot3.phase, shot3.clip.name], [&"stun", "HumanM/Stun01"], "no parried attack: Stun01 from its start")
 
 
-func test_a_stun_not_from_an_attack_plays_stun01_from_its_start() -> void:
-	var ctx: ClipDirector.Context = _reaction_ctx()
-	var W: World = SimHelpers.make_world()
-	var f: Fighter = W.fighters[0]
-	var shot: ClipDirector.Shot = _next(W, null, ctx)
-	f.enter_recoil(SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER)
-	W.frame += 1
-	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq([shot.phase, shot.clip.name], [&"stun", "HumanM/Stun01"], "no attack to run back")
-	assert_null(shot.rebound)
+## The parrier plays the pair's other half, its deflect, whole body at 1.0x
+## from its contact frame, through its recovery and on into the free state
+## while it stands, blocking or not, to the clip's end; moving hands it on.
+func test_the_parrier_plays_its_deflect_from_the_contact_frame() -> void:
+	var ctx: ClipDirector.Context = _pairs_ctx()
+	for how: String in ["stands", "moves"]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[1]
+		var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+		_parried(f, &"k_l1")
+		f.set_state(&"parryAnim", SimConst.PARRIER_RECOVERY)
+		var steps: int = 0
+		while steps < 60:
+			W.frame += 1
+			if f.state == &"parryAnim" and f.sf >= SimConst.PARRIER_RECOVERY:
+				f.set_state(&"free")
+				f.blocking = true
+			if how == "moves" and steps == 10:
+				f.vel = V3.make(0.0, 0.0, 1.5)
+			shot = ClipDirector.step(shot, f, ctx)
+			if shot.phase != &"deflect":
+				break
+			assert_eq(shot.clip.name, "HumanM/Deflect_k_l1")
+			assert_almost_eq(shot.clip.time, 2.0 / 30.0 + steps / 60.0, 1e-9, "%s, step %d: 1.0x from its contact frame" % [how, steps])
+			if steps == 0:
+				assert_eq([shot.fade, shot.blend], [0, 0], "cut in from the guard")
+			assert_false(shot.upper, "the whole body")
+			f.sf += 1
+			steps += 1
+		if how == "stands":
+			assert_eq(steps, int(roundf((26.0 - 2.0) / 30.0 * 60.0)), "to the clip's end, past the recovery")
+			assert_eq(shot.phase, &"guard", "then the guard, still blocking")
+		else:
+			assert_eq(steps, 10, "moving ends it")
+
+
+## A parried move with no pair of its own plays the pair of the light whose
+## cut sweeps nearest its own, both halves; each light's sweep is its baked
+## swing's at its contact.
+func test_a_move_with_no_pair_plays_the_nearest_lights() -> void:
+	var ctx: ClipDirector.Context = _pairs_ctx()
+	var kesa: V3 = ClipDirector.sweep_of(&"k_l3")
+	var crown: V3 = ClipDirector.sweep_of(&"k_l4")
+	for s: V3 in [kesa, crown]:
+		assert_almost_eq(V3.length(s), 1.0, 1e-9, "a unit sweep")
+	assert_lt(V3.dot(kesa, crown), 0.95, "the diagonal and the overhead sweep differently")
+	for want: StringName in [&"k_l3", &"k_l4"]:
+		var near: V3 = V3.normalized(V3.add(ClipDirector.sweep_of(want), V3.make(0.05, 0.0, 0.0)))
+		var got: Array = _attacking(ctx, 12)
+		var W: World = got[0]
+		var a: Fighter = W.fighters[0]
+		var b: Fighter = W.fighters[1]
+		var sa: ClipDirector.Shot = got[1]
+		var sb: ClipDirector.Shot = ClipDirector.step(null, b, ctx)
+		_parried(a, &"k_h2", near)
+		_parried(b, &"k_h2", near)
+		a.enter_recoil(SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER)
+		b.set_state(&"parryAnim", SimConst.PARRIER_RECOVERY)
+		W.frame += 1
+		assert_eq(ClipDirector.step(sa, a, ctx).clip.name, "HumanM/Recoil_" + want, "a heavy sweeping as %s: its recoil" % want)
+		assert_eq(ClipDirector.step(sb, b, ctx).clip.name, "HumanM/Deflect_" + want, "and its deflect")
+
+
+## Without the packs, or with no pairs in the table, nothing plays a pair: the
+## parried attacker staggers from the start (the rebound is gone) and the
+## parrier plays its guard's Parry Hit, as before.
+func test_without_pairs_the_stun_and_the_parry_hit_play() -> void:
+	for ctx: ClipDirector.Context in [_pairs_ctx(false), _reaction_ctx()]:
+		if ctx.libraries:
+			FrozenStateClips.install()
+		var got: Array = _attacking(ctx, 12)
+		var W: World = got[0]
+		var f: Fighter = W.fighters[0]
+		_parried(f, &"k_l1")
+		f.enter_recoil(SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER)
+		W.frame += 1
+		var shot: ClipDirector.Shot = ClipDirector.step(got[1], f, ctx)
+		assert_eq(shot.phase, &"stun", "libraries %s: the stun from the start" % ctx.libraries)
+		assert_true(shot.pair.is_empty(), "no pair")
+		var b: Fighter = W.fighters[1]
+		_parried(b, &"k_l1")
+		b.set_state(&"parryAnim", SimConst.PARRIER_RECOVERY)
+		assert_eq(ClipDirector.step(null, b, ctx).phase, &"parry", "the guard's parry hit")
 
 
 # ------------------------------------------------------------------ knockdown and KO (task 28)

@@ -79,7 +79,7 @@ describe('the round trip: posted visuals', () => {
   it('opens a page for a session known only by its media, and lists it under Older', async () => {
     post(['arena.png', '--caption', 'From a deleted session'], OTHER);
     const d = (await board.get(`/session?id=${OTHER}`)).body;
-    assertMatches(d, { id: OTHER, gone: true, cwd: work, entries: [], pending: [] });
+    assertMatches(d, { id: OTHER, gone: true, cwd: work, entries: [], queued: [] });
     assert.deepEqual(d.visuals.map((v) => v.caption), ['From a deleted session']);
     const list = (await board.get('/sessions')).body;
     assert.equal(list.sessions.some((s) => s.id === OTHER), false);

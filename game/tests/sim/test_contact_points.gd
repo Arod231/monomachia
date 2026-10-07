@@ -68,6 +68,93 @@ func test_hit_block_and_parry_start_where_the_blade_crosses_the_defender() -> vo
 		_assert_v3(_pos(e), V3.make(b.x, 1.2, b.z), "the %s's point" % kind)
 
 
+## Which weapons met (milestone-1 task 36): the hit, block and parry events
+## name the attacker's weapon and the defender's, fists for a bare hand, so
+## the sound bank (and the sparks) can tell the pair apart.
+func test_hit_block_and_parry_name_both_fighters_weapons() -> void:
+	var wide: Swing = SF.level_slash(_cut(), 1.2, 60.0, -60.0, 0.8)
+	var parry := func(i: int) -> RawInput: return H.btn(Btn.BLOCK) if i == 13 else H.idle()
+	var defences: Dictionary[StringName, Callable] = {
+		&"hit": Callable(),
+		&"block": func(_i: int) -> RawInput: return H.btn(Btn.BLOCK),
+		&"parry": parry,
+	}
+	for kind: StringName in defences:
+		var e: Dictionary = _first_outcome(_world(wide), defences[kind])
+		assert_eq(e.get("t"), kind, "a %s" % kind)
+		assert_eq(e.get("weapon"), &"katana", "the %s names the attacker's weapon" % kind)
+		assert_eq(e.get("defender_weapon"), &"katana", "and the defender's")
+	# a bare hand parrying turns the blade aside: a redirect, by fists
+	var W: World = _world(wide)
+	W.fighters[1].armed = false
+	var redirect: Dictionary = _first_outcome(W, parry)
+	assert_eq(redirect.get("kind"), &"redirect")
+	assert_eq(redirect.get("weapon"), &"katana")
+	assert_eq(redirect.get("defender_weapon"), &"fists")
+
+
+## Milestone-1 task 34: a parry carries the blade's sweep at the contact,
+## the way its tip travelled through that tick (a unit vector, world space:
+## sideways for a level slash), and both fighters keep the parry for the
+## view's deflect pair: the parried move, the attack frame it met the blade
+## on, the contact point and the sweep in the attacker's own frame (right, up,
+## forward). Nothing else in the rules reads them.
+func test_a_parry_carries_the_blades_sweep_and_both_fighters_keep_it() -> void:
+	var wide: Swing = SF.level_slash(_cut(), 1.2, 60.0, -60.0, 0.8)
+	var W: World = _world(wide)
+	var a: Fighter = W.fighters[0]
+	var b: Fighter = W.fighters[1]
+	var frame: int = -1
+	var e: Dictionary = {}
+	for i: int in 32:
+		W.step([H.btn(Btn.LIGHT) if i == 0 else H.idle(), H.btn(Btn.BLOCK) if i == 13 else H.idle()])
+		for ev: Dictionary in W.drain_events():
+			if ev["t"] == &"parry":
+				e = ev
+		if not e.is_empty():
+			break
+		frame = a.atk.frame if a.atk != null else frame
+	assert_eq(e.get("t"), &"parry", "parried")
+	assert_eq(e.get("attack"), CUT, "the parry names the parried move")
+	var d: Dictionary = e.get("dir", {"x": NAN, "y": NAN, "z": NAN})
+	var dir: V3 = V3.make(d["x"], d["y"], d["z"])
+	var toward: V3 = V3.normalized(V3.make(b.pos.x - a.pos.x, 0.0, b.pos.z - a.pos.z))
+	assert_almost_eq(V3.length(dir), 1.0, 1e-9, "a unit vector")
+	assert_almost_eq(dir.y, 0.0, 1e-9, "a level slash sweeps level")
+	assert_lt(absf(V3.dot(dir, toward)), 0.2, "across the defender, not at it")
+	for f: Fighter in [a, b]:
+		assert_eq(f.parry_move, CUT, "fighter %d keeps the parried move" % f.id)
+		assert_eq(f.parry_frame, frame + 1, "and the attack frame it met the blade on")
+		_assert_v3(f.parry_pos, _pos(e), "and the contact")
+		_assert_v3(SimMath.local_to_world(V3.make(), a.yaw, f.parry_sweep), dir, "and the sweep, in the attacker's frame")
+	# a new round forgets it
+	a.reset_for_round(0.0, 0.0, 0.0)
+	assert_eq(a.parry_move, &"")
+
+
+## Milestone-1 task 35: a hit or a block keeps its contact point and its
+## weight (a light here) on the defender, for the view's directional
+## reaction; nothing else in the rules reads them, and a new round forgets
+## them.
+func test_a_hit_or_a_block_is_kept_on_the_defender() -> void:
+	var wide: Swing = SF.level_slash(_cut(), 1.2, 60.0, -60.0, 0.8)
+	var defences: Dictionary[StringName, Callable] = {
+		&"hit": Callable(),
+		&"block": func(_i: int) -> RawInput: return H.btn(Btn.BLOCK),
+	}
+	for kind: StringName in defences:
+		var W: World = _world(wide)
+		var e: Dictionary = _first_outcome(W, defences[kind])
+		assert_eq(e.get("t"), kind, "a %s" % kind)
+		var b: Fighter = W.fighters[1]
+		_assert_v3(b.impact_pos, _pos(e), "the %s's contact, kept" % kind)
+		assert_false(b.impact_heavy, "a light %s" % kind)
+		b.keep_impact(V3.make(1.0, 2.0, 3.0), true)
+		assert_true(b.impact_heavy, "a heavy kept")
+		b.reset_for_round(0.0, 0.0, 0.0)
+		assert_false(b.impact_heavy, "a new round forgets it")
+
+
 func test_a_blade_short_of_the_axis_starts_on_its_sweep_inside_the_capsule() -> void:
 	# the grip 0.45 m out: the tip reaches 1.23 m, short of the defender's
 	# axis 1.25 m away, so the contact is on the blade's sweep at 1.2 m,

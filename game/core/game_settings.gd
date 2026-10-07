@@ -21,7 +21,7 @@ extends RefCounted
 ## File layout:
 ##   [graphics]  preset="ultra"
 ##   [audio]     master=80  effects=90  music=100
-##   [display]   reduce_flashes=false  button_hints=true
+##   [display]   reduce_flashes=false  button_hints=true  blood="on"
 
 ## A setting changed: the Settings screen emits it after each change it
 ## saves, so what follows the settings applies them again at once (the
@@ -70,6 +70,19 @@ var music_volume: int = 100:
 var reduce_flashes: bool = false
 ## Button hints on screen: off hides the HUD's prompts (24.4).
 var button_hints: bool = true
+
+## The Blood setting's levels (milestone-1 task 38, BloodEffects): On, Reduced
+## (less of everything, and the finishers' body stays whole) or Off.
+const BLOOD_ON: StringName = &"on"
+const BLOOD_REDUCED: StringName = &"reduced"
+const BLOOD_OFF: StringName = &"off"
+const BLOOD_LEVELS: Array[StringName] = [BLOOD_ON, BLOOD_REDUCED, BLOOD_OFF]
+## How much blood a match draws, one of BLOOD_LEVELS (On by default, spec P5);
+## an unknown level is ignored.
+var blood: StringName = BLOOD_ON:
+	set(level):
+		if BLOOD_LEVELS.has(level):
+			blood = level
 
 
 ## A volume clamped to 0-100 and snapped to the nearest step of 5.
@@ -126,6 +139,7 @@ func save(path: String = PATH) -> Error:
 	cfg.set_value(SECTION_AUDIO, "music", music_volume)
 	cfg.set_value(SECTION_DISPLAY, "reduce_flashes", reduce_flashes)
 	cfg.set_value(SECTION_DISPLAY, "button_hints", button_hints)
+	cfg.set_value(SECTION_DISPLAY, "blood", String(blood))
 	return cfg.save(path)
 
 
@@ -154,6 +168,9 @@ static func load_from(path: String = PATH, card_name: String = RenderingServer.g
 		var on: Variant = cfg.get_value(SECTION_DISPLAY, key)
 		if on is bool:
 			settings.set(key, on)
+	var level: Variant = cfg.get_value(SECTION_DISPLAY, "blood", "")
+	if level is String or level is StringName:
+		settings.blood = StringName(level)
 	return settings
 
 

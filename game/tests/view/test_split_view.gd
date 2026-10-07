@@ -135,7 +135,7 @@ func test_rematches_leave_no_stray_viewports() -> void:
 	assert_eq(view.find_children("*", "CameraRig", true, false).size(), 2)
 
 
-func test_shake_and_kicks_reach_both_cameras() -> void:
+func test_shake_kicks_and_push_ins_reach_both_cameras() -> void:
 	_start(_versus())
 	for cam: CameraRig in view.cameras:
 		cam.shake = 0.0
@@ -143,6 +143,9 @@ func test_shake_and_kicks_reach_both_cameras() -> void:
 	view._on_sim_event({"t": &"parry", "parrier": 0, "attacker": 1, "kind": &"parry", "timing": 3, "window": 9, "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
 	for i: int in 2:
 		assert_gt(view.cameras[i].shake, 0.0, "camera %d shakes" % i)
+		assert_gt(view.cameras[i].push_peak, 0.0, "camera %d pushes in" % i)
+	view._on_sim_event({"t": &"disarm", "victim": 1, "by": 0, "reason": &"parried", "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
+	for i: int in 2:
 		assert_gt(view.cameras[i].fov_kick, 0.0, "camera %d kicks" % i)
 
 
@@ -155,6 +158,7 @@ func test_reduce_flashes_reaches_both_cameras() -> void:
 	for i: int in 2:
 		assert_eq(view.cameras[i].shake_scale, MatchView.REDUCED_SHAKE, "camera %d" % i)
 		assert_eq(view.cameras[i].fov_kick_scale, 0.0, "camera %d" % i)
+		assert_eq(view.cameras[i].push_in_scale, 0.0, "camera %d" % i)
 
 
 func test_no_ko_orbit_in_either_half() -> void:
@@ -227,3 +231,17 @@ func test_the_versus_listener_sits_between_the_fighters() -> void:
 	assert_almost_eq(xf.origin.x, 0.0, 0.0001, "midway along")
 	assert_almost_eq(xf.origin.y, 1.25, 0.0001, "at chest height")
 	assert_almost_eq(xf.basis.x.normalized().dot(Vector3.RIGHT), 1.0, 0.0001, "its right toward player 2")
+
+
+func test_a_cinematic_shot_plays_in_both_halves() -> void:
+	# milestone-1 task 97: the split stays, and each half plays the shot
+	_start(_versus())
+	host.world.fighters[0].enter_hitstun(54)
+	view._on_sim_event({"t": &"hit", "attacker": 1, "target": 0, "attack": &"f_breaker", "heavy": true, "sound": &"fist",
+		"pos": {"x": 0.0, "y": 1.2, "z": 0.0}})
+	view.render(1.0 / 60.0)
+	assert_not_null(view.split, "still split")
+	for i: int in 2:
+		assert_true(view.cameras[i].in_shot(), "camera %d plays it" % i)
+	assert_almost_eq(view.cameras[0].global_transform.origin.distance_to(view.cameras[1].global_transform.origin), 0.0, 1e-3,
+		"the same shot")

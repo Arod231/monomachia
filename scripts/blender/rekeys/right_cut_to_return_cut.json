@@ -1,0 +1,11 @@
+{
+	"about": "The bridge from Right Cut into Return Cut (katana.k_l1 into katana.k_l2), milestone-1 task 33: Return Cut's first 8 frames, starting in Right Cut's pose at its branch point (frame 17) and carried into Return Cut's own wind-up, the feet where Return Cut has them. Played over the follow-up's first frames when it starts at its branch point, handing on to Return Cut's clip at frame 8, before its active frames; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/return_cut.blend",
+	"out": "blender/clips/right_cut_to_return_cut.blend",
+	"remap": [[0, 0], [8, 8]],
+	"blend_from": {
+		"source": "blender/clips/right_cut.blend",
+		"frame": 17,
+		"frames": 8
+	}
+}

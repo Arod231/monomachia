@@ -47,7 +47,8 @@ func test_light_attacks_chain_into_a_combo_string() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
 	# press light repeatedly
-	H.run(W, 90, func(i: int) -> RawInput: return H.btn(Btn.LIGHT) if i % 8 == 0 else H.idle(), IDLE, r)
+	# (Kesa Cut, the third, lands on step 91 since the string was re-keyed)
+	H.run(W, 110, func(i: int) -> RawInput: return H.btn(Btn.LIGHT) if i % 8 == 0 else H.idle(), IDLE, r)
 	var hits: Array = r.all(&"hit").map(func(e: Dictionary) -> Variant: return e["attack"])
 	assert_eq(hits.slice(0, 3), [&"k_l1", &"k_l2", &"k_l3"])
 

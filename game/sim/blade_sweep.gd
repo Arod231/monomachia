@@ -31,6 +31,9 @@ var depth: float = 0.0
 ## can be 0 on a touch: a twisted quad's triangles stand a little off the
 ## blade's path between its corners.
 var length_inside: float = 0.0
+## How the tip travelled through the tick, tip0 to tip1 (milestone-1 task
+## 34: the parry's sweep, which picks the deflect pair).
+var sweep: V3 = V3.make()
 
 
 class _Nearest:
@@ -63,6 +66,7 @@ static func touch(base0: V3, tip0: V3, base1: V3, tip1: V3, half_thickness: floa
 	s.contact = near.point
 	s.depth = reach - near.distance
 	s.length_inside = _most_inside([base0, tip0, base1, tip1], capsule, reach)
+	s.sweep = V3.sub(tip1, tip0)
 	return s
 
 

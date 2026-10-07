@@ -55,6 +55,13 @@ extends Node3D
 ##   the legs' walks and runs too, unless the fighter is down.
 ## Moves without a baked swing keep the stand-in poses below.
 ##
+## A weapon of CLIP_HELD (the Katana, milestone-1 task 135) rides the clip's
+## hands in every state instead: the guard, free movement and every attack,
+## for both fighters, on the clip libraries and on the CC0 stand-ins, the
+## off hand on its grip on IK. Only a blade pinned under a stomp and the
+## stand-in falls take it off the clip's hands. Its baked hit paths stay as
+## they are: the rules never read the view.
+##
 ## A roll turns the whole body toward the way it rolls (ClipDirector.Shot.turn,
 ## task 30), and back to the opponent over the recovery.
 ##
@@ -70,6 +77,12 @@ extends Node3D
 ## The model is built once per fighter and kept across rematches and
 ## restarts; a new palette or weapon goes on the same model.
 
+## The weapons (WeaponLook ids) that ride the clip's hands in every state,
+## guard and free movement too, with the clip libraries or the CC0
+## stand-ins (milestone-1 task 135): the pilot's Katana. The others are
+## posed in space outside their clips until task 60 retires the stand-in
+## poses.
+const CLIP_HELD: Array[StringName] = [&"katana"]
 ## How much of a body flash fades per world frame (the demo faded 6 per
 ## second).
 const FLASH_FADE_PER_FRAME: float = 0.1
@@ -181,6 +194,32 @@ func flash(color: Color, strength: float, frame: int) -> void:
 	_flash_color = color
 
 
+## Pushes the body's physical reaction layer (milestone-1 task 70): a blow
+## landing at `contact`, driven from `from` (both in the match's space; the
+## push goes level, from `from` toward `contact`), this `strength`
+## (PhysicalReactionLayer.strength()), reaching `parts` with `arms` of the
+## arms' share, at world frame `at`. Picture only.
+func react(contact: Vector3, from: Vector3, strength: float, parts: int, arms: float, at: float) -> void:
+	if model == null:
+		return
+	var drive: Vector3 = Vector3(contact.x - from.x, 0.0, contact.z - from.z)
+	if drive.length() < 1e-4:
+		return
+	var to_skeleton: Transform3D = _skeleton_frame().affine_inverse()
+	model.rig.reaction.push(at, to_skeleton * contact, to_skeleton.basis * drive, strength, parts, arms)
+
+
+## The skeleton's frame in the match's space, as last placed.
+func _skeleton_frame() -> Transform3D:
+	var xf: Transform3D = Transform3D.IDENTITY
+	var n: Node = model.skeleton
+	while n != null and n != self:
+		if n is Node3D:
+			xf = (n as Node3D).transform * xf
+		n = n.get_parent()
+	return transform * xf
+
+
 ## What is left of the body flash at a world frame.
 func flash_left(frame: int) -> float:
 	return maxf(0.0, _flash_strength - FLASH_FADE_PER_FRAME * float(maxi(0, frame - _flash_frame)))
@@ -203,6 +242,7 @@ func update_from(f: Fighter, pos: Vector3, yaw: float, alpha: float, _delta: flo
 		shot = null
 		foot_lock.clear()
 		model.rig.inertial.clear()
+		model.rig.reaction.clear()
 		_shot_world = f.world
 	var before: ClipDirector.Shot = shot
 	shot = ClipDirector.step(shot, f, director)
@@ -210,6 +250,8 @@ func update_from(f: Fighter, pos: Vector3, yaw: float, alpha: float, _delta: flo
 	# which runs on the world's time, as the clips do
 	var inertial: InertialBlend = model.rig.inertial
 	inertial.time = float(frame) - 1.0 + alpha
+	# and the physical reaction layer on the same time (milestone-1 task 70)
+	model.rig.reaction.time = inertial.time
 	if shot != before and shot.blend > 0:
 		inertial.request(shot.blend)
 		_blend_from_clip = before != null and (before.drive == ClipDirector.ATTACK or before.drive == ClipDirector.STATE)
@@ -371,16 +413,22 @@ func _legs_free(f: Fighter) -> float:
 
 
 ## True when an authored clip drives the arms and the weapon rides the
-## clip's hand (see the class notes): a state's own clip (the stomp's keyed
-## clip, which has no weapon path; with or without the packs), or the
-## Iglesias clips are there, and
-## either the paths were baked on him (the Hunter) or there is no baked
-## weapon path to pose it on (a pose-only swing like Flash's, the ultimate,
-## task 13, or the shoulder carry, task 18), for the Rogue too.
+## clip's hand (see the class notes): for a weapon of CLIP_HELD, in every
+## state the director answers for, the legs' blend and the CC0 stand-ins
+## too (milestone-1 task 135). For the others: a state's own clip (the
+## stomp's keyed clip, which has no weapon path; with or without the
+## packs), or the Iglesias clips are there, and either the paths were baked
+## on him (the Hunter) or there is no baked weapon path to pose it on (a
+## pose-only swing like Flash's, the ultimate, task 13, or the shoulder
+## carry, task 18), for the Rogue too.
 func _fixed_on_clip(f: Fighter) -> bool:
-	if shot != null and shot.drive == ClipDirector.STATE:
+	if shot == null:
+		return false
+	if model.weapon_look != null and CLIP_HELD.has(model.weapon_look.id):
 		return true
-	if shot == null or shot.drive == ClipDirector.LEGS or not director.libraries:
+	if shot.drive == ClipDirector.STATE:
+		return true
+	if shot.drive == ClipDirector.LEGS or not director.libraries:
 		return false
 	if fighter_id == &"hunter":
 		return true

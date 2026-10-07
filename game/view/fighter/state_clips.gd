@@ -13,15 +13,15 @@ extends RefCounted
 ##    "hit": {"clips": [light, heavy], "fallbacks": [light, heavy], "heavy_hitstun": 20},
 ##    "guard": {"clips": {"katana": [loop, hit]}, "fallback": "Sword_Block"},
 ##    "stun": {"clip": "Stun01", "fallback": "Hit_Knockback"},
-##    "rebound": {"frames": 8, "speed": 2},
 ##    "carry": {"pose": "ObjectGripShoulder02_R"},
 ##    "ults": {"moonsplitter": {...}, "impaler": {...}, "tempest": {...}},
 ##    "keyed": {"state": {"stomp": "Mikiri_Stomp"}, "stun": {"stomp": "Mikiri_Pinned"}},
 ##    "knockdown": {"clips": {"fall": ...}, "fallbacks": {"fall": ...}, "standup_from": 6},
 ##    "ko": {"clips": {"front": [light, heavy], "behind": [light, heavy]}, "fallback": "Death01"}}
 ##
-## Every group and field is needed, but "own_speed", and a field it doesn't
-## know is an error, as in MoveClips.
+## Every group and field is needed, but "own_speed", "transitions",
+## "deflects" and "reactions", and a field it doesn't know is an error, as in
+## MoveClips.
 ##
 ## "own_speed" (milestone-1 task 19) lists the clips that play at 1.0 from
 ## their state's start instead of fitted to it, each "loop" (looping once
@@ -30,11 +30,36 @@ extends RefCounted
 ## so every state clip is still fitted (ClipDirector.fitted_time()). An "about" field may say what the file is. Weapon-keyed
 ## tables may list any weapon but must have the bare hands' ("fists"), which
 ## stands in for a weapon without an entry.
+##
+## "transitions" (milestone-1 task 33) names the keyed transitions between
+## a string's moves: "bridges" by the follow-up and the move it follows
+## ({"k_l2": {"k_l1": clip}}), played over the follow-up's first frames
+## when it follows that move, and "returns" by move ({"k_l1": clip}), each
+## light's return to guard after its recovery. Both are picture only, and
+## only with the packs.
+##
+## "deflects" (milestone-1 task 34) names each parried move's deflect pair:
+## {"pairs": {"k_l1": {"deflect": clip, "deflect_contact": frame, "recoil":
+## clip, "recoil_contact": frame}}}, the parrier's deflect and the attacker's
+## recoil, each played from its contact frame (source frames at 30 fps),
+## where the blades meet. A parried move without a pair plays the nearest
+## light's (ClipDirector.pick_pair()). Picture only, and only with the packs.
+##
+## "reactions" (milestone-1 task 35) names a weapon's light hit reactions by
+## where the hit landed ({"hit_light": {"katana": {"front_high": clip,
+## "front_low", "left_high", "left_low", "right_high", "right_low",
+## "back_high", "back_low"}}}) and its light block's ({"block_light":
+## {"katana": clip}}), each listed in "own_speed" to fit its state at its own
+## speed. A weapon without them keeps "hit" and "guard". Only with the packs.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
-const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "rebound", "carry", "ults", "keyed", "knockdown", "ko"]
+const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions"]
+## Where a hit can land, for its light reaction ("reactions").
+const HIT_PLACES: Array[String] = ["front_high", "front_low", "left_high", "left_low", "right_high", "right_low", "back_high", "back_low"]
+## A deflect pair's fields (deflect_pairs).
+const PAIR_FIELDS: Array[String] = ["deflect", "deflect_contact", "recoil", "recoil_contact"]
 ## What a clip at its own speed does past its end.
 const OWN_SPEED_ENDS: Array[String] = ["loop", "hand_on"]
 const KNOCKDOWN_PHASES: Array[String] = ["fall", "ground", "standUp"]
@@ -63,8 +88,10 @@ var fallback_idle: Dictionary[StringName, StringName] = {}
 ## stun's by what caused it (Fighter.stun_cause).
 var state_clips: Dictionary[StringName, StringName] = {}
 var stun_clips: Dictionary[StringName, StringName] = {}
-## Hitstun's recoil, light then heavy, and without the packs; a hitstun longer
-## than `heavy_hitstun` frames plays the heavy one.
+## Hitstun's recoil, light then heavy (by the hit's weight, Fighter.impact_heavy,
+## since milestone-1 task 35), and without the packs. `heavy_hitstun` was the
+## length past which a hitstun read as a heavy's; it is kept in the file but
+## nothing plays by it.
 var hit_clips: Array[StringName] = []
 var hit_fallbacks: Array[StringName] = []
 var heavy_hitstun: int = 0
@@ -75,10 +102,6 @@ var guard_fallback: StringName = &""
 ## The long stuns' clip, and without the packs.
 var stun_clip: StringName = &""
 var stun_fallback: StringName = &""
-## The parried attacker's rebound: rules frames, and the speed its attack's
-## clip runs backwards at.
-var rebound_frames: int = 0
-var rebound_speed: float = 0.0
 ## The Greatsword's shoulder carry pose.
 var carry_pose: StringName = &""
 ## Moonsplitter's clip per variant, [clip id, source frame held at]; its
@@ -122,6 +145,19 @@ var knockdown_standup_from: float = 0.0
 ## lying at the end.
 var ko_clips: Array[Array] = []
 var ko_fallback: StringName = &""
+## The string's bridges (milestone-1 task 33): by follow-up, the clip it
+## plays over its first frames by the move it follows.
+var bridges: Dictionary[StringName, Dictionary] = {}
+## Each light's return to guard, by move.
+var returns: Dictionary[StringName, StringName] = {}
+## The deflect pairs (milestone-1 task 34), by parried move: {&"deflect":
+## clip id, &"deflect_contact": source frame, &"recoil": clip id,
+## &"recoil_contact": source frame}.
+var deflect_pairs: Dictionary[StringName, Dictionary] = {}
+## The light hit reactions (milestone-1 task 35) by weapon, each a dictionary
+## of clip ids by HIT_PLACES; and the light block reaction by weapon.
+var light_hits: Dictionary[StringName, Dictionary] = {}
+var light_blocks: Dictionary[StringName, StringName] = {}
 ## What is wrong with the file, one line each; empty when it read cleanly.
 var errors: PackedStringArray = []
 
@@ -167,10 +203,6 @@ static func read(path: String = PATH) -> StateClips:
 	g = t._object(root.get("stun"), "stun", ["clip", "fallback"])
 	t.stun_clip = t._id(g, "stun", "clip")
 	t.stun_fallback = t._id(g, "stun", "fallback")
-
-	g = t._object(root.get("rebound"), "rebound", ["frames", "speed"])
-	t.rebound_frames = t._whole(g, "rebound", "frames")
-	t.rebound_speed = t._num(g, "rebound", "speed")
 
 	g = t._object(root.get("carry"), "carry", ["pose"])
 	t.carry_pose = t._id(g, "carry", "pose")
@@ -224,6 +256,70 @@ static func read(path: String = PATH) -> StateClips:
 					t.errors.append("own_speed.%s: must be loop or hand_on" % id)
 				else:
 					t.own_speed[StringName(str(id))] = StringName(str(own[id]))
+	if root.has("transitions"):
+		g = t._object(root["transitions"], "transitions", ["bridges", "returns"])
+		var bridges: Variant = g.get("bridges", {})
+		if not bridges is Dictionary:
+			t.errors.append("transitions.bridges: must be an object")
+		else:
+			for move: Variant in bridges:
+				var at: String = "transitions.bridges.%s" % move
+				if not bridges[move] is Dictionary:
+					t.errors.append("%s: must be an object of clip ids by the move it follows" % at)
+					continue
+				var by: Dictionary[StringName, StringName] = {}
+				for from: Variant in bridges[move]:
+					var id: StringName = t._id(bridges[move], at, str(from))
+					if id != &"":
+						by[StringName(str(from))] = id
+				t.bridges[StringName(str(move))] = by
+		var returns: Variant = g.get("returns", {})
+		if not returns is Dictionary:
+			t.errors.append("transitions.returns: must be an object")
+		else:
+			for move: Variant in returns:
+				var id: StringName = t._id(returns, "transitions.returns", str(move))
+				if id != &"":
+					t.returns[StringName(str(move))] = id
+	if root.has("deflects"):
+		g = t._object(root["deflects"], "deflects", ["pairs"])
+		var pairs: Variant = g.get("pairs", {})
+		if not pairs is Dictionary:
+			t.errors.append("deflects.pairs: must be an object")
+		else:
+			for move: Variant in pairs:
+				var at: String = "deflects.pairs.%s" % move
+				var e: Dictionary = t._object(pairs[move], at, PAIR_FIELDS)
+				if e.is_empty():
+					continue
+				t.deflect_pairs[StringName(str(move))] = {
+					&"deflect": t._id(e, at, "deflect"), &"deflect_contact": t._num(e, at, "deflect_contact"),
+					&"recoil": t._id(e, at, "recoil"), &"recoil_contact": t._num(e, at, "recoil_contact"),
+				}
+	if root.has("reactions"):
+		g = t._object(root["reactions"], "reactions", ["hit_light", "block_light"])
+		var hits: Variant = g.get("hit_light", {})
+		if not hits is Dictionary:
+			t.errors.append("reactions.hit_light: must be an object")
+		else:
+			for w: Variant in hits:
+				var at: String = "reactions.hit_light.%s" % w
+				var e: Dictionary = t._object(hits[w], at, HIT_PLACES)
+				var by: Dictionary[StringName, StringName] = {}
+				for place: String in HIT_PLACES:
+					var id: StringName = t._id(e, at, place)
+					if id != &"":
+						by[StringName(place)] = id
+				if by.size() == HIT_PLACES.size():
+					t.light_hits[StringName(str(w))] = by
+		var blocks: Variant = g.get("block_light", {})
+		if not blocks is Dictionary:
+			t.errors.append("reactions.block_light: must be an object")
+		else:
+			for w: Variant in blocks:
+				var id: StringName = t._id(blocks, "reactions.block_light", str(w))
+				if id != &"":
+					t.light_blocks[StringName(str(w))] = id
 	return t
 
 

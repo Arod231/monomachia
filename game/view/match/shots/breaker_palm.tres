@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://view/match/shot_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"breaker_palm"
+about = &"attacker"
+times = PackedFloat32Array(0, 0.55, 1.1)
+positions = PackedVector3Array(-1.1, 0.7, 0.2, -1.4, 0.8, 0.9, -1.6, 1, 1.6)
+looks = PackedVector3Array(0, 1.4, 1, 0, 1.6, 1.1, 0, 1.8, 1.2)
+fovs = PackedFloat32Array(48, 42, 40)
+dof_margin = 1.0
+dof_amount = 0.1

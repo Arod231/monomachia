@@ -1,17 +1,17 @@
 // The bell's rules: what the owner is told about while elsewhere. Pure, no I/O:
-// bell-api.mjs feeds it the relay's held items and the events the relay hook
-// noted, and keeps its state in ~/.claude/lanes-board/notifications.json, so
-// every device shares one read flag. tests/lanes-board-bell.test.mjs checks it.
+// bell-api.mjs feeds it the events the relay hook noted, and keeps its state
+// in ~/.claude/lanes-board/notifications.json, so every device shares one read
+// flag. tests/lanes-board-bell.test.mjs checks it.
 //
-// A record: { id, kind: question | permission | plan | turn | asked | merge | visuals, session,
-// text (who needs what, one line), detail (one line more), target (where a tap
-// goes: { tab: 'questions', item?, session } or { tab: 'sessions', session, merge? }),
-// time, read }. Owner's rules (PM task 10, Oct 4): answering, handing back or a
-// timeout marks a held item's record read; a session's newer finished turn
-// replaces its older unread one. Since Oct 5 (PM task 19), a question asked in
-// the app is read once its session no longer has it open (answered in the app
-// or over Remote Control), after ASKED_GRACE_MS, since the hook can note it
-// before its call reaches the transcript.
+// A record: { id, kind: turn | asked | merge | visuals, session, text (who
+// needs what, one line), detail (one line more), target (where a tap goes:
+// { tab: 'sessions', session, visuals? }), time, read }. It only tells: since
+// Oct 6 every question and approval is answered in the Claude app, and every
+// merge done on GitHub or by a session. Owner's rules (PM task 10, Oct 4): a
+// session's newer finished turn replaces its older unread one. Since Oct 5 (PM
+// task 19), a question asked in the app is read once its session no longer has
+// it open (answered in the app or over Remote Control), after ASKED_GRACE_MS,
+// since the hook can note it before its call reaches the transcript.
 
 export const BELL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 export const ASKED_GRACE_MS = 20 * 1000;
@@ -29,19 +29,6 @@ const MAX_RECORDS = 500;
 const oneLine = (s, n = 200) => String(s ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join(' ').slice(0, n);
 const lastLine = (s) => oneLine(String(s ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).at(-1));
 
-// A held item (pending/<id>.json in the relay folder) as a record. Only a relay
-// hook installed before Oct 5 holds questions; since then they stay in the app.
-function heldRecord(p, title) {
-  const base = { id: `held:${p.id}`, item: p.id, session: p.session, time: Number(p.time) || 0, read: false,
-    target: { tab: 'questions', item: p.id, session: p.session } };
-  if (p.kind === 'question') return { ...base, kind: 'question', text: `${title} asks you a question`, detail: oneLine(p.input?.questions?.[0]?.question) };
-  if (p.kind === 'plan') return { ...base, kind: 'plan', text: `${title} asks you to approve its plan`, detail: '' };
-  if (p.kind === 'stop') return { ...base, kind: 'turn', text: `${title} finished its turn`, detail: lastLine(p.last) };
-  const input = p.input ?? {};
-  return { ...base, kind: 'permission', text: `${title} wants to use ${p.tool ?? 'a tool'}`,
-    detail: oneLine(input.command ?? input.file_path ?? input.url ?? input.pattern ?? '') };
-}
-
 // An event the relay hook noted (events.jsonl) as a record, or null.
 function eventRecord(e, n, title) {
   // Named by where the line sits in events.jsonl (bell-api.mjs gives its offset),
@@ -50,15 +37,16 @@ function eventRecord(e, n, title) {
   const base = { id: `event:${Number(e.time) || 0}:${where}`, session: e.session, time: Number(e.time) || 0, read: false };
   if (e.kind === 'asked-in-app') {
     return { ...base, kind: 'asked', text: `${title} is waiting on you to answer questions in the app`, detail: oneLine(e.questions?.[0]),
-      target: { tab: 'questions', session: e.session } };
+      target: { tab: 'sessions', session: e.session } };
   }
   if (e.kind === 'turn-finished') {
     return { ...base, kind: 'turn', text: `${title} finished its turn`, detail: lastLine(e.last), target: { tab: 'sessions', session: e.session } };
   }
-  // Noted by the board itself (merge-api.mjs) when a session's pull request turns ready.
+  // Noted by the board itself (merge-api.mjs) when a session's pull request
+  // turns ready; it is merged on GitHub, or by a session told to.
   if (e.kind === 'pr-ready' && Number.isInteger(e.pr?.number)) {
-    return { ...base, kind: 'merge', text: `${title}: pull request #${e.pr.number} is ready to merge`,
-      detail: oneLine(`${e.pr.title ?? ''} into ${e.pr.base ?? 'its base'}`), target: { tab: 'sessions', session: e.session, merge: e.pr.number } };
+    return { ...base, kind: 'merge', text: `${title}: pull request #${e.pr.number} is ready to merge on GitHub`,
+      detail: oneLine(`${e.pr.title ?? ''} into ${e.pr.base ?? 'its base'}`), target: { tab: 'sessions', session: e.session } };
   }
   return null;
 }
@@ -83,12 +71,12 @@ function visualsRecords(posts, titleOf) {
   });
 }
 
-// The bell's state after a look at the relay: { records }. pending: the items
-// held now; events: those noted since the last look; posts: the media posted
+// The bell's state after a look at the relay: { records }. events: those
+// noted since the last look; posts: the media posted
 // in the last 7 days; titleOf(session): its title; asking: the sessions with a
 // question open in the app now (a Set), or null when that isn't known. Returns
 // state itself when nothing changed.
-export function bellUpdate(state, { pending = [], events = [], posts = [], now = Date.now(), titleOf = () => '(untitled)', asking = null }) {
+export function bellUpdate(state, { events = [], posts = [], now = Date.now(), titleOf = () => '(untitled)', asking = null }) {
   let records = state?.records ?? [];
   let changed = !state;
   const add = (r) => {
@@ -103,7 +91,6 @@ export function bellUpdate(state, { pending = [], events = [], posts = [], now =
     changed = true;
   };
   events.forEach((e, i) => add(eventRecord(e, i, titleOf(e.session))));
-  for (const p of [...pending].sort((a, b) => (a.time ?? 0) - (b.time ?? 0))) add(heldRecord(p, titleOf(p.session)));
   // A minute's batch that grew since the last look is told again, read or not
   // as it was. visualsAt keeps each session's latest minute told, so a minute
   // already told is never told afresh (its record trimmed, say).
@@ -119,10 +106,10 @@ export function bellUpdate(state, { pending = [], events = [], posts = [], now =
   for (const [session, minute] of Object.entries(visualsAt)) {
     if (now - minute * VISUALS_BATCH_MS > BELL_KEEP_MS) { const { [session]: _, ...rest } = visualsAt; visualsAt = rest; changed = true; }
   }
-  // Held items no longer held were answered, handed back or timed out.
-  const still = new Set(pending.map((p) => p.id));
+  // Records of the items an older relay hook held (before Oct 6) are no
+  // longer held by anything.
   records = records.map((r) => {
-    if (!r.item || r.read || still.has(r.item)) return r;
+    if (!r.item || r.read) return r;
     changed = true;
     return { ...r, read: true };
   });

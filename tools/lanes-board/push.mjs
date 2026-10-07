@@ -91,9 +91,7 @@ export function cleanSubscription(s, { insecure = false } = {}) {
 // Where a tap on a record's notification goes: the phone page, told which
 // record to mark read and what to open.
 export function targetUrl(record) {
-  const q = new URLSearchParams({ bell: record.id, go: record.target?.tab ?? 'questions' });
-  if (record.target?.item) q.set('item', record.target.item);
-  if (record.target?.merge) q.set('merge', String(record.target.merge));
+  const q = new URLSearchParams({ bell: record.id, go: 'sessions' });
   if (record.target?.visuals) q.set('visuals', '1');
   if (record.target?.session ?? record.session) q.set('session', record.target?.session ?? record.session);
   return `/m?${q}`;

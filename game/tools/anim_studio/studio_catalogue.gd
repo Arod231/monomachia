@@ -5,8 +5,8 @@ extends RefCounted
 ##
 ## - the moves of move_clips.json, by weapon, in the table's order;
 ## - the states and ultimates of state_clips.json (idle per weapon, hit, guard
-##   per weapon, stun, rebound, carry, knockdown, KO, the keyed stomp and its
-##   pinned stun, and the three ultimates);
+##   per weapon, stun, each deflect pair, carry, knockdown, KO, the keyed
+##   stomp and its pinned stun, and the three ultimates);
 ## - source clips: the clip manifest's, the committed CC0 library's (the UAL
 ##   list in tools/build_animation_library.gd) and the keyed library's.
 ##
@@ -58,7 +58,6 @@ const STATE_NAMES: Dictionary[StringName, String] = {
 	&"hit_light": "Hit (light)",
 	&"hit_heavy": "Hit (heavy)",
 	&"stun": "Stun",
-	&"rebound": "Rebound",
 	&"carry": "Carry",
 	&"knockdown": "Knockdown",
 	&"ko_front_light": "KO from the front (light)",
@@ -92,8 +91,7 @@ class Entry:
 	var id: StringName = &""
 	var name: String = ""
 	## The ClipChain entries it plays, in order (a clip id, "id@from-to",
-	## "ual/Name", "keyed/Name"); empty for the rebound, which plays the
-	## attack it parries backwards.
+	## "ual/Name", "keyed/Name"); empty for none.
 	var clips: Array[String] = []
 	## What the game plays instead without the packs, as ClipChain entries of
 	## the CC0 library ("ual/Name"): one per part of `clips` for a state or ult
@@ -197,7 +195,13 @@ func _add_states(sc: StateClips) -> void:
 		# the one fallback stands in for the loop and the hit
 		_add(KIND_STATE, GROUP_STATES, StringName("guard_%s" % w), "Guard (%s)" % _weapon_name(w), _clips(sc.guard_clips[w]), _fallbacks([sc.guard_fallback, sc.guard_fallback]), 1.0, STATES_FILE, [["guard", "clips", String(w)], ["guard", "fallback"]])
 	_add(KIND_STATE, GROUP_STATES, &"stun", STATE_NAMES[&"stun"], _clips([sc.stun_clip]), _fallbacks([sc.stun_fallback]), 1.0, STATES_FILE, [["stun", "clip"], ["stun", "fallback"]])
-	_add(KIND_STATE, GROUP_STATES, &"rebound", STATE_NAMES[&"rebound"], _clips([]), _fallbacks([]), sc.rebound_speed, STATES_FILE, [["rebound"]])
+	for move: StringName in sc.deflect_pairs:
+		# the parrier's deflect and the parried attacker's recoil (milestone-1
+		# task 34); no CC0 pair
+		var pair: Dictionary = sc.deflect_pairs[move]
+		_add(KIND_STATE, GROUP_STATES, StringName("deflect_%s" % move), "Deflect pair (%s)" % _move_name(move),
+			_clips([pair[&"deflect"], pair[&"recoil"]]), _fallbacks([]), 1.0, STATES_FILE,
+			[["deflects", "pairs", String(move), "deflect"], ["deflects", "pairs", String(move), "recoil"]])
 	_add(KIND_STATE, GROUP_STATES, &"carry", STATE_NAMES[&"carry"], _clips([sc.carry_pose]), _fallbacks([]), 1.0, STATES_FILE, [["carry", "pose"]])
 	var phases: Array = []
 	var phase_fallbacks: Array = []
@@ -378,3 +382,11 @@ func _at(list: Array, i: int) -> Variant:
 func _weapon_name(wid: StringName) -> String:
 	var def: WeaponDef = Moves.WEAPONS.get(wid)
 	return def.name if def != null else String(wid).capitalize()
+
+
+## Move `mid`'s name in whichever weapon has it, or its id.
+func _move_name(mid: StringName) -> String:
+	for w: WeaponDef in Moves.WEAPONS.values():
+		if w.moves.has(mid):
+			return w.moves[mid].name
+	return String(mid)

@@ -11,8 +11,9 @@ extends PanelContainer
 ## clips the game plays instead: one per part of a state or ultimate, and a
 ## move's one fallback stretched over the whole move (so one loop of the tile
 ## takes the move's frames at 60 per second, as the game's attack_clip()
-## spreads it). An entry with nothing to play (the rebound, or an Iglesias clip
-## without the packs and a fallback) shows the fighter's idle, held still.
+## spreads it). An entry with nothing to play (an Iglesias clip without the
+## packs and a fallback, a deflect pair among them) shows the fighter's idle,
+## held still.
 ##
 ## Only a tile on screen plays: the tile checks its rect against its nearest
 ## ScrollContainer's every frame (`is_on_screen()`), and when that changes

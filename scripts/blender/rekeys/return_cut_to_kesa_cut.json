@@ -1,0 +1,11 @@
+{
+	"about": "The bridge from Return Cut into Kesa Cut (katana.k_l2 into katana.k_l3), milestone-1 task 33: Kesa Cut's first 8 frames, starting in Return Cut's pose at its branch point (frame 15.5) and carried into Kesa Cut's own wind-up, the feet where Kesa Cut has them. Played over the follow-up's first frames when it starts at its branch point, handing on to Kesa Cut's clip at frame 8, before its active frames; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/kesa_cut.blend",
+	"out": "blender/clips/return_cut_to_kesa_cut.blend",
+	"remap": [[0, 0], [8, 8]],
+	"blend_from": {
+		"source": "blender/clips/return_cut.blend",
+		"frame": 15.5,
+		"frames": 8
+	}
+}

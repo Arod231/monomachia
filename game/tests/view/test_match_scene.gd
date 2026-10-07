@@ -108,15 +108,69 @@ func test_events_shake_and_kick_the_camera() -> void:
 	host.sim_event.emit({"t": &"hit", "attacker": 0, "target": 1, "heavy": true, "sound": &"blade", "pos": at})
 	assert_almost_eq(view.camera.shake, view.heavy_hit_shake, 1e-6, "heavy hits do")
 	view.camera.shake = 0.0
+	view.camera.fov_kick = 0.0
 	host.sim_event.emit({"t": &"parry", "parrier": 1, "attacker": 0, "kind": &"parry", "pos": at})
 	assert_almost_eq(view.camera.shake, view.parry_shake, 1e-6)
-	assert_eq(view.camera.fov_kick, 3.0)
+	assert_eq(view.camera.fov_kick, 0.0, "a parry pushes in instead of kicking")
+	assert_almost_eq(view.camera.push_peak, view.parry_push_in, 1e-6)
 	host.sim_event.emit({"t": &"disarm", "victim": 0, "by": 1, "reason": &"parried", "pos": at})
 	assert_eq(view.camera.fov_kick, 7.0)
 	host.sim_event.emit({"t": &"ko", "loser": 1, "winner": 0})
 	assert_gt(view.camera.ko_orbit, 0.0, "the KO swings the camera out")
 	host.sim_event.emit({"t": &"roundStart", "round": 2})
 	assert_eq(view.camera.ko_orbit, 0.0)
+
+
+## A parry pushes the camera in toward the look point, a Flash or a
+## redirect further (milestone-1 task 39); the push-in holds through the
+## hit-stop and the depth of field is the graphics preset's.
+func test_a_parry_pushes_the_camera_in_and_holds_through_the_hit_stop() -> void:
+	host.start(_cpu())
+	var at: Dictionary = {"x": 0.0, "y": 1.25, "z": 0.0}
+	assert_eq(view.parry_push_in, 0.15)
+	assert_eq(view.flash_push_in, 0.25)
+	for kind: StringName in [&"flash", &"redirect"]:
+		view.camera.end_push_in()
+		host.sim_event.emit({"t": &"parry", "parrier": 1, "attacker": 0, "kind": kind, "pos": at})
+		assert_almost_eq(view.camera.push_peak, view.flash_push_in, 1e-6, kind)
+	host.world.hitstop = 10
+	view.render(1.0 / 60.0)
+	assert_true(view.camera.frozen, "held in the hit-stop")
+	host.world.hitstop = 0
+	view.render(1.0 / 60.0)
+	assert_false(view.camera.frozen)
+	assert_eq(view.camera.dof_allowed, GameServices.graphics_preset().push_in_dof)
+	host.start(_cpu())
+	assert_eq(view.camera.push_amount(), 0.0, "a new match starts without one")
+
+
+## Shake and kicks at the slower pace (milestone-1 task 39): each still shows
+## when its outcome's retuned hit-stop ends, so the blow reads as the world
+## moves again, and settles soon after.
+func test_shake_and_kicks_outlast_the_retuned_hit_stops() -> void:
+	host.start(_cpu())
+	var pt: ProtectedTimings = ProtectedTimings.for_weapon(&"katana")
+	var cases: Array[Dictionary] = [
+		{"name": "a heavy hit", "shake": view.heavy_hit_shake, "kick": view.contact_kick[&"small"] * MatchView.HEAVY_KICK, "frames": pt.hitstop(&"heavy")},
+		{"name": "a parry", "shake": view.parry_shake, "kick": 0.0, "frames": pt.parry_hitstop},
+		{"name": "a Flash", "shake": view.parry_shake, "kick": 0.0, "frames": pt.flash_hitstop},
+		{"name": "a disarm", "shake": view.disarm_shake, "kick": 7.0, "frames": pt.disarm_hitstop},
+	]
+	var cam: CameraRig = view.camera
+	for c: Dictionary in cases:
+		cam.shake = 0.0
+		cam.fov_kick = 0.0
+		cam.add_shake(float(c["shake"]))
+		cam.kick_fov(float(c["kick"]))
+		for i: int in int(c["frames"]):
+			view.render(1.0 / 60.0)
+		assert_gt(cam.shake, 0.05, "%s: the shake still shows as the hit-stop ends" % c["name"])
+		if float(c["kick"]) > 0.0:
+			assert_gt(cam.fov_kick, 0.5, "%s: and the kick" % c["name"])
+		for i: int in 60:
+			view.render(1.0 / 60.0)
+		assert_lt(cam.shake, 0.01, "%s: settled within a second" % c["name"])
+		assert_lt(cam.fov_kick, float(c["kick"]) * 0.2 + 1e-6, "%s: the kick mostly back" % c["name"])
 
 
 ## A hit or a block kicks the camera by the weight of the attacker's weapon,
@@ -134,6 +188,89 @@ func test_contact_kicks_the_camera_by_the_weapons_weight() -> void:
 	host.sim_event.emit({"t": &"hit", "attacker": 1, "target": 0, "heavy": true, "sound": &"blade", "pos": at})
 	assert_almost_eq(view.camera.fov_kick, daggers * MatchView.HEAVY_KICK, 1e-6, "a heavy half again")
 	assert_lt(view.contact_kick[&"medium"], view.contact_kick[&"colossal"], "the Greatsword the most")
+
+
+## The physical reaction layer (milestone-1 task 70): a hit pushes its
+## target from where it landed, by its weight and the attacker's weapon; a
+## block pushes the guard (arms and upper spine) less; a parry pushes
+## nobody, its deflect pair shows it.
+func test_hits_and_blocks_push_the_reaction_layer_by_weight_and_weapon() -> void:
+	host.start(_cpu())
+	var W: World = host.world
+	var at: Dictionary = {"x": 0.3, "y": 1.3, "z": 0.1}
+	var hit: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at}, W)
+	assert_eq(int(hit["side"]), 1, "the target")
+	assert_eq(hit["contact"], Vector3(0.3, 1.3, 0.1), "where it landed")
+	var a: Vector3 = Vector3(W.fighters[0].pos.x, 1.3, W.fighters[0].pos.z)
+	assert_eq(hit["from"], a, "driven from the attacker, at the contact's height")
+	assert_eq(int(hit["parts"]), PhysicalReactionLayer.HIT)
+	assert_almost_eq(float(hit["strength"]), PhysicalReactionLayer.strength(false, &"medium"), 1e-6, "the Rogue's Katana, light")
+	assert_almost_eq(float(hit["arms"]), 1.0, 1e-6, "the arms in full")
+	var heavy: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 1, "target": 0, "heavy": true, "sound": &"blade", "pos": at}, W)
+	assert_almost_eq(float(heavy["strength"]), PhysicalReactionLayer.strength(true, &"small"), 1e-6, "the Hunter's Daggers, heavy")
+	var block: Dictionary = MatchView.reaction_of({"t": &"block", "attacker": 0, "target": 1, "heavy": false, "pos": at}, W)
+	assert_eq(int(block["parts"]), PhysicalReactionLayer.BLOCK, "the guard takes it")
+	assert_almost_eq(float(block["strength"]), PhysicalReactionLayer.strength(false, &"medium", true), 1e-6)
+	for none: Dictionary in [
+		{"t": &"parry", "parrier": 1, "attacker": 0, "kind": &"parry", "pos": at},
+		{"t": &"whiff", "f": 0},
+		{"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade"},
+	]:
+		assert_true(MatchView.reaction_of(none, W).is_empty(), "no push: %s" % none)
+	host.sim_event.emit({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at})
+	assert_true(view.fighters[1].model.rig.reaction.reacting(), "the target's layer pushed")
+	assert_false(view.fighters[0].model.rig.reaction.reacting(), "not the attacker's")
+
+
+func test_a_fighter_hit_mid_swing_keeps_its_arms_on_the_swing() -> void:
+	host.start(_cpu())
+	var W: World = host.world
+	var f: Fighter = W.fighters[1]
+	var at: Dictionary = {"x": 0.0, "y": 1.3, "z": 0.0}
+	f.set_state(&"free")
+	assert_true(f.start_attack(f.moveset().light_start, -1))
+	var def: AttackDef = f.atk.def
+	f.atk.frame = def.startup + 1
+	assert_eq(f.attack_phase(), &"active")
+	var mid: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at}, W)
+	assert_almost_eq(float(mid["arms"]), MatchView.ACTIVE_SWING_ARMS, 1e-6, "the arms pushed less")
+	assert_lt(MatchView.ACTIVE_SWING_ARMS, 0.5)
+	f.atk.frame = def.startup + def.active + 1
+	var after: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at}, W)
+	assert_almost_eq(float(after["arms"]), 1.0, 1e-6, "in full once the swing is past its active frames")
+
+
+## The shot director on the match (milestone-1 task 97): a connecting
+## ultimate takes the camera for its shot, Reduce flashes keeps it, the
+## recall pushes in instead, and a new round hands the camera back.
+func test_a_connecting_ultimate_plays_its_shot_on_the_camera() -> void:
+	var s: GameSettings = GameSettings.new()
+	s.reduce_flashes = true
+	view.use_settings(s)
+	host.start(_cpu())
+	var W: World = host.world
+	W.fighters[1].enter_hitstun(75)
+	host.sim_event.emit({"t": &"hit", "attacker": 0, "target": 1, "attack": &"u_moon_v", "heavy": true, "sound": &"blade",
+		"pos": {"x": 0.0, "y": 1.2, "z": 0.0}})
+	assert_eq(view.shots.playing_id(), &"moonsplitter")
+	view.render(1.0 / 60.0)
+	assert_true(view.camera.in_shot(), "the camera plays it, Reduce flashes or not")
+	var at: Array[Vector3] = [host.display_position(0), host.display_position(1)]
+	var want: Vector3 = view.shots.view(at)["pos"]
+	assert_almost_eq(view.camera.global_transform.origin.distance_to(want), 0.0, 0.05, "where the shot puts it")
+	host.sim_event.emit({"t": &"roundStart", "round": 2})
+	view.render(1.0 / 60.0)
+	assert_false(view.camera.in_shot(), "a new round hands back")
+	view.camera.end_push_in()
+	host.sim_event.emit({"t": &"recallBurst", "f": 0, "on": 1, "hit": false, "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
+	assert_false(view.shots.active(), "the recall has no shot")
+	assert_eq(view.camera.push_in_scale, 0.0, "(its push-in is off under Reduce flashes)")
+	s.reduce_flashes = false
+	view.apply_reduce_flashes()
+	host.sim_event.emit({"t": &"recallBurst", "f": 0, "on": 1, "hit": false, "pos": {"x": 0.0, "y": 1.0, "z": 0.0}})
+	assert_almost_eq(view.camera.push_peak, ShotDirector.RECALL_PUSH_IN, 1e-6, "a push-in")
+	host.start(_cpu())
+	assert_false(view.shots.active(), "a new match starts without a shot")
 
 
 func test_the_hud_times_announcements_on_rules_steps() -> void:
@@ -279,7 +416,7 @@ func test_rematches_and_restarts_leave_no_stray_nodes() -> void:
 	host.start(_cpu())
 	await get_tree().process_frame
 	var baseline: Array[String] = _child_names()
-	assert_eq(baseline.size(), 5, "the arena, the camera, two fighters and the effects")
+	assert_eq(baseline.size(), 6, "the arena, the camera, two fighters, the effects and the blood")
 	var at: Dictionary = {"x": 0.0, "y": 1.25, "z": 0.0}
 	for k: int in 3:
 		host.step(Match.INTRO_FRAMES + 20)

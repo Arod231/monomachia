@@ -106,6 +106,27 @@ func test_inertial_blending_switches_on_the_rig() -> void:
 	assert_false(inertial.blending(), "a jump cuts")
 
 
+func test_the_physical_reaction_layer_switches_on_the_rig_and_takes_a_test_push() -> void:
+	# milestone-1 task 70's layer toggle: on by default, as in a match, on
+	# the playhead's rules frames; the Studio has no hits, so a test push
+	# shows it
+	var studio: AnimStudio = await _studio()
+	var editor: StudioEditor = _open(studio, &"k_l1")
+	var reaction: PhysicalReactionLayer = editor.model.rig.reaction
+	assert_true(reaction.active, "on by default")
+	editor.playback.seek(6.0)
+	editor._pose()
+	assert_almost_eq(reaction.time, 12.0, 1e-9, "the rules frames at the playhead")
+	(editor.get_node("%TestPush") as Button).pressed.emit()
+	assert_true(reaction.reacting(), "a light Katana blow to the chest")
+	(editor.get_node("%PhysicalReaction") as CheckBox).button_pressed = false
+	assert_false(editor.reaction_on)
+	assert_false(reaction.active, "off")
+	assert_false(reaction.reacting(), "and forgets its pushes")
+	editor.set_physical_reaction(true)
+	assert_true(reaction.active, "on again")
+
+
 func test_a_state_has_no_bands_and_back_returns_to_the_gallery() -> void:
 	var studio: AnimStudio = await _studio()
 	studio.open_editor(studio.catalogue.find(StudioCatalogue.KIND_STATE, &"knockdown"))

@@ -252,3 +252,32 @@ func test_unreadable_switches_fall_back_to_their_defaults() -> void:
 	var loaded := GameSettings.load_from(PATH)
 	assert_false(loaded.reduce_flashes, "not a bool: the default")
 	assert_true(loaded.button_hints, "not a bool: the default")
+
+
+## The Blood setting (milestone-1 task 38): On, Reduced or Off, On by
+## default, saved in [display] and read back; anything else is On.
+func test_blood_starts_on() -> void:
+	assert_eq(GameSettings.new().blood, GameSettings.BLOOD_ON)
+	assert_eq(GameSettings.load_from(PATH).blood, GameSettings.BLOOD_ON, "a missing file too")
+	assert_eq(GameSettings.BLOOD_LEVELS, [GameSettings.BLOOD_ON, GameSettings.BLOOD_REDUCED, GameSettings.BLOOD_OFF] as Array[StringName])
+
+
+func test_blood_saves_and_loads() -> void:
+	for level: StringName in GameSettings.BLOOD_LEVELS:
+		var settings := GameSettings.new()
+		settings.blood = level
+		assert_eq(settings.save(PATH), OK)
+		assert_eq(GameSettings.load_from(PATH).blood, level)
+		var cfg := ConfigFile.new()
+		cfg.load(PATH)
+		assert_eq(cfg.get_value(GameSettings.SECTION_DISPLAY, "blood"), String(level), "in the file's [display] section")
+
+
+func test_an_unknown_blood_level_is_on() -> void:
+	var settings := GameSettings.new()
+	settings.blood = &"gallons"
+	assert_eq(settings.blood, GameSettings.BLOOD_ON, "an unknown level is ignored")
+	var cfg := ConfigFile.new()
+	cfg.set_value(GameSettings.SECTION_DISPLAY, "blood", "gallons")
+	cfg.save(PATH)
+	assert_eq(GameSettings.load_from(PATH).blood, GameSettings.BLOOD_ON)

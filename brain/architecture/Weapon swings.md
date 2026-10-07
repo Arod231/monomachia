@@ -16,7 +16,7 @@ A [[Swing]] is a short list of key poses in the fighter's own space, covering th
 
 ## How a hit lands
 
-Each tick, every hand and foot track is placed in the world, and the blade's [[Strike segment]] between this tick and the last makes a [[Sweep]]. The hit lands on the first active tick the sweep touches the defender's [[Hurt capsule]] (0.35 m radius, from the feet to 1.75 m). The [[Contact point]] is where the blade went deepest; sparks and the parry rebound start there. A swing that never touches whiffs. [[Unblockable|Unblockables]] get 10 cm of extra reach.
+Each tick, every hand and foot track is placed in the world, and the blade's [[Strike segment]] between this tick and the last makes a [[Sweep]]. The hit lands on the first active tick the sweep touches the defender's [[Hurt capsule]] (0.35 m radius, from the feet to 1.75 m). The [[Contact point]] is where the blade went deepest; sparks start there, and on a parry the deflect pair's two blades meet there (milestone-1 task 34). A swing that never touches whiffs. [[Unblockable|Unblockables]] get 10 cm of extra reach.
 
 ## Body rules every swing must pass
 
