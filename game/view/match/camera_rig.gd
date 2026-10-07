@@ -181,6 +181,10 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _push_from: float = 0.0
 var _push_in_t: float = 0.0
 var _push_out_t: float = 0.0
+## How long this push-in takes to close in (s; push_in_time unless held),
+## and whether it holds once in until release_push_in().
+var _push_in_for: float = 0.05
+var _push_held: bool = false
 var _dof: CameraAttributesPractical
 ## The cinematic shot's view while one plays ({pos, look, fov,
 ## depth_of_field, dof_margin, dof_amount}; see show_shot()), else empty.
@@ -236,6 +240,34 @@ func push_in(amount: float) -> void:
 	push_peak = maxf(peak, _push_from)
 	_push_in_t = 0.0
 	_push_out_t = 0.0
+	_push_in_for = push_in_time
+	_push_held = false
+
+
+## A slow push-in that holds once in until release_push_in() (milestone-1
+## task 98: Moonsplitter's wind-up, released as the wave leaves): it closes
+## in over `over` seconds, then eases out as push_in() does. Scaled by
+## push_in_scale, as push_in() is.
+func push_in_held(amount: float, over: float) -> void:
+	var peak: float = clampf(amount * push_in_scale, 0.0, PUSH_IN_MAX)
+	if peak <= 0.0:
+		return
+	_push_from = push_amount()
+	push_peak = maxf(peak, _push_from)
+	_push_in_t = 0.0
+	_push_out_t = 0.0
+	_push_in_for = maxf(over, push_in_time)
+	_push_held = true
+
+
+## Lets a held push-in go: it eases out from where it got.
+func release_push_in() -> void:
+	if not _push_held:
+		return
+	_push_held = false
+	if push_peak > 0.0 and not _pushed_in():
+		push_peak = push_amount()
+		_push_in_t = _push_in_for
 
 
 ## Ends any push-in at once (match start).
@@ -244,6 +276,7 @@ func end_push_in() -> void:
 	_push_from = 0.0
 	_push_in_t = 0.0
 	_push_out_t = 0.0
+	_push_held = false
 	_apply_dof(0.0, 0.0)
 
 
@@ -252,21 +285,22 @@ func push_amount() -> float:
 	if push_peak <= 0.0:
 		return 0.0
 	if not _pushed_in():
-		return lerpf(_push_from, push_peak, smoothstep(0.0, push_in_time, _push_in_t))
+		return lerpf(_push_from, push_peak, smoothstep(0.0, _push_in_for, _push_in_t))
 	return push_peak * (1.0 - smoothstep(0.0, push_out_time, _push_out_t))
 
 
 func _pushed_in() -> bool:
-	return _push_in_t >= push_in_time - PUSH_EPSILON
+	return _push_in_t >= _push_in_for - PUSH_EPSILON
 
 
-## Moves the push-in on by delta seconds: in, then held while frozen, then out.
+## Moves the push-in on by delta seconds: in, then held while frozen (or
+## until released, a held one), then out.
 func _advance_push(delta: float) -> void:
 	if push_peak <= 0.0:
 		return
 	if not _pushed_in():
-		_push_in_t = minf(push_in_time, _push_in_t + delta)
-	elif not frozen:
+		_push_in_t = minf(_push_in_for, _push_in_t + delta)
+	elif not frozen and not _push_held:
 		_push_out_t += delta
 		if _push_out_t >= push_out_time - PUSH_EPSILON:
 			end_push_in()

@@ -1,0 +1,106 @@
+{
+	"about": "Breaker Palm (fists.f_breaker, bare hands' ultimate), milestone-1 task 99: AttackPunch03_R's crouch held deep in Elden Ring's rhythm (frames 6-14), then its leaping uppercut as a surging bound of about 3.4 m (the travel; the rules' lunge retired): the back foot leaves on frame 14 and the front pushes off planted until the body is at full speed (frame 15, so the frame-data generator carries that speed through the flight), the right foot landing on 19 and the left on 20, the palm landing on frame 18 (36 rules frames from the press), active to 20, held and landing back into the guard by 38 (36 rules frames of recovery). Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackPunch03_R.fbx",
+	"out": "blender/clips/breaker_palm.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			6,
+			4
+		],
+		[
+			14,
+			6
+		],
+		[
+			18,
+			7
+		],
+		[
+			20,
+			9
+		],
+		[
+			38,
+			27
+		]
+	],
+	"step": {
+		"body": [
+			[
+				0,
+				0
+			],
+			[
+				13,
+				0
+			],
+			[
+				14,
+				0.08
+			],
+			[
+				14.5,
+				0.33
+			],
+			[
+				15,
+				0.66
+			],
+			[
+				16,
+				1.32
+			],
+			[
+				17,
+				1.98
+			],
+			[
+				18,
+				2.64
+			],
+			[
+				19,
+				3.2
+			],
+			[
+				20,
+				3.4
+			],
+			[
+				21,
+				3.45
+			],
+			[
+				38,
+				3.45
+			]
+		],
+		"hips_top": 0.7,
+		"hips_home": [
+			26,
+			38
+		],
+		"feet": {
+			"L": [
+				[
+					15,
+					20,
+					3.45,
+					0.3
+				]
+			],
+			"R": [
+				[
+					14,
+					19,
+					3.45,
+					0.3
+				]
+			]
+		}
+	}
+}

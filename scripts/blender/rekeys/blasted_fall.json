@@ -1,0 +1,7 @@
+{
+	"about": "The recall burst's blasted fall, milestone-1 task 99: Knockdown01's fall fitted to the knockdown's protected 30 rules frames (15 here), the body carried back off its feet (1.811 m on Kevin's rig, 2.0 m on the Hunter's once the import scales the hips' travel to his legs, which the table measures) as the blast throws it, landing by frame 11 (the feet plant from 12, so nothing after is counted twice) (the fall's own drift over the ground taken out), which the frame-data generator reads as the clip's travel and the rules move the fighter by. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Basic Motions/Animations/Male/Combat/HumanM@Knockdown01 - Fall.fbx",
+	"out": "blender/clips/blasted_fall.blend",
+	"remap": [[0, 0], [4, 6], [10, 18], [15, 28]],
+	"carry": {"body": [[0, 0], [3, -0.77], [7, -1.54], [11, -1.811], [15, -1.811]]}
+}

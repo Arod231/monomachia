@@ -18,8 +18,9 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 ## Daggers wait for milestone 2 (the spec's P10).
 const BANDED: Array[StringName] = [&"katana", &"fists"]
 ## The moves keyed into their bands so far, by weapon: the light string
-## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32).
-const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]}
+## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32), and
+## Breaker Palm (task 99).
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4"], &"fists": [&"f_breaker"]}
 
 
 func _bands() -> MoveBands:
@@ -112,7 +113,7 @@ func test_every_katana_and_bare_hands_move_but_the_counter_lunges_and_the_keyed_
 			var kind: StringName = StringName(FrameDataTable.shared().row(wid, id)["kind"])
 			var keyed: bool = KEYED.get(wid, []).has(id)
 			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge" and not keyed, "%s.%s" % [wid, id])
-	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 31, "Crescent Coil waits for its re-key (KE task 16)")
+	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 30, "Crescent Coil waits for its re-key (KE task 16)")
 
 
 func test_every_banded_move_has_a_timing_band_and_every_striking_one_a_distance_band() -> void:
@@ -184,11 +185,12 @@ func test_the_distance_bands_are_the_spec_s_table() -> void:
 			&"unblockable": [4.3, 5.05],
 		},
 		&"fists": {
-			# the spec's table 0.25 m further out for the taller bodies (KE task 3)
+			# the spec's table 0.25 m further out for the taller bodies (KE task 3),
+			# Breaker Palm 0.5 m as its re-keyed surge grew with them
 			&"string_light": [1.85, 2.35], &"string_heavy": [2.35, 2.85], &"sprint_light": [3.35, 3.85],
 			&"sprint_heavy": [4.35, 4.85], &"dodge_light": [1.85, 2.35], &"dodge_heavy": [1.85, 2.35],
 			&"backstep_light": [2.35, 2.85], &"backstep_heavy": [3.85, 4.35], &"jump_light": [1.35, 1.85],
-			&"jump_heavy": [1.35, 1.85], &"ultimate": [4.35, 4.85],
+			&"jump_heavy": [1.35, 1.85], &"ultimate": [4.6, 5.0],
 		},
 	}
 	for wid: StringName in want:

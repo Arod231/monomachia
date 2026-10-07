@@ -29,6 +29,10 @@ const FIELD_ORDER: Array[String] = [
 	"kind", "chain", "stand_in", "startup", "active", "recovery", "dodge_cancel", "branches",
 	"frames", "markers", "speed", "heading", "stride", "foot_contacts", "travel", "source_sha256", "digest",
 ]
+## The rules-length clips the rules move a fighter by (milestone-1 task 99):
+## their rows carry the body's travel over each rules frame, as a move's do.
+## The recall burst's blasted fall.
+const TRAVEL_CLIPS: Array[StringName] = [&"BlastedFall"]
 const STATE_CLIPS: String = "res://assets/kevin_iglesias/state_clips.json"
 const ABOUT: String = "The frame-data table (milestone-1 task 16): each move's frame data and travel generated from its clip at 1.0x by its markers (tools/frame_data_generator.gd), each gait's measured speed and each rules-length clip's length, with the checksums of their source clips and a digest of each row with its swing file's record (FrameDataTable). Written with the swing files by node scripts/godot.mjs bake; never edited by hand."
 
@@ -178,13 +182,33 @@ static func gait_row(measure: Dictionary, length: float, contacts: Dictionary, s
 
 
 ## A rules-length clip's row: its length and its markers (the manifest's,
-## whole source frames) in rules frames at 1.0x.
-static func clip_row(clip: ClipManifest.Clip, length: float, sha: String) -> Dictionary:
+## whole source frames) in rules frames at 1.0x, and for one of TRAVEL_CLIPS
+## its travel (clip_travel()).
+static func clip_row(clip: ClipManifest.Clip, length: float, sha: String, travel: Array = []) -> Dictionary:
 	var markers: Dictionary = {}
 	for name: String in ClipManifest.MARKERS + ClipManifest.RULES_LENGTH_MARKERS:
 		if clip.markers.has(name):
 			markers[name] = roundi(clip.markers[name] * MoveClips.RULES_PER_SOURCE)
-	return {"frames": roundi(length * ClipTiming.RULES_FPS), "markers": markers, "source_sha256": sha}
+	var row: Dictionary = {"frames": roundi(length * ClipTiming.RULES_FPS), "markers": markers}
+	if not travel.is_empty():
+		row["travel"] = travel
+	row["source_sha256"] = sha
+	return row
+
+
+## The body's travel over a rules-length clip (one of TRAVEL_CLIPS), read by
+## the frame-data generator from its markers (its windup, contact,
+## contact_end and settle as a move's windup, active_start, active_end and
+## settle), one rules frame to a row; empty, with an error, when it can't be.
+static func clip_travel(pose: Callable, length: float, id: StringName, clip: ClipManifest.Clip, errors: Array[String]) -> Array:
+	var m: Dictionary = clip.markers
+	var markers: Dictionary = {"windup": m.get("windup"), "active_start": m.get("contact"), "active_end": m.get("contact_end"), "settle": m.get("settle")}
+	var why: Array[String] = []
+	var r: FrameDataGenerator.Result = FrameDataGenerator.generate(pose, length, markers, clip.foot_contacts, [] as Array[StringName], why)
+	if r == null:
+		errors.append("%s: %s" % [id, "; ".join(why)])
+		return []
+	return r.travel_record()
 
 
 ## `row` as the table will read it back, with its digest (FrameDataTable.

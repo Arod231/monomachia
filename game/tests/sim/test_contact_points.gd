@@ -194,7 +194,7 @@ func test_moves_without_a_swing_and_scripted_hits_keep_the_midpoint() -> void:
 	W = H.make_world(SF.weapon(&"katana", {CUT: SF.level_slash(_cut(), 1.2)}), Moves.KATANA, 8.0)
 	W.fighters[0].hp = 20.0
 	var wave_hit: Dictionary = {}
-	for i: int in 70:
+	for i: int in 90:
 		W.step([H.btn(Btn.ULTIMATE) if i == 0 else H.idle(), H.idle()])
 		for ev: Dictionary in W.drain_events():
 			if ev["t"] == &"hit" and wave_hit.is_empty():

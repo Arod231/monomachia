@@ -31,6 +31,11 @@
 #   frame-data generator's travel), the hips no higher than "hips_top" and
 #   back at their guard height over "hips_home" (by the settle, where the game
 #   hands on), both legs on IK, baked; omit for a clip that keeps its feet;
+# - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
+#   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
+#   over the ground taken out, then the whole body moved along the path
+#   (back negative), which the frame-data generator reads as travel; omit
+#   for a clip that keeps its hips;
 # - blend_from: {"source": path, "frame": source frame, "frames": n}: a
 #   transition (blend_from(); milestone-1 task 33's bridges and returns to
 #   guard): the clip starts in that clip's pose at that frame and carries it
@@ -47,10 +52,12 @@
 #   task 35's hit reactions): every bone's move from frame 0 turned that far
 #   about the hips, so a reel back becomes one sideways (-90: away from a hit
 #   on the right) or forward (180: from behind); omit for a clip as it is;
-# - lower: {"drop": metres, "bend": degrees, "peak": frame}: a reaction taken
-#   low (lower()): the hips dropped and the chest bent forward, rising from
-#   nothing at frame 0 to all of it at "peak" and back to nothing at the
-#   clip's end, the feet kept where the clip has them on IK; omit for none;
+# - lower: {"drop": metres, "bend": degrees, "peak": frame, "from": frame,
+#   "until": frame, "hold": true}: a reaction taken low (lower()): the hips
+#   dropped and the chest bent forward, rising from nothing at frame "from"
+#   (0) to all of it at "peak", held to "until" (the peak) and back to
+#   nothing at the clip's end, or held to the end with "hold" (a crouched
+#   stance), the feet kept where the clip has them on IK; omit for none;
 # - two_hands may add "aim": {"frame": frame, "move": [x, y, z], "turn":
 #   [x, y, z, degrees], "frames": n}: the weapon moved by "move" (m, world,
 #   the clip facing -Y) and turned about the grip by "turn" (an axis and an
@@ -747,9 +754,11 @@ def turn(arm, scene, length, degrees):
 def lower(arm, scene, length, spec):
     """A reaction taken low: the hips dropped spec["drop"] m and the spine
     (40%) and the chest (60%) bent forward spec["bend"] degrees, by a weight
-    rising (smootherstep) from 0 at frame 0 to 1 at spec["peak"] and falling
-    back to 0 at the clip's end; the feet kept where the clip has them on
-    IK. The clip faces -Y."""
+    rising (smootherstep) from 0 at frame spec["from"] (default 0) to 1 at
+    spec["peak"], held to spec["until"] (default the peak), and falling back
+    to 0 at the clip's end, or held there to the end with spec["hold"] (a
+    stance the next clip rises from); the feet
+    kept where the clip has them on IK. The clip faces -Y."""
     mw = arm.matrix_world
     pbs = arm.pose.bones
     to_arm = mw.inverted().to_3x3()
@@ -768,8 +777,15 @@ def lower(arm, scene, length, spec):
             hip, knee = mw @ pbs["B-thigh." + side].head, mw @ pbs["B-shin." + side].head
             bend = knee - (hip + m.to_translation()) / 2
             knees[side].append(knee + (bend.normalized() if bend.length > 1e-4 else mathutils.Vector((0.0, -1.0, 0.0))) * 0.5)
+    start = float(spec.get("from", 0.0))
+    until = max(float(spec.get("until", peak)), peak)
     for n in range(length + 1):
-        w = _smoother(n / peak) if n <= peak else 1.0 - _smoother((n - peak) / max(length - peak, 1e-6))
+        if n <= peak:
+            w = _smoother((n - start) / max(peak - start, 1e-6))
+        elif spec.get("hold") or n <= until:
+            w = 1.0
+        else:
+            w = 1.0 - _smoother((n - until) / max(length - until, 1e-6))
         scene.frame_set(1 + n)
         bpy.context.view_layer.update()
         hips = pbs["B-hips"]
@@ -789,6 +805,34 @@ def lower(arm, scene, length, spec):
     print(f"rekey_clip: lowered {float(spec['drop']):.2f} m, bent {float(spec['bend']):g} degrees, peaking on frame {peak:g}", flush=True)
     if over:
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
+def carry(arm, scene, length, spec):
+    """A body carried over the ground off its feet (milestone-1 task 99: the
+    recall burst's blasted fall): the hips' own shift over the ground taken
+    out (from frame 0's), then the hips, and the whole body with them, moved
+    along spec["body"] ([frame, metres forward] pairs, back negative, a
+    monotone cubic through them) as the clip faces (-Y). Nothing on IK: the
+    feet go where the body takes them. The frame-data generator reads the
+    path as the clip's travel. Keyed."""
+    mw = arm.matrix_world
+    to_arm = mw.inverted().to_3x3()
+    hips = arm.pose.bones["B-hips"]
+    pairs = spec["body"]
+    body = monotone([float(p[0]) for p in pairs], [float(p[1]) for p in pairs])
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    h0 = mw @ hips.head
+    fwd = mathutils.Vector((0.0, -1.0, 0.0))
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        h = mw @ hips.head
+        move = mathutils.Vector((h0.x - h.x, h0.y - h.y, 0.0)) + fwd * (body(float(n)) - body(0.0))
+        hips.matrix = mathutils.Matrix.Translation(to_arm @ move) @ hips.matrix
+        bpy.context.view_layer.update()
+        hips.keyframe_insert("location", frame=1 + n, group=hips.name)
+    print(f"rekey_clip: carried the body {body(float(length)) - body(0.0):.2f} m forward", flush=True)
 
 
 # The bones a transition (blend_from()) leaves to the leg IK.
@@ -878,6 +922,8 @@ def main():
     scene.frame_start, scene.frame_end = 1, 1 + length
     if spec.get("step"):
         step(arm, scene, length, spec["step"])
+    if spec.get("carry"):
+        carry(arm, scene, length, spec["carry"])
     if start is not None:
         blend_from(arm, scene, length, start, float(spec["blend_from"]["frames"]))
     if spec.get("knock"):

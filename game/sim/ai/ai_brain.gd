@@ -44,6 +44,11 @@ const DIFFICULTIES: Array[StringName] = [&"easy", &"normal", &"hard"]
 ## A string's follow-up is pressed this many frames before the move's branch
 ## point into it, inside the input buffer (SimConst.INPUT_BUFFER).
 const COMBO_LEAD: int = 4
+## Nearer than this the opponent is close: a disarmed fighter throws Breaker
+## Palm rather than recalling its weapon, and Moonsplitter and the Impaler
+## aren't worth it. The Katana's duelling distance (2.5 m until KE tasks 2
+## and 3 spaced the duel for the 1.3 m blade and the taller bodies).
+const ULT_CLOSE: float = 3.3
 
 
 class AIParams:
@@ -401,13 +406,14 @@ func _think() -> RawInput:
 			_tap(Btn.ULTIMATE, frame, 2)
 			_move_x = 1.0 if horiz else 0.0
 			_move_y = 0.0 if horiz else 1.0
-			_next_think = frame + 36
+			# hold the tilt until the draw locks the pick (task 98)
+			_next_think = frame + SimConst.MOONSPLITTER_DRAW + 4
 			return _output(frame)
 		_tap(Btn.ULTIMATE, frame, 2)
 		if not me.armed:
 			# Recall when the weapon is far, otherwise the posture blow when close
 			var w: DroppedWeapon = W.weapon_of(me.id)
-			var choice: int = Btn.LIGHT if w != null and d > 2.5 else Btn.HEAVY
+			var choice: int = Btn.LIGHT if w != null and d > ULT_CLOSE else Btn.HEAVY
 			_tap(choice, frame + 6, 2)
 		elif me.weapon.ultimate == &"impaler":
 			var lift: int = me.shoulder_lift()
@@ -443,9 +449,9 @@ func _ult_makes_sense(d: float) -> bool:
 		return true
 	match me.weapon.ultimate:
 		&"moonsplitter":
-			return d > 2.5 and d < 14.0
+			return d > ULT_CLOSE and d < 14.0
 		&"impaler":
-			return d > 2.5 and d < 12.0 and opp.state != &"dodge"
+			return d > ULT_CLOSE and d < 12.0 and opp.state != &"dodge"
 		&"tempest":
 			return d < 10.0
 		_:

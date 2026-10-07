@@ -75,6 +75,9 @@ const FOOTFALL_LAG: int = 4
 ## camera's look point, on a parry and on a Flash or a redirect.
 @export var parry_push_in: float = 0.15
 @export var flash_push_in: float = 0.25
+## Moonsplitter's wind-up (milestone-1 task 98, story 133): a slow push-in to
+## this share over the wind-up, held until the wave leaves.
+@export var moon_push_in: float = 0.35
 ## The camera's kick on contact (plan task 14.12): degrees of field of view
 ## when a strike lands or is blocked, by the class of the attacker's weapon
 ## (its weight), half again for a heavy.
@@ -116,6 +119,13 @@ var swing_debug_view: SwingDebugView
 var effects: CombatEffects
 ## The recall's power-up aura and burst (task 30b), drawn with the effects.
 var recall_aura: RecallAura = RecallAura.new()
+## Moonsplitter's waves on screen (MoonWave, milestone-1 task 100).
+var moon_waves: MoonWave
+## The disarmed choice's haze and petals and Breaker Palm's blow (task 100).
+var ult_effects: UltEffects = UltEffects.new()
+## The ultimate-ready aura's embers (task 100; its rim and haze are each
+## FighterView's).
+var ult_aura: UltAura = UltAura.new()
 ## Blood (milestone-1 task 38): bursts, stains on bodies and blades, the
 ## floor's splatter, at the settings' Blood level.
 var blood: BloodEffects
@@ -153,6 +163,9 @@ func _ready() -> void:
 		effects = CombatEffects.new()
 		add_child(effects)
 		effects.host = host
+	if moon_waves == null:
+		moon_waves = MoonWave.new()
+		add_child(moon_waves)
 	if blood == null:
 		blood = BloodEffects.new()
 		add_child(blood)
@@ -204,6 +217,9 @@ func apply_reduce_flashes() -> void:
 		cam.push_in_scale = 0.0 if on else 1.0
 	effects.flash_scale = REDUCED_FLASH if on else 1.0
 	effects.light_scale = CombatEffects.REDUCED_LIGHT if on else 1.0
+	effects.flash_slow = CombatEffects.REDUCED_SLOW if on else 1.0
+	if moon_waves != null:
+		moon_waves.light_scale = CombatEffects.REDUCED_LIGHT if on else 1.0
 	body_flash_scale = REDUCED_FLASH if on else 1.0
 
 
@@ -292,11 +308,18 @@ func _feed_smears() -> void:
 			effects.feed_smear(i, hand, t, span[0], span[1], rules.intensity(hand), rules.kind)
 
 
-## Throws each recalling fighter's power-up aura (RecallAura, task 30b) for
-## the rules frames stepped since the last drawn frame.
+## Throws each recalling fighter's power-up aura (RecallAura, task 30b), each
+## choosing fighter's haze and petals and each ready fighter's embers
+## (UltEffects, UltAura; milestone-1 task 100) for the rules frames stepped
+## since the last drawn frame, and shows Moonsplitter's waves where the rules
+## put them, shedding their mist and petals (MoonWave).
 func _feed_auras() -> void:
 	for i: int in fighters.size():
 		recall_aura.feed(effects, i, host.fighter(i))
+		ult_effects.feed(effects, i, host.fighter(i))
+		ult_aura.feed(effects, i, host.fighter(i), fighters[i].side_color())
+	moon_waves.sync(host.world, host.alpha())
+	moon_waves.shed(effects, host.world)
 
 
 ## True when side `side`'s footsteps fall where its clips land its feet
@@ -478,6 +501,17 @@ func _push_in(amount: float) -> void:
 		cam.push_in(amount)
 
 
+## A slow push-in on every camera, held until _release_push_in().
+func _push_in_held(amount: float, over: float) -> void:
+	for cam: CameraRig in cameras:
+		cam.push_in_held(amount, over)
+
+
+func _release_push_in() -> void:
+	for cam: CameraRig in cameras:
+		cam.release_push_in()
+
+
 ## Kicks every camera's field of view (both halves in Versus).
 func _kick(amount: float) -> void:
 	for cam: CameraRig in cameras:
@@ -541,6 +575,7 @@ static func reaction_of(e: Dictionary, W: World) -> Dictionary:
 
 
 func _on_sim_event(e: Dictionary) -> void:
+	UltEffects.on_event(effects, e, host.world.frame)
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
 	blood.on_event(e, effects.clock())
@@ -571,8 +606,14 @@ func _on_sim_event(e: Dictionary) -> void:
 			_kick(7.0)
 			_body_flash(int(e["victim"]), Color.WHITE, 0.6)
 		&"ultStart":
-			_kick(8.0)
+			if e.get("ult", &"") == &"moonsplitter":
+				# the wind-up stays on the gameplay camera, pushing in slowly
+				# until the wave leaves (task 98)
+				_push_in_held(moon_push_in, float(SimConst.MOONSPLITTER_WAVE) / float(SimConst.FPS))
+			else:
+				_kick(8.0)
 		&"ultWave":
+			_release_push_in()
 			_shake(0.5)
 		&"ultImpale":
 			_shake(0.6)
@@ -602,6 +643,9 @@ func _on_sim_event(e: Dictionary) -> void:
 			_clear_dropped()
 			effects.clear()
 			recall_aura.clear()
+			ult_effects.clear()
+			ult_aura.clear()
+			moon_waves.clear()
 
 
 # ------------------------------------------------------------------ dropped weapons
@@ -620,16 +664,36 @@ func _update_dropped() -> void:
 		# centred on the rules' position as it leaves the hands, its point
 		# STUCK_EMBED into the ground there once it sticks (milestone-1 task 86)
 		var flown: float = 1.0 if w.grounded else float(w.flown) / float(w.flight_frames)
+		# torn out and flown back to the hand while its owner recalls it
+		# (task 99)
+		var recall: Dictionary = _recall_flight(w)
+		if not recall.is_empty():
+			node.position = recall["pos"]
+			stick.rotation = Vector3(w.pitch + float(recall["spin"]), w.yaw, 0.0)
+			flown = 1.0 - float(recall["out"])
 		for model: Node in stick.get_children():
 			var m: Node3D = model
 			m.position.y = lerpf(-float(m.get_meta(&"middle")), STUCK_EMBED - float(m.get_meta(&"tip")), flown)
 		var beam: Node3D = node.get_node("Beam")
-		beam.visible = w.grounded
+		beam.visible = w.grounded and recall.is_empty()
 		beam.position = Vector3(0.0, 1.75 - w.pos.y, 0.0)
 	for side_id: int in _dropped.keys():
 		if not seen.has(side_id):
 			_dropped[side_id].queue_free()
 			_dropped.erase(side_id)
+
+
+## The recalled weapon's flight (RecallFlight) while its owner recalls it,
+## stuck where the rules hold it and flying to the owner's right hand; empty
+## otherwise.
+func _recall_flight(w: DroppedWeapon) -> Dictionary:
+	if not w.grounded or w.owner >= fighters.size() or host.fighter(w.owner).state != &"recall":
+		return {}
+	var sk: Skeleton3D = fighters[w.owner].model.skeleton if fighters[w.owner].model != null else null
+	if sk == null:
+		return {}
+	var hand: Vector3 = sk.global_transform * sk.get_bone_global_pose(sk.find_bone("RightHand")).origin
+	return RecallFlight.at(Vector3(w.pos.x, w.pos.y, w.pos.z), hand, float(host.fighter(w.owner).sf))
 
 
 func _clear_dropped() -> void:

@@ -262,6 +262,44 @@ func test_a_push_in_snaps_in_holds_through_the_hit_stop_and_eases_back() -> void
 	assert_almost_eq(_reach(), rest, 0.01)
 
 
+## Moonsplitter's wind-up (milestone-1 task 98, story 133): a slow push-in
+## that closes in over the time it is given, holds until it is released (the
+## wave leaving), then eases back out as any push-in does.
+func test_a_held_push_in_closes_slowly_holds_until_released_then_eases_back() -> void:
+	rig.snap(P, O)
+	rig.push_in_held(0.35, 1.0)
+	_step(30)
+	assert_between(rig.push_amount(), 0.1, 0.3, "half way in after half the time")
+	_step(30)
+	assert_almost_eq(rig.push_amount(), 0.35, 1e-4, "in after a second")
+	_step(60)
+	assert_almost_eq(rig.push_amount(), 0.35, 1e-6, "held, not frozen, until released")
+	rig.release_push_in()
+	_step(12)
+	assert_between(rig.push_amount(), 0.01, 0.349, "easing back")
+	_step(12)
+	assert_eq(rig.push_amount(), 0.0, "back after 0.4 s")
+
+
+func test_a_released_push_in_before_it_is_in_eases_out_from_where_it_got() -> void:
+	rig.snap(P, O)
+	rig.push_in_held(0.35, 1.0)
+	_step(30)
+	var got: float = rig.push_amount()
+	rig.release_push_in()
+	_step()
+	assert_true(rig.push_amount() <= got + 1e-6, "no further in once released")
+	_step(30)
+	assert_eq(rig.push_amount(), 0.0, "out")
+
+
+func test_reduce_flashes_turns_the_held_push_in_off_too() -> void:
+	rig.push_in_scale = 0.0
+	rig.push_in_held(0.35, 1.0)
+	_step(30)
+	assert_eq(rig.push_amount(), 0.0)
+
+
 func test_a_push_in_moves_toward_the_look_point_not_off_the_line() -> void:
 	rig.snap(P, O)
 	rig.push_in(0.25)

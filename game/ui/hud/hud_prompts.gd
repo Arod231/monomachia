@@ -55,7 +55,8 @@ static func for_fighter(f: Fighter, world: World, label: Callable, on_pad: bool)
 	var k: Callable = func(action: String) -> Dictionary: return key(String(label.call(action)))
 	if f.state == &"ultChoice":
 		out.append(_urgent([k.call("light"), " Recall your weapon" + DOT, k.call("heavy"), " Breaker Palm"]))
-	elif f.state == &"ult" and f.ult != null and f.ult.kind == &"moonsplitter" and f.ult.phase == &"windup":
+	elif f.state == &"ult" and f.ult != null and f.ult.kind == &"moonsplitter" and f.ult.phase == &"windup" \
+			and f.ult.pf <= SimConst.MOONSPLITTER_DRAW:
 		if on_pad:
 			out.append(_urgent(["Tilt the stick ", key("↑"), "/", key("↓"), " vertical slash" + DOT, key("←"), "/", key("→"), " horizontal"]))
 		else:

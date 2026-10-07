@@ -81,7 +81,7 @@ const MOVES: Dictionary = {
 	&"f_breaker": {
 		"id": &"f_breaker", "name": "Breaker Palm", "kind": &"ultimate", "type": &"punch", "anim": &"f_breakerPalm", "hand": &"R",
 		"sound": F, "special": &"breakerPalm", "damage": 6, "posture": 50,
-		"knockback": 1.8, "range": 1.5, "arc": 90, "lunge": 2.95, "lunge_end": 15, "power": true, "hitstop": 12, "hitstun": 36,
+		"knockback": 1.8, "range": 1.5, "arc": 90, "power": true,
 	},
 }
 

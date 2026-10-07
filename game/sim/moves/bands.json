@@ -1,5 +1,5 @@
 {
-	"about": "The band tables (milestone-1 task 18): the spec's timing band table and distance band table (docs/specs/milestone-1.md, P26 and P27, approved by the owner at task 1), one row per move kind per weapon, read by MoveBands (move_bands.gd), held to by test_move_bands.gd and shown by the Studio. Kinds are the frame-data table's (FrameDataRows.kind_of). Timing ranges are rules frames [low, high]: startup to the first active frame; from_stance, an Iai draw's startup from the stance's release (its startup less the charge check); landing, a jump attack's recovery after it lands; to_wave, Moonsplitter's frames to its wave; total, the recall's whole length. Distances are metres centre to centre, played from standing: a move touches from touches (and from the weapon's duel and preferred distances where those are closer), a string light puts inside (m of blade, or of fist past the surface) into the defender at the duelling distance, and nothing touches from misses. waiting lists the moves still waiting for their family's re-key, which the band tests skip; each keying task takes its moves off. Since KE task 2 the Katana's distances sit 0.5 m further out for its 1.3 m blade (a 3.0 m duelling distance), and since KE task 3 another 0.3 m for the taller bodies (3.3 m); its string lights' depth band is 4-30 cm until the strings are re-keyed (KE tasks 11-14). Bare hands' distances sit 0.25 m further out since KE task 3 (a 1.85 m duelling distance), their lights' depth band 15-21 cm until their re-keys.",
+	"about": "The band tables (milestone-1 task 18): the spec's timing band table and distance band table (docs/specs/milestone-1.md, P26 and P27, approved by the owner at task 1), one row per move kind per weapon, read by MoveBands (move_bands.gd), held to by test_move_bands.gd and shown by the Studio. Kinds are the frame-data table's (FrameDataRows.kind_of). Timing ranges are rules frames [low, high]: startup to the first active frame; from_stance, an Iai draw's startup from the stance's release (its startup less the charge check); landing, a jump attack's recovery after it lands; to_wave, Moonsplitter's frames to its wave; total, the recall's whole length. Distances are metres centre to centre, played from standing: a move touches from touches (and from the weapon's duel and preferred distances where those are closer), a string light puts inside (m of blade, or of fist past the surface) into the defender at the duelling distance, and nothing touches from misses. waiting lists the moves still waiting for their family's re-key, which the band tests skip; each keying task takes its moves off. Since KE task 2 the Katana's distances sit 0.5 m further out for its 1.3 m blade (a 3.0 m duelling distance), and since KE task 3 another 0.3 m for the taller bodies (3.3 m); its string lights' depth band is 4-30 cm until the strings are re-keyed (KE tasks 11-14). Bare hands' distances sit 0.25 m further out since KE task 3 (a 1.85 m duelling distance), Breaker Palm's 0.5 m (its re-keyed surge grew with the bodies), their lights' depth band 15-21 cm until their re-keys.",
 	"timing": {
 		"katana": {
 			"string_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
@@ -69,7 +69,7 @@
 				"backstep_heavy": {"touches": 3.85, "misses": 4.35},
 				"jump_light": {"touches": 1.35, "misses": 1.85},
 				"jump_heavy": {"touches": 1.35, "misses": 1.85},
-				"ultimate": {"touches": 4.35, "misses": 4.85}
+				"ultimate": {"touches": 4.6, "misses": 5.0}
 			}
 		}
 	},
@@ -81,7 +81,7 @@
 		],
 		"fists": [
 			"f_l1", "f_l2", "f_l3", "f_h1", "f_h2", "f_sl", "f_sh", "f_dl", "f_dh",
-			"f_bl", "f_bh", "f_jl", "f_jh", "f_breaker"
+			"f_bl", "f_bh", "f_jl", "f_jh"
 		]
 	}
 }
