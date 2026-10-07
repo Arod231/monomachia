@@ -81,6 +81,11 @@ def main():
         export_cameras=False,
         export_lights=False,
         export_apply=False,
+        # the exporter times a key at its Blender frame / fps, so a clip keyed
+        # from frame 1 (rekey_clip.py's sources) would start at 1/30 s, and
+        # Godot's import would hold its first pose over frame 0: slid to 0 s,
+        # a clip's frame k plays at k/30 s and it lasts its length/30 s
+        export_anim_slide_to_zero=True,
     )
     if a["kind"] == "clip":
         # a clip is the armature and its motion, no meshes

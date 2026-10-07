@@ -14,8 +14,9 @@ extends RefCounted
 
 ## The step a Katana light pressed on step 0 lands on, from make_world()'s
 ## 2.2 m or nearer: Right Cut, re-keyed (milestone-1 task 31), landing on its
-## first active frame (startup 28), world frame 31.
-const LIGHT_LANDS: int = 30
+## first active frame (startup 28), world frame 30 (a step later until the
+## export's one-frame hold was fixed).
+const LIGHT_LANDS: int = 29
 
 static var _worlds: Array[World] = []
 

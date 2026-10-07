@@ -2,7 +2,8 @@
 // 12): sources.json, the bone list, the record, the copy's budget, and, where
 // Blender is installed (local-only, skipped elsewhere, CI included), a
 // block-out clip and a box model built by scripts/blender/make_test_sources.py
-// exported twice to the same bytes, and a clip without the Iglesias rig refused.
+// exported twice to the same bytes, its keys from 0 s whatever frame its
+// source starts on, and a clip without the Iglesias rig refused.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -113,6 +114,16 @@ describe('the export', () => {
   });
 });
 
+/** Every animation sampler's first and last key time in a GLB, in seconds. */
+function keyTimes(glb) {
+  const jsonLength = glb.readUInt32LE(12);
+  const gltf = JSON.parse(glb.subarray(20, 20 + jsonLength).toString('utf8'));
+  return gltf.animations.flatMap((a) => a.samplers.map((s) => {
+    const accessor = gltf.accessors[s.input];
+    return [accessor.min[0], accessor.max[0]];
+  }));
+}
+
 const blender = findBlender();
 
 describe('the export in Blender (local-only)', { skip: blender ? false : 'local-only: no Blender (BLENDER, PATH or .blender-path)' }, () => {
@@ -136,6 +147,19 @@ describe('the export in Blender (local-only)', { skip: blender ? false : 'local-
         assert.ok(readFileSync(outs[0]).length > 0);
         assert.ok(readFileSync(outs[0]).equals(readFileSync(outs[1])), `${name}: two runs, the same bytes`);
         assert.equal(readFileSync(outs[0]).subarray(0, 4).toString(), 'glTF', `${name}: a GLB`);
+      }
+      // keyed over 10 frames from Blender frame 0, and from frame 1 as
+      // rekey_clip.py keys its sources: both play from 0 s for 10/30 s, with
+      // no held first frame in front
+      for (const name of ['block_out', 'block_out_from_1']) {
+        const out = join(dir, `${name}_times.glb`);
+        assert.equal(exportBlend(blender, join(dir, `${name}.blend`), 'clip', out, BONES).code, 0, name);
+        const times = keyTimes(readFileSync(out));
+        assert.ok(times.length > 0, `${name}: animated`);
+        for (const [first, last] of times) {
+          assert.equal(first, 0, `${name}: the first key at 0 s`);
+          assert.ok(Math.abs(last - 10 / 30) < 1e-6, `${name}: the last key at 10/30 s, not ${last}`);
+        }
       }
       const none = exportBlend(blender, join(dir, 'no_rig.blend'), 'clip', join(dir, 'no_rig.glb'), BONES);
       assert.equal(none.code, REFUSED);
