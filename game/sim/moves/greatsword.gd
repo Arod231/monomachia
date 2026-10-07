@@ -136,4 +136,6 @@ static func build() -> WeaponDef:
 		"foot": null,
 		# the left hand below the right on the long handle
 		"off_hand_grip": V3.make(0.0, -0.266, 0.0),
+		# one implicit grip (KE task 5)
+		"grips": [],
 	})

@@ -170,7 +170,7 @@ class Bout:
 	## The fields of a Shot the fixture keeps, in the order of an encoded one.
 	const KEYS: Array[String] = [
 		"frame", "drive", "clip", "clip_before", "from", "from_upper", "upper", "fade", "since", "idle", "move",
-		"state", "phase", "grip", "grip_from",
+		"state", "phase", "reverse_hold", "reverse_hold_from",
 	]
 	## Every this many shots one is kept, and the ones within NEAR of a change.
 	const EVERY: int = 12
@@ -189,7 +189,7 @@ class Bout:
 			"frame": s.frame, "drive": String(s.drive), "clip": _clip(s.clip), "clip_before": _clip(s.clip_before),
 			"from": _clip(s.from), "from_upper": s.from_upper, "upper": s.upper, "fade": s.fade, "since": s.since,
 			"idle": s.idle, "move": String(s.move), "state": String(s.state), "phase": String(s.phase),
-			"grip": snappedf(s.grip, 1e-6), "grip_from": snappedf(s.grip_from, 1e-6),
+			"reverse_hold": snappedf(s.reverse_hold, 1e-6), "reverse_hold_from": snappedf(s.reverse_hold_from, 1e-6),
 		}
 
 	## What shows which clip is on for a shot: a change is where this does.

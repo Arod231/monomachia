@@ -61,6 +61,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Rising Heaven `k_h1f` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Returning Draw `k_rdraw` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Heaven Splitter `k_h2` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Crescent Coil `k_coil` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
 | The heavy deflect pairs `clip_deflect_heavy` | not built | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | Heavy hit reactions `clip_hit_heavy` | stand-in clips | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
 | Heavy block reactions `clip_block_heavy` | stand-in clips | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |

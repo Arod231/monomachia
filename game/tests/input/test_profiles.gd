@@ -79,7 +79,7 @@ func test_loading_fills_missing_actions_from_the_defaults_and_clamps_active() ->
 	assert_eq(old.slots(ControlProfile.KB, "light"), ["m:1"] as Array[String])
 	assert_eq(old.slots(ControlProfile.KB, "jump"), [] as Array[String], "a cleared action stays cleared")
 	var kb_defaults: Dictionary = Bindings.default_kb()
-	for action: String in ["down", "left", "right", "heavy", "block", "dodge", "interact", "ultimate", "sprint", "pause"]:
+	for action: String in ["down", "left", "right", "heavy", "block", "dodge", "interact", "ultimate", "sprint", "grip", "pause"]:
 		assert_eq(old.kb[action], kb_defaults[action], "filled in: " + action)
 	assert_eq(old.pad, Bindings.default_pad(), "the whole controller set is filled in")
 
@@ -88,6 +88,56 @@ func test_loading_fills_missing_actions_from_the_defaults_and_clamps_active() ->
 	assert_eq(junk.slots(ControlProfile.KB, "light"), ["k:74", "k:75"] as Array[String], "valid, unique, at most 2")
 	assert_eq(junk.kb["heavy"], kb_defaults["heavy"], "a value that is not a list is replaced by the default")
 	assert_eq(junk.slots(ControlProfile.PAD, "light"), ["b:10", "a:5+"] as Array[String])
+
+
+## A profile saved before the grip (KE task 6): the old defaults, with the
+## Ultimate on pad Y and no grip action.
+static func _before_the_grip() -> Dictionary:
+	var kb: Dictionary = Bindings.default_kb()
+	kb.erase("grip")
+	var pad: Dictionary = Bindings.default_pad()
+	pad.erase("grip")
+	pad["ultimate"] = [InputToken.joy_button(JOY_BUTTON_Y)]
+	return {"name": "Old", "kb": kb, "pad": pad}
+
+
+func test_an_old_profile_gains_the_grip_and_the_ultimate_moves_to_l2() -> void:
+	var p: ControlProfile = ControlProfile.from_dict(_before_the_grip())
+	assert_eq(p.slots(ControlProfile.PAD, "grip"), [InputToken.joy_button(JOY_BUTTON_Y)] as Array[String], "the grip on Y")
+	assert_eq(p.slots(ControlProfile.PAD, "ultimate"), [InputToken.joy_axis(JOY_AXIS_TRIGGER_LEFT, true)] as Array[String], "the Ultimate moved to L2")
+	assert_eq(p.slots(ControlProfile.KB, "grip"), [InputToken.key(KEY_R)] as Array[String], "the grip on R")
+	assert_eq(p.to_dict(), ControlProfile.create("Old").to_dict(), "an untouched old profile becomes today's defaults")
+
+
+func test_an_old_profile_s_own_bindings_never_clash_with_the_grip() -> void:
+	var d: Dictionary = _before_the_grip()
+	# R rebound to jump; Y kept for the Ultimate but L2 already used by block;
+	# no other action on Y would be left for the grip
+	d["kb"]["jump"] = [InputToken.key(KEY_R)]
+	d["pad"]["block"] = [InputToken.joy_axis(JOY_AXIS_TRIGGER_LEFT, true)]
+	var p: ControlProfile = ControlProfile.from_dict(d)
+	assert_eq(p.slots(ControlProfile.KB, "grip"), [] as Array[String], "R is jump's: the grip is left unbound")
+	assert_eq(p.slots(ControlProfile.KB, "jump"), [InputToken.key(KEY_R)] as Array[String], "jump keeps R")
+	assert_eq(p.slots(ControlProfile.PAD, "ultimate"), [InputToken.joy_button(JOY_BUTTON_Y)] as Array[String], "L2 is taken: the Ultimate stays on Y")
+	assert_eq(p.slots(ControlProfile.PAD, "grip"), [] as Array[String], "and the grip is left unbound")
+
+
+func test_an_old_profile_with_the_ultimate_moved_away_gives_the_grip_y() -> void:
+	var d: Dictionary = _before_the_grip()
+	d["pad"]["ultimate"] = [InputToken.joy_button(JOY_BUTTON_RIGHT_STICK)]
+	var p: ControlProfile = ControlProfile.from_dict(d)
+	assert_eq(p.slots(ControlProfile.PAD, "ultimate"), [InputToken.joy_button(JOY_BUTTON_RIGHT_STICK)] as Array[String], "the player's own choice stays")
+	assert_eq(p.slots(ControlProfile.PAD, "grip"), [InputToken.joy_button(JOY_BUTTON_Y)] as Array[String])
+
+
+func test_a_saved_grip_is_kept_as_it_is() -> void:
+	var d: Dictionary = ControlProfile.create().to_dict()
+	d["pad"]["grip"] = []
+	d["kb"]["grip"] = [InputToken.key(KEY_G)]
+	var p: ControlProfile = ControlProfile.from_dict(d)
+	assert_eq(p.slots(ControlProfile.PAD, "grip"), [] as Array[String], "a cleared grip stays cleared")
+	assert_eq(p.slots(ControlProfile.KB, "grip"), [InputToken.key(KEY_G)] as Array[String])
+	assert_eq(p.slots(ControlProfile.PAD, "ultimate"), [InputToken.joy_axis(JOY_AXIS_TRIGGER_LEFT, true)] as Array[String])
 
 
 func test_loading_clamps_a_negative_or_odd_active_index() -> void:

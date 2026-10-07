@@ -19,9 +19,9 @@ func _labels(rows: Array[ControlsTable.Row]) -> Dictionary:
 	return out
 
 
-func test_the_table_lists_the_thirteen_actions_in_order_with_their_names_and_hints() -> void:
+func test_the_table_lists_the_fourteen_actions_in_order_with_their_names_and_hints() -> void:
 	var rows: Array[ControlsTable.Row] = ControlsTable.rows(ControlProfile.create(), ControlProfile.KB, PadStyle.GENERIC)
-	assert_eq(rows.size(), 13)
+	assert_eq(rows.size(), 14, "the grip the fourteenth (KE task 6)")
 	var actions: Array[String] = []
 	for r: ControlsTable.Row in rows:
 		actions.append(r.action)
@@ -38,6 +38,7 @@ func test_the_keyboard_tab_names_keys_and_mouse_buttons_and_empty_slots_show_a_d
 	assert_eq(t["block"], ["L-Shift", "L"])
 	assert_eq(t["dodge"], ["Space", ControlsTable.EMPTY])
 	assert_eq(t["sprint"], [ControlsTable.EMPTY, ControlsTable.EMPTY])
+	assert_eq(t["grip"], ["R", ControlsTable.EMPTY])
 	assert_eq(t["pause"], ["Esc", "P"])
 
 

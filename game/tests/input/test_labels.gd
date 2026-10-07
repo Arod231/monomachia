@@ -72,8 +72,9 @@ func test_playstation_and_xbox_labels_for_each_action() -> void:
 		"dodge": ["○", "B"],
 		"jump": ["×", "A"],
 		"interact": ["□", "X"],
-		"ultimate": ["△", "Y"],
+		"ultimate": ["L2", "LT"],
 		"sprint": ["L3", "LS"],
+		"grip": ["△", "Y"],
 		"pause": ["Options", "Menu"],
 	}
 	for action: String in Bindings.ACTIONS:
@@ -93,7 +94,8 @@ func test_fight_stick_labels() -> void:
 	assert_eq(input.label("block", 0), "R1")
 	assert_eq(input.label("interact", 0), "R2")
 	assert_eq(input.label("ultimate", 0), "L1")
-	assert_eq(input.label("sprint", 0), "L2")
+	assert_eq(input.label("grip", 0), "L2")
+	assert_eq(input.label("sprint", 0), "L3")
 
 
 func test_keyboard_labels_for_each_action() -> void:
@@ -101,7 +103,7 @@ func test_keyboard_labels_for_each_action() -> void:
 	var expected: Dictionary = {
 		"up": "W", "down": "S", "left": "A", "right": "D",
 		"light": "Left Click", "heavy": "Right Click", "block": "L-Shift", "dodge": "Space",
-		"jump": "F", "interact": "E", "ultimate": "Q", "sprint": "", "pause": "Esc",
+		"jump": "F", "interact": "E", "ultimate": "Q", "sprint": "", "grip": "R", "pause": "Esc",
 	}
 	for action: String in Bindings.ACTIONS:
 		assert_eq(input.label(action, 0), expected[action], action)
@@ -136,7 +138,7 @@ func test_arrow_layout_labels() -> void:
 	var expected: Dictionary = {
 		"up": "↑", "down": "↓", "left": "←", "right": "→",
 		"light": "J", "heavy": "K", "block": "L", "dodge": ";",
-		"jump": "I", "interact": "O", "ultimate": "U", "sprint": "", "pause": "Backspace",
+		"jump": "I", "interact": "O", "ultimate": "U", "sprint": "", "grip": "Y", "pause": "Backspace",
 	}
 	for action: String in Bindings.ACTIONS:
 		assert_eq(input.label(action, 1), expected[action], action)

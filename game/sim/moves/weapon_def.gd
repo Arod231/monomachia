@@ -20,6 +20,7 @@ extends RefCounted
 ##   starter's swing once it has one.
 ## - duel_distance is the rebuild's (task 7.14): Katana 2.5 m, Greatsword 3.0,
 ##   Daggers 2.0, bare hands 1.6.
+## - grips are the Elden Ring Katana's (KE task 5): WeaponGrip.
 
 const WEAPON_IDS: Array[StringName] = [&"katana", &"greatsword", &"daggers", &"fists"]
 const ULTIMATE_IDS: Array[StringName] = [&"moonsplitter", &"impaler", &"tempest", &"disarmed"]
@@ -73,13 +74,17 @@ var foot: StrikeSegment = null
 ## Where the off hand grips a weapon held in both hands, in weapon space (the
 ## model's OffHandGrip marker; task 7.7); null for one held in one hand.
 var off_hand_grip: V3 = null
+## The ways the weapon is held (WeaponGrip), the first the one each round
+## starts in; empty for a weapon with one implicit grip, whose lights follow
+## their moves' light follow-ups (KE task 5).
+var grips: Array[WeaponGrip] = []
 
 ## Every key a weapon record has: the fields above, in order.
 const KEYS: Array[String] = [
 	"id", "name", "cls", "speed_mult", "dodge_mult", "parry_window", "block_mitigation", "moves",
 	"light_start", "heavy_start", "sprint_light", "sprint_heavy", "dodge_light", "dodge_heavy",
 	"back_light", "back_heavy", "jump_light", "jump_heavy", "abilities", "default_abilities",
-	"ultimate", "reach", "duel_distance", "blurb", "blade", "foot", "off_hand_grip",
+	"ultimate", "reach", "duel_distance", "blurb", "blade", "foot", "off_hand_grip", "grips",
 ]
 
 
@@ -123,6 +128,7 @@ static func from_dict(d: Dictionary) -> WeaponDef:
 	w.blade = d["blade"]
 	w.foot = d["foot"]
 	w.off_hand_grip = d["off_hand_grip"]
+	w.grips.assign(d["grips"])
 	w.derive_reach()
 	return w
 
@@ -143,3 +149,27 @@ func derive_reach() -> void:
 	var starter: AttackDef = moves.get(light_start)
 	var keyed: bool = starter != null and starter.swing != null and starter.swing.clips.is_empty()
 	reach = starter.swing.reach if keyed else authored_reach
+
+
+## The grip `grip_id`, or null when the weapon has no such grip.
+func grip(grip_id: StringName) -> WeaponGrip:
+	for g: WeaponGrip in grips:
+		if g.id == grip_id:
+			return g
+	return null
+
+
+## The grip every round starts in: the first, or &"" for a weapon without
+## grips.
+func first_grip() -> StringName:
+	return grips[0].id if not grips.is_empty() else &""
+
+
+## Which hit of a string move `move_id` plays (1 for hit 1), in the first
+## grip whose string has it; 0 for a move in no string.
+func string_position(move_id: StringName) -> int:
+	for g: WeaponGrip in grips:
+		var at: int = g.string.find(move_id)
+		if at >= 0:
+			return at + 1
+	return 0

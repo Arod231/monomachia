@@ -71,7 +71,7 @@ func test_it_opens_on_the_keyboard_tab_with_the_profiles_keys() -> void:
 
 
 func test_every_action_has_two_slots_with_their_names_from_the_table() -> void:
-	assert_eq(screen.slot_buttons.size(), 13)
+	assert_eq(screen.slot_buttons.size(), 14, "the grip the fourteenth (KE task 6)")
 	for r: ControlsTable.Row in ControlsTable.rows(profiles.active_profile(), ControlProfile.KB, PadStyle.GENERIC):
 		assert_eq([screen.slot_text(r.action, 0), screen.slot_text(r.action, 1)], r.slots, r.action)
 

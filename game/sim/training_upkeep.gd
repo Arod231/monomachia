@@ -114,15 +114,15 @@ func weapon_for(behaviour: StringName) -> WeaponDef:
 
 ## Hands the dummy weapon w: an impale lets go, a state that belongs to the
 ## old weapon (an attack, an ultimate, a recall, a pickup, the disarm
-## stagger) ends, and the dummy is armed with w's default abilities, its old
+## stagger) ends, and the dummy is armed with w, in its first grip, and its
+## default abilities, its old
 ## weapon gone from the floor.
 func swap_dummy_weapon(w: WeaponDef) -> void:
 	var f: Fighter = world.fighters[dummy]
 	f.release_if_impaling()
 	if [&"attack", &"ult", &"ultChoice", &"recall", &"pickup", &"disarmStagger"].has(f.state):
 		f.to_free()
-	f.weapon = w
-	f.armed = true
+	f.take_weapon(w)
 	f.abilities = w.default_abilities.duplicate()
 	world.remove_dropped_weapon(dummy)
 	_disarmed_at = -1

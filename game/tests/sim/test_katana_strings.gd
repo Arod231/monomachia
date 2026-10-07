@@ -31,7 +31,7 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 	},
 	&"k_h1f": {
 		"name": "Rising Heaven", "damage": 12, "posture": 15,
-		"light": &"", "heavy": &"k_h2", "sides": [&"right", &"left"],
+		"light": &"", "heavy": &"", "sides": [&"centre", &"left"],
 	},
 	&"k_rdraw": {
 		"name": "Returning Draw", "damage": 12, "posture": 15,
@@ -39,6 +39,12 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 	},
 	&"k_h2": {
 		"name": "Heaven Splitter", "damage": 15, "posture": 18,
+		"light": &"", "heavy": &"k_h1f", "sides": [&"centre", &"centre"],
+	},
+	# the one-handed heavy (KE task 7): Heaven Splitter's clip until its
+	# re-key, about 85% of its damage (D3)
+	&"k_coil": {
+		"name": "Crescent Coil", "damage": 13, "posture": 15,
 		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
 	},
 }
@@ -74,25 +80,31 @@ func test_four_lights_hit_with_right_cut_return_cut_kesa_cut_and_crown_cut() -> 
 	assert_eq(r.ids(&"hit"), [&"k_l1", &"k_l2", &"k_l3", &"k_l4"] as Array[StringName])
 
 
-func test_a_heavy_ends_the_string_on_heaven_splitter_or_after_two_lights_on_rising_heaven() -> void:
+func test_a_heavy_ends_the_one_handed_string_on_crescent_coil() -> void:
+	# a fighter starts one-handed; every hit's heavy branch is the grip's heavy
+	# (KE task 7; the two-handed grip's in test_grip_heavies)
 	var light: int = Btn.LIGHT
 	var heavy: int = Btn.HEAVY
-	assert_eq(_play([light, heavy]).ids(&"hit"), [&"k_l1", &"k_h2"] as Array[StringName], "L-H: Right Cut, Heaven Splitter")
+	assert_eq(_play([light, heavy]).ids(&"hit"), [&"k_l1", &"k_coil"] as Array[StringName], "L-H: Right Cut, Crescent Coil")
 	assert_eq(
 		_play([light, light, heavy]).ids(&"hit"),
-		[&"k_l1", &"k_l2", &"k_h1f"] as Array[StringName],
-		"L-L-H: Return Cut, Rising Heaven",
+		[&"k_l1", &"k_l2", &"k_coil"] as Array[StringName],
+		"L-L-H: Return Cut, Crescent Coil",
 	)
 	assert_eq(
 		_play([light, light, light, heavy]).ids(&"hit"),
-		[&"k_l1", &"k_l2", &"k_l3", &"k_h2"] as Array[StringName],
-		"L-L-L-H: Kesa Cut, Heaven Splitter",
+		[&"k_l1", &"k_l2", &"k_l3", &"k_coil"] as Array[StringName],
+		"L-L-L-H: Kesa Cut, Crescent Coil",
 	)
 
 
-func test_crown_cut_ends_the_string() -> void:
+func test_crown_cut_again_as_hit_5_ends_the_string() -> void:
+	# both grips' strings stand in as the four lights, Crown Cut repeated as
+	# hit 5, and a string ends after hit 5 (KE task 5, D4)
 	var light: int = Btn.LIGHT
-	_assert_starts_nothing_in([light, light, light, light], [&"k_l1", &"k_l2", &"k_l3", &"k_l4"], LIGHT_OR_HEAVY)
+	_assert_starts_nothing_in([light, light, light, light, light], [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"], [light])
+	# its heavy branch is the grip's heavy, as every hit's (KE task 7)
+	assert_eq(_play([light, light, light, light, light, Btn.HEAVY]).ids(&"swing").back(), &"k_coil")
 
 
 func test_stopping_after_any_hit_ends_the_string_when_that_move_ends() -> void:
@@ -425,12 +437,14 @@ func _play_sideways(presses: Array[int]) -> PlayedString:
 	return _play(presses, 2.2, 1.0)
 
 
-func test_the_vertical_iai_goes_on_to_rising_heaven_then_heaven_splitter() -> void:
+func test_the_vertical_iai_goes_on_to_the_grip_s_heavy() -> void:
+	# one-handed, Crescent Coil, which ends the string (KE task 7, D5; the
+	# two-handed grip's Rising Heaven in test_grip_heavies)
 	var heavy: int = Btn.HEAVY
 	assert_eq(
 		_play([heavy, heavy, heavy]).ids(&"swing"),
-		[&"k_iai", &"k_h1f", &"k_h2"] as Array[StringName],
-		"heavy, heavy: Rising Heaven, then Heaven Splitter",
+		[&"k_iai", &"k_coil"] as Array[StringName],
+		"heavy, heavy: Crescent Coil, then nothing",
 	)
 	assert_eq(_play([heavy, Btn.LIGHT]).ids(&"swing"), [&"k_iai"] as Array[StringName], "a light after it starts nothing")
 
@@ -447,8 +461,8 @@ func test_the_horizontal_iai_goes_on_to_returning_draw_or_return_cut() -> void:
 	)
 	assert_eq(
 		_play_sideways([heavy, light, heavy]).ids(&"swing"),
-		[&"k_iai_h", &"k_l2", &"k_h1f"] as Array[StringName],
-		"or to its heavy, Rising Heaven",
+		[&"k_iai_h", &"k_l2", &"k_coil"] as Array[StringName],
+		"or to the grip's heavy, Crescent Coil",
 	)
 
 
@@ -473,7 +487,6 @@ func test_stopping_after_any_hit_in_the_iais_strings_ends_the_string_when_that_m
 	var strings: Array[Dictionary] = [
 		{"presses": [heavy], "mx": 0.0},
 		{"presses": [heavy, heavy], "mx": 0.0},
-		{"presses": [heavy, heavy, heavy], "mx": 0.0},
 		{"presses": [heavy], "mx": 1.0},
 		{"presses": [heavy, heavy], "mx": 1.0},
 		{"presses": [heavy, light], "mx": 1.0},

@@ -3,7 +3,7 @@ extends GutTest
 ## each rides its hand at its grip, the handle inside the closed fist on both
 ## fighters; the off hand of a two-handed weapon reaches its OffHandGrip on
 ## IK over the clip (within 1 cm); the Daggers fill both hands and turn into
-## the reverse grip. The CC0 UAL clips drive these; the local-only test runs
+## the reverse hold. The CC0 UAL clips drive these; the local-only test runs
 ## the Iglesias clips of task 1 and skips itself without the libraries.
 
 const NEAR: float = 0.01
@@ -114,7 +114,7 @@ func test_the_handle_sits_inside_each_fist() -> void:
 					assert_almost_eq(gap, half, 0.003, "%s %s %s: %s %.1f cm off the handle" % [id, weapon, side, finger, gap * 100.0])
 
 
-func test_daggers_fill_both_hands_and_turn_into_the_reverse_grip() -> void:
+func test_daggers_fill_both_hands_and_turn_into_the_reverse_hold() -> void:
 	var f: FighterModel = _fighter(&"rogue", &"daggers")
 	_at(f, "ual/" + CLIP, 0.45)
 	var poses: Array[Transform3D] = await _posed(f)
@@ -171,6 +171,34 @@ func test_local_the_off_hand_holds_the_grip_through_the_iglesias_clips() -> void
 						worst = gap
 						where = "%s at %.2f s" % [clip, length * i / 8.0]
 			assert_lt(worst, NEAR, "%s with the %s: worst off-hand gap %.1f cm (%s)" % [pair[0], weapon, worst * 100.0, where])
+
+
+## Through a grip switch (KE task 8): the clips each of the Katana's grips
+## plays standing and guarding (StateClips' grips: its idle, its guard's loop
+## and hit) and its re-grip into it, when it has one, keep the blade in the
+## right fist and the off hand on its grip.
+func test_local_the_katana_stays_in_hand_through_a_grip_switch() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	var sc: StateClips = StateClips.read()
+	for pair: Array in [[&"hunter", &"HumanM"], [&"rogue", &"HumanF"]]:
+		var f: FighterModel = _fighter(pair[0], &"katana")
+		var lib: AnimationLibrary = ClipLibraries.load_set(pair[1])
+		f.animation_player.add_animation_library(pair[1], lib)
+		for grip: StringName in [WeaponGrip.ONE_HANDED, WeaponGrip.TWO_HANDED]:
+			var clips: Array[StringName] = [sc.idle_for(&"katana", grip)]
+			clips.append_array(sc.guard_for(&"katana", grip))
+			if sc.regrip_for(&"katana", grip) != &"":
+				clips.append(sc.regrip_for(&"katana", grip))
+			for clip: StringName in clips:
+				var length: float = lib.get_animation(clip).length
+				for i: int in 5:
+					_at(f, "%s/%s" % [pair[1], clip], length * i / 4.0)
+					var poses: Array[Transform3D] = await _posed(f)
+					var gap: float = _off_hand_gap(f, poses)
+					assert_lt(gap, NEAR, "%s %s %s at %.2f s: off hand %.1f cm off" % [pair[0], grip, clip, length * i / 4.0, gap * 100.0])
+					assert_lt(_grip_centre(f, poses, "Right").distance_to(f.weapons[0].transform.origin), 0.05, "%s %s %s: in the right fist" % [pair[0], grip, clip])
 
 
 ## The per-move checklist's item 10 (milestone-1 task 40): each keyed move's

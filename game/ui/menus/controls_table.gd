@@ -1,7 +1,7 @@
 class_name ControlsTable
 extends RefCounted
 ## The Controls screen's binding table as plain data, for the screen and its
-## tests: the 13 actions with two slots each, named in a button style, the tab
+## tests: the 14 actions with two slots each, named in a button style, the tab
 ## the screen opens on and the controller status line. Port of the table,
 ## tabs and status of showControls() in v0.1-web-mvp:src/ui/menus.ts.
 

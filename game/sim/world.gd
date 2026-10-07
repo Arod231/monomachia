@@ -556,7 +556,7 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 		&"block":
 			_mark_done(atk, def)
 			var charge_mult: float = 1.0 + 0.8 * charge_f
-			var mult: float = def.guard_crush if not is_nan(def.guard_crush) else b.weapon.block_mitigation
+			var mult: float = def.guard_crush if not is_nan(def.guard_crush) else b.block_mitigation()
 			b.add_posture(def.posture * mult * charge_mult)
 			b.set_state(&"blockstun", (def.blockstun if def.blockstun != AttackDef.UNSET else 12) + SimMath.js_round(float(own.charge_blockstun) * charge_f))
 			b.blocking = true

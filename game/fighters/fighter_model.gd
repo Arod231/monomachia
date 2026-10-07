@@ -242,7 +242,7 @@ func carry_weapons() -> void:
 ## Fixes the held weapons to the hands while an authored clip drives the
 ## arms: each at its grip in the fist, the off hand of a two-handed weapon on
 ## its OffHandGrip with IK over the clip, and the Daggers turned into the
-## reverse grip when `reverse` (see FighterRig.fix_weapons()).
+## reverse hold when `reverse` (see FighterRig.fix_weapons()).
 func fix_weapons(reverse: bool = false) -> void:
 	rig.fix_weapons(reverse)
 
