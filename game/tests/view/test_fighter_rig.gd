@@ -86,9 +86,11 @@ func test_the_rig_stacks_its_modifiers_in_order() -> void:
 	for child: Node in f.skeleton.get_children():
 		if child is SkeletonModifier3D:
 			stack.append(child.name)
-	# inertial blending first, right after the clip (milestone-1 task 23)
-	assert_eq(stack, ["InertialBlend", "BodyLayer", "RigPre", "RightArmIK", "LeftArmIK", "LegIK", "RigPost", "HandGrip", "RigCarry"])
+	# inertial blending first, right after the clip (milestone-1 task 23),
+	# then the physical reaction layer (task 70)
+	assert_eq(stack, ["InertialBlend", "PhysicalReactionLayer", "BodyLayer", "RigPre", "RightArmIK", "LeftArmIK", "LegIK", "RigPost", "HandGrip", "RigCarry"])
 	assert_eq(f.rig.inertial, f.skeleton.get_node(^"InertialBlend"))
+	assert_eq(f.rig.reaction, f.skeleton.get_node(^"PhysicalReactionLayer"))
 	assert_eq(f.rig.body, f.skeleton.get_node(^"BodyLayer"))
 
 

@@ -714,7 +714,8 @@ flowchart TD
 
     subgraph STACK["Skeleton modifiers, run by the engine"]
         direction LR
-        M0["InertialBlend<br/>the old pose fading out<br/>after a hand-off"] --> M1["BodyLayer<br/>hips, spine, head"]
+        M0["InertialBlend<br/>the old pose fading out<br/>after a hand-off"] --> MR["PhysicalReactionLayer<br/>spine, head, arms<br/>pushed by hits and blocks"]
+        MR --> M1["BodyLayer<br/>hips, spine, head"]
         M1 --> M2["RigPre<br/>seat hands on grips,<br/>foot targets"]
         M2 --> M3["Arm IK<br/>Leg IK"]
         M3 --> M4["RigPost<br/>hands, flat feet"]
@@ -731,6 +732,7 @@ flowchart TD
 | `fighter_view.gd` | `FighterView` | One side's fighter; runs the per-frame pipeline above. |
 | `fighter_rig.gd` | `FighterRig` | Builds the modifier stack; seats hands on weapons. |
 | `inertial_blend.gd` | `InertialBlend` | Inertial blending (milestone-1 task 23), the stack's first modifier: on a hand-off the new clip shows whole at once and what is left of the pose shown before (each bone's turn and move, with the speed it had) decays over the blend's frames (`StateClips.blends`, which the director asks for in `Shot.blend`) without overshooting; on the world's time, so hit-stop holds it; picture only. The director no longer crossfades clips. |
+| `physical_reaction_layer.gd` | `PhysicalReactionLayer` | The physical reaction layer (milestone-1 task 70), the stack's second modifier: `MatchView.reaction_of()` turns each hit (every part) and block (the arms and upper spine, softer) into a push from its contact point, by its weight and the attacker's weapon class, and `FighterView.react()` hands it to the layer in the skeleton's frame; each bone of the spine, head and arms is a damped spring kicked by it (summed in closed form on the world's time, so hit-stop holds the kick and the same frames give the same pose), the arms pushed less while the fighter's own swing is active; picture only. |
 | `body_layer.gd` | `BodyLayer` | Procedural pelvis, spine and head over the clip. |
 | `locomotion.gd` | `Locomotion` | The packs' directional walk, run and sprint clips blended by the rules' velocity on one shared step phase stepped per rules frame; tap steps, a backwards sprint turned away, the turn on the spot, footfalls at the clips' foot contacts (authored-animation task 29). |
 | `foot_phase.gd` | `FootPhase` | Measures each locomotion clip's way, stride, mid-stances and foot contacts once. |

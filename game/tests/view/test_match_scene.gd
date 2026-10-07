@@ -190,6 +190,56 @@ func test_contact_kicks_the_camera_by_the_weapons_weight() -> void:
 	assert_lt(view.contact_kick[&"medium"], view.contact_kick[&"colossal"], "the Greatsword the most")
 
 
+## The physical reaction layer (milestone-1 task 70): a hit pushes its
+## target from where it landed, by its weight and the attacker's weapon; a
+## block pushes the guard (arms and upper spine) less; a parry pushes
+## nobody, its deflect pair shows it.
+func test_hits_and_blocks_push_the_reaction_layer_by_weight_and_weapon() -> void:
+	host.start(_cpu())
+	var W: World = host.world
+	var at: Dictionary = {"x": 0.3, "y": 1.3, "z": 0.1}
+	var hit: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at}, W)
+	assert_eq(int(hit["side"]), 1, "the target")
+	assert_eq(hit["contact"], Vector3(0.3, 1.3, 0.1), "where it landed")
+	var a: Vector3 = Vector3(W.fighters[0].pos.x, 1.3, W.fighters[0].pos.z)
+	assert_eq(hit["from"], a, "driven from the attacker, at the contact's height")
+	assert_eq(int(hit["parts"]), PhysicalReactionLayer.HIT)
+	assert_almost_eq(float(hit["strength"]), PhysicalReactionLayer.strength(false, &"medium"), 1e-6, "the Rogue's Katana, light")
+	assert_almost_eq(float(hit["arms"]), 1.0, 1e-6, "the arms in full")
+	var heavy: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 1, "target": 0, "heavy": true, "sound": &"blade", "pos": at}, W)
+	assert_almost_eq(float(heavy["strength"]), PhysicalReactionLayer.strength(true, &"small"), 1e-6, "the Hunter's Daggers, heavy")
+	var block: Dictionary = MatchView.reaction_of({"t": &"block", "attacker": 0, "target": 1, "heavy": false, "pos": at}, W)
+	assert_eq(int(block["parts"]), PhysicalReactionLayer.BLOCK, "the guard takes it")
+	assert_almost_eq(float(block["strength"]), PhysicalReactionLayer.strength(false, &"medium", true), 1e-6)
+	for none: Dictionary in [
+		{"t": &"parry", "parrier": 1, "attacker": 0, "kind": &"parry", "pos": at},
+		{"t": &"whiff", "f": 0},
+		{"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade"},
+	]:
+		assert_true(MatchView.reaction_of(none, W).is_empty(), "no push: %s" % none)
+	host.sim_event.emit({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at})
+	assert_true(view.fighters[1].model.rig.reaction.reacting(), "the target's layer pushed")
+	assert_false(view.fighters[0].model.rig.reaction.reacting(), "not the attacker's")
+
+
+func test_a_fighter_hit_mid_swing_keeps_its_arms_on_the_swing() -> void:
+	host.start(_cpu())
+	var W: World = host.world
+	var f: Fighter = W.fighters[1]
+	var at: Dictionary = {"x": 0.0, "y": 1.3, "z": 0.0}
+	f.set_state(&"free")
+	assert_true(f.start_attack(f.moveset().light_start, -1))
+	var def: AttackDef = f.atk.def
+	f.atk.frame = def.startup + 1
+	assert_eq(f.attack_phase(), &"active")
+	var mid: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at}, W)
+	assert_almost_eq(float(mid["arms"]), MatchView.ACTIVE_SWING_ARMS, 1e-6, "the arms pushed less")
+	assert_lt(MatchView.ACTIVE_SWING_ARMS, 0.5)
+	f.atk.frame = def.startup + def.active + 1
+	var after: Dictionary = MatchView.reaction_of({"t": &"hit", "attacker": 0, "target": 1, "heavy": false, "sound": &"blade", "pos": at}, W)
+	assert_almost_eq(float(after["arms"]), 1.0, 1e-6, "in full once the swing is past its active frames")
+
+
 func test_the_hud_times_announcements_on_rules_steps() -> void:
 	host.start(_cpu())
 	assert_eq(hud.announcement_text(), "Round 1", "the intro calls the round")
