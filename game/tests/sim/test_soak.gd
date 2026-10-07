@@ -256,3 +256,50 @@ func test_a_finisher_event_counts_toward_the_share() -> void:
 	assert_true(lines.has("finishers: 2 of 8 rounds (25.0%), the share is set after the first balance run"), "%s" % [lines])
 	assert_true(lines.has("  finishers in some rounds: 2 of 8 rounds, in"), "%s" % [lines])
 	assert_true(lines.has("win rates: off until milestone 2"), "%s" % [lines])
+
+
+# ------------------------------------------------------------ the grips (KE task 9)
+
+func test_the_grips_report_each_grip_s_share_swings_hits_and_damage() -> void:
+	var t := Soak.GripTally.new()
+	for i: int in 3:
+		t.add_frame(WeaponGrip.ONE_HANDED)
+	t.add_frame(WeaponGrip.TWO_HANDED)
+	t.add_swing(WeaponGrip.ONE_HANDED)
+	t.add_swing(WeaponGrip.TWO_HANDED)
+	t.add_swing(WeaponGrip.TWO_HANDED)
+	t.add_swing(&"")
+	t.add_hit(WeaponGrip.TWO_HANDED, 7.5)
+	t.add_hit(WeaponGrip.TWO_HANDED, 6.0)
+	t.add_hit(&"", 9.0)
+	t.switches = 9
+	t.mixed = 2
+	t.rounds = 4
+	var lines: Array[String] = []
+	Soak.report_grips(func(s: String) -> void: lines.append(s), t)
+	assert_eq(lines, [
+		"grips:",
+		"  one_handed: held 75.0%, swings 1, hits 0, damage 0.0",
+		"  two_handed: held 25.0%, swings 2, hits 2, damage 13.5",
+		"  switches per round: 2.25",
+		"  mixed strings: 2",
+	] as Array[String], "bare hands' swings and hits aren't a grip's")
+
+
+func test_no_grips_held_no_grips_block() -> void:
+	var lines: Array[String] = []
+	Soak.report_grips(func(s: String) -> void: lines.append(s), Soak.GripTally.new())
+	assert_eq(lines, [] as Array[String])
+
+
+func test_the_katana_mirrors_report_the_grips() -> void:
+	# rounds over as the fight starts: only the grip every round starts in
+	# is held, with nothing swung
+	Roster.full = false
+	var soak: SoakRun = _knockout_soak(3)
+	assert_eq(soak.failures, 0)
+	assert_eq(soak.block("grips:"), [
+		"  one_handed: held 100.0%, swings 0, hits 0, damage 0.0",
+		"  switches per round: 0.00",
+		"  mixed strings: 0",
+	] as Array[String], "%s" % [soak.lines])

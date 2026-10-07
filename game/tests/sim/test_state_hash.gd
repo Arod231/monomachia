@@ -74,7 +74,8 @@ func test_changing_one_rules_field_changes_the_hash() -> void:
 		func(h: MatchHost) -> void: h.fighter(1).posture += 0.5,
 		func(h: MatchHost) -> void: h.fighter(1).input.held ^= 1,
 		func(h: MatchHost) -> void: h.fighter(1).stats.hits_landed += 1,
-		func(h: MatchHost) -> void: h.fighter(1).grip = WeaponGrip.TWO_HANDED,
+		# the other grip: the computer switches grips itself (KE task 9)
+		func(h: MatchHost) -> void: h.fighter(1).grip = WeaponGrip.ONE_HANDED if h.fighter(1).grip == WeaponGrip.TWO_HANDED else WeaponGrip.TWO_HANDED,
 		func(h: MatchHost) -> void: h.fighter(1).string_count += 1,
 		func(h: MatchHost) -> void: h.world.rng.next(),
 		func(h: MatchHost) -> void: h.world.hitstop += 1,

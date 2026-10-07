@@ -1162,6 +1162,20 @@ func _window(def: AttackDef, own: StringName, follow: StringName) -> PackedInt32
 	return def.branch_window(own if own != &"" else follow)
 
 
+## The follow-up the attack playing takes from a heavy press (`heavy`) or a
+## light one, and the frames it may start on: [move, window], [&"", []]
+## for none or no attack. The computer presses for it as a player would
+## (KE task 9), so its strings follow the grip held.
+func follow_up(heavy: bool) -> Array:
+	if state != &"attack" or atk == null:
+		return [&"", PackedInt32Array()]
+	var def: AttackDef = atk.def
+	var follow: StringName = _heavy_follow_up(def) if heavy else _light_follow_up(def)[0]
+	if follow == &"":
+		return [&"", PackedInt32Array()]
+	return [follow, _window(def, def.chain_heavy if heavy else def.chain_light, follow)]
+
+
 ## As a chargeable heavy is drawn, the stick held sideways (as Moonsplitter
 ## picks its wave) swaps its release variant in on the same attack state, so
 ## the frames, lunge and charge carry on: the horizontal Iai. Otherwise the

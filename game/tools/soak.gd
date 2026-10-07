@@ -44,6 +44,11 @@ extends SceneTree
 ##   wins/losses line, printed only with the win rates.
 ## - The ability draw has its own generator, so the weapons and the
 ##   difficulties keep the seeds they had before milestone 1.
+## - The grips (KE task 9): for a weapon with grips the run reports, by
+##   grip, the share of fight time held, the swings, the hits and their
+##   damage (each attack counted in the grip it started in), then the
+##   switches per round and the mixed strings (a string's next hit started
+##   in the other grip), after the targets block.
 
 ## 12 minutes of game time
 const LIMIT: int = 60 * 60 * 12
@@ -117,6 +122,7 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 	var appears: Dictionary[StringName, int] = {}
 	for item: Array in APPEAR:
 		appears[item[0]] = 0
+	var grips: GripTally = GripTally.new()
 	var failures: int = 0
 	var catcher: ErrorCatcher = ErrorCatcher.new()
 	OS.add_logger(catcher)
@@ -137,6 +143,11 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 		var round_start: int = 0
 		var error: String = "" # the TS throw
 		var recalling: Array[bool] = [false, false]
+		# each fighter's attack last seen, the grip it started in (&"" for
+		# one without grips), and its string hit, for the grips' tally
+		var last_atk: Array[AttackState] = [null, null]
+		var atk_grip: Array[StringName] = [&"", &""]
+		var string_hit: Array[int] = [0, 0]
 		catcher.first = "" # try {
 		while M.phase != &"matchEnd" and frames < limit:
 			if not before_step.is_null():
@@ -146,6 +157,17 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 				error = catcher.first
 				break
 			frames += 1
+			for i: int in W.fighters.size():
+				var f: Fighter = W.fighters[i]
+				var g: StringName = f.grip if f.held_grip() != null else &""
+				if M.phase == &"fight" and g != &"":
+					grips.add_frame(g)
+				if f.state == &"attack" and f.atk != null and f.atk != last_atk[i]:
+					last_atk[i] = f.atk
+					if g != &"" and f.string_count > 1 and f.string_count == string_hit[i] + 1 and g != atk_grip[i]:
+						grips.mixed += 1
+					atk_grip[i] = g
+					string_hit[i] = f.string_count
 			for e: Dictionary in W.drain_events():
 				match e["t"]:
 					&"fight":
@@ -166,8 +188,12 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 					&"swing":
 						if e["attack"] == &"f_breaker":
 							appears[&"breaker"] += 1
+						grips.add_swing(atk_grip[int(e["f"])])
 					&"hit":
 						_add(totals, "hits")
+						grips.add_hit(atk_grip[int(e["attacker"])], float(e["damage"]))
+					&"grip":
+						grips.switches += 1
 					&"block":
 						_add(totals, "blocks")
 					&"disarm":
@@ -267,6 +293,8 @@ static func run(N: float, out: Callable, limit: int = LIMIT, before_step: Callab
 	t.appears = appears
 	t.records = records
 	report_balance(out, t)
+	grips.rounds = total_rounds
+	report_grips(out, grips)
 	return failures
 
 
@@ -294,6 +322,62 @@ class Tally:
 	var appears: Dictionary[StringName, int] = {}
 	## weapon id -> (wins, matches) against another weapon.
 	var records: Dictionary[String, Vector2i] = {}
+
+
+## What report_grips reports (KE task 9): by grip id, in the order first
+## held, the fight frames held, the swings, the hits and their damage; the
+## switches and the mixed strings.
+class GripTally:
+	var frames: Dictionary[StringName, int] = {}
+	var swings: Dictionary[StringName, int] = {}
+	var hits: Dictionary[StringName, int] = {}
+	var damage: Dictionary[StringName, float] = {}
+	var switches: int = 0
+	var mixed: int = 0
+	var rounds: int = 0
+
+	func add_frame(grip: StringName) -> void:
+		_open(grip)
+		frames[grip] += 1
+
+	## A swing of an attack started in grip (&"": none, not counted).
+	func add_swing(grip: StringName) -> void:
+		if grip != &"":
+			_open(grip)
+			swings[grip] += 1
+
+	## A hit of an attack started in grip (&"": none, not counted).
+	func add_hit(grip: StringName, dealt: float) -> void:
+		if grip != &"":
+			_open(grip)
+			hits[grip] += 1
+			damage[grip] += dealt
+
+	func _open(grip: StringName) -> void:
+		if not frames.has(grip):
+			frames[grip] = 0
+			swings[grip] = 0
+			hits[grip] = 0
+			damage[grip] = 0.0
+
+
+## The grips' lines (KE task 9), none when no fighter held a grip: each
+## grip's share of the fight time held, its swings, its hits and their
+## damage; the switches per round; the mixed strings.
+static func report_grips(out: Callable, t: GripTally) -> void:
+	if t.frames.is_empty():
+		return
+	var held: int = 0
+	for g: StringName in t.frames:
+		held += t.frames[g]
+	out.call("grips:")
+	for g: StringName in t.frames:
+		var share: float = 0.0 if held == 0 else 100.0 * float(t.frames[g]) / float(held)
+		out.call("  %s: held %s%%, swings %d, hits %d, damage %s" % [
+			g, JsFormat.to_fixed(share, 1), t.swings[g], t.hits[g], JsFormat.to_fixed(t.damage[g], 1),
+		])
+	out.call("  switches per round: " + JsFormat.to_fixed(float(t.switches) / float(maxi(1, t.rounds)), 2))
+	out.call("  mixed strings: %d" % t.mixed)
 
 
 ## The balance lines after the ported report: each weapon's win rate against
