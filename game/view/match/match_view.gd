@@ -119,6 +119,13 @@ var swing_debug_view: SwingDebugView
 var effects: CombatEffects
 ## The recall's power-up aura and burst (task 30b), drawn with the effects.
 var recall_aura: RecallAura = RecallAura.new()
+## Moonsplitter's waves on screen (MoonWave, milestone-1 task 100).
+var moon_waves: MoonWave
+## The disarmed choice's haze and petals and Breaker Palm's blow (task 100).
+var ult_effects: UltEffects = UltEffects.new()
+## The ultimate-ready aura's embers (task 100; its rim and haze are each
+## FighterView's).
+var ult_aura: UltAura = UltAura.new()
 ## Blood (milestone-1 task 38): bursts, stains on bodies and blades, the
 ## floor's splatter, at the settings' Blood level.
 var blood: BloodEffects
@@ -156,6 +163,9 @@ func _ready() -> void:
 		effects = CombatEffects.new()
 		add_child(effects)
 		effects.host = host
+	if moon_waves == null:
+		moon_waves = MoonWave.new()
+		add_child(moon_waves)
 	if blood == null:
 		blood = BloodEffects.new()
 		add_child(blood)
@@ -207,6 +217,9 @@ func apply_reduce_flashes() -> void:
 		cam.push_in_scale = 0.0 if on else 1.0
 	effects.flash_scale = REDUCED_FLASH if on else 1.0
 	effects.light_scale = CombatEffects.REDUCED_LIGHT if on else 1.0
+	effects.flash_slow = CombatEffects.REDUCED_SLOW if on else 1.0
+	if moon_waves != null:
+		moon_waves.light_scale = CombatEffects.REDUCED_LIGHT if on else 1.0
 	body_flash_scale = REDUCED_FLASH if on else 1.0
 
 
@@ -295,11 +308,18 @@ func _feed_smears() -> void:
 			effects.feed_smear(i, hand, t, span[0], span[1], rules.intensity(hand), rules.kind)
 
 
-## Throws each recalling fighter's power-up aura (RecallAura, task 30b) for
-## the rules frames stepped since the last drawn frame.
+## Throws each recalling fighter's power-up aura (RecallAura, task 30b), each
+## choosing fighter's haze and petals and each ready fighter's embers
+## (UltEffects, UltAura; milestone-1 task 100) for the rules frames stepped
+## since the last drawn frame, and shows Moonsplitter's waves where the rules
+## put them, shedding their mist and petals (MoonWave).
 func _feed_auras() -> void:
 	for i: int in fighters.size():
 		recall_aura.feed(effects, i, host.fighter(i))
+		ult_effects.feed(effects, i, host.fighter(i))
+		ult_aura.feed(effects, i, host.fighter(i), fighters[i].side_color())
+	moon_waves.sync(host.world, host.alpha())
+	moon_waves.shed(effects, host.world)
 
 
 ## True when side `side`'s footsteps fall where its clips land its feet
@@ -555,6 +575,7 @@ static func reaction_of(e: Dictionary, W: World) -> Dictionary:
 
 
 func _on_sim_event(e: Dictionary) -> void:
+	UltEffects.on_event(effects, e, host.world.frame)
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
 	blood.on_event(e, effects.clock())
@@ -622,6 +643,9 @@ func _on_sim_event(e: Dictionary) -> void:
 			_clear_dropped()
 			effects.clear()
 			recall_aura.clear()
+			ult_effects.clear()
+			ult_aura.clear()
+			moon_waves.clear()
 
 
 # ------------------------------------------------------------------ dropped weapons
