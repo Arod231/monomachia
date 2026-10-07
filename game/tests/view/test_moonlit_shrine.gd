@@ -5,7 +5,8 @@ extends GutTest
 ## layout puts it; the backdrop inside the far clip, cheap, dipping under the
 ## moon to show the lake, and trimmed per preset; the markers the match
 ## reads, a floor at y = 0 under the spawns, a parapet, gate ropes and props
-## outside the walkable circle with only flat pebbles inside it, the torii on
+## outside the walkable circle with only flat pebbles inside it (and the
+## wisteria's canopies high over it), the torii on
 ## the gate landings, the lanterns' lights, halos and flicker, bought art in
 ## place of a procedural prop, the ledge under the props, the rock under the
 ## rim left out per camera by the cameras above the courtyard, the floating
@@ -280,6 +281,14 @@ func test_nothing_but_flat_pebbles_is_built_inside_the_walkable_circle() -> void
 	for node: Node in meshes:
 		if node.name in [&"Floor", &"Pebbles"]:
 			continue
+		if platform.get_node("Wisteria").is_ancestor_of(node):
+			# the wisteria's canopies hang over the arena, high over the fight
+			# (test_shrine_wisteria.gd holds them out of the cameras' room)
+			for w: Vector3 in _world_vertices(node as MeshInstance3D):
+				if Vector2(w.x, w.z).length() < arena.def.walkable_radius and w.y < ShrineWisteria.CANOPY_FLOOR:
+					fail_test("%s reaches into the walkable circle at %s" % [node.name, w])
+					break
+			continue
 		assert_gte(_min_radius(node as MeshInstance3D), arena.def.walkable_radius - 0.001, "%s stays outside the walkable circle" % node.name)
 	var pebbles := platform.get_node("Props/Pebbles") as MeshInstance3D
 	assert_lt(pebbles.get_aabb().end.y, 0.12, "pebbles are flat enough to walk over")
@@ -415,19 +424,17 @@ func test_a_scene_in_prop_scenes_replaces_the_procedural_lantern_at_the_same_spo
 	assert_null(shrine.get_node_or_null("Platform/Props/Glow"), "no procedural lantern's lit paper")
 	assert_eq(_lantern_lights(shrine).size(), layout.lantern_angles.size(), "the bought lanterns still light")
 	assert_eq(_lantern_embers(shrine).size(), layout.lantern_angles.size(), "and give off embers")
-	for kit_name: String in ["Bark", "Pine", "StoneDark"]:
-		assert_eq(_props_aabb(shrine, kit_name), _props_aabb(arena, kit_name), "%s as it was without the bought lanterns" % kit_name)
+	assert_eq(_props_aabb(shrine, "StoneDark"), _props_aabb(arena, "StoneDark"), "the pillars as they were without the bought lanterns")
+	assert_eq(shrine.get_node("Platform/Wisteria").find_children("Wisteria*", "Node3D", false, false).size(),
+		layout.trees.size(), "and the wisteria")
 
 
 func test_every_prop_kind_can_be_swapped_for_bought_art() -> void:
 	var shrine: MoonlitShrine = _shrine_with_art(ShrineLayout.PROP_KINDS)
 	var layout: ShrineLayout = shrine.layout
-	var pines: int = 0
-	for t: Vector4 in layout.trees:
-		pines += 1 if t.w < 0.5 else 0
 	var expected: Dictionary[String, int] = {
 		"Lantern": layout.lantern_angles.size(), "Torii": 2, "Pillar": layout.pillars.size(),
-		"Pine": pines, "DeadTree": layout.trees.size() - pines,
+		"Wisteria": layout.trees.size(),
 		"Pagoda": 0, "TempleHall": 0,
 	}
 	for c: Vector4 in layout.cliffs:
@@ -447,7 +454,9 @@ func test_every_prop_kind_can_be_swapped_for_bought_art() -> void:
 			if child.name.begins_with(kind) and child.name.trim_prefix(kind).is_valid_int():
 				placed += 1
 		assert_eq(placed, expected[kind], "bought %s in every spot" % kind)
-	for kit_name: String in ["Stone", "Lacquer", "BlackLacquer", "Bark", "Pine", "Glow"]:
+	assert_eq(shrine.get_node("Platform/Wisteria").find_children("Wisteria*", "Node3D", false, false).size(), 0,
+		"no procedural wisteria left")
+	for kit_name: String in ["Stone", "Lacquer", "BlackLacquer", "Glow"]:
 		assert_null(props.get_node_or_null(kit_name), "no procedural %s left" % kit_name)
 	for kit_name: String in ["Wood", "Roof", "Window", "StoneDark"]:
 		assert_null(cliffs.get_node_or_null(kit_name), "no procedural %s left on the cliffs" % kit_name)

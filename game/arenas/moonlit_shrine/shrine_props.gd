@@ -3,7 +3,8 @@ extends RefCounted
 ## Procedural shrine props, each added to a MeshKitSet at a transform so many
 ## props share one mesh per material. Each prop function builds one kind that
 ## ShrineLayout.prop_scenes can replace with bought art (lantern, torii,
-## pillar, pine, dead_tree, pagoda, temple_hall); the sacred rope is part of
+## pillar, pagoda, temple_hall; the wisteria are ShrineWisteria's); the
+## sacred rope is part of
 ## the gates.
 
 const LANTERN_GLOW: Shader = preload("res://shaders/lantern_glow.gdshader")
@@ -30,8 +31,6 @@ static func materials() -> Dictionary[StringName, Material]:
 		&"black_lacquer": LookMaterials.prop(LookPalette.INK_SOFT),
 		&"rope": LookMaterials.prop(LookPalette.ROPE),
 		&"paper": LookMaterials.prop(LookPalette.PAPER),
-		&"bark": LookMaterials.prop(LookPalette.WOOD_DARK),
-		&"pine": LookMaterials.prop(LookPalette.PINE),
 		&"wood": LookMaterials.prop(LookPalette.WOOD_DARK.lightened(0.05)),
 		&"roof": LookMaterials.prop(LookPalette.INK_SOFT.lightened(0.04)),
 		&"glow": glow,
@@ -171,69 +170,6 @@ static func pillar(kits: MeshKitSet, xform: Transform3D, height: float, broken: 
 	var lie := Basis(Vector3.UP, rng.randf_range(0, TAU)) * Basis(Vector3.FORWARD, PI * 0.5)
 	stone.cylinder(xform * Transform3D(lie, Vector3(cos(fall_angle) * dist, 0.38, sin(fall_angle) * dist) + lie * Vector3(0, -0.6, 0)),
 		0.4, 0.4, rng.randf_range(0.8, 1.3), 14)
-
-
-## A Japanese black pine: a twisted trunk leaning toward local +x, and flat
-## cloud pads of needles.
-static func pine(kits: MeshKitSet, xform: Transform3D, scale: float, rng: RandomNumberGenerator) -> void:
-	var bark: MeshKit = kits.kit(&"bark")
-	var needles: MeshKit = kits.kit(&"pine")
-	var trunk := PackedVector3Array()
-	var radii := PackedFloat32Array()
-	var steps: int = 8
-	var height: float = 5.0 * scale
-	for k: int in steps + 1:
-		var t: float = float(k) / steps
-		var lean: float = 1.6 * scale * t * t
-		trunk.append(Vector3(lean + sin(t * 5.0 + rng.randf()) * 0.25 * scale, t * height, cos(t * 4.0) * 0.3 * scale))
-		radii.append(lerpf(0.26, 0.07, t) * scale)
-	bark.tube(_transform_points(xform, trunk), radii, 8)
-	var noise := FastNoiseLite.new()
-	noise.seed = rng.randi()
-	noise.frequency = 1.4
-	var pads: Array[Vector3] = [trunk[steps] + Vector3(0, 0.2 * scale, 0)]
-	for k: int in range(3, steps):
-		var base: Vector3 = trunk[k]
-		var a: float = rng.randf_range(0, TAU)
-		var length: float = rng.randf_range(1.0, 2.1) * scale * (1.2 - float(k) / steps)
-		var tip: Vector3 = base + Vector3(cos(a) * length, rng.randf_range(-0.2, 0.4) * scale, sin(a) * length)
-		var mid: Vector3 = base.lerp(tip, 0.5) + Vector3(0, 0.15 * scale, 0)
-		bark.tube(_transform_points(xform, PackedVector3Array([base, mid, tip])),
-			PackedFloat32Array([radii[k] * 0.55, radii[k] * 0.4, radii[k] * 0.25]), 6)
-		pads.append(tip)
-	for p: Vector3 in pads:
-		var size: float = rng.randf_range(0.75, 1.15) * scale
-		for j: int in 3:
-			var off := Vector3(rng.randf_range(-0.5, 0.5), rng.randf_range(-0.05, 0.15), rng.randf_range(-0.5, 0.5)) * size
-			needles.color = Color(1, 1, 1).darkened(rng.randf_range(0.0, 0.25))
-			var b := Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(Vector3(1.25, 0.36, 1.0) * size * (1.0 - j * 0.2))
-			needles.sphere(xform * Transform3D(b, p + off), 1.0, 12, 6, noise, 0.18)
-
-
-## A dead tree: a gnarled trunk splitting into bare branches.
-static func dead_tree(kits: MeshKitSet, xform: Transform3D, scale: float, rng: RandomNumberGenerator) -> void:
-	_branch(kits.kit(&"bark"), xform, Vector3.ZERO, Vector3(0.15, 1.0, 0.05).normalized(), 2.6 * scale, 0.22 * scale, 4, rng)
-
-
-## One bent branch from start along dir, then 2 or 3 thinner ones from its
-## end, depth more times.
-static func _branch(kit: MeshKit, xform: Transform3D, start: Vector3, dir: Vector3, length: float, radius: float,
-		depth: int, rng: RandomNumberGenerator) -> void:
-	var bend := Vector3(rng.randf_range(-0.3, 0.3), rng.randf_range(-0.1, 0.2), rng.randf_range(-0.3, 0.3))
-	var mid: Vector3 = start + (dir + bend * 0.5).normalized() * length * 0.5
-	var end: Vector3 = mid + (dir + bend).normalized() * length * 0.5
-	kit.tube(_transform_points(xform, PackedVector3Array([start, mid, end])),
-		PackedFloat32Array([radius, radius * 0.8, radius * 0.6]), 6 if depth > 1 else 4)
-	if depth <= 0:
-		return
-	var children: int = 2 if rng.randf() < 0.6 else 3
-	var out_dir: Vector3 = (end - mid).normalized()
-	for i: int in children:
-		var axis := Vector3(rng.randf_range(-1, 1), 0, rng.randf_range(-1, 1)).normalized()
-		if axis == Vector3.ZERO:
-			axis = Vector3.RIGHT
-		var child_dir: Vector3 = out_dir.rotated(axis, rng.randf_range(0.35, 0.85))
-		_branch(kit, xform, end, child_dir, length * rng.randf_range(0.55, 0.75), radius * 0.6, depth - 1, rng)
 
 
 ## A pagoda of tiers storeys on xform, about width wide at the base, with

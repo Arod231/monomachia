@@ -51,7 +51,7 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> Node3D:
 	_pebbles(kits, layout, def)
 	_lanterns(kits, root, props, layout)
 	_pillars(kits, props, layout)
-	_trees(kits, props, layout)
+	root.add_child(ShrineWisteria.build(layout, props))
 	_debris(kits, layout, def)
 	kits.finish(props, mats, NO_SHADOW)
 	return root
@@ -339,20 +339,3 @@ static func _pillars(kits: MeshKitSet, props: Node3D, layout: ShrineLayout) -> v
 		var xform := Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)), ShrineLayout.polar(p.x, p.y, LEDGE_Y))
 		if not layout.place_art(props, &"pillar", i, xform):
 			ShrineProps.pillar(kits, xform, p.z, p.w > 0.5, rng)
-
-
-## The pines and dead trees on the ledge, leaning outward (their local +x).
-static func _trees(kits: MeshKitSet, props: Node3D, layout: ShrineLayout) -> void:
-	var pine_rng: RandomNumberGenerator = layout.random_stream(&"pine")
-	var dead_rng: RandomNumberGenerator = layout.random_stream(&"dead_tree")
-	for i: int in layout.trees.size():
-		var t: Vector4 = layout.trees[i]
-		var xform := Transform3D(Basis(Vector3.UP, deg_to_rad(t.x - 90.0)), ShrineLayout.polar(t.x, t.y, LEDGE_Y))
-		var kind: StringName = &"pine" if t.w < 0.5 else &"dead_tree"
-		if layout.place_art(props, kind, i, xform):
-			continue
-		if kind == &"pine":
-			ShrineProps.pine(kits, xform, t.z, pine_rng)
-		else:
-			ShrineProps.dead_tree(kits, xform, t.z, dead_rng)
-

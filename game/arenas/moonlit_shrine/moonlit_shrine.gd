@@ -20,7 +20,8 @@ extends Node3D
 ## side) and Gate0, Gate1 (the gate anchors); and Platform/GateRope0 and
 ## GateRope1 (each gate's rope barrier, for the match intro to drop).
 ##
-## Its builders: ShrinePlatform (the courtyard and its props), ShrineUnderside
+## Its builders: ShrinePlatform (the courtyard and its props, the wisteria
+## among them: ShrineWisteria), ShrineUnderside
 ## (the rock under it and the floating rocks), ShrineBackdrop (the world round
 ## it) and ShrineParticles (the embers and ash on the wind).
 
@@ -41,6 +42,7 @@ const DUST_AMOUNT: int = 700
 
 var _lantern_lights: Array[OmniLight3D] = []
 var _floating_rocks: Node3D
+var _wisteria: Node3D
 var _time: float = 0.0
 
 
@@ -54,6 +56,8 @@ func _process(delta: float) -> void:
 	for i: int in _lantern_lights.size():
 		_lantern_lights[i].light_energy = ShrinePlatform.LANTERN_ENERGY * _flicker(_time, i)
 	ShrineUnderside.bob_rocks(_floating_rocks, layout, _time)
+	if _wisteria != null:
+		ShrineWisteria.drift_petal_lights(_wisteria, _time, layout.wind)
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera != null:
 		cull_below_deck(camera)
@@ -105,6 +109,7 @@ func _build() -> void:
 		_lantern_lights.append(light as OmniLight3D)
 	add_child(ShrineUnderside.build(layout, def))
 	_floating_rocks = get_node(^"Underside/FloatingRocks")
+	_wisteria = get_node_or_null(^"Platform/Wisteria") as Node3D
 	add_child(ShrineBackdrop.build(layout, base.fog_light_color))
 	add_child(ShrineParticles.build(layout, ShrinePlatform.fire_points(layout)))
 	add_child(_ground_mist())

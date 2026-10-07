@@ -15,7 +15,7 @@ extends Resource
 ## same spots instead of building the procedural one.
 
 ## The prop kinds that bought art can replace.
-const PROP_KINDS: Array[StringName] = [&"lantern", &"torii", &"pillar", &"pine", &"dead_tree", &"floating_rock",
+const PROP_KINDS: Array[StringName] = [&"lantern", &"torii", &"pillar", &"wisteria", &"floating_rock",
 	&"pagoda", &"temple_hall"]
 
 ## Seed for every random choice in the builders; each kind of piece draws
@@ -57,10 +57,12 @@ const PROP_KINDS: Array[StringName] = [&"lantern", &"torii", &"pillar", &"pine",
 	Vector4(216, 18.9, 5.2, 0), Vector4(268, 19.4, 3.1, 1), Vector4(321, 18.7, 5.8, 0),
 	Vector4(39, 19.1, 2.6, 1), Vector4(90, 18.8, 5.4, 0), Vector4(146, 19.3, 3.4, 1),
 ])
-## Trees: (angle, radius, scale, kind 0 = pine, 1 = dead tree).
+## The wisteria (milestone-1 task 48, ShrineWisteria): (angle, radius,
+## scale, variant 0..4), one of each of the five trees, between the ledge's
+## lanterns, pillars and gates, where their canopies keep the moon clear.
 @export var trees: PackedVector4Array = PackedVector4Array([
-	Vector4(224, 20.4, 1.15, 0), Vector4(49, 20.2, 1.25, 0), Vector4(332, 20.0, 1.1, 1),
-	Vector4(123, 19.9, 1.2, 1), Vector4(278, 20.6, 0.8, 1),
+	Vector4(332, 20.6, 1.0, 0), Vector4(75, 20.4, 1.0, 1), Vector4(132, 20.2, 1.0, 2),
+	Vector4(229, 20.5, 1.0, 3), Vector4(283, 20.8, 1.0, 4),
 ])
 ## Loose rocks scattered on the ledge, clear of the gates.
 @export var debris_count: int = 48

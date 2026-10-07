@@ -265,7 +265,8 @@ static func _floating_rocks(layout: ShrineLayout, rock: Material) -> Node3D:
 
 
 ## Floating rock index: a small crag with its flat top at y = 0, carrying a
-## lantern and a dead tree, a pine or a broken pillar, or nothing, in turn.
+## lantern and a young wisteria, a young wisteria or a broken pillar, or
+## nothing, in turn (milestone-1 task 48).
 static func _floating_rock(layout: ShrineLayout, index: int, rock: Material,
 		props: Dictionary[StringName, Material], rng: RandomNumberGenerator) -> Node3D:
 	var size: float = layout.floating_rocks[index].w
@@ -288,9 +289,14 @@ static func _floating_rock(layout: ShrineLayout, index: int, rock: Material,
 	match index % 4:
 		0:
 			ShrineProps.lantern(kits, Transform3D(Basis(), Vector3(size * 0.2, 0, -size * 0.1)), rng)
-			ShrineProps.dead_tree(kits, Transform3D(Basis(), Vector3(-size * 0.35, 0, size * 0.2)), 0.6, rng)
+			var small: Node3D = ShrineWisteria.young(index, size * 0.02)
+			small.position = Vector3(-size * 0.35, 0, size * 0.2)
+			node.add_child(small)
 		1:
-			ShrineProps.pine(kits, Transform3D.IDENTITY, size * 0.35, rng)
+			# where a pine stood
+			var tree: Node3D = ShrineWisteria.young(index, size * 0.03)
+			tree.rotation.y = rng.randf() * TAU
+			node.add_child(tree)
 		2:
 			ShrineProps.pillar(kits, Transform3D(Basis(), Vector3(size * 0.2, 0, 0)), 3.0, true, rng)
 	kits.finish(node, props, ShrinePlatform.NO_SHADOW)

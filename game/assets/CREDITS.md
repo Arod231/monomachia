@@ -8,6 +8,7 @@ The per-file record of where everything in `game/assets` comes from. The short c
 | `weapons/` | the Greatsword and Dagger models by Quaternius (CC0) | the tables below |
 | `audio/` | sound effects cut from the Sonniss bundle, and generated sounds and music | `audio/SOURCES.md` |
 | `kevin_iglesias/` | the list of licensed Kevin Iglesias clips the game uses and their bone map; the clips themselves are converted on the developer's PC into the gitignored `library/` and never committed | `kevin_iglesias/clip_manifest.json`, and "Not in the repo" below |
+| `exports/` | models exported from Blender sources in the asset repository (`npm run export`): Monomachia's own, and CC0 scans | "Exported from Blender" below |
 | `authored/` | the hand-keyed animations (`keys/*.json` and the library built from them), Monomachia's own | the project's licence |
 
 The art in `game/assets` comes from free packs by Quaternius. Every pack is under the **CC0 1.0 Universal** public domain dedication (https://creativecommons.org/publicdomain/zero/1.0/): free for any use, commercial included, with no credit required. We credit Quaternius anyway.
@@ -50,3 +51,13 @@ These packs live in `kevin_iglesias/` of the private asset repository, which the
 | Human Dance Animations | 2.1 | as above | as above |
 
 All four are FBX clips (plus Blender files) made for Kevin Iglesias's own HumanF and HumanM rigs, not the Quaternius skeleton; the import tool retargets them through `kevin_iglesias/iglesias_bone_map.tres`.
+
+## Exported from Blender
+
+`npm run export` copies these from the asset repository's `exports/` (each made from a source listed in its `blender/sources.json`).
+
+| Files | Pack | Source | Licence |
+|---|---|---|---|
+| `exports/shrine/wisteria_bark.glb` (its colour, normal and roughness maps) | Bark Willow (2K colour, 1K normal and roughness maps), by Poly Haven | https://polyhaven.com/a/bark_willow | CC0 1.0 |
+
+The Moonlit Shrine's five wisteria (`exports/shrine/wisteria_0.glb` to `wisteria_4.glb`, with their blossom texture) are original to this project, grown by script in Blender (milestone-1 task 48).
