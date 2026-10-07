@@ -1,6 +1,6 @@
 # Spec: an Elden Ring Katana, with grips, a 1.3 m blade and taller fighters
 
-Oct 6, 2026 · status: draft, waiting for the owner's OK (with the defaults D1–D17 below)
+Oct 6, 2026 · status: approved by the owner on Oct 6, 2026, with the defaults D1–D17 as written; the plan is `docs/plans/katana-elden-ring.md`
 
 Read with: [ADR 0002](../adr/0002-elden-ring-motion-and-scale.md) (and [ADR 0001](../adr/0001-animation-leads-realistic-look.md), which it amends), `docs/design.md` (every "(Oct 6)" line), `docs/specs/milestone-1.md` (this spec changes it inside milestone 1; the stories it supersedes are listed under "Changes to milestone 1") and its plan `docs/plans/milestone-1.md`.
 
@@ -151,9 +151,9 @@ The look (the exaggeration, the poses, the held frames) is judged as milestone 1
 
 This spec changes `docs/specs/milestone-1.md` and its plan inside the milestone:
 
-- **Superseded stories:** 51–53 (the four-light pilot and "every cut two-handed": the pilot family becomes the two five-hit strings), 54–55 (the Iai and its follow-ups: same controls, Elden Ring's draws, Rising Heaven moved to the two-handed pair), 145 (bodies "not remodelled": re-proportioned), 146 and P44 (the 0.72 m blade: 1.3 m), 38 and P27 (the duelling distances: re-measured).
-- **Plan tasks redone or replaced:** 31 and 32 (the four lights, done) are redone as the two strings; 33 (guard idle and bridges), 34 (deflect pairs measured from 2.5 m) and 35 (light reactions) are redone at the new distance and for both grips; 45 (no remodel) becomes the re-proportioning; 47 (Katana model at 0.72 m) takes the 1.3 m blade; 63 and 64 (Iai and heavy re-keys) are replaced by this spec's moves; 66 (the computer and the Iai) and 127 (the owner's Cascadeur pass) widen to the grips.
-- The plan for this spec (`docs/plans/katana-elden-ring.md`) carries these as tasks and marks the milestone-1 tasks it replaces.
+- **Superseded stories:** 51–53 (the four-light pilot and "every cut two-handed": the pilot is still reviewed on today's four lights, which also freezes the protected timings, and then the two five-hit strings replace them with their own review), 54–55 (the Iai and its follow-ups: same controls, Elden Ring's draws, Rising Heaven moved to the two-handed pair), 145 (bodies "not remodelled": re-proportioned), 146 and P44 (the 0.72 m blade: 1.3 m), 38 and P27 (the duelling distances: re-measured).
+- **Plan tasks redone or replaced:** 31 and 32 (the four lights, done) are redone as the two strings after the pilot's review (41); 33 (guard idle and bridges), 34 (deflect pairs measured from 2.5 m) and 35 (light reactions) are redone at the new distance and for both grips; 45 (no remodel) becomes the re-proportioning; 47 (Katana model at 0.72 m) takes the 1.3 m blade; 63 and 64 (Iai and heavy re-keys) are replaced by this spec's moves; 65 (heavy reactions) gives its deflect pairs to this plan; 66 (the computer and the Iai) and 127 (the owner's Cascadeur pass) are re-pointed to this plan's Iai and heavies; 120 (the first balance run) waits on this plan's review.
+- The plan for this spec (`docs/plans/katana-elden-ring.md`) carries these as tasks and marks the milestone-1 tasks it replaces. The body re-proportioning doesn't wait on milestone 1's Godot check (the owner's word, Oct 6).
 
 ## Defaults to confirm
 
