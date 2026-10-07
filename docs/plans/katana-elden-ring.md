@@ -28,7 +28,7 @@ The Katana plays as Elden Ring's Uchigatana inside milestone 1's realistic look:
 
 ## Progress
 
-- Oct 6, 2026: drafted with the spec (pull request #89); awaiting the owner's approval of the plan.
+- Oct 6, 2026: drafted with the spec (pull request #89); the owner approved the spec and this plan (task 1) and the pull request merged. Task 5 can start; tasks 2 and on wait on milestone-1 task 41 as their blockers say.
 
 ## Build order
 
@@ -42,11 +42,12 @@ The Katana plays as Elden Ring's Uchigatana inside milestone 1's realistic look:
 
 ## Tasks
 
-- [ ] **1. The owner's approval of the spec and this plan.** The spec, its defaults D1–D17 and this plan approved.
+- [x] **1. The owner's approval of the spec and this plan.** The spec, its defaults D1–D17 and this plan approved.
   - Delivers: the spec's status line and this plan's Progress recording the approval.
   - Check: both files say so on `master`.
   - Blocked by: none · Stories: all
   - **Owner:** approves the spec (given Oct 6) and this plan.
+  - Done Oct 6, 2026, approved by the owner: the spec with D1–D17 and this plan, merged into `master` with pull request #89.
 - [ ] **2. The 1.3 m blade and the spacing measured from it.** The Katana's blade is 1.3 m, and the duel is spaced for it.
   - Delivers: the code-built Katana (`build_katana`) and its strike segment, blade markers and off-hand marker at a 1.3 m blade; the swings' reach re-derived; the duelling distance, the computer's preferred distance, the round-start positions and the distance band table re-measured from the new reach (D1, about 3.2 m and ±4.0 m); the gameplay camera's distance re-framed for the wider spacing (D11, the distance half); the blade-length test and the distance-band tests updated; the deflect pairs' contacts measured from the new distance.
   - Check: the distance-band, duel-reach and blade-length tests; PoseCheck's blade clearance at the new distance on every Katana move; shots of the duel at rest and at a light's contact beside the blade-length prototype; a clean soak.
