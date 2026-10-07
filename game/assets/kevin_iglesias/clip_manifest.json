@@ -17,7 +17,7 @@
 				"contact_end": 9,
 				"settle": 11
 			},
-			"foot_contacts": {"left": [[0, 33]], "right": [[0, 7], [24, 33]]},
+			"foot_contacts": {"left": [[0, 33]], "right": [[0, 7], [25, 33]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -36,7 +36,7 @@
 				"contact_end": 10,
 				"settle": 22
 			},
-			"foot_contacts": {"left": [[0, 33]], "right": [[0, 7], [24, 33]]},
+			"foot_contacts": {"left": [[0, 33]], "right": [[0, 7], [25, 33]]},
 			"provisional": false,
 			"groups": [
 				"katana",
@@ -92,7 +92,7 @@
 				"contact_end": 14,
 				"settle": 40
 			},
-			"foot_contacts": {"left": [[0, 42]], "right": [[0, 3], [28, 42]]},
+			"foot_contacts": {"left": [[0, 42]], "right": [[0, 2], [29, 42]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -148,7 +148,7 @@
 				"contact_end": 12,
 				"settle": 26
 			},
-			"foot_contacts": {"left": [[0, 1], [8, 39]], "right": [[0, 4], [12, 22], [28, 39]]},
+			"foot_contacts": {"left": [[0, 1], [8, 39]], "right": [[0, 3], [12, 21], [28, 39]]},
 			"provisional": false,
 			"groups": [
 				"katana",
@@ -167,7 +167,7 @@
 				"contact_end": 14,
 				"settle": 17
 			},
-			"foot_contacts": {"left": [[0, 35]], "right": [[0, 35]]},
+			"foot_contacts": {"left": [[0, 35]], "right": [[0, 11], [17, 35]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -204,7 +204,7 @@
 				"contact_end": 10,
 				"settle": 33
 			},
-			"foot_contacts": {"left": [[0, 35]], "right": [[0, 5], [23, 35]]},
+			"foot_contacts": {"left": [[0, 35]], "right": [[0, 5], [24, 35]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -242,7 +242,7 @@
 				"contact_end": 19,
 				"settle": 46
 			},
-			"foot_contacts": {"left": [[0, 48]], "right": [[0, 48]]},
+			"foot_contacts": {"left": [[0, 48]], "right": [[0, 19], [29, 48]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -261,7 +261,7 @@
 				"contact_end": 19,
 				"settle": 46
 			},
-			"foot_contacts": {"left": [[0, 48]], "right": [[0, 48]]},
+			"foot_contacts": {"left": [[0, 19], [29, 48]], "right": [[0, 48]]},
 			"provisional": true,
 			"groups": [
 				"greatsword"
@@ -280,7 +280,7 @@
 				"contact_end": 16,
 				"settle": 31
 			},
-			"foot_contacts": {"left": [[0, 9], [15, 39]], "right": [[0, 2], [8, 11], [18, 39]]},
+			"foot_contacts": {"left": [[0, 8], [15, 39]], "right": [[0, 2], [8, 11], [18, 39]]},
 			"provisional": false,
 			"groups": [
 				"katana"
@@ -328,7 +328,7 @@
 				"contact_end": 9,
 				"settle": 9
 			},
-			"foot_contacts": {"left": [[0, 9]], "right": [[0, 2], [8, 9]]},
+			"foot_contacts": {"left": [[0, 8]], "right": [[0, 2], [8, 9]]},
 			"provisional": false,
 			"groups": [
 				"katana"
@@ -637,7 +637,7 @@
 				"contact_end": 16,
 				"settle": 30
 			},
-			"foot_contacts": {"left": [[0, 9], [15, 30]], "right": [[0, 2], [8, 11]]},
+			"foot_contacts": {"left": [[0, 8], [15, 30]], "right": [[0, 2], [8, 11]]},
 			"provisional": false,
 			"groups": [
 				"katana"
@@ -711,7 +711,7 @@
 				"contact_end": 10,
 				"settle": 14
 			},
-			"foot_contacts": {"left": [[0, 1], [8, 46]], "right": [[0, 9], [28, 46]]},
+			"foot_contacts": {"left": [[0, 1], [8, 46]], "right": [[0, 9], [29, 46]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -730,7 +730,7 @@
 				"contact_end": 15,
 				"settle": 17
 			},
-			"foot_contacts": {"left": [[0, 0], [15, 42]], "right": [[0, 0], [28, 42]]},
+			"foot_contacts": {"left": [[0, 0], [15, 42]], "right": [[0, 0], [29, 42]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -749,7 +749,7 @@
 				"contact_end": 8,
 				"settle": 10
 			},
-			"foot_contacts": {"left": [[0, 1], [8, 35]], "right": [[0, 8], [22, 35]]},
+			"foot_contacts": {"left": [[0, 1], [8, 35]], "right": [[0, 7], [23, 35]]},
 			"provisional": true,
 			"groups": [
 				"daggers"
@@ -767,7 +767,7 @@
 				"contact_end": 8,
 				"settle": 10
 			},
-			"foot_contacts": {"left": [[0, 8], [22, 35]], "right": [[0, 1], [8, 35]]},
+			"foot_contacts": {"left": [[0, 7], [23, 35]], "right": [[0, 1], [8, 35]]},
 			"provisional": true,
 			"groups": [
 				"daggers"
@@ -785,7 +785,7 @@
 				"contact_end": 8,
 				"settle": 23
 			},
-			"foot_contacts": {"left": [[0, 1], [8, 37]], "right": [[0, 8], [20, 37]]},
+			"foot_contacts": {"left": [[0, 1], [8, 37]], "right": [[0, 7], [20, 37]]},
 			"provisional": true,
 			"groups": [
 				"daggers"
@@ -803,7 +803,7 @@
 				"contact_end": 9,
 				"settle": 21
 			},
-			"foot_contacts": {"left": [[0, 1], [22, 30]], "right": [[0, 6], [16, 30]]},
+			"foot_contacts": {"left": [[0, 1], [23, 30]], "right": [[0, 5], [16, 30]]},
 			"provisional": true,
 			"groups": [
 				"bare"
@@ -821,7 +821,7 @@
 				"contact_end": 9,
 				"settle": 24
 			},
-			"foot_contacts": {"left": [[0, 30]], "right": [[0, 0], [25, 30]]},
+			"foot_contacts": {"left": [[0, 30]], "right": [[0, 0], [26, 30]]},
 			"provisional": true,
 			"groups": [
 				"bare"
@@ -839,7 +839,7 @@
 				"contact_end": 12,
 				"settle": 18
 			},
-			"foot_contacts": {"left": [[0, 3], [17, 24]], "right": [[0, 24]]},
+			"foot_contacts": {"left": [[0, 2], [17, 24]], "right": [[0, 24]]},
 			"provisional": true,
 			"groups": [
 				"bare"
@@ -857,7 +857,7 @@
 				"contact_end": 12,
 				"settle": 20
 			},
-			"foot_contacts": {"left": [[0, 24]], "right": [[0, 3], [20, 24]]},
+			"foot_contacts": {"left": [[0, 24]], "right": [[0, 2], [20, 24]]},
 			"provisional": true,
 			"groups": [
 				"bare",
@@ -876,7 +876,7 @@
 				"contact_end": 12,
 				"settle": 14
 			},
-			"foot_contacts": {"left": [[0, 2], [11, 41]], "right": [[0, 12], [22, 41]]},
+			"foot_contacts": {"left": [[0, 2], [11, 41]], "right": [[0, 11], [23, 41]]},
 			"provisional": true,
 			"groups": [
 				"katana",
@@ -932,7 +932,7 @@
 				"contact_end": 12,
 				"settle": 30
 			},
-			"foot_contacts": {"left": [[0, 4], [7, 12], [36, 52]], "right": [[0, 52]]},
+			"foot_contacts": {"left": [[0, 3], [7, 11], [36, 52]], "right": [[0, 52]]},
 			"provisional": true,
 			"groups": [
 				"greatsword"
@@ -950,7 +950,7 @@
 				"contact_end": 12,
 				"settle": 30
 			},
-			"foot_contacts": {"left": [[0, 52]], "right": [[0, 4], [7, 12], [36, 52]]},
+			"foot_contacts": {"left": [[0, 52]], "right": [[0, 3], [7, 11], [36, 52]]},
 			"provisional": true,
 			"groups": [
 				"daggers"
@@ -968,7 +968,7 @@
 				"contact_end": 8,
 				"settle": 10
 			},
-			"foot_contacts": {"left": [[0, 6], [15, 33]], "right": [[0, 12], [21, 33]]},
+			"foot_contacts": {"left": [[0, 6], [15, 33]], "right": [[0, 11], [22, 33]]},
 			"provisional": true,
 			"groups": [
 				"bare"
@@ -1004,7 +1004,7 @@
 				"contact_end": 4,
 				"settle": 14
 			},
-			"foot_contacts": {"left": [[0, 14]], "right": [[0, 14]]},
+			"foot_contacts": {"left": [[0, 14]], "right": [[0, 4], [10, 14]]},
 			"provisional": true,
 			"groups": [
 				"bare"
@@ -1041,7 +1041,7 @@
 				"contact_end": 8,
 				"settle": 22
 			},
-			"foot_contacts": {"left": [[0, 3], [20, 27]], "right": [[0, 7], [21, 27]]},
+			"foot_contacts": {"left": [[0, 3], [20, 27]], "right": [[0, 7], [22, 27]]},
 			"provisional": true,
 			"groups": [
 				"bare"
@@ -1133,7 +1133,7 @@
 				"contact_end": 4,
 				"settle": 12
 			},
-			"foot_contacts": {"left": [[0, 12]], "right": [[0, 3], [7, 12]]},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 2], [7, 12]]},
 			"provisional": false,
 			"groups": [
 				"states"
@@ -1152,7 +1152,7 @@
 				"contact_end": 4,
 				"settle": 12
 			},
-			"foot_contacts": {"left": [[0, 3], [7, 12]], "right": [[0, 12]]},
+			"foot_contacts": {"left": [[0, 2], [7, 12]], "right": [[0, 12]]},
 			"provisional": false,
 			"groups": [
 				"states"
@@ -1171,7 +1171,7 @@
 				"contact_end": 4,
 				"settle": 12
 			},
-			"foot_contacts": {"left": [[0, 2], [7, 12]], "right": [[0, 4], [8, 12]]},
+			"foot_contacts": {"left": [[0, 2], [7, 12]], "right": [[0, 3], [8, 12]]},
 			"provisional": false,
 			"groups": [
 				"states"
@@ -1320,7 +1320,7 @@
 				"contact_end": 30,
 				"settle": 45
 			},
-			"foot_contacts": {"left": [[0, 20], [25, 45]], "right": [[0, 20], [32, 45]]},
+			"foot_contacts": {"left": [[0, 19], [25, 45]], "right": [[0, 20], [32, 45]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -1356,7 +1356,7 @@
 				"contact_end": 26,
 				"settle": 35
 			},
-			"foot_contacts": {"left": [[0, 1], [19, 35]], "right": [[0, 1], [16, 20], [24, 35]]},
+			"foot_contacts": {"left": [[0, 1], [19, 35]], "right": [[0, 1], [17, 20], [24, 35]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -1374,7 +1374,7 @@
 				"contact_end": 31,
 				"settle": 41
 			},
-			"foot_contacts": {"left": [[0, 21], [32, 41]], "right": [[0, 18], [31, 41]]},
+			"foot_contacts": {"left": [[0, 21], [32, 41]], "right": [[0, 17], [31, 41]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -1556,7 +1556,7 @@
 				"contact_end": 21,
 				"settle": 28
 			},
-			"foot_contacts": {"left": [[0, 1], [23, 28]], "right": [[0, 0], [22, 28]]},
+			"foot_contacts": {"left": [[0, 0], [23, 28]], "right": [[0, 0], [22, 28]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -1592,7 +1592,7 @@
 				"contact_end": 26,
 				"settle": 35
 			},
-			"foot_contacts": {"left": [[0, 2], [17, 35]], "right": [[0, 2], [18, 29], [32, 35]]},
+			"foot_contacts": {"left": [[0, 2], [18, 35]], "right": [[0, 2], [18, 28], [32, 35]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -1792,7 +1792,7 @@
 				"contact_end": 53,
 				"settle": 70
 			},
-			"foot_contacts": {"left": [[0, 18], [59, 70]], "right": [[0, 70]]},
+			"foot_contacts": {"left": [[0, 17], [59, 70]], "right": [[0, 70]]},
 			"provisional": true,
 			"groups": [
 				"katana"
@@ -1829,7 +1829,7 @@
 				"contact_end": 18,
 				"settle": 18
 			},
-			"foot_contacts": {"left": [[0, 0], [13, 18]], "right": [[4, 9]]},
+			"foot_contacts": {"left": [[0, 0], [14, 18]], "right": [[5, 9]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -1847,7 +1847,7 @@
 				"contact_end": 18,
 				"settle": 18
 			},
-			"foot_contacts": {"left": [[0, 0], [13, 18]], "right": [[4, 9]]},
+			"foot_contacts": {"left": [[0, 0], [14, 18]], "right": [[5, 9]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -1865,7 +1865,7 @@
 				"contact_end": 18,
 				"settle": 18
 			},
-			"foot_contacts": {"left": [[0, 0], [13, 18]], "right": [[4, 9]]},
+			"foot_contacts": {"left": [[0, 0], [14, 18]], "right": [[5, 9]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2013,7 +2013,7 @@
 				"contact_end": 16,
 				"settle": 16
 			},
-			"foot_contacts": {"left": [[2, 5]], "right": [[9, 13]]},
+			"foot_contacts": {"left": [[2, 4]], "right": [[10, 13]]},
 			"provisional": true,
 			"groups": [
 				"states",
@@ -2032,7 +2032,7 @@
 				"contact_end": 16,
 				"settle": 16
 			},
-			"foot_contacts": {"left": [[2, 5]], "right": [[9, 13]]},
+			"foot_contacts": {"left": [[2, 4]], "right": [[10, 13]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2050,7 +2050,7 @@
 				"contact_end": 16,
 				"settle": 16
 			},
-			"foot_contacts": {"left": [[2, 5]], "right": [[9, 13]]},
+			"foot_contacts": {"left": [[2, 4]], "right": [[10, 13]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2068,7 +2068,7 @@
 				"contact_end": 16,
 				"settle": 16
 			},
-			"foot_contacts": {"left": [[2, 5]], "right": [[9, 13]]},
+			"foot_contacts": {"left": [[2, 4]], "right": [[10, 13]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2086,7 +2086,7 @@
 				"contact_end": 16,
 				"settle": 16
 			},
-			"foot_contacts": {"left": [[2, 5]], "right": [[9, 13]]},
+			"foot_contacts": {"left": [[2, 4]], "right": [[10, 13]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2122,7 +2122,7 @@
 				"contact_end": 18,
 				"settle": 18
 			},
-			"foot_contacts": {"left": [[3, 7]], "right": [[11, 14]]},
+			"foot_contacts": {"left": [[3, 7]], "right": [[12, 14]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2158,7 +2158,7 @@
 				"contact_end": 24,
 				"settle": 24
 			},
-			"foot_contacts": {"left": [[3, 11]], "right": [[12, 22]]},
+			"foot_contacts": {"left": [[3, 10]], "right": [[12, 21]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2194,7 +2194,7 @@
 				"contact_end": 23,
 				"settle": 30
 			},
-			"foot_contacts": {"left": [[0, 30]], "right": [[0, 5], [11, 30]]},
+			"foot_contacts": {"left": [[0, 18], [24, 30]], "right": [[0, 4], [11, 30]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2212,7 +2212,7 @@
 				"contact_end": 23,
 				"settle": 30
 			},
-			"foot_contacts": {"left": [[0, 30]], "right": [[0, 30]]},
+			"foot_contacts": {"left": [[0, 4], [10, 30]], "right": [[0, 16], [21, 30]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2266,7 +2266,7 @@
 				"contact_end": 24,
 				"settle": 24
 			},
-			"foot_contacts": {"left": [[0, 1], [15, 24]], "right": [[4, 15]]},
+			"foot_contacts": {"left": [[15, 24]], "right": [[4, 14]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2284,7 +2284,7 @@
 				"contact_end": 24,
 				"settle": 24
 			},
-			"foot_contacts": {"left": [[0, 1], [15, 24]], "right": [[4, 15]]},
+			"foot_contacts": {"left": [[15, 24]], "right": [[4, 14]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2302,7 +2302,7 @@
 				"contact_end": 24,
 				"settle": 24
 			},
-			"foot_contacts": {"left": [[0, 1], [15, 24]], "right": [[4, 15]]},
+			"foot_contacts": {"left": [[15, 24]], "right": [[4, 14]]},
 			"provisional": true,
 			"groups": [
 				"states"

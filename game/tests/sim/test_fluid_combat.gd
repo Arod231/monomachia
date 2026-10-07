@@ -9,8 +9,9 @@ const CLOSE: float = 0.005
 
 ## The spec's arena: a 15 m wall.
 const WALL: float = 15.0
-## A fighter's body radius, kept from the demo.
-const FIGHTER_RADIUS: float = 0.42
+## A fighter's body radius, the demo's 0.42 m grown with KE task 3's taller
+## bodies.
+const FIGHTER_RADIUS: float = 0.5
 ## Fighters' centres stop a fighter's radius inside the wall.
 const CENTRE_LIMIT: float = WALL - FIGHTER_RADIUS
 ## The Impaler's dash ends 0.7 m inside the wall.
@@ -96,7 +97,7 @@ func test_the_impaler_dash_stops_0_7_m_inside_the_wall() -> void:
 
 
 func test_a_vertical_moonsplitter_hits_across_the_widest_gap() -> void:
-	# two fighters with their backs to opposite walls: 29.16 m apart
+	# two fighters with their backs to opposite walls: 29.0 m apart
 	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 2.0 * CENTRE_LIMIT)
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
@@ -109,7 +110,7 @@ func test_a_vertical_moonsplitter_hits_across_the_widest_gap() -> void:
 		if gap_at_release < 0.0 and r.has(&"ultWave"):
 			gap_at_release = SimMath.dist2(a.pos, b.pos)
 	assert_eq(r.find(&"ultWave").get("kind"), &"vertical")
-	assert_almost_eq(gap_at_release, 2.0 * CENTRE_LIMIT, 1e-9, "the fighters stand 29.16 m apart")
+	assert_almost_eq(gap_at_release, 2.0 * CENTRE_LIMIT, 1e-9, "the fighters stand 29.0 m apart")
 	assert_almost_eq(b.hp, 70.0, CLOSE, "the wave reaches and hits")
 
 
@@ -558,12 +559,13 @@ func test_a_whiffed_greatsword_swing_slides_into_its_recovery() -> void:
 
 
 func test_the_slide_runs_after_a_hit_and_after_a_block() -> void:
-	# 1.6 m from the defender the swing lands, and the knockback, or the
+	# 1.76 m from the defender the swing lands, and the knockback, or the
 	# block's pushback, carries the defender out of the slide's way (from
-	# 1.5 m Heavy Swing's longer lunge, authored animation 18, ends 5 cm
-	# nearer, where the block's pushback leaves the slide 1 cm short)
+	# 1.66 m Heavy Swing's longer lunge, authored animation 18, ends 5 cm
+	# nearer, where the block's pushback leaves the slide 1 cm short; both
+	# 0.16 m further than before KE task 3's wider bodies)
 	for run: Array in [[H.idle(), &"hit"], [H.btn(Btn.BLOCK), &"block"]]:
-		var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 1.6)
+		var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 1.76)
 		var a: Fighter = W.fighters[0]
 		var r: H.Rec = H.Rec.new()
 		var start_z: float = NAN
@@ -583,7 +585,7 @@ func test_the_slide_runs_after_a_hit_and_after_a_block() -> void:
 
 func test_the_slide_stops_short_of_a_defender() -> void:
 	# Heavy Swing whiffs from 10 m. As its active frames end, the defender is
-	# put 1.2 m in front, inside the 0.35 m slide. (A block can't show this:
+	# put 1.36 m in front, inside the 0.35 m slide. (A block can't show this:
 	# its pushback, 0.36 m, outruns the slide.)
 	var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 10.0)
 	var a: Fighter = W.fighters[0]
@@ -594,7 +596,7 @@ func test_the_slide_stops_short_of_a_defender() -> void:
 		if a.state != &"attack":
 			break
 		if a.atk.frame == SWING_ACTIVE_END:
-			b.pos = V3.make(a.pos.x, 0.0, a.pos.z + 1.2)
+			b.pos = V3.make(a.pos.x, 0.0, a.pos.z + 1.36)
 		elif a.atk.frame > SWING_ACTIVE_END:
 			closest = minf(closest, SimMath.dist2(a.pos, b.pos))
 	assert_almost_eq(closest, 2.0 * FIGHTER_RADIUS + LUNGE_GAP, 1e-9, "it stops with the bodies 0.25 m apart")

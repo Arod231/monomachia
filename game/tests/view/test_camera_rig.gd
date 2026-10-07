@@ -19,18 +19,20 @@ func _dir(p: Vector3, o: Vector3) -> Vector3:
 ## The mood board's Camera 2, For Honor's framing, settled in the look test
 ## (milestone-1 spec P20; the game's since task 43).
 func test_the_spec_numbers_are_the_defaults() -> void:
-	assert_eq(rig.follow_back, 3.4)
+	# Camera 2 (task 43), its distances by 1.32 with the Katana's 3.3 m duel
+	# and its height by 1.15 with the taller bodies (KE tasks 2 and 3, D11)
+	assert_eq(rig.follow_back, 4.49)
 	assert_eq(rig.follow_side, 1.1, "Camera 2's 1.0 m nudged out (Oct 7)")
 	assert_eq(rig.follow_close_side, 0.6)
-	assert_eq(rig.follow_height, 1.75)
+	assert_eq(rig.follow_height, 2.01)
 	assert_eq(rig.base_fov, 55.0)
 	assert_eq(rig.fov, 55.0)
 
 
 func test_follow_sits_behind_the_player_on_the_line_to_the_opponent() -> void:
-	# 4.5 m apart: past the close swing, so the plain 1.1 m to the side
+	# 5 m apart: past the close swing, so the plain 1.1 m to the side
 	var p: Vector3 = Vector3(1.0, 0.0, -2.0)
-	var o: Vector3 = Vector3(3.0, 0.0, 2.0)
+	var o: Vector3 = Vector3(3.0, 0.0, 2.6)
 	var d: Vector3 = _dir(p, o)
 	var t: Dictionary = rig.follow_target(p, o, d)
 	var pos: Vector3 = t["pos"]
@@ -39,8 +41,8 @@ func test_follow_sits_behind_the_player_on_the_line_to_the_opponent() -> void:
 	var back: float = rig.follow_back + maxf(0.0, sep - rig.follow_far_from) * rig.follow_back_per_metre
 	assert_almost_eq(rel.dot(d), -back, 1e-5, "behind the player along the line")
 	assert_almost_eq(rel.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "to the player's right")
-	assert_gt(pos.y, 1.7)
-	assert_lt(pos.y, 2.1)
+	assert_gt(pos.y, 1.95)
+	assert_lt(pos.y, 2.45)
 
 
 func test_the_right_offset_is_the_fighters_own_right() -> void:
@@ -74,18 +76,18 @@ func test_the_camera_backs_off_as_the_fighters_separate() -> void:
 func test_up_close_it_swings_out_so_the_opponent_shows_past_the_player() -> void:
 	var p: Vector3 = Vector3.ZERO
 	var d: Vector3 = Vector3(0.0, 0.0, 1.0)
-	var at_range: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, 3.5), d)["pos"]
+	var at_range: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, 4.62), d)["pos"]
 	var up_close: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, 1.3), d)["pos"]
-	assert_eq(rig.follow_close_from, 3.5, "the swing starts at 3.5 m (spec, Camera)")
-	assert_almost_eq(at_range.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "1.1 m from 3.5 m out")
+	assert_eq(rig.follow_close_from, 4.62, "the swing starts at 4.62 m (spec, Camera: 3.5 m, by 1.32 since KE task 3)")
+	assert_almost_eq(at_range.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "1.1 m from 4.62 m out")
 	assert_gt(up_close.dot(CameraRig.right_of(d)), rig.follow_side + 1.0, "further right up close")
 	var closest: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, SimConst.FIGHTER_RADIUS * 2.0), d)["pos"]
-	assert_lt(closest.dot(CameraRig.right_of(d)), 2.8, "about 2.6 m at the closest")
+	assert_lt(closest.dot(CameraRig.right_of(d)), 3.8, "about 3.5 m at the closest")
 
 
 ## Seen from the follow camera, the angle between the player and the opponent
-## stays wider than both half-widths: 0.35 m, a real fighter's shoulders,
-## wider than the stand-in's 0.28 m capsule.
+## stays wider than both half-widths: 0.4 m, a real fighter's shoulders on
+## the taller bodies, wider than the stand-in's 0.28 m capsule.
 func test_the_player_never_hides_the_opponent_from_duelling_range_in() -> void:
 	var p: Vector3 = Vector3.ZERO
 	var d: Vector3 = Vector3(0.0, 0.0, 1.0)
@@ -95,7 +97,7 @@ func test_the_player_never_hides_the_opponent_from_duelling_range_in() -> void:
 		var to_p: Vector3 = (p - cam) * Vector3(1, 0, 1)
 		var to_o: Vector3 = (o - cam) * Vector3(1, 0, 1)
 		var apart: float = to_p.angle_to(to_o)
-		var widths: float = atan(0.35 / to_p.length()) + atan(0.35 / to_o.length())
+		var widths: float = atan(0.4 / to_p.length()) + atan(0.4 / to_o.length())
 		assert_gt(apart, widths, "clear at %.1f m apart" % sep)
 
 
@@ -115,8 +117,8 @@ func test_it_stays_inside_the_arena() -> void:
 
 
 func test_snap_puts_the_camera_on_target_facing_the_look_point() -> void:
-	var p: Vector3 = Vector3(0.0, 0.0, -3.2)
-	var o: Vector3 = Vector3(0.0, 0.0, 3.2)
+	var p: Vector3 = Vector3(0.0, 0.0, -3.85)
+	var o: Vector3 = Vector3(0.0, 0.0, 3.85)
 	rig.snap(p, o)
 	var t: Dictionary = rig.follow_target(p, o, Vector3(0.0, 0.0, 1.0))
 	assert_almost_eq(rig.position, t["pos"] as Vector3, Vector3.ONE * 1e-5)
@@ -127,8 +129,8 @@ func test_snap_puts_the_camera_on_target_facing_the_look_point() -> void:
 
 
 func test_movement_is_smoothed() -> void:
-	var p: Vector3 = Vector3(0.0, 0.0, -3.2)
-	var o: Vector3 = Vector3(0.0, 0.0, 3.2)
+	var p: Vector3 = Vector3(0.0, 0.0, -3.85)
+	var o: Vector3 = Vector3(0.0, 0.0, 3.85)
 	rig.snap(p, o)
 	var start: Vector3 = rig.rig_position
 	var moved: Vector3 = p + Vector3(2.0, 0.0, 0.0)

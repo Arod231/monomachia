@@ -400,10 +400,11 @@ func test_a_quick_parrying_brain_parries_heavy_swing_from_the_shoulder() -> void
 	params.timing_error = 0
 	params.use_ult = 0.0
 	for seed_value: int in [1, 2, 3, 4, 5, 6, 7, 8]:
-		# at the Greatsword's duelling distance, out of the Katana's reach, so
-		# the brain doesn't swing first
+		# at the Greatsword's duelling distance, the brain's attacks held off so
+		# it doesn't swing first (the 1.3 m blade's reach covers it, KE task 2)
 		var W: World = _gs(Moves.GREATSWORD.duel_distance, true)
 		var ai: AIBrain = AIBrain.new(W.fighters[1], params, seed_value)
+		ai._attack_cooldown_until = 1 << 30
 		var parried: bool = false
 		for i: int in 40:
 			W.step([H.btn(Btn.LIGHT) if i == 0 else H.idle(), ai.think()])

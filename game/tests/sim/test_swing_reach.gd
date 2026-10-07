@@ -96,12 +96,12 @@ func test_first_contact_agrees_with_a_stepped_world() -> void:
 	var body: FighterBody = FighterBody.of(&"")
 	# 0.9 m: too close to lunge, so the sweep from 60° to 20° already touches
 	# (at 1.0 m the Katana's curve holds its 20° pose 3.8 cm clear); 1.6 m:
-	# the lunge to 1.25 m, and the sweep across the front; 2.2 m: short by the
-	# lunge's end; 1.6 m at 40° right: the attacker turns to the defender as
-	# it winds up
-	var cases: Array[Array] = [[0.9, 0.0, 12], [1.6, 0.0, 13], [2.2, 0.0, -1], [1.6, 40.0, 13]]
+	# the lunge to 1.25 m, and the sweep across the front; 2.85 m: short by the
+	# lunge's end (2.2 m with the 0.69 m blade before KE task 2); 1.6 m at 40°
+	# right: the attacker turns to the defender as it winds up
+	var cases: Array[Array] = [[1.05, 0.0, 12], [1.6, 0.0, 13], [2.85, 0.0, -1], [1.6, 40.0, 13]]
 	for c: Array in cases:
-		var what: String = "%.1f m at %d°" % [c[0], c[1]]
+		var what: String = "%.2f m at %d°" % [c[0], c[1]]
 		var want: Array = _stepped_first_touch(w, c[0], c[1])
 		assert_eq(want[0] if not want.is_empty() else -1, c[2], "%s: the stepped world" % what)
 		var got: SwingReach.Contact = SwingReach.first_contact(w.moves[CUT], w, c[0], c[1], body)
@@ -124,28 +124,28 @@ func test_a_move_reads_its_swings_reach_and_arc_and_without_one_its_authored_ran
 
 
 func test_the_weapons_reach_comes_from_its_light_starters_hand_keyed_swing() -> void:
-	assert_eq(SF.without_swings(&"katana").reach, 2.1, "the Katana's authored reach while Right Cut has no swing")
+	assert_eq(SF.without_swings(&"katana").reach, 2.8, "the Katana's authored reach while Right Cut has no swing (2.8 m since KE task 3)")
 	var other: WeaponDef = SF.without_swings(&"katana")
 	other.moves[&"k_l2"].swing = SF.level_slash(other.moves[&"k_l2"])
 	other.derive_reach()
-	assert_eq(other.reach, 2.1, "a swing on another move leaves it")
+	assert_eq(other.reach, 2.8, "a swing on another move leaves it")
 	# a swing baked from a clip leaves the authored reach (its lunge was
 	# lengthened to keep the reach table's distances; authored animation 20)
-	assert_eq(Moves.KATANA.reach, 2.1, "Right Cut's swing, baked from a clip, leaves the Katana's authored reach")
+	assert_eq(Moves.KATANA.reach, 2.8, "Right Cut's swing, baked from a clip, leaves the Katana's authored reach")
 	assert_eq(Moves.GREATSWORD.reach, 2.75, "and Heavy Swing's the Greatsword's")
 	var w: WeaponDef = _straight(SF.level_slash(_cut()))
 	assert_almost_eq(w.reach, 1.26, EPS, "a swing on the light starter gives it")
 
 
 func test_the_computer_takes_a_move_as_a_threat_within_its_reach() -> void:
-	# the reach, a fighter's radius, the lunge and 0.6 m: 2.2 + 0.42 + 0.35 +
-	# 0.6 = 3.57 m for the cone, 1.26 + 0.42 + 0.35 + 0.6 = 2.63 m with the
+	# the reach, a fighter's radius, the lunge and 0.6 m: 2.2 + 0.5 + 0.35 +
+	# 0.6 = 3.65 m for the cone, 1.26 + 0.5 + 0.35 + 0.6 = 2.71 m with the
 	# straight blade's swing
-	assert_true(AIBrain.threatens(_cut(), 3.5), "the cone's Right Cut at 3.5 m")
-	assert_false(AIBrain.threatens(_cut(), 3.6), "and not at 3.6 m")
+	assert_true(AIBrain.threatens(_cut(), 3.6), "the cone's Right Cut at 3.6 m")
+	assert_false(AIBrain.threatens(_cut(), 3.7), "and not at 3.7 m")
 	var def: AttackDef = _straight(SF.level_slash(_cut())).moves[CUT]
-	assert_true(AIBrain.threatens(def, 2.6), "the swing's at 2.6 m")
-	assert_false(AIBrain.threatens(def, 2.7), "and not at 2.7 m")
+	assert_true(AIBrain.threatens(def, 2.7), "the swing's at 2.7 m")
+	assert_false(AIBrain.threatens(def, 2.8), "and not at 2.8 m")
 	assert_true(AIBrain.threatens(Moves.KATANA.moves[&"k_thrust"], 10.0), "an unblockable at any distance, for its counter")
 
 

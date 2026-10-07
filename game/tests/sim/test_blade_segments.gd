@@ -4,7 +4,7 @@ extends GutTest
 ## position and facing, once the fighters have moved and before hits are
 ## decided, with the last tick's kept beside it for the sweep. The swings are
 ## synthetic (swing_fixtures.gd), on fresh weapons; no real move has one yet.
-## A Katana's blade runs from (0.001, 0.09, 0) to (-0.077, 0.777, 0) in its
+## A Katana's blade runs from (0.0015, 0.09, 0) to (-0.077, 1.39, 0) in its
 ## grip's frame (+X the edge, +Y the blade), 15 mm thick.
 
 const H := preload("res://tests/sim/sim_helpers.gd")
@@ -19,7 +19,7 @@ func after_each() -> void:
 
 ## A Katana whose Right Cut holds the blade level and straight ahead, its
 ## edge to the left, the grip at (0.2, 1.3, 0.5): its base is then at
-## (0.199, 1.3, 0.59) and its tip at (0.277, 1.3, 1.277) in the fighter's
+## (0.1985, 1.3, 0.59) and its tip at (0.277, 1.3, 1.89) in the fighter's
 ## space.
 static func _straight_ahead() -> WeaponDef:
 	var pose: Swing.KeyPose = SF.key(0, [0.2, 1.3, 0.5], [0.0, 0.0, 1.0], [-1.0, 0.0, 0.0])
@@ -59,24 +59,24 @@ func test_the_world_tip_at_two_yaws() -> void:
 		var p: V3 = f.pos
 		if yaw == 0.0:
 			# facing +Z, the fighter's right is -X
-			_assert_v3(b.base, V3.make(p.x - 0.199, 1.3, p.z + 0.59), "the base facing +Z")
-			_assert_v3(b.tip, V3.make(p.x - 0.277, 1.3, p.z + 1.277), "the tip facing +Z")
+			_assert_v3(b.base, V3.make(p.x - 0.1985, 1.3, p.z + 0.59), "the base facing +Z")
+			_assert_v3(b.tip, V3.make(p.x - 0.277, 1.3, p.z + 1.89), "the tip facing +Z")
 		else:
 			# facing +X, the fighter's right is +Z
-			_assert_v3(b.base, V3.make(p.x + 0.59, 1.3, p.z + 0.199), "the base facing +X")
-			_assert_v3(b.tip, V3.make(p.x + 1.277, 1.3, p.z + 0.277), "the tip facing +X")
+			_assert_v3(b.base, V3.make(p.x + 0.59, 1.3, p.z + 0.1985), "the base facing +X")
+			_assert_v3(b.tip, V3.make(p.x + 1.89, 1.3, p.z + 0.277), "the tip facing +X")
 		assert_eq(b.part, RIGHT)
 		assert_eq(b.half_thickness, 0.0075, "half the Katana's 15 mm")
 
 
 func test_the_blade_is_placed_where_hits_are_decided_after_the_fighters_are_pushed_apart() -> void:
-	# 0.5 m apart, inside the 0.84 m that keeps fighters apart: each step
+	# 0.5 m apart, inside the 1.0 m that keeps fighters apart: each step
 	# pushes them back out after they move, and the blade goes with the push
 	var W: World = H.make_world(_straight_ahead(), Moves.KATANA, 0.5)
 	var f: Fighter = W.fighters[0]
 	W.step([H.btn(Btn.LIGHT), H.idle()])
-	assert_almost_eq(f.pos.z, -0.42, EPS, "pushed back to 0.42 m from the middle")
-	_assert_v3(_only(f).tip, V3.make(f.pos.x - 0.277, 1.3, f.pos.z + 1.277), "the tip, where the fighter was pushed to")
+	assert_almost_eq(f.pos.z, -0.5, EPS, "pushed back to 0.5 m from the middle")
+	_assert_v3(_only(f).tip, V3.make(f.pos.x - 0.277, 1.3, f.pos.z + 1.89), "the tip, where the fighter was pushed to")
 
 
 func test_the_segment_is_the_pose_at_the_attack_s_frame_and_the_last_tick_s_beside_it() -> void:
@@ -99,8 +99,8 @@ func test_the_segment_is_the_pose_at_the_attack_s_frame_and_the_last_tick_s_besi
 			var a: float = (60.0 - 120.0 * (at[1] - cut.startup) / cut.active) * SimMath.DEG
 			var s: float = JsMath.sin(a)
 			var c: float = JsMath.cos(a)
-			var right: float = 0.45 * s + 0.077 * c + 0.777 * s
-			var forward: float = 0.45 * c - 0.077 * s + 0.777 * c
+			var right: float = 0.45 * s + 0.077 * c + 1.39 * s
+			var forward: float = 0.45 * c - 0.077 * s + 1.39 * c
 			_assert_v3(at[0], V3.make(at[2].x - right, 1.2, at[2].z + forward), "the tip at frame %d" % at[1])
 		seen += 1
 	assert_eq(seen, cut.active, "every active frame")
@@ -128,8 +128,8 @@ func test_the_segment_turns_with_tracking() -> void:
 	# the opponent off to the left, 45° from where the fighter faces
 	f.pos = V3.make(0.0, 0.0, 0.0)
 	W.fighters[1].pos = V3.make(-2.5, 0.0, 2.5)
-	var reach: float = sqrt(0.277 * 0.277 + 1.277 * 1.277)
-	var bearing: float = atan2(-0.277, 1.277)
+	var reach: float = sqrt(0.277 * 0.277 + 1.89 * 1.89)
+	var bearing: float = atan2(-0.277, 1.89)
 	for i: int in 15:
 		W.step([H.btn(Btn.LIGHT) if i == 0 else H.idle(), H.idle()])
 		var b: BladeSegment = _only(f)
@@ -221,8 +221,8 @@ func test_the_first_tick_s_last_segment_is_its_own() -> void:
 			# Return Cut enters from Right Cut's hand-off, its settle 80° left,
 			# not from the guard
 			var a: float = -80.0 * SimMath.DEG
-			var right: float = 0.45 * sin(a) + 0.077 * cos(a) + 0.777 * sin(a)
-			var forward: float = 0.45 * cos(a) - 0.077 * sin(a) + 0.777 * cos(a)
+			var right: float = 0.45 * sin(a) + 0.077 * cos(a) + 1.39 * sin(a)
+			var forward: float = 0.45 * cos(a) - 0.077 * sin(a) + 1.39 * cos(a)
 			_assert_v3(b.tip, V3.make(f.pos.x - right, 1.2, f.pos.z + forward), "Return Cut starts at Right Cut's hand-off", 1e-9)
 	assert_eq(firsts, [&"k_l1", &"k_l2"] as Array[StringName], "Right Cut, then Return Cut")
 
@@ -253,9 +253,9 @@ func test_only_striking_tracks_of_swings_have_segments() -> void:
 	var halves: Dictionary[StringName, float] = {}
 	for b: BladeSegment in W.fighters[0].blade_segments():
 		halves[b.part] = b.half_thickness
-	assert_eq(halves, {RIGHT: 0.038, &"right_foot": 0.05} as Dictionary[StringName, float], "the fist and the foot")
-	# the foot's frame: from the ankle, the toe 20.5 cm along the foot,
-	# forward, and 3 cm toward the sole, down; facing +Z
+	assert_eq(halves, {RIGHT: 0.0435, &"right_foot": 0.0575} as Dictionary[StringName, float], "the fist and the foot")
+	# the foot's frame: from the ankle, the toe 23 cm along the foot,
+	# forward, and 3.3 cm toward the sole, down; facing +Z
 	var foot: BladeSegment = W.fighters[0].blade_segments()[1]
 	var p: V3 = W.fighters[0].pos
-	_assert_v3(foot.tip, V3.make(p.x - 0.1, 0.4 - 0.03, p.z + 0.3 + 0.205), "the foot's tip")
+	_assert_v3(foot.tip, V3.make(p.x - 0.1, 0.4 - 0.033, p.z + 0.3 + 0.23), "the foot's tip")

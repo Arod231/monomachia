@@ -4,12 +4,15 @@ extends Camera3D
 ## Honor camera (spec, Decisions: "Camera"):
 ##
 ## - FOLLOW: over the player's right shoulder on the line from the player to
-##   the opponent, about 4.6 m back (a little more as they separate), 1.35 m
-##   to the right at 3.5 m apart and further, swinging further out by 0.8 m
-##   for each metre closer (about 3.5 m at the closest), so the player doesn't
+##   the opponent, about 6 m back (a little more as they separate), 1.35 m
+##   to the right at 4.6 m apart and further, swinging further out by 1.0 m
+##   for each metre closer (about 5 m at the closest), so the player doesn't
 ##   hide the opponent; at about head height and pitched nearly level, so
 ##   raised weapons read against the sky. It looks past the player's shoulder
-##   at the opponent's chest.
+##   at the opponent's chest. The back distance and the separations it
+##   reframes at grew with the Katana's duelling distance (2.5 to 3.0 m,
+##   KE task 2, then 3.3 m on the taller bodies, task 3: ×1.32, D11), and
+##   the heights by 1.15 with the bodies (task 3).
 ## - WATCH: side-on to the line between the fighters, swaying slowly (Watch
 ##   mode, and the follow camera's swing to the side after a KO).
 ## - MENU: a slow orbit of the arena behind the menus.
@@ -51,16 +54,18 @@ const PUSH_EPSILON: float = 1e-5
 
 @export_group("Follow")
 ## The follow camera is framed as the mood board's Camera 2, For Honor's,
-## settled in the look test (milestone-1 tasks 30 and 43): about 3.4 m back,
+## settled in the look test (milestone-1 tasks 30 and 43): about 4.49 m back,
 ## 1.1 m to the right (Camera 2's 1.0 m, nudged out so the player's shoulders
-## never hide the opponent's at 3.5 m; the owner's choice, Oct 7), swinging
-## out 0.6 m for each metre closer than 3.5 m, 1.75 m up, a 55° field of
-## view. Near the wall it rises over the arena's rim (rise_over_rim()).
+## never hide the opponent's; the owner's choice, Oct 7), swinging out 0.6 m
+## for each metre closer than 4.62 m, 2.01 m up, a 55° field of view. Its
+## distances are the board's by 1.32 for the Katana's 3.3 m duel and its
+## height by 1.15 for the taller bodies (KE tasks 2 and 3, D11). Near the
+## wall it rises over the arena's rim (rise_over_rim()).
 ## Distance behind the player (m).
-@export var follow_back: float = 3.4
+@export var follow_back: float = 4.49
 ## Extra distance per metre of separation past follow_far_from.
 @export var follow_back_per_metre: float = 0.25
-@export var follow_far_from: float = 3.5
+@export var follow_far_from: float = 4.62
 ## Separation past follow_far_from counts up to this many metres.
 @export var follow_far_cap: float = 8.0
 ## Extra distance per metre the fighters are closer than follow_close_from
@@ -69,11 +74,11 @@ const PUSH_EPSILON: float = 1e-5
 ## Extra offset to the right per metre the fighters are closer than
 ## follow_close_from, so the opponent stays in view past the shoulder.
 @export var follow_close_side: float = 0.6
-@export var follow_close_from: float = 3.5
+@export var follow_close_from: float = 4.62
 ## Offset to the player's right (m); positive is right.
 @export var follow_side: float = 1.1
 ## Camera height above the floor (m).
-@export var follow_height: float = 1.75
+@export var follow_height: float = 2.01
 ## Extra height per metre of separation past follow_far_from.
 @export var follow_height_per_metre: float = 0.08
 ## How much of the player's jump height the camera follows.
@@ -82,7 +87,7 @@ const PUSH_EPSILON: float = 1e-5
 ## 1 = opponent)...
 @export var follow_look_lead: float = 1.0
 ## ...at this height (the opponent's chest)...
-@export var follow_look_height: float = 1.3
+@export var follow_look_height: float = 1.5
 ## ...plus this much of their jump heights.
 @export var follow_look_jump: float = 0.3
 ## Extra upward tilt after looking at the look point (degrees).
@@ -91,11 +96,11 @@ const PUSH_EPSILON: float = 1e-5
 @export_group("Watch")
 @export var watch_distance: float = 4.6
 @export var watch_distance_per_metre: float = 0.55
-@export var watch_height: float = 1.9
+@export var watch_height: float = 2.19
 @export var watch_height_per_metre: float = 0.08
 ## Pull back along the fighters' line (m).
 @export var watch_back: float = 1.2
-@export var watch_look_height: float = 1.1
+@export var watch_look_height: float = 1.27
 ## Slow sway around the side-on view (radians, and radians per second).
 @export var watch_sway: float = 0.5
 @export var watch_sway_speed: float = 0.15

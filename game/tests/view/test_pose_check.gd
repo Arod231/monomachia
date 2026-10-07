@@ -273,14 +273,14 @@ func test_a_knee_inside_the_foot_line_fails() -> void:
 
 # ------------------------------------------------------------------ reach
 
-## Reach is the length of blade inside a defender's capsule (0.35 m round,
-## from the feet to 1.75 m).
+## Reach is the length of blade inside a defender's capsule (0.42 m round,
+## from the feet to 2.0 m since KE task 3).
 func test_reach_is_the_length_of_blade_inside_the_defender() -> void:
 	var feet: Vector3 = Vector3(0.0, 0.0, 2.5)
 	var front: float = 2.5 - PoseCheck.DEFENDER_RADIUS
 	assert_almost_eq(PoseCheck.blade_inside(Vector3(0, 1, 1.9), Vector3(0, 1, 2.6), feet), 2.6 - front, 1e-4, "into the front")
 	assert_almost_eq(PoseCheck.blade_inside(Vector3(0, 1, 1.9), Vector3(0, 1, front - 0.01), feet), 0.0, 1e-6, "short of it")
-	assert_almost_eq(PoseCheck.blade_inside(Vector3(-0.5, 1, 2.5), Vector3(0.5, 1, 2.5), feet), 0.7, 1e-4, "right through")
+	assert_almost_eq(PoseCheck.blade_inside(Vector3(-0.5, 1, 2.5), Vector3(0.5, 1, 2.5), feet), 0.84, 1e-4, "right through")
 	# over the top: the cap is round, so a blade 0.2 m off the axis at the
 	# top of the capsule's height only clips it
 	var top: float = PoseCheck.DEFENDER_HEIGHT - PoseCheck.DEFENDER_RADIUS

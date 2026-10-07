@@ -4,8 +4,8 @@ extends RefCounted
 ## shoulders and the arms' lengths for solving the elbows, the spine the coil
 ## turns about, and proxy capsules round the torso, the head (with its hood or
 ## hat), the thighs and the arms, which a blade must keep clear of. Rules data
-## per fighter (task 7.6), measured once from the Rogue's and the Hunter's
-## skeletons and meshes; tests/content/test_reference_bodies.gd says how and
+## per fighter (task 7.6), measured from the Rogue's and the Hunter's
+## skeletons and meshes (again on KE task 3's taller bodies); tests/content/test_reference_bodies.gd says how and
 ## keeps the numbers within 1 cm of them. Every swing must pass on both, since
 ## their proportions differ.
 ##
@@ -22,38 +22,38 @@ const SIDES: Array[StringName] = [&"right", &"left"]
 ## cm) move it by under 1.2 cm.
 const BODIES: Dictionary[StringName, Dictionary] = {
 	&"rogue": {
-		"shoulders": {"right": [0.152, 1.418, -0.054], "left": [-0.152, 1.418, -0.054]},
-		"upper_arm": 0.240,
-		"forearm": 0.249,
-		"wrist": [-0.070, 0.0, 0.029],
-		"spine": [[0.0, 0.944, -0.052], [0.0, 1.418, -0.054]],
-		"torso": {"a": [0.0, 0.944, -0.022], "b": [0.0, 1.418, -0.022], "radius": 0.211},
+		"shoulders": {"right": [0.188, 1.631, -0.062], "left": [-0.188, 1.631, -0.062]},
+		"upper_arm": 0.276,
+		"forearm": 0.287,
+		"wrist": [-0.081, 0.0, 0.031],
+		"spine": [[0.0, 1.086, -0.060], [0.0, 1.631, -0.062]],
+		"torso": {"a": [0.0, 1.086, -0.023], "b": [0.0, 1.631, -0.023], "radius": 0.253},
 		# the hood
-		"head": {"a": [0.0, 1.550, -0.039], "b": [0.0, 1.623, -0.039], "radius": 0.171},
+		"head": {"a": [0.0, 1.782, -0.046], "b": [0.0, 1.859, -0.046], "radius": 0.192},
 		"thighs": {
-			"right": {"a": [0.111, 0.944, -0.052], "b": [0.111, 0.535, -0.032], "radius": 0.181},
-			"left": {"a": [-0.111, 0.944, -0.052], "b": [-0.111, 0.535, -0.032], "radius": 0.181},
+			"right": {"a": [0.128, 1.086, -0.060], "b": [0.128, 0.615, -0.037], "radius": 0.208},
+			"left": {"a": [-0.128, 1.086, -0.060], "b": [-0.128, 0.615, -0.037], "radius": 0.208},
 		},
-		"upper_arm_radius": {"right": 0.052, "left": 0.052},
+		"upper_arm_radius": {"right": 0.060, "left": 0.060},
 		# the bracers
-		"forearm_radius": {"right": 0.079, "left": 0.079},
+		"forearm_radius": {"right": 0.090, "left": 0.090},
 	},
 	&"hunter": {
-		"shoulders": {"right": [0.192, 1.456, -0.065], "left": [-0.192, 1.456, -0.065]},
-		"upper_arm": 0.251,
-		"forearm": 0.240,
-		"wrist": [-0.091, 0.0, 0.033],
-		"spine": [[0.0, 0.971, -0.036], [0.0, 1.456, -0.065]],
-		"torso": {"a": [0.0, 0.971, -0.035], "b": [0.0, 1.456, -0.035], "radius": 0.228},
+		"shoulders": {"right": [0.238, 1.674, -0.075], "left": [-0.238, 1.674, -0.075]},
+		"upper_arm": 0.289,
+		"forearm": 0.276,
+		"wrist": [-0.105, 0.0, 0.036],
+		"spine": [[0.0, 1.117, -0.041], [0.0, 1.674, -0.075]],
+		"torso": {"a": [0.0, 1.117, -0.040], "b": [0.0, 1.674, -0.040], "radius": 0.275},
 		# the tricorn's brim
-		"head": {"a": [0.0, 1.600, 0.028], "b": [0.0, 1.662, 0.028], "radius": 0.182},
+		"head": {"a": [0.0, 1.840, 0.029], "b": [0.0, 1.900, 0.029], "radius": 0.201},
 		"thighs": {
-			"right": {"a": [0.091, 0.971, -0.036], "b": [0.091, 0.542, -0.036], "radius": 0.173},
-			"left": {"a": [-0.091, 0.971, -0.036], "b": [-0.091, 0.542, -0.036], "radius": 0.174},
+			"right": {"a": [0.104, 1.117, -0.041], "b": [0.104, 0.624, -0.042], "radius": 0.199},
+			"left": {"a": [-0.104, 1.117, -0.041], "b": [-0.104, 0.624, -0.042], "radius": 0.200},
 		},
 		# the pauldron on the left shoulder
-		"upper_arm_radius": {"right": 0.067, "left": 0.119},
-		"forearm_radius": {"right": 0.066, "left": 0.066},
+		"upper_arm_radius": {"right": 0.077, "left": 0.137},
+		"forearm_radius": {"right": 0.075, "left": 0.075},
 	},
 }
 

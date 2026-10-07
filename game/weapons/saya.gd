@@ -14,11 +14,13 @@ extends MeshInstance3D
 ## Where the saya sits on each fighter, in their Hips bone's frame: the
 ## katana's frame as the sheathe clip (SheatheHips01_R, frame 12, the blade
 ## all the way in) leaves it on each body, measured with the weapon fixed in
-## the hand (tools: _scratch probes; the numbers are ours, not the pack's).
+## the hand (tools: _scratch probes; the numbers are ours, not the pack's),
+## each offset grown on KE task 3's taller bodies by as much as the same
+## probe's hand moved (the turns kept).
 ## A fighter without its own uses the Hunter's.
 const FRAMES: Dictionary[StringName, Transform3D] = {
-	&"hunter": Transform3D(Basis(Vector3(0.2321, -0.7617, 0.6049), Vector3(0.2295, -0.5614, -0.7951), Vector3(0.9452, 0.3234, 0.0445)), Vector3(0.1783, 0.1828, 0.2750)),
-	&"rogue": Transform3D(Basis(Vector3(0.2321, -0.7617, 0.6049), Vector3(0.2295, -0.5614, -0.7951), Vector3(0.9452, 0.3234, 0.0445)), Vector3(0.2327, 0.1745, 0.2868)),
+	&"hunter": Transform3D(Basis(Vector3(0.2321, -0.7617, 0.6049), Vector3(0.2295, -0.5614, -0.7951), Vector3(0.9452, 0.3234, 0.0445)), Vector3(0.1923, 0.2124, 0.3250)),
+	&"rogue": Transform3D(Basis(Vector3(0.2321, -0.7617, 0.6049), Vector3(0.2295, -0.5614, -0.7951), Vector3(0.9452, 0.3234, 0.0445)), Vector3(0.2584, 0.2025, 0.3371)),
 }
 ## How far the saya stands off the blade on every side (m).
 const WALL: float = 0.006

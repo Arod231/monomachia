@@ -53,7 +53,7 @@ const DEEP_CRIMSON := Color("#5c1618")
 const DYE := Color(0.86, 0.62, 0.66)
 ## The gameplay camera's base distance, at which Camera 2 (CameraRig's own
 ## framing) is judged.
-const CAMERA_CLOSE_FROM: float = 3.5
+const CAMERA_CLOSE_FROM: float = 4.62
 
 ## The look test's gate (Godot check 5), and the bench's run.
 const GATE_MS: float = 14.0

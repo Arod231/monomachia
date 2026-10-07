@@ -32,6 +32,11 @@ extends RefCounted
 ##   in its estimates: frames_to_impact() for an opponent's attack, and for
 ##   its own the follow-up and charge timings and the reach it attacks from
 ##   (_lift_drift()).
+## - The grips are KE task 9's: a weapon with both grips is switched by the
+##   situation (wanted_grip()) at Normal and Hard, and mid-string at Hard,
+##   and a string's heavy ending, the held grip's heavy, is sometimes
+##   charged. Those draws are new, so every seed plays differently since.
+
 
 
 ## Difficulty: &"easy" | &"normal" | &"hard"
@@ -61,6 +66,13 @@ class AIParams:
 	var finisher: float = 0.0
 	var finisher_from: int = 1
 	var finisher_to: int = SimConst.FINISHER_PROMPT_FRAMES
+	## The grips (KE task 9, D8): whether it switches grip by the situation
+	## (wanted_grip()), the chance it switches as it presses a string's next
+	## light, mixing the two strings, and the chance a string's heavy ending
+	## is charged (before the bonus against a guarding opponent).
+	var grip_switch: bool = false
+	var grip_mix: float = 0.0
+	var branch_charge: float = 0.0
 
 	## These params pressing `rate` of finisher prompts on a frame from
 	## `from` to `to` of the window.
@@ -68,6 +80,14 @@ class AIParams:
 		finisher = rate
 		finisher_from = from
 		finisher_to = to
+		return self
+
+	## These params playing the grips: switching by the situation when
+	## `switch`, mixing strings at `mix`, charging heavy endings at `charge`.
+	func gripping(switch: bool, mix: float, charge: float) -> AIParams:
+		grip_switch = switch
+		grip_mix = mix
+		branch_charge = charge
 		return self
 
 	static func make(
@@ -99,18 +119,32 @@ class AIParams:
 	func copy() -> AIParams:
 		return make(reaction, reaction_jitter, parry, block, counter, dodge, aggression, timing_error, use_ult, guard).finishing(
 			finisher, finisher_from, finisher_to
-		)
+		).gripping(grip_switch, grip_mix, branch_charge)
 
 
 # Columns: reaction, reactionJitter, parry, block, counter, dodge, aggression,
 # timingError, useUlt, guard; then the finisher prompt's share and frames
 # (P55: Easy 30% in the window's second half, Normal 60% anywhere in it, Hard
-# 90% in its first 6 frames).
+# 90% in its first 6 frames); then the grips (KE task 9, the owner's word,
+# Oct 7: Easy stays one-handed, Normal switches by the situation, Hard mixes
+# strings too; Normal and Hard charge some heavy endings).
 static var DIFFICULTY: Dictionary[StringName, AIParams] = {
 	&"easy": AIParams.make(27, 8, 0.08, 0.35, 0.1, 0.15, 0.35, 5, 0.5, 0.3).finishing(0.3, 10, 18),
-	&"normal": AIParams.make(18, 6, 0.3, 0.45, 0.35, 0.2, 0.55, 3, 0.8, 0.55).finishing(0.6, 1, 18),
-	&"hard": AIParams.make(11, 4, 0.55, 0.35, 0.6, 0.25, 0.72, 2, 1, 0.7).finishing(0.9, 1, 6),
+	&"normal": AIParams.make(18, 6, 0.3, 0.45, 0.35, 0.2, 0.55, 3, 0.8, 0.55).finishing(0.6, 1, 18).gripping(true, 0.0, 0.3),
+	&"hard": AIParams.make(11, 4, 0.55, 0.35, 0.6, 0.25, 0.72, 2, 1, 0.7).finishing(0.9, 1, 6).gripping(true, 0.35, 0.4),
 }
+
+## The grip choice (KE task 9, D8): posture over this is low, as the
+## posture recovery's line; beyond two-handed reach by this margin is range;
+## and a situational switch waits this many frames before the next.
+const GRIP_LOW_POSTURE: float = 62.0
+const GRIP_RANGE_MARGIN: float = 0.9
+const GRIP_SWITCH_GAP: int = 45
+## The extra chance a heavy ending is charged against a guarding opponent,
+## and the frames heavy is held from its press (COMBO_LEAD before the branch
+## point, then the heavy's startup to its charge check, then the charge).
+const BRANCH_CHARGE_GUARDED: float = 0.25
+const BRANCH_CHARGE_HOLD: Vector2i = Vector2i(40, 160)
 
 
 class Tap:
@@ -148,6 +182,8 @@ var _combo_finish_heavy: bool = false
 ## The move whose follow-up the string last pressed for (one press a move).
 var _combo_pressed: StringName = &""
 var _charge_until: int = -1
+## The first frame a situational grip switch may be pressed (KE task 9).
+var _next_grip_at: int = 0
 var _strafe: int = 1
 var _strafe_until: int = 0
 var _recover_posture: bool = false
@@ -323,15 +359,26 @@ func _think() -> RawInput:
 	# Continue a combo string: each press lands COMBO_LEAD frames before the
 	# move's branch point into its follow-up (the table's, milestone-1 task
 	# 20), inside the input buffer, so slow re-keyed lights chain too (task 40).
+	# The follow-up is the one the rules give (Fighter.follow_up()), so a
+	# string's heavy ending is the held grip's heavy, which Normal and Hard
+	# sometimes charge, holding heavy from the press; and Hard switches grip
+	# with some light presses, so the next hit comes from the other grip's
+	# string (KE task 9).
 	if _combo_left > 0 and me.state == &"attack":
 		var at: AttackState = me.atk
 		if at != null and at.def.id != _combo_pressed:
 			var btn: int = Btn.HEAVY if _combo_finish_heavy and _combo_left == 1 else _combo_btn
-			var follow: StringName = at.def.chain_heavy if btn == Btn.HEAVY else at.def.chain_light
-			if follow == &"":
+			var next: Array = me.follow_up(btn == Btn.HEAVY)
+			if next[0] == &"":
 				_combo_left = 0
-			elif at.frame >= at.def.branch_window(follow)[0] - COMBO_LEAD:
-				_tap(btn, frame, 2)
+			elif at.frame >= (next[1] as PackedInt32Array)[0] - COMBO_LEAD:
+				if btn == Btn.HEAVY and _charges_ending():
+					_hold_mask |= 1 << Btn.HEAVY
+					_charge_until = frame + rng.int(BRANCH_CHARGE_HOLD.x, BRANCH_CHARGE_HOLD.y)
+				else:
+					if btn == Btn.LIGHT and _mixes():
+						_tap(Btn.GRIP, frame, 2)
+					_tap(btn, frame, 2)
 				_combo_left -= 1
 				_combo_pressed = at.def.id
 		return _output(frame)
@@ -578,6 +625,14 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 	var w: WeaponDef = me.moveset()
 	var reach: float = w.reach + SimConst.FIGHTER_RADIUS
 
+	# The grip, by the situation (KE task 9), from where it can switch and
+	# not mid-attack (a string's switches are Hard's mix).
+	if P.grip_switch and frame >= _next_grip_at and me.state != &"attack" and Fighter.GRIP_STATES.has(me.state):
+		var want_grip: StringName = wanted_grip(me, d, _turtling())
+		if want_grip != &"" and want_grip != me.grip:
+			_tap(Btn.GRIP, frame, 2)
+			_next_grip_at = frame + GRIP_SWITCH_GAP
+
 	# Posture management: back off and hold block to drain when the meter runs high.
 	if me.posture > 62.0 and not _recover_posture and rng.chance(0.3):
 		_recover_posture = true
@@ -672,6 +727,47 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 	return _output(frame)
 
 
+## Whether the opponent guards a lot: holding block now, or for long enough
+## lately.
+func _turtling() -> bool:
+	return _last_opp_blocking_frames > 30 or me.opp.blocking
+
+
+## The grip `me` wants `d` m from its opponent (KE task 9, D8), posture first
+## (the owner's word, Oct 7): low on posture, one-handed, to recover fast;
+## else against an opponent `turtling` (guarding a lot) or inside two-handed
+## reach, two-handed, to press; at range, one-handed, to reach; otherwise
+## &"" to keep the grip held. &"" too for bare hands or a weapon without
+## both grips.
+static func wanted_grip(me: Fighter, d: float, turtling: bool) -> StringName:
+	var w: WeaponDef = me.moveset()
+	if not me.armed or w.grip(WeaponGrip.ONE_HANDED) == null or w.grip(WeaponGrip.TWO_HANDED) == null:
+		return &""
+	if me.posture > GRIP_LOW_POSTURE:
+		return WeaponGrip.ONE_HANDED
+	var two_reach: float = (w.moves[w.grip(WeaponGrip.TWO_HANDED).hit(1)] as AttackDef).reach() + SimConst.FIGHTER_RADIUS
+	if turtling or d < two_reach:
+		return WeaponGrip.TWO_HANDED
+	if d > two_reach + GRIP_RANGE_MARGIN:
+		return WeaponGrip.ONE_HANDED
+	return &""
+
+
+## Whether this string's next light comes from the other grip (Hard's mix,
+## KE task 9). Draws only for a weapon with grips at a level that mixes.
+func _mixes() -> bool:
+	return params.grip_mix > 0.0 and me.held_grip() != null and rng.chance(params.grip_mix)
+
+
+## Whether this string's heavy ending, the held grip's heavy, is charged
+## (KE task 9), more often against a guarding opponent. Draws only for a
+## weapon with grips at a level that charges.
+func _charges_ending() -> bool:
+	if params.branch_charge <= 0.0 or me.held_grip() == null:
+		return false
+	return rng.chance(params.branch_charge + (BRANCH_CHARGE_GUARDED if _turtling() else 0.0))
+
+
 ## How far the opponent can back off while the computer heaves its Greatsword
 ## off the shoulder: the reach it attacks from shrinks by this
 ## (authored-animation task 15).
@@ -696,7 +792,7 @@ func _pick_attack(frame: int, _d: float) -> void:
 	var opp: Fighter = me.opp
 	var P: AIParams = params
 	var w: WeaponDef = me.moveset()
-	var turtling: bool = _last_opp_blocking_frames > 30 or opp.blocking
+	var turtling: bool = _turtling()
 	var no_abilities: Array[StringName] = [&"", &""]
 	var abilities: Array[StringName] = me.abilities if me.armed else no_abilities
 	var unblock_slot: int = -1
