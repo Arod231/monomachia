@@ -91,7 +91,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 45. As the owner, I want follow-ups and dodge cancels to open at markers on each clip, where the body can plausibly break off, so that a follow-up starts from its branch point rather than waiting for the move to end.
 46. [x] As a player, I want every follow-up to stay optional, so that I can stop after any hit and recover normally. (Ticked with task 20.)
 47. As a player, I want strings to flow, each swing continuing from where the last one ended, and two lights to flow into a heavy as the third hit, so that a string reads as one motion.
-48. As a player, I want the jump arcs to stay rules numbers and the jump clips made to match them, so that clearing a sweep always works the same way.
+48. [x] As a player, I want the jump arcs to stay rules numbers and the jump clips made to match them, so that clearing a sweep always works the same way. (Ticked with task 59.)
 49. [x] As a player, I want the rules to keep running at a fixed 60 steps a second, with faster displays showing frames blended between steps, so that the fight is the same on every screen. (Ticked with task 19.)
 50. As the owner, I want the Katana and bare hands rebalanced around their clips as each family lands, with the old "within 5 points of the baseline" rule retired, so that balance follows the new pace.
 

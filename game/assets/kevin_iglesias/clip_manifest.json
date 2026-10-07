@@ -1253,6 +1253,10 @@
 				"states"
 			]
 		},
+		"JumpKatana": {"export": "exports/clips/jump_katana.glb", "pack": "Human Basic Motions", "dir": "Movement/Jump", "source": "Jump01", "mirror": false, "loop": false, "markers": {"windup": 0, "contact": 0, "contact_end": 15, "settle": 15}, "foot_contacts": {"left": [[0, 1], [14, 15]], "right": [[0, 1], [15, 15]]}, "provisional": false, "groups": ["states"]},
+		"LandKatana": {"export": "exports/clips/land_katana.glb", "pack": "Human Melee Animations", "dir": "Combat/1H", "source": "CombatIdle1H01", "mirror": false, "loop": false, "markers": {"windup": 0, "contact": 0, "contact_end": 3, "settle": 3}, "foot_contacts": {"left": [[0, 3]], "right": [[0, 3]]}, "provisional": false, "groups": ["states"]},
+		"JumpFists": {"export": "exports/clips/jump_fists.glb", "pack": "Human Basic Motions", "dir": "Movement/Jump", "source": "Jump01", "mirror": false, "loop": false, "markers": {"windup": 0, "contact": 0, "contact_end": 17, "settle": 17}, "foot_contacts": {"left": [[0, 1], [16, 17]], "right": [[0, 0], [16, 17]]}, "provisional": false, "groups": ["states"]},
+		"LandFists": {"export": "exports/clips/land_fists.glb", "pack": "Human Melee Animations", "dir": "Combat", "source": "CombatIdle01", "mirror": false, "loop": false, "markers": {"windup": 0, "contact": 0, "contact_end": 3, "settle": 3}, "foot_contacts": {"left": [[0, 3]], "right": [[0, 3]]}, "provisional": false, "groups": ["states"]},
 		"BlockLightKatana": {
 			"export": "exports/clips/block_light.glb",
 			"pack": "Human Melee Animations",

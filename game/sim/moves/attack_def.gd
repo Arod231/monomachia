@@ -173,6 +173,10 @@ var branches: Dictionary[StringName, PackedInt32Array] = {}
 ## a re-keyed Katana or bare-hands move, moved only by its travel, with no
 ## lunge and none of a run's speed; set from the table
 var by_travel: bool = false
+## a jump attack's landing recovery (milestone-1 task 59): the frames from
+## its touchdown to free, its row's `landing` once its clip is keyed; UNSET
+## for a stand-in, which lands into its recovery (landing_recovery())
+var landing: int = UNSET
 ## the weapon the move belongs to (finalize_moves() sets it from its weapon,
 ## or a record names it, as the scripted ultimate hits do): it picks the
 ## move's protected timings (ProtectedTimings, milestone-1 task 22)
@@ -191,10 +195,10 @@ const KEYS: Array[String] = [
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
 	"sound", "trail", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "weapon", "swing",
+	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "landing", "weapon", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
-const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches", "by_travel"]
+const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches", "by_travel", "landing"]
 
 
 ## Builds an AttackDef from a move record (snake_case keys). Missing keys keep
@@ -257,6 +261,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	for follow: Variant in windows:
 		m.branches[StringName(follow)] = PackedInt32Array(windows[follow])
 	m.by_travel = bool(d.get("by_travel", false))
+	m.landing = int(d.get("landing", UNSET))
 	m.weapon = StringName(d.get("weapon", &""))
 	m.swing = d.get("swing", null)
 	return m
@@ -353,6 +358,10 @@ static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName, weapo
 	for follow: Variant in windows:
 		branches[StringName(follow)] = [int(windows[follow][0]), int(windows[follow][1])]
 	m["branches"] = branches
+	if row.has("landing"):
+		m["landing"] = int(row["landing"])
+	else:
+		m.erase("landing")
 	m["by_travel"] = led_by_clip(weapon, bool(row.get("stand_in", false)), StringName(m.get("special", &"")))
 
 
@@ -386,6 +395,21 @@ func forward_reach() -> float:
 ## totalFrames(m)
 func total_frames() -> int:
 	return startup + active + recovery
+
+
+## Whether jump attack rules of milestone-1 task 59 hold for this move: a
+## Katana or bare-hands jump attack starts only while it fits the airtime
+## left and lands into its landing recovery; the Greatsword's and the
+## Daggers' keep today's (a landing skipping to the active frames, the
+## overhead's dive) until milestone 2 (spec P48).
+func fits_airtime() -> bool:
+	return airborne and CLIP_LED_WEAPONS.has(weapon)
+
+
+## A jump attack's frames from its touchdown to free (milestone-1 task 59):
+## its row's landing recovery, or a stand-in's recovery.
+func landing_recovery() -> int:
+	return landing if landing != UNSET else recovery
 
 
 ## The frames follow-up `follow` may start on, [branch point, last frame]

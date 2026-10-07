@@ -67,7 +67,7 @@ extends RefCounted
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips", "states"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips", "states", "jump"]
 ## The grips a "grips" entry names (WeaponGrip's), and each one's clips.
 const GRIP_IDS: Array[String] = ["one_handed", "two_handed"]
 const GRIP_FIELDS: Array[String] = ["idle", "guard", "carry"]
@@ -192,6 +192,11 @@ var deflect_pairs: Dictionary[StringName, Dictionary] = {}
 ## of clip ids by HIT_PLACES; and the light block reaction by weapon.
 var light_hits: Dictionary[StringName, Dictionary] = {}
 var light_blocks: Dictionary[StringName, StringName] = {}
+## The jump's own clips (milestone-1 task 59), by weapon class: the flight
+## from take-off to touchdown and the landing; a class without them plays
+## the pack's take-off, air and landing.
+var jump_flights: Dictionary[StringName, StringName] = {}
+var jump_lands: Dictionary[StringName, StringName] = {}
 ## Each grip's own clips (KE task 8), by weapon then grip: {&"idle": clip,
 ## &"guard": [loop, hit], &"carry": clip, or &"" for none}.
 var grip_clips: Dictionary[StringName, Dictionary] = {}
@@ -361,11 +366,28 @@ static func read(path: String = PATH) -> StateClips:
 				var id: StringName = t._id(blocks, "reactions.block_light", str(w))
 				if id != &"":
 					t.light_blocks[StringName(str(w))] = id
+	if root.has("jump"):
+		g = t._object(root["jump"], "jump", ["flight", "land"])
+		for part: String in ["flight", "land"]:
+			var by: Variant = g.get(part, {})
+			if not by is Dictionary:
+				t.errors.append("jump.%s: must be an object" % part)
+				continue
+			for w: Variant in by:
+				var id: StringName = t._id(by, "jump.%s" % part, str(w))
+				if id != &"":
+					(t.jump_flights if part == "flight" else t.jump_lands)[StringName(str(w))] = id
 	if root.has("grips"):
 		t._grips(root["grips"])
 	if root.has("states"):
 		t.own_clips = t._id_map({"states": root["states"]}, "state_clips", "states", [])
 	return t
+
+
+## The jump clip `part` (&"flight" or &"land") of weapon class `weapon`
+## (a weapon's id, &"fists" disarmed), or &"" for none.
+func jump_clip(part: StringName, weapon: StringName) -> StringName:
+	return (jump_flights if part == &"flight" else jump_lands).get(weapon, &"")
 
 
 ## Reads the "grips" group into grip_clips and regrips.

@@ -1,0 +1,27 @@
+{
+	"about": "The Katana's landing (milestone-1 task 59): the 5-frame land state (3 source frames), from the touchdown in the Katana's guard stance (the jump lands its feet there) into a light give over the legs: the guard (katana_guard) with the hips 12 cm lower and the chest bent 10 degrees, feet planted, which the guard then rises from. Key poses at the touchdown and the give, Cascadeur inbetweening between. Source frames at 30 fps from 0.",
+	"out": "blender/clips/land_katana.blend",
+	"blockout": {
+		"source": "blender/clips/katana_guard.blend",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				3
+			]
+		],
+		"lower": {
+			"drop": 0.12,
+			"bend": 10,
+			"peak": 3,
+			"hold": true
+		}
+	},
+	"keys": [
+		0,
+		3
+	]
+}

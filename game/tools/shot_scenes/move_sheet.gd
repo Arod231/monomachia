@@ -188,7 +188,7 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 	},
 	&"jump": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.JUMP], [50, 0.0, 0.0, 0]],
-		"notes": "still for 12 frames, then a jump on the spot: Jump01_Begin, Jump01 in the air, Jump01_Land",
+		"notes": "still for 12 frames, then a jump on the spot: the weapon class's keyed flight and landing (milestone-1 task 59; the pack's Jump01 take-off, air and landing for the Greatsword and Daggers)",
 		"views": [&"side"],
 		"spacing": 8.0,
 		"every": 3,
