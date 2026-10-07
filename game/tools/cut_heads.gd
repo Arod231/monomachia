@@ -14,8 +14,8 @@ extends SceneTree
 
 ## Body scene -> head mesh it produces.
 const BODIES: Dictionary[String, String] = {
-	"res://assets/quaternius/characters/Superhero_Female_FullBody.gltf": "res://fighters/heads/female_head.res",
-	"res://assets/quaternius/characters/Superhero_Male_FullBody.gltf": "res://fighters/heads/male_head.res",
+	"res://assets/quaternius/characters/Superhero_Female_FullBody_Tall.gltf": "res://fighters/heads/female_head.res",
+	"res://assets/quaternius/characters/Superhero_Male_FullBody_Tall.gltf": "res://fighters/heads/male_head.res",
 }
 const HEAD_BONES: Array[StringName] = [&"Head", &"Neck"]
 const HEAD_WEIGHT: float = 0.5

@@ -1,0 +1,18 @@
+{
+	"about": "KE task 3 (D10): the fighter's Quaternius parts, re-proportioned by scripts/blender/reproportion_fighter.py into blender/bodies/<fighter>/<part>.blend in the asset repository: scale about the floor, the shoulder joints' spread (each clavicle moved out, measured on the reference part, the outfit body the game's skeleton comes from) and the head bone's size.",
+	"fighter": "hunter",
+	"reference": "Male_Ranger_Body",
+	"scale": 1.15,
+	"shoulders": 1.08,
+	"head": 0.95,
+	"parts": {
+		"Superhero_Male_FullBody": "quaternius/Universal Base Characters[Standard]/Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf",
+		"Hair_Buzzed": "quaternius/Universal Base Characters[Standard]/Universal Base Characters[Standard]/Hairstyles/Rigged to Head Bone/glTF (Godot -Unreal)/Hair_Buzzed.gltf",
+		"Hair_Beard": "quaternius/Universal Base Characters[Standard]/Universal Base Characters[Standard]/Hairstyles/Rigged to Head Bone/glTF (Godot -Unreal)/Hair_Beard.gltf",
+		"Male_Ranger_Body": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Male_Ranger_Body.gltf",
+		"Male_Ranger_Arms": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Male_Ranger_Arms.gltf",
+		"Male_Ranger_Legs": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Male_Ranger_Legs.gltf",
+		"Male_Ranger_Feet_Boots": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Male_Ranger_Feet_Boots.gltf",
+		"Male_Ranger_Acc_Pauldron": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Male_Ranger_Acc_Pauldron.gltf"
+	}
+}

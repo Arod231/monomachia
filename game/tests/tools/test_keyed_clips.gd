@@ -192,9 +192,10 @@ func test_the_held_blades_stay_above_the_floor() -> void:
 
 func test_the_thruster_is_yanked_down_then_flings_the_weapon_up() -> void:
 	var model: FighterModel = _model(&"hunter")
+	# (0.6 and 1.1 m on the first bodies, by 1.15 on KE task 3's taller ones)
 	for f: int in [8, 12, 18]:
-		assert_lt(_bone(_pose_clip(model, KeyedClips.PINNED, f), "RightHand").origin.y, 0.6, "pinned: the hands down at the blade at frame %d" % f)
-	assert_gt(_bone(_pose_clip(model, KeyedClips.PINNED, 24), "RightHand").origin.y, 1.1, "wrenched free: the weapon flung up")
+		assert_lt(_bone(_pose_clip(model, KeyedClips.PINNED, f), "RightHand").origin.y, 0.69, "pinned: the hands down at the blade at frame %d" % f)
+	assert_gt(_bone(_pose_clip(model, KeyedClips.PINNED, 24), "RightHand").origin.y, 1.26, "wrenched free: the weapon flung up")
 	var bent: float = _bone(_pose_clip(model, KeyedClips.PINNED, 12), "Head").origin.y
 	assert_lt(bent, _bone(_pose_clip(model, KeyedClips.PINNED, 42), "Head").origin.y - 0.2, "bent over the pin, lower than in the daze")
 

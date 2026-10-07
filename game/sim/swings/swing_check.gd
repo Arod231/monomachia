@@ -46,9 +46,10 @@ const ELBOW_LOCKED: float = 170.0
 ## How far a blade must stay from every proxy (metres).
 const CLEARANCE: float = 0.05
 ## The face: a capsule from the middle of the head's capsule straight ahead,
-## an arm's reach long, reaching from the chin to the brow.
-const FACE_REACH: float = 0.6
-const FACE_RADIUS: float = 0.12
+## an arm's reach long, reaching from the chin to the brow (grown with KE
+## task 3's taller bodies: the arms by 1.15, the head by 1.15 x 0.95).
+const FACE_REACH: float = 0.69
+const FACE_RADIUS: float = 0.13
 ## How many times a hand's turn round the handle is refined, as the rig's is
 ## (FighterRig.ROLL_PASSES).
 const ROLL_PASSES: int = 4

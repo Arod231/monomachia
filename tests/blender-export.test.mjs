@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
   REFUSED,
+  bodyGltf,
   boneMapBones,
   copyRefusal,
   exportBlend,
@@ -27,6 +28,7 @@ import {
 const ROOT = resolve(import.meta.dirname, '..');
 const MB = 1024 * 1024;
 const BONES = boneMapBones(readFileSync(join(ROOT, 'game', 'assets', 'kevin_iglesias', 'iglesias_bone_map.tres'), 'utf8'));
+const UAL_BONES = boneMapBones(readFileSync(join(ROOT, 'game', 'assets', 'quaternius', 'ual_bone_map.tres'), 'utf8'));
 
 describe('sources.json', () => {
   it('reads each source with its kind from its folder', () => {
@@ -64,7 +66,7 @@ describe('sources.json', () => {
     );
     assert.deepEqual(errors, [
       'Bad-Id: an id is lower-case letters, digits and underscores',
-      'loose: file must be a .blend in clips/, fighters/, weapons/, shrine/',
+      'loose: file must be a .blend in clips/, fighters/, weapons/, shrine/, bodies/',
       'pack: licence must be own, cc0, iglesias',
       'clip_out: a clip export stays in the asset repository (no game path)',
       'paid_out: only self-made and CC0 art is copied into the game',
@@ -73,6 +75,72 @@ describe('sources.json', () => {
     ]);
     assert.deepEqual(readSources('{').errors.length, 1);
     assert.deepEqual(readSources('{}').errors, ['sources.json has no "sources" object']);
+  });
+});
+
+describe('a body part (KE task 3)', () => {
+  const part = {
+    file: 'bodies/hunter/Male_Ranger_Body.blend',
+    licence: 'cc0',
+    game: 'game/assets/quaternius/outfits/Male_Ranger_Body_Tall.gltf',
+    materials_from: 'game/assets/quaternius/outfits/Male_Ranger_Body.gltf',
+  };
+
+  it('is a glTF beside the original part whose materials it keeps', () => {
+    const { sources, errors } = readSources(JSON.stringify({ sources: { male_ranger_body: part } }));
+    assert.deepEqual(errors, []);
+    assert.equal(sources.male_ranger_body.kind, 'body');
+    assert.equal(sources.male_ranger_body.materials_from, part.materials_from);
+    assert.equal(exportPath('male_ranger_body', sources.male_ranger_body), 'exports/bodies/male_ranger_body.gltf');
+  });
+
+  it('names its mistakes', () => {
+    const { errors } = readSources(
+      JSON.stringify({
+        sources: {
+          a_glb: { ...part, game: 'game/assets/quaternius/outfits/A.glb' },
+          no_materials: { ...part, materials_from: undefined },
+          paid: { ...part, licence: 'iglesias' },
+          weapon_from: { file: 'weapons/a.blend', licence: 'own', game: 'game/assets/a.glb', materials_from: part.materials_from },
+        },
+      }),
+    );
+    assert.deepEqual(errors, [
+      'a_glb: a body part goes into the game as a .gltf under game/assets/',
+      'no_materials: a body part names the part whose materials it keeps (materials_from, a .gltf under game/assets/)',
+      'paid: only self-made and CC0 art is copied into the game',
+      "weapon_from: only a body part keeps another part's materials",
+    ]);
+  });
+
+  it("is rigged on the Quaternius skeleton's bones", () => {
+    for (const b of ['root', 'pelvis', 'clavicle_l', 'Head', 'foot_r']) assert.ok(UAL_BONES.includes(b), b);
+  });
+
+  it("keeps the original's materials, textures and images, each primitive's by name, and names its buffer", () => {
+    const exported = {
+      asset: { version: '2.0' },
+      materials: [{ name: 'MI_Ranger', pbrMetallicRoughness: {} }, { name: 'MI_Belt' }, { name: 'MI_Ranger.001' }],
+      meshes: [{ name: 'Body', primitives: [{ material: 1 }, { material: 0 }, {}, { material: 2 }] }],
+      buffers: [{ uri: 'male_ranger_body.bin', byteLength: 8 }],
+      extensionsUsed: ['KHR_materials_specular'],
+    };
+    const original = {
+      asset: { version: '2.0' },
+      materials: [{ name: 'MI_Belt', extra: 1 }, { name: 'MI_Ranger', extra: 2 }],
+      textures: [{ source: 0 }],
+      images: [{ uri: 'T_Ranger_3_BaseColor.png' }],
+      samplers: [{}],
+      extensionsUsed: ['KHR_texture_transform'],
+    };
+    const out = JSON.parse(bodyGltf(exported, original, 'Male_Ranger_Body_Tall.bin'));
+    assert.deepEqual(out.materials, original.materials);
+    assert.deepEqual([out.textures, out.images, out.samplers], [original.textures, original.images, original.samplers]);
+    assert.deepEqual(out.meshes[0].primitives.map((p) => p.material), [0, 1, undefined, 1], "MI_Belt, MI_Ranger, none, and MI_Ranger again (Blender's .001)");
+    assert.equal(out.buffers[0].uri, 'Male_Ranger_Body_Tall.bin');
+    assert.deepEqual(out.extensionsUsed, ['KHR_texture_transform']);
+    assert.equal(bodyGltf(exported, original, 'Male_Ranger_Body_Tall.bin'), bodyGltf(exported, original, 'Male_Ranger_Body_Tall.bin'), 'the same text twice');
+    assert.throws(() => bodyGltf({ ...exported, materials: [{ name: 'MI_Ranger' }, { name: 'MI_Other' }] }, original, 'x.bin'), /MI_Other/);
   });
 });
 

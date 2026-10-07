@@ -9,7 +9,7 @@ extends Resource
 ## All positions are in metres in the arena's own space, which is the rules'
 ## space: the floor is y = 0, the centre of the fighting area is the origin,
 ## and fighters face each other along the z axis (the rules start side 0 at
-## z = -3.85 facing +Z and side 1 at z = +3.85 facing -Z).
+## z = -4.15 facing +Z and side 1 at z = +4.15 facing -Z).
 
 ## Stable id, used by saves, menus and the match setup.
 @export var id: StringName = &""

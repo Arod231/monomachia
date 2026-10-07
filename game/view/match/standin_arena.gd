@@ -146,8 +146,8 @@ func _build_pillars(kits: MeshKitSet, r: float) -> void:
 
 func _build_markers(r: float) -> void:
 	var spots: Dictionary[String, Vector3] = {
-		"Spawn0": Vector3(0.0, 0.0, -3.85),
-		"Spawn1": Vector3(0.0, 0.0, 3.85),
+		"Spawn0": Vector3(0.0, 0.0, -4.15),
+		"Spawn1": Vector3(0.0, 0.0, 4.15),
 		"Gate0": Vector3(0.0, 0.0, -(r + 3.0)),
 		"Gate1": Vector3(0.0, 0.0, r + 3.0),
 	}

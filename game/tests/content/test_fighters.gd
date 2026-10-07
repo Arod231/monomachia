@@ -316,7 +316,9 @@ func test_the_hunter_wears_a_tricorn_and_a_scarf_and_no_hood() -> void:
 	var box: AABB = _bounds(_rest_points(f, hat))
 	assert_gt(box.position.y, eyes.get_center().y, "the hat sits above the eyes")
 	assert_gt(box.end.y, head.end.y + 0.01, "the crown clears the top of the head")
-	assert_gt(box.size.x, head.size.x + 0.1, "the brim spreads well past the head")
+	# (half as wide again as the head: 10 cm past it on the first bodies, and
+	# as far for its size on KE task 3's taller ones)
+	assert_gt(box.size.x, head.size.x * 1.4, "the brim spreads well past the head")
 
 
 func test_headwear_takes_the_palette_colour() -> void:

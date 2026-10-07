@@ -57,24 +57,24 @@ func test_every_bare_hands_move_misses_from_6_m() -> void:
 
 
 func test_the_table_gives_each_kind_of_move_its_distance() -> void:
-	# the Katana, duelling at 3.0 m (KE task 2), has a move of every kind but
+	# the Katana, duelling at 3.3 m (KE task 3), has a move of every kind but
 	# an ultimate
 	var want: Dictionary[StringName, float] = {
-		&"k_l1": 3.0, &"k_l4": 3.0, # the string's lights
-		&"k_h1f": 3.5, &"k_rdraw": 3.5, &"k_h2": 3.5, # heavies, + 0.5 m
-		&"k_iai": 4.1, &"k_iai_h": 4.1, # the Iai Slashes' own 4.1 m
-		&"k_sl": 4.5, &"k_sh": 5.5, # sprint light + 1.5 m, heavy + 2.5 m
-		&"k_dl": 3.0, &"k_dh": 3.0, # dodge attacks
-		&"k_bl": 3.5, &"k_bh": 5.0, # backstep light + 0.5 m, heavy + 2 m
-		&"k_jl": 2.5, &"k_jh": 2.5, # jump attacks - 0.5 m
-		&"k_lunge": 5.0, # the counter lunge + 2 m
-		&"k_thrust": 4.0, &"k_sweep": 4.0, # unblockable abilities + 1 m
+		&"k_l1": 3.3, &"k_l4": 3.3, # the string's lights
+		&"k_h1f": 3.8, &"k_rdraw": 3.8, &"k_h2": 3.8, # heavies, + 0.5 m
+		&"k_iai": 4.4, &"k_iai_h": 4.4, # the Iai Slashes' own 4.4 m
+		&"k_sl": 4.8, &"k_sh": 5.8, # sprint light + 1.5 m, heavy + 2.5 m
+		&"k_dl": 3.3, &"k_dh": 3.3, # dodge attacks
+		&"k_bl": 3.8, &"k_bh": 5.3, # backstep light + 0.5 m, heavy + 2 m
+		&"k_jl": 2.8, &"k_jh": 2.8, # jump attacks - 0.5 m
+		&"k_lunge": 5.3, # the counter lunge + 2 m
+		&"k_thrust": 4.3, &"k_sweep": 4.3, # unblockable abilities + 1 m
 	}
 	for id: StringName in want:
 		assert_almost_eq(RT.distance(Moves.KATANA, id), want[id], 1e-9, String(id))
 	assert_almost_eq(RT.distance(Moves.GREATSWORD, &"g_crush"), 3.0, 1e-9, "Guard Crusher, an ability that can be blocked")
 	assert_almost_eq(RT.distance(Moves.GREATSWORD, &"g_dh"), 3.0, 1e-9, "Skewer, from a dodge, by its slot")
-	assert_almost_eq(RT.distance(Moves.FISTS, &"f_breaker"), 4.1, 1e-9, "Breaker Palm, the ultimate's palm, + 2.5 m")
+	assert_almost_eq(RT.distance(Moves.FISTS, &"f_breaker"), 4.35, 1e-9, "Breaker Palm, the ultimate's palm, + 2.5 m")
 	assert_false(RT.strikes(Moves.KATANA.moves[&"k_flash"]), "Flash strikes nothing, so it isn't tested")
 
 
@@ -86,9 +86,9 @@ static func _running_draw(out: float) -> WeaponDef:
 
 
 func test_the_check_passes_a_move_that_reaches_its_distance_and_fails_one_that_falls_short() -> void:
-	# Running Draw from 4.5 m lunges 1.6 m, leaving the defender's capsule,
-	# grown by half the blade, 2.9 - 0.3575 = 2.5425 m away: a point 0.45 +
-	# 1.39 m out falls short, one 1.5 + 1.39 m out reaches it
+	# Running Draw from 4.8 m lunges 1.6 m, leaving the defender's 0.42 m
+	# capsule, grown by half the blade, 3.2 - 0.4275 = 2.7725 m away: a point
+	# 0.45 + 1.39 m out falls short, one 1.5 + 1.39 m out reaches it
 	assert_eq(_weapon_problems(_running_draw(1.5)), [] as Array[String], "reaching")
-	assert_eq(_weapon_problems(_running_draw(0.45)), ["katana.k_sl (sprint_light): no touch from 4.5 m"] as Array[String],
+	assert_eq(_weapon_problems(_running_draw(0.45)), ["katana.k_sl (sprint_light): no touch from 4.8 m"] as Array[String],
 			"falling short")

@@ -8,15 +8,17 @@ extends RefCounted
 ## The hurt capsule stands on the feet: `hurt_radius` round the fighter's
 ## upright axis, from the feet up to `hurt_height`, and it rises with the
 ## fighter when they leave the ground. For the Rogue and the Hunter it is
-## 0.35 m round and 1.75 m tall. SimConst.FIGHTER_RADIUS (0.42), which keeps
-## the fighters apart and serves the cone checks, is a separate number.
+## 0.42 m round and 2.0 m tall: KE task 3's taller bodies grew 14% to the
+## crown and 20% round the torso, so the first bodies' 1.75 m and 0.35 m grew
+## by as much. SimConst.FIGHTER_RADIUS (0.50), which keeps the fighters apart
+## and serves the cone checks, is a separate number.
 
 ## The bodies by fighter id. The default body, for no id, is the same.
 const BODIES: Dictionary[StringName, Dictionary] = {
-	&"rogue": {"hurt_radius": 0.35, "hurt_height": 1.75},
-	&"hunter": {"hurt_radius": 0.35, "hurt_height": 1.75},
+	&"rogue": {"hurt_radius": 0.42, "hurt_height": 2.0},
+	&"hunter": {"hurt_radius": 0.42, "hurt_height": 2.0},
 }
-const DEFAULT: Dictionary = {"hurt_radius": 0.35, "hurt_height": 1.75}
+const DEFAULT: Dictionary = {"hurt_radius": 0.42, "hurt_height": 2.0}
 
 ## The fighter id; empty for the default body.
 var id: StringName = &""

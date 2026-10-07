@@ -54,7 +54,7 @@ func test_an_opponent_in_reach_is_blasted_2_m_away_and_knocked_down() -> void:
 	var burst: Dictionary = r.find(&"recallBurst")
 	assert_eq(burst.get("f"), 0)
 	assert_eq(burst.get("on"), 1)
-	assert_true(burst.get("hit"), "within the Katana's 3.0 m")
+	assert_true(burst.get("hit"), "within the Katana's 3.3 m")
 	assert_eq(b.state, &"knockdown", "knocked down")
 	assert_true(r.has(&"knockdown"))
 	H.run(W, 30, IDLE, IDLE, r)
@@ -65,12 +65,12 @@ func test_an_opponent_in_reach_is_blasted_2_m_away_and_knocked_down() -> void:
 
 
 func test_out_of_reach_the_burst_flares_and_misses() -> void:
-	var W: World = _recalling(Moves.KATANA, 3.1)
+	var W: World = _recalling(Moves.KATANA, 3.4)
 	var b: Fighter = W.fighters[1]
 	var r: H.Rec = H.Rec.new()
 	H.run(W, SimConst.RECALL_FRAMES + 2, IDLE, IDLE, r)
 	var burst: Dictionary = r.find(&"recallBurst")
-	assert_false(burst.get("hit"), "past 3.0 m")
+	assert_false(burst.get("hit"), "past 3.3 m")
 	assert_ne(b.state, &"knockdown")
 	assert_false(r.has(&"knockdown"))
 

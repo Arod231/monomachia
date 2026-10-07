@@ -137,18 +137,18 @@ static func _point_world(unblockable: bool, gap: float) -> World:
 
 
 func test_an_unblockable_sweeps_a_blade_10_cm_thicker_and_reaches_that_much_further() -> void:
-	var normal: World = _point_world(false, 2.603)
-	var thick: World = _point_world(true, 2.603)
+	var normal: World = _point_world(false, 2.673)
+	var thick: World = _point_world(true, 2.673)
 	for W: World in [normal, thick]:
 		W.step([H.btn(Btn.LIGHT), H.idle()])
 	assert_almost_eq(normal.fighters[0].blade_segments()[0].half_thickness, 0.0075, 1e-12,
 			"Right Cut sweeps half the Katana's 1.5 cm")
 	assert_almost_eq(thick.fighters[0].blade_segments()[0].half_thickness, 0.1075, 1e-12,
 			"an unblockable one 10 cm more")
-	# the lunge (0.35 m, done by frame 12) leaves the point 2.253 - 1.84 =
-	# 0.413 m from the defender's axis: beyond the capsule's 0.35 m and half
+	# the lunge (0.35 m, done by frame 12) leaves the point 2.323 - 1.84 =
+	# 0.483 m from the defender's axis: beyond the capsule's 0.42 m and half
 	# the blade, within them with the 10 cm
-	assert_eq(_play(_point_world(false, 2.603)), ["whiff on 15"] as Array[String], "the point stops 5.5 cm short")
-	assert_eq(_play(_point_world(true, 2.603)), ["hit on 12"] as Array[String], "the unblockable's reaches 4.5 cm in")
+	assert_eq(_play(_point_world(false, 2.673)), ["whiff on 15"] as Array[String], "the point stops 5.5 cm short")
+	assert_eq(_play(_point_world(true, 2.673)), ["hit on 12"] as Array[String], "the unblockable's reaches 4.5 cm in")
 	# 10 cm further back, the unblockable falls as short
-	assert_eq(_play(_point_world(true, 2.703)), ["whiff on 15"] as Array[String], "and 10 cm further back, falls as short")
+	assert_eq(_play(_point_world(true, 2.773)), ["whiff on 15"] as Array[String], "and 10 cm further back, falls as short")

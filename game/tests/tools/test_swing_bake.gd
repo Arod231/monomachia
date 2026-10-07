@@ -323,7 +323,7 @@ func test_local_a_move_bakes_from_an_iglesias_clip() -> void:
 	assert_eq(out["errors"], [] as Array[String])
 	assert_eq((out["report"] as PackedStringArray).size(), 1)
 	assert_string_contains(out["report"][0], "k_l1 (Attack1H01_R ×")
-	assert_string_contains(out["report"][0], "reach from 3.0 m: ", "the reach, measured from the duelling distance")
+	assert_string_contains(out["report"][0], "reach from 3.3 m: ", "the reach, measured from the duelling distance")
 	assert_string_contains(out["report"][0], "Rogue: HumanF ", "the Rogue's clip, measured")
 	var data: Dictionary = JSON.parse_string(out["text"])
 	assert_eq(data["guard"].keys(), ["right_hand", "body"], "the guard has the parts the swings move")

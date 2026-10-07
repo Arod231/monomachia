@@ -1,8 +1,8 @@
 extends GutTest
 ## The duelling-distance reach test (task 7.14). Every light of a weapon's
 ## string with a swing, played from standing at a defender standing at its
-## weapon's duelling distance (WeaponDef.duel_distance: Katana 3.0 m since KE task 2,
-## Greatsword 3.0, Daggers 2.0, bare hands 1.6), puts the last 15-20 cm of its
+## weapon's duelling distance (WeaponDef.duel_distance: Katana 3.3 m since KE task 3,
+## Greatsword 3.0, Daggers 2.0, bare hands 1.85), puts the last 15-20 cm of its
 ## blade into them: the most blade inside the defender's capsule at any
 ## moment of the active ticks (SwingReach.touches(), BladeSweep's length
 ## inside); bare hands' fist, shorter than that across its knuckles, goes
@@ -22,6 +22,9 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 const CUT: StringName = &"k_l1"
 const MIN_INSIDE: float = 0.15
 const MAX_INSIDE: float = 0.20
+## Bare hands' lights go up to 21 cm deep on KE task 3's taller bodies, until
+## their re-keys (the owner's choice).
+const FISTS_MAX_INSIDE: float = 0.21
 const WHIFF_FROM: float = 6.0
 ## The synthetic lights below are worked out for Right Cut's lunge ending on
 ## frame 12, the demo's; its baked swing ends it on 13 (authored-animation
@@ -44,8 +47,9 @@ static func _problems(w: WeaponDef, id: StringName) -> Array[String]:
 		var inside: float = 0.0
 		for c: SwingReach.Contact in touches:
 			inside = maxf(inside, SwingReach.inside(c, w))
-		if inside < MIN_INSIDE or inside > MAX_INSIDE:
-			out.append("%s: %.1f cm of blade inside from %.1f m, not 15-20 cm" % [at, inside * 100.0, w.duel_distance])
+		var most: float = FISTS_MAX_INSIDE if w.id == &"fists" else MAX_INSIDE
+		if inside < MIN_INSIDE or inside > most:
+			out.append("%s: %.1f cm of blade inside from %.1f m, not 15-%.0f cm" % [at, inside * 100.0, w.duel_distance, most * 100.0])
 		var lunge_end: int = m.lunge_end if m.lunge_end != AttackDef.UNSET else m.startup + m.active
 		if lunge_end != touches[0].frame:
 			out.append("%s: the lunge ends on frame %d, the first touch is on %d" % [at, lunge_end, touches[0].frame])
@@ -74,7 +78,7 @@ static func _weapon_problems(w: WeaponDef) -> Array[String]:
 
 
 func test_each_weapon_has_its_duelling_distance() -> void:
-	var want: Dictionary[StringName, float] = {&"katana": 3.0, &"greatsword": 3.0, &"daggers": 2.0, &"fists": 1.6}
+	var want: Dictionary[StringName, float] = {&"katana": 3.3, &"greatsword": 3.0, &"daggers": 2.0, &"fists": 1.85}
 	for id: StringName in want:
 		assert_eq(Moves.WEAPONS[id].duel_distance, want[id], String(id))
 
@@ -101,15 +105,15 @@ func test_every_light_with_a_swing_puts_15_to_20_cm_into_a_defender_at_the_duell
 	assert_eq(problems, [] as Array[String])
 
 
-## A Katana with a straight blade 0.5 m short of its own and as thick (0.09
-## to 1.277 m along the hand's frame, 1.5 cm), whose Right Cut holds its point
-## level and straight ahead, the grip `out` m in front at 1.2 m up: the point
-## is 1.277 m further out (or `blade_tip`). From 3.0 m apart, Right Cut's
-## 0.35 m lunge (done on frame 12, its first active frame) leaves the
-## defender's capsule, grown by half the blade, 2.65 - 0.3575 = 2.2925 m
-## away, so `out` - 1.0155 m of blade is inside (the 0.777 m blade from
-## 2.5 m before KE task 2).
-static func _point(out: float, blade_tip: float = 1.277) -> WeaponDef:
+## A Katana with a straight blade as thick as its own (0.09 to 1.507 m along
+## the hand's frame, 1.5 cm), whose Right Cut holds its point level and
+## straight ahead, the grip `out` m in front at 1.2 m up: the point is 1.507 m
+## further out (or `blade_tip`). From 3.3 m apart, Right Cut's 0.35 m lunge
+## (done on frame 12, its first active frame) leaves the defender's 0.42 m
+## capsule, grown by half the blade, 2.95 - 0.4275 = 2.5225 m away, so
+## `out` - 1.0155 m of blade is inside (the 0.777 m blade from 2.5 m before
+## KE task 2, the 1.277 m one from 3.0 m before KE task 3).
+static func _point(out: float, blade_tip: float = 1.507) -> WeaponDef:
 	var key: Swing.KeyPose = SF.key(0, [0.0, 1.2, out], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0])
 	var w: WeaponDef = SF.weapon(&"katana", {CUT: SF.held(Moves.KATANA.moves[CUT], {SF.RIGHT: key} as Dictionary[StringName, Swing.KeyPose])})
 	w.blade = StrikeSegment.make(V3.make(0.0, 0.09, 0.0), V3.make(0.0, blade_tip, 0.0), 0.015)
@@ -132,16 +136,16 @@ func test_the_check_passes_a_light_that_puts_17_cm_in_and_fails_a_graze_and_30_c
 	var deep: Array[String] = _problems(_point(1.3155), CUT)
 	assert_true(_has(deep, "30.0 cm of blade inside"), "30 cm is too deep: %s" % [deep])
 	var short: Array[String] = _problems(_point(0.9), CUT)
-	assert_true(_has(short, "no touch from 3.0 m"), "one that falls short: %s" % [short])
+	assert_true(_has(short, "no touch from 3.3 m"), "one that falls short: %s" % [short])
 
 
 func test_the_check_counts_the_blade_inside_not_how_deep_it_goes() -> void:
-	# the blade held level across the front, pointing right, 2.3034 m out:
-	# 2.65 - 2.3034 = 0.3466 m from the defender's axis it cuts a chord of
-	# 2 * sqrt(0.3575² - 0.3466²) = 17.5 cm through the capsule, though only
-	# 1.1 cm deep
+	# the blade held level across the front, pointing right, 2.5316 m out:
+	# 2.95 - 2.5316 = 0.4184 m from the defender's axis it cuts a chord of
+	# 2 * sqrt(0.4275² - 0.4184²) = 17.5 cm through the capsule, though only
+	# 0.9 cm deep
 	var w: WeaponDef = _point(1.0)
-	var across: Swing.KeyPose = SF.key(0, [-0.3, 1.2, 2.3034], [1.0, 0.0, 0.0], [0.0, -1.0, 0.0])
+	var across: Swing.KeyPose = SF.key(0, [-0.3, 1.2, 2.5316], [1.0, 0.0, 0.0], [0.0, -1.0, 0.0])
 	var cut: AttackDef = w.moves[CUT]
 	cut.swing = SF.held(cut, {SF.RIGHT: across} as Dictionary[StringName, Swing.KeyPose])
 	w.derive_reach()
@@ -164,10 +168,10 @@ func test_the_check_measures_the_deepest_tick_not_the_first_touch() -> void:
 
 
 func test_the_check_fails_a_lunge_that_ends_before_the_touch_and_a_light_that_reaches_6_m() -> void:
-	# the grip 1.2 m out on a level slash: the sweep from 60° to 20° (frame
-	# 12) passes wide of the defender 2.15 m away, and the one across the
-	# front (frame 13) reaches them
-	var w: WeaponDef = SF.weapon(&"katana", {CUT: SF.level_slash(Moves.KATANA.moves[CUT], 1.2, 60.0, -60.0, 1.2)})
+	# the grip 1.43 m out on a level slash: the sweep from 60° to 20° (frame
+	# 12) passes wide of the defender, and the one across the front (frame
+	# 13) reaches them
+	var w: WeaponDef = SF.weapon(&"katana", {CUT: SF.level_slash(Moves.KATANA.moves[CUT], 1.2, 60.0, -60.0, 1.43)})
 	(w.moves[CUT] as AttackDef).lunge_end = DEMO_LUNGE_END
 	var late: Array[String] = _problems(w, CUT)
 	assert_true(_has(late, "the lunge ends on frame 12, the first touch is on 13"), "%s" % [late])

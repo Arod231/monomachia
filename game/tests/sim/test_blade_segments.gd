@@ -70,12 +70,12 @@ func test_the_world_tip_at_two_yaws() -> void:
 
 
 func test_the_blade_is_placed_where_hits_are_decided_after_the_fighters_are_pushed_apart() -> void:
-	# 0.5 m apart, inside the 0.84 m that keeps fighters apart: each step
+	# 0.5 m apart, inside the 1.0 m that keeps fighters apart: each step
 	# pushes them back out after they move, and the blade goes with the push
 	var W: World = H.make_world(_straight_ahead(), Moves.KATANA, 0.5)
 	var f: Fighter = W.fighters[0]
 	W.step([H.btn(Btn.LIGHT), H.idle()])
-	assert_almost_eq(f.pos.z, -0.42, EPS, "pushed back to 0.42 m from the middle")
+	assert_almost_eq(f.pos.z, -0.5, EPS, "pushed back to 0.5 m from the middle")
 	_assert_v3(_only(f).tip, V3.make(f.pos.x - 0.277, 1.3, f.pos.z + 1.89), "the tip, where the fighter was pushed to")
 
 
@@ -253,9 +253,9 @@ func test_only_striking_tracks_of_swings_have_segments() -> void:
 	var halves: Dictionary[StringName, float] = {}
 	for b: BladeSegment in W.fighters[0].blade_segments():
 		halves[b.part] = b.half_thickness
-	assert_eq(halves, {RIGHT: 0.038, &"right_foot": 0.05} as Dictionary[StringName, float], "the fist and the foot")
-	# the foot's frame: from the ankle, the toe 20.5 cm along the foot,
-	# forward, and 3 cm toward the sole, down; facing +Z
+	assert_eq(halves, {RIGHT: 0.0435, &"right_foot": 0.0575} as Dictionary[StringName, float], "the fist and the foot")
+	# the foot's frame: from the ankle, the toe 23 cm along the foot,
+	# forward, and 3.3 cm toward the sole, down; facing +Z
 	var foot: BladeSegment = W.fighters[0].blade_segments()[1]
 	var p: V3 = W.fighters[0].pos
-	_assert_v3(foot.tip, V3.make(p.x - 0.1, 0.4 - 0.03, p.z + 0.3 + 0.205), "the foot's tip")
+	_assert_v3(foot.tip, V3.make(p.x - 0.1, 0.4 - 0.033, p.z + 0.3 + 0.23), "the foot's tip")

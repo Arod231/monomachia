@@ -177,8 +177,8 @@ func drain_events() -> Array[Dictionary]:
 
 
 func reset_round() -> void:
-	fighters[0].reset_for_round(0.0, -3.85, 0.0)
-	fighters[1].reset_for_round(0.0, 3.85, PI)
+	fighters[0].reset_for_round(0.0, -4.15, 0.0)
+	fighters[1].reset_for_round(0.0, 4.15, PI)
 	weapons = []
 	waves = []
 	_scripted_queue = []

@@ -216,7 +216,7 @@ func test_the_header_names_the_move_the_defender_the_views_and_the_whole_move() 
 	await sheet.render(&"k_l1")
 	assert_eq(sheet.title.size(), 5, "a line each")
 	assert_string_contains(sheet.title[0], "k_l1 Right Cut")
-	assert_string_contains(sheet.title[1], "palette B) at 3.0 m")
+	assert_string_contains(sheet.title[1], "palette B) at 3.3 m")
 	assert_eq(sheet.title[2], "views: gameplay camera behind the defender, close")
 	var steps: Array[MoveBench.Step] = await sheet.bench.play(&"k_l1")
 	var whole: String = MoveBench.summary(&"k_l1", steps)
@@ -285,7 +285,7 @@ func test_the_batch_saves_a_sheet_per_move_and_makes_their_index() -> void:
 	assert_eq(index.get_size(), Vector2i(
 		MoveSheet.INDEX_COLUMNS * (cell.x + MoveSheet.GAP) - MoveSheet.GAP,
 		MoveSheet.HEADER_HEIGHT + index_rows * (MoveSheet.GAP + MoveSheet.CAPTION_HEIGHT + cell.y)), "a captioned cell per move")
-	assert_eq(sheet.title[0], "Rogue (palette A) with the Katana against the Rogue (palette B) at 3.0 m: the guard and every move")
+	assert_eq(sheet.title[0], "Rogue (palette A) with the Katana against the Rogue (palette B) at 3.3 m: the guard and every move")
 
 
 func test_a_drive_is_scripted_input_from_rest() -> void:

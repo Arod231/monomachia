@@ -24,7 +24,9 @@ const IMPALER_WALL_MARGIN: float = 0.7
 ## A disarmed weapon sticks no nearer the wall than this (milestone-1 task
 ## 86): its flight is shortened to land on a ring this far inside it.
 const STUCK_WEAPON_MARGIN: float = 0.8
-const FIGHTER_RADIUS: float = 0.42
+## The first bodies' 0.42 m, grown with KE task 3's bodies (20% round the
+## torso, as FighterBody's hurt capsule).
+const FIGHTER_RADIUS: float = 0.5
 const GRAVITY: float = 30.0 # m/s^2 (snappy, game-like)
 const JUMP_CLEAR: float = 0.3 # feet height above which low attacks miss
 ## An unblockable's sweep is this much thicker than its blade on every side
@@ -79,7 +81,7 @@ const STOMP_POSTURE: float = 30.0
 # is driven into the floor (the mikiri counter's pin). A thruster nearer than
 # that (the dodge carried the defender into it) is jolted back to it over
 # STOMP_PUSH_FRAMES while the stomp's hop lands.
-const STOMP_PIN_DIST: Dictionary[StringName, float] = {&"katana": 2.05, &"daggers": 1.1, &"greatsword": 2.15}
+const STOMP_PIN_DIST: Dictionary[StringName, float] = {&"katana": 2.2, &"daggers": 1.1, &"greatsword": 2.15}
 const STOMP_PIN_DIST_DEFAULT: float = 1.55
 const STOMP_PUSH_FRAMES: int = 8
 const LEAP_POSTURE: float = 30.0
