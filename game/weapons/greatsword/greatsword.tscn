@@ -2,16 +2,16 @@
 
 [ext_resource type="ArrayMesh" path="res://weapons/greatsword/greatsword_mesh.res" id="1_cfryj"]
 
-[node name="Greatsword" type="Node3D" unique_id=518996616]
+[node name="Greatsword" type="Node3D" unique_id=939897946]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1373080686]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1331996605]
 mesh = ExtResource("1_cfryj")
 
-[node name="BladeBase" type="Marker3D" parent="." unique_id=564216733]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13551147, 0)
+[node name="BladeBase" type="Marker3D" parent="." unique_id=1584489036]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15583819, 0)
 
-[node name="BladeTip" type="Marker3D" parent="." unique_id=85829947]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3518891, 0)
+[node name="BladeTip" type="Marker3D" parent="." unique_id=1845364931]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5546726, 0)
 
-[node name="OffHandGrip" type="Marker3D" parent="." unique_id=938798373]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2656876, 0)
+[node name="OffHandGrip" type="Marker3D" parent="." unique_id=1021953335]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.30554074, 0)

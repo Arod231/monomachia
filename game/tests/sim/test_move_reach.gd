@@ -72,8 +72,8 @@ func test_the_table_gives_each_kind_of_move_its_distance() -> void:
 	}
 	for id: StringName in want:
 		assert_almost_eq(RT.distance(Moves.KATANA, id), want[id], 1e-9, String(id))
-	assert_almost_eq(RT.distance(Moves.GREATSWORD, &"g_crush"), 3.0, 1e-9, "Guard Crusher, an ability that can be blocked")
-	assert_almost_eq(RT.distance(Moves.GREATSWORD, &"g_dh"), 3.0, 1e-9, "Skewer, from a dodge, by its slot")
+	assert_almost_eq(RT.distance(Moves.GREATSWORD, &"g_crush"), 3.35, 1e-9, "Guard Crusher, an ability that can be blocked")
+	assert_almost_eq(RT.distance(Moves.GREATSWORD, &"g_dh"), 3.35, 1e-9, "Skewer, from a dodge, by its slot")
 	assert_almost_eq(RT.distance(Moves.FISTS, &"f_breaker"), 4.35, 1e-9, "Breaker Palm, the ultimate's palm, + 2.5 m")
 	assert_false(RT.strikes(Moves.KATANA.moves[&"k_flash"]), "Flash strikes nothing, so it isn't tested")
 

@@ -243,7 +243,7 @@ func test_only_striking_tracks_of_swings_have_segments() -> void:
 	var parts: Array[StringName] = []
 	for b: BladeSegment in W.fighters[0].blade_segments():
 		parts.append(b.part)
-		assert_eq(b.half_thickness, 0.007, "%s: half a dagger's 14 mm" % b.part)
+		assert_eq(b.half_thickness, 0.00805, "%s: half a dagger's 16.1 mm" % b.part)
 	assert_eq(parts, [RIGHT, &"left_hand"] as Array[StringName], "both daggers, and not the body")
 	# bare hands: a fist and a foot
 	var kick: Swing.KeyPose = SF.key(0, [0.1, 0.4, 0.3], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0])

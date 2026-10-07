@@ -132,7 +132,7 @@ func test_the_weapons_reach_comes_from_its_light_starters_hand_keyed_swing() -> 
 	# a swing baked from a clip leaves the authored reach (its lunge was
 	# lengthened to keep the reach table's distances; authored animation 20)
 	assert_eq(Moves.KATANA.reach, 2.8, "Right Cut's swing, baked from a clip, leaves the Katana's authored reach")
-	assert_eq(Moves.GREATSWORD.reach, 2.75, "and Heavy Swing's the Greatsword's")
+	assert_eq(Moves.GREATSWORD.reach, 3.1, "and Heavy Swing's the Greatsword's (3.1 m since KE task 4)")
 	var w: WeaponDef = _straight(SF.level_slash(_cut()))
 	assert_almost_eq(w.reach, 1.26, EPS, "a swing on the light starter gives it")
 

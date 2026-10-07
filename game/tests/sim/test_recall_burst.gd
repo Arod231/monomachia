@@ -76,7 +76,7 @@ func test_out_of_reach_the_burst_flares_and_misses() -> void:
 
 
 func test_the_reach_is_the_recalled_weapons_duelling_distance() -> void:
-	for c: Array in [[Moves.GREATSWORD, 2.9, true], [Moves.GREATSWORD, 3.1, false], [Moves.DAGGERS, 1.9, true], [Moves.DAGGERS, 2.1, false]]:
+	for c: Array in [[Moves.GREATSWORD, 3.25, true], [Moves.GREATSWORD, 3.45, false], [Moves.DAGGERS, 2.2, true], [Moves.DAGGERS, 2.4, false]]:
 		var weapon: WeaponDef = c[0]
 		var W: World = _recalling(weapon, c[1])
 		var r: H.Rec = H.Rec.new()
