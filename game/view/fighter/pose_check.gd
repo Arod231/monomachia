@@ -51,12 +51,13 @@ const BLADE_CLEARANCE: float = 0.05
 const FOOT_SLIDE_MAX: float = 0.01
 const PLANT_HEIGHT: float = FootLock.PLANT_HEIGHT
 const LIFT_HEIGHT: float = FootLock.LIFT_HEIGHT
-## The defender's hurt capsule (m): the rules' 0.35 m round, from the feet
-## to 1.75 m. Task 7 puts it in the rules' fighter data.
-const DEFENDER_RADIUS: float = 0.35
-const DEFENDER_HEIGHT: float = 1.75
-## The duelling distance between the fighters (m), the demo's.
-const SPACING: float = 2.5
+## The defender's hurt capsule (m): the rules' 0.42 m round, from the feet
+## to 2.0 m (FighterBody's).
+const DEFENDER_RADIUS: float = 0.42
+const DEFENDER_HEIGHT: float = 2.0
+## The duelling distance between the fighters (m), the Katana's (3.0 m
+## since its 1.3 m blade, KE task 2; 3.3 m on the taller bodies, task 3).
+const SPACING: float = 3.3
 
 ## The capsules, as [name, the bones whose vertices it wraps, its axis from
 ## one bone's joint to another's, or to the crown when the second is empty].

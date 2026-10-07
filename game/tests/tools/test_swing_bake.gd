@@ -323,7 +323,7 @@ func test_local_a_move_bakes_from_an_iglesias_clip() -> void:
 	assert_eq(out["errors"], [] as Array[String])
 	assert_eq((out["report"] as PackedStringArray).size(), 1)
 	assert_string_contains(out["report"][0], "k_l1 (Attack1H01_R ×")
-	assert_string_contains(out["report"][0], "reach from 2.5 m: ", "the reach, measured from the duelling distance")
+	assert_string_contains(out["report"][0], "reach from 3.3 m: ", "the reach, measured from the duelling distance")
 	assert_string_contains(out["report"][0], "Rogue: HumanF ", "the Rogue's clip, measured")
 	var data: Dictionary = JSON.parse_string(out["text"])
 	assert_eq(data["guard"].keys(), ["right_hand", "body"], "the guard has the parts the swings move")
@@ -373,7 +373,17 @@ func test_a_short_light_is_pushed_toward_the_reach_rule() -> void:
 	assert_gt(near.before, SwingBake.LIGHT_MAX_INSIDE, "from 1.5 m it goes deep")
 	assert_true(near.over, "a light over 20 cm in is reported")
 	assert_eq(V3.length(near.offset), 0.0, "and not pulled back")
-	var d: float = 1.5 + near.before - 0.08
+	# found by halving: the blade inside doesn't fall in step with the
+	# distance, the 1.3 m blade crossing the capsule at a slant (KE task 2)
+	var lo: float = 1.5
+	var hi: float = 1.5 + near.before + 1.0
+	for i: int in 14:
+		var mid: float = (lo + hi) * 0.5
+		if SwingBake.correct_reach(_katana_cut(1.5)[2], cut, k, mid).before > 0.08:
+			lo = mid
+		else:
+			hi = mid
+	var d: float = lo
 	got = _katana_cut(1.5)
 	r = got[2]
 	var reach: SwingBake.Reach = SwingBake.correct_reach(r, cut, k, d)
@@ -398,8 +408,8 @@ func test_a_short_light_is_pushed_toward_the_reach_rule() -> void:
 func test_a_move_that_needs_more_than_15_cm_is_reported() -> void:
 	var k: WeaponDef = Moves.WEAPONS[&"katana"]
 	var r: SwingBake.Result = _katana_cut(1.5)[2]
-	# the CC0 cut's tip gets 1.26 m ahead: from the Katana's 2.5 m it can't
-	# reach the defender, however far the arm goes
+	# the CC0 cut's tip doesn't get far enough ahead: from the Katana's 3.0 m
+	# it can't reach the defender, however far the arm goes
 	var reach: SwingBake.Reach = SwingBake.correct_reach(r, k.moves[&"k_l1"], k)
 	assert_eq(reach.distance, k.duel_distance, "a light is tested from its duelling distance")
 	assert_true(reach.short)

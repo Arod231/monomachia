@@ -54,12 +54,14 @@ const POSE_TIME: float = 0.5
 ## grip point, the way its blade points and the way its edge faces (see
 ## FighterRig.weapon_frame()). Review poses only, with both elbows bent: the
 ## guard stances (plan 14.7, 15) bring the real ones.
+## (the grips' places grown by 1.15 with KE task 3's taller bodies, as the
+## framing of every view is)
 const GUARDS: Dictionary[StringName, Array] = {
-	&"katana": [[Vector3(-0.06, 1.08, 0.27), Vector3(0.12, 0.5, 0.86), Vector3(0.0, -1.0, 0.0)]],
-	&"greatsword": [[Vector3(-0.05, 1.15, 0.3), Vector3(0.05, 0.55, 0.83), Vector3(0.0, 0.0, 1.0)]],
+	&"katana": [[Vector3(-0.069, 1.242, 0.311), Vector3(0.12, 0.5, 0.86), Vector3(0.0, -1.0, 0.0)]],
+	&"greatsword": [[Vector3(-0.058, 1.323, 0.345), Vector3(0.05, 0.55, 0.83), Vector3(0.0, 0.0, 1.0)]],
 	&"daggers": [
-		[Vector3(-0.18, 1.12, 0.28), Vector3(-0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
-		[Vector3(0.18, 1.16, 0.26), Vector3(0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
+		[Vector3(-0.207, 1.288, 0.322), Vector3(-0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
+		[Vector3(0.207, 1.334, 0.299), Vector3(0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
 	],
 }
 ## The clip under a guard: the relaxed idle, with the shoulders square.
@@ -388,7 +390,7 @@ func _setup_lineup() -> void:
 	for id: StringName in WeaponLook.IDS:
 		_add_weapon_display(WeaponLook.load_id(id), Vector3(x, 0.4, 0.2))
 		x += 0.45
-	_look_from(Vector3(0.7, 1.5, 5.4), Vector3(0.7, 0.95, 0.0), 42.0)
+	_look_from(Vector3(0.7, 1.73, 6.2), Vector3(0.7, 1.09, 0.0), 42.0)
 	_label.text = "Rogue and Hunter with their signature weapons (palette A); Katana, Greatsword, Dagger"
 
 
@@ -410,9 +412,9 @@ func _setup_fighter(id: StringName, pal: int, weapon: StringName, view_name: Str
 	elif String(view_name).contains("_hand"):
 		_look_at_hand(f, view_name)
 	elif gameplay:
-		_look_from(dir * 5.0 + Vector3(0, 1.9, 0), Vector3(0, 1.0, 0), 55.0)
+		_look_from(dir * 5.75 + Vector3(0, 2.19, 0), Vector3(0, 1.15, 0), 55.0)
 	else:
-		_look_from(dir * 2.7 + Vector3(0, 1.15, 0), Vector3(0, 0.95, 0), 40.0)
+		_look_from(dir * 3.1 + Vector3(0, 1.32, 0), Vector3(0, 1.09, 0), 40.0)
 	var weapon_name: String = f.weapon_look.display_name if f.weapon_look != null else "bare hands"
 	if f.rig.drives("Right"):
 		weapon_name += " in guard"
@@ -491,13 +493,13 @@ func _setup_mirror(id: StringName, shoulder_of: int) -> void:
 	if shoulder_of < 0:
 		a.rotation.y = deg_to_rad(20.0)
 		b.rotation.y = PI + deg_to_rad(20.0)
-		_look_from(Vector3(5.2, 2.0, 0.0), Vector3(0, 1.0, 0), 55.0)
-		_label.text = "%s mirror match: palette A (right) against palette B (left), side on at 5 m" % who
+		_look_from(Vector3(6.0, 2.3, 0.0), Vector3(0, 1.15, 0), 55.0)
+		_label.text = "%s mirror match: palette A (right) against palette B (left), side on at 6 m" % who
 		return
 	var me: FighterModel = a if shoulder_of == 0 else b
 	var fwd: Vector3 = Vector3(0, 0, 1) if shoulder_of == 0 else Vector3(0, 0, -1)
 	var right: Vector3 = Vector3.UP.cross(fwd)
-	_look_from(me.position - fwd * 4.6 - right * 0.9 + Vector3(0, 2.2, 0), me.position + fwd * 1.6 + Vector3(0, 1.0, 0), 60.0)
+	_look_from(me.position - fwd * 5.3 - right * 0.9 + Vector3(0, 2.53, 0), me.position + fwd * 1.6 + Vector3(0, 1.15, 0), 60.0)
 	_label.text = "%s mirror match from the gameplay camera, over palette %s's shoulder" % [who, "AB"[shoulder_of]]
 
 

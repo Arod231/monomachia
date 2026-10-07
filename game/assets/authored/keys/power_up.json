@@ -1,6 +1,6 @@
 {
   "name": "Power_Up",
-  "about": "The recall's power-up burst (authored-animation task 30b, the owner's design, Oct 4, 2026), keyed by eye after the owner's reference (a Super Saiyan power-up: feet planted wide, fists clenched low at the sides, chest out, head thrown back shouting). The gather over frames 0-6, the power stance by 12, the burst at 16 as the weapon returns, the hold and the rise to ready by 26, the rules' recall.",
+  "about": "The recall's power-up burst (authored-animation task 30b, the owner's design, Oct 4, 2026), keyed by eye after the owner's reference (a Super Saiyan power-up: feet planted wide, fists clenched low at the sides, chest out, head thrown back shouting). The gather over frames 0-6, the power stance by 12, the burst at 16 as the weapon returns, the hold and the rise to ready by 26, the rules' recall. Its positions (the hips' and every ankle and wrist target) grew by 1.15 with KE task 3's taller bodies.",
   "frames": 26,
   "base": "Sword_Idle",
   "keys": [
@@ -8,7 +8,7 @@
       "f": 0,
       "note": "set: out of the guard, the feet planted wide where they will stay",
       "hips": {
-        "y": -0.07,
+        "y": -0.081,
         "z": 0,
         "rot": [
           4,
@@ -44,9 +44,9 @@
       "legs": {
         "left": {
           "at": [
-            0.27,
-            0.087,
-            0.06
+            0.31,
+            0.1,
+            0.069
           ],
           "pole": [
             0.55,
@@ -66,9 +66,9 @@
         },
         "right": {
           "at": [
-            0.27,
-            0.087,
-            -0.04
+            0.31,
+            0.1,
+            -0.046
           ],
           "pole": [
             0.55,
@@ -90,9 +90,9 @@
       "arms": {
         "left": {
           "at": [
-            0.22,
-            0.95,
-            0.15
+            0.253,
+            1.092,
+            0.172
           ],
           "pole": [
             0.6,
@@ -107,9 +107,9 @@
         },
         "right": {
           "at": [
-            0.22,
-            0.95,
-            0.15
+            0.253,
+            1.092,
+            0.172
           ],
           "pole": [
             0.6,
@@ -128,8 +128,8 @@
       "f": 6,
       "note": "gather: curled over, the fists drawn in before the belly, the head down",
       "hips": {
-        "y": -0.13,
-        "z": 0.01,
+        "y": -0.149,
+        "z": 0.011,
         "rot": [
           16,
           0,
@@ -164,9 +164,9 @@
       "legs": {
         "left": {
           "at": [
-            0.27,
-            0.087,
-            0.06
+            0.31,
+            0.1,
+            0.069
           ],
           "pole": [
             0.55,
@@ -186,9 +186,9 @@
         },
         "right": {
           "at": [
-            0.27,
-            0.087,
-            -0.04
+            0.31,
+            0.1,
+            -0.046
           ],
           "pole": [
             0.55,
@@ -210,9 +210,9 @@
       "arms": {
         "left": {
           "at": [
-            0.14,
-            0.98,
-            0.2
+            0.161,
+            1.127,
+            0.23
           ],
           "pole": [
             1,
@@ -227,9 +227,9 @@
         },
         "right": {
           "at": [
-            0.14,
-            0.98,
-            0.2
+            0.161,
+            1.127,
+            0.23
           ],
           "pole": [
             1,
@@ -248,8 +248,8 @@
       "f": 12,
       "note": "power: chest thrown out, the head back shouting, the fists clenched low at the sides, elbows bent out",
       "hips": {
-        "y": -0.15,
-        "z": -0.02,
+        "y": -0.172,
+        "z": -0.023,
         "rot": [
           -4,
           0,
@@ -284,9 +284,9 @@
       "legs": {
         "left": {
           "at": [
-            0.27,
-            0.087,
-            0.06
+            0.31,
+            0.1,
+            0.069
           ],
           "pole": [
             0.55,
@@ -306,9 +306,9 @@
         },
         "right": {
           "at": [
-            0.27,
-            0.087,
-            -0.04
+            0.31,
+            0.1,
+            -0.046
           ],
           "pole": [
             0.55,
@@ -330,9 +330,9 @@
       "arms": {
         "left": {
           "at": [
-            0.3,
-            0.84,
-            -0.02
+            0.345,
+            0.966,
+            -0.023
           ],
           "pole": [
             1,
@@ -347,9 +347,9 @@
         },
         "right": {
           "at": [
-            0.3,
-            0.84,
-            -0.02
+            0.345,
+            0.966,
+            -0.023
           ],
           "pole": [
             1,
@@ -368,8 +368,8 @@
       "f": 16,
       "note": "burst: the widest, the aura flares out and the weapon returns to the right hand",
       "hips": {
-        "y": -0.16,
-        "z": -0.03,
+        "y": -0.184,
+        "z": -0.034,
         "rot": [
           -6,
           0,
@@ -404,9 +404,9 @@
       "legs": {
         "left": {
           "at": [
-            0.27,
-            0.087,
-            0.06
+            0.31,
+            0.1,
+            0.069
           ],
           "pole": [
             0.55,
@@ -426,9 +426,9 @@
         },
         "right": {
           "at": [
-            0.27,
-            0.087,
-            -0.04
+            0.31,
+            0.1,
+            -0.046
           ],
           "pole": [
             0.55,
@@ -450,9 +450,9 @@
       "arms": {
         "left": {
           "at": [
-            0.34,
-            0.82,
-            -0.05
+            0.391,
+            0.943,
+            -0.057
           ],
           "pole": [
             1,
@@ -467,9 +467,9 @@
         },
         "right": {
           "at": [
-            0.34,
-            0.82,
-            -0.05
+            0.391,
+            0.943,
+            -0.057
           ],
           "pole": [
             1,
@@ -488,8 +488,8 @@
       "f": 21,
       "note": "hold: the shout eases, still braced",
       "hips": {
-        "y": -0.15,
-        "z": -0.02,
+        "y": -0.172,
+        "z": -0.023,
         "rot": [
           -3,
           0,
@@ -524,9 +524,9 @@
       "legs": {
         "left": {
           "at": [
-            0.27,
-            0.087,
-            0.06
+            0.31,
+            0.1,
+            0.069
           ],
           "pole": [
             0.55,
@@ -546,9 +546,9 @@
         },
         "right": {
           "at": [
-            0.27,
-            0.087,
-            -0.04
+            0.31,
+            0.1,
+            -0.046
           ],
           "pole": [
             0.55,
@@ -570,9 +570,9 @@
       "arms": {
         "left": {
           "at": [
-            0.32,
-            0.84,
-            -0.02
+            0.368,
+            0.966,
+            -0.023
           ],
           "pole": [
             1,
@@ -587,9 +587,9 @@
         },
         "right": {
           "at": [
-            0.32,
-            0.84,
-            -0.02
+            0.368,
+            0.966,
+            -0.023
           ],
           "pole": [
             1,
@@ -608,7 +608,7 @@
       "f": 26,
       "note": "ready: the weapon brought up before the body",
       "hips": {
-        "y": -0.1,
+        "y": -0.115,
         "z": 0,
         "rot": [
           4,
@@ -644,9 +644,9 @@
       "legs": {
         "left": {
           "at": [
-            0.27,
-            0.087,
-            0.06
+            0.31,
+            0.1,
+            0.069
           ],
           "pole": [
             0.55,
@@ -666,9 +666,9 @@
         },
         "right": {
           "at": [
-            0.27,
-            0.087,
-            -0.04
+            0.31,
+            0.1,
+            -0.046
           ],
           "pole": [
             0.55,
@@ -690,9 +690,9 @@
       "arms": {
         "left": {
           "at": [
-            0.22,
-            0.92,
-            0.1
+            0.253,
+            1.058,
+            0.115
           ],
           "pole": [
             0.6,
@@ -707,9 +707,9 @@
         },
         "right": {
           "at": [
-            0.26,
-            0.88,
-            0.16
+            0.299,
+            1.012,
+            0.184
           ],
           "pole": [
             0.5,

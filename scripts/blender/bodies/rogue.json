@@ -1,0 +1,17 @@
+{
+	"about": "KE task 3 (D10): the fighter's Quaternius parts, re-proportioned by scripts/blender/reproportion_fighter.py into blender/bodies/<fighter>/<part>.blend in the asset repository: scale about the floor, the shoulder joints' spread (each clavicle moved out, measured on the reference part, the outfit body the game's skeleton comes from) and the head bone's size.",
+	"fighter": "rogue",
+	"reference": "Female_Ranger_Body",
+	"scale": 1.15,
+	"shoulders": 1.08,
+	"head": 0.95,
+	"parts": {
+		"Superhero_Female_FullBody": "quaternius/Universal Base Characters[Standard]/Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Female_FullBody.gltf",
+		"Hair_Long": "quaternius/Universal Base Characters[Standard]/Universal Base Characters[Standard]/Hairstyles/Rigged to Head Bone/glTF (Godot -Unreal)/Hair_Long.gltf",
+		"Female_Ranger_Body": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Female_Ranger_Body.gltf",
+		"Female_Ranger_Arms": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Female_Ranger_Arms.gltf",
+		"Female_Ranger_Legs": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Female_Ranger_Legs.gltf",
+		"Female_Ranger_Feet": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Female_Ranger_Feet.gltf",
+		"Female_Ranger_Head_Hood": "quaternius/Modular Character Outfits - Fantasy[Standard]/Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Modular Parts/Female_Ranger_Head_Hood.gltf"
+	}
+}

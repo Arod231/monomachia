@@ -57,11 +57,11 @@ const DYE := Color(0.86, 0.62, 0.66)
 const MOON_WASH: float = 0.35
 
 ## The gameplay camera's framing: the board's Camera 2, For Honor's.
-const CAMERA_BACK: float = 3.4
+const CAMERA_BACK: float = 4.49
 const CAMERA_SIDE: float = 1.0
 const CAMERA_CLOSE_SIDE: float = 0.6
-const CAMERA_CLOSE_FROM: float = 3.5
-const CAMERA_HEIGHT: float = 1.75
+const CAMERA_CLOSE_FROM: float = 4.62
+const CAMERA_HEIGHT: float = 2.01
 const CAMERA_FOV: float = 55.0
 
 ## The look test's gate (Godot check 5), and the bench's run.

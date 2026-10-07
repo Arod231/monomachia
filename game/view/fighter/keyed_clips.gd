@@ -31,8 +31,9 @@ const PINNED: StringName = &"Mikiri_Pinned"
 const POWER_UP: StringName = &"Power_Up"
 ## Where the stomp's right foot presses the blade from its landing on: the
 ## middle of the sole, in the stomper's fighter space (+Z forward, +X its
-## left), on the floor (Mikiri_Stomp's right ankle key, 0.32 m ahead).
-const STOMP_FOOT: Vector3 = Vector3(-0.12, 0.015, 0.39)
+## left), on the floor (Mikiri_Stomp's right ankle key, 0.368 m ahead since
+## KE task 3's taller bodies).
+const STOMP_FOOT: Vector3 = Vector3(-0.138, 0.017, 0.449)
 ## The thruster's stun frames: the tip driven down onto the floor by PIN_FULL
 ## (the foot's landing), held there to PIN_RELEASE, wrenched free by PIN_FREE.
 const PIN_FULL: float = 8.0

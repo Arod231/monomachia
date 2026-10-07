@@ -54,7 +54,7 @@ const MOVES: Dictionary = {
 		# rising from the crouch Heaven Splitter ends in (KE task 7)
 		"side_start": &"centre", "side_end": &"left",
 		"damage": 12, "posture": 15, "knockback": 0.9,
-		"range": 2.3, "arc": 90, "lunge": 1.2, "lunge_end": 18,
+		"range": 2.3, "arc": 90, "lunge": 1.25, "lunge_end": 18,
 	},
 	# the horizontal Iai's heavy follow-up, back the other way
 	&"k_rdraw": {
@@ -69,7 +69,7 @@ const MOVES: Dictionary = {
 		"id": &"k_h2", "name": "Heaven Splitter", "kind": &"heavy", "type": &"overhead", "anim": &"overhead",
 		"side_start": &"centre", "side_end": &"centre",
 		"damage": 15, "posture": 18, "knockback": 1.2,
-		"range": 2.4, "arc": 60, "lunge": 0.95, "lunge_start": 8, "lunge_end": 24,
+		"range": 2.4, "arc": 60, "lunge": 1.0, "lunge_start": 8, "lunge_end": 24,
 		"chargeable": true, "chain_heavy": &"k_h1f",
 	},
 	# the one-handed heavy (KE task 7, D13), charged by holding heavy (D9):
@@ -79,7 +79,7 @@ const MOVES: Dictionary = {
 		"id": &"k_coil", "name": "Crescent Coil", "kind": &"heavy", "type": &"slash", "anim": &"overhead",
 		"side_start": &"centre", "side_end": &"centre",
 		"damage": 13, "posture": 15, "knockback": 1.0,
-		"range": 2.4, "arc": 60, "lunge": 0.95, "lunge_start": 8, "lunge_end": 24,
+		"range": 2.4, "arc": 60, "lunge": 1.0, "lunge_start": 8, "lunge_end": 24,
 		"chargeable": true,
 	},
 	&"k_sl": {
@@ -105,7 +105,7 @@ const MOVES: Dictionary = {
 	&"k_bl": {
 		"id": &"k_bl", "name": "Rising Cut", "kind": &"light", "type": &"slash", "anim": &"diagUp",
 		"damage": 6, "posture": 8, "knockback": 0.4,
-		"range": 2.2, "arc": 100, "lunge": 1.25,
+		"range": 2.2, "arc": 100, "lunge": 1.3,
 	},
 	&"k_bh": {
 		"id": &"k_bh", "name": "Lunging Cut", "kind": &"heavy", "type": &"slash", "anim": &"diagDown",
@@ -177,12 +177,13 @@ static func build() -> WeaponDef:
 		"abilities": [&"k_flash", &"k_thrust", &"k_sweep"],
 		"default_abilities": [&"k_flash", &"k_thrust"],
 		"ultimate": &"moonsplitter",
-		"reach": 2.1,
-		"duel_distance": 2.5,
+		"reach": 2.8,
+		"duel_distance": 3.3,
 		"blurb": "Balanced and versatile. Flash parries with a wide window and stuns.",
-		# the blade from the habaki to the point, curving off the straight line
-		# by up to 3 cm; 1.4 cm thick at the habaki and 7 mm along the blade
-		"blade": StrikeSegment.make(V3.make(0.001, 0.09, 0.0), V3.make(-0.077, 0.777, 0.0), 0.015),
+		# the 1.3 m blade (KE task 2) from the habaki to the point, curving off
+		# the straight line by up to 3 cm; 1.4 cm thick at the habaki and 7 mm
+		# along the blade
+		"blade": StrikeSegment.make(V3.make(0.0015, 0.09, 0.0), V3.make(-0.077, 1.39, 0.0), 0.015),
 		"foot": null,
 		# the left hand below the right on the long handle
 		"off_hand_grip": V3.make(0.0, -0.15, 0.0),

@@ -11,7 +11,9 @@ extends SceneTree
 ## (v0.1-web-mvp:scripts/counterlab.ts) line for line up to commit 4222167 (plan task 8.2, which records that baseline);
 ## since then it reports on the Godot rules alone. Since milestone-1 task 83
 ## its cases are the Katana's thrust and sweep through Training's routes (the
-## Greatsword's slam returns in milestone 2). The tally is printed like
+## Greatsword's slam returns in milestone 2). Since KE task 9 each case runs
+## once per grip, a line each, and every grip must land the counter. The
+## tally is printed like
 ## console.log, see JsFormat. If a script error aborts the run, _process()
 ## still quits, with exit code 1.
 
@@ -37,10 +39,12 @@ func _run() -> void:
 	var missed: Array[String] = []
 	for c: Array in lab.CASES:
 		var kind: StringName = c[0]
-		var tally: Dictionary[String, int] = lab.run(kind, c[1], 60 * 60)
-		print("%s %s" % [kind, JsFormat.inspect(tally)])
-		if tally.get("counter:" + String(c[2]), 0) == 0:
-			missed.append("%s never countered by %s" % [kind, c[2]])
+		for grip: StringName in lab.grips():
+			var tally: Dictionary[String, int] = lab.run(kind, c[1], 60 * 60, grip)
+			var label: String = "%s %s" % [kind, grip] if grip != &"" else String(kind)
+			print("%s %s" % [label, JsFormat.inspect(tally)])
+			if tally.get("counter:" + String(c[2]), 0) == 0:
+				missed.append("%s never countered by %s" % [label, c[2]])
 	for m: String in missed:
 		printerr("counterlab: " + m)
 	_exit_code = 0 if missed.is_empty() else 1
