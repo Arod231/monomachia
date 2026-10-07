@@ -40,6 +40,7 @@ describe('package.json', () => {
       'counterlab',
       'dev',
       'export',
+      'fonts',
       'godot',
       'play',
       'post',

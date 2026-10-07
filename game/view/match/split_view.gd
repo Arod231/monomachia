@@ -37,7 +37,7 @@ func _init() -> void:
 		if i == 1:
 			divider = ColorRect.new()
 			divider.name = "Divider"
-			divider.color = UiPalette.INK
+			divider.color = UiPalette.LACQUER
 			divider.custom_minimum_size = Vector2(DIVIDER_WIDTH, 0.0)
 			divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(divider)

@@ -20,7 +20,7 @@ A minimalist fighting-game HUD: HP bars in classic style with the posture bar un
 
 ## Menus
 
-An ink-wash UI theme with bundled Zen fonts, on a screen stack with keyboard and controller navigation ([[Task 22]]). The ink-wash theme is what the code has today; the Oct 4 redesign above replaces it.
+A lacquer-and-gold UI theme on a screen stack with keyboard and controller navigation ([[Task 22]]). Since milestone 1's task 53 (Oct 7) the menus wear the mood board's UI A in place of the ink-wash theme: black lacquer panels in a double gold hairline with a small gold flourish of grasses at each corner, a gold underline over a warm gold wash on the focused entry, titles and buttons in the Shippori Mincho B1 serif, kanji brushed in ivory in Yuji Boku, text in Zen Kaku Gothic New, and the title's 一騎 seal still crimson. The two new fonts are cut down to the characters the game uses. The HUD's restyle follows.
 
 - **Built:** the title over a live duel, the main menu, the fighter select (grid, sides, difficulty, arena, lock in, the loadout panel and the 3D preview of the fighter idling and turning), results with stats, Rematch and Change fighters, Settings, the Controls screen with rebinding capture and profiles, How to play with the move list, and the pause menu (Resume, Move list, Controls, Settings, Restart, Quit to menu) over the frozen match. The whole flow is walked by tests with the keyboard alone and with a controller alone, and every screen has a shot scene.
 - **To come (Oct 4):** a black-and-white mode in Settings ([[Art direction]]).

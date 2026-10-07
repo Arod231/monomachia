@@ -254,7 +254,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 178. As a player, I want the round calls redesigned in brushed calligraphy, with Warrior Slain among them, so that ink survives where it belongs.
 179. As a player, I want the finisher prompt designed as the heavy button's glyph, from the device I last used, over the disarmed fighter, so that I can read it in the slow motion.
 180. As a player, I want the HUD's off-screen marker for my dropped weapon restyled and lifted to clear the stuck weapon's hilt, so that I can always find my weapon. **(P7, confirmed Oct 4)**
-181. As a player, I want the menus to take the new theme (colours, fonts and panels) so nothing looks ink-wash, with their layouts redone later, so that the game looks consistent.
+181. [x] As a player, I want the menus to take the new theme (colours, fonts and panels) so nothing looks ink-wash, with their layouts redone later, so that the game looks consistent. (Ticked with task 53.)
 182. [x] As a player, I want four graphics presets (Ultra, High, Medium and Low), with Ultra as the reference preset, so that the game runs on my machine. (Ticked with task 29.)
 183. [x] As a player, I want the first launch to pick a preset from my graphics card, so that the game starts well without fiddling. (Ticked with task 29.)
 184. As a player, I want Ultra to render at about 1440p–1800p and upscale to 4K with FSR 2.2, and Low to drop only atmosphere (volumetric fog becomes height fog, petals stop casting light, no ambient occlusion, fewer decals) while keeping the palettes, the rim lights, blood, the 危 and the cinematic shots, so that every preset reads the fight.

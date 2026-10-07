@@ -38,7 +38,7 @@ extends CanvasLayer
 ## with pause. Port of the
 ## announcement and bar logic of v0.1-web-mvp:src/ui/hud.ts (its milliseconds become
 ## frames at 60 per second). Its text takes the UI theme's fonts
-## (ui/theme/ink_wash.tres) and its colours are UiPalette's.
+## (ui/theme/lacquer_gold.tres) and its colours are UiPalette's.
 
 ## The host to follow. The default is the parent (match_host.tscn).
 @export var host_path: NodePath = ^".."
@@ -63,7 +63,7 @@ const POSTURE_COLORS: Dictionary = {
 	HudState.Posture.HOT: UiPalette.POSTURE_HOT,
 	HudState.Posture.FULL: UiPalette.DANGER,
 }
-const SEAL_COLORS: Array[Color] = [UiPalette.LACQUER, UiPalette.INDIGO]
+const SEAL_COLORS: Array[Color] = [UiPalette.CRIMSON, UiPalette.INDIGO]
 const SEALS: Array[String] = MatchResults.SEALS
 ## An announcement in the theme's colour (announce()'s default).
 const NO_COLOR: Color = Color(0.0, 0.0, 0.0, 0.0)
@@ -538,7 +538,7 @@ func _label(node_name: String, text: String, variation: StringName, font_size: i
 	var l: Label = UiTheme.label(text, variation, font_size)
 	l.name = node_name
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	l.add_theme_color_override("font_outline_color", Color(UiPalette.INK, 0.85))
+	l.add_theme_color_override("font_outline_color", Color(UiPalette.LACQUER, 0.85))
 	l.add_theme_constant_override("outline_size", outline)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
@@ -605,7 +605,7 @@ func _build() -> void:
 		hp.custom_minimum_size = Vector2(BAR_WIDTH, 18.0)
 		hp.reversed = right
 		hp.slant = 10.0
-		hp.fill_bottom = UiPalette.HP_LO
+		hp.fill_bottom = UiPalette.CRIMSON_DEEP
 		_add_bar(box, hp, right)
 		_hp.append(hp)
 		var posture: HudBar = HudBar.new()
@@ -716,7 +716,7 @@ func _build() -> void:
 	prompts = prompt_columns[0]
 
 	_packs_note = _label("PacksNote", ClipLibraries.MISSING_NOTE, &"", 14, 3)
-	_packs_note.add_theme_color_override("font_color", Color(UiPalette.PAPER, 0.7))
+	_packs_note.add_theme_color_override("font_color", Color(UiPalette.IVORY, 0.7))
 	_packs_note.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_packs_note.offset_left = 16.0
 	_packs_note.offset_right = 400.0

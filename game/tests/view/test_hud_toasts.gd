@@ -11,7 +11,7 @@ extends GutTest
 const GOLD: Color = Color("#ffd98a")
 const JADE: Color = UiPalette.JADE
 const RED: Color = Color("#ff6a4a")
-const DIM: Color = UiPalette.PAPER_DIM
+const DIM: Color = UiPalette.IVORY_DIM
 const BLUE: Color = Color("#8cbcf0")
 
 var host: MatchHost

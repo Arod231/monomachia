@@ -65,7 +65,7 @@ func test_a_lost_duel_shows_defeat_with_its_kanji() -> void:
 	assert_eq(_kanji().text, "敗北")
 	assert_eq(_kanji().theme_type_variation, UiTheme.KANJI)
 	assert_eq(_headline().text, "Defeat")
-	assert_eq(_headline().get_theme_color(&"font_color"), UiPalette.HP_HI)
+	assert_eq(_headline().get_theme_color(&"font_color"), UiPalette.CRIMSON)
 
 
 func test_a_won_duel_shows_victory_in_gold() -> void:
@@ -83,7 +83,7 @@ func test_training_shows_victory_and_defeat_in_gold_and_red() -> void:
 	assert_eq(_headline().get_theme_color(&"font_color"), UiPalette.GOLD)
 	await _show(_results(MatchConfig.TRAINING, 1, 0))
 	assert_eq(_headline().text, "Defeat")
-	assert_eq(_headline().get_theme_color(&"font_color"), UiPalette.HP_HI)
+	assert_eq(_headline().get_theme_color(&"font_color"), UiPalette.CRIMSON)
 
 
 func test_watch_and_versus_name_the_winner_in_their_colour() -> void:

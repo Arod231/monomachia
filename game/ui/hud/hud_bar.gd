@@ -16,9 +16,9 @@ extends Control
 		lag = clampf(v, 0.0, 1.0)
 		queue_redraw()
 @export var reversed: bool = false
-@export var fill_color: Color = UiPalette.HP_HI
+@export var fill_color: Color = UiPalette.CRIMSON
 ## The fill's colour at the foot (the same as fill_color for a flat fill).
-@export var fill_bottom: Color = UiPalette.HP_HI
+@export var fill_bottom: Color = UiPalette.CRIMSON
 @export var lag_color: Color = Color(Color("#f3ead8"), 0.85)
 @export var back_color: Color = Color(0.04, 0.024, 0.024, 0.8)
 @export var edge_color: Color = UiPalette.GOLD_DIM
