@@ -113,15 +113,17 @@ func test_the_features_the_milestone_needs_are_there() -> void:
 
 func test_the_key_and_rim_light_only_fighters() -> void:
 	var t: LookTest = _look()
+	var mine: int = LookPalette.side_layer(t.fighter.side)
 	for light: Light3D in [t.key_light, t.rim_light]:
-		assert_eq(light.light_cull_mask, LookPalette.FIGHTER_LAYER, "%s touches fighters only" % light.name)
+		assert_eq(light.light_cull_mask, mine, "%s touches the fighter only" % light.name)
+		assert_true(t.fighter.lights.is_ancestor_of(light), "%s is the fighter's own (task 44)" % light.name)
 	var lit: int = 0
 	for g: GeometryInstance3D in _geometry(t.fighter):
-		if g.layers & LookPalette.FIGHTER_LAYER:
+		if g.layers & mine:
 			lit += 1
-	assert_gt(lit, 0, "the fighter is on the fighters' layer")
+	assert_gt(lit, 0, "the fighter is on its side's layer")
 	for g: GeometryInstance3D in _geometry(t.arena):
-		assert_eq(g.layers & LookPalette.FIGHTER_LAYER, 0, "%s isn't" % g.name)
+		assert_eq(g.layers & LookPalette.SIDE_LAYERS_MASK, 0, "%s isn't" % g.name)
 
 
 func test_the_camera_is_camera_2() -> void:

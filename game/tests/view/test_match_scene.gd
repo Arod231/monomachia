@@ -371,6 +371,19 @@ func test_every_camera_sees_the_grade_under_the_film_grain() -> void:
 	assert_lt(view.grain.layer, hud.layer, "under the HUD")
 
 
+## Milestone-1 task 44: each fighter brings its own key and rim light, which
+## light only that fighter, in every mode.
+func test_each_fighter_brings_its_own_key_and_rim_light() -> void:
+	for mode: StringName in [MatchConfig.DUEL, MatchConfig.WATCH]:
+		host.start(_cpu(mode))
+		for i: int in 2:
+			var lights: FighterLights = view.fighters[i].lights
+			assert_not_null(lights, "%s: fighter %d has its lights" % [mode, i])
+			if lights != null:
+				assert_eq(lights.key.light_cull_mask, LookPalette.side_layer(i), "%s: fighter %d's key lights it alone" % [mode, i])
+				assert_eq(lights.rim.light_cull_mask, LookPalette.side_layer(i), "%s: fighter %d's rim lights it alone" % [mode, i])
+
+
 func test_the_camera_takes_the_arenas_camera_data() -> void:
 	var standin: MatchConfig = _cpu()
 	host.start(standin)

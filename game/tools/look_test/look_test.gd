@@ -16,7 +16,7 @@ extends Node
 ##   volumetric fog that eats the background, the lanterns the few warm
 ##   lights, colour only as accents;
 ## - the fighter lifted out of the dark by a key and a rim light that touch
-##   only fighters (LookPalette.FIGHTER_LAYER);
+##   only it (FighterLights, the game's since task 44);
 ## - clean while fighting: FSR 2.2's temporal anti-aliasing at Ultra's 67%
 ##   (or Godot's TAA at full resolution, --aa=taa), subtle bloom, ambient
 ##   occlusion, fog, the grade and light grain;
@@ -340,10 +340,6 @@ func _show(delta: float) -> void:
 	var chest: Vector3 = _pos(0) + Vector3(0.0, 1.3, 0.0)
 	var ahead: Vector3 = (_pos(1) - _pos(0)).normalized()
 	var left: Vector3 = Vector3.UP.cross(ahead).normalized()
-	key_light.global_position = chest + ahead * 2.2 + left * 1.6 + Vector3(0.0, 1.4, 0.0)
-	key_light.look_at(chest, Vector3.UP)
-	rim_light.global_position = chest + ahead * 1.6 - left * 1.8 + Vector3(0.0, 1.8, 0.0) - ahead * 3.4
-	rim_light.look_at(chest, Vector3.UP)
 	match view_kind:
 		View.GAMEPLAY:
 			rig_camera.update_rig(delta, _pos(0), _pos(1))
@@ -377,29 +373,13 @@ func _dye(root: Node) -> void:
 
 # ------------------------------------------------------------------ lights and camera
 
-## The key and the rim on the fighter alone: the key from in front and to its
-## left in moonlit steel, the rim cold from behind and above, both on
-## FIGHTER_LAYER, so the fighter comes out of the dark and nothing else does.
+## The fighter's own key and rim light, the game's since milestone-1 task 44
+## (FighterLights): the key from in front and to its left in moonlit steel,
+## the rim cold from behind and above, lighting only this fighter.
 func _build_lights() -> void:
-	key_light = SpotLight3D.new()
-	key_light.name = "FighterKey"
-	key_light.light_color = LookPalette.MOON_STEEL.lightened(0.3)
-	key_light.light_energy = 6.0
-	key_light.spot_range = 7.0
-	key_light.spot_angle = 26.0
-	key_light.light_cull_mask = LookPalette.FIGHTER_LAYER
-	key_light.light_volumetric_fog_energy = 0.0
-	key_light.shadow_enabled = true
-	stage.add_child(key_light)
-	rim_light = SpotLight3D.new()
-	rim_light.name = "FighterRim"
-	rim_light.light_color = Color(0.72, 0.8, 1.0)
-	rim_light.light_energy = 9.0
-	rim_light.spot_range = 8.0
-	rim_light.spot_angle = 22.0
-	rim_light.light_cull_mask = LookPalette.FIGHTER_LAYER
-	rim_light.light_volumetric_fog_energy = 0.0
-	stage.add_child(rim_light)
+	fighter.show_lights(true)
+	key_light = fighter.lights.key
+	rim_light = fighter.lights.rim
 
 
 ## The gameplay camera with Camera 2's numbers, or a plain camera for the

@@ -26,4 +26,5 @@ particle_ratio = 1.0
 minor_lights = true
 scenery_detail = 2
 push_in_dof = false
+fighter_shadows = false
 spark_light = false

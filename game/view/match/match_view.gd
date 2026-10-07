@@ -327,6 +327,8 @@ func _on_match_started(cfg: MatchConfig) -> void:
 		var f: FighterView = FighterView.new()
 		f.name = "Fighter%d" % fighters.size()
 		add_child(f)
+		# each fighter's own key and rim light (milestone-1 task 44)
+		f.show_lights(true)
 		fighters.append(f)
 	for i: int in 2:
 		var s: MatchSide = cfg.sides[i]

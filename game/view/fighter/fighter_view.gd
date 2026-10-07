@@ -117,6 +117,11 @@ var palette: int = 0
 var weapon_id: StringName = &""
 var side: int = 0
 var model: FighterModel
+## The fighter's own key and rim light (milestone-1 task 44) while
+## show_lights() has them on, else null: the match and the look test turn
+## them on; the tools' views (sheets, the Studio, the menus' preview) stay
+## in their own neutral light.
+var lights: FighterLights
 ## The legs: the model's locomotion tree.
 var locomotion: Locomotion
 ## The last pose applied, for tests and debugging.
@@ -165,6 +170,9 @@ func setup(p_fighter: StringName, p_palette: int, p_weapon: StringName, p_side: 
 	palette = p_palette
 	weapon_id = p_weapon
 	side = p_side
+	_tag_side()
+	if lights != null:
+		lights.set_side(side)
 	model.apply_palette(p_palette)
 	_ring_mat.albedo_color = side_color().lightened(0.2)
 	_hold(p_weapon)
@@ -173,6 +181,21 @@ func setup(p_fighter: StringName, p_palette: int, p_weapon: StringName, p_side: 
 	_flash_strength = 0.0
 	_light_body(Color(0.0, 0.0, 0.0, 0.0))
 	_light_weapons(Color.BLACK)
+
+
+## Turns the fighter's own key and rim light on or off.
+func show_lights(on: bool) -> void:
+	if on == (lights != null):
+		return
+	if on:
+		lights = FighterLights.new()
+		add_child(lights)
+		lights.set_side(side)
+		GraphicsApplier.apply_to_tree(GameServices.graphics_preset(), lights)
+	else:
+		remove_child(lights)
+		lights.free()
+		lights = null
 
 
 ## Holds another weapon (the training dummy's swap), keeping everything else.
@@ -633,7 +656,21 @@ func _hold(wid: StringName) -> void:
 	for w: Node3D in model.weapons:
 		for node: Node in w.find_children("*", "MeshInstance3D", true, false):
 			_weapon_meshes.append(node as MeshInstance3D)
+	_tag_side()
 	GraphicsApplier.apply_to_tree(GameServices.graphics_preset(), model.weapon_root)
+
+
+## Puts what the fighter draws on the fighters' layer (its body and the
+## weapons it holds) on its side's layer too (LookPalette.side_layer()), so
+## its own lights find it and the other fighter's don't.
+func _tag_side() -> void:
+	if model == null:
+		return
+	var mine: int = LookPalette.side_layer(side)
+	for node: Node in model.find_children("*", "GeometryInstance3D", true, false):
+		var g := node as GeometryInstance3D
+		if g.layers & LookPalette.FIGHTER_LAYER:
+			g.layers = (g.layers & ~LookPalette.SIDE_LAYERS_MASK) | mine
 
 
 # ------------------------------------------------------------------ overlays

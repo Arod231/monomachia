@@ -18,6 +18,8 @@ extends RefCounted
 ##   are shown when the preset's scenery_detail reaches that level;
 ## - Light3D nodes in group look_petal_light (the petals' lights) and Decal
 ##   nodes in group look_minor_decal are shown or hidden;
+## - Light3D nodes in group look_fighter_key (each fighter's key light,
+##   FighterLights) cast shadows or not;
 ## - WorldEnvironment nodes get fog, height fog and glow, volumetric fog and
 ##   ambient occlusion (only where the environment had them), and the look's
 ##   colour grade (LookGrade) unless they bring their own;
@@ -33,6 +35,7 @@ const GROUP_PARTICLES: StringName = &"look_particles"
 const GROUP_SCENERY: StringName = &"look_scenery_detail"
 const GROUP_PETAL_LIGHT: StringName = &"look_petal_light"
 const GROUP_MINOR_DECAL: StringName = &"look_minor_decal"
+const GROUP_FIGHTER_KEY: StringName = &"look_fighter_key"
 const META_DETAIL: StringName = &"look_detail"
 ## The environment's own height fog density, kept so a preset that turned it
 ## off can turn it back on.
@@ -94,6 +97,8 @@ static func _walk(preset: GraphicsPreset, node: Node) -> void:
 		(node as Light3D).visible = preset.minor_lights
 	if node is Light3D and node.is_in_group(GROUP_PETAL_LIGHT):
 		(node as Light3D).visible = preset.petal_lights
+	if node is Light3D and node.is_in_group(GROUP_FIGHTER_KEY):
+		(node as Light3D).shadow_enabled = preset.fighter_shadows
 	if node is Decal and node.is_in_group(GROUP_MINOR_DECAL):
 		(node as Decal).visible = preset.minor_decals
 	if node is GPUParticles3D and node.is_in_group(GROUP_PARTICLES):

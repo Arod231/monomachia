@@ -59,12 +59,13 @@ func test_every_preset_follows_ultra_but_for_its_named_cuts() -> void:
 
 ## The parry push-in's depth of field joins them (milestone-1 task 39: off on
 ## Low, the owner's choice, Oct 6), and the sparks' contact lights (task 37:
-## Ultra and High only, the owner's choice, Oct 6).
+## Ultra and High only, the owner's choice, Oct 6), and the fighters' key
+## light shadows (task 44: off on Low, the owner's choice, Oct 7).
 func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 	assert_eq(GraphicsPreset.CUTS, [
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
-		&"push_in_dof", &"spark_light",
+		&"push_in_dof", &"spark_light", &"fighter_shadows",
 	] as Array[StringName])
 
 
@@ -176,7 +177,7 @@ func test_the_card_table_is_committed_data_and_names_only_real_presets() -> void
 
 ## A small scene with one of everything the applier touches, in this order:
 ## environment (with height fog), shadow light, minor light, particles, far
-## scenery, petal light, minor decal and a camera rig.
+## scenery, petal light, a fighter's key light, minor decal and a camera rig.
 func _scene(volumetric: bool = true, ssao: bool = true) -> Node3D:
 	var root := Node3D.new()
 	var env := WorldEnvironment.new()
@@ -201,6 +202,9 @@ func _scene(volumetric: bool = true, ssao: bool = true) -> Node3D:
 	var petal := OmniLight3D.new()
 	petal.add_to_group(GraphicsApplier.GROUP_PETAL_LIGHT)
 	root.add_child(petal)
+	var fighter_key := SpotLight3D.new()
+	fighter_key.add_to_group(GraphicsApplier.GROUP_FIGHTER_KEY)
+	root.add_child(fighter_key)
 	var decal := Decal.new()
 	decal.add_to_group(GraphicsApplier.GROUP_MINOR_DECAL)
 	root.add_child(decal)
@@ -227,7 +231,8 @@ func test_each_preset_applies_to_the_scene_and_the_viewport() -> void:
 		assert_almost_eq((root.get_child(3) as GPUParticles3D).amount_ratio, p.particle_ratio, 0.001, "%s particles" % p.id)
 		assert_eq((root.get_child(4) as Node3D).visible, p.scenery_detail >= 2, "%s scenery detail" % p.id)
 		assert_eq((root.get_child(5) as OmniLight3D).visible, p.petal_lights, "%s petal lights" % p.id)
-		assert_eq((root.get_child(6) as Decal).visible, p.minor_decals, "%s minor decals" % p.id)
+		assert_eq((root.get_child(6) as SpotLight3D).shadow_enabled, p.fighter_shadows, "%s fighter key shadows" % p.id)
+		assert_eq((root.get_child(7) as Decal).visible, p.minor_decals, "%s minor decals" % p.id)
 		var env: Environment = (root.get_child(0) as WorldEnvironment).environment
 		assert_eq(env.fog_enabled, p.fog_enabled, "%s fog" % p.id)
 		assert_eq(env.glow_enabled, p.glow_enabled, "%s glow" % p.id)
@@ -239,7 +244,7 @@ func test_each_preset_applies_to_the_scene_and_the_viewport() -> void:
 		assert_eq(vp.screen_space_aa, p.screen_space_aa, "%s screen-space AA" % p.id)
 		assert_almost_eq(vp.scaling_3d_scale, p.render_scale, 0.001, "%s render scale" % p.id)
 		assert_eq(vp.scaling_3d_mode, p.scaling_3d_mode, "%s upscaler" % p.id)
-		assert_eq((root.get_child(7) as CameraRig).dof_allowed, p.push_in_dof, "%s push-in depth of field" % p.id)
+		assert_eq((root.get_child(8) as CameraRig).dof_allowed, p.push_in_dof, "%s push-in depth of field" % p.id)
 
 
 func test_atmosphere_the_scene_lacks_stays_off_and_switching_brings_back_what_it_has() -> void:

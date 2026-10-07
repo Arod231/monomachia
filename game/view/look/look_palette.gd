@@ -41,9 +41,15 @@ const MIST: Color = Color("4b5468")
 const LANTERN_EMBER: Color = Color("d4873a")
 
 ## Render layer bit for fighters and their weapons (layer 2). Lights whose
-## cull mask is only this layer (the arena's moon rim light, the fighters'
-## key and rim lights) touch fighters and nothing else.
+## cull mask is only this layer (the arena's moon rim light) touch fighters
+## and nothing else.
 const FIGHTER_LAYER: int = 2
+## Render layer bits for each side's fighter (layers 7 and 8; milestone-1
+## task 44): a fighter's body and the weapons it holds carry its side's bit
+## beside FIGHTER_LAYER, and its own key and rim light (FighterLights) light
+## only that bit, so neither the arena nor the other fighter catches them.
+const SIDE_LAYERS: Array[int] = [64, 128]
+const SIDE_LAYERS_MASK: int = 64 | 128
 ## Render layer bit for large ground surfaces (layer 4): the courtyard floor
 ## and the rock ledge. Small warm lights (lanterns) leave this layer out of
 ## their cull mask: their pools on the ground were barely visible and cost
@@ -55,6 +61,11 @@ const SMALL_LIGHT_MASK: int = 0xFFFFF & ~GROUND_LAYER
 ## above the courtyard can't see it, so the arena leaves this layer out of
 ## their cull masks, camera by camera.
 const BELOW_DECK_LAYER: int = 16
+
+
+## The render layer bit of the fighter on `side` (SIDE_LAYERS).
+static func side_layer(side: int) -> int:
+	return SIDE_LAYERS[posmod(side, SIDE_LAYERS.size())]
 
 
 ## The colour of a side with palette index `palette`.

@@ -14,7 +14,8 @@ extends Resource
 ## upscaler) and drops all four atmosphere items, keeping the palettes, the
 ## rim lights, blood, the 危 and the cinematic shots. Low also drops the
 ## parry push-in's depth of field (push_in_dof, milestone-1 task 39; the
-## owner's choice, Oct 6). Medium and Low also drop the sparks' contact
+## owner's choice, Oct 6), and the shadows of the fighters' own key lights
+## (fighter_shadows, milestone-1 task 44; the owner's choice, Oct 7). Medium and Low also drop the sparks' contact
 ## lights (spark_light, milestone-1 task 37; the owner's choice, Oct 6).
 ##
 ## The first launch picks a preset from the graphics card's name (for_card(),
@@ -38,7 +39,7 @@ const CARDS: String = "res://view/look/presets/cards.json"
 const CUTS: Array[StringName] = [
 	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
-	&"push_in_dof", &"spark_light",
+	&"push_in_dof", &"spark_light", &"fighter_shadows",
 ]
 
 @export var id: StringName = &"high"
@@ -64,6 +65,11 @@ const CUTS: Array[StringName] = [
 @export_range(0.5, 1.0) var render_scale: float = 1.0
 ## How the 3D view is scaled up to the output: bilinear, FSR 1 or FSR 2.2.
 @export var scaling_3d_mode: Viewport.Scaling3DMode = Viewport.SCALING_3D_MODE_BILINEAR
+
+@export_group("Fighters")
+## Whether each fighter's own key light (FighterLights) casts shadows. Both
+## lights stay on every preset; Low drops only the shadows.
+@export var fighter_shadows: bool = true
 
 @export_group("Fog and bloom")
 @export var fog_enabled: bool = true
