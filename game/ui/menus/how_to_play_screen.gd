@@ -32,6 +32,7 @@ static var RULES: Array = [
 	]],
 	["Attack", [
 		"Light and heavy run into strings: each weapon's tab shows where every press leads.",
+		"The Katana has [color=#c9a15a]two grips[/color]: press grip to hold it in one hand or two, at once, whenever you can act. One-handed reaches wider and recovers faster; two-handed hits harder and guards better. Each grip has its own five-hit string, and a switch mid-string carries on into the other grip's next hit. Every round starts one-handed.",
 		"Strings are [color=#c9a15a]not guaranteed[/color]: from the second hit on, the defender can block or parry.",
 		"[color=#c9a15a]Hold heavy[/color] to charge it. A dodge cancels a heavy late in its recovery.",
 		"Attacks keep half your running speed, so you can strike on the move.",
@@ -252,7 +253,7 @@ func _cell(text: String, column: int, variation: StringName, size: int) -> Label
 
 func _move_row(r: MoveList.Row) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
-	row.name = "Row_%s" % r.move_id
+	row.name = "Row_%s" % r.id
 	row.add_theme_constant_override("separation", 12)
 	row.add_child(_cell(r.input, 0, &"", 17))
 	var move: VBoxContainer = VBoxContainer.new()

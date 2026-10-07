@@ -1,6 +1,6 @@
 class_name Bindings
 extends RefCounted
-## The 13 control actions and the default binding sets. Port of ACTIONS,
+## The 14 control actions and the default binding sets. Port of ACTIONS,
 ## DEFAULT_KB, DEFAULT_PAD, FIGHTSTICK_PAD, KB_ARROWS and tokensOf in
 ## v0.1-web-mvp:src/input/bindings.ts, translated to Godot codes (see InputToken).
 ##
@@ -13,7 +13,7 @@ const SLOTS: int = 2
 
 const ACTIONS: Array[String] = [
 	"up", "down", "left", "right",
-	"light", "heavy", "block", "dodge", "jump", "interact", "ultimate", "sprint",
+	"light", "heavy", "block", "dodge", "jump", "interact", "ultimate", "sprint", "grip",
 	"pause",
 ]
 
@@ -31,6 +31,7 @@ const ACTION_LABELS: Dictionary = {
 	"interact": "Pick up weapon",
 	"ultimate": "Ultimate",
 	"sprint": "Sprint (hold)",
+	"grip": "Switch grip",
 	"pause": "Pause",
 }
 
@@ -40,6 +41,7 @@ const ACTION_HINTS: Dictionary = {
 	"block": "hold / tap on impact",
 	"ultimate": "or light + heavy together",
 	"sprint": "or double-tap a direction",
+	"grip": "one hand or two",
 }
 
 ## The rule buttons each action holds (movement and pause are not buttons).
@@ -52,14 +54,19 @@ const ACTION_BUTTON: Dictionary = {
 	"interact": Btn.INTERACT,
 	"ultimate": Btn.ULTIMATE,
 	"sprint": Btn.SPRINT,
+	"grip": Btn.GRIP,
 }
+
+## Where the controller's Ultimate sat before the grip took Y (KE task 6): a
+## profile saved then moves it to L2 as it loads (ControlProfile).
+const OLD_PAD_ULTIMATE: String = "b:%d" % JOY_BUTTON_Y
 
 static var _arrows: Dictionary = {}
 static var _arrows_tokens: Dictionary = {}
 
 
 ## Keyboard and mouse, Souls-style (DEFAULT_KB). Sprint has no key: double-tap
-## a direction. Block is the left Shift only, as in the demo, so on a shared
+## a direction. R switches the grip (KE task 6). Block is the left Shift only, as in the demo, so on a shared
 ## keyboard player 2 can't block for player 1 with right Shift.
 static func default_kb() -> Dictionary:
 	return {
@@ -75,13 +82,15 @@ static func default_kb() -> Dictionary:
 		"interact": [_k(KEY_E)],
 		"ultimate": [_k(KEY_Q), _k(KEY_U)],
 		"sprint": [],
+		"grip": [_k(KEY_R)],
 		"pause": [_k(KEY_ESCAPE), _k(KEY_P)],
 	}
 
 
 ## Controller (DEFAULT_PAD): R1 light, R2 heavy, L1 block, circle dodge, cross
-## jump, square pick up, triangle ultimate, L3 sprint, Options pause. The D-pad
-## and the left stick both move.
+## jump, square pick up, triangle grip and L2 ultimate (where Elden Ring puts
+## them, KE task 6; the ultimate was on triangle before), L3 sprint, Options
+## pause. The D-pad and the left stick both move.
 static func default_pad() -> Dictionary:
 	var pad: Dictionary = _pad_movement()
 	pad.merge({
@@ -91,15 +100,17 @@ static func default_pad() -> Dictionary:
 		"dodge": [_b(JOY_BUTTON_B)],
 		"jump": [_b(JOY_BUTTON_A)],
 		"interact": [_b(JOY_BUTTON_X)],
-		"ultimate": [_b(JOY_BUTTON_Y)],
+		"ultimate": [_trigger(JOY_AXIS_TRIGGER_LEFT)],
 		"sprint": [_b(JOY_BUTTON_LEFT_STICK)],
+		"grip": [_b(JOY_BUTTON_Y)],
 		"pause": [_b(JOY_BUTTON_START)],
 	})
 	return pad
 
 
 ## 8-button fight stick (FIGHTSTICK_PAD): top row square, triangle, R1, L1;
-## bottom row cross, circle, R2, L2.
+## bottom row cross, circle, R2, L2 (the grip; KE task 6), and sprint on L3,
+## the spare most sticks carry.
 static func fight_stick_pad() -> Dictionary:
 	var pad: Dictionary = _pad_movement()
 	pad.merge({
@@ -110,7 +121,8 @@ static func fight_stick_pad() -> Dictionary:
 		"jump": [_b(JOY_BUTTON_A)],
 		"interact": [_trigger(JOY_AXIS_TRIGGER_RIGHT)],
 		"ultimate": [_b(JOY_BUTTON_LEFT_SHOULDER)],
-		"sprint": [_trigger(JOY_AXIS_TRIGGER_LEFT)],
+		"sprint": [_b(JOY_BUTTON_LEFT_STICK)],
+		"grip": [_trigger(JOY_AXIS_TRIGGER_LEFT)],
 		"pause": [_b(JOY_BUTTON_START)],
 	})
 	return pad
@@ -118,8 +130,8 @@ static func fight_stick_pad() -> Dictionary:
 
 ## The fixed right-hand layout for Versus player 2 on a shared keyboard
 ## (KB_ARROWS): arrows move; J K L light, heavy, block; ; dodge; I jump;
-## O pick up; U ultimate; Backspace pause; numpad 4 5 6 0 8 9 7 and Enter also
-## work. Not remappable.
+## O pick up; U ultimate; Y grip; Backspace pause; numpad 4 5 6 0 8 9 7 1 and
+## Enter also work. Not remappable.
 static func kb_arrows() -> Dictionary:
 	return {
 		"up": [_k(KEY_UP)],
@@ -134,6 +146,7 @@ static func kb_arrows() -> Dictionary:
 		"interact": [_k(KEY_O), _k(KEY_KP_9)],
 		"ultimate": [_k(KEY_U), _k(KEY_KP_7)],
 		"sprint": [],
+		"grip": [_k(KEY_Y), _k(KEY_KP_1)],
 		"pause": [_k(KEY_BACKSPACE), _k(KEY_KP_ENTER)],
 	}
 

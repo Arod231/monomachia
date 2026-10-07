@@ -4,9 +4,10 @@ extends GutTest
 ## made-up weapon shows that a changed or added move changes the rows.
 
 
-func _row(rows: Array[MoveList.Row], move_id: StringName) -> MoveList.Row:
+## The first row of move_id, in `section` when one is given.
+func _row(rows: Array[MoveList.Row], move_id: StringName, section: int = -1) -> MoveList.Row:
 	for r: MoveList.Row in rows:
-		if r.move_id == move_id:
+		if r.move_id == move_id and (section < 0 or int(r.section) == section):
 			return r
 	return null
 
@@ -27,7 +28,29 @@ func test_every_move_of_every_weapon_appears_once() -> void:
 			if w.moves.has(r.move_id):
 				counts[r.move_id] = int(counts.get(r.move_id, 0)) + 1
 		for move_id: StringName in w.moves:
-			assert_eq(counts.get(move_id, 0), 1, "%s: %s listed once" % [id, move_id])
+			if w.grips.is_empty():
+				assert_eq(counts.get(move_id, 0), 1, "%s: %s listed once" % [id, move_id])
+			else:
+				assert_gt(counts.get(move_id, 0), 0, "%s: %s listed" % [id, move_id])
+
+
+func test_a_weapon_with_grips_lists_each_move_once_a_section_but_its_string_hits() -> void:
+	var w: WeaponDef = Moves.KATANA
+	var ids: Dictionary = {}
+	var counts: Dictionary = {}
+	for r: MoveList.Row in MoveList.rows(w):
+		assert_false(ids.has(r.id), "%s: one row of that name" % r.id)
+		ids[r.id] = true
+		if not w.moves.has(r.move_id):
+			continue
+		var k: String = "%d %s" % [r.section, r.move_id]
+		counts[k] = int(counts.get(k, 0)) + 1
+	for k: String in counts:
+		var move_id: StringName = StringName(k.get_slice(" ", 1))
+		var hits: int = KatanaMoves.STAND_IN_STRING.count(move_id)
+		var section: int = int(k.get_slice(" ", 0))
+		var in_grip: bool = section == MoveList.Section.ONE_HANDED or section == MoveList.Section.TWO_HANDED
+		assert_eq(counts[k], hits if in_grip and hits > 0 else 1, k)
 
 
 func test_numbers_are_the_moves_own() -> void:
@@ -45,38 +68,59 @@ func test_numbers_are_the_moves_own() -> void:
 			assert_eq(r.counter, m.counter, "%s counter" % r.move_id)
 
 
+func test_each_grip_lists_its_string_hit_by_hit_then_its_heavy_branches() -> void:
+	var rows: Array[MoveList.Row] = MoveList.rows(Moves.KATANA)
+	for section: MoveList.Section in [MoveList.Section.ONE_HANDED, MoveList.Section.TWO_HANDED]:
+		var inputs: Array[String] = []
+		for r: MoveList.Row in rows:
+			if r.section == section and r.move_id != MoveList.GRIP:
+				inputs.append("%s: %s" % [r.input, r.name])
+		assert_eq(inputs, [
+			"Light: Right Cut", "Light → Light: Return Cut", "Light → Light → Light: Kesa Cut",
+			"Light → Light → Light → Light: Crown Cut", "Light → Light → Light → Light → Light: Crown Cut",
+			"Light → Heavy: Heaven Splitter", "Light → Light → Heavy: Rising Heaven",
+		] as Array[String], MoveList.SECTION_NAMES[section])
+	assert_eq(_row(rows, &"k_h2", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Kesa Cut", "Rising Heaven"]))
+	assert_eq(_row(rows, &"k_l2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Iai Slash (horizontal)"]), "the horizontal Iai's light plays hit 2")
+
+
+func test_the_first_grip_s_section_names_the_grip_button() -> void:
+	var rows: Array[MoveList.Row] = MoveList.rows(Moves.KATANA)
+	assert_eq(rows[0].section, MoveList.Section.ONE_HANDED)
+	assert_eq([rows[0].move_id, rows[0].input, rows[0].name], [MoveList.GRIP, "Grip", "Switch grip"])
+	assert_string_contains(rows[0].note, "rounds start one-handed")
+	assert_true(is_nan(rows[0].damage))
+	assert_null(_row(rows, MoveList.GRIP, MoveList.Section.TWO_HANDED), "named once")
+	assert_null(_row(MoveList.rows(Moves.GREATSWORD), MoveList.GRIP), "none for a weapon without grips")
+
+
 func test_katana_string_inputs_take_the_shortest_way_in() -> void:
 	var rows: Array[MoveList.Row] = MoveList.rows(Moves.KATANA)
 	var expect: Dictionary = {
-		&"k_l1": "Light",
-		&"k_l2": "Light → Light",
-		&"k_l3": "Light → Light → Light",
-		&"k_l4": "Light → Light → Light → Light",
-		&"k_h2": "Light → Heavy",
 		&"k_iai": "Heavy",
 		&"k_iai_h": "Heavy + left/right",
 		&"k_rdraw": "Heavy + left/right → Heavy",
-		# Heavy → Heavy is shorter than Light → Light → Heavy
 		&"k_h1f": "Heavy → Heavy",
+		&"k_h2": "Heavy → Heavy → Heavy",
 	}
 	for move_id: StringName in expect:
-		assert_eq(_row(rows, move_id).input, expect[move_id], String(move_id))
-		assert_eq(_row(rows, move_id).section, MoveList.Section.STRING, String(move_id))
+		var r: MoveList.Row = _row(rows, move_id, MoveList.Section.STRING)
+		assert_not_null(r, String(move_id))
+		if r != null:
+			assert_eq(r.input, expect[move_id], String(move_id))
+	assert_null(_row(rows, &"k_l2", MoveList.Section.STRING), "the lights are in the grips' sections")
 
 
 func test_other_ways_into_a_follow_up_are_listed() -> void:
 	var rows: Array[MoveList.Row] = MoveList.rows(Moves.KATANA)
-	assert_eq(Array(_row(rows, &"k_h1f").also_after), ["Return Cut"])
-	assert_eq(Array(_row(rows, &"k_h2").also_after), ["Kesa Cut", "Rising Heaven"])
-	assert_eq(Array(_row(rows, &"k_l1").also_after), [])
-	# the horizontal Iai's light goes on into the light string
-	assert_eq(Array(_row(rows, &"k_l2").also_after), ["Iai Slash (horizontal)"])
+	assert_eq(Array(_row(rows, &"k_h2", MoveList.Section.STRING).also_after), [], "the Iai's: only through Rising Heaven")
+	assert_eq(Array(_row(rows, &"k_h1f", MoveList.Section.ONE_HANDED).also_after), [], "one way in")
+	assert_eq(Array(_row(rows, &"k_l1", MoveList.Section.ONE_HANDED).also_after), [])
 
 
 func test_strings_read_light_first_then_each_heavy_branch() -> void:
 	assert_eq(_names(MoveList.rows(Moves.KATANA), MoveList.Section.STRING), [
-		"Right Cut", "Return Cut", "Kesa Cut", "Crown Cut", "Heaven Splitter",
-		"Iai Slash (vertical)", "Iai Slash (horizontal)", "Returning Draw", "Rising Heaven",
+		"Iai Slash (vertical)", "Iai Slash (horizontal)", "Returning Draw", "Rising Heaven", "Heaven Splitter",
 	])
 	assert_eq(_names(MoveList.rows(Moves.GREATSWORD), MoveList.Section.STRING), [
 		"Heavy Swing", "Backswing", "Overhead Strike", "Low Sweep",

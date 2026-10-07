@@ -5,7 +5,14 @@ extends RefCounted
 ## nodes: plain rows the screens lay out.
 ##
 ## Every move a fighter can reach with the weapon is one row, in sections:
-## - Strings: walked from the light and heavy starters through each move's
+## - One-handed and Two-handed, for a weapon with grips (KE task 6): first a
+##   row naming the grip button, then each grip's string hit by hit ("Light",
+##   "Light → Light" ...), then the heavy branches off its hits and their
+##   follow-ups. A move may show in both grips, and a string's hit in its
+##   string as often as it plays.
+## - Strings: walked from the light and heavy starters (the heavy starter
+##   alone for a weapon with grips, whose light follow-ups into a string show
+##   as also_after on the grips' hits) through each move's
 ##   light and heavy follow-ups and the Iai's draw to the side (its release
 ##   variant). A move's input is the shortest way in, named in action words
 ##   ("Light → Light → Heavy"); the other moves that lead into it are in
@@ -20,9 +27,13 @@ extends RefCounted
 ## Reach is the move's own (AttackDef.reach(): its swing's once it has one,
 ## else the authored range); a row with no number holds NAN.
 
-enum Section { STRING, MOVEMENT, ABILITY, COUNTER, ULTIMATE }
+enum Section { ONE_HANDED, TWO_HANDED, STRING, MOVEMENT, ABILITY, COUNTER, ULTIMATE }
 
-const SECTION_NAMES: Array[String] = ["Strings", "Movement attacks", "Block abilities", "Counter", "Ultimate"]
+const SECTION_NAMES: Array[String] = ["One-handed", "Two-handed", "Strings", "Movement attacks", "Block abilities", "Counter", "Ultimate"]
+## The section of each grip.
+const GRIP_SECTIONS: Dictionary[StringName, Section] = {
+	WeaponGrip.ONE_HANDED: Section.ONE_HANDED, WeaponGrip.TWO_HANDED: Section.TWO_HANDED,
+}
 
 const ARROW: String = " → "
 const LIGHT: String = "Light"
@@ -32,6 +43,10 @@ const TO_THE_SIDE: String = " + left/right"
 const ULTIMATE_INPUT: String = "Light + heavy at 25% health"
 ## Bare hands' ultimate choice that brings the weapon back: no move of its own.
 const RECALL: StringName = &"recall"
+## The grip button's row: no move of its own.
+const GRIP: StringName = &"grip"
+const GRIP_INPUT: String = "Grip"
+const GRIP_NOTE: String = "one hand or two, at once whenever you can act; rounds start one-handed; mid-string, the next light plays the other grip's next hit"
 
 ## The scripted ultimates' hits in Moves.ULT_HITS, in order, with how many
 ## times each lands when all of it connects, and a word on how it plays.
@@ -65,6 +80,9 @@ class Row:
 	## The move's id; the ultimate's id for a scripted ultimate, RECALL for
 	## Recall.
 	var move_id: StringName = &""
+	## The row's name, unique in the list: the move's id, or in a grip's
+	## section the grip's and the move's (or the string hit's).
+	var id: String = ""
 	var name: String = ""
 	var damage: float = NAN
 	var posture: float = NAN
@@ -85,19 +103,83 @@ class Row:
 
 
 static func rows(w: WeaponDef) -> Array[Row]:
-	var out: Array[Row] = _walk(w)
-	out.sort_custom(_before)
-	_fill_also_after(w, out)
+	var out: Array[Row] = []
+	for g: WeaponGrip in w.grips:
+		out.append_array(_grip_rows(w, g, g == w.grips[0]))
+	var walked: Array[Row] = _walk(w)
+	walked.sort_custom(_before)
+	_fill_also_after(w, walked)
+	out.append_array(walked)
 	out.append_array(_ultimate_rows(w))
+	return out
+
+
+## A grip's section (KE task 6): the grip button's row when `first`, the
+## grip's string hit by hit, then the heavy branches off its hits and their
+## follow-ups, breadth first, each listing the other moves of the section it
+## also follows.
+static func _grip_rows(w: WeaponDef, g: WeaponGrip, first: bool) -> Array[Row]:
+	var section: Section = GRIP_SECTIONS[g.id]
+	var out: Array[Row] = []
+	if first:
+		var switch: Row = Row.new()
+		switch.section = section
+		switch.move_id = GRIP
+		switch.id = "%s_%s" % [g.id, GRIP]
+		switch.name = "Switch grip"
+		switch.input = GRIP_INPUT
+		switch.note = GRIP_NOTE
+		out.append(switch)
+	var queue: Array = []
+	var tokens: Array[String] = []
+	for n: int in range(1, WeaponGrip.STRING_HITS + 1):
+		tokens = _then(tokens, LIGHT)
+		var hit: Row = _row(w, section, g.hit(n), tokens, PackedInt32Array([1, n]))
+		if hit == null:
+			continue
+		hit.id = "%s_hit%d" % [g.id, n]
+		if n == WeaponGrip.STRING_HITS:
+			hit.note = "the string's last hit"
+		# the moves outside the strings whose light plays this hit (the
+		# horizontal Iai's, hit 2)
+		for m: AttackDef in w.moves.values():
+			if w.string_position(m.id) == 0 and m.chain_light != &"" and w.string_position(m.chain_light) == n:
+				hit.also_after.append(m.name)
+		out.append(hit)
+		var heavy: StringName = (w.moves[hit.move_id] as AttackDef).chain_heavy
+		queue.append([_row(w, section, heavy, _then(tokens, HEAVY), PackedInt32Array([2, n])), hit.name])
+	var branches: Array[Row] = []
+	var seen: Dictionary = {}
+	while not queue.is_empty():
+		var entry: Array = queue.pop_front()
+		var r: Row = entry[0]
+		if r == null:
+			continue
+		if seen.has(r.move_id):
+			(seen[r.move_id] as Row).also_after.append(entry[1])
+			continue
+		seen[r.move_id] = r
+		r.id = "%s_%s" % [g.id, r.move_id]
+		branches.append(r)
+		var m: AttackDef = w.moves[r.move_id]
+		var at: Array[String] = _tokens(r)
+		if m.chain_light != &"" and w.string_position(m.chain_light) == 0:
+			queue.append([_row(w, section, m.chain_light, _then(at, LIGHT), _key(r, _STEP_LIGHT)), m.name])
+		if m.chain_heavy != &"":
+			queue.append([_row(w, section, m.chain_heavy, _then(at, HEAVY), _key(r, _STEP_HEAVY)), m.name])
+	branches.sort_custom(_before)
+	out.append_array(branches)
 	return out
 
 
 ## Breadth first from every way into a move, so each move is reached first by
 ## its shortest input; a release variant takes its move's place in the queue.
+## A weapon with grips lists its lights in the grips' sections, so its walk
+## starts from the heavy and leaves out light follow-ups into a string.
 static func _walk(w: WeaponDef) -> Array[Row]:
 	var queue: Array[Row] = []
 	var roots: Array = [
-		[Section.STRING, w.light_start, LIGHT],
+		[Section.STRING, w.light_start if w.grips.is_empty() else &"", LIGHT],
 		[Section.STRING, w.heavy_start, HEAVY],
 		[Section.MOVEMENT, w.sprint_light, "Sprint + light"],
 		[Section.MOVEMENT, w.sprint_heavy, "Sprint + heavy"],
@@ -128,7 +210,7 @@ static func _walk(w: WeaponDef) -> Array[Row]:
 			var drawn: Array[String] = tokens.duplicate()
 			drawn[-1] += TO_THE_SIDE
 			queue.push_front(_row(w, r.section, m.release_variant, drawn, _key(r, _STEP_VARIANT)))
-		if m.chain_light != &"":
+		if m.chain_light != &"" and w.string_position(m.chain_light) == 0:
 			queue.append(_row(w, r.section, m.chain_light, _then(tokens, LIGHT), _key(r, _STEP_LIGHT)))
 		if m.chain_heavy != &"":
 			queue.append(_row(w, r.section, m.chain_heavy, _then(tokens, HEAVY), _key(r, _STEP_HEAVY)))
@@ -143,6 +225,7 @@ static func _row(w: WeaponDef, section: Section, move_id: StringName, tokens: Ar
 	var r: Row = Row.new()
 	r.section = section
 	r.move_id = move_id
+	r.id = String(move_id)
 	r.input = ARROW.join(tokens)
 	r.key = key
 	r.name = m.name
@@ -208,6 +291,7 @@ static func _ultimate_rows(w: WeaponDef) -> Array[Row]:
 		var recall: Row = Row.new()
 		recall.section = Section.ULTIMATE
 		recall.move_id = RECALL
+		recall.id = String(RECALL)
 		recall.name = "Recall"
 		recall.input = ULTIMATE_INPUT + ARROW + LIGHT
 		recall.note = "your weapon flies back to your hand"
@@ -224,6 +308,7 @@ static func _ultimate_rows(w: WeaponDef) -> Array[Row]:
 	var u: Row = Row.new()
 	u.section = Section.ULTIMATE
 	u.move_id = w.ultimate
+	u.id = String(w.ultimate)
 	u.input = ULTIMATE_INPUT
 	u.note = spec["note"]
 	u.damage = 0.0

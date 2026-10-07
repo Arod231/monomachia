@@ -91,6 +91,7 @@ func test_the_rules_say_what_this_build_changed() -> void:
 	assert_string_contains(all, "%d m across" % roundi(SimConst.ARENA_RADIUS * 2.0))
 	assert_string_contains(all, "not guaranteed")
 	assert_string_contains(all, "late in its recovery")
+	assert_string_contains(all, "two grips", "the Katana's grips (KE task 6)")
 
 
 func test_each_weapon_tab_shows_its_move_list_rows() -> void:
@@ -99,7 +100,7 @@ func test_each_weapon_tab_shows_its_move_list_rows() -> void:
 		var w: WeaponDef = Moves.WEAPONS[full.tab_weapons[i]]
 		var page: Control = full.pages[i]
 		for r: MoveList.Row in MoveList.rows(w):
-			var row: Control = page.find_child("Row_%s" % r.move_id, true, false)
+			var row: Control = page.find_child("Row_%s" % r.id, true, false)
 			assert_not_null(row, "%s: a row for %s" % [w.id, r.move_id])
 			if row == null:
 				continue
@@ -117,7 +118,7 @@ func test_unblockables_carry_a_danger_tag_naming_their_counter() -> void:
 	assert_not_null(tag)
 	assert_eq(tag.text, "unblockable · thrust")
 	assert_eq(tag.theme_type_variation, UiTheme.TAG)
-	assert_null(screen.pages[1].find_child("Row_k_l1", true, false).find_child("Tag", true, false))
+	assert_null(screen.pages[1].find_child("Row_one_handed_hit1", true, false).find_child("Tag", true, false))
 
 
 func test_numbers_read_plainly() -> void:
