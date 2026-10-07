@@ -110,15 +110,16 @@ static func build() -> WeaponDef:
 		"abilities": [],
 		"default_abilities": [&"", &""],
 		"ultimate": &"disarmed",
-		"reach": 1.2,
-		"duel_distance": 1.6,
+		"reach": 1.45,
+		"duel_distance": 1.85,
 		"blurb": "Punches and kicks: little damage, heavy posture damage, big knockback.",
 		# the fist across the knuckles, from the little finger's to the index
 		# finger's, thick enough to cover them on either hand of either fighter
-		"blade": StrikeSegment.make(V3.make(0.002, -0.039, 0.0), V3.make(0.021, 0.034, 0.0), 0.076),
+		# (grown by 1.15 with the taller bodies, KE task 3)
+		"blade": StrikeSegment.make(V3.make(0.0023, -0.045, 0.0), V3.make(0.024, 0.039, 0.0), 0.087),
 		# the foot along the boot, its underside on the sole and its ends at the
-		# heel and the toe
-		"foot": StrikeSegment.make(V3.make(0.03, -0.005, 0.0), V3.make(0.03, 0.205, 0.0), 0.1),
+		# heel and the toe (grown by 1.15 with the taller bodies, KE task 3)
+		"foot": StrikeSegment.make(V3.make(0.033, -0.006, 0.0), V3.make(0.033, 0.23, 0.0), 0.115),
 		"off_hand_grip": null,
 		# one implicit grip (KE task 5)
 		"grips": [],

@@ -131,13 +131,13 @@ func test_the_camera_is_camera_2() -> void:
 	var c: CameraRig = t.rig_camera
 	assert_not_null(c)
 	assert_eq([c.follow_back, c.follow_side, c.follow_close_side, c.follow_close_from, c.follow_height, c.base_fov],
-		[3.4, 1.1, 0.6, 3.5, 1.75, 55.0], "the board's numbers (1.0 m to the side nudged out, Oct 7), the game camera's own since task 43")
-	# at Camera 2's base distance: 3.4 m back, 1.1 m right, 1.75 m up
-	var target: Dictionary = c.follow_target(Vector3.ZERO, Vector3(0.0, 0.0, 3.5), Vector3(0.0, 0.0, 1.0))
+		[4.49, 1.1, 1.0, 4.62, 2.01, 55.0], "the board's numbers (1.0 m to the side nudged out, Oct 7), the distances by 1.32 for the 3.3 m duel and the height by 1.15 for the taller bodies (KE tasks 2 and 3), the close swing widened for their shoulders; the game camera's own since task 43")
+	# at Camera 2's base distance: 4.49 m back, 1.1 m right, 2.01 m up
+	var target: Dictionary = c.follow_target(Vector3.ZERO, Vector3(0.0, 0.0, 4.62), Vector3(0.0, 0.0, 1.0))
 	var pos: Vector3 = target["pos"]
-	assert_almost_eq(pos.z, -3.4, 0.05, "back")
+	assert_almost_eq(pos.z, -4.49, 0.05, "back")
 	assert_almost_eq(absf(pos.x), 1.1, 0.05, "to the side")
-	assert_almost_eq(pos.y, 1.75, 0.05, "up")
+	assert_almost_eq(pos.y, 2.01, 0.05, "up")
 
 
 func test_the_fighter_plays_the_light_string_in_its_corner() -> void:

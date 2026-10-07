@@ -14,6 +14,14 @@
 // Iglesias bone map names, so task 13's import retargets and mirrors them
 // like the pack clips; the export refuses one without (export_blend.py).
 //
+// A body part (KE task 3: a fighter's Quaternius part re-proportioned by
+// reproportion_fighter.py, in bodies/<fighter>/) is rigged on the Quaternius
+// skeleton (every bone ual_bone_map.tres names) and exported as a .gltf and
+// its .bin, not a GLB: in the game it sits beside the original part
+// (`materials_from`), whose materials, textures and images it keeps
+// verbatim, so it shares the original's texture files and reads as the
+// original did; Blender gives it only its meshes, skin and skeleton.
+//
 //   node scripts/blender/export.mjs [--only=<id>] [--check]
 //
 // --only exports one source; --check writes nothing and exits 1 when an
@@ -26,9 +34,10 @@
 // sources.json:
 //   {"sources": {"<id>": {"file": "weapons/katana.blend", "licence": "own",
 //                         "game": "game/assets/exports/weapons/katana.glb"}}}
-// `file` is relative to blender/ and sits in clips/, fighters/, weapons/ or
-// shrine/; `licence` is own, cc0 or iglesias; `game` only for own and cc0
-// models (not clips), under game/assets/.
+// `file` is relative to blender/ and sits in clips/, fighters/, weapons/,
+// shrine/ or bodies/; `licence` is own, cc0 or iglesias; `game` only for own
+// and cc0 models (not clips), under game/assets/ (a .gltf for a body part,
+// with `materials_from`, else a .glb).
 
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -41,9 +50,10 @@ import { LIMIT_BYTES, findOverBudget, isArt, trackedFiles } from '../check-sizes
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
 const BONE_MAP = join(ROOT, 'game', 'assets', 'kevin_iglesias', 'iglesias_bone_map.tres');
+const UAL_BONE_MAP = join(ROOT, 'game', 'assets', 'quaternius', 'ual_bone_map.tres');
 
 /** The folders a source may sit in, each its export's kind. */
-export const KINDS = { clips: 'clip', fighters: 'fighter', weapons: 'weapon', shrine: 'shrine' };
+export const KINDS = { clips: 'clip', fighters: 'fighter', weapons: 'weapon', shrine: 'shrine', bodies: 'body' };
 export const LICENCES = ['own', 'cc0', 'iglesias'];
 /** export_blend.py's exit code for a source it refuses. */
 export const REFUSED = 3;
@@ -75,7 +85,7 @@ export function readSources(text) {
       bad('not an object');
       continue;
     }
-    const unknown = Object.keys(s).filter((k) => !['file', 'licence', 'game', 'about'].includes(k));
+    const unknown = Object.keys(s).filter((k) => !['file', 'licence', 'game', 'about', 'materials_from'].includes(k));
     if (unknown.length) bad(`unknown field ${unknown.join(', ')}`);
     const folder = typeof s.file === 'string' ? s.file.split('/')[0] : '';
     if (typeof s.file !== 'string' || !s.file.endsWith('.blend') || s.file.includes('..') || !(folder in KINDS)) {
@@ -87,21 +97,52 @@ export function readSources(text) {
       continue;
     }
     const kind = KINDS[folder];
+    const underAssets = (p, ext) => typeof p === 'string' && p.startsWith('game/assets/') && p.endsWith(ext) && !p.includes('..');
     if (s.game !== undefined) {
       if (kind === 'clip') bad('a clip export stays in the asset repository (no game path)');
       else if (s.licence === 'iglesias') bad('only self-made and CC0 art is copied into the game');
-      else if (typeof s.game !== 'string' || !s.game.startsWith('game/assets/') || !s.game.endsWith('.glb') || s.game.includes('..')) {
-        bad('game must be a .glb path under game/assets/');
-      }
+      else if (kind === 'body' && !underAssets(s.game, '.gltf')) bad('a body part goes into the game as a .gltf under game/assets/');
+      else if (kind !== 'body' && !underAssets(s.game, '.glb')) bad('game must be a .glb path under game/assets/');
     }
-    sources[id] = { file: s.file, folder, kind, licence: s.licence, game: s.game ?? null };
+    if (kind === 'body' && s.licence !== 'iglesias' && !underAssets(s.materials_from, '.gltf')) {
+      bad('a body part names the part whose materials it keeps (materials_from, a .gltf under game/assets/)');
+    }
+    if (kind !== 'body' && s.materials_from !== undefined) bad("only a body part keeps another part's materials");
+    sources[id] = { file: s.file, folder, kind, licence: s.licence, game: s.game ?? null, materials_from: s.materials_from ?? null };
   }
   return { sources, errors };
 }
 
 /** Where a source's export and its record go, relative to the asset repository. */
 export function exportPath(id, source) {
-  return `exports/${source.folder}/${id}.glb`;
+  return `exports/${source.folder}/${id}.${source.kind === 'body' ? 'gltf' : 'glb'}`;
+}
+
+/**
+ * A body part's glTF as text: Blender's export `exported` (its meshes, skin
+ * and skeleton) with the materials, textures, images, samplers and
+ * extensions of the `original` part, each primitive's material found by
+ * name (less Blender's .001 suffixes), and its buffer named `binName`.
+ * Throws on a material the original lacks.
+ */
+export function bodyGltf(exported, original, binName) {
+  const out = structuredClone(exported);
+  const byName = new Map((original.materials ?? []).map((m, i) => [m.name, i]));
+  for (const mesh of out.meshes ?? []) {
+    for (const prim of mesh.primitives ?? []) {
+      if (prim.material === undefined) continue;
+      // Blender suffixes a repeated name (MI_Ranger.001)
+      const name = exported.materials[prim.material]?.name?.replace(/\.\d{3}$/, '');
+      if (!byName.has(name)) throw new Error(`body part: the original part has no material ${name}`);
+      prim.material = byName.get(name);
+    }
+  }
+  for (const key of ['materials', 'textures', 'images', 'samplers', 'extensionsUsed', 'extensionsRequired']) {
+    if (original[key] !== undefined) out[key] = structuredClone(original[key]);
+    else delete out[key];
+  }
+  out.buffers[0].uri = binName;
+  return JSON.stringify(out, null, 1) + '\n';
 }
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -218,6 +259,7 @@ export function run({ blender, assets, root = ROOT, only = null, check = false, 
   if (errors.length) return { code: 1, lines: errors.map((e) => `export: sources.json: ${e}`) };
   if (only && !(only in sources)) return { code: 1, lines: [`export: ${only} is not in sources.json`] };
   const bones = boneMapBones(readFileSync(BONE_MAP, 'utf8'));
+  const ualBones = boneMapBones(readFileSync(UAL_BONE_MAP, 'utf8'));
   const version = blenderVersion(blender);
   let code = 0;
   const tmp = mkdtempSync(join(tmpdir(), 'm1-export-'));
@@ -230,12 +272,17 @@ export function run({ blender, assets, root = ROOT, only = null, check = false, 
         code = 1;
         continue;
       }
-      const fresh = join(tmp, `${id}.glb`);
-      const r = exportBlend(blender, blend, source.kind, fresh, bones);
+      const body = source.kind === 'body';
+      const fresh = join(tmp, `${id}.${body ? 'gltf' : 'glb'}`);
+      const r = exportBlend(blender, blend, source.kind, fresh, body ? ualBones : bones);
       if (r.code !== 0 || !existsSync(fresh)) {
         const why = r.output.split('\n').find((l) => l.startsWith('export_blend: refused:')) ?? r.output.trim().split('\n').slice(-3).join(' / ');
         say(`export: ${id}: ${r.code === REFUSED ? why.replace('export_blend: ', '') : `Blender failed: ${why}`}`);
         code = 1;
+        continue;
+      }
+      if (body) {
+        code = Math.max(code, exportBody({ id, source, fresh, blend, assets, root, check, files, version, say }));
         continue;
       }
       const bytes = readFileSync(fresh);
@@ -276,6 +323,69 @@ export function run({ blender, assets, root = ROOT, only = null, check = false, 
     rmSync(tmp, { recursive: true, force: true });
   }
   return { code, lines };
+}
+
+/**
+ * Writes a body part's export (its .gltf, keeping the original part's
+ * materials, and its .bin) and record into the asset repository and copies
+ * both into the game beside the original, as run() does a model: 0 done, 1 a
+ * refusal or (with check) a change.
+ */
+function exportBody({ id, source, fresh, blend, assets, root, check, files, version, say }) {
+  const originalPath = join(root, source.materials_from);
+  if (!existsSync(originalPath)) {
+    say(`export: ${id}: no ${source.materials_from} to take the materials from`);
+    return 1;
+  }
+  const exported = JSON.parse(readFileSync(fresh, 'utf8'));
+  const original = JSON.parse(readFileSync(originalPath, 'utf8'));
+  const bin = readFileSync(join(dirname(fresh), exported.buffers[0].uri));
+  const out = join(assets, exportPath(id, source));
+  const outBin = out.replace(/\.gltf$/, '.bin');
+  let text;
+  try {
+    text = bodyGltf(exported, original, `${id}.bin`);
+  } catch (err) {
+    say(`export: ${id}: ${err.message}`);
+    return 1;
+  }
+  const record = recordText(id, source, readFileSync(blend), Buffer.concat([Buffer.from(text), bin]), version);
+  const wants = [
+    [out, Buffer.from(text)],
+    [outBin, bin],
+    [`${out}.json`, Buffer.from(record)],
+  ];
+  const same = wants.every(([p, want]) => existsSync(p) && readFileSync(p).equals(want));
+  let code = 0;
+  if (!same && check) {
+    say(`export: ${id}: ${exportPath(id, source)} would change`);
+    code = 1;
+  } else if (!same) {
+    mkdirSync(dirname(out), { recursive: true });
+    for (const [p, want] of wants) writeFileSync(p, want);
+    say(`export: ${id}: wrote ${exportPath(id, source)} (${text.length + bin.length} bytes)`);
+  } else if (!check) say(`export: ${id}: ${exportPath(id, source)} unchanged`);
+  if (!source.game) return code;
+  const gameBin = source.game.replace(/\.gltf$/, '.bin');
+  const gameText = bodyGltf(exported, original, gameBin.split('/').pop());
+  const target = join(root, source.game);
+  const binTarget = join(root, gameBin);
+  if (existsSync(target) && readFileSync(target, 'utf8') === gameText && existsSync(binTarget) && readFileSync(binTarget).equals(bin)) return code;
+  if (check) {
+    say(`export: ${id}: ${source.game} would change`);
+    return 1;
+  }
+  const tracked = (files ?? trackedFiles()).filter((t) => t.path !== source.game).concat([{ path: source.game, bytes: gameText.length }]);
+  const why = copyRefusal(tracked, gameBin, bin.length);
+  if (why) {
+    say(`export: ${id}: not copied into the game: ${why}; it stays in the asset repository`);
+    return 1;
+  }
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, gameText);
+  writeFileSync(binTarget, bin);
+  say(`export: ${id}: copied into ${source.game}`);
+  return code;
 }
 
 function main(argv) {

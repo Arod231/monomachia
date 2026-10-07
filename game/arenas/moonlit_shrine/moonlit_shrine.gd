@@ -95,9 +95,8 @@ func cull_below_deck(camera: Camera3D) -> void:
 ## The fight and menu cameras can't, so they leave it out: drawn behind the
 ## floor it still cost about 0.4 ms a frame on the target laptop.
 func _sees_below_deck(point: Vector3) -> bool:
-	# a hair past the limit: a camera clamped to it lands there give or take
-	# rounding
-	var over_courtyard: bool = Vector2(point.x, point.z).length() <= def.camera_max_radius + 1e-3
+	# a millimetre's slack: the rig clamps its cameras onto the limit itself
+	var over_courtyard: bool = Vector2(point.x, point.z).length() <= def.camera_max_radius + 0.001
 	return not (over_courtyard and point.y >= 0.0 and point.y <= BELOW_DECK_MAX_HEIGHT)
 
 

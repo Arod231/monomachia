@@ -44,8 +44,9 @@ const PALM_OUT: float = 0.164
 const FINGER_HALF: float = 0.092
 ## The thumb swings across the front of the handle (degrees), then bends at
 ## its two joints in this proportion, as far as it takes to bring its tip
-## onto the handle (thumb_scale()).
-const THUMB_SWING: float = 30.0
+## onto the handle (thumb_scale()). 36 since KE task 3: at 30 the Hunter's
+## larger thumb curled past the Katana's handle 1.1 cm short of it.
+const THUMB_SWING: float = 36.0
 const THUMB_CURL: Dictionary[String, float] = {"Proximal": 28.0, "Distal": 38.0}
 ## The most the thumb's bend is scaled by, and the step its search takes.
 const THUMB_SCALE_MAX: float = 3.0

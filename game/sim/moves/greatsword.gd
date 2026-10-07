@@ -128,14 +128,15 @@ static func build() -> WeaponDef:
 		"abilities": [&"g_sweep", &"g_slam", &"g_crush"],
 		"default_abilities": [&"g_sweep", &"g_slam"],
 		"ultimate": &"impaler",
-		"reach": 2.75,
-		"duel_distance": 3.0,
+		"reach": 3.1,
+		"duel_distance": 3.35,
 		"blurb": "Slow and crushing. Huge knockback, sweeps and overhead slams.",
-		# the blade from the guard to the point, 2.1 cm thick
-		"blade": StrikeSegment.make(V3.make(0.0, 0.136, 0.0), V3.make(0.0, 1.352, 0.0), 0.022),
+		# the blade from the guard to the point, 2.5 cm thick (grown by 1.15
+		# with the bodies, KE task 4)
+		"blade": StrikeSegment.make(V3.make(0.0, 0.156, 0.0), V3.make(0.0, 1.555, 0.0), 0.0253),
 		"foot": null,
 		# the left hand below the right on the long handle
-		"off_hand_grip": V3.make(0.0, -0.266, 0.0),
+		"off_hand_grip": V3.make(0.0, -0.306, 0.0),
 		# one implicit grip (KE task 5)
 		"grips": [],
 	})

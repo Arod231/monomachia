@@ -5,8 +5,9 @@ extends GutTest
 ## edge, the greatsword clearly the biggest, the katana curved with a
 ## defined point.
 
-## Overall length in metres (pommel to tip), with a tolerance.
-const LENGTHS: Dictionary[StringName, float] = {&"katana": 0.99, &"greatsword": 1.72, &"daggers": 0.4}
+## Overall length in metres (pommel to tip), with a tolerance: the
+## Greatsword and the Daggers grew by 1.15 with the bodies (KE task 4).
+const LENGTHS: Dictionary[StringName, float] = {&"katana": 1.6, &"greatsword": 1.98, &"daggers": 0.46}
 const LENGTH_TOLERANCE: float = 0.05
 
 
@@ -48,7 +49,7 @@ func test_two_handed_weapons_have_an_off_hand_grip_below_the_main_one() -> void:
 		if look.two_handed:
 			assert_not_null(off_hand, "%s has OffHandGrip" % id)
 			if off_hand != null:
-				assert_between(off_hand.position.y, -0.3, -0.1, "%s: the off hand sits below the main hand" % id)
+				assert_between(off_hand.position.y, -0.35, -0.1, "%s: the off hand sits below the main hand" % id)
 		else:
 			assert_null(off_hand, "%s is one-handed" % id)
 
@@ -68,11 +69,11 @@ func test_weapons_have_their_size() -> void:
 		assert_gt(bounds.end.y, 0.0, "%s: the grip origin is inside the model" % id)
 
 
-func test_the_katana_blade_is_072_m_and_curved_back() -> void:
+func test_the_katana_blade_is_1_3_m_and_curved_back() -> void:
 	var w: Node3D = _instance(&"katana")
 	var tip: Vector3 = WeaponLook.marker(w, WeaponLook.BLADE_TIP).position
 	var base: Vector3 = WeaponLook.marker(w, WeaponLook.BLADE_BASE).position
-	assert_almost_eq(tip.y - base.y, 0.69, 0.03, "blade from the habaki to the point")
+	assert_almost_eq((tip - base).length(), 1.3, 0.005, "blade from the habaki to the point (KE task 2)")
 	assert_lt(tip.x, -0.02, "the point curves back, away from the edge (+X)")
 	var mesh: Mesh = (w.get_node(^"Mesh") as MeshInstance3D).mesh
 	assert_eq(mesh.get_surface_count(), 6, "blade, habaki, tsuba, rim, wrap, fittings")
@@ -233,7 +234,9 @@ func test_the_katana_blade_has_a_bright_temper_line_on_a_dark_body() -> void:
 func test_the_greatsword_outclasses_the_katana() -> void:
 	var great: AABB = _bounds(_instance(&"greatsword"))
 	var katana: AABB = _bounds(_instance(&"katana"))
-	assert_gt(great.size.y, katana.size.y * 1.65, "much longer")
+	# at least 25 cm longer since it grew with the bodies (KE task 4), as the
+	# Katana's 1.3 m blade (KE task 2) had nearly caught it up
+	assert_gt(great.size.y, katana.size.y + 0.25, "at least 25 cm longer (%.2f m against %.2f)" % [great.size.y, katana.size.y])
 	var mesh: Mesh = (_instance(&"greatsword").get_node(^"Mesh") as MeshInstance3D).mesh
 	var widest: float = 0.0
 	for s: int in [_surface(mesh, "steel"), _surface(mesh, "steel_edge")]:

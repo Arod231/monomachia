@@ -62,7 +62,7 @@ const FORWARD_DODGE_GAP: float = 5.0
 const FOLLOW_WINDOW: int = 12
 ## A fighter's radius (m), and how far apart a lunge stops the bodies (the
 ## spec's).
-const BODY_RADIUS: float = 0.42
+const BODY_RADIUS: float = 0.5
 const LUNGE_GAP: float = 0.25
 ## How near a lunge comes to the defender's centre.
 const LUNGE_STOP: float = 2.0 * BODY_RADIUS + LUNGE_GAP
@@ -219,10 +219,10 @@ func test_a_defender_across_its_path_holds_back_only_the_part_closing_on_them() 
 	r.step(W, H.move(STICK_RIGHT.x, STICK_RIGHT.y, Btn.DODGE))
 	while a.state != &"free" and r.state.size() < STEPS:
 		r.step(W, H.idle())
-	# the defender 1.2 m away, off the cut's path to the right: 0.6 of each
+	# the defender 1.36 m away, off the cut's path to the right: 0.6 of each
 	# step of the cut closes on them, which leaves it 0.11 m of room, and 0.8
 	# runs across the line to them, which nothing holds back
-	var off: Vector2 = Vector2(-0.6, -0.8) * 1.2
+	var off: Vector2 = Vector2(-0.6, -0.8) * 1.36
 	b.pos = V3.make(a.pos.x + off.x, 0.0, a.pos.z + off.y)
 	r.step(W, H.btn(Btn.LIGHT))
 	for i: int in 30:

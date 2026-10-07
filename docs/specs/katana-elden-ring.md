@@ -159,7 +159,7 @@ This spec changes `docs/specs/milestone-1.md` and its plan inside the milestone:
 
 | # | Proposal | Stories |
 |---|---|---|
-| D1 | The duelling distance becomes about 3.2 m (from 2.5) and the round start ±4.0 m (from ±3.2), the bands re-measured from the re-baked swings; the exact numbers come from the bake | 35 |
+| D1 | The duelling distance becomes about 3.2 m (from 2.5) and the round start ±4.0 m (from ±3.2), the bands re-measured from the re-baked swings; the exact numbers come from the bake. KE task 2 (Oct 7, the owner's choice): 3.0 m and ±3.85 m with today's clips, the computer preferring 2.5 m, every Katana band 0.5 m further out and the light band 5–30 cm deep until the string re-keys; KE task 3 (Oct 7, the owner's choice), on the taller bodies: 3.3 m and ±4.15 m, the computer preferring 2.8 m, every Katana band another 0.3 m out and the light band 4–30 cm deep | 35 |
 | D2 | Posture mitigation on a block: two-handed 0.5, one-handed 0.7 (today's single 0.7) | 9 |
 | D3 | "Less damage one-handed" is set per move: each one-handed hit deals about 85% of its two-handed counterpart; startups and recoveries come from the clips | 8 |
 | D4 | A string ends after hit 5 (no loop back to hit 1); the next light starts hit 1 again | 17–19 |
@@ -168,8 +168,8 @@ This spec changes `docs/specs/milestone-1.md` and its plan inside the milestone:
 | D7 | Each round starts one-handed; the grip survives a parry, a block and a knockdown; disarm clears it and the Katana returns one-handed | 6, 16 |
 | D8 | The computer goes two-handed when the opponent guards a lot or is close, one-handed at range or when low on posture; Hard and above switch mid-string; tuned by soak | 39, 40 |
 | D9 | The grip heavies use the existing charged-heavy rule (released by itself at 2.5 s as a power attack) | 26 |
-| D10 | Both bodies scale by 1.15, then shoulders widen about 8% and the head shrinks about 5% toward heroic proportions (about 7.5 heads tall); final numbers set in Blender with the owner | 34 |
-| D11 | The camera's heights scale by 1.15 and its distance by the new duelling distance, so the mood board's framing holds | 38 |
+| D10 | Both bodies scale by 1.15, then shoulders widen about 8% and the head shrinks about 5% toward heroic proportions (about 7.5 heads tall); final numbers set in Blender with the owner. KE task 3 (Oct 7, approved by the owner from the shots): ×1.15, the shoulders 8% wider, the head 95%; the hurt capsule 0.42 m round and 2.0 m tall, the push-apart radius 0.50 m | 34 |
+| D11 | The camera's heights scale by 1.15 and its distance by the new duelling distance, so the mood board's framing holds. KE tasks 2 and 3: the distances by 3.3/2.5, the heights by 1.15 | 38 |
 | D12 | Fight stick: the grip on its free button (L2 there moves to the stick's spare); player 2's shared keyboard: the grip on a free key of its set, picked in the plan | 13 |
 | D13 | The one-handed heavy is named **Crescent Coil** | 24 |
 | D14 | Movement attacks and block abilities keep one animation each for both grips | 3 |

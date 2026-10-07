@@ -14,12 +14,13 @@ const CLIP: StringName = &"Idle"
 const NEAR: float = 0.01
 ## Reachable guards, per weapon: [grip, blade direction, edge direction] per
 ## held weapon, in the fighter's frame (+Z forward, +X to its left).
+## (the grips' places grown by 1.15 with KE task 3's taller bodies)
 const GUARDS: Dictionary[StringName, Array] = {
-	&"katana": [[Vector3(-0.06, 1.08, 0.27), Vector3(0.12, 0.5, 0.86), Vector3(0.0, -1.0, 0.0)]],
-	&"greatsword": [[Vector3(-0.05, 1.15, 0.3), Vector3(0.05, 0.55, 0.83), Vector3(0.0, 0.0, 1.0)]],
+	&"katana": [[Vector3(-0.069, 1.242, 0.311), Vector3(0.12, 0.5, 0.86), Vector3(0.0, -1.0, 0.0)]],
+	&"greatsword": [[Vector3(-0.058, 1.323, 0.345), Vector3(0.05, 0.55, 0.83), Vector3(0.0, 0.0, 1.0)]],
 	&"daggers": [
-		[Vector3(-0.18, 1.12, 0.28), Vector3(-0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
-		[Vector3(0.18, 1.16, 0.26), Vector3(0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
+		[Vector3(-0.207, 1.288, 0.322), Vector3(-0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
+		[Vector3(0.207, 1.334, 0.299), Vector3(0.05, 0.34, 0.94), Vector3(0.0, -1.0, 0.0)],
 	],
 }
 
@@ -99,15 +100,15 @@ func test_the_rig_stacks_its_modifiers_in_order() -> void:
 func test_limbs_and_fists_are_measured_from_each_skeleton() -> void:
 	var rogue: FighterModel = _fighter(&"rogue", &"katana", false)
 	var hunter: FighterModel = _fighter(&"hunter", &"katana", false)
-	assert_almost_eq(rogue.rig.arm_length("Right"), 0.4896, 0.001)
-	assert_almost_eq(hunter.rig.arm_length("Right"), 0.4915, 0.001)
-	assert_almost_eq(rogue.rig.leg_length("Left"), 0.876, 0.002)
+	assert_almost_eq(rogue.rig.arm_length("Right"), 0.5631, 0.001)
+	assert_almost_eq(hunter.rig.arm_length("Right"), 0.5653, 0.001)
+	assert_almost_eq(rogue.rig.leg_length("Left"), 1.0074, 0.002)
 	var fist: Vector3 = rogue.rig.fist("Right").origin
-	assert_almost_eq(fist.y, 0.070, 0.001, "under the base of the Rogue's fingers")
-	assert_almost_eq(fist.z, 0.028, 0.001, "a katana's radius out of the Rogue's palm")
+	assert_almost_eq(fist.y, 0.0806, 0.001, "under the base of the Rogue's fingers")
+	assert_almost_eq(fist.z, 0.0301, 0.001, "a katana's radius out of the Rogue's palm")
 	assert_gt(hunter.rig.fist("Right").origin.y, fist.y + 0.015, "the Hunter's larger hand")
 	rogue.attach_weapon(WeaponLook.load_id(&"greatsword"))
-	assert_almost_eq(rogue.rig.fist("Right").origin.z - fist.z, 0.027 - 0.0138, 0.0005, "a thicker handle sits further out of the palm")
+	assert_almost_eq(rogue.rig.fist("Right").origin.z - fist.z, 0.031 - 0.0138, 0.0005, "a thicker handle sits further out of the palm")
 
 
 ## The katana in a guard on both fighters: each wrist within 1 cm of its
