@@ -56,6 +56,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - Oct 5, 2026, the blockers audited (the owner's request, so lanes can run in parallel): every Blocked by line checked against what the task uses. Dropped as unused: 36's 34 and 35 (the deflect pairs' sounds split out as task 136), 38's 37 (now 30), 39's 34, 46's 45 (now 43), 70's 69, 72's 71, 82's 81, 83's 81, 97's 43 (now 39), 101's 99 (now 18), 107's 104 and 105 (now 103); re-pointed: 73 (69, 71), 108 (104, 105, 106); added where a test was used without its task: 22 to 31 and 32, 83 to 81; added where a review reached them only through a dropped blocker: 35, 37 and 136 to 40, 72 to 74, 81 to 85, 107 to 109; gates named directly for the same reason: 68 on 72, 85 on 87, 88 and 89 (89's 86 was unused; it now names 18, 19, 21 and 22), 102 on 104 and 105, 109 on 111. The owner released 86, 103 and 110 from the family order (see Notes).
 - Values the tasks use (timing and distance bands, protected timings, momentum and gaits, the balance-run targets, the computer's finisher rates, the performance gates, the size budgets, the Godot check, the per-move checklist) are the spec's tables; the tasks don't repeat them.
 - Oct 6, 2026, the family order is a review order, not a gate (the owner's word, so more batches run side by side): the later families' reviews no longer gate the next family. Re-pointed from a review to 41 (and the owner's OK), the protected timings the clip work lands inside: 63 (was 62), 69 (68; now also 35 and 65, whose reaction table it finishes), 72 (68), 75 (74), 79 (78; now also 34, the deflect pairs it plays through), 80 (78), 87 and 88 (85), 89 (85), 93 (92), 98 (96), 104 and 105 (102), 111 (109; now also 103, whose finisher K.O. it skips the sheathe after). Kept: 41 on family 2's clips (55, 58, 59), 42 on the art conversion, 112 on the closing checks. Any lane may now write the move data, the frame-data table, the band tables and the clip markers (see Notes).
+- Oct 6, 2026, an Elden Ring Katana (ADR 0002, `docs/specs/katana-elden-ring.md`, plan `docs/plans/katana-elden-ring.md`, inside this milestone): the pilot is still reviewed on today's four lights (40, 41); then that plan redoes the light string as two five-hit strings with a grip button, a 1.3 m blade and bodies about 15% taller. Retired here: 63 and 64 (replaced by its tasks 17 and 18). Re-pointed: 65, 66 and 127 to its heavies and Iai; 45 and 46 to its new bodies; 47 to the 1.3 m blade; 120 to its review.
 - Oct 6, 2026, one trunk (the owner's rule): `master` is the only long-lived branch. `feature/milestone-1` was folded into `master` and retired, and every lane, this plan's and any later one's, branches from `master` and opens its pull request into `master` unless the owner says otherwise.
 
 ## Progress
@@ -486,16 +487,16 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Check: a test that the lights touch only the fighter layer; shots in the dark corners of the Shrine reviewed.
   - Blocked by: 43 · Stories: 142
 - [ ] **45. The Hunter re-dyed crimson and indigo.** The Hunter's two palettes become realistic dyed materials with wear and oriental patterns, reading apart in colour and in grey.
-  - Delivers: two physically based palettes (crimson, indigo) on the re-textured body, with wear and patterns; a grey-readability test; a neutral face; no remodel of the body.
+  - Delivers: two physically based palettes (crimson, indigo) on the re-textured body, with wear and patterns; a grey-readability test; a neutral face. (Oct 6, ADR 0002: on the body re-proportioned by `docs/plans/katana-elden-ring.md` task 3, in place of "no remodel of the body".)
   - Check: the grey test (prior art `test_palettes.gd`'s area test) passes from every side; shots of both sides at Ultra and Low reviewed.
-  - Blocked by: 43 · Stories: 141, 143, 145
+  - Blocked by: 43, `docs/plans/katana-elden-ring.md` task 3 (and the owner's OK) · Stories: 141, 143, 145
 - [ ] **46. The tricorn and the scarf, the scarf on spring bones.** Both are remodelled in Blender with oriental touches; the scarf's ends swing.
   - Delivers: Blender sources and exports for the tricorn and the scarf replacing `tools/build_headwear.gd`'s; spring bones on the scarf's ends.
   - Check: content tests that both load on the Hunter and the spring bones settle at rest; sheets of a sprint and a roll reviewed.
-  - Blocked by: 12, 43 · Stories: 144
-- [ ] **47. The Katana and its saya modelled.** The weapon the player watches most, real, keeping today's 0.72 m blade within 2 cm.
+  - Blocked by: 12, 43, `docs/plans/katana-elden-ring.md` task 3 (and the owner's OK) · Stories: 144
+- [ ] **47. The Katana and its saya modelled.** The weapon the player watches most, real, with the 1.3 m blade (Oct 6, ADR 0002; it kept today's 0.72 m blade until then).
   - Delivers: Blender sources and exports for the Katana and the saya replacing `tools/build_katana.gd` and the coded `Saya`; the grip, blade and off-hand markers kept.
-  - Check: `test_the_katana_blade_is_072_m_and_curved_back` within 2 cm; the distance-band and weapon-in-hand tests pass; shots in hand and at the hip reviewed.
+  - Check: the blade-length test at `docs/plans/katana-elden-ring.md` task 2's 1.3 m within 2 cm; the distance-band and weapon-in-hand tests pass; shots in hand and at the hip reviewed.
   - Blocked by: 12, 43 · Stories: 146, 147
 - [ ] **48. The wisteria.** Huge ancient wisteria replace the pines and dead trees, their blossoms lighting the fight.
   - Delivers: wisteria with dark bark in place of the pines and dead trees, glowing purple blossoms that light the fight, a canopy that never hides the moon or the fighters, glowing petals falling; Blender and CC0 sources, partly built by script.
@@ -573,31 +574,33 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 
 ### Phase H: family 3, the Katana's heavies and the Iai
 
-- [ ] **63. The Iai Slash re-keyed.** Heavy sheathes the blade, the stance strafes on an authored loop, and letting go draws a vertical or horizontal cut, landing from the Iai's distance band.
+- [-] ~~**63. The Iai Slash re-keyed.**~~ Heavy sheathes the blade, the stance strafes on an authored loop, and letting go draws a vertical or horizontal cut, landing from the Iai's distance band.
   - Delivers: the sheathe, the stance loop and its strafe at the clip's measured speed, both draws (the stick picks), the drift from the draw clip's travel, the held release at 2.5 s out of the loop; the prop bones carry the blade's draw; Claude's passes; the owner's polish lands in task 127.
   - Check: band tests for the tapped and the stance draws; the distance-band test from 3.6 m; rules tests of the release and the stance speed; sheets reviewed; a clean soak.
   - Blocked by: 41 (and the owner's OK) · Stories: 36, 53, 54, 56, 57, 211
-- [ ] **64. Rising Heaven, Returning Draw and Heaven Splitter.** The Iai's follow-ups and the string heavy, optional and flowing.
+  - Replaced (Oct 6, ADR 0002) by `docs/plans/katana-elden-ring.md` task 18, the Iai with Elden Ring's draws.
+- [-] ~~**64. Rising Heaven, Returning Draw and Heaven Splitter.**~~ The Iai's follow-ups and the string heavy, optional and flowing.
   - Delivers: the three re-keyed in their bands; two lights flowing into a heavy as the third hit.
   - Check: band and distance tests; the string-continuity test; rules tests that each follow-up is optional; sheets reviewed; a clean soak.
   - Blocked by: 63 · Stories: 46, 47, 55, 58
+  - Replaced (Oct 6, ADR 0002) by `docs/plans/katana-elden-ring.md` tasks 17 (Heaven Splitter and Rising Heaven, the two-handed pair) and 18 (Returning Draw).
 - [ ] **65. Heavy reactions, the heavies' deflect pairs and the power attack's knockdown.** Heavy hits and blocks react heavily, and each heavy direction has its deflect pair.
-  - Delivers: heavy hit reactions by direction and height, the heavy block reaction, deflect pairs for the heavies' directions (Claude's block-outs; the owner's polish lands in task 127), the knockdown triggered by a power attack.
+  - Delivers: heavy hit reactions by direction and height, the heavy block reaction, the knockdown triggered by a power attack. (Oct 6: the heavies' deflect pairs moved to `docs/plans/katana-elden-ring.md` task 19, for the grip heavies.)
   - Check: director tests of the picks; the state-clip fit test; sheets reviewed.
-  - Blocked by: 64 · Stories: 97, 105
+  - Blocked by: 41 (and the owner's OK), `docs/plans/katana-elden-ring.md` tasks 16 and 17 · Stories: 97, 105
 - [ ] **66. The computer uses and answers the Iai.** It draws, walks in sheathed, takes the follow-ups and dodges out; against a sheathed opponent it keeps out of range, punishes or parries the release.
   - Delivers: the brain's Iai play, landing it from the Iai's distance band, not a fixed 3.2 m.
   - Check: seeded tests: it lands an Iai from its band, releases both variants, dodge-cancels when attacked, and Hard parries a held Iai at a set rate; a clean soak.
-  - Blocked by: 24, 63 · Stories: 191
+  - Blocked by: 24, 41 (and the owner's OK), `docs/plans/katana-elden-ring.md` task 18 · Stories: 191
   - Replaces: `docs/plans/godot-rebuild.md` task 12.5
 - [ ] **67. Family 3's sound and effects.** The heavies' swings, impacts and sparks, the sheathe and the draw.
   - Delivers: sound-bank entries and effects for every family-3 event.
   - Check: sound-bank entries for the sheathe, both draws and each heavy's swing and impact; an effect-table row for each family-3 event; shots reviewed.
   - Blocked by: 65 · Stories: 156, 170
 - [ ] **127. The owner's polish of the Iai and the heavies' deflect pairs.** The owner polishes Claude's passes in Cascadeur, and the polished clips replace them.
-  - Delivers: the Iai's sheathe and both draws, and the heavies' deflect pairs, polished, exported and imported; their markers checked and the table regenerated.
+  - Delivers: the Iai's sheathe and the grip heavies' deflect pairs, polished, exported and imported; their markers checked and the table regenerated. (Oct 6: the Iai's draws are polished in `docs/plans/katana-elden-ring.md` task 21.)
   - Check: the Iai's band and distance tests and task 65's director tests pass on the polished clips; sheets reviewed.
-  - Blocked by: 63, 65 · Stories: 53, 105, 211
+  - Blocked by: 41 (and the owner's OK), `docs/plans/katana-elden-ring.md` tasks 18 and 19 · Stories: 53, 105, 211
   - **Owner:** polishes the Iai and the heavies' deflect pairs.
 - [ ] **68. Family 3's review.** The Katana's heavies and the Iai go to the owner.
   - Delivers: the review package as in task 40.
@@ -896,7 +899,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - [ ] **120. The first balance run, and the finisher share.** A 300-match run of mirror matches reports every target, and the owner sets the finisher share.
   - Delivers: the run's targets block (failures, round length, disarms, finishers, the appear-list) recorded in Progress; the finisher share written into the spec's balance-run table. It is part of godot-rebuild 12.8 and 12.9, which task 121 finishes.
   - Check: no failures; the report complete.
-  - Blocked by: 7, 101, 107, 112 (and the owner's OK) · Stories: 197, 198
+  - Blocked by: 7, 101, 107, 112 (and the owner's OK), `docs/plans/katana-elden-ring.md` task 24 · Stories: 197, 198
   - **Owner:** sets the finisher share from the first run.
 - [ ] **121. Tuning until the balance run is clean.** Only damage, posture, parry and computer numbers change, one per commit, until every target is in range.
   - Delivers: the tuning commits; a clean 300-match run and a clean 40-match soak and counterlab; if finishers are near zero, posture pressure is raised, not the threshold.

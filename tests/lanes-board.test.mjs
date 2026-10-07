@@ -112,6 +112,7 @@ describe('PLANS', () => {
     assert.deepEqual(PLANS.map((p) => [p.key, p.kind, p.branch, !!p.closed]), [
       ['rm', 'roadmap', 'master', false],
       ['m1', 'flat', 'master', false],
+      ['ke', 'flat', 'master', false],
       ['gr', 'nested', 'master', false],
       ['aa', 'flat', 'feature/authored-animation', true],
       ['pm', 'flat', 'tools/project-manager-remote', false],
@@ -120,6 +121,13 @@ describe('PLANS', () => {
     assert.equal(M1.file, 'docs/plans/milestone-1.md');
     assert.equal(PLAN_BY_KEY.pm.file, 'docs/plans/project-manager-remote.md');
     assert.equal(PLAN_BY_KEY.pm.into, 'master');
+    assert.equal(PLAN_BY_KEY.ke.file, 'docs/plans/katana-elden-ring.md');
+  });
+
+  it('names the Elden Ring Katana\'s tasks in commit subjects as "(KE task N)" only', () => {
+    assert.equal('Grip state and per-grip strings (KE task 5)'.match(SUBJECT_TASK.ke)?.[1], '5');
+    assert.doesNotMatch('The frame-data table (task 5)', SUBJECT_TASK.ke);
+    assert.doesNotMatch('Grip state and per-grip strings (KE task 5)', SUBJECT_TASK.m1);
   });
 });
 

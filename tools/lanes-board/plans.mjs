@@ -9,10 +9,12 @@ import path from 'node:path';
 // uses that one. Authored animation is closed: it shows as history. The Godot
 // rebuild branch merged into master for good on Oct 5 (PR #68), and milestone 1's
 // branch was folded into master on Oct 6, so the roadmap, the Godot rebuild plan
-// and milestone 1 follow master: their lanes branch from it and PR into it.
+// and milestone 1 (with the Elden Ring Katana, its plan from Oct 6) follow
+// master: their lanes branch from it and PR into it.
 export const PLANS = [
   { key: 'rm', short: 'RM', name: 'Roadmap', file: 'docs/plans/roadmap.md', kind: 'roadmap', branch: 'master' },
   { key: 'm1', short: 'M1', name: 'Milestone 1', file: 'docs/plans/milestone-1.md', kind: 'flat', branch: 'master' },
+  { key: 'ke', short: 'KE', name: 'Elden Ring Katana', file: 'docs/plans/katana-elden-ring.md', kind: 'flat', branch: 'master' },
   { key: 'gr', short: 'GR', name: 'Godot rebuild', file: 'docs/plans/godot-rebuild.md', kind: 'nested', branch: 'master',
     names: { 1: 'Resume and safety nets', 2: 'The look, real fighters', 3: 'The shrine', 4: 'Fluid rules', 5: 'Sound and music',
       6: 'The new strings', 7: 'Swing foundations', 8: 'Fighter animation core', 9: 'Katana swings, anim review',
@@ -25,11 +27,12 @@ export const PLANS = [
 export const PLAN_BY_KEY = Object.fromEntries(PLANS.map((p) => [p.key, p]));
 
 // How a commit subject names the plan task it finishes: "(task 7.1)" in the
-// rebuild, "(task 12)" or "(milestone-1 task 12)", "(roadmap task R3)", "(PM task 6)".
+// rebuild, "(task 12)" or "(milestone-1 task 12)", "(roadmap task R3)", "(PM task 6)",
+// "(KE task 5)" for the Elden Ring Katana (milestone 1's, on master since Oct 6).
 export const SUBJECT_TASK = {
   gr: /\(task (\d+b?\.\d+)\)/, aa: /\((?:authored animation )?task (\d+[a-z]?)\)/,
   m1: /\((?:milestone[- ]1 )?task (\d+)\)/, rm: /\((?:roadmap )?task (R\d+)\)/,
-  pm: /\(PM task (\d+)\)/,
+  pm: /\(PM task (\d+)\)/, ke: /\(KE task (\d+)\)/,
 };
 const KEY_BY_FILE = Object.fromEntries(PLANS.map((p) => [path.posix.basename(p.file), p.key]));
 
