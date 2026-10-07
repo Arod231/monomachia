@@ -17,7 +17,6 @@
 		"fallback": "Sword_Block"
 	},
 	"stun": {"clip": "Stun01", "fallback": "Hit_Knockback"},
-	"rebound": {"frames": 8, "speed": 2},
 	"carry": {"pose": "ObjectGripShoulder02_R"},
 	"ults": {
 		"moonsplitter": {"clips": {"vertical": ["Attack2H01", 12], "horizontal": ["Attack2H03", 7]}, "fallback": "Sword_Heavy_Combo", "windup": 36, "release": 34},

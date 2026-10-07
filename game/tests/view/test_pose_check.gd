@@ -4,7 +4,8 @@ extends GutTest
 ## 150-160 degrees on contact and never locked, the knees over the toes, the
 ## blade clear of its own body, and how much blade enters a defender. Made-up
 ## poses built from a real guard fail where they should; the Katana guard
-## is measured on both fighters (test_guard_stance.gd checks that it
+## is measured on both fighters, the wrists and elbows the IK places
+## (test_guard_stance.gd checks that it
 ## passes); MoveBench plays a move frame by frame on the
 ## rules' clock, and a report over the stand-in Katana attacks prints.
 
@@ -89,11 +90,16 @@ func test_the_body_capsules_are_measured_from_each_fighter() -> void:
 func test_the_katana_guard_is_measured_on_both_fighters() -> void:
 	for id: StringName in FighterLook.IDS:
 		var bench: MoveBench = _bench(id)
-		var report: PoseCheck.Report = bench.check.measure(await _guard_frame(bench))
+		var frame: PoseCheck.Frame = await _guard_frame(bench)
+		var report: PoseCheck.Report = bench.check.measure(frame)
 		gut.p("%s katana guard: %s; fails: %s" % [id, report.summary(), report.failures()])
 		assert_gt(report.blade_gap, PoseCheck.BLADE_CLEARANCE, "%s: the blade clears the body" % id)
-		assert_eq(report.wrists.keys(), SIDES, "%s: both wrists measured" % id)
-		assert_eq(report.elbows.keys(), SIDES, "%s: both elbows measured" % id)
+		# the keyed guard's right hand rides the clip (milestone-1 task 33);
+		# the off hand is on its grip by IK, and the right too where the
+		# weapon is drawn in to it (the CC0 stand-in's one-handed idle)
+		assert_true(frame.driven.has("Left"), "%s: the off hand placed by IK" % id)
+		assert_eq(report.wrists.keys(), Array(frame.driven), "%s: each wrist the IK places measured" % id)
+		assert_eq(report.elbows.keys(), Array(frame.driven), "%s: each elbow the IK places measured" % id)
 		assert_eq(report.knees.keys(), SIDES, "%s: both knees measured" % id)
 		assert_lt(report.blade_gap, 1.0, "%s: the blade is measured" % id)
 
@@ -122,6 +128,8 @@ func test_a_wrist_bent_past_its_limits_fails() -> void:
 		var thumbward: float = -1.0 if side == "Right" else 1.0
 		for case: Array in [[0.0, 0.0, true], [55.0, 0.0, true], [70.0, 0.0, false], [-70.0, 0.0, false], [0.0, 20.0, true], [0.0, 30.0, false], [0.0, -30.0, false]]:
 			var frame: PoseCheck.Frame = guard.copy()
+			# both hands placed here, as the IK places them
+			frame.driven = SIDES.duplicate()
 			var hand: Transform3D = bench.check.straight_hand(side, frame.bones)
 			# bend about the hand's own X (toward the palm), then deviate
 			# about its palm normal

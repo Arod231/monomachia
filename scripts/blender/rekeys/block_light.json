@@ -1,0 +1,12 @@
+{
+	"about": "The Katana's light block reaction (milestone-1 task 35): Parry1H01's right hit from its impact retimed to the light blockstun (15 rules frames, 7.5 source frames) at its own speed, made two-handed by the lights' pass. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Parry1H01_R - Hit.fbx",
+	"out": "blender/clips/block_light.blend",
+	"remap": [[0, 0], [1, 2], [8, 24]],
+	"two_hands": {
+		"grip": 0.11,
+		"hold": [0.32, 0.12],
+		"square": 0.6,
+		"clearance": 0.08
+	}
+}

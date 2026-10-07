@@ -1,0 +1,13 @@
+{
+	"about": "The light hit reaction high from behind, turned to lurch forward (milestone-1 task 35): CombatDamage01's head snap retimed to the light hitstun (24 rules frames, 12 source frames) at its own speed, the snap over the first 4 and the recovery to the guard by 12, made two-handed by the lights' pass. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatDamage01.fbx",
+	"out": "blender/clips/hit_high_back.blend",
+	"remap": [[0, 0], [1, 4], [4, 10], [12, 30]],
+	"turn": 180,
+	"two_hands": {
+		"grip": 0.11,
+		"hold": [0.32, 0.12],
+		"square": 0.6,
+		"clearance": 0.08
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"about": "The bridge from Kesa Cut into Crown Cut (katana.k_l3 into katana.k_l4), milestone-1 task 33: Crown Cut's first 9 frames, starting in Kesa Cut's pose at its branch point (frame 15.5) and carried into Crown Cut's own wind-up, the feet where Crown Cut has them. Played over the follow-up's first frames when it starts at its branch point, handing on to Crown Cut's clip at frame 9, before its active frames; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/crown_cut.blend",
+	"out": "blender/clips/kesa_cut_to_crown_cut.blend",
+	"remap": [[0, 0], [9, 9]],
+	"blend_from": {
+		"source": "blender/clips/kesa_cut.blend",
+		"frame": 15.5,
+		"frames": 9
+	}
+}

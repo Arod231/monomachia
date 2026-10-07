@@ -1,0 +1,7 @@
+{
+	"about": "The Katana's guard idle, milestone-1 task 33: CombatIdle1H01 at its own speed, made two-handed by the lights' pass (the shoulders squared, both hands on the handle at the lights' hold point), as Right Cut is, so the guard is Right Cut's first frame and the string opens from it. It loops, as the pack clip does. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@CombatIdle1H01.fbx",
+	"out": "blender/clips/katana_guard.blend",
+	"remap": [[0, 0], [40, 40]],
+	"two_hands": {"grip": 0.11, "hold": [0.32, 0.12], "square": 0.6, "clearance": 0.08}
+}

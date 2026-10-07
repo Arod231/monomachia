@@ -38,6 +38,9 @@ class HitCtx:
 	## swing (the sweep's contact, task 7.11); null puts the hit, block and
 	## parry events halfway between the fighters, as the demo did.
 	var contact: V3 = null
+	## How the blade's tip travelled through that tick (BladeSweep.sweep);
+	## null without a swing.
+	var sweep: V3 = null
 
 	static func make(p_charge_f: float, p_backstab: bool) -> HitCtx:
 		var c: HitCtx = HitCtx.new()
@@ -322,6 +325,7 @@ func _resolve_combat() -> void:
 		var ctx: HitCtx = HitCtx.make(at.charge_frac, at.backstab)
 		if touch != null:
 			ctx.contact = touch.contact
+			ctx.sweep = touch.sweep
 		outs.append([a, a.opp, def, evaluate(a, a.opp, def, false, touch), ctx])
 	# decided simultaneously, applied in order: each carries its own context so a
 	# trade is fair even though the first application interrupts the second attacker
@@ -441,11 +445,21 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 			_mark_done(atk, def)
 			var was_full: bool = a.posture_full()
 			var timing: int = frame - b.block_press_frame
+			# the blade's sweep at the contact (milestone-1 task 34), or the
+			# attacker's forward without a swing's
+			var ahead: V2 = SimMath.fwd(a.yaw)
+			var sweep: V3 = V3.make(ahead.x, 0.0, ahead.z)
+			if ctx != null and ctx.sweep != null and V3.length(ctx.sweep) > 1e-9:
+				sweep = V3.normalized(ctx.sweep)
+			a.keep_parry(def.id, atk.frame if atk != null else 0, contact, sweep, a.yaw)
+			b.keep_parry(def.id, atk.frame if atk != null else 0, contact, sweep, a.yaw)
 			emit({
 				"t": &"parry",
 				"parrier": b.id,
 				"attacker": a.id,
+				"attack": def.id,
 				"pos": SimEvents.vec3(contact),
+				"dir": SimEvents.vec3(sweep),
 				"kind": kind,
 				"timing": timing,
 				"window": b.parry_window_at_press,
@@ -546,6 +560,7 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 			b.add_posture(def.posture * mult * charge_mult)
 			b.set_state(&"blockstun", (def.blockstun if def.blockstun != AttackDef.UNSET else 12) + SimMath.js_round(float(own.charge_blockstun) * charge_f))
 			b.blocking = true
+			b.keep_impact(contact, def.kind != &"light")
 			b.knock(a.pos.x, a.pos.z, def.knockback * 0.45 * charge_mult, 10)
 			b.stats.blocks += 1
 			hitstop = ProtectedTimings.block_hitstop(def.hitstop if def.hitstop != AttackDef.UNSET else 4)
@@ -581,6 +596,7 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 			var post: float = def.posture * SimConst.HIT_POSTURE_MULT * (1.0 + 0.8 * charge_f)
 			b.hp = maxf(0.0, b.hp - dmg)
 			b.add_posture(post)
+			b.keep_impact(contact, def.kind != &"light")
 			a.stats.hits_landed += 1
 			a.stats.damage_dealt += dmg
 			emit({
