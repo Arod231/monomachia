@@ -72,6 +72,11 @@ border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.47843137, 0.3882353, 0.2509804, 1)
 
+[sub_resource type="FontVariation" id="FontVariation_call"]
+fallbacks = Array[Font]([ExtResource("2_klk7g")])
+base_font = ExtResource("3_f1r3q")
+spacing_glyph = 12
+
 [sub_resource type="FontVariation" id="FontVariation_display"]
 fallbacks = Array[Font]([ExtResource("2_klk7g")])
 base_font = ExtResource("3_f1r3q")
@@ -237,6 +242,10 @@ Button/styles/hover = SubResource("StyleBoxFlat_button_lit")
 Button/styles/hover_pressed = SubResource("StyleBoxFlat_button_pressed")
 Button/styles/normal = SubResource("StyleBoxFlat_button")
 Button/styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+CallWord/base_type = &"Label"
+CallWord/colors/font_color = Color(0.84313726, 0.69411767, 0.29411766, 1)
+CallWord/font_sizes/font_size = 30
+CallWord/fonts/font = SubResource("FontVariation_call")
 Card/base_type = &"Button"
 Card/colors/font_color = Color(0.9019608, 0.8627451, 0.76862746, 1)
 Card/colors/font_focus_color = Color(0.9019608, 0.8627451, 0.76862746, 1)

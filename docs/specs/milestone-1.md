@@ -250,7 +250,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### HUD, menus and settings
 
-177. As a player, I want the HUD fully redesigned for the realistic look (HP bars, the posture bar underneath, round pips and the ultimate badge), keeping its layout, in the style of the mood board's UI page, so that it fits the game.
+177. [x] As a player, I want the HUD fully redesigned for the realistic look (HP bars, the posture bar underneath, round pips and the ultimate badge), keeping its layout, in the style of the mood board's UI page, so that it fits the game. (Ticked with task 54.)
 178. As a player, I want the round calls redesigned in brushed calligraphy, with Warrior Slain among them, so that ink survives where it belongs.
 179. As a player, I want the finisher prompt designed as the heavy button's glyph, from the device I last used, over the disarmed fighter, so that I can read it in the slow motion.
 180. As a player, I want the HUD's off-screen marker for my dropped weapon restyled and lifted to clear the stuck weapon's hilt, so that I can always find my weapon. **(P7, confirmed Oct 4)**

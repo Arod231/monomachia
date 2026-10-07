@@ -1,7 +1,8 @@
 class_name HudBar
 extends Control
-## A meter for the HUD: a background, a lag band (the white "damage just
-## taken" band under HP) and the fill, in an edge. Fills from the left, or
+## A meter for the HUD: a lacquer channel, a lag band (the white "damage
+## just taken" band under HP) and the fill, in a gold edge (milestone-1 task
+## 54: the mood board's lacquered channels). Fills from the left, or
 ## from the right when reversed (the right-hand fighter's bars). As the
 ## demo's HP bar, the fill can run from fill_color at the top to fill_bottom
 ## at the foot, and the bar's inner end can be cut at a slant, which the edge
@@ -20,8 +21,8 @@ extends Control
 ## The fill's colour at the foot (the same as fill_color for a flat fill).
 @export var fill_bottom: Color = UiPalette.CRIMSON
 @export var lag_color: Color = Color(Color("#f3ead8"), 0.85)
-@export var back_color: Color = Color(0.04, 0.024, 0.024, 0.8)
-@export var edge_color: Color = UiPalette.GOLD_DIM
+@export var back_color: Color = Color(UiPalette.LACQUER, 0.85)
+@export var edge_color: Color = UiPalette.GOLD
 ## How far the foot of the inner end is cut back, in pixels (0: square).
 @export var slant: float = 0.0
 ## Multiplies the fill's colour (the low-HP pulse brightens it).
@@ -33,8 +34,13 @@ var brightness: float = 1.0:
 
 ## One colour top to foot.
 func set_flat(color: Color) -> void:
-	fill_color = color
-	fill_bottom = color
+	set_fill(color, color)
+
+
+## The fill's colour at the top and at the foot.
+func set_fill(top: Color, bottom: Color) -> void:
+	fill_color = top
+	fill_bottom = bottom
 	queue_redraw()
 
 

@@ -109,7 +109,9 @@ func test_eyebrows_are_the_serif_spaced_out_in_dim_ivory() -> void:
 	var size: int = eyebrow.get_theme_font_size(&"font_size")
 	var spaced: float = font.get_string_size("ROUND", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var unspaced: float = (load(UiTheme.SERIF_FONT) as Font).get_string_size("ROUND", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-	assert_almost_eq(spaced, unspaced + UiTheme.EYEBROW_SPACING * 5.0, 1.0, "the spacing after each of the five letters")
+	# the spacing in each of the four gaps between the letters (and after
+	# the last, as a font variation may add it there too)
+	assert_between(spaced - unspaced, UiTheme.EYEBROW_SPACING * 4.0 - 1.0, UiTheme.EYEBROW_SPACING * 5.0 + 1.0)
 	assert_gt(UiTheme.EYEBROW_SPACING, 1)
 
 

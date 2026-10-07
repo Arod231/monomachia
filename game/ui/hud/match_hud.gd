@@ -33,6 +33,14 @@ extends CanvasLayer
 ## demo's Versus wording, in the sides' colours (the owner's choices, Oct 5,
 ## 2026).
 ##
+## Since milestone-1 task 54 the top bar and the calls wear the mood
+## board's UI A: HP in each side's lacquer (crimson, indigo) in gold-edged
+## channels, posture in gold turning amber when hot and blinking crimson
+## when full, the pips as lacquer discs lit in the side's colour, the badge
+## as a lacquer disc with brushed kanji; a call's kanji large and brushed in
+## ivory over its word in small, widely spaced gold capitals, the kanji
+## painted in by a brush-stroke wipe (BRUSH_WIPE) while the word fades in.
+##
 ## Announcements and toasts, their entrances included, are timed on the host's rules
 ## steps, not the wall clock, so they slow down with slow motion and freeze
 ## with pause. Port of the
@@ -58,12 +66,21 @@ const LOW_PULSE: float = 0.9
 const LOW_PULSE_GAIN: float = 0.45
 const POSTURE_BLINK: float = 0.35
 const POSTURE_BLINK_ALPHA: float = 0.45
-const POSTURE_COLORS: Dictionary = {
-	HudState.Posture.CALM: UiPalette.POSTURE,
-	HudState.Posture.HOT: UiPalette.POSTURE_HOT,
-	HudState.Posture.FULL: UiPalette.DANGER,
+## Posture's fill by level, top and foot.
+const POSTURE_FILLS: Dictionary = {
+	HudState.Posture.CALM: [UiPalette.POSTURE, UiPalette.POSTURE_FOOT],
+	HudState.Posture.HOT: [UiPalette.POSTURE_HOT, UiPalette.POSTURE_HOT_FOOT],
+	HudState.Posture.FULL: [UiPalette.CRIMSON, UiPalette.CRIMSON_DEEP],
 }
 const SEAL_COLORS: Array[Color] = [UiPalette.CRIMSON, UiPalette.INDIGO]
+## Each side's lacquer for its HP and lit pips: the colour and its deep foot.
+const SIDE_COLORS: Array[Color] = [UiPalette.CRIMSON, UiPalette.INDIGO]
+const SIDE_DEEP: Array[Color] = [UiPalette.CRIMSON_DEEP, UiPalette.INDIGO_DEEP]
+## The calls' brush-stroke wipe over their kanji.
+const BRUSH_WIPE: Shader = preload("res://ui/hud/brush_wipe.gdshader")
+## The calls' kanji and words, in pixels.
+const CALL_KANJI_SIZE: int = 132
+const CALL_WORD_SIZE: int = 30
 const SEALS: Array[String] = MatchResults.SEALS
 ## An announcement in the theme's colour (announce()'s default).
 const NO_COLOR: Color = Color(0.0, 0.0, 0.0, 0.0)
@@ -179,12 +196,23 @@ func announcement_age() -> float:
 	return host.step_count - int(announcement["at"]) + minf(host.accumulated() / MatchHost.DT, 1.0)
 
 
-## The announcement's opacity and scale now (Vector2(0, 1) with none).
+## The announcement's words' opacity and its scale now (Vector2(0, 1) with
+## none).
 func announcement_look() -> Vector2:
 	if announcement.is_empty():
 		return Vector2(0.0, 1.0)
-	var t: float = announcement_age() / float(AnnouncementEntrance.FRAMES)
+	var t: float = _entrance_t()
 	return Vector2(AnnouncementEntrance.alpha(t), AnnouncementEntrance.scale(t))
+
+
+## How much of the announcement's kanji the brush has painted now (0 with
+## none).
+func announcement_wipe() -> float:
+	return 0.0 if announcement.is_empty() else AnnouncementEntrance.wipe(_entrance_t())
+
+
+func _entrance_t() -> float:
+	return announcement_age() / float(AnnouncementEntrance.FRAMES)
 
 
 
@@ -372,13 +400,23 @@ func _refresh_announcement() -> void:
 	_show_announcement()
 
 
-## Puts the announcement's entrance on screen: its opacity and scale about
-## its middle.
+## Puts the announcement's entrance on screen: the brush painting its
+## kanji in, its words fading in, the whole call fading out and its scale
+## about its middle.
 func _show_announcement() -> void:
-	var look: Vector2 = announcement_look()
-	_announce_box.modulate.a = look.x
+	var t: float = _entrance_t() if not announcement.is_empty() else -1.0
+	_announce_box.modulate.a = AnnouncementEntrance.fade_out(t)
+	var words: float = AnnouncementEntrance.fade_in(t)
+	_announce_label.modulate.a = words
+	_announce_sub.modulate.a = words
+	var wipe: ShaderMaterial = _announce_kanji.material as ShaderMaterial
+	wipe.set_shader_parameter("reveal", announcement_wipe())
+	# its text's size, which the box lays out only later (shrunk to its text,
+	# the label ends up this size)
+	wipe.set_shader_parameter("size", _announce_kanji.get_minimum_size())
+	var s: float = AnnouncementEntrance.scale(t)
 	_announce_box.pivot_offset = _announce_box.size * 0.5
-	_announce_box.scale = Vector2(look.y, look.y)
+	_announce_box.scale = Vector2(s, s)
 
 
 # ------------------------------------------------------------------ per frame
@@ -399,10 +437,9 @@ func _process(delta: float) -> void:
 		_hp[i].lag = _lags[i].value
 		_hp[i].brightness = 1.0 + LOW_PULSE_GAIN * pulse if s.low else 1.0
 		_posture[i].value = s.posture
-		var color: Color = POSTURE_COLORS[s.posture_level]
-		if s.posture_level == HudState.Posture.FULL and blink_off:
-			color.a = POSTURE_BLINK_ALPHA
-		_posture[i].set_flat(color)
+		var fill: Array = POSTURE_FILLS[s.posture_level]
+		var alpha: float = POSTURE_BLINK_ALPHA if s.posture_level == HudState.Posture.FULL and blink_off else 1.0
+		_posture[i].set_fill(Color(fill[0], alpha), Color(fill[1], alpha))
 		_pips[i].lit = s.pips
 		_badges[i].state = s.badge
 		_tags[i].visible = s.disarmed
@@ -605,7 +642,7 @@ func _build() -> void:
 		hp.custom_minimum_size = Vector2(BAR_WIDTH, 18.0)
 		hp.reversed = right
 		hp.slant = 10.0
-		hp.fill_bottom = UiPalette.CRIMSON_DEEP
+		hp.set_fill(SIDE_COLORS[i], SIDE_DEEP[i])
 		_add_bar(box, hp, right)
 		_hp.append(hp)
 		var posture: HudBar = HudBar.new()
@@ -636,6 +673,8 @@ func _build() -> void:
 		box.add_child(meta)
 		var pips: HudPips = HudPips.new()
 		pips.name = "Pips%d" % i
+		pips.color = SIDE_COLORS[i]
+		pips.deep = SIDE_DEEP[i]
 		var badge: HudBadge = HudBadge.new()
 		badge.name_for_side(i)
 		if right:
@@ -664,8 +703,9 @@ func _build() -> void:
 	_round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	round_box.add_child(_round_label)
 
-	# the demo's announcement starts 32% of the way down: the kanji in
-	# lacquer over the words, the subline under them
+	# the announcement starts 32% of the way down (the demo's): the kanji
+	# large and brushed, painted in by the brush wipe, over the word in small
+	# spaced gold capitals, the subline under them
 	_announce_box = VBoxContainer.new()
 	_announce_box.name = "Announcement"
 	_announce_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -676,8 +716,12 @@ func _build() -> void:
 	_announce_box.add_theme_constant_override("separation", 4)
 	_announce_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_announce_box)
-	_announce_kanji = _label("AnnounceKanji", "", UiTheme.KANJI, 52, 8)
-	_announce_label = _label("Announce", "", UiTheme.DISPLAY, 84, 12)
+	_announce_kanji = _label("AnnounceKanji", "", UiTheme.KANJI, CALL_KANJI_SIZE, 12)
+	_announce_kanji.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var wipe: ShaderMaterial = ShaderMaterial.new()
+	wipe.shader = BRUSH_WIPE
+	_announce_kanji.material = wipe
+	_announce_label = _label("Announce", "", UiTheme.CALL_WORD, CALL_WORD_SIZE, 8)
 	_announce_sub = _label("AnnounceSub", "", UiTheme.EYEBROW, 0)
 	for l: Label in [_announce_kanji, _announce_label, _announce_sub]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

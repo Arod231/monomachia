@@ -31,8 +31,11 @@ const CRIMSON_DEEP: Color = Color("#7d1a1d")
 const INDIGO: Color = Color("#5a78c0")
 const INDIGO_DEEP: Color = Color("#1d2a4d")
 const JADE: Color = Color("#6fd6b8")
-const POSTURE: Color = Color("#e7a53b")
-## Posture at 70% or more (the demo's hot fill).
-const POSTURE_HOT: Color = Color("#f06a2a")
+## Posture in gold, top to foot (the mock-up's posture bar); at 70% or more
+## amber; full, it turns crimson (CRIMSON to CRIMSON_DEEP) and blinks.
+const POSTURE: Color = Color("#e8cf96")
+const POSTURE_FOOT: Color = Color("#a8853f")
+const POSTURE_HOT: Color = Color("#e39a3b")
+const POSTURE_HOT_FOOT: Color = Color("#9a5a1c")
 const DANGER: Color = Color("#ff3b25")
 const SHADOW: Color = Color(0.0, 0.0, 0.0, 0.55)

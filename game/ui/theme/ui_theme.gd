@@ -26,6 +26,10 @@ const MUTED: StringName = &"MutedLabel"
 const TAG: StringName = &"HudTag"
 ## The title's seal: kanji in ivory on a rounded crimson lacquer square.
 const HANKO: StringName = &"HankoLabel"
+## A round call's word under its brushed kanji (milestone-1 task 54): small
+## spaced capitals in the bold serif, in bright gold (label() sets the
+## capitals).
+const CALL_WORD: StringName = &"CallWord"
 ## A main-menu button: no box until focused, then a warm gold wash over a
 ## gold underline, its text pale gold.
 const MENU_ENTRY: StringName = &"MenuEntry"
@@ -55,6 +59,9 @@ const MENU_WASH: Color = Color(UiPalette.GOLD, 0.14)
 ## The eyebrows' extra space between letters, in pixels (the serif's
 ## capitals run wider than the old sans's, so less than its 4).
 const EYEBROW_SPACING: int = 2
+## A round call's word's extra space between letters, in pixels (about
+## half a letter, as the mock-up's).
+const CALL_SPACING: int = 12
 ## The focused menu entry's underline, in pixels.
 const UNDERLINE: int = 2
 
@@ -65,7 +72,7 @@ static func label(text: String, variation: StringName = &"", font_size: int = 0)
 	var l: Label = Label.new()
 	l.text = text
 	l.theme_type_variation = variation
-	l.uppercase = variation == EYEBROW or variation == TAG
+	l.uppercase = variation == EYEBROW or variation == TAG or variation == CALL_WORD
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if font_size > 0:
 		l.add_theme_font_size_override("font_size", font_size)
@@ -81,6 +88,7 @@ static func build() -> Theme:
 	var display: Font = _font("display", load(SERIF_BOLD_FONT), 2, [text])
 	var seal: Font = _font("seal", load(SERIF_BOLD_FONT), 0, [text])
 	var eyebrow: Font = _font("eyebrow", load(SERIF_FONT), EYEBROW_SPACING, [text])
+	var call: Font = _font("call", load(SERIF_BOLD_FONT), CALL_SPACING, [text])
 	var brush: Font = _font("brush", load(BRUSH_FONT), 0, [load(SERIF_BOLD_FONT), text])
 	t.default_font = text
 	t.default_font_size = 22
@@ -102,6 +110,10 @@ static func build() -> Theme:
 	t.set_font(&"font", EYEBROW, eyebrow)
 	t.set_font_size(&"font_size", EYEBROW, 17)
 	t.set_color(&"font_color", EYEBROW, UiPalette.IVORY_DIM)
+	_variation(t, CALL_WORD, &"Label")
+	t.set_font(&"font", CALL_WORD, call)
+	t.set_font_size(&"font_size", CALL_WORD, 30)
+	t.set_color(&"font_color", CALL_WORD, UiPalette.GOLD_BRIGHT)
 	_variation(t, MUTED, &"Label")
 	t.set_color(&"font_color", MUTED, UiPalette.IVORY_DIM)
 	_variation(t, TAG, &"Label")
