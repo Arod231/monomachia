@@ -9,4 +9,4 @@ id = &"greatsword"
 display_name = "Greatsword"
 scene = ExtResource("2_scene")
 two_handed = true
-grip_radius = 0.027
+grip_radius = 0.031

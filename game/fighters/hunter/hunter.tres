@@ -1,16 +1,16 @@
 [gd_resource type="Resource" script_class="FighterLook" format=3]
 
-[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Superhero_Male_FullBody.gltf" id="1_uqj6e"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/hair/Hair_Buzzed.gltf" id="2_7yf3b"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/hair/Hair_Beard.gltf" id="3_uf8wu"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/characters/Superhero_Male_FullBody_Tall.gltf" id="1_uqj6e"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/hair/Hair_Buzzed_Tall.gltf" id="2_7yf3b"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/hair/Hair_Beard_Tall.gltf" id="3_uf8wu"]
 [ext_resource type="ArrayMesh" path="res://fighters/heads/male_head.res" id="4_jc2gd"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Body.gltf" id="5_mkq3h"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Arms.gltf" id="6_d5ncl"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Legs.gltf" id="7_x3qbg"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Feet_Boots.gltf" id="8_x473v"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Body_Tall.gltf" id="5_mkq3h"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Arms_Tall.gltf" id="6_d5ncl"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Legs_Tall.gltf" id="7_x3qbg"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Feet_Boots_Tall.gltf" id="8_x473v"]
 [ext_resource type="ArrayMesh" path="res://fighters/hunter/tricorn.res" id="9_hat"]
 [ext_resource type="ArrayMesh" path="res://fighters/hunter/neck_scarf.res" id="18_scarf"]
-[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Acc_Pauldron.gltf" id="10_whdco"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Acc_Pauldron_Tall.gltf" id="10_whdco"]
 [ext_resource type="Script" path="res://fighters/fighter_palette.gd" id="11_pccrn"]
 [ext_resource type="Resource" path="res://fighters/hunter/hunter_palette_a.tres" id="12_1eyxl"]
 [ext_resource type="Resource" path="res://fighters/hunter/hunter_palette_b.tres" id="13_3u6ed"]
@@ -58,4 +58,4 @@ holds = Array[ExtResource("16_hold")]([SubResource("Hold_greatsword"), SubResour
 skin_albedo = ExtResource("17_skin")
 eye_shadow = 0.55
 soot = 0.45
-scars = PackedVector3Array(0.018, 1.782, 0.088, 0.052, 1.748, 0.074, -0.044, 1.672, 0.07, -0.062, 1.654, 0.052)
+scars = PackedVector3Array(0.02, 2.039, 0.096, 0.057, 2.002, 0.081, -0.048, 1.919, 0.076, -0.068, 1.899, 0.057)

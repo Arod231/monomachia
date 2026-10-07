@@ -208,9 +208,9 @@ static func _poke(points: Array, c: SimCapsule, alongside: bool) -> float:
 
 func test_nothing_pokes_out_of_its_proxy_by_the_blade_s_margin() -> void:
 	# A capsule can't hug both the crown and a hood's peak or a hat's brim; it
-	# ends at the crown, so they poke out by up to 4.4 cm. That stays inside the
-	# 5 cm the swing checks keep a blade from every proxy, so a blade they pass
-	# still clears the body.
+	# ends at the crown, so they poke out by up to 4.4 cm (nearer 5 on KE task
+	# 3's taller bodies). That stays inside the 5 cm the swing checks keep a
+	# blade from every proxy, so a blade they pass still clears the body.
 	for id: StringName in FighterLook.IDS:
 		var body: ReferenceBody = ReferenceBody.of(id)
 		var regions: Dictionary[String, Array] = _regions(_skeleton(id))

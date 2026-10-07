@@ -32,8 +32,12 @@ const H := preload("res://tests/sim/sim_helpers.gd")
 const GAP: float = 2.5
 ## Far enough apart that nothing lands, so no hit-stop.
 const APART: float = 6.0
-## The seeded duels for item 15, each this many steps at most.
-const DUELS: int = 12
+## The seeded duels for item 15, each this many steps at most: 22 since KE
+## task 3's spacing (12 held every move before), where few four-hit strings
+## get past their first light, so Crown Cut comes up only in the 13th, and
+## Breaker Palm, which needs a disarmed fighter's ultimate, is swung and
+## answered only in the 22nd.
+const DUELS: int = 22
 const DUEL_STEPS: int = 3600
 
 

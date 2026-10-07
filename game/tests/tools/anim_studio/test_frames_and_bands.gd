@@ -9,11 +9,11 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 
 ## A Katana whose Right Cut holds a straight blade level and straight ahead,
 ## the grip `out` m in front, played as a stand-in (test_move_bands.gd's):
-## 1.1955 puts 18 cm in from 2.5 m, 0.9 falls short.
+## 1.1955 puts 18 cm in from 3.3 m, 0.9 falls short.
 static func _point(out: float) -> WeaponDef:
 	var key: Swing.KeyPose = SF.key(0, [0.0, 1.2, out], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0])
 	var w: WeaponDef = SF.weapon(&"katana", {&"k_l1": SF.held(Moves.KATANA.moves[&"k_l1"], {SF.RIGHT: key} as Dictionary[StringName, Swing.KeyPose])})
-	w.blade = StrikeSegment.make(V3.make(0.0, 0.09, 0.0), V3.make(0.0, 0.777, 0.0), 0.015)
+	w.blade = StrikeSegment.make(V3.make(0.0, 0.09, 0.0), V3.make(0.0, 1.507, 0.0), 0.015)
 	w.derive_reach()
 	return w
 
@@ -36,7 +36,7 @@ func test_a_move_in_band() -> void:
 	assert_eq(v.fields.map(func(f: FramesAndBands.Field) -> String: return f.text()),
 			["startup 26 (24-30)", "active 4 (3-6)", "recovery 30 (24-36)"])
 	assert_eq(v.distance.map(func(l: MoveBands.DistanceLine) -> String: return l.text),
-			["touches from 2.5 m: 18.0 cm in", "touches from 2.1 m", "misses from 3.25 m"])
+			["touches from 3.3 m: 18.0 cm in", "touches from 2.8 m", "misses from 4.05 m"])
 	assert_eq(v.bars.map(func(b: FramesAndBands.Bar) -> Array: return [b.name, b.from, b.to]),
 			[["startup", 0, 26], ["active", 26, 30], ["recovery", 30, 60]])
 	assert_eq(v.startup_band, [24, 30], "where the first active frame should fall")
@@ -68,7 +68,7 @@ func test_a_move_that_misses_from_its_distance_band() -> void:
 	var v: FramesAndBands = FramesAndBands.build(_point(0.9), &"k_l1", IN_BAND, {}, _bands_off())
 	assert_true(v.fields.all(func(f: FramesAndBands.Field) -> bool: return f.ok), "on time")
 	assert_false(v.in_band(), "but short")
-	assert_eq(v.distance[0].text, "no touch from 2.5 m")
+	assert_eq(v.distance[0].text, "no touch from 3.3 m")
 	assert_false(v.distance[0].ok)
 	assert_eq(v.verdict(), "out of band: CI will fail")
 

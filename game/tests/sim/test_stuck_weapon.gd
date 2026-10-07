@@ -14,9 +14,9 @@ const H := preload("res://tests/sim/sim_helpers.gd")
 
 const FLIGHT: float = 3.5
 const LEAN: float = 25.0 * PI / 180.0
-## The arena's wall (SimConst.ARENA_RADIUS) less the 0.8 m a stuck weapon
-## keeps inside it.
-const RING: float = 15.0 - 0.8
+## The arena's wall (SimConst.ARENA_RADIUS) less the 0.95 m a stuck weapon
+## keeps inside it (0.8 m before the Greatsword grew, KE task 4).
+const RING: float = 15.0 - 0.95
 const DT: float = 1.0 / 60.0
 
 

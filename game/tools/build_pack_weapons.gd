@@ -9,8 +9,9 @@ extends SceneTree
 ## For each model it:
 ## - moves it into weapon space (see WeaponLook): the origin where the main
 ##   hand closes, just under the guard (GRIP_BELOW_GUARD), blade along +Y;
-## - scales it to its overall length, and widens and thickens the blade
-##   alone by `blade_scale` (the greatsword's blade is broadened so it
+## - scales it to its overall length (both grown by 1.15 with the bodies, as
+##   the half-hand offsets below were, KE task 4), and widens and thickens
+##   the blade alone by `blade_scale` (the greatsword's blade is broadened so it
 ##   clearly outclasses the katana, without fattening the grip);
 ## - widens the bevelled edge band to `edge_band` of the half-width, so the
 ##   bright edge (steel_edge material) reads against the dark blade body
@@ -26,7 +27,7 @@ const SPECS: Array[Dictionary] = [
 		"mesh": "res://weapons/greatsword/greatsword_mesh.res",
 		"scene": "res://weapons/greatsword/greatsword.tscn",
 		"name": "Greatsword",
-		"length": 1.72,
+		"length": 1.978,
 		"blade_scale": 1.15,
 		"edge_band": 0.3,
 		"two_handed": true,
@@ -36,7 +37,7 @@ const SPECS: Array[Dictionary] = [
 		"mesh": "res://weapons/daggers/dagger_mesh.res",
 		"scene": "res://weapons/daggers/dagger.tscn",
 		"name": "Dagger",
-		"length": 0.4,
+		"length": 0.46,
 		"blade_scale": 1.0,
 		"edge_band": 0.35,
 		"two_handed": false,
@@ -49,9 +50,9 @@ const EDGE: String = "steel_edge"
 const GRIP: Array[String] = ["leather_wrap", "leather_wrap_dark"]
 const GUARD: String = "iron"
 ## The main hand's centre sits this far under the guard (half a hand).
-const GRIP_BELOW_GUARD: float = 0.044
+const GRIP_BELOW_GUARD: float = 0.0506
 ## The off hand's centre sits this far above the grip's pommel end.
-const OFF_HAND_ABOVE_END: float = 0.05
+const OFF_HAND_ABOVE_END: float = 0.0575
 
 
 func _initialize() -> void:

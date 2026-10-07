@@ -1,137 +1,137 @@
 {
   "name": "Mikiri_Pinned",
-  "about": "The stomped thruster's 70-frame stun, keyed by eye after Sekiro's mikiri counter (reference: youtube fV_dJx5TRTQ, 11.80-12.73 s and 34.60-35.60 s): the blade driven into the floor under the stomper's foot, yanked down over it and pinned, wrenched free as the stomper rises, a stagger back and a dazed, posture-broken sway, then back to the guard. The view pins the weapon's tip under the stomper's foot over frames 0-20 (FighterView).",
+  "about": "The stomped thruster's 70-frame stun, keyed by eye after Sekiro's mikiri counter (reference: youtube fV_dJx5TRTQ, 11.80-12.73 s and 34.60-35.60 s): the blade driven into the floor under the stomper's foot, yanked down over it and pinned, wrenched free as the stomper rises, a stagger back and a dazed, posture-broken sway, then back to the guard. The view pins the weapon's tip under the stomper's foot over frames 0-20 (FighterView). Its positions (the hips' and every ankle and wrist target) grew by 1.15 with KE task 3's taller bodies.",
   "frames": 70,
   "base": "Sword_Idle",
   "keys": [
     {
       "f": 0, "note": "the thrust's follow-through, arms out along the blade",
-      "hips": {"y": -0.12, "z": 0.06, "rot": [16, 0, 0]},
+      "hips": {"y": -0.138, "z": 0.069, "rot": [16, 0, 0]},
       "spine": [5, 0, 0], "chest": [3, 0, 0], "upper_chest": [0, 0, 0], "neck": [-8, 0, 0], "head": [-8, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.36], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.36], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.414], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.414], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [-0.02, 0.98, 0.47], "pole": [0.6, -1, -0.4], "blade": [0.05, -0.1, 1]},
-        "right": {"at": [0.05, 1.02, 0.55], "pole": [0.6, -1, -0.4], "blade": [0.05, -0.1, 1]}
+        "left": {"at": [-0.023, 1.127, 0.54], "pole": [0.6, -1, -0.4], "blade": [0.05, -0.1, 1]},
+        "right": {"at": [0.057, 1.173, 0.632], "pole": [0.6, -1, -0.4], "blade": [0.05, -0.1, 1]}
       }
     },
     {
       "f": 8, "note": "the blade driven into the floor under the foot: yanked forward and down after it",
-      "hips": {"y": -0.27, "z": -0.02, "rot": [34, 0, 0]},
+      "hips": {"y": -0.31, "z": -0.023, "rot": [34, 0, 0]},
       "spine": [10, 0, 0], "chest": [8, 0, 0], "upper_chest": [3, 0, 0], "neck": [-6, 0, 0], "head": [-4, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.32], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.38], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.368], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.437], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [-0.01, 0.46, 0.36], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.55, 0.8]},
-        "right": {"at": [0.06, 0.42, 0.42], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.55, 0.8]}
+        "left": {"at": [-0.011, 0.529, 0.414], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.55, 0.8]},
+        "right": {"at": [0.069, 0.483, 0.483], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.55, 0.8]}
       }
     },
     {
       "f": 12, "note": "pinned: bent right over the weapon, both hands on the grip",
-      "hips": {"y": -0.33, "z": -0.04, "rot": [38, 0, 0]},
+      "hips": {"y": -0.38, "z": -0.046, "rot": [38, 0, 0]},
       "spine": [12, 0, 0], "chest": [10, 0, 0], "upper_chest": [4, 0, 0], "neck": [-14, 0, 0], "head": [-8, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.32], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.38], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.368], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.437], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [-0.01, 0.42, 0.4], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]},
-        "right": {"at": [0.06, 0.38, 0.46], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]}
+        "left": {"at": [-0.011, 0.483, 0.46], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]},
+        "right": {"at": [0.069, 0.437, 0.529], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]}
       }
     },
     {
       "f": 18, "note": "pinned, straining back against the foot",
-      "hips": {"y": -0.3, "z": -0.08, "rot": [30, 0, -3]},
+      "hips": {"y": -0.345, "z": -0.092, "rot": [30, 0, -3]},
       "spine": [10, 0, 0], "chest": [8, 0, 0], "upper_chest": [3, 0, 0], "neck": [-12, 0, 0], "head": [-10, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.34], "pole": [0, -0.4, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.36], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.391], "pole": [0, -0.4, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.414], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [-0.01, 0.45, 0.35], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]},
-        "right": {"at": [0.06, 0.42, 0.4], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]}
+        "left": {"at": [-0.011, 0.517, 0.402], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]},
+        "right": {"at": [0.069, 0.483, 0.46], "pole": [0.6, -1, -0.4], "blade": [0.1, -0.5, 0.85]}
       }
     },
     {
       "f": 24, "note": "wrenched free as the stomper rises: thrown back, the weapon flung up",
-      "hips": {"y": -0.1, "z": -0.1, "rot": [-12, 0, 2]},
+      "hips": {"y": -0.115, "z": -0.115, "rot": [-12, 0, 2]},
       "spine": [-6, 0, 0], "chest": [-4, 0, 0], "upper_chest": [-2, 0, 0], "neck": [4, 0, 0], "head": [6, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.46], "pole": [0, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.24], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.529], "pole": [0, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.276], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [0.3, 1.04, 0.08], "pole": [0.6, -1, -0.4], "blade": [0.2, 0.6, -0.6]},
-        "right": {"at": [0.22, 1.24, 0.12], "pole": [0.6, -1, -0.4], "blade": [0.1, 1, -0.35]}
+        "left": {"at": [0.345, 1.196, 0.092], "pole": [0.6, -1, -0.4], "blade": [0.2, 0.6, -0.6]},
+        "right": {"at": [0.253, 1.426, 0.138], "pole": [0.6, -1, -0.4], "blade": [0.1, 1, -0.35]}
       }
     },
     {
       "f": 32, "note": "staggering back a step, the guard broken",
-      "hips": {"y": -0.15, "z": -0.13, "rot": [-6, 6, 0]},
+      "hips": {"y": -0.172, "z": -0.149, "rot": [-6, 6, 0]},
       "spine": [-3, 2, 0], "chest": [-2, 2, 0], "upper_chest": [0, 0, 0], "neck": [2, 0, 0], "head": [4, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.46], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.04], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.529], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.046], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [0.3, 0.9, 0.0], "pole": [0.6, -1, -0.4], "blade": [0.3, 0.2, -0.8]},
-        "right": {"at": [0.3, 0.96, 0.1], "pole": [0.6, -1, -0.4], "blade": [0.4, 0.4, -0.6]}
+        "left": {"at": [0.345, 1.035, 0], "pole": [0.6, -1, -0.4], "blade": [0.3, 0.2, -0.8]},
+        "right": {"at": [0.345, 1.104, 0.115], "pole": [0.6, -1, -0.4], "blade": [0.4, 0.4, -0.6]}
       }
     },
     {
       "f": 42, "note": "dazed: slumped, the weapon hanging, posture broken",
-      "hips": {"y": -0.13, "z": -0.06, "rot": [14, 4, 4]},
+      "hips": {"y": -0.149, "z": -0.069, "rot": [14, 4, 4]},
       "spine": [6, 0, 2], "chest": [5, 0, 0], "upper_chest": [2, 0, 0], "neck": [6, 0, 0], "head": [12, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.4], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.1], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.46], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.115], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [0.24, 0.8, 0.04], "pole": [0.6, -1, -0.4], "blade": [0.15, -0.8, 0.4]},
-        "right": {"at": [0.25, 0.84, 0.14], "pole": [0.6, -1, -0.4], "blade": [0.25, -0.55, 0.8]}
+        "left": {"at": [0.276, 0.92, 0.046], "pole": [0.6, -1, -0.4], "blade": [0.15, -0.8, 0.4]},
+        "right": {"at": [0.287, 0.966, 0.161], "pole": [0.6, -1, -0.4], "blade": [0.25, -0.55, 0.8]}
       }
     },
     {
       "f": 54, "note": "dazed: swaying the other way",
-      "hips": {"y": -0.12, "z": -0.05, "rot": [12, -4, -4]},
+      "hips": {"y": -0.138, "z": -0.057, "rot": [12, -4, -4]},
       "spine": [6, 0, -2], "chest": [5, 0, 0], "upper_chest": [2, 0, 0], "neck": [5, 0, 0], "head": [10, -4, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.4], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.1], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.46], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.115], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [0.23, 0.82, 0.05], "pole": [0.6, -1, -0.4], "blade": [0.15, -0.8, 0.4]},
-        "right": {"at": [0.26, 0.86, 0.15], "pole": [0.6, -1, -0.4], "blade": [0.25, -0.55, 0.8]}
+        "left": {"at": [0.265, 0.943, 0.057], "pole": [0.6, -1, -0.4], "blade": [0.15, -0.8, 0.4]},
+        "right": {"at": [0.299, 0.989, 0.172], "pole": [0.6, -1, -0.4], "blade": [0.25, -0.55, 0.8]}
       }
     },
     {
       "f": 63, "note": "shaking it off, the weapon coming up",
-      "hips": {"y": -0.09, "z": -0.02, "rot": [6, 0, 0]},
+      "hips": {"y": -0.103, "z": -0.023, "rot": [6, 0, 0]},
       "spine": [3, 0, 0], "chest": [2, 0, 0], "upper_chest": [0, 0, 0], "neck": [0, 0, 0], "head": [-2, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.34], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.2], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.391], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.23], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [0.15, 0.94, 0.18], "pole": [0.6, -1, -0.4], "blade": [0.05, 0.3, 1]},
-        "right": {"at": [0.22, 0.95, 0.24], "pole": [0.6, -1, -0.4], "blade": [0.05, 0.3, 1]}
+        "left": {"at": [0.172, 1.081, 0.207], "pole": [0.6, -1, -0.4], "blade": [0.05, 0.3, 1]},
+        "right": {"at": [0.253, 1.092, 0.276], "pole": [0.6, -1, -0.4], "blade": [0.05, 0.3, 1]}
       }
     },
     {
       "f": 70, "note": "back to the guard as the stun ends",
-      "hips": {"y": -0.08, "z": 0.0, "rot": [5, 0, 0]},
+      "hips": {"y": -0.092, "z": 0, "rot": [5, 0, 0]},
       "spine": [2, 0, 0], "chest": [1, 0, 0], "upper_chest": [0, 0, 0], "neck": [0, 0, 0], "head": [-3, 0, 0],
       "legs": {
-        "left": {"at": [0.12, 0.087, -0.3], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
-        "right": {"at": [0.13, 0.087, 0.26], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
+        "left": {"at": [0.138, 0.1, -0.345], "pole": [0, -0.2, 1], "dir": [0, 0, 1], "up": [0, 1, 0]},
+        "right": {"at": [0.149, 0.1, 0.299], "pole": [0.1, 0, 1], "dir": [0, 0, 1], "up": [0, 1, 0]}
       },
       "arms": {
-        "left": {"at": [0.12, 0.98, 0.22], "pole": [0.6, -1, -0.4], "blade": [0.0, 0.45, 1]},
-        "right": {"at": [0.18, 1.0, 0.28], "pole": [0.6, -1, -0.4], "blade": [0.0, 0.45, 1]}
+        "left": {"at": [0.138, 1.127, 0.253], "pole": [0.6, -1, -0.4], "blade": [0.0, 0.45, 1]},
+        "right": {"at": [0.207, 1.15, 0.322], "pole": [0.6, -1, -0.4], "blade": [0.0, 0.45, 1]}
       }
     }
   ]

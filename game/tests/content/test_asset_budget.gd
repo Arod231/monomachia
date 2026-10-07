@@ -110,7 +110,8 @@ func test_every_texture_a_model_references_exists() -> void:
 			var uri: String = String(image["uri"]).uri_decode()
 			var target: String = path.get_base_dir().path_join(uri).simplify_path()
 			assert_true(FileAccess.file_exists(target), "%s -> %s" % [path.get_file(), uri])
-	assert_eq(models, 15, "2 bodies, 10 outfit parts and 3 hairstyles")
+	# each with its taller copy (KE task 3), which keeps its materials and textures
+	assert_eq(models, 30, "2 bodies, 10 outfit parts and 3 hairstyles, each with its _Tall copy")
 
 
 func test_every_skinned_model_is_retargeted_through_the_bone_map() -> void:

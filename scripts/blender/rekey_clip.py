@@ -245,8 +245,15 @@ BODY = [
     ("B-shin.L", "B-foot.L", 0.08),
     ("B-shin.R", "B-foot.R", 0.08),
 ]
-# The blade from the grip (m along the prop bone's +Y): the Katana's.
-BLADE = (0.09, 0.78)
+# The game's fighters stand taller than this rig since KE task 3 (their hips
+# at about 1.10 m against its 0.98; BODY above still fits them, scaled down
+# to it), and the clips play on them by their turns, so a weapon, which
+# didn't grow with them, is this much shorter against this rig: the blade
+# (and a spec's clearance) is in this rig's metres.
+GAME_SCALE = 1.10 / 0.98
+# The blade from the grip (m along the prop bone's +Y): the Katana's, 1.3 m from
+# the habaki since KE task 2.
+BLADE = (0.09 / GAME_SCALE, 1.39 / GAME_SCALE)
 
 
 def _segment_gap(p, a, b):

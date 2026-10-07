@@ -179,15 +179,16 @@ func test_the_iai_hits_at_3_8_m_where_right_cut_whiffs() -> void:
 
 
 ## The Iai's clips (authored-animation task 11) still reach as the spec's
-## Iai does: into a defender 3.6 m away, not one 4.2 m away.
-func test_the_iai_enters_a_defender_at_3_6_m_and_misses_at_4_2_m() -> void:
+## Iai does, 0.5 m further with the 1.3 m blade (KE task 2): into a defender
+## 4.1 m away, not one 4.7 m away.
+func test_the_iai_enters_a_defender_at_4_1_m_and_misses_at_4_7_m() -> void:
 	for id: StringName in [&"k_iai", &"k_iai_h"]:
 		var m: AttackDef = Moves.KATANA.moves[id]
 		assert_not_null(m.swing, "%s has its baked swing" % id)
 		if m.swing == null:
 			continue
-		assert_not_null(SwingReach.first_contact(m, Moves.KATANA, 3.6, 0.0, FighterBody.of(&"")), "%s enters at 3.6 m" % id)
-		assert_null(SwingReach.first_contact(m, Moves.KATANA, 4.2, 0.0, FighterBody.of(&"")), "%s misses at 4.2 m" % id)
+		assert_not_null(SwingReach.first_contact(m, Moves.KATANA, 4.1, 0.0, FighterBody.of(&"")), "%s enters at 4.1 m" % id)
+		assert_null(SwingReach.first_contact(m, Moves.KATANA, 4.7, 0.0, FighterBody.of(&"")), "%s misses at 4.7 m" % id)
 
 
 ## The unblockables' clips (authored-animation task 13), with their thicker
