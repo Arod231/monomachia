@@ -114,7 +114,7 @@ func test_its_environment_is_its_own_copy_of_the_night_sky() -> void:
 	assert_eq(sky.shader, SKY_SHADER)
 	assert_ne(sky, arena.def.environment.sky.sky_material, "its own sky, so the moon set on it leaves the resource alone")
 	assert_eq(_sky_param(arena, LookNoise.PARAM), LookNoise.texture(), "the sky fetches the look's noise")
-	assert_eq(_sky_param(arena, &"horizon_color"), LookPalette.MIST.darkened(0.45), "the night's horizon, into the mist")
+	assert_eq(_sky_param(arena, &"horizon_color"), LookGrade.NIGHT_HORIZON, "the night's horizon, near black")
 
 
 ## A sky that isn't a shader (bought art, say) comes through as it is.
@@ -166,7 +166,12 @@ func test_the_sky_and_the_rim_light_take_the_moon_from_the_layout() -> void:
 
 func test_the_moon_casts_the_shadows_and_the_rim_light_touches_fighters_only() -> void:
 	var key := arena.get_node("Lights/MoonKey") as DirectionalLight3D
-	assert_true(key.is_in_group(GraphicsApplier.GROUP_SHADOW_LIGHT), "the preset sets its shadows")
+	assert_false(key.shadow_enabled, "the moon's own light casts the shadows, from the moon")
+	assert_false(key.is_in_group(GraphicsApplier.GROUP_SHADOW_LIGHT))
+	var moon := arena.get_node("Lights/MoonLight") as DirectionalLight3D
+	assert_true(moon.is_in_group(GraphicsApplier.GROUP_SHADOW_LIGHT), "the preset sets its shadows")
+	assert_ne(moon.shadow_caster_mask & LookPalette.FIGHTER_LAYER, 0, "the fighters cast them")
+	assert_almost_eq(moon.global_basis.z, arena.layout.moon_direction.normalized(), Vector3.ONE * 1e-4, "away from the moon")
 	var rim := arena.get_node("Lights/MoonRim") as DirectionalLight3D
 	assert_eq(rim.light_cull_mask, LookPalette.FIGHTER_LAYER)
 	assert_false(rim.shadow_enabled)
@@ -350,7 +355,7 @@ func _lantern_lights(shrine: MoonlitShrine) -> Array[Node]:
 	return shrine.get_node("Platform/LanternLights").get_children()
 
 
-func test_every_lantern_has_a_light_that_lights_fighters_and_skips_the_ground() -> void:
+func test_every_lantern_has_a_light_that_lights_fighters_and_the_ground() -> void:
 	var lights: Array[Node] = _lantern_lights(arena)
 	assert_eq(lights.size(), arena.layout.lantern_angles.size(), "one light per lantern")
 	for i: int in lights.size():
@@ -358,11 +363,14 @@ func test_every_lantern_has_a_light_that_lights_fighters_and_skips_the_ground() 
 		var spot: Vector3 = ShrineLayout.polar(arena.layout.lantern_angles[i], arena.layout.lantern_radius)
 		assert_lt(Vector2(light.position.x - spot.x, light.position.z - spot.z).length(), 0.25, "light %d in its lantern" % i)
 		assert_between(light.position.y, 1.5, 2.5, "light %d at the lantern's fire" % i)
-		assert_eq(light.light_cull_mask & LookPalette.GROUND_LAYER, 0, "light %d skips the ground" % i)
+		assert_ne(light.light_cull_mask & LookPalette.GROUND_LAYER, 0, "light %d lights the ground, a natural light source" % i)
 		assert_ne(light.light_cull_mask & LookPalette.FIGHTER_LAYER, 0, "light %d lights fighters" % i)
 		assert_true(light.is_in_group(GraphicsApplier.GROUP_MINOR_LIGHT), "the preset turns light %d on or off" % i)
 		assert_true(light.shadow_enabled, "light %d casts shadows, as the look test settled (task 43)" % i)
 		assert_eq(light.light_color, LookPalette.LANTERN_EMBER, "light %d glows ember" % i)
+		assert_gte(light.omni_range, 9.0, "light %d reaches into the courtyard" % i)
+		assert_gt(light.light_size, 0.0, "light %d casts soft shadows, like a flame" % i)
+		assert_gte(light.light_energy, 3.0, "light %d is bright" % i)
 
 
 ## Where the halos sit is for the shots: the headless renderer keeps no
@@ -868,8 +876,8 @@ func test_every_preset_applies_to_the_courtyard_and_its_props() -> void:
 		GraphicsApplier.apply_to_tree(preset, arena)
 		for light: Node in _lantern_lights(arena):
 			assert_eq((light as Light3D).visible, preset.minor_lights, "%s: lantern lights" % id)
-		var key := arena.get_node("Lights/MoonKey") as DirectionalLight3D
-		assert_eq(key.directional_shadow_max_distance, preset.shadow_max_distance, "%s: moon shadows" % id)
+		var moon := arena.get_node("Lights/MoonLight") as DirectionalLight3D
+		assert_eq(moon.directional_shadow_max_distance, preset.shadow_max_distance, "%s: moon shadows" % id)
 		var env: Environment = _environment(arena)
 		assert_eq(env.fog_enabled, preset.fog_enabled, "%s: fog" % id)
 		assert_eq(env.volumetric_fog_enabled, preset.volumetric_fog, "%s: volumetric fog" % id)

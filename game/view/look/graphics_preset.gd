@@ -39,7 +39,7 @@ const CARDS: String = "res://view/look/presets/cards.json"
 const CUTS: Array[StringName] = [
 	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
-	&"push_in_dof", &"spark_light", &"fighter_shadows",
+	&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
 ]
 
 @export var id: StringName = &"high"
@@ -84,6 +84,11 @@ const CUTS: Array[StringName] = [
 @export var volumetric_fog: bool = true
 ## The arena's ambient occlusion (SSAO), where its environment has it.
 @export var ambient_occlusion: bool = true
+## Global illumination (SDFGI), where the arena's environment has it: glowing
+## surfaces light what's round them, as the wisteria's blossoms and the
+## lanterns' paper do (milestone-1 task 48, the owner's word, Oct 7). Ultra
+## and High; the others keep the canopy and lantern lights alone.
+@export var global_illumination: bool = true
 ## The falling petals' lights: Light3D nodes in group look_petal_light.
 @export var petal_lights: bool = true
 ## The decals that only dress the arena: Decal nodes in group

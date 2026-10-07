@@ -141,6 +141,9 @@ var _dropped: Dictionary[int, Node3D] = {}
 var _beam_mesh: CylinderMesh = _make_beam_mesh()
 var _beam_mats: Array[StandardMaterial3D] = [_make_beam_material(), _make_beam_material()]
 var _time: float = 0.0
+## Each side's round wins, from the last roundOver: the next round is match
+## point when one has MusicDirector.MATCH_POINT_WINS.
+var _round_wins: Array[int] = [0, 0]
 
 
 func _ready() -> void:
@@ -323,6 +326,8 @@ func steps_from_clips(side: int) -> bool:
 
 func _on_match_started(cfg: MatchConfig) -> void:
 	_load_arena(cfg.arena_id)
+	_round_wins = [0, 0]
+	_tell_arena_match_point(false)
 	while fighters.size() < 2:
 		var f: FighterView = FighterView.new()
 		f.name = "Fighter%d" % fighters.size()
@@ -613,12 +618,30 @@ func _on_sim_event(e: Dictionary) -> void:
 				_body_flash(loser, Color.WHITE, 0.8)
 			if host.config.mode != MatchConfig.VERSUS:
 				camera.start_ko_orbit()
+		&"roundOver":
+			var wins: Variant = e.get("wins")
+			if wins is Array and (wins as Array).size() == 2:
+				_round_wins = [int(wins[0]), int(wins[1])]
 		&"roundStart":
+			_tell_arena_match_point(is_match_point(_round_wins))
 			for cam: CameraRig in cameras:
 				cam.reset_round()
 			_clear_dropped()
 			effects.clear()
 			recall_aura.clear()
+
+
+## Whether the round that follows wins (each side's round wins) is match
+## point, as the music hears it (MusicDirector.MATCH_POINT_WINS).
+static func is_match_point(wins: Array) -> bool:
+	return wins.size() == 2 and maxi(int(wins[0]), int(wins[1])) >= MusicDirector.MATCH_POINT_WINS
+
+
+## Tells an arena that dresses for match point (the Shrine's wisteria turn
+## blood red) whether this round is one.
+func _tell_arena_match_point(on: bool) -> void:
+	if arena != null and arena.has_method(&"set_match_point"):
+		arena.call(&"set_match_point", on)
 
 
 # ------------------------------------------------------------------ dropped weapons

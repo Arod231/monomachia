@@ -23,7 +23,7 @@ const HALO: Shader = preload("res://shaders/particle_glow.gdshader")
 const LEDGE_Y := -0.3
 ## A lantern light's brightness, which MoonlitShrine flickers around, and
 ## the colour of its light and halo.
-const LANTERN_ENERGY := 2.25
+const LANTERN_ENERGY := 8.0
 const FIRE_COLOR := Color(1.0, 0.54, 0.24)
 ## Half the width of a parapet post, and how much wider the posts beside a
 ## gate opening are.
@@ -304,11 +304,15 @@ static func _lantern_light(fire: Vector3) -> OmniLight3D:
 	light.light_color = LookPalette.LANTERN_EMBER
 	light.light_energy = LANTERN_ENERGY
 	light.light_volumetric_fog_energy = 2.0
-	light.omni_range = 4.6
+	light.omni_range = 9.5
 	light.omni_attenuation = 1.1
 	light.shadow_enabled = true
+	# a soft-edged flame: the posts' and fighters' shadows fall into the
+	# courtyard (the owner's word, Oct 7)
+	light.light_size = 0.12
 	light.light_specular = 0.0
-	light.light_cull_mask = LookPalette.SMALL_LIGHT_MASK
+	# a natural light source (the owner's word, Oct 7): it lights the ground
+	# round its lantern too
 	light.add_to_group(GraphicsApplier.GROUP_MINOR_LIGHT)
 	return light
 
@@ -319,11 +323,11 @@ static func _lantern_halos(fires: PackedVector3Array) -> MultiMeshInstance3D:
 	var transforms: Array[Transform3D] = []
 	var colors := PackedColorArray()
 	for p: Vector3 in fires:
-		transforms.append(Transform3D(Basis().scaled(Vector3.ONE * 2.0), p))
+		transforms.append(Transform3D(Basis().scaled(Vector3.ONE * 2.6), p))
 		colors.append(Color(FIRE_COLOR, 0.36))
 	var mat := ShaderMaterial.new()
 	mat.shader = HALO
-	mat.set_shader_parameter(&"energy", 1.6)
+	mat.set_shader_parameter(&"energy", 2.0)
 	mat.set_shader_parameter(&"toward_camera", 0.75)
 	var halos := MeshKit.multimesh(QuadMesh.new(), transforms, mat, colors)
 	halos.name = "LanternHalos"

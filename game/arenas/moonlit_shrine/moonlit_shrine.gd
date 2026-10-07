@@ -33,6 +33,13 @@ const BELOW_DECK_MAX_HEIGHT := 5.0
 ## the blood moon stays the accent and the distance falls back into the
 ## night's mist (the mood board's "colour only as accents").
 const MOON_WASH: float = 0.35
+## How long (s) the wisteria take to turn blood red at match point.
+const DOOM_FADE: float = 3.0
+## The moon's own light: its blood red and how brightly it lights the
+## arena. It stays out of the mist: a red haze over the fight would muddy it
+## (the owner's word, Oct 7).
+const MOON_LIGHT := Color(1.0, 0.16, 0.08)
+const MOON_LIGHT_ENERGY: float = 0.6
 ## The dust motes over the courtyard (the look test's 140 over a corner,
 ## spread over the whole floor at about a third of that density).
 const DUST_AMOUNT: int = 700
@@ -43,6 +50,10 @@ const DUST_AMOUNT: int = 700
 var _lantern_lights: Array[OmniLight3D] = []
 var _floating_rocks: Node3D
 var _wisteria: Node3D
+## How far the wisteria have turned blood red for match point (0..1), and
+## where they're heading.
+var _doom: float = 0.0
+var _doom_target: float = 0.0
 var _time: float = 0.0
 
 
@@ -58,6 +69,9 @@ func _process(delta: float) -> void:
 	ShrineUnderside.bob_rocks(_floating_rocks, layout, _time)
 	if _wisteria != null:
 		ShrineWisteria.drift_petal_lights(_wisteria, _time, layout.wind)
+		if _doom != _doom_target:
+			_doom = move_toward(_doom, _doom_target, delta / DOOM_FADE)
+			ShrineWisteria.set_doom(_wisteria, _doom)
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera != null:
 		cull_below_deck(camera)
@@ -133,9 +147,13 @@ func _add_marker(marker_name: String, xform: Transform3D) -> void:
 	add_child(m)
 
 
-## The moon's key light (moonlit steel, casting the shadows the preset sets,
-## lighting the mist), and a red rim light from the moon's side that touches
-## fighters only (and no fog, which every light would otherwise reach).
+## The moon's key light (moonlit steel, lighting the mist; it casts no
+## shadows, which the moon's own light casts), a red rim light from the
+## moon's side that touches fighters only (and no fog, which every light
+## would otherwise reach), and the moon's own light: blood red from the moon,
+## lighting the arena but not the mist, the fighters casting its shadows
+## away from the moon (the shadows the preset sets; milestone-1 task 48, the
+## owner's word, Oct 7; the wisteria cast none).
 func _build_lights() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Lights"
@@ -144,17 +162,27 @@ func _build_lights() -> Node3D:
 	key.light_color = LookPalette.MOON_STEEL.lightened(0.25)
 	key.light_energy = 0.9
 	key.light_volumetric_fog_energy = 1.2
-	key.shadow_enabled = true
-	key.shadow_bias = 0.04
-	key.shadow_normal_bias = 1.2
-	key.shadow_blur = 1.0
-	key.directional_shadow_split_1 = 0.22
-	key.directional_shadow_blend_splits = true
-	key.directional_shadow_fade_start = 0.85
+	key.shadow_enabled = false
 	key.light_angular_distance = 0.0
-	key.add_to_group(GraphicsApplier.GROUP_SHADOW_LIGHT)
 	key.basis = _shining_from(layout.key_light_direction)
 	root.add_child(key)
+	var moon := DirectionalLight3D.new()
+	moon.name = "MoonLight"
+	moon.light_color = MOON_LIGHT
+	moon.light_energy = MOON_LIGHT_ENERGY
+	moon.light_volumetric_fog_energy = 0.0
+	moon.light_specular = 0.3
+	moon.shadow_enabled = true
+	moon.shadow_blur = 1.0
+	moon.shadow_bias = 0.04
+	moon.shadow_normal_bias = 1.2
+	moon.directional_shadow_split_1 = 0.22
+	moon.directional_shadow_blend_splits = true
+	moon.directional_shadow_fade_start = 0.85
+	moon.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	moon.add_to_group(GraphicsApplier.GROUP_SHADOW_LIGHT)
+	moon.basis = _shining_from(layout.moon_direction)
+	root.add_child(moon)
 	var rim := DirectionalLight3D.new()
 	rim.name = "MoonRim"
 	rim.light_color = Color(1.0, 0.36, 0.28)
@@ -274,6 +302,22 @@ func _dress_sky(environment: Environment) -> void:
 	sky.set_shader_parameter(&"moon_direction", layout.moon_direction.normalized())
 	sky.set_shader_parameter(&"horizon_color", environment.fog_light_color)
 	LookNoise.apply_to(sky)
+
+
+## Match point (the owner's word, Oct 7): the wisteria's petals glow and
+## light the arena blood red for the final round, turning over DOOM_FADE
+## seconds; off (a new match), they're lavender again at once.
+func set_match_point(on: bool) -> void:
+	_doom_target = 1.0 if on else 0.0
+	if not on:
+		_doom = 0.0
+		if _wisteria != null:
+			ShrineWisteria.set_doom(_wisteria, 0.0)
+
+
+## How far the wisteria have turned blood red (0..1).
+func match_point_doom() -> float:
+	return _doom
 
 
 ## A light's basis shining from from_dir: its -Z points away from it.

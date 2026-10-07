@@ -175,10 +175,96 @@ func test_every_tree_lights_the_fight_purple_under_its_blossoms() -> void:
 		for marker: Node3D in markers:
 			var light := marker.get_node("CanopyLight") as OmniLight3D
 			assert_eq(light.light_color, ShrineWisteria.BLOSSOM)
-			assert_false(light.shadow_enabled, "cheap")
+			assert_true(light.shadow_enabled, "the fighters cast shadows in its light")
 			assert_false(light.is_in_group(GraphicsApplier.GROUP_MINOR_LIGHT), "on every preset")
 			assert_gt(marker.global_position.y, ShrineWisteria.CANOPY_FLOOR - 2.0, "up in the canopy")
 			assert_gt(light.omni_range, marker.global_position.y + 2.0, "reaching down to the fighters")
+
+
+## The trees cast no shadows, branches or blossoms, and the glowing
+## blossoms take none; the moon lights the arena blood red without a red
+## haze in the mist, the fighters casting its shadows away from it.
+func test_the_trees_cast_no_shadows_and_the_moon_lights_without_a_haze() -> void:
+	for tree: Node3D in _trees():
+		for node: Node in tree.find_children("*", "GeometryInstance3D", true, false):
+			assert_eq((node as GeometryInstance3D).cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,
+				"%s's %s casts no shadow" % [tree.name, node.name])
+		for node: Node in tree.find_children("*_Blossom", "GeometryInstance3D", false, false):
+			assert_true(((node as GeometryInstance3D).material_override as BaseMaterial3D).disable_receive_shadows,
+				"%s's blossoms take no shadow" % tree.name)
+	var moon := arena.get_node("Lights/MoonLight") as DirectionalLight3D
+	assert_ne(moon.light_cull_mask & LookPalette.GROUND_LAYER, 0, "the moon lights the arena")
+	assert_eq(moon.light_volumetric_fog_energy, 0.0, "no red haze in the mist")
+	assert_true(moon.shadow_enabled, "the fighters cast its shadows")
+	assert_gt(moon.light_color.r, moon.light_color.g * 4.0, "blood red")
+	assert_almost_eq(moon.global_transform.basis.z, arena.layout.moon_direction.normalized(), Vector3.ONE * 0.01, "from the moon")
+	assert_null(arena.get_node_or_null("Lights/MoonRays"))
+
+
+func _canopy_lights() -> Array[OmniLight3D]:
+	var out: Array[OmniLight3D] = []
+	for node: Node in _grove().find_children("CanopyLight", "OmniLight3D", true, false):
+		out.append(node as OmniLight3D)
+	return out
+
+
+## How brightly the canopy lights reach a spot of the floor: each light's
+## energy over the distance squared, inside its range.
+func _canopy_light_at(spot: Vector3) -> float:
+	var sum: float = 0.0
+	for light: OmniLight3D in _canopy_lights():
+		var d: float = light.global_position.distance_to(spot)
+		if d < light.omni_range:
+			sum += light.light_energy * pow(1.0 - d / light.omni_range, light.omni_attenuation) / maxf(d * d, 1.0)
+	return sum
+
+
+## The blossoms light the arena from where they hang, not as a filter over
+## it: their lights hang under the canopy over the courtyard and reach every
+## spot of the floor, brightest under the canopy and fading toward the
+## centre, and keep out of the fog, so no purple haze hangs over the fight.
+func test_the_blossoms_light_the_arena_in_pools_under_the_canopy() -> void:
+	var lights: Array[OmniLight3D] = _canopy_lights()
+	var over: int = 0
+	for light: OmniLight3D in lights:
+		var at: Vector3 = light.global_position
+		if Vector2(at.x, at.z).length() < arena.def.camera_max_radius:
+			over += 1
+		assert_eq(light.light_cull_mask & LookPalette.GROUND_LAYER, LookPalette.GROUND_LAYER, "it lights the floor")
+		assert_lte(light.light_volumetric_fog_energy, 0.3, "no purple haze in the fog")
+	assert_gte(over, 15, "most canopy lights hang over the courtyard")
+	var r: float = arena.def.walkable_radius
+	for x: int in range(-15, 16, 3):
+		for z: int in range(-15, 16, 3):
+			var spot := Vector3(x, 0.0, z)
+			if Vector2(spot.x, spot.z).length() <= r:
+				assert_gt(_canopy_light_at(spot), 0.0, "the blossoms reach the floor at %s" % spot)
+	# under the canopy (each light's foot) against the centre
+	var under: float = 0.0
+	for light: OmniLight3D in lights:
+		var foot := Vector3(light.global_position.x, 0.0, light.global_position.z)
+		if foot.length() < r:
+			under = maxf(under, _canopy_light_at(foot))
+	assert_gt(under, _canopy_light_at(Vector3.ZERO) * 1.5, "pools of light under the canopy, dimmer at the centre")
+
+
+## Like the reference the owner chose: the blossoms glow pink-lavender, past
+## the bloom's threshold so they halo softly, but not so bright they glare.
+func test_the_blossoms_glow_softly() -> void:
+	for tree: Node3D in _trees():
+		var blossom := tree.find_children("*_Blossom", "MeshInstance3D", false, false)[0] as MeshInstance3D
+		var m := blossom.material_override as StandardMaterial3D
+		assert_not_null(m, "%s's blossoms wear the glow" % tree.name)
+		assert_true(m.emission_enabled)
+		assert_not_null(m.emission_texture, "glowing in the raceme's shape")
+		assert_eq(m.emission, ShrineWisteria.BLOSSOM_GLOW)
+		assert_eq(m.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR)
+		assert_eq(m.cull_mode, BaseMaterial3D.CULL_DISABLED)
+		assert_eq(blossom.gi_mode, GeometryInstance3D.GI_MODE_STATIC, "its glow lights what's round it")
+		var glow: Color = ShrineWisteria.BLOSSOM_GLOW * m.emission_energy_multiplier
+		assert_between(maxf(glow.r, maxf(glow.g, glow.b)), 1.5, 4.0, "past the bloom's threshold, short of glare")
+	assert_gt(ShrineWisteria.BLOSSOM_GLOW.b, ShrineWisteria.BLOSSOM_GLOW.g, "lavender")
+	assert_gt(ShrineWisteria.BLOSSOM_GLOW.r, ShrineWisteria.BLOSSOM_GLOW.g, "toward pink")
 
 
 func test_petals_fall_from_every_canopy_on_the_presets_particles() -> void:
@@ -188,6 +274,13 @@ func test_petals_fall_from_every_canopy_on_the_presets_particles() -> void:
 		assert_eq(petals.amount, ShrineWisteria.PETALS)
 		assert_eq(petals.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
 		assert_gt(petals.global_position.y, ShrineWisteria.CANOPY_FLOOR, "from up in the canopy")
+		var m := petals.process_material as ParticleProcessMaterial
+		assert_gte(m.scale_max, 0.14, "petals big enough to see falling")
+		var ramp: Gradient = (m.color_ramp as GradientTexture1D).gradient
+		var peak: float = 0.0
+		for c: Color in ramp.colors:
+			peak = maxf(peak, maxf(c.r, maxf(c.g, c.b)))
+		assert_between(peak, 1.5, 4.0, "glowing softly, as the blossoms do")
 
 
 func test_petal_lights_drift_down_and_start_again() -> void:
@@ -213,3 +306,39 @@ func test_young_wisteria_grow_on_the_floating_rocks() -> void:
 	for tree: Node in young:
 		assert_eq(ShrineWisteria.glow_markers(tree as Node3D).size(), 0, "which light nothing")
 		assert_lt((tree as Node3D).scale.x, 0.2, "small")
+
+
+## Match point: the petals' glow and light turn blood red (never pink), and
+## back to lavender.
+func test_at_match_point_the_petals_glow_and_light_blood_red() -> void:
+	ShrineWisteria.set_doom(_grove(), 1.0)
+	var m := _grove().get_meta(&"blossom") as StandardMaterial3D
+	assert_gt(m.emission.r, maxf(m.emission.g, m.emission.b) * 10.0, "a deep red, not pink")
+	assert_lt(m.emission_energy_multiplier, ShrineWisteria.BLOSSOM_EMISSION, "dimmer: doom, not neon")
+	assert_eq(m.emission_operator, BaseMaterial3D.EMISSION_OP_MULTIPLY, "the raceme's lavender never added to the red")
+	for light: OmniLight3D in _canopy_lights():
+		assert_gt(light.light_color.r, maxf(light.light_color.g, light.light_color.b) * 10.0, "the canopy lights blood red")
+	var petals := _grove().get_node("Petals0") as GPUParticles3D
+	var c: Color = ((petals.process_material as ParticleProcessMaterial).color_ramp as GradientTexture1D).gradient.colors[1]
+	assert_gt(c.r, maxf(c.g, c.b) * 10.0, "the falling petals blood red")
+	ShrineWisteria.set_doom(_grove(), 0.0)
+	assert_eq(m.emission, ShrineWisteria.BLOSSOM_GLOW, "lavender again")
+	assert_eq(_canopy_lights()[0].light_color, ShrineWisteria.BLOSSOM)
+
+
+func test_the_shrine_eases_into_match_point_and_out_of_it_at_once() -> void:
+	arena.set_match_point(true)
+	simulate(arena, 30, 0.05)
+	assert_between(arena.match_point_doom(), 0.2, 0.9, "turning over a few seconds")
+	simulate(arena, 80, 0.05)
+	assert_eq(arena.match_point_doom(), 1.0, "blood red")
+	arena.set_match_point(false)
+	assert_eq(arena.match_point_doom(), 0.0, "a new match: lavender at once")
+	assert_eq((_grove().get_meta(&"blossom") as StandardMaterial3D).emission, ShrineWisteria.BLOSSOM_GLOW)
+
+
+func test_match_point_is_the_round_after_a_side_reaches_two_wins() -> void:
+	assert_false(MatchView.is_match_point([0, 0]))
+	assert_false(MatchView.is_match_point([1, 1]))
+	assert_true(MatchView.is_match_point([2, 0]))
+	assert_true(MatchView.is_match_point([1, 2]))

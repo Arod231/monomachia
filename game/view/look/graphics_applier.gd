@@ -30,6 +30,11 @@ extends RefCounted
 ## Viewports besides the root that draw the match (SplitView's halves).
 const VIEWPORTS_GROUP: StringName = &"graphics_viewports"
 const GROUP_SHADOW_LIGHT: StringName = &"look_shadow_light"
+const POSITIONAL_SHADOW_ATLAS: int = 8192
+const POSITIONAL_SHADOW_QUADRANTS: Array[Viewport.PositionalShadowAtlasQuadrantSubdiv] = [
+	Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_4, Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_16,
+	Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_16, Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_64,
+]
 const GROUP_MINOR_LIGHT: StringName = &"look_minor_light"
 const GROUP_PARTICLES: StringName = &"look_particles"
 const GROUP_SCENERY: StringName = &"look_scenery_detail"
@@ -44,6 +49,7 @@ const META_BASE_HEIGHT_FOG: StringName = &"look_base_height_fog"
 ## kept so a preset turns on only what the arena brings.
 const META_BASE_VOLUMETRIC: StringName = &"look_base_volumetric_fog"
 const META_BASE_SSAO: StringName = &"look_base_ssao"
+const META_BASE_SDFGI: StringName = &"look_base_sdfgi"
 
 const SHADOW_MODES: Dictionary[int, DirectionalLight3D.ShadowMode] = {
 	1: DirectionalLight3D.SHADOW_ORTHOGONAL,
@@ -79,8 +85,16 @@ static func apply_to_group(preset: GraphicsPreset, tree: SceneTree) -> void:
 			apply_to_viewport(preset, node as Viewport)
 
 
-## Applies the preset's anti-aliasing, render scale and upscaler to viewport.
+## Applies the preset's anti-aliasing, render scale and upscaler to viewport,
+## and room in its shadow atlas for the omni and spot lights' shadows (the
+## Shrine's lanterns and canopy lights, milestone-1 task 48):
+## POSITIONAL_SHADOW_ATLAS, its quadrants cut into POSITIONAL_SHADOW_QUADRANTS
+## (subdivisions: 4, 16, 16 and 64 shadows), so the small lanterns keep sharp
+## shadows beside the big canopy lights.
 static func apply_to_viewport(preset: GraphicsPreset, viewport: Viewport) -> void:
+	viewport.positional_shadow_atlas_size = POSITIONAL_SHADOW_ATLAS
+	for q: int in POSITIONAL_SHADOW_QUADRANTS.size():
+		viewport.set_positional_shadow_atlas_quadrant_subdiv(q, POSITIONAL_SHADOW_QUADRANTS[q])
 	viewport.msaa_3d = preset.msaa_3d
 	viewport.screen_space_aa = preset.screen_space_aa
 	viewport.scaling_3d_scale = preset.render_scale
@@ -122,8 +136,10 @@ static func _apply_environment(preset: GraphicsPreset, env: Environment) -> void
 		env.set_meta(META_BASE_HEIGHT_FOG, env.fog_height_density)
 		env.set_meta(META_BASE_VOLUMETRIC, env.volumetric_fog_enabled)
 		env.set_meta(META_BASE_SSAO, env.ssao_enabled)
+		env.set_meta(META_BASE_SDFGI, env.sdfgi_enabled)
 	env.volumetric_fog_enabled = bool(env.get_meta(META_BASE_VOLUMETRIC, false)) and preset.volumetric_fog
 	env.ssao_enabled = bool(env.get_meta(META_BASE_SSAO, false)) and preset.ambient_occlusion
+	env.sdfgi_enabled = bool(env.get_meta(META_BASE_SDFGI, false)) and preset.global_illumination
 	env.fog_enabled = preset.fog_enabled
 	env.fog_height_density = float(env.get_meta(META_BASE_HEIGHT_FOG)) if preset.height_fog else 0.0
 	env.glow_enabled = preset.glow_enabled

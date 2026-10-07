@@ -46,4 +46,6 @@ theme/custom="res://ui/theme/lacquer_gold.tres"
 
 [rendering]
 
+lights_and_shadows/positional_shadow/atlas_size=8192
+lights_and_shadows/positional_shadow/atlas_quadrant_1_subdiv=3
 anti_aliasing/quality/screen_space_aa=1

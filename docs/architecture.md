@@ -791,7 +791,7 @@ flowchart TD
     PRESET --> APP["GraphicsApplier.apply / apply_to_tree"]
     APP --> VP["Viewport: AA, render scale, upscaler (FSR 2.2, FSR 1), shadows"]
     APP --> GROUPS["Node groups: look_shadow_light,<br/>look_minor_light, look_particles,<br/>look_scenery_detail, look_petal_light,<br/>look_minor_decal"]
-    APP --> ENV["Environment: fog, bloom, volumetric fog,<br/>ambient occlusion, the grade (LookGrade)"]
+    APP --> ENV["Environment: fog, bloom, volumetric fog,<br/>ambient occlusion, global illumination (SDFGI),<br/>the grade (LookGrade)"]
 
     LM["LookMaterials<br/>fighter, weapon, prop"] --> SURF["surface.gdshader<br/>surface_two_sided.gdshader<br/>(Godot's physically based lighting)"]
     LG["LookGrade.environment()<br/>the night over an arena's sky"] --> ENV
