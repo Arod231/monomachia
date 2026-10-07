@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://d10fl2nkuuc7g"
-path="res://.godot/imported/ZenAntique-Regular.ttf-d48eaeb65eb0c14d0dafbd1f0809b032.fontdata"
+uid="uid://dqjc2plb0q88p"
+path="res://.godot/imported/YujiBoku-Regular.ttf-a1e66e27906c38e492a62cb15d306d5a.fontdata"
 
 [deps]
 
-source_file="res://ui/fonts/ZenAntique-Regular.ttf"
-dest_files=["res://.godot/imported/ZenAntique-Regular.ttf-d48eaeb65eb0c14d0dafbd1f0809b032.fontdata"]
+source_file="res://ui/fonts/YujiBoku-Regular.ttf"
+dest_files=["res://.godot/imported/YujiBoku-Regular.ttf-a1e66e27906c38e492a62cb15d306d5a.fontdata"]
 
 [params]
 

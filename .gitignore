@@ -39,3 +39,6 @@ game/tools/anim_studio/.refinements.json
 brain/generated/
 brain/.obsidian/workspace*.json
 brain/.obsidian/cache
+
+# Whole fonts the UI theme cuts down (scripts/fonts.mjs)
+.font-cache/
