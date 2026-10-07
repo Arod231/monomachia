@@ -51,6 +51,17 @@ func _record(footsteps: bool = true) -> Array[Dictionary]:
 	return log
 
 
+## A deflect pair's own cue (task 136), played on its frame rather than
+## with its parry.
+static func _pair_cue(cue: StringName) -> bool:
+	for direction: StringName in SoundBank.DEFLECT_SOUNDS:
+		for half: StringName in [&"deflect", &"recoil"]:
+			for c: Dictionary in SoundBank.deflect_pair_cues(direction, half):
+				if c["cue"] == cue:
+					return true
+	return false
+
+
 func _cues(log: Array[Dictionary]) -> Array[StringName]:
 	var names: Array[StringName] = []
 	for entry: Dictionary in log:
@@ -84,7 +95,11 @@ func test_a_played_duel_plays_its_events_cues_in_order_on_their_buses() -> void:
 				expected.append(cue["cue"])
 	assert_true(types.has(&"roundStart") and types.has(&"swing"), "the round was called and swung in")
 	assert_true(types.has(&"hit") or types.has(&"block"), "and something landed")
-	assert_eq(_cues(log), expected, "every event's cues, in the world's order")
+	# the deflect pairs' halves play on their own frames (task 136), apart
+	# from their parry's cues
+	var played: Array[StringName] = []
+	played.assign(_cues(log).filter(func(c: StringName) -> bool: return not _pair_cue(c)))
+	assert_eq(played, expected, "every event's cues, in the world's order")
 	for entry: Dictionary in log:
 		assert_eq(entry["bus"], SoundBank.CUES[entry["cue"]]["bus"], "%s on its bus" % entry["cue"])
 
@@ -334,15 +349,20 @@ func test_in_a_played_duel_every_placed_cue_plays_where_its_event_happened() -> 
 				expected.append({"cue": cue["cue"], "at": at if spatial else null}))
 	host.start(_cpu())
 	host.step(Match.INTRO_FRAMES + 60 * 20)
-	assert_eq(played.size(), expected.size())
+	# the deflect pairs' halves are placed on their own frames (task 136; see
+	# test_a_parry_plays_its_deflect_pair_s_halves_on_their_frames)
+	var kept: Array[Dictionary] = []
+	kept.assign(played.filter(func(p: Dictionary) -> bool: return not _pair_cue(p["cue"])))
+	gut.p("%d deflect pair cues in the duel" % (played.size() - kept.size()))
+	assert_eq(kept.size(), expected.size())
 	var placed := 0
-	for i: int in mini(played.size(), expected.size()):
-		assert_eq(played[i]["cue"], expected[i]["cue"])
+	for i: int in mini(kept.size(), expected.size()):
+		assert_eq(kept[i]["cue"], expected[i]["cue"])
 		if expected[i]["at"] == null:
-			assert_null(played[i]["at"], "%s plays flat" % expected[i]["cue"])
+			assert_null(kept[i]["at"], "%s plays flat" % expected[i]["cue"])
 		else:
 			placed += 1
-			assert_almost_eq(played[i]["at"], expected[i]["at"], Vector3.ONE * 1e-4, "%s placed" % expected[i]["cue"])
+			assert_almost_eq(kept[i]["at"], expected[i]["at"], Vector3.ONE * 1e-4, "%s placed" % expected[i]["cue"])
 	assert_gt(placed, 20, "swings, hits and dodges are placed")
 
 
@@ -506,3 +526,136 @@ func test_a_guard_walk_steps_where_the_clips_feet_land() -> void:
 	assert_eq(mine.size(), footfalls.size(), "a footstep for each footfall, and none from the stride count")
 	for k: int in mini(mine.size(), footfalls.size()):
 		assert_almost_eq(mine[k], footfalls[k], Vector3.ONE * 1e-4, "footstep %d where the foot came down" % k)
+
+
+## The deflect pairs' sounds (milestone-1 task 136): fighter 0's attack
+## parried by fighter 1 as the world would leave them, the attacker recoiling
+## and the parrier in its recovery, with the parry's event.
+func _parried(move: StringName = &"k_l1", kind: StringName = &"parry", sweep: V3 = V3.make(0.0, 0.0, 1.0)) -> Dictionary:
+	_fought()
+	var attacker: Fighter = host.fighter(0)
+	var parrier: Fighter = host.fighter(1)
+	var contact := V3.make(0.2, 1.4, 0.0)
+	attacker.keep_parry(move, 10, contact, sweep, attacker.yaw)
+	parrier.keep_parry(move, 10, contact, sweep, attacker.yaw)
+	attacker.parry_sweep = sweep # in the attacker's own frame, as sweep_of() gives it
+	if kind == &"parry":
+		attacker.set_state(&"recoil", SimConst.PARRY_RECOIL)
+	else:
+		attacker.set_state(&"stunned", 40)
+	attacker.stun_cause = &""
+	attacker.blocking = false
+	parrier.set_state(&"parryAnim", SimConst.PARRIER_RECOVERY)
+	var e := {"t": &"parry", "parrier": 1, "attacker": 0, "attack": move, "kind": kind,
+		"pos": {"x": 0.2, "y": 1.4, "z": 0.0}, "weapon": &"katana", "defender_weapon": &"katana"}
+	host.sim_event.emit(e)
+	return e
+
+
+## The world moves on by `frames` frames (none in a hit-stop) and the sound
+## follows, as at the end of each host step.
+func _frames_pass(frames: int) -> void:
+	for i in frames:
+		host.world.frame += 1
+		audio.update_pair_sounds()
+
+
+func test_a_parry_plays_its_deflect_pair_s_halves_on_their_frames() -> void:
+	var log := _record_places(false)
+	_parried(&"k_l1")
+	audio.update_pair_sounds()
+	var scrape := &"deflect_scrape_right_to_left"
+	assert_almost_eq(_at(log, scrape), Vector3(0.2, 1.4, 0.0), Vector3.ONE * 1e-4, "the scrape where the blades meet, on the contact frame")
+	assert_false(_cues(log).has(&"recoil_whoosh_right_to_left"), "the recoil's whoosh waits for its frame")
+	var cues := SoundBank.deflect_pair_cues(&"right_to_left", &"deflect") + SoundBank.deflect_pair_cues(&"right_to_left", &"recoil")
+	var last := 0
+	for cue: Dictionary in cues:
+		last = maxi(last, int(cue["frame"]))
+	var started := {}
+	audio.player.played.connect(func(cue: StringName, _voice: Node) -> void: started[cue] = host.world.frame)
+	var parried_at := host.world.frame
+	_frames_pass(last)
+	for cue: Dictionary in cues:
+		if int(cue["frame"]) > 0:
+			assert_eq(started.get(cue["cue"], -1) - parried_at, int(cue["frame"]), "%s on its frame" % cue["cue"])
+	assert_almost_eq(_at(log, &"recoil_whoosh_right_to_left"), _chest(0), Vector3.ONE * 1e-4, "the whoosh at the attacker")
+	assert_almost_eq(_at(log, &"deflect_cloth"), _chest(1), Vector3.ONE * 1e-4, "the cloth snap at the parrier")
+	var feet: Vector3 = Vector3(host.fighter(0).pos.x, host.fighter(0).pos.y, host.fighter(0).pos.z)
+	assert_almost_eq(_at(log, &"recoil_stagger"), feet, Vector3.ONE * 1e-4, "the stagger at the attacker's feet")
+	for cue: Dictionary in cues:
+		assert_eq(_count(log, cue["cue"]), 1, "%s once" % cue["cue"])
+
+
+func test_the_hit_stop_holds_the_pair_s_sounds_as_it_holds_its_clips() -> void:
+	var log := _record_places(false)
+	_parried(&"k_l1")
+	for i in 30:
+		audio.update_pair_sounds() # the parry's hit-stop: the world's frame stands
+	var pair_cues: Array[StringName] = []
+	pair_cues.assign(_cues(log).filter(func(c: StringName) -> bool: return _pair_cue(c)))
+	assert_eq(pair_cues, [&"deflect_scrape_right_to_left"] as Array[StringName], "only the contact's scrape through the hit-stop")
+	_frames_pass(1)
+	assert_true(_cues(log).has(&"recoil_whoosh_right_to_left"), "the whoosh once the clip moves again")
+
+
+func test_a_move_without_a_pair_sounds_the_pair_it_borrows() -> void:
+	var log := _record_places(false)
+	_parried(&"no_pair_of_its_own", &"parry", ClipDirector.sweep_of(&"k_l4"))
+	_frames_pass(20)
+	assert_true(_cues(log).has(&"deflect_scrape_overhead"), "the nearest light's (Crown Cut's) scrape")
+	assert_true(_cues(log).has(&"recoil_whoosh_overhead"))
+
+
+func test_a_flash_sounds_its_pair_under_its_own_ring() -> void:
+	var log := _record_places(false)
+	_parried(&"k_l3", &"flash")
+	_frames_pass(20)
+	assert_true(_cues(log).has(&"parry_flash"), "the Flash's own ring")
+	assert_true(_cues(log).has(&"deflect_scrape_diagonal"))
+	assert_true(_cues(log).has(&"recoil_whoosh_diagonal"), "the stunned attacker plays the recoil")
+
+
+func test_a_recoil_cut_short_drops_its_later_sounds() -> void:
+	var log := _record_places(false)
+	_parried(&"k_l2")
+	_frames_pass(2)
+	host.fighter(0).blocking = true # the guard back up: the recoil hands on
+	host.fighter(1).set_state(&"attack", 20) # the parrier swings out of its deflect
+	_frames_pass(20)
+	assert_false(_cues(log).has(&"recoil_stagger"), "no stagger once the guard is back")
+	assert_eq(_count(log, &"recoil_whoosh_left_to_right"), 1, "the whoosh had played")
+
+
+func test_a_redirect_plays_no_pair() -> void:
+	var log := _record_places(false)
+	var e := _parried(&"k_l1", &"parry")
+	audio.stop_pair_sounds()
+	log.clear()
+	# a redirect: a bare hand turns the blade aside, no steel on steel
+	e["kind"] = &"redirect"
+	e["defender_weapon"] = &"fists"
+	host.sim_event.emit(e)
+	_frames_pass(20)
+	assert_true(_cues(log).has(&"parry_redirect"), "the redirect's own sound")
+	assert_false(_cues(log).any(func(c: StringName) -> bool: return _pair_cue(c)), "no deflect pair's sounds")
+
+
+func test_a_parried_attacker_disarmed_plays_no_recoil() -> void:
+	var log := _record_places(false)
+	_parried(&"k_l1")
+	host.fighter(0).stun_cause = &"parried" # the parry broke its posture: disarmed, not recoiling
+	audio.update_pair_sounds()
+	_frames_pass(20)
+	assert_true(_cues(log).has(&"deflect_scrape_right_to_left"), "the parrier still deflects")
+	assert_false(_cues(log).has(&"recoil_whoosh_right_to_left"))
+	assert_false(_cues(log).has(&"recoil_stagger"))
+
+
+func test_a_new_match_drops_the_pair_s_waiting_sounds() -> void:
+	var log := _record_places(false)
+	_parried(&"k_l1")
+	audio.update_pair_sounds()
+	host.start(_cpu())
+	log.clear()
+	_frames_pass(20)
+	assert_false(_cues(log).any(func(c: StringName) -> bool: return _pair_cue(c)), "nothing of the last match's parry")
