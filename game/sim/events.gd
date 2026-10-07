@@ -30,7 +30,8 @@ extends RefCounted
 ##                  weapons met, milestone-1 task 36; on block and parry too)
 ##   block:         attacker: int, target: int, attack: StringName, posture: float, pos: Vec3, heavy: bool,
 ##                  weapon: StringName, defender_weapon: StringName
-##   parry:         parrier: int, attacker: int, pos: Vec3, kind: &"parry" | &"flash" | &"redirect",
+##   parry:         parrier: int, attacker: int, attack: StringName, pos: Vec3, dir: Vec3 (the blade's sweep
+##                  there, unit, milestone-1 task 34), kind: &"parry" | &"flash" | &"redirect",
 ##                  timing: int (frames between the block press and impact, for training feedback), window: int,
 ##                  weapon: StringName (the attacker's), defender_weapon: StringName (the parrier's)
 ##   counter:       kind: &"stomp" | &"leap" | &"evade", by: int, on: int, pos: Vec3

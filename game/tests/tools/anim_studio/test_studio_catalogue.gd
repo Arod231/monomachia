@@ -109,7 +109,7 @@ func test_every_state_and_ult_appears() -> void:
 		&"idle_katana", &"idle_daggers", &"idle_greatsword", &"idle_fists",
 		&"hit_light", &"hit_heavy",
 		&"guard_katana", &"guard_greatsword", &"guard_daggers", &"guard_fists",
-		&"stun", &"rebound", &"carry", &"knockdown",
+		&"stun", &"carry", &"knockdown",
 		&"ko_front_light", &"ko_front_heavy", &"ko_behind_light", &"ko_behind_heavy",
 		&"stomp", &"stomp_stun",
 	]:
@@ -131,8 +131,10 @@ func test_state_entries_play_the_tables_clips() -> void:
 	assert_eq(cat.find(&"state", &"ko_behind_heavy").clips, ["CombatDeath04"] as Array[String], "a KO")
 	assert_eq(cat.find(&"state", &"stomp").clips, ["keyed/Mikiri_Stomp"] as Array[String], "the keyed stomp is named with its library")
 	assert_eq(cat.find(&"state", &"stomp_stun").clips, ["keyed/Mikiri_Pinned"] as Array[String], "and its pinned stun")
-	assert_true(cat.find(&"state", &"rebound").clips.is_empty(), "the rebound plays the parried attack backwards, no clip of its own")
-	assert_eq(cat.find(&"state", &"rebound").speed, 2.0, "at the table's speed")
+	assert_null(cat.find(&"state", &"rebound"), "the rebound retired (milestone-1 task 34)")
+	assert_null(cat.find(&"state", &"deflect_k_l1"), "and the frozen table has no deflect pairs")
+	var live: StudioCatalogue = StudioCatalogue.build(_manifest, _table, StateClips.read(), _keyed())
+	assert_eq(live.find(&"state", &"deflect_k_l1").clips, ["RightCutDeflect", "RightCutRecoil"] as Array[String], "a deflect pair: the deflect and the recoil")
 	assert_eq(cat.find(&"ult", &"tempest").clips, ["ual/Sword_Aerial_Combo", "AttackDW02"] as Array[String], "the tempest's spin and final")
 	assert_eq(cat.find(&"ult", &"moonsplitter_horizontal").clips, ["Attack2H03"] as Array[String], "a moonsplitter variant")
 
@@ -350,7 +352,7 @@ func test_a_move_clips_file_that_is_not_an_object_lists_it_and_has_no_moves() ->
 
 func test_a_mistake_in_state_clips_json_makes_the_states_and_ults_read_only() -> void:
 	var text: String = FileAccess.get_file_as_string(StateClips.PATH)
-	var broken: String = text.replace('"rebound": {"frames": 8,', '"rebound": {"bogus": 1, "frames": 8,')
+	var broken: String = text.replace('"carry": {"pose":', '"carry": {"bogus": 1, "pose":')
 	assert_ne(broken, text, "the copy is broken")
 	_write(TEMP_STATES, broken)
 	_states = StateClips.read(TEMP_STATES)

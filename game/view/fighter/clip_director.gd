@@ -65,12 +65,19 @@ extends RefCounted
 ##   Parry Hit on the upper body over the legs' blend, and the long stuns'
 ##   Stun01 (STUN_STATES), each timed to its state (fitted_time()); without
 ##   the packs their CC0 fallbacks;
-## - the parry (task 27): the parrier plays its guard's Parry Hit through
-##   its recovery (any parry: a block's, a Flash's or a Redirect); the
-##   parried attacker (recoiling, or stunned by a Flash or a Redirect) plays
-##   its own attack's clip backwards from where the parry met it over the
-##   rebound (StateClips.rebound_frames at rebound_speed; Shot.rebound), then Stun01 for
-##   the rest of the recoil or stun, faded over the fades' rebound;
+## - the parry (task 27; milestone-1 task 34): with the packs, each parry
+##   (a block's, a Flash's or a Redirect) plays a deflect pair
+##   (StateClips.deflect_pairs; pick_pair(), pair_clip()): the parried move's
+##   own, or the pair of the light whose cut sweeps nearest its own
+##   (sweep_of()). Both halves play whole body at 1.0x from their contact
+##   frames, where the blades meet: the parried attacker (recoiling, or
+##   stunned by a Flash or a Redirect) its recoil, then Stun01 over the
+##   rest of a stun, faded over the fades' rebound, or the guard once the
+##   recoil allows it and it blocks; the parrier its deflect, through its
+##   recovery and on in the free state while it stands, to the clip's end.
+##   Without the packs, or with no pair, the parrier plays its guard's
+##   Parry Hit through its recovery and the attacker Stun01 from the start
+##   (the rebound, its attack's clip run backwards, retired with task 34);
 ## - knockdown and KO (task 28; down_clip()): Knockdown01's Fall, Ground and
 ##   StandUp fitted to the knockdown's three phases, and the KO's death
 ##   (StateClips.ko_clips, by the final blow's side and weight) at 1.0, so the
@@ -104,7 +111,7 @@ extends RefCounted
 
 ## What the director plays by is data, in StateClips (state_clips.json, read
 ## through StateClips.shared()): the crossfades' lengths, the idles, the hit,
-## guard and stun clips, the rebound, the carry pose and the three
+## guard and stun clips, the deflect pairs, the carry pose and the three
 ## ultimates' clips and timings, and the hand-keyed clips of the states with
 ## their own, and the knockdown's and the KO's clips. What stays here are the
 ## rules' states and the handful of constants that name them.
@@ -182,9 +189,9 @@ const STUN_STATES: Array[StringName] = [&"stunned", &"stagger", &"disarmStagger"
 const FINISHER_STANDINS: Dictionary[StringName, StringName] = {&"katana": &"k_iai", &"fists": &"f_l2"}
 ## The reactions that show on the upper body alone.
 const UPPER_REACTIONS: Array[StringName] = [&"guard", &"blockstun", &"parry"]
-## The states a parried attacker rebounds in: a block's parry recoils it, a
-## Flash's or a Redirect's stuns it (task 27).
-const REBOUND_STATES: Array[StringName] = [&"recoil", &"stunned"]
+## The states a parried attacker plays its recoil in: a block's parry
+## recoils it, a Flash's or a Redirect's stuns it (task 27).
+const PARRIED_STATES: Array[StringName] = [&"recoil", &"stunned"]
 ## The most a fighter moves (m/s over the ground) and still stands for a
 ## light's return to guard (return_clip()): Locomotion's turn threshold.
 const RETURN_STILL: float = 0.1
@@ -262,9 +269,10 @@ class Shot:
 	## The ultimate's phase it plays, or the reaction (reaction_of()), or
 	## empty.
 	var phase: StringName = &""
-	## The parried attacker's attack clip, held where the parry met it, that
-	## its rebound runs backwards from (task 27); null for none.
-	var rebound: Clip = null
+	## The deflect pair the parry plays (milestone-1 task 34; a
+	## StateClips.deflect_pairs entry), carried through the parried state or
+	## the parrier's deflect; empty for none.
+	var pair: Dictionary = {}
 	## How far a pair of daggers is turned into the reverse grip (0 forward,
 	## 1 reverse; FighterRig.set_reverse_turn()), and where it stood as the
 	## attack began (task 21).
@@ -319,7 +327,7 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 	out.frame = frame
 	out.idle = idle_clip(f, ctx)
 	var playing: Clip = attack_clip(f, ctx, float(f.atk.frame) if f.atk != null else 0.0)
-	out.rebound = null
+	out.pair = {}
 	if playing == null:
 		playing = finisher_clip(f, ctx)
 	if playing == null:
@@ -356,18 +364,19 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			if playing != null:
 				phase = f.knockdown_phase() if f.state == &"knockdown" else &"ko"
 		var reaction: StringName = reaction_of(f) if playing == null else &""
-		out.rebound = _rebound_from(prev, f, reaction)
-		if out.rebound != null and f.sf < sc.rebound_frames:
-			reaction = &"rebound"
-			playing = Clip.make(out.rebound.name, maxf(0.0, out.rebound.time - float(f.sf) * sc.rebound_speed / float(SimConst.FPS)))
-			phase = reaction
+		if playing == null:
+			out.pair = _pair_of(prev, f, ctx)
+		var half: Array = pair_clip(prev, f, ctx, out.pair)
+		if not half.is_empty():
+			playing = half[0]
+			phase = half[1]
 		elif reaction != &"":
 			var held: int = prev.since + 1 if prev != null and prev.drive == STATE and prev.phase == reaction else 0
 			playing = reaction_clip(f, ctx, reaction, held)
-			if playing != null and out.rebound != null and reaction != &"guard":
-				# after the rebound: the stun's clip over the rest of the state
-				var at: float = state_time(sc.stun_clip if ctx.libraries else sc.stun_fallback, f.sf - sc.rebound_frames,
-					f.state_dur - sc.rebound_frames, ctx.lengths.get(playing.name, 0.0))
+			if playing != null and not out.pair.is_empty() and PARRIED_STATES.has(f.state) and reaction != &"guard":
+				# after the recoil: the stun's clip over the rest of the state
+				var played: int = recoil_frames(out.pair, ctx)
+				var at: float = state_time(sc.stun_clip, f.sf - played, f.state_dur - played, ctx.lengths.get(playing.name, 0.0))
 				playing = null if at < 0.0 else Clip.make(playing.name, at)
 			phase = reaction if playing != null else &""
 		if playing != null:
@@ -406,6 +415,11 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 		out.grip_from = prev.grip
 		out.fade = _fade(prev, f, drive, sc.fades)
 		out.blend = _fade(prev, f, drive, sc.blends)
+		if phase == &"recoil" or phase == &"deflect":
+			# a deflect pair cuts in: its halves meet at the contact frame
+			# (the recoil carries on from the attack's own pose there)
+			out.fade = 0
+			out.blend = 0
 		out.since = 0
 		out.clip_before = playing
 	else:
@@ -703,18 +717,93 @@ static func down_clip(f: Fighter, ctx: Context) -> Clip:
 	return Clip.make(anim_name, minf(float(f.sf) / fps, length))
 
 
-## The clip a parried attacker's rebound runs back from (task 27): on the
-## frame its attack is parried (a recoil or a stun straight from an
-## attack's clip), the clip it showed, held where the parry met it; the same
-## through the rest of that state; else null.
-static func _rebound_from(prev: Shot, f: Fighter, reaction: StringName) -> Clip:
-	if prev == null or not REBOUND_STATES.has(f.state) or reaction == &"" or f.stun_cause != &"":
-		return null
-	if prev.drive == ATTACK and prev.clip != null and prev.state == &"attack":
-		return Clip.make(prev.clip.name, prev.clip.time)
-	if prev.drive == STATE and prev.state == f.state:
-		return prev.rebound
-	return null
+## The deflect pair `f` plays (milestone-1 task 34), or empty: with the
+## packs, picked (pick_pair()) as a parried attacker's state begins straight
+## from its attack (stunned by a parry, not a stomp) or as the parrier's
+## recovery begins, and carried through that state (and the parrier's into
+## the free state while its deflect plays).
+static func _pair_of(prev: Shot, f: Fighter, ctx: Context) -> Dictionary:
+	if not ctx.libraries or f.parry_move == &"" or prev == null:
+		return {}
+	var parried: bool = PARRIED_STATES.has(f.state) and f.stun_cause == &""
+	if not prev.pair.is_empty() and (prev.state == f.state or (prev.phase == &"deflect" and f.state == &"free")):
+		return prev.pair
+	if (parried and prev.state == &"attack" and prev.drive == ATTACK) or (f.state == &"parryAnim" and prev.state != &"parryAnim"):
+		return pick_pair(f)
+	return {}
+
+
+## The deflect pair (a StateClips.deflect_pairs entry) for `f`'s last parry
+## (Fighter.parry_move): the parried move's own, or the pair of the light
+## whose cut sweeps nearest the parried blade's (Fighter.parry_sweep against
+## sweep_of() each paired light); empty with no pairs.
+static func pick_pair(f: Fighter) -> Dictionary:
+	var pairs: Dictionary[StringName, Dictionary] = StateClips.shared().deflect_pairs
+	if pairs.has(f.parry_move):
+		return pairs[f.parry_move]
+	var best: StringName = &""
+	var nearest: float = -INF
+	for move: StringName in pairs:
+		var d: float = V3.dot(f.parry_sweep, sweep_of(move))
+		if d > nearest:
+			nearest = d
+			best = move
+	return pairs.get(best, {})
+
+
+## Which way move `move`'s blade sweeps as it lands (milestone-1 task 34):
+## its baked swing's blade tip from its last startup frame to its first
+## active one, a unit vector in the fighter's own frame (right, up,
+## forward), as Fighter.parry_sweep is kept; zero for a move without a
+## right-hand swing.
+static func sweep_of(move: StringName) -> V3:
+	for w: WeaponDef in Moves.WEAPONS.values():
+		var def: AttackDef = w.moves.get(move)
+		if def == null or def.swing == null or not def.swing.parts().has(&"right_hand"):
+			continue
+		var segment: StrikeSegment = Swing.strike_segment(&"right_hand", w)
+		if segment == null:
+			continue
+		var d: V3 = V3.sub(def.swing.tick(&"right_hand", def.startup + 1).place(segment.tip),
+			def.swing.tick(&"right_hand", def.startup).place(segment.tip))
+		return V3.normalized(d) if V3.length(d) > 1e-9 else V3.make()
+	return V3.make()
+
+
+## `f`'s half of deflect pair `pair` as [clip, phase], or empty: the parried
+## attacker's recoil (&"recoil"), until the guard is back up; the parrier's
+## deflect (&"deflect"), through its recovery and on while it stands in the
+## free state. Each at 1.0x from its contact frame, from the frame the pair
+## was picked, never picked up again once it has handed on.
+static func pair_clip(prev: Shot, f: Fighter, ctx: Context, pair: Dictionary) -> Array:
+	if pair.is_empty():
+		return []
+	var recoil: bool = PARRIED_STATES.has(f.state)
+	var phase: StringName = &"recoil" if recoil else &"deflect"
+	if recoil and f.blocking:
+		return []
+	if not recoil and (f.state != &"parryAnim" and f.state != &"free" or Vector2(f.vel.x, f.vel.z).length() > RETURN_STILL):
+		return []
+	var since: int = 0
+	if prev != null and prev.phase == phase:
+		since = prev.since + 1
+	elif prev != null and not prev.pair.is_empty():
+		return []
+	var id: StringName = pair[&"recoil" if recoil else &"deflect"]
+	var contact: float = float(pair[&"recoil_contact" if recoil else &"deflect_contact"])
+	var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id)
+	var at: float = contact / float(ClipManifest.SOURCE_FPS) + float(since) / float(SimConst.FPS)
+	if at >= ctx.lengths.get(anim_name, 0.0) - 1e-9:
+		return []
+	return [Clip.make(anim_name, at), phase]
+
+
+## How many rules frames `pair`'s recoil plays, from its contact frame to its
+## end at 1.0x.
+static func recoil_frames(pair: Dictionary, ctx: Context) -> int:
+	var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), pair[&"recoil"])
+	var left: float = ctx.lengths.get(anim_name, 0.0) - float(pair[&"recoil_contact"]) / float(ClipManifest.SOURCE_FPS)
+	return maxi(0, roundi(left * float(SimConst.FPS)))
 
 
 ## Whether `f` is in Shadow Step's blink (task 22): its active frames,
@@ -1010,7 +1099,9 @@ static func _fade(prev: Shot, f: Fighter, drive: StringName, lengths: Dictionary
 		# a guard raised from the shoulder, over the lift off it
 		return SimConst.GS_SHOULDER_LIFT_FRAMES
 	if drive == STATE:
-		if prev.phase == &"rebound":
+		if prev.phase == &"recoil":
+			# the recoil handing on to the stun (the key's name the rebound's,
+			# which it replaced)
 			return lengths[&"rebound"]
 		if f.blocking and f.state != &"blockstun" and f.state != &"parryAnim":
 			return lengths[&"guard"]

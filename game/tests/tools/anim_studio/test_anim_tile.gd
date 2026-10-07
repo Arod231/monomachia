@@ -191,9 +191,8 @@ func _ual_length(chain_entry: String) -> float:
 func test_an_entry_with_no_clips_shows_a_still_pose() -> void:
 	for missing: bool in [true, false]:
 		ClipLibraries.force_missing = missing
-		var rebound: StudioCatalogue.Entry = _catalogue.find(StudioCatalogue.KIND_STATE, &"rebound")
-		assert_true(rebound.clips.is_empty(), "the rebound has no clips")
-		var tile: AnimTile = _tile(rebound)
+		var none: StudioCatalogue.Entry = _entry(StudioCatalogue.KIND_STATE, &"states", &"none", [])
+		var tile: AnimTile = _tile(none)
 		assert_true(tile.is_still(), "a still")
 		assert_eq(tile.duration, 0.0)
 		tile._process(0.1)

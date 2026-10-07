@@ -36,7 +36,24 @@
 #   guard): the clip starts in that clip's pose at that frame and carries it
 #   into its own motion over its first n frames, everything above the legs
 #   offset by what is left of the difference, the feet kept where the clip
-#   has them, both legs on IK, baked; omit for a clip that starts as it is.
+#   has them, both legs on IK, baked; omit for a clip that starts as it is;
+# - knock: {"from": frame, "frames": n, "toward": frame, "share": 0-1,
+#   "lean": degrees}: a recoil thrown back (knock(); milestone-1 task 34's
+#   deflect pairs): from frame "from" on, everything above the legs turned
+#   "share" of the way toward the clip's own pose at frame "toward" (its
+#   cocked wind-up) over n frames, fast then easing, the chest leaning back
+#   "lean" degrees with it; omit for a clip that isn't knocked;
+# - two_hands may add "aim": {"frame": frame, "move": [x, y, z], "turn":
+#   [x, y, z, degrees], "frames": n}: the weapon moved by "move" (m, world,
+#   the clip facing -Y) and turned about the grip by "turn" (an axis and an
+#   angle) at that frame, easing in and out over n frames either side, so a
+#   deflect's blade meets the attacker's; with "at": {"source": path,
+#   "frame": frame, "distance": metres}, the turn is found (aim_turn()): the
+#   attacker's blade read from that clip at that frame, standing that far in
+#   front facing back, and the deflect's blade turned about its grip to cross
+#   it ("along": at that share of the way from its base to its tip), "move"
+#   then shifting that blade by a correction measured in the game, and
+#   "grip_move" moving the grip first (a low parry, say).
 #
 # The source keeps the armature and the new action only (the export takes
 # every action, the import the first). Re-running gives the same file's
@@ -275,7 +292,68 @@ def blade_clearance(capsules, g, blade):
     return least, away
 
 
-def two_hands(arm, scene, length, grip, hold, square, clearance=0.0, to_guard=None):
+def _aim_weight(aim, n):
+    """How much of `aim` (two_hands()) applies at frame `n`: all of it on its
+    frame, easing to none `frames` either side."""
+    if not aim:
+        return 0.0
+    k = float(aim.get("frames", 4))
+    return 1.0 - _smoother(abs(float(n) - float(aim["frame"])) / k)
+
+
+def blade_at(path, frame, distance):
+    """The blade (from the prop bone's grip along its +Y, BLADE) of the clip
+    at `path` at source frame `frame`, as a fighter facing it from
+    `distance` m in front sees it: [base, tip] in that fighter's frame (it
+    faces -Y; the other stands at -Y facing back)."""
+    arm, _ = import_clip(path)
+    scene = bpy.context.scene
+    f = 1.0 + float(frame)
+    scene.frame_set(int(f), subframe=f - int(f))
+    bpy.context.view_layer.update()
+    prop = arm.matrix_world @ arm.pose.bones["B-handProp.R"].matrix
+    o = prop.to_translation()
+    y = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+    out = []
+    for d in BLADE:
+        p = o + y * d
+        out.append(mathutils.Vector((-p.x, -p.y - float(distance), p.z)))
+    return out
+
+
+def aim_turn(o, blade, target, report=False, along=None):
+    """The turn (axis and degrees, world) that points a blade from its grip
+    `o` along `blade` at the attacker's blade `target` ([base, tip]): at the
+    point `along` of the way from its base to its tip, or else at the point
+    of it 20-75 cm away, crossing it at 30-150 degrees, that needs the least
+    turn. None when no point will."""
+    t0, t1 = target
+    best = None
+    if along is not None:
+        d = t0.lerp(t1, float(along)) - o
+        best = (math.degrees(blade.angle(d)), d, int(round(float(along) * 100)), math.degrees(d.angle(t1 - t0)))
+    for k in range(20, 96) if along is None else []:
+        q = t0.lerp(t1, k / 100.0)
+        d = q - o
+        if d.length < 0.2 or d.length > 0.75:
+            continue
+        crossing = math.degrees(d.angle(t1 - t0))
+        if crossing < 30.0 or crossing > 150.0:
+            continue
+        turn = math.degrees(blade.angle(d))
+        if best is None or turn < best[0]:
+            best = (turn, d, k, crossing)
+    if best is None:
+        if report:
+            print("rekey_clip: no point of the attacker's blade to aim at", flush=True)
+        return None
+    axis = blade.cross(best[1]).normalized()
+    if report:
+        print(f"rekey_clip: aimed at {best[2]}% of the attacker's blade, {best[1].length:.2f} m out, crossing at {best[3]:.0f} degrees, turned {best[0]:.1f}", flush=True)
+    return [axis.x, axis.y, axis.z, best[0]]
+
+
+def two_hands(arm, scene, length, grip, hold, square, clearance=0.0, to_guard=None, aim=None):
     """Both hands on the handle: the shoulders squared (square_shoulders()),
     then each frame the weapon (the right hand's prop bone, its blade along
     +Y) kept turned as the clip turns it but moved, if it must, toward a point
@@ -377,6 +455,22 @@ def two_hands(arm, scene, length, grip, hold, square, clearance=0.0, to_guard=No
         if chosen is None:
             misses.append(n)
             chosen = (best[1], best[2], best[3])
+        w = _aim_weight(aim, n)
+        if w > 0:
+            # the deflect aimed at the attacker's blade, about the grip the
+            # hands reach: turned (aim_turn(), or the given turn) and moved
+            wr, wl, turn = chosen
+            g = wr - turn @ to_wrist + mathutils.Vector(aim.get("grip_move", [0.0, 0.0, 0.0])) * w
+            b = (turn @ blade).normalized()
+            ax = aim_turn(g, b, aim["target"], n == int(aim["frame"]), aim.get("along")) if aim.get("target") else aim.get("turn")
+            spin = mathutils.Quaternion()
+            if ax:
+                spin = mathutils.Quaternion(mathutils.Vector(ax[:3]).normalized(), math.radians(float(ax[3])) * w)
+            if not aim.get("target"):
+                g = g + mathutils.Vector(aim.get("move", [0.0, 0.0, 0.0])) * w
+            turn = spin @ turn
+            wr = g + turn @ to_wrist
+            chosen = (wr, wr - (turn @ blade).normalized() * grip, turn)
         targets["WristR"].location = chosen[0]
         targets["WristL"].location = chosen[1]
         targets["HandR"].rotation_mode = "QUATERNION"
@@ -578,6 +672,38 @@ def legs_to(arm, scene, length, feet, rest, knees=None):
     return over
 
 
+def knock(arm, scene, length, spec):
+    """A recoil thrown back: from frame spec["from"] on, every bone but the
+    legs' turned spec["share"] of the way toward its own pose at frame
+    spec["toward"] (the clip's cocked wind-up) over spec["frames"] frames,
+    fast then easing (an ease-out cubic), and the spine (40%) and the chest
+    (60%) leaning back spec["lean"] degrees with it (the clip faces -Y). The
+    feet stay as the clip has them. Keyed."""
+    c, k = float(spec["from"]), float(spec["frames"])
+    share, lean = float(spec.get("share", 0.6)), float(spec.get("lean", 0.0))
+    toward = sample(arm, scene, float(spec["toward"]))
+    moved = [pb for pb in arm.pose.bones if not pb.name.startswith(LEGS)]
+    for n in range(int(math.ceil(c)), length + 1):
+        t = min(max((n - c) / k, 0.0), 1.0)
+        e = 1.0 - (1.0 - t) ** 3
+        scene.frame_set(1 + n)
+        for pb in moved:
+            pb.rotation_quaternion = pb.rotation_quaternion.slerp(toward[pb.name][1], share * e)
+            pb.keyframe_insert("rotation_quaternion", frame=1 + n, group=pb.name)
+        if lean:
+            for name, part in (("B-spine", 0.4), ("B-chest", 0.6)):
+                bpy.context.view_layer.update()
+                pb = arm.pose.bones[name]
+                m = pb.matrix.copy()
+                head = m.to_translation()
+                pb.matrix = mathutils.Matrix.Translation(head) @ mathutils.Matrix.Rotation(-math.radians(lean) * e * part, 4, "X") \
+                    @ mathutils.Matrix.Translation(-head) @ m
+                bpy.context.view_layer.update()
+                pb.keyframe_insert("rotation_quaternion", frame=1 + n, group=pb.name)
+                pb.keyframe_insert("location", frame=1 + n, group=pb.name)
+    print(f"rekey_clip: knocked back from frame {c:g} over {k:g} frames", flush=True)
+
+
 # The bones a transition (blend_from()) leaves to the leg IK.
 LEGS = ("B-thigh.", "B-shin.", "B-foot.", "B-toe.")
 
@@ -646,6 +772,11 @@ def main():
     src = os.path.join(a["assets"], spec["source"])
     if not os.path.isfile(src):
         raise SystemExit(f"rekey_clip: no source clip at {src}")
+    th = spec.get("two_hands") or {}
+    if th.get("aim", {}).get("at"):
+        at = th["aim"]["at"]
+        shift = mathutils.Vector(th["aim"].get("move", [0.0, 0.0, 0.0]))
+        th["aim"]["target"] = [p + shift for p in blade_at(os.path.join(a["assets"], at["source"]), at["frame"], at["distance"])]
     start = None
     if spec.get("blend_from"):
         from_path = os.path.join(a["assets"], spec["blend_from"]["source"])
@@ -662,10 +793,12 @@ def main():
         step(arm, scene, length, spec["step"])
     if start is not None:
         blend_from(arm, scene, length, start, float(spec["blend_from"]["frames"]))
+    if spec.get("knock"):
+        knock(arm, scene, length, spec["knock"])
     if spec.get("two_hands"):
         th = spec["two_hands"]
         two_hands(arm, scene, length, float(th["grip"]), th.get("hold", [0.3, 0.1]), float(th.get("square", 0.0)),
-                  float(th.get("clearance", 0.0)), th.get("to_guard"))
+                  float(th.get("clearance", 0.0)), th.get("to_guard"), th.get("aim"))
     bpy.data.actions.remove(src_action)
     print(f"rekey_clip: {spec['source']} -> {length + 1} frames ({length} long) at {FPS} fps", flush=True)
     if a["check"]:

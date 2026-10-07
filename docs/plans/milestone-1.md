@@ -73,6 +73,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - Oct 6, 2026: the main lane `lane/m1-32-135-33-34-35` (pull request #83) takes the pilot's motion, tasks 32, 135, 33, 34 and 35, with the owner's answers in their blocks. Task 32 done: Kesa Cut and Crown Cut re-keyed by the same scripted pass, stepping into the cut, inside the light band (18.1 and 16.3 cm in from 2.5 m, 25 and 27 frames to land), so the whole light string is off the waiting list, in play at 1.0× with its travel and the retuned hit values. Their sources and exports are the asset repository's pull request #5, after #4 (task 31's last Return Cut). A 40-match soak: 0 failures, 163 rounds of 70.9 s, 1.69 disarms a round. Left for the owner: the sheets.
 - Oct 6, 2026: task 135 done in `lane/m1-32-135-33-34-35`: the Katana rides the clip's hands in every state, the guard and free movement included, for both fighters, with or without the clip libraries; the prop bone never moves against the hand on any Katana clip, so every clip keeps the hand's grip and the hit paths are unchanged. The Greatsword and the Daggers follow in task 60.
 - Oct 6, 2026: task 33 done in `lane/m1-32-135-33-34-35`: the Katana stands in a keyed two-handed guard (CombatIdle1H01 re-keyed as Right Cut is), each follow-up of the light string plays a keyed bridge from the move before into its wind-up, and each light ends in a keyed return to guard when no follow-up is taken; picture only, with the packs. The sources are the asset repository's pull request #6. The bridges into the heavies wait for task 64.
+- Oct 6, 2026: task 34 done in `lane/m1-32-135-33-34-35`: each of the Katana's lights has a keyed deflect pair, the parrier's deflect and the attacker's recoil, cut in on the parry frame with the blades meeting at the rules' contact point (within 0.3 cm of each other from 2.5 m); any other parried move plays the pair of the light that sweeps nearest. The rebound retired. The sources are the asset repository's pull request #7.
 
 ## Build order
 
@@ -358,11 +359,41 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
     - The bridges from a light into a heavy (two lights flowing into a heavy as the third hit) wait for task 64, which re-keys those heavies, so stories 47 and 95 stay open.
     - PoseCheck reads the guard's off wrist 54-63° sideways, as on the lights (task 31's open point for the owner).
     - Every exported clip starts with a one-frame hold (its frame k plays at (k+1)/30 s), so the re-keyed clips play a source frame later than their markers say. It's flagged as its own task; the bridges share the offset, so their hand-ons stay seamless.
-- [ ] **34. The light string's deflect pairs.** Each light's direction has a deflect pair, the parrier's deflect and the attacker's recoil, played from the contact frame where the blades meet.
+- [x] **34. The light string's deflect pairs.** Each light's direction has a deflect pair, the parrier's deflect and the attacker's recoil, played from the contact frame where the blades meet.
   - Delivers: deflect-pair clips for the four lights' directions (Claude's block-outs; the owner's polish lands in task 126); the parry event carries the contact point and direction; both fighters play their half from the contact frame; the rebound (the attack clip run backwards) retires. It is part of godot-rebuild 18.5, which task 39 finishes.
   - Check: director tests that a parry of each light picks its pair and plays both halves from the contact frame; the blades within 2 cm at contact on the sheets; rules unchanged (the parry recoil's frames); sheets reviewed.
   - Blocked by: 22, 32 · Stories: 105, 106
   - Decided with the owner (Oct 6, before building): the block-outs are scripted re-keys of pack clips, under the Iglesias licence in the asset repository: each deflect from Parry1H01's right or left hit, made two-handed and aimed at its light's blade; each recoil from its light's own clip up to the contact frame, then thrown back. A parried move with no pair of its own yet (a heavy, a movement attack, an ability) plays the pair of the light whose cut direction is nearest (right to left, left to right, the diagonal, the overhead) until its family keys its own. Each pair is keyed so the blades meet within 2 cm at 2.5 m, the lights' duelling distance, and the sheets check it there; at other distances they meet roughly.
+  - Done Oct 6:
+    - The rules keep each parry on both fighters (`Fighter.keep_parry()`: the parried move, the attack frame, the contact point and the blade's sweep there in the attacker's frame). The parry event adds the move and the sweep's direction (`attack`, `dir`; `BladeSweep.sweep`). Nothing in the rules reads them, so the recoil's 26 frames and the rest are unchanged.
+    - The scripted Blender pass builds each light's pair:
+      - The recoil: the light's own clip up to the frame it is parried from 2.5 m (Right 15, Return 14, Kesa 14.5, Crown 15.5), then thrown back (`knock`: held there, everything above the legs turned toward its cocked wind-up, the chest leaning back).
+      - The deflect: Parry1H01's right hit made two-handed. It is turned about the grip the arms reach so its blade crosses the attacker's just inside its tip, where the rules' contact is (`aim` with `at`: the attacker's blade read from its recoil in the same Blender scene, then shifted by a correction measured in the game; Crown Cut's turned to meet its cut high).
+    - `state_clips.json` names them in a new optional `deflects` group, and `ClipDirector` plays them, with the packs only and picture only:
+      - the pair is picked as the parried state or the parrier's recovery begins, from the parried move, or for a move with no pair from the light whose cut sweeps nearest (`pick_pair()`, `sweep_of()`);
+      - both halves cut in with no blend and play whole body at 1.0x from their contact frames;
+      - the recoil runs through the recoil, then Stun01 over the rest of a stun, or the guard once the fighter blocks again;
+      - the deflect runs through the recovery and on while the parrier stands.
+    - The rebound retired: `Shot.rebound`, the table's `rebound` group and the Studio's Rebound entry, which became a Deflect pair entry per light. Without the packs the parrier keeps its Parry Hit, and the attacker plays Stun01 from the start.
+  - On the parry frame from 2.5 m, Hunter against Hunter, measured on the posed blades in the game:
+
+    | Light | Blades apart | Crossing from the rules' contact |
+    |---|---|---|
+    | Right Cut | 0.3 cm | 1.1 cm |
+    | Return Cut | 0.1 cm | 1.5 cm |
+    | Kesa Cut | 0.2 cm | 0.4 cm |
+    | Crown Cut | 0.2 cm | 0.4 cm |
+
+  - Checks:
+    - director tests: the recoil and the deflect from their contact frames with no blend, the stun after a long recoil, the nearest light's pair for a heavy, none without pairs or the packs;
+    - a rules test of the kept parry and the event's sweep;
+    - the table's tests;
+    - the suite and typecheck.
+  - Sheets: `shots/m34` (`move_sheet.tscn --drive=parry --move=<light>`, each caption giving the blades' gap), posted.
+  - The sources and exports are the asset repository's pull request #7, after #6.
+  - Left for later:
+    - The aims make up for the export's one-frame hold: each reads the attacker's blade a frame before its contact, as the game shows it. They are re-aimed when that hold is fixed, which is flagged as its own task.
+    - The other families' moves play the nearest light's pair until they key their own (stories 105's other tasks).
 - [ ] **35. Light hit and block reactions.** A light hit plays a reaction by where it landed, and a block shows the guard taking a light impact.
   - Delivers: light hit reactions front, left, right and back, high and low, picked from the hit's contact point; a light block reaction; each fits the retuned light hitstun and blockstun at its own speed.
   - Check: director tests of the pick by contact point; the state-clip fit test for each; sheets reviewed.

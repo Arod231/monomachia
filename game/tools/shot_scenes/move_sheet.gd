@@ -337,7 +337,7 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 	&"parry": {
 		"input": [[14, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [55, 0.0, 0.0, 0]],
 		"parry": 14,
-		"notes": "the fighter's first light after 14 frames, parried by the opponent's block pressed 3 frames before it lands: the parrier's Parry Hit, the attacker's clip run back, then Stun01",
+		"notes": "the fighter's first light (or --move's) after 14 frames, parried by the opponent's block pressed 3 frames before it lands: with the packs the deflect pair (milestone-1 task 34), the parrier's deflect and the attacker's recoil from the contact frame; without them the parrier's Parry Hit and the attacker's Stun01",
 		"views": [&"three_quarter", &"side"],
 		"spacing": 0.0,
 		"every": 2,
@@ -976,15 +976,23 @@ func render_drive(drive_id: StringName) -> Image:
 	var loco: Locomotion = bench.view.locomotion
 	var inputs: Array[RawInput] = drive_inputs(drive_id)
 	var opponent: Array[RawInput] = drive_inputs(drive_id, "defender")
+	# a parry drive may parry any move (--move), started where the light's
+	# press would be (milestone-1 task 34: each light's deflect pair)
+	var parried: StringName = &""
 	if DRIVES[drive_id].has("parry"):
-		var light: AttackDef = bench.weapon.moves[bench.weapon.light_start]
+		parried = move if bench.weapon.moves.has(move) else bench.weapon.light_start
+		var light: AttackDef = bench.weapon.moves[parried]
 		opponent = parry_inputs(int(DRIVES[drive_id]["parry"]), light.startup, inputs.size())
 	var chosen: Array[int] = drive_frames(inputs.size(), every)
 	var cells: Dictionary[StringName, Array] = {}
 	for view: StringName in views:
 		cells[view] = []
 	for i: int in inputs.size():
-		bench.drive(inputs[i], opponent[i] if i < opponent.size() else null)
+		var input: RawInput = inputs[i]
+		if parried != &"" and i == int(DRIVES[drive_id]["parry"]):
+			bench.attacker.start_attack(parried)
+			input = RawInput.empty()
+		bench.drive(input, opponent[i] if i < opponent.size() else null)
 		_show_defender()
 		if not chosen.has(i + 1):
 			continue
@@ -998,6 +1006,11 @@ func render_drive(drive_id: StringName) -> Image:
 		if shot != null and shot.clip != null:
 			# the clip driving (a bridge or a return to guard among them, task 33)
 			lines[1] = "%s %.2f s · %s" % [String(shot.clip.name).get_file(), shot.clip.time, lines[1]]
+		if parried != &"":
+			# how far apart the two blades are (task 34: within 2 cm at contact)
+			var dshot: ClipDirector.Shot = defender_view.shot
+			lines[2] = "blades %.1f cm apart · %s %s · %s" % [blade_gap(bench.view, defender_view) * 100.0, dshot.phase if dshot != null else &"",
+				String(dshot.clip.name).get_file() if dshot != null and dshot.clip != null else "", lines[2]]
 		strip.append(lines)
 		for view: StringName in views:
 			var label: Image = await _text_image(lines, [TEXT_COLOR, TEXT_COLOR, TEXT_COLOR],
@@ -1026,6 +1039,17 @@ func render_drive(drive_id: StringName) -> Image:
 		width = mini(STRIP_COLUMNS, chosen.size()) * (grid[0].cells[0].get_width() + GAP) - GAP
 	var header: Image = await _text_image(title, tones(title), Vector2i(clampi(width, 1, _screen_size().x), HEADER_HEIGHT), HEADER_FONT)
 	return compose(header, grid)
+
+
+## The least distance between two fighters' held blades as posed, in
+## metres (INF with a blade missing).
+static func blade_gap(a: FighterView, b: FighterView) -> float:
+	var sa: Array[PackedVector3Array] = a.blade_segments()
+	var sb: Array[PackedVector3Array] = b.blade_segments()
+	if sa.is_empty() or sb.is_empty():
+		return INF
+	var near: PackedVector3Array = Geometry3D.get_closest_points_between_segments(sa[0][0], sa[0][1], sb[0][0], sb[0][1])
+	return near[0].distance_to(near[1])
 
 
 ## A strip frame's caption: the frame, the speed and the way the legs

@@ -140,6 +140,15 @@ var knockdown_retuned: bool = false
 ## whether it was a heavy, and whether it came from behind the fighter.
 var ko_heavy: bool = false
 var ko_from_behind: bool = false
+## The last parry this fighter took part in, parrier or parried (keep_parry();
+## milestone-1 task 34, for the deflect pair the view plays): the parried
+## move, the attack frame it met the blade on, the contact point (world) and
+## the blade's sweep there, a unit vector in the attacker's own frame
+## (right, up, forward). The rules don't read them.
+var parry_move: StringName = &""
+var parry_frame: int = 0
+var parry_pos: V3 = V3.make()
+var parry_sweep: V3 = V3.make()
 var knock_total: int = 0
 var knock_meters: float = 0.0
 
@@ -436,6 +445,10 @@ func reset_for_round(x: float, z: float, p_yaw: float) -> void:
 	stun_cause = &""
 	ko_heavy = false
 	ko_from_behind = false
+	parry_move = &""
+	parry_frame = 0
+	parry_pos = V3.make()
+	parry_sweep = V3.make()
 	counter_lunge_until = -99999
 	backstab_until = -99999
 	blind_until = -99999
@@ -1370,6 +1383,18 @@ func _update_knockdown() -> void:
 	if sf >= state_dur:
 		world.emit({"t": &"standup", "f": id})
 		to_free()
+
+
+## Keeps a parry (parry_move and the rest): move `move` parried on its
+## attack frame `at_frame` at `contact`, its blade sweeping `sweep` (world,
+## unit) there, the attacker facing `attacker_yaw`.
+func keep_parry(move: StringName, at_frame: int, contact: V3, sweep: V3, attacker_yaw: float) -> void:
+	parry_move = move
+	parry_frame = at_frame
+	parry_pos = V3.make(contact.x, contact.y, contact.z)
+	var f: V2 = SimMath.fwd(attacker_yaw)
+	var r: V2 = SimMath.right(attacker_yaw)
+	parry_sweep = V3.make(sweep.x * r.x + sweep.z * r.z, sweep.y, sweep.x * f.x + sweep.z * f.z)
 
 
 func enter_recoil(frames: int, guard_after: int) -> void:

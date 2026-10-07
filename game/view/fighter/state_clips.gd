@@ -13,15 +13,14 @@ extends RefCounted
 ##    "hit": {"clips": [light, heavy], "fallbacks": [light, heavy], "heavy_hitstun": 20},
 ##    "guard": {"clips": {"katana": [loop, hit]}, "fallback": "Sword_Block"},
 ##    "stun": {"clip": "Stun01", "fallback": "Hit_Knockback"},
-##    "rebound": {"frames": 8, "speed": 2},
 ##    "carry": {"pose": "ObjectGripShoulder02_R"},
 ##    "ults": {"moonsplitter": {...}, "impaler": {...}, "tempest": {...}},
 ##    "keyed": {"state": {"stomp": "Mikiri_Stomp"}, "stun": {"stomp": "Mikiri_Pinned"}},
 ##    "knockdown": {"clips": {"fall": ...}, "fallbacks": {"fall": ...}, "standup_from": 6},
 ##    "ko": {"clips": {"front": [light, heavy], "behind": [light, heavy]}, "fallback": "Death01"}}
 ##
-## Every group and field is needed, but "own_speed" and "transitions", and a
-## field it doesn't know is an error, as in MoveClips.
+## Every group and field is needed, but "own_speed", "transitions" and
+## "deflects", and a field it doesn't know is an error, as in MoveClips.
 ##
 ## "own_speed" (milestone-1 task 19) lists the clips that play at 1.0 from
 ## their state's start instead of fitted to it, each "loop" (looping once
@@ -37,11 +36,20 @@ extends RefCounted
 ## when it follows that move, and "returns" by move ({"k_l1": clip}), each
 ## light's return to guard after its recovery. Both are picture only, and
 ## only with the packs.
+##
+## "deflects" (milestone-1 task 34) names each parried move's deflect pair:
+## {"pairs": {"k_l1": {"deflect": clip, "deflect_contact": frame, "recoil":
+## clip, "recoil_contact": frame}}}, the parrier's deflect and the attacker's
+## recoil, each played from its contact frame (source frames at 30 fps),
+## where the blades meet. A parried move without a pair plays the nearest
+## light's (ClipDirector.pick_pair()). Picture only, and only with the packs.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
-const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "rebound", "carry", "ults", "keyed", "knockdown", "ko"]
+const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects"]
+## A deflect pair's fields (deflect_pairs).
+const PAIR_FIELDS: Array[String] = ["deflect", "deflect_contact", "recoil", "recoil_contact"]
 ## What a clip at its own speed does past its end.
 const OWN_SPEED_ENDS: Array[String] = ["loop", "hand_on"]
 const KNOCKDOWN_PHASES: Array[String] = ["fall", "ground", "standUp"]
@@ -82,10 +90,6 @@ var guard_fallback: StringName = &""
 ## The long stuns' clip, and without the packs.
 var stun_clip: StringName = &""
 var stun_fallback: StringName = &""
-## The parried attacker's rebound: rules frames, and the speed its attack's
-## clip runs backwards at.
-var rebound_frames: int = 0
-var rebound_speed: float = 0.0
 ## The Greatsword's shoulder carry pose.
 var carry_pose: StringName = &""
 ## Moonsplitter's clip per variant, [clip id, source frame held at]; its
@@ -134,6 +138,10 @@ var ko_fallback: StringName = &""
 var bridges: Dictionary[StringName, Dictionary] = {}
 ## Each light's return to guard, by move.
 var returns: Dictionary[StringName, StringName] = {}
+## The deflect pairs (milestone-1 task 34), by parried move: {&"deflect":
+## clip id, &"deflect_contact": source frame, &"recoil": clip id,
+## &"recoil_contact": source frame}.
+var deflect_pairs: Dictionary[StringName, Dictionary] = {}
 ## What is wrong with the file, one line each; empty when it read cleanly.
 var errors: PackedStringArray = []
 
@@ -179,10 +187,6 @@ static func read(path: String = PATH) -> StateClips:
 	g = t._object(root.get("stun"), "stun", ["clip", "fallback"])
 	t.stun_clip = t._id(g, "stun", "clip")
 	t.stun_fallback = t._id(g, "stun", "fallback")
-
-	g = t._object(root.get("rebound"), "rebound", ["frames", "speed"])
-	t.rebound_frames = t._whole(g, "rebound", "frames")
-	t.rebound_speed = t._num(g, "rebound", "speed")
 
 	g = t._object(root.get("carry"), "carry", ["pose"])
 	t.carry_pose = t._id(g, "carry", "pose")
@@ -261,6 +265,21 @@ static func read(path: String = PATH) -> StateClips:
 				var id: StringName = t._id(returns, "transitions.returns", str(move))
 				if id != &"":
 					t.returns[StringName(str(move))] = id
+	if root.has("deflects"):
+		g = t._object(root["deflects"], "deflects", ["pairs"])
+		var pairs: Variant = g.get("pairs", {})
+		if not pairs is Dictionary:
+			t.errors.append("deflects.pairs: must be an object")
+		else:
+			for move: Variant in pairs:
+				var at: String = "deflects.pairs.%s" % move
+				var e: Dictionary = t._object(pairs[move], at, PAIR_FIELDS)
+				if e.is_empty():
+					continue
+				t.deflect_pairs[StringName(str(move))] = {
+					&"deflect": t._id(e, at, "deflect"), &"deflect_contact": t._num(e, at, "deflect_contact"),
+					&"recoil": t._id(e, at, "recoil"), &"recoil_contact": t._num(e, at, "recoil_contact"),
+				}
 	return t
 
 

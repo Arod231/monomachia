@@ -7,7 +7,7 @@ extends GutTest
 ## saving the live file can't break them:
 ##  - OLD, the constants' values copied here before they were deleted, equals
 ##    what StateClips reads from the frozen copy;
-##  - a scripted bout (idle, attacks, hits, guards, stuns, a parry's rebound,
+##  - a scripted bout (idle, attacks, hits, guards, stuns, a parried attack,
 ##    the shoulder carry, the three ultimates, the keyed stomp, knockdown and
 ##    KO) gives the Shots recorded from the constants before they moved
 ##    (tests/fixtures/state_clips_shots.json, thinned: every frame near a
@@ -50,8 +50,6 @@ const OLD: Dictionary = {
 	"GUARD_FALLBACK": &"Sword_Block",
 	"STUN_CLIP": &"Stun01",
 	"STUN_FALLBACK": &"Hit_Knockback",
-	"REBOUND_FRAMES": 8,
-	"REBOUND_SPEED": 2.0,
 	"CARRY_POSE": &"ObjectGripShoulder02_R",
 	"ULT_CLIPS": {&"vertical": [&"Attack2H01", 12.0], &"horizontal": [&"Attack2H03", 7.0]},
 	"ULT_FALLBACK": &"Sword_Heavy_Combo",
@@ -172,13 +170,13 @@ class Bout:
 	## The fields of a Shot the fixture keeps, in the order of an encoded one.
 	const KEYS: Array[String] = [
 		"frame", "drive", "clip", "clip_before", "from", "from_upper", "upper", "fade", "since", "idle", "move",
-		"state", "phase", "rebound", "grip", "grip_from",
+		"state", "phase", "grip", "grip_from",
 	]
 	## Every this many shots one is kept, and the ones within NEAR of a change.
 	const EVERY: int = 12
 	const NEAR: int = 2
 	## The fields that hold a Clip.
-	const CLIPS: Array[String] = ["clip", "clip_before", "from", "rebound"]
+	const CLIPS: Array[String] = ["clip", "clip_before", "from"]
 
 	static func _clip(c: ClipDirector.Clip) -> Variant:
 		if c == null:
@@ -191,7 +189,7 @@ class Bout:
 			"frame": s.frame, "drive": String(s.drive), "clip": _clip(s.clip), "clip_before": _clip(s.clip_before),
 			"from": _clip(s.from), "from_upper": s.from_upper, "upper": s.upper, "fade": s.fade, "since": s.since,
 			"idle": s.idle, "move": String(s.move), "state": String(s.state), "phase": String(s.phase),
-			"rebound": _clip(s.rebound), "grip": snappedf(s.grip, 1e-6), "grip_from": snappedf(s.grip_from, 1e-6),
+			"grip": snappedf(s.grip, 1e-6), "grip_from": snappedf(s.grip_from, 1e-6),
 		}
 
 	## What shows which clip is on for a shot: a change is where this does.
@@ -414,8 +412,9 @@ static func _stuns(bout: Bout) -> void:
 				shot = bout.step(shot, f, ctx)
 
 
-## A parried attack: its clip runs back over the rebound, then Stun01, and the
-## guard back up; a Flash's and a Redirect's stun rebound likewise.
+## A parried attack, with no deflect pairs in the frozen table: Stun01 from
+## the start (the rebound retired with milestone-1 task 34), and the guard
+## back up; a Flash's and a Redirect's stun likewise.
 static func _rebounds(bout: Bout) -> void:
 	for libs: bool in [true, false]:
 		var cases: Array = [
@@ -424,7 +423,7 @@ static func _rebounds(bout: Bout) -> void:
 		for case: Array in cases:
 			if not libs and case[1] != SimConst.PARRY_RECOIL:
 				continue
-			bout.into("rebound %s %d libs=%s" % [case[0], case[1], libs])
+			bout.into("parried %s %d libs=%s" % [case[0], case[1], libs])
 			var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 6.0)
 			var f: Fighter = W.fighters[0]
 			var ctx: ClipDirector.Context = _ctx(libs)
@@ -656,8 +655,7 @@ const FIELDS: Dictionary = {
 	"FADES": "fades", "IDLE": "idle", "FALLBACK_IDLE": "fallback_idle", "STATE_CLIPS": "state_clips",
 	"STUN_CLIPS": "stun_clips", "HIT_CLIPS": "hit_clips", "HIT_FALLBACKS": "hit_fallbacks",
 	"HEAVY_HITSTUN": "heavy_hitstun", "GUARD_CLIPS": "guard_clips", "GUARD_FALLBACK": "guard_fallback",
-	"STUN_CLIP": "stun_clip", "STUN_FALLBACK": "stun_fallback", "REBOUND_FRAMES": "rebound_frames",
-	"REBOUND_SPEED": "rebound_speed", "CARRY_POSE": "carry_pose", "ULT_CLIPS": "ult_clips",
+	"STUN_CLIP": "stun_clip", "STUN_FALLBACK": "stun_fallback", "CARRY_POSE": "carry_pose", "ULT_CLIPS": "ult_clips",
 	"ULT_FALLBACK": "ult_fallback", "ULT_WINDUP": "ult_windup", "ULT_RELEASE": "ult_release",
 	"IMPALER_CLIP": "impaler_clip", "IMPALER_DRAWN": "impaler_drawn", "IMPALER_OUT": "impaler_out",
 	"IMPALER_RECOVER": "impaler_recover", "IMPALER_RECOVER_FRAMES": "impaler_recover_frames",
@@ -756,8 +754,8 @@ func test_an_unknown_key_is_refused() -> void:
 func test_a_missing_or_wrong_field_is_refused() -> void:
 	var t: StateClips = _read_text(_edited("\"carry\": {\"pose\": \"ObjectGripShoulder02_R\"},\n", ""))
 	assert_true(Array(t.errors).has("the file: missing carry"), "a missing group: %s" % t.errors)
-	t = _read_text(_edited("\"speed\": 2}", "\"speed\": \"fast\"}"))
-	assert_true(Array(t.errors).has("rebound.speed: must be a number, 0 or more"), "a wrong type: %s" % t.errors)
+	t = _read_text(_edited("\"standup_from\": 6", "\"standup_from\": \"six\""))
+	assert_true(Array(t.errors).has("knockdown.standup_from: must be a number, 0 or more"), "a wrong type: %s" % t.errors)
 	t = _read_text(_edited("\"heavy_hitstun\": 20", "\"heavy_hitstun\": 20.5"))
 	assert_true(Array(t.errors).has("hit.heavy_hitstun: must be a whole number, 0 or more"), "a fractional frame count: %s" % t.errors)
 	t = _read_text(_edited("\"fists\": \"Idle\"", "\"boxing\": \"Idle\""))
@@ -816,6 +814,29 @@ func test_the_transitions_are_optional_and_checked() -> void:
 		"\"transitions\": {\"bridges\": {\"k_l2\": \"B\"}, \"returns\": {}}, ": "transitions.bridges.k_l2: must be an object of clip ids by the move it follows",
 		"\"transitions\": {\"bridges\": {\"k_l2\": {\"k_l1\": \"\"}}, \"returns\": {}}, ": "transitions.bridges.k_l2.k_l1: must be a clip id (a non-empty string)",
 		"\"transitions\": {\"bridges\": {}, \"returns\": {\"k_l1\": 3}}, ": "transitions.returns.k_l1: must be a clip id (a non-empty string)",
+	}
+	for group: String in cases:
+		t = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))
+		assert_eq(Array(t.errors), [cases[group]], group)
+
+
+func test_the_deflect_pairs_are_optional_and_checked() -> void:
+	# milestone-1 task 34: a deflect pair for each light, played from the
+	# contact frames
+	var live: StateClips = StateClips.read()
+	assert_eq(live.deflect_pairs.keys(), [&"k_l1", &"k_l2", &"k_l3", &"k_l4"], "a pair for each light")
+	assert_eq(live.deflect_pairs[&"k_l1"], {&"deflect": &"RightCutDeflect", &"deflect_contact": 2.0,
+		&"recoil": &"RightCutRecoil", &"recoil_contact": 15.0})
+	assert_eq(StateClips.read(FrozenStateClips.PATH).deflect_pairs.size(), 0, "none in a table without the group")
+	var pair: String = "\"deflects\": {\"pairs\": {\"k_l1\": {\"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\", \"recoil_contact\": 12.5}}}, "
+	var t: StateClips = _read_text(_edited("\"fades\": {", pair + "\"fades\": {"))
+	assert_eq(Array(t.errors), [], "read cleanly")
+	assert_eq(t.deflect_pairs[&"k_l1"], {&"deflect": &"D", &"deflect_contact": 2.0, &"recoil": &"R", &"recoil_contact": 12.5})
+	var cases: Dictionary = {
+		"\"deflects\": {\"pairs\": []}, ": "deflects.pairs: must be an object",
+		"\"deflects\": {\"pairs\": {\"k_l1\": {\"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\"}}}, ": "deflects.pairs.k_l1: missing recoil_contact",
+		"\"deflects\": {\"pairs\": {\"k_l1\": {\"deflect\": \"D\", \"deflect_contact\": -1, \"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.pairs.k_l1.deflect_contact: must be a number, 0 or more",
+		"\"deflects\": {}, ": "deflects: missing pairs",
 	}
 	for group: String in cases:
 		t = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))

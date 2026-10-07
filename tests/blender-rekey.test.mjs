@@ -1,8 +1,9 @@
 // Tests for Claude's scripted re-keys (scripts/blender/rekey_clip.py,
 // milestone-1 task 31): every spec in scripts/blender/rekeys/ is well formed
 // and names a clip the clip manifest imports (the light string's cuts, its
-// guard, and task 33's transitions: the bridges between its hits and each
-// light's return to guard), and, where Blender is
+// guard, task 33's transitions: the bridges between its hits and each
+// light's return to guard, and task 34's deflect pairs: each light's recoil
+// and the deflect aimed at it), and, where Blender is
 // installed (local-only, skipped elsewhere, CI included), the script's time
 // warp and steps behave: the warp passes through its pairs without falling or
 // overshooting, a stepping foot moves only while it is off the ground, and
@@ -31,8 +32,10 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'crown_cut', 'crown_cut_to_guard', 'katana_guard', 'kesa_cut', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
-      'return_cut', 'return_cut_to_guard', 'return_cut_to_kesa_cut', 'right_cut', 'right_cut_to_guard', 'right_cut_to_return_cut',
+      'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard', 'katana_guard',
+      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
+      'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
+      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut',
     ]);
   });
 
@@ -40,6 +43,8 @@ describe('the re-key specs', () => {
     describe(id, () => {
       const length = spec.remap.at(-1)[0];
       const transition = id.includes('_to_');
+      const recoil = id.endsWith('_recoil');
+      const deflect = id.endsWith('_deflect');
 
       it('re-keys a pack clip, or for a transition a re-keyed clip, into its own Blender source', () => {
         if (transition) {
@@ -49,8 +54,20 @@ describe('the re-key specs', () => {
           assert.equal(spec.blend_from.source, `blender/clips/${from}.blend`, 'from the clip it follows');
           assert.ok(spec.blend_from.frames > 0 && spec.blend_from.frames <= length, 'blended in within the clip');
           assert.deepEqual(spec.remap, [[0, 0], [length, length]], 'its target at its own speed from its start');
+        } else if (recoil) {
+          const light = id.replace(/_recoil$/, '');
+          assert.equal(spec.source, `blender/clips/${light}.blend`, 'its light up to the contact');
+          const c = spec.knock.from;
+          assert.deepEqual(spec.remap.at(-2), [c, c], 'the light as it is up to the contact');
+          assert.equal(spec.remap.at(-1)[1], c, 'then held there, knocked back');
+          assert.ok(spec.knock.toward < c, 'toward its cocked wind-up');
         } else {
           assert.match(spec.source, /^kevin_iglesias\/.+\.fbx$/);
+          if (deflect) {
+            const light = id.replace(/_deflect$/, '');
+            assert.match(spec.source, /Parry1H01_[LR] - Hit\.fbx$/, 'a Parry1H01 hit');
+            assert.equal(spec.two_hands.aim.at.source, `blender/clips/${light}_recoil.blend`, 'aimed at its light\'s recoil');
+          }
         }
         assert.equal(spec.out, `blender/clips/${id}.blend`);
       });
@@ -63,7 +80,7 @@ describe('the re-key specs', () => {
         }
       });
 
-      it('puts both hands on the grip, clear of the body (a transition carries its two clips\' hands)', { skip: transition }, () => {
+      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil }, () => {
         assert.ok(spec.two_hands.grip > 0 && spec.two_hands.grip < 0.3);
         assert.equal(spec.two_hands.hold.length, 2);
         assert.ok(spec.two_hands.clearance >= 0.05, 'at least PoseCheck.BLADE_CLEARANCE');
@@ -153,6 +170,8 @@ print(json.dumps([f(i / 10.0) for i in range(431)]))`);
       assert.match(r.stdout, new RegExp(`-> ${length + 1} frames \\(${length} long\\)`), id);
       if (spec.step) assert.match(r.stdout, /the body steps \d\.\d\d m forward/, id);
       if (spec.blend_from) assert.match(r.stdout, /blended in from the start pose over \d+ frames/, id);
+      if (spec.knock) assert.match(r.stdout, /knocked back from frame/, id);
+      if (spec.two_hands?.aim?.at) assert.match(r.stdout, /aimed at \d+% of the attacker's blade/, id);
       assert.doesNotMatch(r.stdout, /out of the leg's reach/, id);
     }
   });
