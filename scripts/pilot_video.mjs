@@ -37,6 +37,8 @@ export const OURS = {
   label: "Monomachia: today's lights (the pilot)",
   hits: [41, 72, 108, 146].map((f) => f / FPS),
   frames: 270,
+  // the middle of the gameplay camera's frame (1280x720), round the fighter
+  crop: '960:540:240:180',
 };
 
 // The references, each light-string hit timed by eye on its frame sheets
@@ -45,7 +47,7 @@ export const OURS = {
 export const REFERENCES = [
   {
     game: 'Elden Ring',
-    label: 'Elden Ring: Uchigatana, two-handed (the style the re-keys follow)',
+    label: "Elden Ring: Uchigatana 2H (the re-keys' style)",
     run: '9sJ2B7crfF8',
     // its extracted 60 fps frames (frames/%05d.jpg, 1-based): 1963, 2003, 2040, 2078
     frames: true,
@@ -55,6 +57,8 @@ export const REFERENCES = [
     game: 'For Honor',
     label: 'For Honor: Orochi, Crosswind Slashes',
     run: 'wEcPrQJ3jzY',
+    // the guide's gameplay inset
+    crop: '852:480:180:310',
     hits: [39.5, 40.0, 40.5, null],
     missing: "For Honor's light chain is three hits",
   },
@@ -114,8 +118,8 @@ function findGodot() {
 
 // The ffmpeg input for a cut of `source` (ours, a reference, or a black
 // panel `duration` long for a missing hit).
-function input(source, c, runs) {
-  if (c.note !== undefined) return ['-f', 'lavfi', '-t', String(c.duration), '-i', `color=c=0x0b0e16:s=${W}x${H}:r=${FPS}`];
+function input(source, c, runs, duration) {
+  if (c.note !== undefined) return ['-f', 'lavfi', '-t', String(duration), '-i', `color=c=0x0b0e16:s=${W}x${H}:r=${FPS}`];
   if (source === OURS) return ['-ss', String(c.from), '-t', String(c.duration), '-i', 'shots/m40/ours.avi'];
   const dir = join(runs, source.run);
   if (source.frames) {
@@ -136,14 +140,16 @@ function label(text, size = 22, y = 10) {
 // One grid: the five sources' cuts and a caption, at `speed` (1 or 0.5),
 // into `out`.
 function grid(sources, cuts, caption, speed, out, runs) {
-  const duration = Math.max(...cuts.map((c) => c.duration));
+  // the light's length: its longest cut (a missing hit's panel has none)
+  const duration = Math.max(...cuts.filter((c) => c.note === undefined).map((c) => c.duration));
   const args = ['-v', 'error', '-y'];
-  cuts.forEach((c, i) => args.push(...input(sources[i], c, runs)));
+  cuts.forEach((c, i) => args.push(...input(sources[i], c, runs, duration)));
   args.push('-f', 'lavfi', '-t', String(duration), '-i', `color=c=0x101114:s=${W}x${H}:r=${FPS}`);
   const slow = speed === 1 ? '' : `,setpts=${1 / speed}*PTS`;
   const parts = cuts.map((c, i) => {
     const note = c.note !== undefined ? `,${label(c.note, 24, H / 2 - 12)}` : '';
-    return `[${i}:v]fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2,setsar=1,`
+    const crop = sources[i].crop && c.note === undefined ? `crop=${sources[i].crop},` : '';
+    return `[${i}:v]fps=${FPS},${crop}scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2,setsar=1,`
       + `tpad=stop_mode=clone:stop_duration=${duration},trim=duration=${duration}${note},${label(sources[i].label)}${slow}[p${i}]`;
   });
   parts.push(`[${cuts.length}:v]${caption.map((line, k) => label(line, k === 0 ? 34 : 24, 40 + k * 46)).join(',')}${slow}[p${cuts.length}]`);
