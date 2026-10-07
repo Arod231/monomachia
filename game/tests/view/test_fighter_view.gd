@@ -243,6 +243,9 @@ func test_local_the_katana_stays_in_hand_through_its_guard_bridges_and_returns()
 		for n: int in [1, 2, 3, 4]:
 			var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 4.0)
 			var f: Fighter = W.fighters[0]
+			# the pilot's string, keyed two-handed (KE task 10: the
+			# two-handed grip's guard is the one its bridges and returns meet)
+			f.grip = WeaponGrip.TWO_HANDED
 			var v: FighterView = _view(id, Moves.KATANA)
 			var what: String = "%s, %d light%s" % [id, n, "" if n == 1 else "s"]
 			var shown: Dictionary[String, bool] = {}

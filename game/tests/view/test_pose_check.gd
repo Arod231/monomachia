@@ -21,8 +21,10 @@ func after_each() -> void:
 	MoveBench.free_all()
 
 
-## A frame of `bench`'s fighter standing in its guard.
-func _guard_frame(bench: MoveBench) -> PoseCheck.Frame:
+## A frame of `bench`'s fighter standing in its guard: the match's Katana
+## guard, two-handed (milestone-1 task 33), unless `grip` says otherwise.
+func _guard_frame(bench: MoveBench, grip: StringName = WeaponGrip.TWO_HANDED) -> PoseCheck.Frame:
+	bench.grip = grip
 	bench.stand()
 	return await bench.frame()
 
@@ -90,6 +92,13 @@ func test_the_body_capsules_are_measured_from_each_fighter() -> void:
 func test_the_katana_guard_is_measured_on_both_fighters() -> void:
 	for id: StringName in FighterLook.IDS:
 		var bench: MoveBench = _bench(id)
+		# the one-handed guard (KE task 10): the off hand on its clip with the
+		# packs, the blade clear of the body
+		var one: PoseCheck.Frame = await _guard_frame(bench, WeaponGrip.ONE_HANDED)
+		var one_report: PoseCheck.Report = bench.check.measure(one)
+		gut.p("%s one-handed katana guard: %s; fails: %s" % [id, one_report.summary(), one_report.failures()])
+		assert_gt(one_report.blade_gap, PoseCheck.BLADE_CLEARANCE, "%s one-handed: the blade clears the body" % id)
+		assert_eq(one.driven.has("Left"), not ClipLibraries.available(), "%s one-handed: the off hand on IK only on the CC0 stand-ins" % id)
 		var frame: PoseCheck.Frame = await _guard_frame(bench)
 		var report: PoseCheck.Report = bench.check.measure(frame)
 		gut.p("%s katana guard: %s; fails: %s" % [id, report.summary(), report.failures()])
@@ -512,6 +521,43 @@ func test_local_every_katana_move_s_feet_and_blade_print_their_worst() -> void:
 		ChecklistResults.record(8, move_id, w.slide <= PoseCheck.FOOT_SLIDE_MAX, "worst %.1f cm at frame %d" % [w.slide * 100.0, w.slide_frame])
 		ChecklistResults.record(9, move_id, w.blade_gap >= PoseCheck.BLADE_CLEARANCE, "worst %.1f cm at frame %d" % [w.blade_gap * 100.0, w.blade_frame])
 	gut.p("hunter, Katana moves with the clips, worst over every rules frame:\n" + "\n".join(lines))
+
+
+## KE task 10: each grip's guard idle and block and both re-grips keep the
+## 1.3 m blade clear of the body (PoseCheck.BLADE_CLEARANCE) on every rules
+## frame, on both fighters: standing one-handed, switching to two hands,
+## standing, then guarding, switching back to one hand guarding (the move
+## sheet's grip_switch drive).
+func test_local_each_grip_s_guards_and_re_grips_keep_the_blade_clear() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	var grip: int = 1 << Btn.GRIP
+	var block: int = 1 << Btn.BLOCK
+	var steps: Array = [[12, 0], [1, grip], [30, 0], [12, block], [1, block | grip], [30, block]]
+	for id: StringName in FighterLook.IDS:
+		var bench: MoveBench = _bench(id)
+		bench.stand()
+		## the worst by clip: [blade gap (m), its frame]
+		var worst: Dictionary[String, Array] = {}
+		var n: int = 0
+		for s: Array in steps:
+			for i: int in s[0]:
+				bench.drive(RawInput.make(0.0, 0.0, s[1]))
+				n += 1
+				var shot: ClipDirector.Shot = bench.view.shot
+				var clip: String = String(shot.clip.name).get_file() if shot.clip != null else String(shot.idle).get_file()
+				var r: PoseCheck.Report = bench.check.measure(await bench.frame())
+				var w: Array = worst.get(clip, [INF, 0])
+				if r.blade_gap < w[0]:
+					worst[clip] = [r.blade_gap, n]
+		var lines: PackedStringArray = []
+		for clip: String in worst:
+			lines.append("%-18s blade %5.1f cm from the body (frame %d)" % [clip, worst[clip][0] * 100.0, worst[clip][1]])
+			assert_gt(worst[clip][0], PoseCheck.BLADE_CLEARANCE, "%s %s: the blade %.1f cm from the body at frame %d" % [id, clip, worst[clip][0] * 100.0, worst[clip][1]])
+		gut.p("%s through a grip switch:\n%s" % [id, "\n".join(lines)])
+		for want: String in ["KatanaGuard1H", "KatanaRegripTo2H", "KatanaGuard", "KatanaBlockLoop", "KatanaRegripTo1H", "Parry1H01_R_Loop"]:
+			assert_true(worst.has(want), "%s: %s played" % [id, want])
 
 
 ## The per-move checklist's items 8 and 9 for the clip rows (milestone-1 task

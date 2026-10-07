@@ -1,0 +1,11 @@
+{
+	"about": "The re-grip into one hand (KE task 10, D15): the one-handed guard's first 9 frames (0.3 s, the owner's length), starting in the two-handed guard's first pose and carried into the one-handed guard, the off hand leaving the handle, the feet where the guard has them. Played on the upper body over the legs on a switch to one hand while standing, moving or guarding; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/katana_guard_1h.blend",
+	"out": "blender/clips/katana_guard_to_katana_guard_1h.blend",
+	"remap": [[0, 0], [9, 9]],
+	"blend_from": {
+		"source": "blender/clips/katana_guard.blend",
+		"frame": 0,
+		"frames": 9
+	}
+}

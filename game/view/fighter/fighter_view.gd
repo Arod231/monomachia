@@ -532,6 +532,8 @@ func _pose(f: Fighter, p: StickPose.Pose, _seconds: float, alpha: float) -> void
 		# a pair of daggers flips between the idle's reverse hold and the
 		# attack's forward one (task 21)
 		rig.set_reverse_turn(shot.reverse_hold if model.weapon_look.paired else 0.0)
+		# the off hand on the handle or off it, by the clip's grip (KE task 10)
+		rig.off_hand = lerpf(shot.off_hand_before, shot.off_hand, alpha)
 		var held: Dictionary[int, Transform3D] = {}
 		for i: int in model.weapons.size():
 			held[i] = model.weapons[i].transform

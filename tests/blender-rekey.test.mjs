@@ -37,7 +37,8 @@ describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
       'blasted_fall', 'block_light', 'breaker_palm', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
-      'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right', 'katana_guard',
+      'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right',
+      'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h',
       'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
       'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall',
       'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
@@ -53,7 +54,7 @@ describe('the re-key specs', () => {
       const recoil = id.endsWith('_recoil');
       const deflect = id.endsWith('_deflect');
       // an iai's sheathe and draws hold the sword in one hand (task 98)
-      const oneHanded = id.startsWith('moonsplitter_');
+      const oneHanded = id.startsWith('moonsplitter_') || id.endsWith('_1h');
       // bare hands' ultimate and the burst's blasted fall hold nothing (task 99)
       const bare = ['ult_choice', 'recall', 'breaker_palm', 'blasted_fall'].includes(id);
 
@@ -93,7 +94,7 @@ describe('the re-key specs', () => {
         }
       });
 
-      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai') || (bare && 'bare hands') }, () => {
+      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai or the one-handed grip') || (bare && 'bare hands') }, () => {
         assert.ok(spec.two_hands.grip > 0 && spec.two_hands.grip < 0.3);
         assert.equal(spec.two_hands.hold.length, 2);
         assert.ok(spec.two_hands.clearance >= 0.05, 'at least PoseCheck.BLADE_CLEARANCE');

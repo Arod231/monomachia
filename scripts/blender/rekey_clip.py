@@ -58,6 +58,13 @@
 #   (0) to all of it at "peak", held to "until" (the peak) and back to
 #   nothing at the clip's end, or held to the end with "hold" (a crouched
 #   stance), the feet kept where the clip has them on IK; omit for none;
+# - one_hand: {"lower": degrees, "out": degrees}: a one-handed clip's weapon
+#   re-aimed (one_hand(); KE task 10): the right hand turned about the wrist
+#   on every frame, the blade lowered and swung out to the right that far,
+#   the clip's motion kept; either may instead be [[frame, degrees], ...]
+#   pairs (a monotone cubic through them), a turn that changes over the clip
+#   (KE task 11: a backhand made to rise, its tip low on the wind-up and
+#   raised on the follow-through); omit for a weapon as the clip holds it;
 # - two_hands may add "aim": {"frame": frame, "move": [x, y, z], "turn":
 #   [x, y, z, degrees], "frames": n}: the weapon moved by "move" (m, world,
 #   the clip facing -Y) and turned about the grip by "turn" (an axis and an
@@ -835,6 +842,48 @@ def carry(arm, scene, length, spec):
     print(f"rekey_clip: carried the body {body(float(length)) - body(0.0):.2f} m forward", flush=True)
 
 
+def one_hand(arm, scene, length, spec):
+    """A one-handed weapon re-aimed (KE task 10: the one-handed guard's blade
+    carried low, as Elden Ring's): on every frame the right hand turned about
+    the wrist, the blade (the prop bone's +Y) lowered spec["lower"] degrees
+    (about the level line across it) and swung spec["out"] degrees out to the
+    right (about the vertical; the clip faces -Y, its right toward -X), the
+    clip's own motion kept around it (either a number, or [frame, degrees]
+    pairs, a monotone cubic through them). The arm and the off hand are as the
+    clip has them. Keyed."""
+    mw = arm.matrix_world
+    pbs = arm.pose.bones
+    hand = pbs["B-hand.R"]
+    up = mathutils.Vector((0.0, 0.0, 1.0))
+    def over_time(v):
+        if isinstance(v, list):
+            f = monotone([float(p[0]) for p in v], [float(p[1]) for p in v])
+            return lambda n: math.radians(f(float(n)))
+        return lambda n: math.radians(float(v))
+    lower_at, out_at = over_time(spec.get("lower", 0.0)), over_time(spec.get("out", 0.0))
+    for n in range(length + 1):
+        lower, out = lower_at(n), out_at(n)
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        prop = mw @ pbs["B-handProp.R"].matrix
+        blade = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+        across = blade.cross(up)
+        turn = mathutils.Matrix.Rotation(-out, 4, up)
+        if across.length > 1e-6:
+            turn = turn @ mathutils.Matrix.Rotation(-lower, 4, across.normalized())
+        m = mw @ hand.matrix
+        wrist = m.to_translation()
+        hand.matrix = mw.inverted() @ (mathutils.Matrix.Translation(wrist) @ turn @ mathutils.Matrix.Translation(-wrist) @ m)
+        bpy.context.view_layer.update()
+        hand.keyframe_insert("rotation_quaternion", frame=1 + n, group=hand.name)
+        hand.keyframe_insert("location", frame=1 + n, group=hand.name)
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    prop = mw @ pbs["B-handProp.R"].matrix
+    blade = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+    print(f"rekey_clip: the blade re-aimed, {math.degrees(math.asin(max(-1.0, min(1.0, blade.z)))):.0f} degrees from level on frame 0", flush=True)
+
+
 # The bones a transition (blend_from()) leaves to the leg IK.
 LEGS = ("B-thigh.", "B-shin.", "B-foot.", "B-toe.")
 
@@ -932,6 +981,8 @@ def main():
         turn(arm, scene, length, float(spec["turn"]))
     if spec.get("lower"):
         lower(arm, scene, length, spec["lower"])
+    if spec.get("one_hand"):
+        one_hand(arm, scene, length, spec["one_hand"])
     if spec.get("two_hands"):
         th = spec["two_hands"]
         two_hands(arm, scene, length, float(th["grip"]), th.get("hold", [0.3, 0.1]), float(th.get("square", 0.0)),
