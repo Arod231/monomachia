@@ -85,7 +85,7 @@ flowchart TD
 | `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
 | `game/view/match` | `MatchHost` (the fixed-step loop), `MatchView`, `CameraRig`, `MatchAudio`, `StickPose`, the arena registry. |
 | `game/view/fighter` | Animating a rigged fighter from the rules' state: the clip director, locomotion, foot locking, IK rig. |
-| `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replaced today's three in milestone-1 task 29. |
+| `game/view/look` | The realistic look (milestone-1 task 43): physically based materials (`LookMaterials`), the night and its colour grade (`LookGrade`), the film grain (`FilmGrain`), the shared noise, the palette and render layers, and the four graphics presets with Ultra as the reference (task 29). The toon materials, outlines and ink-wash pass are gone. |
 | `game/view/mesh_kit*.gd` | Procedural mesh building for props and stand-ins. |
 | `game/fighters`, `game/weapons`, `game/arenas` | Content: fighter models and palettes, weapon models, the Moonlit Shrine. |
 | `game/shaders` | Every `.gdshader` and shared include. |
@@ -116,7 +116,7 @@ flowchart BT
     CORE["core/<br/>GameServices, GameSettings,<br/>MatchConfig, MatchSide, MatchResults,<br/>Roster"]
     HOST["view/match/MatchHost<br/>fixed-step loop"]
     VIEW["view/match, view/fighter<br/>MatchView, CameraRig, FighterView"]
-    LOOK["view/look<br/>toon, outline, ink wash, presets"]
+    LOOK["view/look<br/>materials, grade, grain, presets"]
     AUDIO["audio/ + view/match/MatchAudio"]
     UI["ui/<br/>MatchHud, menus"]
     MAIN["scenes/main.gd<br/>screen flow"]
@@ -703,14 +703,14 @@ flowchart LR
 
 ### 9.2 `view/fighter`: from rules state to a moving body
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This describes the code today. As the slice lands, physically based materials replace the toon materials built here, and while the game runs a clip is adjusted only by foot locking, the hands' grip on the weapon, mirroring and blending, plus the hit reactions' physical layer.
+> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This describes the code today. While the game runs a clip is adjusted only by foot locking, the hands' grip on the weapon, mirroring and blending, plus the hit reactions' physical layer. Since milestone-1 task 43 the fighters are drawn in physically based materials (`LookMaterials`).
 
 The rules know only a position, a yaw, a state and a frame. The fighter view turns that into a rigged, animated body.
 
 ```mermaid
 flowchart TD
     subgraph BUILD["Once per fighter"]
-        FL["FighterLook.instantiate_fighter(id)"] --> FM["FighterModel.build()<br/>skeleton, outfit, hair, head,<br/>toon materials, palette"]
+        FL["FighterLook.instantiate_fighter(id)"] --> FM["FighterModel.build()<br/>skeleton, outfit, hair, head,<br/>physically based materials, palette"]
         FM --> RIG["FighterRig: installs the<br/>skeleton modifier stack"]
         FM --> LOCO["Locomotion: AnimationTree (manual),<br/>gaits measured by FootPhase"]
         WL["WeaponLook.instantiate()"] --> HOLD["FighterModel.attach_weapon<br/>+ WeaponHold for this fighter"]
@@ -776,13 +776,12 @@ flowchart LR
 
 - A **fighter** (Rogue, Hunter) is a `FighterModel` scene plus a `FighterLook` resource. The look says which weapon each fighter holds how (`WeaponHold`: reverse hold, guard stance, wrist tweaks).
 - A **weapon's look** (`WeaponLook`) is separate from its rules (`WeaponDef` in `sim/moves`). They share the id (`katana`, `greatsword`, `daggers`) by convention.
-- An **arena** is an `ArenaDef` resource plus a scene that builds itself in code. Every arena must provide a `def` property, `Spawn0/1` and `Gate0/1` markers, its own environment, lights and `InkWashPass`, and apply the graphics preset to itself. Its `walkable_radius` must equal `SimConst.ARENA_RADIUS`, or `ArenaScenes` falls back to the stand-in.
-  > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This is the code today. ADR 0001 retires the ink-wash pass, so an arena will no longer need an `InkWashPass` once the slice lands.
+- An **arena** is an `ArenaDef` resource plus a scene that builds itself in code. Every arena must provide a `def` property, `Spawn0/1` and `Gate0/1` markers, its own environment (the night, `LookGrade.environment()`) and lights, and apply the graphics preset to itself. Its `walkable_radius` must equal `SimConst.ARENA_RADIUS`, or `ArenaScenes` falls back to the stand-in.
 - `fighters/preview/` is a dev stage for looking at fighters and weapons; it isn't part of the game or the export.
 
 ## 11. The look: shaders and graphics presets
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This section describes the code today. As the slice lands, a realistic look (physically based materials, dark lighting and volumetric fog under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass. Four presets replaced the three in milestone-1 task 29: Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
+Milestone-1 task 43 put the game in the realistic look the look test (task 30) settled beside the mood board: physically based materials, dark lighting and volumetric fog under one colour grade, with light film grain. The toon materials, outlines and ink-wash pass, and their tests, are gone. Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
 
 ```mermaid
 flowchart TD
@@ -791,27 +790,20 @@ flowchart TD
     PRESET --> APP["GraphicsApplier.apply / apply_to_tree"]
     APP --> VP["Viewport: AA, render scale, upscaler (FSR 2.2, FSR 1), shadows"]
     APP --> GROUPS["Node groups: look_shadow_light,<br/>look_minor_light, look_particles,<br/>look_scenery_detail, look_petal_light,<br/>look_minor_decal"]
-    APP --> OUTL["Outline on or off per kind<br/>(fighter, weapon, prop)"]
-    APP --> ENV["Environment: fog, volumetric fog, ambient occlusion,<br/>InkGrade colour LUT"]
-    APP --> INK["InkWashPass quality<br/>OFF / LINES / FULL"]
+    APP --> ENV["Environment: fog, bloom, volumetric fog,<br/>ambient occlusion, the grade (LookGrade)"]
 
-    TM["ToonMaterials"] --> TOON["toon.gdshader<br/>toon_two_sided.gdshader"]
-    TM --> OUT["outline.gdshader<br/>(inverted hull, next_pass)"]
-    INK --> IW["ink_wash_lite.gdshader<br/>ink_wash.gdshader"]
+    LM["LookMaterials<br/>fighter, weapon, prop"] --> SURF["surface.gdshader<br/>surface_two_sided.gdshader<br/>(Godot's physically based lighting)"]
+    LG["LookGrade.environment()<br/>the night over an arena's sky"] --> ENV
 ```
 
 | Shader | Used by |
 | --- | --- |
-| `toon`, `toon_two_sided` (+ `toon_light`, `toon_surface` includes) | Fighters, weapons and props, through `ToonMaterials`. **Superseded by ADR 0001 (Oct 4):** Retires with the toon look; physically based materials replace it as the slice lands. |
-| `outline` | Inverted-hull outline on fighters, weapons and (on High) props. **Superseded by ADR 0001 (Oct 4):** Retires; the realistic look has no outlines, and dyed palettes with key and rim lights on the fighters tell the sides apart. |
-| `ink_wash_lite`, `ink_wash` (+ include) | The full-screen `InkWashPass` in each arena. **Superseded by ADR 0001 (Oct 4):** Retires; there is no ink-wash screen effect during play, and ink survives only as calligraphy in the UI. |
+| `surface`, `surface_two_sided` (+ `surface` include) | Fighters, weapons and props, through `LookMaterials`: base colour, texture, normal map, roughness and metalness, and a fighter's blood stains (`blood_stain.gdshaderinc`) |
 | `sky_moonlit`, `stone_floor`, `rock`, `cloud_sea`, `mountain_layer`, `lake_water`, `waterfall`, `mist_puff`, `lantern_glow`, `particle_glow`, `particle_flake` | The Moonlit Shrine |
 | `weapons/katana/katana_blade`, `katana_wrap` | The Katana's blade and grip |
-| `look_noise.gdshaderinc` | Shared noise texture (`LookNoise`) |
+| `look_noise.gdshaderinc` | Shared noise texture (`LookNoise`), and `look_noise3()` for world-space noise |
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** Outlines and ink-wash quality leave the presets with the toon look. High, Medium and Low scale the realistic look down from Ultra.
-
-Milestone-1 task 29: four presets, Low, Medium, High and Ultra. Ultra (`GraphicsPreset.REFERENCE_ID`, also `DEFAULT_ID`, so tests and shots render at it) is the reference: it renders at 67% of the output and upscales with FSR 2.2, with every atmosphere feature on. The others follow it in every setting but `GraphicsPreset.CUTS`, the resolution and upscaler and the atmosphere (a test holds them to it): High upscales from 59% with FSR 2.2; Medium also drops ambient occlusion and the minor decals; Low renders at 67% with FSR 1 and FXAA (until the laptop bench picks its upscaler) and drops volumetric fog (the height fog stays), the petals' lights, ambient occlusion and the minor decals. Volumetric fog and ambient occlusion come on only where the arena's environment brings them. The first launch (no preset saved) picks a preset from the graphics card's name with `GraphicsPreset.for_card()`, the first matching rule of `presets/cards.json`, and Medium for a card it doesn't know. Fighter and weapon outlines are always on. Anything a preset should be able to turn off joins one of the `look_*` node groups.
+Milestone-1 task 29: four presets, Low, Medium, High and Ultra. Ultra (`GraphicsPreset.REFERENCE_ID`, also `DEFAULT_ID`, so tests and shots render at it) is the reference: it renders at 67% of the output and upscales with FSR 2.2, with every atmosphere feature on. The others follow it in every setting but `GraphicsPreset.CUTS`, the resolution and upscaler and the atmosphere (a test holds them to it): High upscales from 59% with FSR 2.2; Medium also drops ambient occlusion and the minor decals; Low renders at 67% with FSR 1 and FXAA (until the laptop bench picks its upscaler) and drops volumetric fog the petals' lights, ambient occlusion and the minor decals. Volumetric fog and ambient occlusion come on only where the arena's environment brings them. The first launch (no preset saved) picks a preset from the graphics card's name with `GraphicsPreset.for_card()`, the first matching rule of `presets/cards.json`, and Medium for a card it doesn't know. Bloom is on everywhere (task 43). Anything a preset should be able to turn off joins one of the `look_*` node groups.
 
 ## 12. Sound and music (`game/audio`)
 
@@ -950,16 +942,14 @@ flowchart LR
 | --- | --- | --- |
 | `game/tests/` (root) | 2 | Godot version; every scene loads |
 | `game/tests/sim` | 16 | Ports of the web rule tests, fixture parity (`rng`, `moves`, `math`, port regressions), fluid combat, each weapon's strings, string continuity, training brain, soak. **Superseded by ADR 0001 (Oct 4):** Tests that pin frame data to the web demo, such as the `moves` fixture parity, will be replaced as the slice lands, and a test will keep every attack inside its timing band. |
-| `game/tests/view` | 24 | Arenas, camera, fighter rig and view, stick pose, locomotion, toon and ink look, presets, MatchHost, main flow, the `--smoke` run, tool scenes. **Superseded by ADR 0001 (Oct 4):** The toon and ink look tests will be replaced as the slice lands. |
+| `game/tests/view` | 24 | Arenas, camera, fighter rig and view, stick pose, locomotion, the realistic look (materials, grade, look test), presets, MatchHost, main flow, the `--smoke` run, tool scenes. |
 | `game/tests/audio` | 10 | Bus layout and ducking, FadedLoop, footsteps, music director and player, sound bank, sound player, headless playback of a match |
 | `game/tests/input` | 7 | Device state, InputFeed, labels, profiles, rebinding, sampling, seats and pause |
 | `game/tests/content` | 5 | Animation library, asset hygiene (no art file over 25 MB, textures scaled down, every referenced texture there), fighter scenes, palettes, weapon models. The art's 110 MB cap went in milestone-1 task 8: `check:sizes` holds the size budgets per place. |
 | `game/tests/core` | 3 | GameServices, GameSettings, MatchConfig and MatchSide |
 | `game/tests/fixtures` | data | JSON from the TypeScript (`rng`, `moves`, `math`, `port`) and a hand-made arena scene |
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** The ink-line and outline-width render checks below belong to the toon look, which ADR 0001 retires. They will be replaced as the slice lands.
-
-Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on events and state; `sim_helpers.gd` holds the shared helpers. Nothing graphical is needed. Render checks that need a real window (shaders compile, ink lines, outline width) are screenshot scenes in `game/tools/shot_scenes` run by `npm run shots`.
+Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on events and state; `sim_helpers.gd` holds the shared helpers. Nothing graphical is needed. Render checks that need a real window (shaders compile, the look beside the look test) are screenshot scenes in `game/tools/shot_scenes` run by `npm run shots`.
 
 ## 16. Tools, scripts and pipelines
 

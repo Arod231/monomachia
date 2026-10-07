@@ -32,9 +32,17 @@ const PINE: Color = Color("1e2b28")
 const IRON: Color = Color("34343c")
 const STEEL: Color = Color("b8bec8")
 
+## The realistic look's night, from the mood board (milestone-1 task 43; the
+## look test's, task 30): the blue-black the grade lifts black to, the moon's
+## cold light, the mist, and the lanterns' ember.
+const NIGHT_INK: Color = Color("0b0e16")
+const MOON_STEEL: Color = Color("8f9bb0")
+const MIST: Color = Color("4b5468")
+const LANTERN_EMBER: Color = Color("d4873a")
+
 ## Render layer bit for fighters and their weapons (layer 2). Lights whose
-## cull mask is only this layer (the arena's moon rim light) touch fighters
-## and nothing else.
+## cull mask is only this layer (the arena's moon rim light, the fighters'
+## key and rim lights) touch fighters and nothing else.
 const FIGHTER_LAYER: int = 2
 ## Render layer bit for large ground surfaces (layer 4): the courtyard floor
 ## and the rock ledge. Small warm lights (lanterns) leave this layer out of

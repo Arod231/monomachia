@@ -197,7 +197,7 @@ func _surfaces(f: FighterModel) -> Array[Array]:
 	return out
 
 
-func test_every_fighter_surface_is_toon_outlined_and_on_the_fighter_layer() -> void:
+func test_every_fighter_surface_is_physically_based_and_on_the_fighter_layer() -> void:
 	for id: StringName in FighterLook.IDS:
 		var f: FighterModel = _fighter(id)
 		for pal: int in 2:
@@ -206,9 +206,9 @@ func test_every_fighter_surface_is_toon_outlined_and_on_the_fighter_layer() -> v
 				var mi: MeshInstance3D = entry[0]
 				var m: Material = mi.get_active_material(entry[1])
 				var what: String = "%s palette %d: %s surface %d" % [id, pal, mi.name, entry[1]]
-				assert_true(ToonMaterials.is_toon(m), "%s is toon" % what)
-				assert_eq(ToonMaterials.outline_kind_of(m), ToonMaterials.OutlineKind.FIGHTER, "%s is outlined as a fighter" % what)
-				assert_true(ToonMaterials.is_outlined(m), what)
+				assert_true(LookMaterials.is_physical(m), "%s is physically based" % what)
+				assert_eq(LookMaterials.surface_of(m), LookMaterials.Surface.FIGHTER, "%s is a fighter's surface" % what)
+				assert_null(m.next_pass, "%s has no outline" % what)
 				assert_eq(mi.layers, 1 | LookPalette.FIGHTER_LAYER, "%s is on the fighter layer" % what)
 
 
@@ -218,7 +218,7 @@ func test_no_fighter_material_misses_a_texture() -> void:
 		for entry: Array in _surfaces(f):
 			var mi: MeshInstance3D = entry[0]
 			var mat: ShaderMaterial = mi.get_active_material(entry[1]) as ShaderMaterial
-			assert_not_null(mat, "%s %s surface %d has a toon material" % [id, mi.name, entry[1]])
+			assert_not_null(mat, "%s %s surface %d has its material" % [id, mi.name, entry[1]])
 			if mat == null:
 				continue
 			assert_not_null(mat.get_shader_parameter(&"albedo_texture"), "%s %s (%s) has its base colour" % [id, mi.name, mat.resource_name])
@@ -336,7 +336,8 @@ func test_the_skin_is_baked_and_matt() -> void:
 		assert_not_null(f.look.skin_albedo, "%s has a baked skin" % id)
 		var mat: ShaderMaterial = (f.skeleton.get_node(^"Head") as MeshInstance3D).get_active_material(0) as ShaderMaterial
 		assert_eq(mat.get_shader_parameter(&"albedo_texture"), f.look.skin_albedo, "%s wears the baked skin" % id)
-		assert_eq(float(mat.get_shader_parameter(&"specular_strength")), 0.0, "%s's skin has no highlight" % id)
+		assert_gte(float(mat.get_shader_parameter(&"roughness")), LookMaterials.FIGHTER_SURFACE.x, "%s's skin is matt" % id)
+		assert_eq(float(mat.get_shader_parameter(&"metallic")), 0.0, "%s's skin isn't metal" % id)
 	assert_gt((load(FighterLook.path_for(&"hunter")) as FighterLook).scars.size(), 1, "the Hunter is scarred")
 
 

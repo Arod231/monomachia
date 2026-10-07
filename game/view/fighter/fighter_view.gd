@@ -70,7 +70,7 @@ extends Node3D
 ##
 ## A body flash (hit, disarm, KO) and a blade's glow (an unblockable winding
 ## up, a charging heavy, an ultimate) are material overlays, timed on the
-## rules' frames: the toon materials underneath are left alone. A floor ring
+## rules' frames: the materials underneath are left alone. A floor ring
 ## in the side's colour and a soft shadow keep the fighter readable from any
 ## camera.
 ##

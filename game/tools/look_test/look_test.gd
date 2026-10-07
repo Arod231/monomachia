@@ -5,8 +5,9 @@ extends Node
 ## at Ultra, in the realistic look the mood board settled (moodboard/ in the
 ## asset repository), playing the pilot family's moves (the Katana's light
 ## string) as they stand, under the gameplay camera's framing (the board's
-## Camera 2). It is its own scene: the game keeps the toon look until the art
-## conversion (the owner's choice, Oct 5).
+## Camera 2). Since the art conversion (milestone-1 task 43) the game itself
+## is in this look, the Shrine, the materials, the grade and the camera
+## included; the scene stays as the look's bench and its stage for shots.
 ##
 ## What it shows (the look stories 140, 142, 154 and the Godot check's 4-6):
 ## - physically based materials on the fighter, the Katana and the Shrine
@@ -20,7 +21,7 @@ extends Node
 ##   (or Godot's TAA at full resolution, --aa=taa), subtle bloom, ambient
 ##   occlusion, fog, the grade and light grain;
 ## - the features milestone 1 needs (Godot check 6): volumetric fog, decals
-##   (a damp stain and moss), GPU particles (dust in the moonlight), temporal
+##   (a damp stain and moss), GPU particles (the Shrine's dust), temporal
 ##   anti-aliasing and FSR 2.2, spring bones (a sageo cord with a tassel on
 ##   the saya, in the fighter's crimson) and skeleton modifiers (the fighter's
 ##   rig);
@@ -43,26 +44,16 @@ extends Node
 ## renders at --res into its own target, warms up for WARMUP_FRAMES, times
 ## --frames frames, prints the summary against GATE_MS and writes the frames.
 
-## The look's colours, from the mood board.
-const NIGHT_INK := Color("#0b0e16")
-const MOON_STEEL := Color("#8f9bb0")
-const MIST := Color("#4b5468")
-const LANTERN_EMBER := Color("#d4873a")
+## The look test's own colours, from the mood board (the night's are
+## LookPalette's).
 const MOSS := Color("#2f3a2a")
 const CRIMSON := Color("#9e2b25")
 const DEEP_CRIMSON := Color("#5c1618")
 ## What the outfit's orange red is multiplied by to reach CRIMSON.
 const DYE := Color(0.86, 0.62, 0.66)
-## How much of the moon's red wash the backdrop keeps (quiet_backdrop()).
-const MOON_WASH: float = 0.35
-
-## The gameplay camera's framing: the board's Camera 2, For Honor's.
-const CAMERA_BACK: float = 3.4
-const CAMERA_SIDE: float = 1.0
-const CAMERA_CLOSE_SIDE: float = 0.6
+## The gameplay camera's base distance, at which Camera 2 (CameraRig's own
+## framing) is judged.
 const CAMERA_CLOSE_FROM: float = 3.5
-const CAMERA_HEIGHT: float = 1.75
-const CAMERA_FOV: float = 55.0
 
 ## The look test's gate (Godot check 5), and the bench's run.
 const GATE_MS: float = 14.0
@@ -111,8 +102,6 @@ var out_path: String = ""
 var stage: Node3D
 var arena: Node3D
 var environment: Environment
-## The arena's own environment, which the look's is built over.
-var _arena_environment: Environment
 var world: World
 var fighter: FighterView
 var camera: Camera3D
@@ -121,7 +110,6 @@ var key_light: SpotLight3D
 var rim_light: SpotLight3D
 var cord: Skeleton3D
 var cord_sim: SkeletonModifier3D
-var materials: LookMaterials = LookMaterials.new()
 ## The match's effects layer: the air smears and the staged contacts'
 ## sparks, puffs and light (milestone-1 task 37).
 var effects: CombatEffects
@@ -192,8 +180,8 @@ func read_args(args: PackedStringArray) -> String:
 	return ""
 
 
-## Builds the stage: the Shrine in the realistic look, the fighter in its
-## corner, the lights, the camera, the cord, decals, dust and grain.
+## Builds the stage: the Shrine (in the realistic look), the fighter in its
+## corner, the lights, the camera, the cord, decals and grain.
 func build() -> void:
 	stage = Node3D.new()
 	stage.name = "Stage"
@@ -215,21 +203,18 @@ func build() -> void:
 		add_child(stage)
 	arena = (load("res://arenas/moonlit_shrine/moonlit_shrine.tscn") as PackedScene).instantiate() as Node3D
 	stage.add_child(arena)
-	_realistic_arena()
+	environment = (arena.get_node(^"WorldEnvironment") as WorldEnvironment).environment
 	_place()
 	_new_world()
 	fighter = FighterView.new()
 	fighter.name = "Fighter"
 	stage.add_child(fighter)
 	fighter.setup(&"hunter", 0, &"katana", 0)
-	materials.convert_tree(fighter)
 	_dye(fighter)
 	_build_cord()
 	_build_lights()
 	_build_camera()
 	_build_decals()
-	_build_dust()
-	_build_mist()
 	_build_grain()
 	effects = CombatEffects.new()
 	stage.add_child(effects)
@@ -251,123 +236,6 @@ func _process(delta: float) -> void:
 	_show(delta)
 	if bench:
 		_bench_frame()
-
-
-# ------------------------------------------------------------------ the Shrine
-
-## The Shrine in the realistic look: its toon materials physically based, no
-## ink-wash pass, the look's environment, and its lights into the fog.
-func _realistic_arena() -> void:
-	for node: Node in arena.find_children("*", "InkWashPass", true, false):
-		node.queue_free()
-		node.get_parent().remove_child(node)
-	materials.convert_tree(arena)
-	quiet_backdrop(arena)
-	_arena_environment = (arena.get_node(^"WorldEnvironment") as WorldEnvironment).environment
-	var key: DirectionalLight3D = arena.get_node(^"Lights/MoonKey") as DirectionalLight3D
-	key.light_color = MOON_STEEL.lightened(0.25)
-	key.light_energy = 0.9
-	key.light_volumetric_fog_energy = 1.2
-	# the red rim lights fighters only, but fog takes every light: none in it
-	(arena.get_node(^"Lights/MoonRim") as Light3D).light_volumetric_fog_energy = 0.0
-	for light: Node in arena.get_node(^"Platform/LanternLights").get_children():
-		var lantern: OmniLight3D = light as OmniLight3D
-		lantern.light_color = LANTERN_EMBER
-		lantern.light_volumetric_fog_energy = 2.0
-		lantern.shadow_enabled = true
-
-
-## The mountains' and the cloud sea's red wash toward the moon, cut to
-## MOON_WASH of it, so the blood moon stays the accent and the distance falls
-## back into the night's mist (the board's "colour only as accents").
-static func quiet_backdrop(root: Node) -> void:
-	var done: Dictionary[Material, Material] = {}
-	for g: Node in root.find_children("*", "GeometryInstance3D", true, false):
-		var gi: GeometryInstance3D = g as GeometryInstance3D
-		var m: ShaderMaterial = gi.material_override as ShaderMaterial
-		if m == null or m.shader == null or m.get_shader_parameter(&"moon_tint") == null:
-			continue
-		if not done.has(m):
-			var q := m.duplicate() as ShaderMaterial
-			q.set_shader_parameter(&"moon_tint", (m.get_shader_parameter(&"moon_tint") as Color) * MOON_WASH)
-			done[m] = q
-		gi.material_override = done[m]
-
-
-## The look's environment over the arena's sky: blue-black ambient, mist in
-## volumetric fog and depth fog, ambient occlusion, subtle bloom, a filmic
-## tone map and the grade (the shadows lifted toward NIGHT_INK, colour
-## pulled back but for the accents).
-static func realistic_environment(base: Environment) -> Environment:
-	var e := Environment.new()
-	e.background_mode = Environment.BG_SKY
-	e.sky = night_sky(base.sky)
-	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	e.ambient_light_energy = 0.16
-	e.ambient_light_sky_contribution = 0.35
-	e.ambient_light_color = MIST
-	e.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	e.tonemap_mode = Environment.TONE_MAPPER_AGX
-	e.tonemap_exposure = 0.82
-	e.ssao_enabled = true
-	e.ssao_radius = 1.2
-	e.ssao_intensity = 1.6
-	e.ssao_power = 1.4
-	e.volumetric_fog_enabled = true
-	e.volumetric_fog_density = 0.03
-	e.volumetric_fog_albedo = MIST
-	e.volumetric_fog_emission = NIGHT_INK
-	e.volumetric_fog_emission_energy = 0.6
-	e.volumetric_fog_anisotropy = 0.55
-	e.volumetric_fog_length = 48.0
-	e.volumetric_fog_sky_affect = 0.35
-	e.volumetric_fog_ambient_inject = 0.25
-	e.fog_enabled = true
-	e.fog_light_color = MIST
-	e.fog_density = 0.0035
-	e.fog_sky_affect = 0.5
-	e.fog_aerial_perspective = 0.35
-	e.glow_enabled = true
-	e.glow_intensity = 0.45
-	e.glow_strength = 0.9
-	e.glow_bloom = 0.03
-	e.glow_hdr_threshold = 1.1
-	e.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
-	e.adjustment_enabled = true
-	e.adjustment_contrast = 1.18
-	e.adjustment_saturation = 0.72
-	e.adjustment_color_correction = grade_curve()
-	return e
-
-
-## The arena's sky, quieter: a copy with its red haze and the clouds' red
-## edges pulled back, so the blood moon is the one strong colour in it.
-static func night_sky(sky: Sky) -> Sky:
-	if sky == null or not sky.sky_material is ShaderMaterial:
-		return sky
-	var out := sky.duplicate(true) as Sky
-	var m := out.sky_material as ShaderMaterial
-	m.set_shader_parameter(&"haze_strength", 0.12)
-	m.set_shader_parameter(&"cloud_edge_color", Color(0.16, 0.07, 0.07))
-	m.set_shader_parameter(&"horizon_color", MIST.darkened(0.45))
-	m.set_shader_parameter(&"below_color", MIST.darkened(0.55))
-	return out
-
-
-## The grade: each channel through a curve that lifts black to NIGHT_INK,
-## cools the mid tones toward moonlit steel and warms the highlights a
-## touch (a 1D colour correction).
-static func grade_curve() -> GradientTexture1D:
-	var g := Gradient.new()
-	g.set_offset(0, 0.0)
-	g.set_color(0, NIGHT_INK)
-	g.set_offset(1, 1.0)
-	g.set_color(1, Color(1.0, 0.97, 0.92))
-	g.add_point(0.45, Color(0.42, 0.45, 0.5))
-	var t := GradientTexture1D.new()
-	t.gradient = g
-	t.width = 256
-	return t
 
 
 # ------------------------------------------------------------------ the fighter
@@ -490,18 +358,20 @@ func _show(delta: float) -> void:
 
 ## Pulls the fighter's cloth toward the board's crimson (#9e2b25): the
 ## outfit's baked palette is an orange red; a tint on its physically based
-## materials, in the look test only (the art conversion re-dyes it).
+## materials, in the look test only (task 45 re-dyes the Hunter).
 func _dye(root: Node) -> void:
 	for g: Node in root.find_children("*", "MeshInstance3D", true, false):
 		var mi: MeshInstance3D = g as MeshInstance3D
 		if mi.mesh == null:
 			continue
 		for i: int in mi.mesh.get_surface_count():
-			var m: Material = mi.get_surface_override_material(i)
-			var sm: StandardMaterial3D = m as StandardMaterial3D
-			if sm != null and sm.albedo_texture != null and sm.albedo_texture.resource_path.contains("outfit"):
-				var dyed := sm.duplicate() as StandardMaterial3D
-				dyed.albedo_color = sm.albedo_color * DYE
+			var sm: ShaderMaterial = mi.get_surface_override_material(i) as ShaderMaterial
+			if sm == null:
+				continue
+			var tex: Texture2D = sm.get_shader_parameter(&"albedo_texture") as Texture2D
+			if tex != null and tex.resource_path.contains("outfit"):
+				var dyed := sm.duplicate() as ShaderMaterial
+				dyed.set_shader_parameter(&"base_color", (sm.get_shader_parameter(&"base_color") as Color) * DYE)
 				mi.set_surface_override_material(i, dyed)
 
 
@@ -513,7 +383,7 @@ func _dye(root: Node) -> void:
 func _build_lights() -> void:
 	key_light = SpotLight3D.new()
 	key_light.name = "FighterKey"
-	key_light.light_color = MOON_STEEL.lightened(0.3)
+	key_light.light_color = LookPalette.MOON_STEEL.lightened(0.3)
 	key_light.light_energy = 6.0
 	key_light.spot_range = 7.0
 	key_light.spot_angle = 26.0
@@ -537,42 +407,24 @@ func _build_lights() -> void:
 func _build_camera() -> void:
 	var def: ArenaDef = arena.get(&"def") as ArenaDef
 	if view_kind == View.GAMEPLAY:
-		rig_camera = camera_2()
-		rig_camera.apply_arena(def.camera_max_radius, def.camera_far)
+		rig_camera = CameraRig.new()
+		rig_camera.apply_arena(def.camera_max_radius, def.camera_far, def.camera_rim_height, def.camera_rim_from(),
+			def.camera_rim_full())
 		camera = rig_camera
 	else:
 		camera = Camera3D.new()
-		camera.fov = 40.0 if view_kind == View.CLOSE else CAMERA_FOV
+		camera.fov = 40.0 if view_kind == View.CLOSE else CameraRig.new().base_fov
 		camera.far = def.camera_far
 	camera.name = "Camera"
 	stage.add_child(camera)
 	camera.current = true
 
 
-## The match camera framed as the mood board's Camera 2: about 3.4 m back,
-## 1.0 m to the right, swinging out 0.6 m for each metre closer than 3.5 m,
-## 1.75 m up, a 55° field of view.
-static func camera_2() -> CameraRig:
-	var c := CameraRig.new()
-	c.follow_back = CAMERA_BACK
-	c.follow_side = CAMERA_SIDE
-	c.follow_close_side = CAMERA_CLOSE_SIDE
-	c.follow_close_from = CAMERA_CLOSE_FROM
-	c.follow_far_from = CAMERA_CLOSE_FROM
-	c.follow_height = CAMERA_HEIGHT
-	c.base_fov = CAMERA_FOV
-	return c
-
-
-## Ultra (or --preset=) on the stage's viewport and tree, then the look's
-## environment, which the preset's toon-look settings (no glow) would undo;
-## --aa=taa trades FSR 2.2 for Godot's TAA at full resolution, --aa=off for
-## neither.
+## Ultra (or --preset=) on the stage's viewport and tree; --aa=taa trades
+## FSR 2.2 for Godot's TAA at full resolution, --aa=off for neither.
 func _apply_preset() -> void:
 	var vp: Viewport = _target if _target != null else get_viewport()
 	GraphicsApplier.apply(preset, stage, vp)
-	environment = realistic_environment(_arena_environment)
-	(arena.get_node(^"WorldEnvironment") as WorldEnvironment).environment = environment
 	match aa:
 		&"taa":
 			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
@@ -584,7 +436,7 @@ func _apply_preset() -> void:
 			vp.use_taa = false
 
 
-# ------------------------------------------------------------------ the cord, decals, dust, grain
+# ------------------------------------------------------------------ the cord, decals, grain
 
 ## The sageo: a cord of CORD_SEGMENTS bones hanging from the saya's mouth,
 ## with a tassel, swung by a SpringBoneSimulator3D (spring bones, Godot check
@@ -684,94 +536,10 @@ static func _blot(color: Color, ragged: bool = false) -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
-## Dust in the moonlight around the fighter: GPU particles (Godot check 6),
-## drifting slowly, lit, so the fog's light catches them.
-func _build_dust() -> void:
-	var dust := GPUParticles3D.new()
-	dust.name = "Dust"
-	dust.amount = 140
-	dust.lifetime = 9.0
-	dust.preprocess = 9.0
-	dust.fixed_fps = 30
-	dust.randomness = 0.6
-	dust.visibility_aabb = AABB(Vector3(-5, -1, -5), Vector3(10, 5, 10))
-	var pm := ParticleProcessMaterial.new()
-	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(3.0, 1.2, 3.0)
-	pm.gravity = Vector3(0.0, -0.015, 0.0)
-	pm.initial_velocity_min = 0.02
-	pm.initial_velocity_max = 0.08
-	pm.direction = Vector3(1.0, 0.2, 0.3)
-	pm.spread = 180.0
-	pm.turbulence_enabled = true
-	pm.turbulence_noise_strength = 0.4
-	pm.turbulence_noise_speed_random = 0.3
-	pm.scale_min = 0.5
-	pm.scale_max = 1.3
-	dust.process_material = pm
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.008, 0.008)
-	var m := StandardMaterial3D.new()
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	m.albedo_color = Color(0.75, 0.78, 0.85, 0.35)
-	m.albedo_texture = _mote()
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.emission_enabled = true
-	m.emission = MOON_STEEL
-	m.emission_energy_multiplier = 0.12
-	quad.material = m
-	dust.draw_pass_1 = quad
-	dust.position = _spot + _facing * 1.5 + Vector3(0.0, 1.5, 0.0)
-	dust.add_to_group(GraphicsApplier.GROUP_PARTICLES)
-	stage.add_child(dust)
-
-
-## Ground mist: a fog volume a metre and a half deep over the corner, thicker
-## low down, for the lanterns and the moon to light (volumetric fog).
-func _build_mist() -> void:
-	var v := FogVolume.new()
-	v.name = "GroundMist"
-	v.shape = RenderingServer.FOG_VOLUME_SHAPE_BOX
-	v.size = Vector3(26.0, 1.6, 26.0)
-	v.position = _spot + _facing * 2.0 + Vector3(0.0, 0.5, 0.0)
-	var m := FogMaterial.new()
-	m.density = 0.18
-	m.albedo = MIST.lightened(0.15)
-	m.height_falloff = 1.6
-	m.edge_fade = 0.6
-	v.material = m
-	stage.add_child(v)
-
-
-## A soft round mote.
-static func _mote() -> Texture2D:
-	var g := Gradient.new()
-	g.set_color(0, Color(1, 1, 1, 1))
-	g.set_color(1, Color(1, 1, 1, 0))
-	var t := GradientTexture2D.new()
-	t.gradient = g
-	t.fill = GradientTexture2D.FILL_RADIAL
-	t.fill_from = Vector2(0.5, 0.5)
-	t.fill_to = Vector2(1.0, 0.5)
-	t.width = 32
-	t.height = 32
-	return t
-
-
 ## Light grain over the frame: a faint, moving noise, drawn over the stage's
 ## viewport.
 func _build_grain() -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "Grain"
-	var rect := ColorRect.new()
-	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var shader := Shader.new()
-	shader.code = "shader_type canvas_item;\nuniform float amount = 0.035;\nvoid fragment() {\n\tfloat n = fract(sin(dot(FRAGCOORD.xy + vec2(TIME * 61.0, TIME * 17.0), vec2(12.9898, 78.233))) * 43758.5453);\n\tCOLOR = vec4(vec3(n), amount);\n}\n"
-	var mat := ShaderMaterial.new()
-	mat.shader = shader
-	rect.material = mat
-	layer.add_child(rect)
+	var layer := FilmGrain.new()
 	if _target != null:
 		_target.add_child(layer)
 	else:

@@ -74,8 +74,8 @@ func graphics_preset() -> GraphicsPreset:
 ## the split screen's halves, GraphicsApplier.VIEWPORTS_GROUP) and
 ## every scene in the tree, after the Settings screen changes it. What a scene
 ## builds from the preset when it loads (the backdrop's detail, particle
-## counts) follows at the next load; lights, shadows, fog, glow, outlines,
-## post quality and render scale change at once.
+## counts) follows at the next load; lights, shadows, fog, glow and render
+## scale change at once.
 func apply_graphics() -> void:
 	GraphicsApplier.apply(graphics_preset(), get_tree().root, get_viewport())
 	GraphicsApplier.apply_to_group(graphics_preset(), get_tree())

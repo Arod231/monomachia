@@ -122,6 +122,9 @@ var blood: BloodEffects
 ## The shot director (milestone-1 task 97): chooses and plays the cinematic
 ## shots.
 var shots: ShotDirector = ShotDirector.new()
+## The realistic look's light film grain over the match (milestone-1 task
+## 43), over both halves of a split screen and under the HUD.
+var grain: FilmGrain
 ## The settings whose Reduce flashes switch the view follows (use_settings();
 ## the game's by default).
 var settings: GameSettings
@@ -157,6 +160,9 @@ func _ready() -> void:
 		blood = BloodEffects.new()
 		add_child(blood)
 		blood.host = host
+	if grain == null:
+		grain = FilmGrain.new()
+		add_child(grain)
 	if settings == null:
 		use_settings(GameServices.settings)
 	if host == null and has_node(host_path):
@@ -377,14 +383,22 @@ func set_arena(node: Node3D, id: StringName) -> void:
 	arena_id = id
 	var data: Dictionary = arena_camera_data(arena)
 	for cam: CameraRig in cameras:
-		cam.apply_arena(data["max_radius"], data["far"])
+		cam.apply_arena(data["max_radius"], data["far"], data["rim_height"], data["rim_from"], data["rim_full"])
 
 
-## { "max_radius", "far" } from an arena root's `def`, 0 for what it lacks.
+## { "max_radius", "far", "rim_height", "rim_from", "rim_full" } from an arena
+## root's `def`, 0 for what it lacks.
 static func arena_camera_data(node: Node) -> Dictionary:
-	var out: Dictionary = {"max_radius": 0.0, "far": 0.0}
+	var out: Dictionary = {"max_radius": 0.0, "far": 0.0, "rim_height": 0.0, "rim_from": 0.0, "rim_full": 0.0}
 	var def: Variant = node.get("def")
-	if def is Object:
+	if def is ArenaDef:
+		var a := def as ArenaDef
+		out["max_radius"] = a.camera_max_radius
+		out["far"] = a.camera_far
+		out["rim_height"] = a.camera_rim_height
+		out["rim_from"] = a.camera_rim_from()
+		out["rim_full"] = a.camera_rim_full()
+	elif def is Object:
 		var r: Variant = (def as Object).get("camera_max_radius")
 		var f: Variant = (def as Object).get("camera_far")
 		if r is float or r is int:
@@ -444,7 +458,8 @@ func _use_split(on: bool) -> void:
 		second.name = "CameraRig2"
 		camera.reparent(split.viewports[0], false)
 		split.viewports[1].add_child(second)
-		second.apply_arena(camera.arena_max_radius, camera.arena_far)
+		second.apply_arena(camera.arena_max_radius, camera.arena_far, camera.arena_rim_height, camera.arena_rim_from,
+			camera.arena_rim_full)
 		cameras = [camera, second]
 	else:
 		camera.reparent(self, false)

@@ -15,25 +15,25 @@ const LANTERN_FIRE := Vector3(0.0, 2.12, 0.0)
 
 
 ## Materials for every kit key the platform, its props and the backdrop's
-## buildings use. outlined = false gives far scenery's, which never draw an
-## outline.
-static func materials(outlined: bool = true) -> Dictionary[StringName, Material]:
+## buildings use: physically based (LookMaterials), the lanterns' glow its
+## own.
+static func materials() -> Dictionary[StringName, Material]:
 	var glow := ShaderMaterial.new()
 	glow.shader = LANTERN_GLOW
 	return {
-		&"landing": ToonMaterials.prop(LookPalette.STONE_LIGHT, 0.4, outlined),
-		&"parapet": ToonMaterials.prop(LookPalette.STONE, 0.35, outlined),
-		&"stone": ToonMaterials.prop(LookPalette.STONE_LIGHT, 0.4, outlined),
-		&"stone_dark": ToonMaterials.prop(LookPalette.STONE_DARK, 0.3, outlined),
-		&"pebbles": ToonMaterials.prop(LookPalette.STONE_DARK, 0.3, false),
-		&"lacquer": ToonMaterials.prop(LookPalette.LACQUER, 0.3, outlined),
-		&"black_lacquer": ToonMaterials.prop(LookPalette.INK_SOFT, 0.0, outlined),
-		&"rope": ToonMaterials.prop(LookPalette.ROPE, 0.25, outlined),
-		&"paper": ToonMaterials.prop(LookPalette.PAPER, 0.0, false),
-		&"bark": ToonMaterials.prop(LookPalette.WOOD_DARK, 0.2, outlined),
-		&"pine": ToonMaterials.prop(LookPalette.PINE, 0.35, outlined),
-		&"wood": ToonMaterials.prop(LookPalette.WOOD_DARK.lightened(0.05), 0.2, outlined),
-		&"roof": ToonMaterials.prop(LookPalette.INK_SOFT.lightened(0.04), 0.1, outlined),
+		&"landing": LookMaterials.prop(LookPalette.STONE_LIGHT),
+		&"parapet": LookMaterials.prop(LookPalette.STONE),
+		&"stone": LookMaterials.prop(LookPalette.STONE_LIGHT),
+		&"stone_dark": LookMaterials.prop(LookPalette.STONE_DARK),
+		&"pebbles": LookMaterials.prop(LookPalette.STONE_DARK),
+		&"lacquer": LookMaterials.prop(LookPalette.LACQUER),
+		&"black_lacquer": LookMaterials.prop(LookPalette.INK_SOFT),
+		&"rope": LookMaterials.prop(LookPalette.ROPE),
+		&"paper": LookMaterials.prop(LookPalette.PAPER),
+		&"bark": LookMaterials.prop(LookPalette.WOOD_DARK),
+		&"pine": LookMaterials.prop(LookPalette.PINE),
+		&"wood": LookMaterials.prop(LookPalette.WOOD_DARK.lightened(0.05)),
+		&"roof": LookMaterials.prop(LookPalette.INK_SOFT.lightened(0.04)),
 		&"glow": glow,
 		&"window": distant_glow_material(),
 	}

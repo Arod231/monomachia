@@ -118,7 +118,7 @@ const PROP_KINDS: Array[StringName] = [&"lantern", &"torii", &"pillar", &"pine",
 @export_group("Art overrides")
 ## Bought art per prop kind; a kind left out is built procedurally. A
 ## bought pagoda or temple hall is modelled 1 m wide and scaled to its cliff;
-## it stands far off, so build it without outlines.
+## it stands far off.
 @export var prop_scenes: Dictionary[StringName, PackedScene] = {}
 
 

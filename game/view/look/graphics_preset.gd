@@ -20,9 +20,9 @@ extends Resource
 ## The first launch picks a preset from the graphics card's name (for_card(),
 ## the rules in CARDS); a card no rule names gets UNKNOWN_CARD_ID.
 ##
-## The toon look's costs quoted below were measured at 1080p on the target
-## laptop (Ryzen 7 4700U with Radeon Vega graphics) while the arena was first
-## built, with capsule stand-ins.
+## Costs quoted below were measured at 1080p on the target laptop (Ryzen 7
+## 4700U with Radeon Vega graphics) while the arena was first built, in the
+## toon look, with capsule stand-ins.
 
 const IDS: Array[StringName] = [&"low", &"medium", &"high", &"ultra"]
 ## The preset the look is judged at.
@@ -56,8 +56,8 @@ const CUTS: Array[StringName] = [
 
 @export_group("Anti-aliasing and resolution")
 @export var msaa_3d: Viewport.MSAA = Viewport.MSAA_DISABLED
-## FXAA rather than MSAA: MSAA 2x cost about 5 ms per frame, and FXAA softens
-## the ink lines pleasantly. Off under FSR 2.2, which anti-aliases itself.
+## FXAA rather than MSAA: MSAA 2x cost about 5 ms per frame. Off under FSR
+## 2.2, which anti-aliases itself.
 @export var screen_space_aa: Viewport.ScreenSpaceAA = Viewport.SCREEN_SPACE_AA_FXAA
 ## 3D render scale: the share of the output's width and height the 3D view
 ## renders at (1.0 = native).
@@ -65,25 +65,12 @@ const CUTS: Array[StringName] = [
 ## How the 3D view is scaled up to the output: bilinear, FSR 1 or FSR 2.2.
 @export var scaling_3d_mode: Viewport.Scaling3DMode = Viewport.SCALING_3D_MODE_BILINEAR
 
-@export_group("Outlines")
-@export var outline_fighters: bool = true
-@export var outline_weapons: bool = true
-@export var outline_props: bool = true
-## Multiplies every outline's width (ToonMaterials.OUTLINE_WIDTH).
-@export_range(0.5, 2.0) var outline_width_scale: float = 1.0
-
-@export_group("Post and atmosphere")
-@export var post_quality: InkWashPass.Quality = InkWashPass.Quality.FULL
-## Ink lines at normal breaks too (creases inside silhouettes). Off on all
-## three presets: the normal buffer it needs cost about 3 ms per frame, and
-## the prop outlines on High draw the main creases instead.
-@export var ink_normal_lines: bool = false
+@export_group("Fog and bloom")
 @export var fog_enabled: bool = true
 @export var height_fog: bool = true
-## The Environment's glow (bloom). Off on all three presets: even on its
-## low-resolution levels it cost about 2 ms per frame. Lantern halos and the
-## moon's sky haze carry the glow instead; turn it on for faster GPUs.
-@export var glow_enabled: bool = false
+## The Environment's glow: the realistic look's subtle bloom (milestone-1
+## task 43), on every preset as the look test settled it.
+@export var glow_enabled: bool = true
 
 @export_group("Atmosphere")
 ## The arena's volumetric fog, where its environment has it; off, its height
@@ -117,18 +104,6 @@ static func load_id(preset_id: StringName) -> GraphicsPreset:
 	if not IDS.has(preset_id):
 		return null
 	return load("res://view/look/presets/%s.tres" % preset_id) as GraphicsPreset
-
-
-## Whether this preset outlines materials of the given kind (never NONE).
-func outlines_on(kind: ToonMaterials.OutlineKind) -> bool:
-	match kind:
-		ToonMaterials.OutlineKind.FIGHTER:
-			return outline_fighters
-		ToonMaterials.OutlineKind.WEAPON:
-			return outline_weapons
-		ToonMaterials.OutlineKind.PROP:
-			return outline_props
-	return false
 
 
 static func default_preset() -> GraphicsPreset:

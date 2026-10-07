@@ -110,49 +110,61 @@ static func _half_widths(w: Node3D, y: float) -> Vector2:
 	return half
 
 
-## Every surface of a weapon instance is toon, outlined as a weapon and on
-## the fighters' render layer, so the arena's rim light finds it.
-func _assert_toon(w: Node3D, id: StringName) -> void:
+## Every surface of a weapon instance is physically based, a weapon's, with
+## no outline, and on the fighters' render layer, so the fighters' lights
+## find it.
+func _assert_physical(w: Node3D, id: StringName) -> void:
 	for node: Node in w.find_children("*", "MeshInstance3D", true, false):
 		var mi: MeshInstance3D = node
 		assert_eq(mi.layers & LookPalette.FIGHTER_LAYER, LookPalette.FIGHTER_LAYER, "%s %s is on the fighter layer" % [id, mi.name])
 		for s: int in mi.mesh.get_surface_count():
 			var m: Material = mi.get_active_material(s)
 			var what: String = "%s %s" % [id, mi.mesh.surface_get_name(s)]
-			assert_true(ToonMaterials.is_toon(m), "%s is toon" % what)
-			assert_eq(ToonMaterials.outline_kind_of(m), ToonMaterials.OutlineKind.WEAPON, "%s is outlined as a weapon" % what)
-			assert_true(ToonMaterials.is_outlined(m), what)
+			assert_true(LookMaterials.is_physical(m), "%s is physically based" % what)
+			assert_eq(LookMaterials.surface_of(m), LookMaterials.Surface.WEAPON, "%s is a weapon's surface" % what)
+			assert_null(m.next_pass, "%s has no outline" % what)
 
 
-func test_an_instanced_weapon_is_in_the_toon_look() -> void:
+func test_an_instanced_weapon_is_in_the_realistic_look() -> void:
 	for id: StringName in WeaponLook.IDS:
 		var w: Node3D = WeaponLook.load_id(id).instantiate()
 		add_child_autofree(w)
-		_assert_toon(w, id)
+		_assert_physical(w, id)
 		var mi: MeshInstance3D = w.get_node(^"Mesh")
 		for s: int in mi.mesh.get_surface_count():
 			var source: Material = mi.mesh.surface_get_material(s)
 			var m: ShaderMaterial = mi.get_active_material(s)
 			if source is BaseMaterial3D:
 				assert_eq(m.get_shader_parameter(&"base_color"), (source as BaseMaterial3D).albedo_color, "%s %s keeps its colour" % [id, source.resource_name])
-				var shines: bool = float(m.get_shader_parameter(&"specular_strength")) > 0.0
-				assert_eq(shines, (source as BaseMaterial3D).metallic > 0.0, "%s %s: a highlight on metal only" % [id, source.resource_name])
+				var metal: bool = float(m.get_shader_parameter(&"metallic")) > 0.0
+				assert_eq(metal, (source as BaseMaterial3D).metallic > 0.0, "%s %s: metal only where the model's is" % [id, source.resource_name])
 			else:
 				assert_eq(m.shader, (source as ShaderMaterial).shader, "%s %s keeps its own shader" % [id, source.resource_name])
 
 
-func test_the_katana_keeps_its_temper_line_and_its_wrap_in_the_toon_look() -> void:
+func test_the_katana_keeps_its_temper_line_and_its_wrap_in_the_realistic_look() -> void:
 	var w: Node3D = WeaponLook.load_id(&"katana").instantiate()
 	add_child_autofree(w)
 	var mi: MeshInstance3D = w.get_node(^"Mesh")
 	var blade: ShaderMaterial = mi.get_active_material(0)
 	var wrap: ShaderMaterial = mi.get_active_material(4)
 	for m: ShaderMaterial in [blade, wrap]:
-		assert_string_contains(m.shader.code, "toon_light.gdshaderinc", "%s is toon-lit" % m.resource_name)
+		assert_false(m.shader.code.contains("void light()"), "%s is lit physically" % m.resource_name)
 	assert_eq(blade.resource_name, "blade")
 	assert_eq(wrap.resource_name, "wrap")
-	assert_gt(float(blade.get_shader_parameter(&"specular_strength")), 0.0, "the blade shines")
-	assert_eq(float(wrap.get_shader_parameter(&"specular_strength")), 0.0, "the silk wrap doesn't")
+	assert_lt(_shading(blade, &"roughness"), 0.3, "the blade is polished steel")
+	assert_eq(_shading(blade, &"metallic"), 1.0, "and metal")
+	assert_gt(_shading(wrap, &"roughness"), 0.5, "the silk wrap is rough")
+
+
+## A float uniform of m: the material's value, or the default its shader's
+## code gives it (-1 when it has none).
+static func _shading(m: ShaderMaterial, param: StringName) -> float:
+	var v: Variant = m.get_shader_parameter(param)
+	if v != null:
+		return float(v)
+	var found: RegExMatch = RegEx.create_from_string("uniform\\s+float\\s+%s\\b[^=;]*=\\s*([0-9.]+)" % param).search(m.shader.code)
+	return float(found.get_string(1)) if found != null else -1.0
 
 
 ## The bounds of every mesh of a weapon instance, in its own space.

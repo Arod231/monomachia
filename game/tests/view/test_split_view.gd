@@ -105,6 +105,10 @@ func test_the_halves_sit_side_by_side_under_the_hud() -> void:
 	assert_true(view.split.viewports[0].size.x > 0)
 	var hud: MatchHud = host.get_node("Hud")
 	assert_lt(view.split.layer, hud.layer, "the HUD draws over the halves")
+	assert_gt(view.grain.layer, view.split.layer, "the film grain over both halves (task 43)")
+	assert_lt(view.grain.layer, hud.layer, "and under the HUD")
+	for cam: CameraRig in view.cameras:
+		assert_true(LookGrade.is_graded(cam.get_world_3d().environment), "%s sees the grade" % cam.name)
 
 
 func test_the_other_modes_keep_one_view() -> void:

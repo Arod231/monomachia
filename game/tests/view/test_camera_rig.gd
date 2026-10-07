@@ -16,16 +16,19 @@ func _dir(p: Vector3, o: Vector3) -> Vector3:
 	return Vector3(o.x - p.x, 0.0, o.z - p.z).normalized()
 
 
+## The mood board's Camera 2, For Honor's framing, settled in the look test
+## (milestone-1 spec P20; the game's since task 43).
 func test_the_spec_numbers_are_the_defaults() -> void:
-	assert_eq(rig.follow_back, 4.6)
-	assert_eq(rig.follow_side, 1.35)
-	assert_between(rig.follow_height, 1.9, 2.0)
-	assert_eq(rig.base_fov, 60.0)
-	assert_eq(rig.fov, 60.0)
+	assert_eq(rig.follow_back, 3.4)
+	assert_eq(rig.follow_side, 1.1, "Camera 2's 1.0 m nudged out (Oct 7)")
+	assert_eq(rig.follow_close_side, 0.6)
+	assert_eq(rig.follow_height, 1.75)
+	assert_eq(rig.base_fov, 55.0)
+	assert_eq(rig.fov, 55.0)
 
 
 func test_follow_sits_behind_the_player_on_the_line_to_the_opponent() -> void:
-	# 4.5 m apart: past the close swing, so the plain 1.35 m to the side
+	# 4.5 m apart: past the close swing, so the plain 1.1 m to the side
 	var p: Vector3 = Vector3(1.0, 0.0, -2.0)
 	var o: Vector3 = Vector3(3.0, 0.0, 2.0)
 	var d: Vector3 = _dir(p, o)
@@ -36,8 +39,8 @@ func test_follow_sits_behind_the_player_on_the_line_to_the_opponent() -> void:
 	var back: float = rig.follow_back + maxf(0.0, sep - rig.follow_far_from) * rig.follow_back_per_metre
 	assert_almost_eq(rel.dot(d), -back, 1e-5, "behind the player along the line")
 	assert_almost_eq(rel.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "to the player's right")
-	assert_gt(pos.y, 1.85)
-	assert_lt(pos.y, 2.3)
+	assert_gt(pos.y, 1.7)
+	assert_lt(pos.y, 2.1)
 
 
 func test_the_right_offset_is_the_fighters_own_right() -> void:
@@ -74,10 +77,10 @@ func test_up_close_it_swings_out_so_the_opponent_shows_past_the_player() -> void
 	var at_range: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, 3.5), d)["pos"]
 	var up_close: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, 1.3), d)["pos"]
 	assert_eq(rig.follow_close_from, 3.5, "the swing starts at 3.5 m (spec, Camera)")
-	assert_almost_eq(at_range.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "the spec's 1.35 m from 3.5 m out")
+	assert_almost_eq(at_range.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "1.1 m from 3.5 m out")
 	assert_gt(up_close.dot(CameraRig.right_of(d)), rig.follow_side + 1.0, "further right up close")
 	var closest: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, SimConst.FIGHTER_RADIUS * 2.0), d)["pos"]
-	assert_lt(closest.dot(CameraRig.right_of(d)), 3.6, "about 3.5 m at the closest")
+	assert_lt(closest.dot(CameraRig.right_of(d)), 2.8, "about 2.6 m at the closest")
 
 
 ## Seen from the follow camera, the angle between the player and the opponent
@@ -98,9 +101,9 @@ func test_the_player_never_hides_the_opponent_from_duelling_range_in() -> void:
 
 func test_it_stays_inside_the_arena() -> void:
 	var limit: float = SimConst.ARENA_RADIUS + rig.arena_margin
-	# the player with their back to the wall
-	var p: Vector3 = Vector3(0.0, 0.0, SimConst.ARENA_RADIUS - 0.5)
-	var o: Vector3 = Vector3(0.0, 0.0, SimConst.ARENA_RADIUS - 3.5)
+	# the player with their back to the wall, the opponent far off
+	var p: Vector3 = Vector3(0.0, 0.0, SimConst.ARENA_RADIUS - 0.2)
+	var o: Vector3 = Vector3(0.0, 0.0, SimConst.ARENA_RADIUS - 10.2)
 	rig.mode = CameraRig.Mode.FOLLOW
 	rig.snap(p, o)
 	assert_lte(Vector2(rig.rig_position.x, rig.rig_position.z).length(), limit + 1e-4)
@@ -190,10 +193,10 @@ func test_fov_kicks_narrow_and_recover() -> void:
 	rig.snap(Vector3(0.0, 0.0, -1.0), Vector3(0.0, 0.0, 1.0))
 	rig.kick_fov(7.0)
 	rig.update_rig(1.0 / 60.0, Vector3(0.0, 0.0, -1.0), Vector3(0.0, 0.0, 1.0))
-	assert_lt(rig.fov, 54.0)
+	assert_lt(rig.fov, rig.base_fov - 6.0)
 	for i: int in 180:
 		rig.update_rig(1.0 / 60.0, Vector3(0.0, 0.0, -1.0), Vector3(0.0, 0.0, 1.0))
-	assert_almost_eq(rig.fov, 60.0, 0.05)
+	assert_almost_eq(rig.fov, rig.base_fov, 0.05)
 
 
 func test_the_reduce_shaking_scales_apply() -> void:
@@ -388,3 +391,24 @@ func test_a_shot_takes_no_push_in_or_kick_and_shakes_at_the_shake_scale() -> voi
 	rig.add_shake(1.0)
 	_step()
 	assert_gt(rig.transform.origin.distance_to(Vector3(2.0, 1.4, 0.5)), 1e-4, "it shakes")
+
+
+## Near the wall the camera eases up over the arena's rim (milestone-1 task
+## 43: Camera 2's 1.75 m is lower than the Shrine's parapet), and nowhere else.
+func test_near_the_wall_it_rises_over_the_rim() -> void:
+	var def: ArenaDef = load("res://arenas/moonlit_shrine/moonlit_shrine.tres")
+	rig.apply_arena(def.camera_max_radius, def.camera_far, def.camera_rim_height, def.camera_rim_from(), def.camera_rim_full())
+	var low := Vector3(0.0, rig.follow_height, 0.0)
+	assert_eq(rig.rise_over_rim(low + Vector3(0.0, 0.0, def.camera_rim_from() - 0.5)).y, rig.follow_height, "in the courtyard, Camera 2's height")
+	var half: float = rig.rise_over_rim(low + Vector3(0.0, 0.0, (def.camera_rim_from() + def.camera_rim_full()) * 0.5)).y
+	assert_between(half, rig.follow_height + 0.01, def.camera_rim_height - 0.01, "easing up on the way")
+	for r: float in [def.camera_rim_full(), def.wall_radius, def.camera_max_radius]:
+		assert_almost_eq(rig.rise_over_rim(low + Vector3(r, 0.0, 0.0)).y, def.camera_rim_height, 1e-5, "over the rim at %.2f m" % r)
+	assert_eq(rig.rise_over_rim(Vector3(0.0, 3.0, def.camera_max_radius)).y, 3.0, "never lower")
+	rig.apply_arena(def.camera_max_radius, def.camera_far)
+	assert_eq(rig.rise_over_rim(low + Vector3(0.0, 0.0, def.camera_max_radius)).y, rig.follow_height, "no rim, no rise")
+	# and the rig does it as it follows a fighter backed against the wall
+	rig.apply_arena(def.camera_max_radius, def.camera_far, def.camera_rim_height, def.camera_rim_from(), def.camera_rim_full())
+	rig.mode = CameraRig.Mode.FOLLOW
+	rig.snap(Vector3(0.0, 0.0, -14.5), Vector3(0.0, 0.0, -11.0))
+	assert_almost_eq(rig.rig_position.y, def.camera_rim_height, 1e-4, "backed against the wall")

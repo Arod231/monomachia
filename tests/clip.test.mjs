@@ -9,8 +9,8 @@ import { CLIP_FPS, clipArgs, clipFfmpegArgs, clipPaths } from '../scripts/clip.m
 describe('clipArgs', () => {
   it('records a shot scene for 6 seconds by default, passing other flags to the scene', () => {
     assert.deepEqual(clipArgs(['arena_gameplay']), { scene: 'res://tools/shot_scenes/arena_gameplay.tscn', seconds: 6, out: null, sceneArgs: [] });
-    assert.deepEqual(clipArgs(['res://tools/shot_scenes/look_bench.tscn', '--seconds', '12', '--mode=sheet']),
-      { scene: 'res://tools/shot_scenes/look_bench.tscn', seconds: 12, out: null, sceneArgs: ['--mode=sheet'] });
+    assert.deepEqual(clipArgs(['res://tools/look_test/look_test.tscn', '--seconds', '12', '--mode=sheet']),
+      { scene: 'res://tools/look_test/look_test.tscn', seconds: 12, out: null, sceneArgs: ['--mode=sheet'] });
     assert.deepEqual(clipArgs(['x', '--seconds=2.5', '--out', 'shots/run.mp4']), { scene: 'res://tools/shot_scenes/x.tscn', seconds: 2.5, out: 'shots/run.mp4', sceneArgs: [] });
   });
   it('needs a scene, at most 20 seconds, and an MP4 to write', () => {

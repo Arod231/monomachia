@@ -175,7 +175,8 @@ func _build_stage() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.62, 0.66, 0.78)
 	env.ambient_light_energy = 0.55
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	# the realistic look's grade, as on every camera of the game (task 43)
+	LookGrade.grade(env)
 	var we: WorldEnvironment = WorldEnvironment.new()
 	we.name = "Environment"
 	we.environment = env
