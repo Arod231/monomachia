@@ -256,6 +256,7 @@ func test_a_state_clip_at_its_own_speed_loops_or_hands_on() -> void:
 	f.sf = 10
 	assert_almost_eq(ClipDirector.reaction_clip(f, ctx, &"hitstun", 0).time, 10.0 / 60.0, 1e-9, "1.0, not fitted to the hitstun")
 	sc.hit_clips[1] = &"CombatDamage01"
+	f.keep_impact(f.pos, true)
 	f.enter_hitstun(90)
 	for sf: int in [30, 59]:
 		f.sf = sf
@@ -901,8 +902,10 @@ func test_hitstun_plays_the_light_or_heavy_recoil() -> void:
 		var f: Fighter = W.fighters[0]
 		var shot: ClipDirector.Shot = _next(W, null, ctx)
 		assert_eq(shot.drive, ClipDirector.LEGS)
-		# a light's 14 frames, a heavy's 26, an ultimate's 40
+		# a light's 14 frames, a heavy's 26, an ultimate's 40: picked by the
+		# hit's weight (milestone-1 task 35), kept by the rules
 		for case: Array in [[14, &"CombatDamage01", &"Hit_Chest"], [26, &"CombatDamage02", &"Hit_Head"], [40, &"CombatDamage02", &"Hit_Head"]]:
+			f.keep_impact(f.pos, case[0] > 14)
 			f.enter_hitstun(case[0])
 			W.frame += 1
 			shot = ClipDirector.step(shot, f, ctx)
@@ -1057,6 +1060,113 @@ func _attacking(ctx: ClipDirector.Context, frames: int) -> Array:
 		shot = _next(W, shot, ctx)
 	assert_eq([f.state, shot.drive], [&"attack", ClipDirector.ATTACK])
 	return [W, shot]
+
+
+# ------------------------------------------------------------------ light reactions (milestone-1 task 35)
+
+const SIDES: Array[String] = ["front", "left", "right", "back"]
+
+
+## The frozen table with made-up light reactions for the Katana (R_<side>_<high
+## or low>, 12 source frames) and its light block (B_light, 8), each at its
+## own speed, and a reaction context whose tree has them. Undone by
+## after_each.
+func _react_ctx(libraries: bool = true) -> ClipDirector.Context:
+	var t: StateClips = StateClips.read(FrozenStateClips.PATH)
+	var hits: Dictionary[StringName, StringName] = {}
+	for side: String in SIDES:
+		for height: String in ["high", "low"]:
+			var id: StringName = StringName("R_%s_%s" % [side, height])
+			hits[StringName("%s_%s" % [side, height])] = id
+			t.own_speed[id] = &"hand_on"
+	t.light_hits[&"katana"] = hits
+	t.light_blocks[&"katana"] = &"B_light"
+	t.own_speed[&"B_light"] = &"hand_on"
+	StateClips.use(t)
+	var ctx: ClipDirector.Context = _reaction_ctx(libraries)
+	for set_name: StringName in ClipLibraries.SETS:
+		for id: StringName in hits.values():
+			ctx.lengths["%s/%s" % [set_name, id]] = 12.0 / 30.0
+		ctx.lengths["%s/B_light" % set_name] = 8.0 / 30.0
+	return ctx
+
+
+## A point `right` m to `f`'s right, `ahead` m ahead of it and `up` m up.
+static func _around(f: Fighter, right: float, up: float, ahead: float) -> V3:
+	return SimMath.local_to_world(f.pos, f.yaw, V3.make(right, up, ahead))
+
+
+## A light hit plays the light reaction for where it landed on the defender
+## (its side by the contact's bearing, high or low by its height), whole body
+## at its own speed from the hitstun's first frame, handing on at its end.
+func test_a_light_hit_plays_the_reaction_for_where_it_landed() -> void:
+	var ctx: ClipDirector.Context = _react_ctx()
+	var places: Dictionary[String, Vector2] = {"front": Vector2(0.05, 0.3), "left": Vector2(-0.3, 0.05), "right": Vector2(0.3, -0.05), "back": Vector2(0.0, -0.3)}
+	for side: String in SIDES:
+		for height: String in ["high", "low"]:
+			var W: World = SimHelpers.make_world()
+			var f: Fighter = W.fighters[0]
+			var at: Vector2 = places[side]
+			f.keep_impact(_around(f, at.x, 1.4 if height == "high" else 0.7, at.y), false)
+			f.set_state(&"hitstun", ProtectedTimings.for_weapon(&"katana").hitstun(&"light"))
+			var shot: ClipDirector.Shot = null
+			for sf: int in 8:
+				f.sf = sf
+				W.frame += 1
+				shot = ClipDirector.step(shot, f, ctx)
+				assert_eq(shot.clip.name, "HumanM/R_%s_%s" % [side, height], "%s %s, frame %d" % [side, height, sf])
+				assert_almost_eq(shot.clip.time, sf / 60.0, 1e-9, "%s %s: 1.0x from the hitstun's start" % [side, height])
+				assert_false(shot.upper, "the whole body")
+	assert_eq(ClipDirector.HIT_HIGH_FROM, 1.0, "high from 1 m up")
+
+
+## A heavy hit keeps the heavy recoil, and a light one with no light
+## reactions for its weapon keeps the light recoil, whatever its hitstun's
+## length: the re-keyed Katana lights' 24 frames once read as a heavy's.
+func test_the_hit_s_weight_picks_the_recoil_not_its_hitstun() -> void:
+	var ctx: ClipDirector.Context = _reaction_ctx()
+	var sc: StateClips = StateClips.shared()
+	for heavy: bool in [false, true]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		f.keep_impact(_around(f, 0.0, 1.3, 0.3), heavy)
+		f.set_state(&"hitstun", 24)
+		var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+		assert_eq(shot.clip.name, "HumanM/" + String(sc.hit_clips[1 if heavy else 0]), "a %s hit of 24 frames" % ("heavy" if heavy else "light"))
+	var react: ClipDirector.Context = _react_ctx()
+	var W2: World = SimHelpers.make_world()
+	var f2: Fighter = W2.fighters[0]
+	f2.keep_impact(_around(f2, 0.0, 1.3, 0.3), true)
+	f2.set_state(&"hitstun", 41)
+	assert_eq(ClipDirector.step(null, f2, react).clip.name, "HumanM/" + String(sc.hit_clips[1]), "a heavy keeps the heavy recoil beside the light reactions")
+
+
+## A light block plays the weapon's light block reaction on the upper body
+## at its own speed; a heavy one keeps the guard's Parry Hit fitted to the
+## blockstun. Without the packs the fallbacks play as before.
+func test_a_light_block_plays_its_reaction() -> void:
+	var ctx: ClipDirector.Context = _react_ctx()
+	for heavy: bool in [false, true]:
+		var W: World = SimHelpers.make_world()
+		var f: Fighter = W.fighters[0]
+		f.keep_impact(_around(f, 0.0, 1.2, 0.4), heavy)
+		var frames: int = ProtectedTimings.for_weapon(&"katana").blockstun(&"heavy" if heavy else &"light")
+		f.set_state(&"blockstun", frames)
+		f.blocking = true
+		f.sf = 4
+		var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+		assert_true(shot.upper, "on the upper body")
+		if heavy:
+			assert_eq(shot.clip.name, "HumanM/" + String(StateClips.shared().guard_clips[&"katana"][1]), "a heavy block: the Parry Hit")
+		else:
+			assert_eq(shot.clip.name, "HumanM/B_light", "a light block: its reaction")
+			assert_almost_eq(shot.clip.time, 4.0 / 60.0, 1e-9, "at its own speed")
+	var plain: ClipDirector.Context = _react_ctx(false)
+	var W3: World = SimHelpers.make_world()
+	var f3: Fighter = W3.fighters[0]
+	f3.keep_impact(_around(f3, 0.0, 1.4, 0.3), false)
+	f3.set_state(&"hitstun", 24)
+	assert_eq(ClipDirector.step(null, f3, plain).clip.name, "ual/" + String(StateClips.shared().hit_fallbacks[0]), "without the packs: the fallback")
 
 
 # ------------------------------------------------------------------ deflect pairs (milestone-1 task 34)

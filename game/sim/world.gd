@@ -560,6 +560,7 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 			b.add_posture(def.posture * mult * charge_mult)
 			b.set_state(&"blockstun", (def.blockstun if def.blockstun != AttackDef.UNSET else 12) + SimMath.js_round(float(own.charge_blockstun) * charge_f))
 			b.blocking = true
+			b.keep_impact(contact, def.kind != &"light")
 			b.knock(a.pos.x, a.pos.z, def.knockback * 0.45 * charge_mult, 10)
 			b.stats.blocks += 1
 			hitstop = ProtectedTimings.block_hitstop(def.hitstop if def.hitstop != AttackDef.UNSET else 4)
@@ -595,6 +596,7 @@ func apply(a: Fighter, b: Fighter, def: AttackDef, kind: StringName, scripted: b
 			var post: float = def.posture * SimConst.HIT_POSTURE_MULT * (1.0 + 0.8 * charge_f)
 			b.hp = maxf(0.0, b.hp - dmg)
 			b.add_posture(post)
+			b.keep_impact(contact, def.kind != &"light")
 			a.stats.hits_landed += 1
 			a.stats.damage_dealt += dmg
 			emit({

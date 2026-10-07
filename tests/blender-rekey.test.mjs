@@ -3,7 +3,8 @@
 // and names a clip the clip manifest imports (the light string's cuts, its
 // guard, task 33's transitions: the bridges between its hits and each
 // light's return to guard, and task 34's deflect pairs: each light's recoil
-// and the deflect aimed at it), and, where Blender is
+// and the deflect aimed at it, and task 35's light hit reactions, turned
+// for their side and lowered for low, and its light block), and, where Blender is
 // installed (local-only, skipped elsewhere, CI included), the script's time
 // warp and steps behave: the warp passes through its pairs without falling or
 // overshooting, a stepping foot moves only while it is off the ground, and
@@ -32,7 +33,8 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard', 'katana_guard',
+      'block_light', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
+      'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right', 'katana_guard',
       'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
       'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
       'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut',
@@ -171,6 +173,8 @@ print(json.dumps([f(i / 10.0) for i in range(431)]))`);
       if (spec.step) assert.match(r.stdout, /the body steps \d\.\d\d m forward/, id);
       if (spec.blend_from) assert.match(r.stdout, /blended in from the start pose over \d+ frames/, id);
       if (spec.knock) assert.match(r.stdout, /knocked back from frame/, id);
+      if (spec.turn) assert.match(r.stdout, new RegExp(`turned the motion ${spec.turn} degrees`), id);
+      if (spec.lower) assert.match(r.stdout, /lowered \d\.\d\d m/, id);
       if (spec.two_hands?.aim?.at) assert.match(r.stdout, /aimed at \d+% of the attacker's blade/, id);
       assert.doesNotMatch(r.stdout, /out of the leg's reach/, id);
     }

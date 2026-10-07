@@ -19,8 +19,9 @@ extends RefCounted
 ##    "knockdown": {"clips": {"fall": ...}, "fallbacks": {"fall": ...}, "standup_from": 6},
 ##    "ko": {"clips": {"front": [light, heavy], "behind": [light, heavy]}, "fallback": "Death01"}}
 ##
-## Every group and field is needed, but "own_speed", "transitions" and
-## "deflects", and a field it doesn't know is an error, as in MoveClips.
+## Every group and field is needed, but "own_speed", "transitions",
+## "deflects" and "reactions", and a field it doesn't know is an error, as in
+## MoveClips.
 ##
 ## "own_speed" (milestone-1 task 19) lists the clips that play at 1.0 from
 ## their state's start instead of fitted to it, each "loop" (looping once
@@ -43,11 +44,20 @@ extends RefCounted
 ## recoil, each played from its contact frame (source frames at 30 fps),
 ## where the blades meet. A parried move without a pair plays the nearest
 ## light's (ClipDirector.pick_pair()). Picture only, and only with the packs.
+##
+## "reactions" (milestone-1 task 35) names a weapon's light hit reactions by
+## where the hit landed ({"hit_light": {"katana": {"front_high": clip,
+## "front_low", "left_high", "left_low", "right_high", "right_low",
+## "back_high", "back_low"}}}) and its light block's ({"block_light":
+## {"katana": clip}}), each listed in "own_speed" to fit its state at its own
+## speed. A weapon without them keeps "hit" and "guard". Only with the packs.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions"]
+## Where a hit can land, for its light reaction ("reactions").
+const HIT_PLACES: Array[String] = ["front_high", "front_low", "left_high", "left_low", "right_high", "right_low", "back_high", "back_low"]
 ## A deflect pair's fields (deflect_pairs).
 const PAIR_FIELDS: Array[String] = ["deflect", "deflect_contact", "recoil", "recoil_contact"]
 ## What a clip at its own speed does past its end.
@@ -78,8 +88,10 @@ var fallback_idle: Dictionary[StringName, StringName] = {}
 ## stun's by what caused it (Fighter.stun_cause).
 var state_clips: Dictionary[StringName, StringName] = {}
 var stun_clips: Dictionary[StringName, StringName] = {}
-## Hitstun's recoil, light then heavy, and without the packs; a hitstun longer
-## than `heavy_hitstun` frames plays the heavy one.
+## Hitstun's recoil, light then heavy (by the hit's weight, Fighter.impact_heavy,
+## since milestone-1 task 35), and without the packs. `heavy_hitstun` was the
+## length past which a hitstun read as a heavy's; it is kept in the file but
+## nothing plays by it.
 var hit_clips: Array[StringName] = []
 var hit_fallbacks: Array[StringName] = []
 var heavy_hitstun: int = 0
@@ -142,6 +154,10 @@ var returns: Dictionary[StringName, StringName] = {}
 ## clip id, &"deflect_contact": source frame, &"recoil": clip id,
 ## &"recoil_contact": source frame}.
 var deflect_pairs: Dictionary[StringName, Dictionary] = {}
+## The light hit reactions (milestone-1 task 35) by weapon, each a dictionary
+## of clip ids by HIT_PLACES; and the light block reaction by weapon.
+var light_hits: Dictionary[StringName, Dictionary] = {}
+var light_blocks: Dictionary[StringName, StringName] = {}
 ## What is wrong with the file, one line each; empty when it read cleanly.
 var errors: PackedStringArray = []
 
@@ -280,6 +296,30 @@ static func read(path: String = PATH) -> StateClips:
 					&"deflect": t._id(e, at, "deflect"), &"deflect_contact": t._num(e, at, "deflect_contact"),
 					&"recoil": t._id(e, at, "recoil"), &"recoil_contact": t._num(e, at, "recoil_contact"),
 				}
+	if root.has("reactions"):
+		g = t._object(root["reactions"], "reactions", ["hit_light", "block_light"])
+		var hits: Variant = g.get("hit_light", {})
+		if not hits is Dictionary:
+			t.errors.append("reactions.hit_light: must be an object")
+		else:
+			for w: Variant in hits:
+				var at: String = "reactions.hit_light.%s" % w
+				var e: Dictionary = t._object(hits[w], at, HIT_PLACES)
+				var by: Dictionary[StringName, StringName] = {}
+				for place: String in HIT_PLACES:
+					var id: StringName = t._id(e, at, place)
+					if id != &"":
+						by[StringName(place)] = id
+				if by.size() == HIT_PLACES.size():
+					t.light_hits[StringName(str(w))] = by
+		var blocks: Variant = g.get("block_light", {})
+		if not blocks is Dictionary:
+			t.errors.append("reactions.block_light: must be an object")
+		else:
+			for w: Variant in blocks:
+				var id: StringName = t._id(blocks, "reactions.block_light", str(w))
+				if id != &"":
+					t.light_blocks[StringName(str(w))] = id
 	return t
 
 

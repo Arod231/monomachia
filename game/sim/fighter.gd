@@ -149,6 +149,11 @@ var parry_move: StringName = &""
 var parry_frame: int = 0
 var parry_pos: V3 = V3.make()
 var parry_sweep: V3 = V3.make()
+## The last hit or block this fighter took (keep_impact(); milestone-1 task
+## 35, for the reaction the view plays): the contact point (world) and
+## whether it was a heavy's (any move but a light). The rules don't read them.
+var impact_pos: V3 = V3.make()
+var impact_heavy: bool = false
 var knock_total: int = 0
 var knock_meters: float = 0.0
 
@@ -449,6 +454,8 @@ func reset_for_round(x: float, z: float, p_yaw: float) -> void:
 	parry_frame = 0
 	parry_pos = V3.make()
 	parry_sweep = V3.make()
+	impact_pos = V3.make()
+	impact_heavy = false
 	counter_lunge_until = -99999
 	backstab_until = -99999
 	blind_until = -99999
@@ -1395,6 +1402,12 @@ func keep_parry(move: StringName, at_frame: int, contact: V3, sweep: V3, attacke
 	var f: V2 = SimMath.fwd(attacker_yaw)
 	var r: V2 = SimMath.right(attacker_yaw)
 	parry_sweep = V3.make(sweep.x * r.x + sweep.z * r.z, sweep.y, sweep.x * f.x + sweep.z * f.z)
+
+
+## Keeps a hit or a block taken (impact_pos and impact_heavy) at `contact`.
+func keep_impact(contact: V3, heavy: bool) -> void:
+	impact_pos = V3.make(contact.x, contact.y, contact.z)
+	impact_heavy = heavy
 
 
 func enter_recoil(frames: int, guard_after: int) -> void:

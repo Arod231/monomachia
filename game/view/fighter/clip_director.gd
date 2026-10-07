@@ -192,6 +192,9 @@ const UPPER_REACTIONS: Array[StringName] = [&"guard", &"blockstun", &"parry"]
 ## The states a parried attacker plays its recoil in: a block's parry
 ## recoils it, a Flash's or a Redirect's stuns it (task 27).
 const PARRIED_STATES: Array[StringName] = [&"recoil", &"stunned"]
+## How high a hit lands (m, its contact) to play a high reaction rather than
+## a low one (milestone-1 task 35): a little under the chest.
+const HIT_HIGH_FROM: float = 1.0
 ## The most a fighter moves (m/s over the ground) and still stands for a
 ## light's return to guard (return_clip()): Locomotion's turn threshold.
 const RETURN_STILL: float = 0.1
@@ -630,10 +633,16 @@ static func reaction_clip(f: Fighter, ctx: Context, reaction: StringName, held: 
 		&"blockstun", &"parry":
 			id = guard[1]
 			fallback = sc.guard_fallback
+			if reaction == &"blockstun" and not f.impact_heavy and ctx.libraries and sc.light_blocks.has(wid):
+				# a light block's own reaction (milestone-1 task 35)
+				id = sc.light_blocks[wid]
 		&"hitstun":
-			var heavy: int = 1 if f.state_dur > sc.heavy_hitstun else 0
+			var heavy: int = 1 if f.impact_heavy else 0
 			id = sc.hit_clips[heavy]
 			fallback = sc.hit_fallbacks[heavy]
+			if not f.impact_heavy and ctx.libraries and sc.light_hits.has(wid):
+				# a light hit's reaction for where it landed (milestone-1 task 35)
+				id = sc.light_hits[wid][hit_place(f)]
 		&"stun":
 			id = sc.stun_clip
 			fallback = sc.stun_fallback
@@ -649,6 +658,25 @@ static func reaction_clip(f: Fighter, ctx: Context, reaction: StringName, held: 
 		return Clip.make(anim_name, fmod(float(held) / float(SimConst.FPS), length))
 	var at: float = state_time(id if ctx.libraries else fallback, f.sf, f.state_dur, length)
 	return null if at < 0.0 else Clip.make(anim_name, at)
+
+
+## Where `f`'s last hit landed on it (Fighter.impact_pos; milestone-1 task
+## 35), as a StateClips.HIT_PLACES key: the side by the contact's bearing from
+## the fighter (front or back within 45 degrees of its facing, else left or
+## right), high from HIT_HIGH_FROM up.
+static func hit_place(f: Fighter) -> StringName:
+	var ahead_v: V2 = SimMath.fwd(f.yaw)
+	var right_v: V2 = SimMath.right(f.yaw)
+	var dx: float = f.impact_pos.x - f.pos.x
+	var dz: float = f.impact_pos.z - f.pos.z
+	var ahead: float = dx * ahead_v.x + dz * ahead_v.z
+	var right: float = dx * right_v.x + dz * right_v.z
+	var side: String = "front"
+	if -ahead > absf(right):
+		side = "back"
+	elif absf(right) > absf(ahead):
+		side = "right" if right > 0.0 else "left"
+	return StringName("%s_%s" % [side, "high" if f.impact_pos.y >= HIT_HIGH_FROM else "low"])
 
 
 ## The time (s) into a clip `length` s long, `frame` rules frames into a

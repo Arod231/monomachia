@@ -356,6 +356,8 @@ static func _hits(bout: Bout) -> void:
 			var W: World = SimHelpers.make_world()
 			var ctx: ClipDirector.Context = _ctx(libs)
 			var shot: ClipDirector.Shot = _run(bout, W, null, ctx, 3)
+			# a heavy's or an ultimate's weight, kept by the rules (task 35)
+			W.fighters[0].keep_impact(W.fighters[0].pos, frames > 14)
 			W.fighters[0].enter_hitstun(frames)
 			_run(bout, W, shot, ctx, frames + 4)
 
@@ -772,7 +774,9 @@ func test_a_missing_or_wrong_field_is_refused() -> void:
 func test_the_clips_at_their_own_speed_are_optional_and_checked() -> void:
 	# milestone-1 task 19: the families list each clip they re-key to play at
 	# 1.0x, looping or handing on past its end; none yet
-	assert_eq(StateClips.read().own_speed, {}, "none today")
+	var live: Dictionary[StringName, StringName] = StateClips.read().own_speed
+	assert_eq(live.size(), 9, "the Katana's light reactions (task 35): %s" % live)
+	assert_true(live.values().all(func(v: StringName) -> bool: return v == &"hand_on"), "each handing on")
 	var t: StateClips = _read_text(_edited("\"fades\": {", "\"own_speed\": {\"Stun01\": \"loop\", \"CombatDamage01\": \"hand_on\"}, \"fades\": {"))
 	assert_eq(Array(t.errors), [], "read cleanly")
 	assert_eq(t.own_speed, {&"Stun01": &"loop", &"CombatDamage01": &"hand_on"} as Dictionary[StringName, StringName])

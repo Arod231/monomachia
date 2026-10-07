@@ -43,6 +43,14 @@
 #   "share" of the way toward the clip's own pose at frame "toward" (its
 #   cocked wind-up) over n frames, fast then easing, the chest leaning back
 #   "lean" degrees with it; omit for a clip that isn't knocked;
+# - turn: degrees: the clip's motion turned about the vertical (turn(); milestone-1
+#   task 35's hit reactions): every bone's move from frame 0 turned that far
+#   about the hips, so a reel back becomes one sideways (-90: away from a hit
+#   on the right) or forward (180: from behind); omit for a clip as it is;
+# - lower: {"drop": metres, "bend": degrees, "peak": frame}: a reaction taken
+#   low (lower()): the hips dropped and the chest bent forward, rising from
+#   nothing at frame 0 to all of it at "peak" and back to nothing at the
+#   clip's end, the feet kept where the clip has them on IK; omit for none;
 # - two_hands may add "aim": {"frame": frame, "move": [x, y, z], "turn":
 #   [x, y, z, degrees], "frames": n}: the weapon moved by "move" (m, world,
 #   the clip facing -Y) and turned about the grip by "turn" (an axis and an
@@ -704,6 +712,78 @@ def knock(arm, scene, length, spec):
     print(f"rekey_clip: knocked back from frame {c:g} over {k:g} frames", flush=True)
 
 
+def turn(arm, scene, length, degrees):
+    """The clip's motion turned `degrees` about the vertical through frame
+    0's hips: each bone's pose-space move from frame 0 (its frame-n pose
+    times its frame-0 pose's inverse) turned that far, so planted feet, which
+    don't move, stay where they are. Keyed, parents first."""
+    pbs = arm.pose.bones
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    first = {pb.name: pb.matrix.copy() for pb in pbs}
+    h0 = pbs["B-hips"].head.copy()
+    r = mathutils.Matrix.Translation(h0) @ mathutils.Matrix.Rotation(math.radians(degrees), 4, "Z") @ mathutils.Matrix.Translation(-h0)
+    ordered = sorted(pbs, key=lambda pb: len(pb.parent_recursive))
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        now = {pb.name: pb.matrix.copy() for pb in pbs}
+        for pb in ordered:
+            d = now[pb.name] @ first[pb.name].inverted()
+            pb.matrix = r @ d @ r.inverted() @ first[pb.name]
+            bpy.context.view_layer.update()
+            pb.keyframe_insert("rotation_quaternion", frame=1 + n, group=pb.name)
+            pb.keyframe_insert("location", frame=1 + n, group=pb.name)
+    print(f"rekey_clip: turned the motion {degrees:g} degrees", flush=True)
+
+
+def lower(arm, scene, length, spec):
+    """A reaction taken low: the hips dropped spec["drop"] m and the spine
+    (40%) and the chest (60%) bent forward spec["bend"] degrees, by a weight
+    rising (smootherstep) from 0 at frame 0 to 1 at spec["peak"] and falling
+    back to 0 at the clip's end; the feet kept where the clip has them on
+    IK. The clip faces -Y."""
+    mw = arm.matrix_world
+    pbs = arm.pose.bones
+    to_arm = mw.inverted().to_3x3()
+    peak = float(spec["peak"])
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    rest = {side: (mw @ pbs["B-foot." + side].matrix) for side in ("L", "R")}
+    feet = {"L": [], "R": []}
+    knees = {"L": [], "R": []}
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        for side in ("L", "R"):
+            m = mw @ pbs["B-foot." + side].matrix
+            feet[side].append((m.to_translation(), m.to_quaternion(), 0.0))
+            hip, knee = mw @ pbs["B-thigh." + side].head, mw @ pbs["B-shin." + side].head
+            bend = knee - (hip + m.to_translation()) / 2
+            knees[side].append(knee + (bend.normalized() if bend.length > 1e-4 else mathutils.Vector((0.0, -1.0, 0.0))) * 0.5)
+    for n in range(length + 1):
+        w = _smoother(n / peak) if n <= peak else 1.0 - _smoother((n - peak) / max(length - peak, 1e-6))
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        hips = pbs["B-hips"]
+        hips.matrix = mathutils.Matrix.Translation(to_arm @ mathutils.Vector((0.0, 0.0, -float(spec["drop"]) * w))) @ hips.matrix
+        bpy.context.view_layer.update()
+        hips.keyframe_insert("location", frame=1 + n, group=hips.name)
+        for name, part in (("B-spine", 0.4), ("B-chest", 0.6)):
+            pb = pbs[name]
+            m = pb.matrix.copy()
+            head = m.to_translation()
+            pb.matrix = mathutils.Matrix.Translation(head) @ mathutils.Matrix.Rotation(math.radians(float(spec["bend"])) * w * part, 4, "X") \
+                @ mathutils.Matrix.Translation(-head) @ m
+            bpy.context.view_layer.update()
+            pb.keyframe_insert("rotation_quaternion", frame=1 + n, group=pb.name)
+            pb.keyframe_insert("location", frame=1 + n, group=pb.name)
+    over = legs_to(arm, scene, length, feet, rest, knees)
+    print(f"rekey_clip: lowered {float(spec['drop']):.2f} m, bent {float(spec['bend']):g} degrees, peaking on frame {peak:g}", flush=True)
+    if over:
+        print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
 # The bones a transition (blend_from()) leaves to the leg IK.
 LEGS = ("B-thigh.", "B-shin.", "B-foot.", "B-toe.")
 
@@ -795,6 +875,10 @@ def main():
         blend_from(arm, scene, length, start, float(spec["blend_from"]["frames"]))
     if spec.get("knock"):
         knock(arm, scene, length, spec["knock"])
+    if spec.get("turn"):
+        turn(arm, scene, length, float(spec["turn"]))
+    if spec.get("lower"):
+        lower(arm, scene, length, spec["lower"])
     if spec.get("two_hands"):
         th = spec["two_hands"]
         two_hands(arm, scene, length, float(th["grip"]), th.get("hold", [0.3, 0.1]), float(th.get("square", 0.0)),

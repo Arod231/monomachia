@@ -30,6 +30,10 @@ extends Node3D
 ##   task 27's parry sheets pair every weapon);
 ## - --spacing=: metres between the fighters (default PoseCheck.SPACING, or
 ##   the drive's own for a drive);
+## - --face=: a drive's fighter turned that many degrees from facing the
+##   opponent (+ to its left) and held there, so a hit lands on its side or
+##   its back (milestone-1 task 35); with --move, the opponent's light in a
+##   drive is that move;
 ## - --swings=<res:// path>: a swing file (SwingFile) put on a fresh copy of
 ##   the weapon, so its moves play from those swings (SwingPlayer) rather
 ##   than the weapon's own; tools/swings/katana_demo.json holds stand-in
@@ -443,6 +447,10 @@ var swings_path: String = ""
 
 var bench: MoveBench
 var defender_view: FighterView
+## A drive's fighter turned this many degrees from facing the opponent (+
+## to its left) and held there (--face=; milestone-1 task 35's hit reactions
+## from the side and behind).
+var face: float = 0.0
 var camera: CameraRig
 ## The last sheet's header lines and rows.
 var title: PackedStringArray = []
@@ -548,6 +556,11 @@ func apply_args(args: PackedStringArray) -> void:
 				if not DRIVES.has(drive):
 					push_error("move_sheet.gd: no drive '%s' (%s)" % [value, ", ".join(PackedStringArray(DRIVES.keys()))])
 					drive = &""
+			"face":
+				if value.is_valid_float():
+					face = float(value)
+				else:
+					push_error("move_sheet.gd: --face= takes degrees, not '%s'" % value)
 			"every":
 				if value.is_valid_int() and int(value) >= 1:
 					every = int(value)
@@ -976,6 +989,19 @@ func render_drive(drive_id: StringName) -> Image:
 	var loco: Locomotion = bench.view.locomotion
 	var inputs: Array[RawInput] = drive_inputs(drive_id)
 	var opponent: Array[RawInput] = drive_inputs(drive_id, "defender")
+	if face != 0.0:
+		bench.attacker.yaw = SimMath.wrap_angle(bench.attacker.yaw + deg_to_rad(face))
+		bench.attacker.blind_until = 1 << 30
+	# the opponent's light in a drive that has one may be any move (--move),
+	# started where the light's press would be (task 35's reactions by place)
+	var opponent_move: StringName = &""
+	var opponent_at: int = -1
+	if not DRIVES[drive_id].has("parry") and bench.weapon.moves.has(move):
+		for i: int in opponent.size():
+			if opponent[i].buttons & LIGHT:
+				opponent_move = move
+				opponent_at = i
+				break
 	# a parry drive may parry any move (--move), started where the light's
 	# press would be (milestone-1 task 34: each light's deflect pair)
 	var parried: StringName = &""
@@ -992,7 +1018,11 @@ func render_drive(drive_id: StringName) -> Image:
 		if parried != &"" and i == int(DRIVES[drive_id]["parry"]):
 			bench.attacker.start_attack(parried)
 			input = RawInput.empty()
-		bench.drive(input, opponent[i] if i < opponent.size() else null)
+		var other: RawInput = opponent[i] if i < opponent.size() else null
+		if i == opponent_at:
+			bench.defender.start_attack(opponent_move)
+			other = RawInput.empty()
+		bench.drive(input, other)
 		_show_defender()
 		if not chosen.has(i + 1):
 			continue

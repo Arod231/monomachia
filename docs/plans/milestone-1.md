@@ -74,6 +74,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
 - Oct 6, 2026: task 135 done in `lane/m1-32-135-33-34-35`: the Katana rides the clip's hands in every state, the guard and free movement included, for both fighters, with or without the clip libraries; the prop bone never moves against the hand on any Katana clip, so every clip keeps the hand's grip and the hit paths are unchanged. The Greatsword and the Daggers follow in task 60.
 - Oct 6, 2026: task 33 done in `lane/m1-32-135-33-34-35`: the Katana stands in a keyed two-handed guard (CombatIdle1H01 re-keyed as Right Cut is), each follow-up of the light string plays a keyed bridge from the move before into its wind-up, and each light ends in a keyed return to guard when no follow-up is taken; picture only, with the packs. The sources are the asset repository's pull request #6. The bridges into the heavies wait for task 64.
 - Oct 6, 2026: task 34 done in `lane/m1-32-135-33-34-35`: each of the Katana's lights has a keyed deflect pair, the parrier's deflect and the attacker's recoil, cut in on the parry frame with the blades meeting at the rules' contact point (within 0.3 cm of each other from 2.5 m); any other parried move plays the pair of the light that sweeps nearest. The rebound retired. The sources are the asset repository's pull request #7.
+- Oct 6, 2026: task 35 done in `lane/m1-32-135-33-34-35`: a light hit on the Katana plays a reaction for where it landed (front, left, right or back; high or low) and a light block its own, each fitting its protected frames at its own speed (the first state-clip fit test, on CI); a hit's weight now comes from the rules, so the re-keyed lights no longer play the heavy recoil. The sources are the asset repository's pull request #8. That finishes the lane's five tasks.
 
 ## Build order
 
@@ -394,11 +395,32 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Left for later:
     - The aims make up for the export's one-frame hold: each reads the attacker's blade a frame before its contact, as the game shows it. They are re-aimed when that hold is fixed, which is flagged as its own task.
     - The other families' moves play the nearest light's pair until they key their own (stories 105's other tasks).
-- [ ] **35. Light hit and block reactions.** A light hit plays a reaction by where it landed, and a block shows the guard taking a light impact.
+- [x] **35. Light hit and block reactions.** A light hit plays a reaction by where it landed, and a block shows the guard taking a light impact.
   - Delivers: light hit reactions front, left, right and back, high and low, picked from the hit's contact point; a light block reaction; each fits the retuned light hitstun and blockstun at its own speed.
   - Check: director tests of the pick by contact point; the state-clip fit test for each; sheets reviewed.
   - Blocked by: 22, 33 · Stories: 97, 107
   - Decided with the owner (Oct 6, before building): the reactions are scripted re-keys of pack clips, under the Iglesias licence in the asset repository: CombatDamage01 and CombatDamage02 retimed to the light hitstun (24 rules frames) and Parry1H01's hit to the light blockstun (15), mirrored for left and right, turned for back and lowered for low.
+  - Done Oct 6:
+    - The rules keep each hit or block a fighter takes (`Fighter.keep_impact()`: the contact point and whether a heavy's); nothing in the rules reads them.
+    - The scripted Blender pass gains `turn` (a clip's motion turned about the vertical, every bone's move from its first frame, so planted feet stay) and `lower` (the hips dropped and the chest bent, peaking with the reaction). Its re-keys, all made two-handed by the lights' pass:
+      - the high hits from CombatDamage01's head snap and the low ones from CombatDamage02's reel, lowered;
+      - each retimed to the light hitstun (12 source frames, 24 rules) and turned 0, -90 and 180 degrees for the front, the right and the back; the left is the right mirrored at import;
+      - the light block from Parry1H01's right hit, retimed to 8 source frames (16 rules, a frame over the 15-frame blockstun).
+    - `state_clips.json` names them in a new optional `reactions` group and lists them in `own_speed` (1.0 from the state's start, handing on). `ClipDirector`, with the packs:
+      - plays a light hit's reaction for where it landed (`hit_place()`: the side by the contact's bearing, front or back within 45 degrees of the facing; high from `HIT_HIGH_FROM`, 1 m, up);
+      - plays the light block's on the upper body.
+    - A heavy keeps CombatDamage02 and the Parry Hit, and without the packs the fallbacks play.
+    - The weight comes from the rules' record now, not the hitstun's length, so the re-keyed lights' 24-frame hitstun no longer reads as a heavy's (`heavy_hitstun` stays in the file, read by nothing).
+  - Checks:
+    - director tests of the pick by contact point, the weight and the light block;
+    - a rules test of the kept impact;
+    - `test_state_clip_fit.gd`: each of the nine fits its protected frames at its own speed, settling within a rules frame of its state's end. It is the first state-clip fit test, reading the committed tables, so it runs on CI.
+    - the suite and typecheck.
+  - Sheets: `shots/m35` (`move_sheet.tscn --drive=hit_reactions --face=<degrees> --move=<light>` for each side and height, each caption naming the clip, and `--drive=block_reactions`), posted.
+  - The sources and exports are the asset repository's pull request #8, after #7.
+  - Left for later:
+    - The heavies' directional reactions and the heavy block (stories 97 and 107's later tasks).
+    - The Blender pass couldn't keep the blade clear of its stand-in body on a few frames of the reels, so those frames took its nearest fit; the owner's polish pass checks them.
 - [x] **36. The pilot's sound.** The light string sounds physical: swings, metal impacts by weapon pair, flesh and bone, the parry ring, and the Hunter's cloth and gear.
   - Delivers: `SoundBank` entries for the four lights' swings, Katana-on-Katana impacts, flesh and bone layers keyed to the hit, a distinct parry ring, the Hunter's cloth and gear movement, and hooks for the effort vocals (task 114). All of them hang on rules events that exist today; the deflect pairs' sounds are task 136.
   - Check: sound-bank tests that a Katana-on-Katana block picks the Katana-pair impact, that a blade hit adds the flesh and bone layers, that a parry plays the ring distinct from a block, and that the Hunter's cloth and gear movement has entries; `test_every_event_type_has_an_entry`; `test_sound_playback.gd`'s whole match; the listening pass happens at the pilot's review.

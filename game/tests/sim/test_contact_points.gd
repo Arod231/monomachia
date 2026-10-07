@@ -132,6 +132,29 @@ func test_a_parry_carries_the_blades_sweep_and_both_fighters_keep_it() -> void:
 	assert_eq(a.parry_move, &"")
 
 
+## Milestone-1 task 35: a hit or a block keeps its contact point and its
+## weight (a light here) on the defender, for the view's directional
+## reaction; nothing else in the rules reads them, and a new round forgets
+## them.
+func test_a_hit_or_a_block_is_kept_on_the_defender() -> void:
+	var wide: Swing = SF.level_slash(_cut(), 1.2, 60.0, -60.0, 0.8)
+	var defences: Dictionary[StringName, Callable] = {
+		&"hit": Callable(),
+		&"block": func(_i: int) -> RawInput: return H.btn(Btn.BLOCK),
+	}
+	for kind: StringName in defences:
+		var W: World = _world(wide)
+		var e: Dictionary = _first_outcome(W, defences[kind])
+		assert_eq(e.get("t"), kind, "a %s" % kind)
+		var b: Fighter = W.fighters[1]
+		_assert_v3(b.impact_pos, _pos(e), "the %s's contact, kept" % kind)
+		assert_false(b.impact_heavy, "a light %s" % kind)
+		b.keep_impact(V3.make(1.0, 2.0, 3.0), true)
+		assert_true(b.impact_heavy, "a heavy kept")
+		b.reset_for_round(0.0, 0.0, 0.0)
+		assert_false(b.impact_heavy, "a new round forgets it")
+
+
 func test_a_blade_short_of_the_axis_starts_on_its_sweep_inside_the_capsule() -> void:
 	# the grip 0.45 m out: the tip reaches 1.23 m, short of the defender's
 	# axis 1.25 m away, so the contact is on the blade's sweep at 1.2 m,

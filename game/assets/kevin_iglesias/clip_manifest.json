@@ -989,6 +989,177 @@
 				"bare"
 			]
 		},
+		"HitLightHighFront": {
+			"export": "exports/clips/hit_high_front.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage01",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"HitLightHighLeft": {
+			"export": "exports/clips/hit_high_right.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage01",
+			"mirror": true,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 4], [8, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"HitLightHighRight": {
+			"export": "exports/clips/hit_high_right.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage01",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 4], [8, 13]], "right": [[0, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"HitLightHighBack": {
+			"export": "exports/clips/hit_high_back.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage01",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 3], [8, 13]], "right": [[0, 5], [9, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"HitLightLowFront": {
+			"export": "exports/clips/hit_low_front.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage02",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"HitLightLowLeft": {
+			"export": "exports/clips/hit_low_right.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage02",
+			"mirror": true,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"HitLightLowRight": {
+			"export": "exports/clips/hit_low_right.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage02",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"HitLightLowBack": {
+			"export": "exports/clips/hit_low_back.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat",
+			"source": "CombatDamage02",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 4,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 1], [5, 13]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"BlockLightKatana": {
+			"export": "exports/clips/block_light.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Parry1H01_R - Hit",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 1,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 9]], "right": [[0, 9]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
 		"CombatDamage01": {
 			"pack": "Human Melee Animations",
 			"dir": "Combat",
