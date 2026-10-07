@@ -23,7 +23,6 @@ const LIT_SHADERS: Array[String] = [
 	"res://shaders/stone_floor.gdshader",
 	"res://shaders/rock.gdshader",
 	"res://weapons/katana/katana_blade.gdshader",
-	"res://weapons/katana/katana_wrap.gdshader",
 ]
 const KATANA_BLADE: String = "res://weapons/katana/materials/blade.tres"
 const RED: Color = Color(0.7, 0.16, 0.13)

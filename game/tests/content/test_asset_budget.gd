@@ -42,8 +42,9 @@ static func _files(dir_path: String, out: Array[String]) -> Array[String]:
 ## Hunter's palettes, task 45).
 const UNRIGGED: Array[String] = ["res://assets/exports/shrine/", "res://assets/exports/fighters/"]
 ## Exports whose rig, if any, is their own: cloth on spring bones (the
-## Hunter's scarf, milestone-1 task 46), never a fighter's, so never retargeted.
-const OWN_RIGS: Array[String] = ["res://assets/exports/headwear/"]
+## Hunter's scarf, milestone-1 task 46; the saya's sageo, task 47), never a
+## fighter's, so never retargeted.
+const OWN_RIGS: Array[String] = ["res://assets/exports/headwear/", "res://assets/exports/weapons/"]
 
 
 ## The gitignored folders the Iglesias import tool writes (the staged FBX

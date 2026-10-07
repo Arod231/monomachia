@@ -1,7 +1,7 @@
 extends GutTest
-## The Katana's saya (authored-animation task 11, from godot-rebuild 14.16):
-## built in code at the left hip whenever the Katana is the weapon, holding
-## the blade through the Iai's sheathe and stance.
+## The Katana's saya (authored-animation task 11, from godot-rebuild 14.16;
+## modelled in milestone-1 task 47): at the left hip whenever the Katana is
+## the weapon, holding the blade through the Iai's sheathe and stance.
 
 const SIDES: Array[String] = ["Right", "Left"]
 
@@ -26,12 +26,12 @@ func test_the_katana_brings_its_saya_and_the_other_weapons_none() -> void:
 
 func test_the_saya_holds_the_whole_blade() -> void:
 	var v: FighterView = _view(&"hunter", &"katana")
-	var saya: MeshInstance3D = v.model.rig.saya
-	var box: AABB = saya.mesh.get_aabb()
+	var saya: Saya = v.model.rig.saya
+	var box: AABB = saya.bounds()
 	var blade: PackedVector3Array = WeaponLook.blade_segment(v.model.weapons[0])
 	for p: Vector3 in blade:
 		assert_true(box.grow(0.001).has_point(p), "the blade's %s inside it" % p)
-	assert_between(box.size.y, 1.25, 1.45, "as long as the blade")
+	assert_between(box.size.y, 1.25, 1.5, "as long as the blade")
 
 
 func test_through_the_iais_stance_the_blade_is_in_the_saya() -> void:

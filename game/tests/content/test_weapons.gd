@@ -76,7 +76,7 @@ func test_the_katana_blade_is_1_3_m_and_curved_back() -> void:
 	assert_almost_eq((tip - base).length(), 1.3, 0.005, "blade from the habaki to the point (KE task 2)")
 	assert_lt(tip.x, -0.02, "the point curves back, away from the edge (+X)")
 	var mesh: Mesh = (w.get_node(^"Mesh") as MeshInstance3D).mesh
-	assert_eq(mesh.get_surface_count(), 6, "blade, habaki, tsuba, rim, wrap, fittings")
+	assert_eq(mesh.get_surface_count(), 7, "blade, habaki, tsuba, rim, fittings, same and ito (task 47)")
 	for s: int in mesh.get_surface_count():
 		assert_not_null(mesh.surface_get_material(s), "katana surface %d has a material" % s)
 
@@ -148,14 +148,18 @@ func test_the_katana_keeps_its_temper_line_and_its_wrap_in_the_realistic_look() 
 	add_child_autofree(w)
 	var mi: MeshInstance3D = w.get_node(^"Mesh")
 	var blade: ShaderMaterial = mi.get_active_material(0)
-	var wrap: ShaderMaterial = mi.get_active_material(4)
+	# the silk ito, modelled (task 47): its roughness from the model's map
+	var wrap: ShaderMaterial = mi.get_active_material(6)
 	for m: ShaderMaterial in [blade, wrap]:
 		assert_false(m.shader.code.contains("void light()"), "%s is lit physically" % m.resource_name)
 	assert_eq(blade.resource_name, "blade")
-	assert_eq(wrap.resource_name, "wrap")
+	assert_eq(wrap.resource_name, "ito")
 	assert_lt(_shading(blade, &"roughness"), 0.3, "the blade is polished steel")
 	assert_eq(_shading(blade, &"metallic"), 1.0, "and metal")
-	assert_gt(_shading(wrap, &"roughness"), 0.5, "the silk wrap is rough")
+	var orm: Image = (wrap.get_shader_parameter(&"orm_texture") as Texture2D).get_image()
+	if orm.is_compressed():
+		orm.decompress()
+	assert_gt(orm.get_pixel(0, 0).g, 0.5, "the silk wrap is rough")
 
 
 ## A float uniform of m: the material's value, or the default its shader's

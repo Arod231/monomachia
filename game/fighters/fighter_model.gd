@@ -157,12 +157,21 @@ func _dress(index: int) -> void:
 	if look == null or look.palettes.is_empty():
 		return
 	var p: FighterPalette = look.palettes[clampi(index, 0, look.palettes.size() - 1)]
+	if rig != null and rig.saya is Saya:
+		(rig.saya as Saya).tint(p.cord_color)
 	for entry: Array in _outfit_surfaces:
 		_override(entry, "outfit", p)
 	for entry: Array in _hair_surfaces:
 		_override(entry, "hair", p)
 	for entry: Array in _headwear_surfaces:
 		_override(entry, "headwear", p)
+
+
+## The palette the fighter is dressed in, or null without a look.
+func _palette() -> FighterPalette:
+	if look == null or look.palettes.is_empty():
+		return null
+	return look.palettes[clampi(palette, 0, look.palettes.size() - 1)]
 
 
 ## Gives a surface the physically based version of its imported material
@@ -241,7 +250,7 @@ func attach_weapon(weapon: WeaponLook) -> Array[Node3D]:
 	rig.hold_weapons(weapon, weapons, hold)
 	if weapon.id == &"katana":
 		# the saya at the left hip, whenever the Katana is the weapon
-		var saya: Saya = Saya.build(weapons[0])
+		var saya: Saya = Saya.build(_palette().cord_color if _palette() != null else Color.BLACK)
 		weapon_root.add_child(saya)
 		rig.saya = saya
 		rig.saya_frame = Saya.frame_for(look.id)

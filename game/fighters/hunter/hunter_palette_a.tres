@@ -18,4 +18,5 @@ metal_color = Color(0.431, 0.416, 0.384, 1)
 wear = 0.6
 hair_color = Color(0.26, 0.18, 0.12, 1)
 headwear_color = Color(0.361, 0.086, 0.094, 1)
+cord_color = Color(0.62, 0.169, 0.145, 1)
 outfit_maps = ExtResource("2_maps")

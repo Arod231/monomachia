@@ -1,0 +1,31 @@
+{
+	"about": "Milestone-1 task 47: the Katana and its saya, built by scripts/blender/build_katana.py into blender/weapons/katana.blend and katana_saya.blend in the asset repository. The blade's numbers are tools/build_katana.gd's (KE task 2's 1.333 m from the guard), so the markers keep their places; the mounting is the owner's (Oct 7): a black lacquer saya with faint maki-e grasses, a plain iron tsuba, black silk ito over white same, the sageo in the side's dye.",
+	"blade_length": 1.333,
+	"grip_length": 0.26,
+	"guard_y": 0.05,
+	"tsuba_thickness": 0.007,
+	"habaki_length": 0.033,
+	"sori": 0.07,
+	"width_base": 0.032,
+	"width_tip": 0.022,
+	"thickness_base": 0.0075,
+	"thickness_tip": 0.0052,
+	"off_hand_y": -0.15,
+	"kissaki": 0.05,
+	"yokote_turn": 0.4,
+	"blade_segments": 40,
+	"kissaki_segments": 14,
+	"ito_diamonds": 9,
+	"saya": {
+		"wall": 0.006,
+		"over_base": 0.01,
+		"past_tip": 0.02,
+		"slices": 48,
+		"sides": 16,
+		"kurikata_below": 0.11,
+		"sageo_bones": 6,
+		"sageo_segment": 0.05,
+		"grasses": 14,
+		"makie_strength": 0.3
+	}
+}

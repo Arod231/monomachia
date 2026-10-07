@@ -421,9 +421,14 @@ func _apply_preset() -> void:
 
 ## The sageo: a cord of CORD_SEGMENTS bones hanging from the saya's mouth,
 ## with a tassel, swung by a SpringBoneSimulator3D (spring bones, Godot check
-## 6), in the fighter's crimson.
+## 6), in the fighter's crimson; or the modelled saya's own sageo (milestone-1
+## task 47), already on its springs.
 func _build_cord() -> void:
 	var saya: Node3D = fighter.model.rig.saya
+	if saya is Saya and (saya as Saya).springs != null:
+		cord = (saya as Saya).cord_rig
+		cord_sim = (saya as Saya).springs
+		return
 	var parent: Node3D = saya if saya != null else fighter.model.skeleton
 	cord = Skeleton3D.new()
 	cord.name = "Sageo"

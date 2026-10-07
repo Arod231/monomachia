@@ -99,14 +99,25 @@ static func weapon(color: Color, metal: bool = true) -> ShaderMaterial:
 ## A weapon surface from the material its model was made with, keeping its
 ## name:
 ## - a StandardMaterial3D becomes steel when it is at all metallic, and
-##   leather or wood otherwise, in its colour;
-## - a ShaderMaterial of its own (the Katana's blade and wrap) is copied,
-##   every parameter it sets kept, with the look's noise.
+##   leather or wood otherwise, in its colour; one with maps of its own (a
+##   model from the Blender export: the Katana's mounting and saya,
+##   milestone-1 task 47) keeps its base-colour texture, normal map and
+##   roughness map (roughness green, metalness blue, as glTF packs them);
+## - a ShaderMaterial of its own (the Katana's blade) is copied, every
+##   parameter it sets kept, with the look's noise.
 static func weapon_from(source: Material) -> ShaderMaterial:
 	var m: ShaderMaterial
 	if source is BaseMaterial3D:
 		var base := source as BaseMaterial3D
 		m = weapon(base.albedo_color, base.metallic > 0.0)
+		if base.albedo_texture != null:
+			m.set_shader_parameter(&"albedo_texture", base.albedo_texture)
+		if base.normal_enabled and base.normal_texture != null:
+			m.set_shader_parameter(&"normal_texture", base.normal_texture)
+			m.set_shader_parameter(&"normal_strength", base.normal_scale)
+		if base.roughness_texture != null:
+			m.set_shader_parameter(&"orm_texture", base.roughness_texture)
+			m.set_shader_parameter(&"use_orm_texture", true)
 	else:
 		m = (source as ShaderMaterial).duplicate() as ShaderMaterial
 		LookNoise.apply_to(m)

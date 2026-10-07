@@ -52,6 +52,10 @@ extends Resource
 @export var hair_color: Color = Color.WHITE
 ## The cloth of a face mask or hat, for fighters that wear one.
 @export var headwear_color: Color = Color(0.1, 0.1, 0.1)
+@export_group("Weapon")
+## The Katana's sageo, the cord on its saya (milestone-1 task 47): the side's
+## dye.
+@export var cord_color: Color = Color(0.42, 0.04, 0.05)
 @export_group("")
 ## The baked outfit base colour (written by tools/bake_palettes.gd).
 @export var outfit_albedo: Texture2D

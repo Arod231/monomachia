@@ -103,7 +103,8 @@ func test_the_features_the_milestone_needs_are_there() -> void:
 	assert_true(taa.stage.get_viewport().use_taa, "Godot's TAA with --aa=taa")
 	assert_eq(taa.stage.get_viewport().scaling_3d_scale, 1.0, "at full resolution")
 	assert_true(t.cord_sim is SpringBoneSimulator3D, "spring bones")
-	assert_eq(t.cord.get_bone_count(), LookTest.CORD_SEGMENTS)
+	# the modelled saya's own sageo (milestone-1 task 47): its root and six cord bones
+	assert_eq(t.cord.get_bone_count(), Saya.CORD_BONES + 1)
 	var mods: Array[StringName] = []
 	for c: Node in t.fighter.model.skeleton.get_children():
 		if c is SkeletonModifier3D:
