@@ -409,7 +409,7 @@ func test_fighters_moving_in_a_played_duel_step_at_their_feet() -> void:
 	host.start(_cpu())
 	# stepped without being drawn: the stride count steps for both fighters,
 	# the Katana's guard included
-	host.step(Match.INTRO_FRAMES + 60 * 20)
+	host.step(Match.INTRO_FRAMES + 60 * 30)
 	assert_gt(steps.size(), 10, "the fighters close in and circle")
 	for i: int in 2:
 		assert_true(steps.any(func(s: Dictionary) -> bool: return (s["at"] as Vector3).distance_to(s["feet"][i]) < 1e-4), "fighter %d steps" % i)

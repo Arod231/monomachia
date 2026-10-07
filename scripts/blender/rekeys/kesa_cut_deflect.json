@@ -1,5 +1,5 @@
 {
-	"about": "The deflect of Kesa Cut (katana.k_l3 parried), milestone-1 task 34: Parry1H01's right hit at its own speed, made two-handed by the lights' pass and aimed at the moment of contact (frame 2) so the blade crosses the attacker's just inside its tip, where the rules' contact is (the attacker's blade read one frame before its contact frame, the frame the game shows there while the export holds each clip's first frame), at 2.5 m, the lights' duelling distance. Played from the contact frame by the parrier; picture only. Source frames at 30 fps from 0.",
+	"about": "The deflect of Kesa Cut (katana.k_l3 parried), milestone-1 task 34: Parry1H01's right hit at its own speed, made two-handed by the lights' pass and aimed at the moment of contact (frame 2) so the blade crosses the attacker's just inside its tip, where the rules' contact is (the attacker's blade read on its contact frame), at 2.5 m, the lights' duelling distance. Played from the contact frame by the parrier; picture only. Source frames at 30 fps from 0.",
 	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Parry1H01_R - Hit.fbx",
 	"out": "blender/clips/kesa_cut_deflect.blend",
 	"remap": [[0, 0], [26, 26]],
@@ -8,6 +8,6 @@
 		"hold": [0.32, 0.12],
 		"square": 0.6,
 		"clearance": 0.08,
-		"aim": {"frame": 2, "at": {"source": "blender/clips/kesa_cut_recoil.blend", "frame": 13.5, "distance": 1.68}, "along": 0.97, "move": [0.028, -0.031, -0.001], "frames": 4}
+		"aim": {"frame": 2, "at": {"source": "blender/clips/kesa_cut_recoil.blend", "frame": 14.5, "distance": 1.73}, "along": 0.97, "move": [0.225, 0.012, -0.06], "frames": 4}
 	}
 }

@@ -15,7 +15,7 @@ func after_each() -> void:
 
 
 # A Katana light (Right Cut, startup 28 since milestone-1 task 31) started on
-# step 0 lands on step H.LIGHT_LANDS (30), world frame 31; the runs below
+# step 0 lands on step H.LIGHT_LANDS (29), world frame 30; the runs below
 # reach past it.
 const RUN: int = H.LIGHT_LANDS + 20
 ## A block press this many steps before a light lands is inside the 9-frame
@@ -78,7 +78,7 @@ func test_blocking_stops_hp_damage_but_takes_reduced_posture_damage() -> void:
 func test_a_well_timed_block_press_parries_attacker_recoils_and_takes_parry_posture() -> void:
 	var W: World = H.make_world()
 	var r: H.Rec = H.Rec.new()
-	# impact on step 30; press on step 26 (4 frames early, inside the 9-frame window)
+	# impact on step 29; press on step 25 (4 frames early, inside the 9-frame window)
 	H.run(W, H.LIGHT_LANDS + 2, H.tap_at(0, Btn.LIGHT), H.tap_at(H.LIGHT_LANDS - EARLY, Btn.BLOCK), r)
 	var a: Fighter = W.fighters[0]
 	var b: Fighter = W.fighters[1]
