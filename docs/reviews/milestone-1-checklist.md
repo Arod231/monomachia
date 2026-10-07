@@ -36,13 +36,13 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Right Cut `k_l1` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Return Cut `k_l2` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Kesa Cut `k_l3` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Crown Cut `k_l4` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| The light deflect pairs `clip_deflect_light` | not built | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
-| Light hit reactions `clip_hit_light` | stand-in clips | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
-| Light block reactions `clip_block_light` | stand-in clips | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
+| Right Cut `k_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Return Cut `k_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| The light deflect pairs `clip_deflect_light` | keyed clips (task 34) | – | – | ✗ | ✓ | ✓ | – | ☐ | ✗ | ✗ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☐ |
+| Light hit reactions `clip_hit_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | – | – | ✓ | – | ✓ | ✓ | – | – | ☐ |
+| Light block reactions `clip_block_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | ✓ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☐ |
 
 ## 2. Guard movement and dodges
 
@@ -60,7 +60,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Iai Slash (horizontal) `k_iai_h` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Rising Heaven `k_h1f` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Returning Draw `k_rdraw` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Heaven Splitter `k_h2` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Heaven Splitter `k_h2` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
 | The heavy deflect pairs `clip_deflect_heavy` | not built | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | Heavy hit reactions `clip_hit_heavy` | stand-in clips | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
 | Heavy block reactions `clip_block_heavy` | stand-in clips | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
@@ -80,9 +80,9 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Running Draw `k_sl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Leaping Cleave `k_sh` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Wind Cut `k_dl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✓ | · | · | · | · | · | · | · | ☐ |
-| Whirl Cut `k_dh` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Leaping Cleave `k_sh` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Wind Cut `k_dl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Whirl Cut `k_dh` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✓ | · | · | · | · | · | · | · | ☐ |
 | Rising Cut `k_bl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Lunging Cut `k_bh` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Aerial Cut `k_jl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
@@ -94,7 +94,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Flash `k_flash` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Piercing Thrust `k_thrust` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Swallow Sweep `k_sweep` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Swallow Sweep `k_sweep` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✓ | · | · | · | · | · | · | · | ☐ |
 | The stomp's paired clip `clip_stomp` | stand-in clip | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | The leap's paired clip `clip_leap` | stand-in clip | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 

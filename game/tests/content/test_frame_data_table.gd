@@ -145,3 +145,48 @@ func test_a_hand_edit_to_a_row_or_its_swing_fails_the_digest() -> void:
 	var keys: Array = swing["tracks"]["right_hand"]["keys"]
 	keys[0]["grip"][0] = float(keys[0]["grip"][0]) + 0.01
 	assert_ne(row["digest"], FrameDataTable.digest(row, swing), "a key edited in the swing file")
+
+
+## The per-move checklist's item 5 (milestone-1 task 40), recorded for every
+## keyed move and every clip row: a keyed move's row is generated from its
+## source clip (a chain, a checksum, no stand-in, the digest matching), its
+## travel is on every rules frame and the rules move it by that travel, not a
+## lunge; a state clip's row records its length and settle from its markers.
+func test_every_keyed_move_and_clip_row_has_its_travel_and_length_in_the_table() -> void:
+	var t: FrameDataTable = _table()
+	var manifest: ClipManifest = ClipManifest.read()
+	for m: Array in ChecklistResults.keyed_moves():
+		var wid: StringName = m[0]
+		var id: StringName = m[1]
+		var problems: Array[String] = []
+		var row: Dictionary = t.row(wid, id)
+		var def: AttackDef = (Moves.WEAPONS[wid] as WeaponDef).moves[id]
+		if row.is_empty():
+			problems.append("no row in the table")
+		else:
+			if row.get("stand_in", false):
+				problems.append("a stand-in's frames")
+			if (row["chain"] as Array).is_empty() or not _is_sha(row["source_sha256"]):
+				problems.append("no source clip or checksum")
+			if (row["travel"] as Array).size() != int(row["startup"]) + int(row["active"]) + int(row["recovery"]) + 1:
+				problems.append("travel not on every rules frame")
+			if row["digest"] != FrameDataTable.digest(row, _swing_records(wid).get(String(id))):
+				problems.append("edited by hand")
+		if not def.by_travel:
+			problems.append("moved by a lunge, not its travel")
+		ChecklistResults.record_problems(5, id, problems)
+		assert_eq(problems, [] as Array[String], "%s.%s" % [wid, id])
+	var rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
+	for row_id: StringName in rows:
+		var by_clip: Dictionary = {}
+		for clip: StringName in rows[row_id]:
+			var problems: Array[String] = []
+			var row: Dictionary = t.clips.get(String(clip), {})
+			if row.is_empty() or not manifest.clips.has(clip):
+				problems.append("no row in the table")
+			elif int(row["frames"]) <= 0 or int(row["markers"]["settle"]) != manifest.clips[clip].markers["settle"] * 2 \
+					or not _is_sha(row["source_sha256"]) or row["digest"] != FrameDataTable.digest(row, null):
+				problems.append("its length or settle not generated from its markers")
+			by_clip[clip] = problems
+			assert_eq(problems, [] as Array[String], "%s" % clip)
+		ChecklistResults.record_clips(5, row_id, by_clip)

@@ -51,12 +51,25 @@ static func _distance_problems(bands: MoveBands, table: FrameDataTable, weapons:
 	return out
 
 
+## Records the per-move checklist's item `item` for every keyed move from
+## `problems` (each begins "<weapon>.<move>", then a colon or a space):
+## passed when none names it.
+static func _record(item: int, problems: Array[String]) -> void:
+	for m: Array in ChecklistResults.keyed_moves():
+		var at: String = "%s.%s" % [m[0], m[1]]
+		ChecklistResults.record_problems(item, m[1], problems.filter(func(p: String) -> bool: return p.begins_with(at + ":") or p.begins_with(at + " ")))
+
+
 func test_every_katana_and_bare_hands_move_off_the_waiting_list_lands_in_its_timing_band() -> void:
-	assert_eq(_timing_problems(_bands(), FrameDataTable.shared()), [] as Array[String])
+	var problems: Array[String] = _timing_problems(_bands(), FrameDataTable.shared())
+	_record(1, problems)
+	assert_eq(problems, [] as Array[String])
 
 
 func test_every_katana_and_bare_hands_move_off_the_waiting_list_connects_from_its_distance_band() -> void:
-	assert_eq(_distance_problems(_bands(), FrameDataTable.shared()), [] as Array[String])
+	var problems: Array[String] = _distance_problems(_bands(), FrameDataTable.shared())
+	_record(2, problems)
+	assert_eq(problems, [] as Array[String])
 
 
 func test_a_move_taken_off_the_waiting_list_while_out_of_band_fails_both_tests() -> void:
