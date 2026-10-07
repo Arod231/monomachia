@@ -48,6 +48,11 @@ Versus, two players on one PC in a split screen, comes in a later update.
   guaranteed: from the second hit on, the defender can block or parry. Hold
   heavy to charge it. Hits land where the weapon really sweeps through the
   opponent's body.
+- **Grips.** The Katana is held in one hand or two, and the grip button
+  switches at once whenever you can act. One-handed reaches wider and
+  recovers faster; two-handed hits harder and guards better. Each grip has its
+  own five-hit string, and a switch mid-string carries on into the other
+  grip's next hit. Every round starts one-handed.
 - **Block and parry.** Hold block to stop health damage; you can walk while
   blocking. Tap block just before a hit to parry: their weapon bounces off,
   their posture fills and you strike first.
@@ -91,13 +96,15 @@ show their own button names, and there is an 8-button fight-stick preset.
 | Block / parry | Left Shift or L | L1 | LB |
 | Dodge / backstep | Space | ○ | B |
 | Jump | F or I | ✕ | A |
-| Ultimate | Q or U, or light + heavy | △, or R1 + R2 | Y, or RB + RT |
+| Switch grip (Katana: one hand or two) | R | △ | Y |
+| Ultimate | Q or U, or light + heavy | L2, or R1 + R2 | LT, or RB + RT |
 | Block ability 1 / 2 | Hold block + light / heavy | Hold L1 + R1 / R2 | Hold LB + RB / RT |
 | Pick up weapon | E | □ | X |
 | Sprint | Double-tap a direction and hold | L3, or double-tap | L3, or double-tap |
 | Pause | Esc or P | Options | Menu |
 
-Tap a direction to step.
+Tap a direction to step. On the fight-stick preset the grip is L2 and sprint
+L3; player 2 on a shared keyboard switches grip with Y or numpad 1.
 
 ## Build and develop
 

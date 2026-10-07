@@ -47,15 +47,23 @@ extends RefCounted
 ##   (AttackState.lift, 6 frames), the legs handed over with it, and a guard
 ##   raised from it fades back to the legs over the same lift. There is no
 ##   CC0 carry, so without the packs nothing shows it;
+## - the grips (KE task 8; StateClips "grips"): the idle, the guard and the
+##   carry (carry_clip()) by weapon and grip, and on a switch while standing,
+##   moving or guarding the new grip's re-grip on the upper body at 1.0
+##   (regrip_clip(), phase &"regrip"; D15), or, without one, an inertial blend
+##   into the new grip's pose; a switch mid-attack plays nothing, the next
+##   hit's clip being the new grip's;
 ## - the states with a clip of their own (StateClips.state_clips; the stomp
 ##   counter's hand-keyed Mikiri_Stomp and the recall's Power_Up, task 30b,
 ##   KeyedClips; and by cause, stun_clips,
 ##   the stomped thruster's Mikiri_Pinned): the clip fitted to the
 ##   state's length, whole body, with or without the packs (the keyed clips
 ##   are committed);
-## - the Daggers' grip (task 21; Shot.grip): the reverse grip under the legs
-##   and the idle, turned forward over an attack's crossfade, and back over
-##   its last GRIP_BACK recovery frames when no follow-up is queued;
+## - the Daggers' reverse hold (task 21; Shot.reverse_hold; called their
+##   grip until KE task 8, when the word went to the rules' Grip) under the
+##   legs and the idle, turned forward over an attack's crossfade, and back
+##   over its last REVERSE_HOLD_BACK recovery frames when no follow-up is
+##   queued;
 ## - Shadow Step (task 22): Roll01 sped up as any baked move plays, the body
 ##   hidden through the blink, the active frames that carry it round the
 ##   opponent (blinks());
@@ -107,7 +115,7 @@ extends RefCounted
 ##   8 for a stance, 2 into a state's clip (the stomp springs out of the
 ##   dodge), 3 into a raised guard), which the rig's InertialBlend plays;
 ##   the crossfades' lengths (StateClips.fades, hitstun's a cut) still time
-##   the dagger grip's turn and the roll's turn back.
+##   the daggers' turn into the reverse hold and the roll's turn back.
 
 ## What the director plays by is data, in StateClips (state_clips.json, read
 ## through StateClips.shared()): the crossfades' lengths, the idles, the hit,
@@ -168,9 +176,9 @@ const PICKUP_STOP: StringName = &"Loot01_Stop"
 const PICKUP_FROM: float = 4.0
 const PICKUP_FALLBACK: StringName = &"PickUp_Table"
 
-## The Daggers turn back into the reverse grip over an attack's last this
+## The Daggers turn back into the reverse hold over an attack's last this
 ## many recovery frames when no follow-up is queued (task 21).
-const GRIP_BACK: int = 6
+const REVERSE_HOLD_BACK: int = 6
 ## What drives the body: the legs' blend, an authored attack clip, the
 ## shoulder carry's pose on the upper body over the legs, or a state's own
 ## clip (StateClips.state_clips).
@@ -188,7 +196,7 @@ const STUN_STATES: Array[StringName] = [&"stunned", &"stagger", &"disarmStagger"
 ## Slash and bare hands' Cross. The victim (&"finished") holds the stun.
 const FINISHER_STANDINS: Dictionary[StringName, StringName] = {&"katana": &"k_iai", &"fists": &"f_l2"}
 ## The reactions that show on the upper body alone.
-const UPPER_REACTIONS: Array[StringName] = [&"guard", &"blockstun", &"parry"]
+const UPPER_REACTIONS: Array[StringName] = [&"guard", &"blockstun", &"parry", &"regrip"]
 ## The states a parried attacker plays its recoil in: a block's parry
 ## recoils it, a Flash's or a Redirect's stuns it (task 27).
 const PARRIED_STATES: Array[StringName] = [&"recoil", &"stunned"]
@@ -254,8 +262,8 @@ class Shot:
 	var upper: bool = false
 	## The crossfade's length and how many rules frames in it is. Since
 	## milestone-1 task 23 no clip crossfades (see blend): it times only the
-	## hand-overs that aren't the pose's, the dagger grip's turn and the
-	## roll's turn back.
+	## hand-overs that aren't the pose's, the daggers' turn into the reverse
+	## hold and the roll's turn back.
 	var fade: int = 0
 	var since: int = 0
 	## The inertial blend this frame's hand-off asks for (rules frames;
@@ -276,20 +284,24 @@ class Shot:
 	## StateClips.deflect_pairs entry), carried through the parried state or
 	## the parrier's deflect; empty for none.
 	var pair: Dictionary = {}
-	## How far a pair of daggers is turned into the reverse grip (0 forward,
+	## How far a pair of daggers is turned into the reverse hold (0 forward,
 	## 1 reverse; FighterRig.set_reverse_turn()), and where it stood as the
 	## attack began (task 21).
-	var grip: float = 1.0
-	var grip_from: float = 1.0
+	var reverse_hold: float = 1.0
+	var reverse_hold_from: float = 1.0
 	## How far the body is turned from facing the opponent (radians, + to its
 	## left; the roll's, task 30), at this frame and the frame before, and
 	## where it stood as a dodge attack began.
 	var turn: float = 0.0
 	var turn_before: float = 0.0
 	var turn_from: float = 0.0
+	## The grip the fighter held (Fighter.grip; KE task 8), &"" disarmed: a
+	## change is a switch, which plays the new grip's re-grip.
+	var held_grip: StringName = &""
 
 	## How far the fade is in (0 to 1, smoothed), for what still hands over
-	## by it (the dagger grip's turn); poses blend inertially instead.
+	## by it (the daggers' turn into the reverse hold); poses blend
+	## inertially instead.
 	func fade_in() -> float:
 		if fade <= 0 or since >= fade:
 			return 1.0
@@ -388,6 +400,16 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			playing = carry_clip(f, ctx)
 			if playing != null:
 				drive = CARRY
+	# a grip switch (KE task 8): the new grip's re-grip on the upper body,
+	# standing, moving or guarding; an attack's next hit is the new grip's own
+	out.held_grip = f.grip if f.armed else &""
+	var switched: bool = prev != null and prev.held_grip != &"" and out.held_grip != &"" and prev.held_grip != out.held_grip
+	if drive == LEGS or drive == CARRY or (drive == STATE and phase == &"guard"):
+		var regrip: Clip = regrip_clip(prev, f, ctx, switched)
+		if regrip != null:
+			playing = regrip
+			drive = STATE
+			phase = &"regrip"
 	if prev == null:
 		out.drive = drive
 		out.clip = playing
@@ -401,8 +423,8 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 		out.from_upper = false
 		out.phase = phase
 		out.upper = drive == STATE and UPPER_REACTIONS.has(phase)
-		out.grip_from = 1.0
-		out.grip = _grip(out, f)
+		out.reverse_hold_from = 1.0
+		out.reverse_hold = _reverse_hold(out, f)
 		out.turn = roll_turn(f)
 		out.turn_before = out.turn
 		out.turn_from = 0.0
@@ -415,7 +437,7 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			out.from_upper = prev.from_upper
 		else:
 			out.from_upper = out.from != null and (prev.drive == CARRY or (prev.drive == STATE and prev.upper))
-		out.grip_from = prev.grip
+		out.reverse_hold_from = prev.reverse_hold
 		out.fade = _fade(prev, f, drive, sc.fades)
 		out.blend = _fade(prev, f, drive, sc.blends)
 		if phase == &"recoil" or phase == &"deflect":
@@ -431,6 +453,9 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 		out.clip_before = prev.clip
 		if out.from != null and out.since >= out.fade:
 			out.from = null
+	if switched and phase != &"regrip" and f.atk == null and drive != ATTACK and out.blend == 0:
+		# no re-grip of its own: the new grip's pose blends in
+		out.blend = sc.blends[&"guard"]
 	if out.fade <= 0:
 		out.from = null
 	if out.from == null:
@@ -442,7 +467,7 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 	out.move = move
 	out.state = f.state
 	out.phase = phase
-	out.grip = _grip(out, f)
+	out.reverse_hold = _reverse_hold(out, f)
 	out.turn_before = prev.turn
 	if drive == ATTACK and f.atk != null and changed and prev.state == &"dodge":
 		# a dodge attack turns back to the opponent from where the roll stood
@@ -623,7 +648,7 @@ static func reaction_of(f: Fighter) -> StringName:
 static func reaction_clip(f: Fighter, ctx: Context, reaction: StringName, held: int) -> Clip:
 	var sc: StateClips = StateClips.shared()
 	var wid: StringName = f.weapon.id if f.armed and f.weapon != null else &"fists"
-	var guard: Array = sc.guard_clips.get(wid, sc.guard_clips[&"fists"])
+	var guard: Array = sc.guard_for(wid, f.grip)
 	var id: StringName = &""
 	var fallback: StringName = &""
 	match reaction:
@@ -844,27 +869,60 @@ static func blinks(f: Fighter) -> bool:
 	return f.atk.frame > def.startup and f.atk.frame <= def.startup + def.active
 
 
-## How far a pair of daggers is turned into the reverse grip in shot `s`
+## How far a pair of daggers is turned into the reverse hold in shot `s`
 ## for `f`: all of it unless an attack drives; an attack turns it forward
-## from where it stood (grip_from) over its crossfade, and back over its last
-## GRIP_BACK recovery frames unless a follow-up is queued.
-static func _grip(s: Shot, f: Fighter) -> float:
+## from where it stood (reverse_hold_from) over its crossfade, and back over
+## its last REVERSE_HOLD_BACK recovery frames unless a follow-up is queued.
+static func _reverse_hold(s: Shot, f: Fighter) -> float:
 	if s.drive != ATTACK:
 		return 1.0
-	var t: float = lerpf(s.grip_from, 0.0, s.fade_in()) if s.fade > 0 else 0.0
+	var t: float = lerpf(s.reverse_hold_from, 0.0, s.fade_in()) if s.fade > 0 else 0.0
 	if f.atk != null and f.atk.queued == &"":
 		var left: int = f.atk.def.total_frames() - f.atk.frame
-		if left < GRIP_BACK:
-			t = maxf(t, 1.0 - float(left) / float(GRIP_BACK))
+		if left < REVERSE_HOLD_BACK:
+			t = maxf(t, 1.0 - float(left) / float(REVERSE_HOLD_BACK))
 	return t
 
 
-## The shoulder carry's pose for `f` while it is shouldered (held, a pose),
-## or null: not shouldered, or without the packs.
+## The carry `f` shows on the upper body (held, a pose), or null: the
+## Greatsword's shoulder carry while shouldered, else its grip's carry
+## (StateClips.carry_for(); KE task 8) standing or moving unguarded; none
+## without the packs.
 static func carry_clip(f: Fighter, ctx: Context) -> Clip:
-	if not f.shouldered or not ctx.libraries:
+	if not ctx.libraries:
 		return null
-	return Clip.make(carry_name(ctx), 0.0)
+	if f.shouldered:
+		return Clip.make(carry_name(ctx), 0.0)
+	if f.armed and f.weapon != null and not f.blocking and (f.state == &"free" or f.state == &"step"):
+		var id: StringName = StateClips.shared().carry_for(f.weapon.id, f.grip)
+		if id != &"":
+			return Clip.make(ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id), 0.0)
+	return null
+
+
+## The re-grip `f` plays on a grip switch (StateClips.regrip_for(); KE task
+## 8, D15), on the upper body: from its start on the step it `switched`, then
+## on at 1.0 to its end; null without one for the new grip, without the
+## packs, disarmed, outside standing, moving and landing (an attack, a
+## stance, a reaction), or once it has played.
+static func regrip_clip(prev: Shot, f: Fighter, ctx: Context, switched: bool) -> Clip:
+	if not ctx.libraries or not f.armed or f.weapon == null:
+		return null
+	if f.state != &"free" and f.state != &"step" and f.state != &"land":
+		return null
+	var anim_name: String = ""
+	var at: float = 0.0
+	if switched:
+		var id: StringName = StateClips.shared().regrip_for(f.weapon.id, f.grip)
+		if id == &"":
+			return null
+		anim_name = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id)
+	elif prev != null and prev.phase == &"regrip" and prev.clip != null:
+		anim_name = prev.clip.name
+		at = prev.clip.time + 1.0 / float(SimConst.FPS)
+	else:
+		return null
+	return Clip.make(anim_name, at) if at < ctx.lengths.get(anim_name, 0.0) - 1e-9 else null
 
 
 ## The carry's pose as a name in the tree, in the fighter's own set.
@@ -873,12 +931,12 @@ static func carry_name(ctx: Context) -> String:
 
 
 ## The idle under the legs' blend for `f`'s weapon class (bare hands when
-## disarmed), as a name in the tree.
+## disarmed) and grip (KE task 8), as a name in the tree.
 static func idle_clip(f: Fighter, ctx: Context) -> String:
 	var sc: StateClips = StateClips.shared()
 	var wid: StringName = f.weapon.id if f.armed and f.weapon != null else &"fists"
 	if ctx.libraries:
-		return "%s/%s" % [ClipLibraries.FIGHTER_SETS.get(ctx.fighter_id, &"HumanM"), sc.idle.get(wid, sc.idle[&"fists"])]
+		return "%s/%s" % [ClipLibraries.FIGHTER_SETS.get(ctx.fighter_id, &"HumanM"), sc.idle_for(wid, f.grip)]
 	return "%s/%s" % [FighterModel.LIBRARY, sc.fallback_idle.get(wid, sc.fallback_idle[&"fists"])]
 
 

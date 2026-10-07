@@ -18,7 +18,7 @@ extends Node3D
 ## - --weapon=katana|greatsword|daggers|none: the weapon in hand instead of
 ##   the page's own;
 ## - --clips=<id>,<id>...: these clips instead of the page's;
-## - --reverse: the Daggers in the reverse grip.
+## - --reverse: the Daggers in the reverse hold.
 
 const FIGHTERS: Array[StringName] = [&"hunter", &"rogue"]
 ## Each page's weapon in hand (&"none" for bare hands).
@@ -179,7 +179,7 @@ func render(page: StringName) -> Image:
 		rows.append([await _text([line], Vector2i(_width(), CAPTION)), cells])
 	var head: Image = await _text([
 		"Clip catalogue: %s · %d clips · %s%s in hand (off hand on IK for a two-handed weapon)" % [
-			page, ids.size(), "no weapon" if weapon == &"none" else String(weapon).capitalize(), " in the reverse grip" if reverse else ""],
+			page, ids.size(), "no weapon" if weapon == &"none" else String(weapon).capitalize(), " in the reverse hold" if reverse else ""],
 		"each row: the Hunter, then the Rogue, at the wind-up, contact, contact-end and settle markers, from three-quarters in front",
 	], Vector2i(_width(), HEADER))
 	return _compose(head, rows)

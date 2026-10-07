@@ -51,11 +51,21 @@ extends RefCounted
 ## "back_high", "back_low"}}}) and its light block's ({"block_light":
 ## {"katana": clip}}), each listed in "own_speed" to fit its state at its own
 ## speed. A weapon without them keeps "hit" and "guard". Only with the packs.
+##
+## "grips" (KE task 8) gives a weapon with grips each grip's own clips, by
+## weapon then grip ({"katana": {"one_handed": {"idle": clip, "guard": [loop,
+## hit], "carry": clip}}}; the carry may be left out, for none), and its
+## re-grip transitions by the grip switched to ({"regrip": {"two_handed":
+## clip}}; D15), each optional. A weapon or a grip without an entry plays the
+## weapon's idle and guard, with no carry or re-grip.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips"]
+## The grips a "grips" entry names (WeaponGrip's), and each one's clips.
+const GRIP_IDS: Array[String] = ["one_handed", "two_handed"]
+const GRIP_FIELDS: Array[String] = ["idle", "guard", "carry"]
 ## Where a hit can land, for its light reaction ("reactions").
 const HIT_PLACES: Array[String] = ["front_high", "front_low", "left_high", "left_low", "right_high", "right_low", "back_high", "back_low"]
 ## A deflect pair's fields (deflect_pairs).
@@ -164,6 +174,11 @@ var deflect_pairs: Dictionary[StringName, Dictionary] = {}
 ## of clip ids by HIT_PLACES; and the light block reaction by weapon.
 var light_hits: Dictionary[StringName, Dictionary] = {}
 var light_blocks: Dictionary[StringName, StringName] = {}
+## Each grip's own clips (KE task 8), by weapon then grip: {&"idle": clip,
+## &"guard": [loop, hit], &"carry": clip, or &"" for none}.
+var grip_clips: Dictionary[StringName, Dictionary] = {}
+## The re-grip transitions (D15), by weapon then the grip switched to.
+var regrips: Dictionary[StringName, Dictionary] = {}
 ## What is wrong with the file, one line each; empty when it read cleanly.
 var errors: PackedStringArray = []
 
@@ -327,7 +342,74 @@ static func read(path: String = PATH) -> StateClips:
 				var id: StringName = t._id(blocks, "reactions.block_light", str(w))
 				if id != &"":
 					t.light_blocks[StringName(str(w))] = id
+	if root.has("grips"):
+		t._grips(root["grips"])
 	return t
+
+
+## Reads the "grips" group into grip_clips and regrips.
+func _grips(g: Variant) -> void:
+	if not g is Dictionary:
+		errors.append("grips: must be an object")
+		return
+	var allowed: Array[String] = GRIP_IDS.duplicate()
+	allowed.append("regrip")
+	for w: Variant in g:
+		var at: String = "grips.%s" % w
+		var e: Dictionary = _some_of(g[w], at, allowed)
+		var by: Dictionary = {}
+		for grip: String in GRIP_IDS:
+			if not e.has(grip):
+				continue
+			var ga: String = "%s.%s" % [at, grip]
+			var c: Dictionary = _some_of(e[grip], ga, GRIP_FIELDS)
+			if not c.has("idle") or not c.has("guard"):
+				errors.append("%s: needs its idle and its guard, [loop, hit]" % ga)
+				continue
+			by[StringName(grip)] = {
+				&"idle": _id(c, ga, "idle"),
+				&"guard": _ids(c, ga, "guard", 2),
+				&"carry": _id(c, ga, "carry") if c.has("carry") else &"",
+			}
+		grip_clips[StringName(str(w))] = by
+		if e.has("regrip"):
+			var ra: String = "%s.regrip" % at
+			var r: Dictionary = _some_of(e["regrip"], ra, GRIP_IDS)
+			var to: Dictionary = {}
+			for grip: Variant in r:
+				var id: StringName = _id(r, ra, str(grip))
+				if id != &"":
+					to[StringName(str(grip))] = id
+			regrips[StringName(str(w))] = to
+
+
+## The idle `weapon` plays in `grip` (KE task 8): the grip's own, else the
+## weapon's (bare hands' for a weapon without one).
+func idle_for(weapon: StringName, grip: StringName) -> StringName:
+	var own: Dictionary = (grip_clips.get(weapon, {}) as Dictionary).get(grip, {})
+	if own.has(&"idle"):
+		return own[&"idle"]
+	return idle.get(weapon, idle[&"fists"])
+
+
+## The guard `weapon` plays in `grip`, [Parry Loop, Parry Hit]: the grip's
+## own, else the weapon's (bare hands' for a weapon without one).
+func guard_for(weapon: StringName, grip: StringName) -> Array:
+	var own: Dictionary = (grip_clips.get(weapon, {}) as Dictionary).get(grip, {})
+	if own.has(&"guard"):
+		return own[&"guard"]
+	return guard_clips.get(weapon, guard_clips[&"fists"])
+
+
+## The carry `weapon` shows on the upper body in `grip`, or &"" for none.
+func carry_for(weapon: StringName, grip: StringName) -> StringName:
+	var own: Dictionary = (grip_clips.get(weapon, {}) as Dictionary).get(grip, {})
+	return own.get(&"carry", &"")
+
+
+## The re-grip transition into `grip` on `weapon` (D15), or &"" for none.
+func regrip_for(weapon: StringName, grip: StringName) -> StringName:
+	return (regrips.get(weapon, {}) as Dictionary).get(grip, &"")
 
 
 ## The table the game plays by: read from PATH once and kept, so a test or the
@@ -361,6 +443,18 @@ func _object(v: Variant, at: String, fields: Array[String]) -> Dictionary:
 		if not d.has(key):
 			errors.append("%s: missing %s" % [where, key])
 	return d
+
+
+## `v` as an object whose keys are among `fields`, any of which it may leave
+## out (a "grips" entry's); a mistake is noted and answers an empty object.
+func _some_of(v: Variant, at: String, fields: Array[String]) -> Dictionary:
+	if not v is Dictionary:
+		errors.append("%s: not an object" % at)
+		return {}
+	for key: Variant in v:
+		if not fields.has(str(key)):
+			errors.append("%s: unknown field %s" % [at, key])
+	return v
 
 
 ## A clip or weapon id: a non-empty string; empty if `key` isn't one.

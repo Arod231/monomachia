@@ -26,7 +26,7 @@ func test_keyboard_defaults_hold_each_rule_button() -> void:
 	var cases: Array = [
 		[KEY_J, Btn.LIGHT], [KEY_K, Btn.HEAVY], [KEY_L, Btn.BLOCK],
 		[KEY_SPACE, Btn.DODGE], [KEY_F, Btn.JUMP], [KEY_I, Btn.JUMP], [KEY_E, Btn.INTERACT],
-		[KEY_Q, Btn.ULTIMATE], [KEY_U, Btn.ULTIMATE],
+		[KEY_Q, Btn.ULTIMATE], [KEY_U, Btn.ULTIMATE], [KEY_R, Btn.GRIP],
 	]
 	for c: Array in cases:
 		fake.release_all()
@@ -99,13 +99,16 @@ func test_controller_defaults_hold_each_rule_button() -> void:
 	var cases: Array = [
 		[JOY_BUTTON_RIGHT_SHOULDER, Btn.LIGHT], [JOY_BUTTON_LEFT_SHOULDER, Btn.BLOCK],
 		[JOY_BUTTON_B, Btn.DODGE], [JOY_BUTTON_A, Btn.JUMP], [JOY_BUTTON_X, Btn.INTERACT],
-		[JOY_BUTTON_Y, Btn.ULTIMATE], [JOY_BUTTON_LEFT_STICK, Btn.SPRINT],
+		[JOY_BUTTON_Y, Btn.GRIP], [JOY_BUTTON_LEFT_STICK, Btn.SPRINT],
 	]
 	for c: Array in cases:
 		fake.release_all()
 		fake.press_button(0, c[0])
 		var raw: RawInput = input.sample_device(profile, InputDevices.PAD0)
 		assert_eq(raw.buttons, Btn.bit(c[1]), "button %d" % c[0])
+	fake.release_all()
+	fake.set_axis(0, JOY_AXIS_TRIGGER_LEFT, 1.0)
+	assert_eq(input.sample_device(profile, InputDevices.PAD0).buttons, Btn.bit(Btn.ULTIMATE), "L2 is the ultimate (KE task 6)")
 	fake.release_all()
 	fake.press_button(0, JOY_BUTTON_START)
 	assert_eq(input.sample_device(profile, InputDevices.PAD0).buttons, 0, "pause is not a rule button")
@@ -157,7 +160,10 @@ func test_fight_stick_layout() -> void:
 	assert_eq(input.sample_device(profile, InputDevices.PAD0).buttons, Btn.bit(Btn.INTERACT), "R2 picks up")
 	fake.release_all()
 	fake.set_axis(0, JOY_AXIS_TRIGGER_LEFT, 1.0)
-	assert_eq(input.sample_device(profile, InputDevices.PAD0).buttons, Btn.bit(Btn.SPRINT), "L2 sprints")
+	assert_eq(input.sample_device(profile, InputDevices.PAD0).buttons, Btn.bit(Btn.GRIP), "L2 switches the grip (KE task 6)")
+	fake.release_all()
+	fake.press_button(0, JOY_BUTTON_LEFT_STICK)
+	assert_eq(input.sample_device(profile, InputDevices.PAD0).buttons, Btn.bit(Btn.SPRINT), "L3 sprints")
 	fake.release_all()
 	fake.press_button(0, JOY_BUTTON_DPAD_LEFT)
 	_assert_move(input.sample_device(profile, InputDevices.PAD0), -1.0, 0.0, "the stick's D-pad mode moves")
@@ -251,7 +257,7 @@ func test_arrow_layout() -> void:
 		[KEY_J, Btn.LIGHT], [KEY_KP_4, Btn.LIGHT], [KEY_K, Btn.HEAVY], [KEY_KP_5, Btn.HEAVY],
 		[KEY_L, Btn.BLOCK], [KEY_KP_6, Btn.BLOCK], [KEY_SEMICOLON, Btn.DODGE], [KEY_KP_0, Btn.DODGE],
 		[KEY_I, Btn.JUMP], [KEY_KP_8, Btn.JUMP], [KEY_O, Btn.INTERACT], [KEY_KP_9, Btn.INTERACT],
-		[KEY_U, Btn.ULTIMATE], [KEY_KP_7, Btn.ULTIMATE],
+		[KEY_U, Btn.ULTIMATE], [KEY_KP_7, Btn.ULTIMATE], [KEY_Y, Btn.GRIP], [KEY_KP_1, Btn.GRIP],
 	]
 	for c: Array in cases:
 		fake.release_all()
@@ -330,9 +336,9 @@ func test_the_exclusion_holds_every_arrow_layout_key_and_nothing_else() -> void:
 	input.set_versus(devices, profiles)
 	var ex: Dictionary = input.excluded_tokens(0)
 	for code: int in [KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_J, KEY_K, KEY_L, KEY_SEMICOLON, KEY_I, KEY_O, KEY_U,
-			KEY_BACKSPACE, KEY_KP_ENTER, KEY_KP_0, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9]:
+			KEY_Y, KEY_BACKSPACE, KEY_KP_ENTER, KEY_KP_0, KEY_KP_1, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9]:
 		assert_true(ex.has(InputToken.key(code)), OS.get_keycode_string(code))
-	assert_eq(ex.size(), 20)
+	assert_eq(ex.size(), 22)
 	assert_false(ex.has(InputToken.key(KEY_W)))
 	assert_eq(input.excluded_tokens(1), {}, "player 2 ignores nothing")
 

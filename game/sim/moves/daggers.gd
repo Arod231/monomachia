@@ -153,4 +153,6 @@ static func build() -> WeaponDef:
 		"blade": StrikeSegment.make(V3.make(0.0, 0.062, 0.0), V3.make(-0.019, 0.322, 0.0), 0.014),
 		"foot": null,
 		"off_hand_grip": null,
+		# one implicit grip (KE task 5)
+		"grips": [],
 	})

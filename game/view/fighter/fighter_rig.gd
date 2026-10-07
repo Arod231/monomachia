@@ -30,7 +30,7 @@ extends RefCounted
 ## A held weapon is fixed, posed or carried:
 ## - fixed (fix_weapons()), while an authored clip drives the arms: each
 ##   weapon rides its hand at its grip (the measured fist turned by the
-##   look's grip_offset, and by 180° about the knuckles for a reverse grip),
+##   look's grip_offset, and by 180° about the knuckles for a reverse hold),
 ##   and the off hand of a two-handed weapon reaches its OffHandGrip on IK
 ##   over the clip;
 ## - posed (pose_weapon()): its transform in skeleton space is given, and
@@ -133,7 +133,7 @@ var _posed: Array[bool] = []
 var _poses: Array[Transform3D] = []
 var _hold: WeaponHold
 ## Fixed to the hands (see fix_weapons()), and how far turned into the
-## reverse grip (0 forward, 1 reverse; set_reverse_turn()).
+## reverse hold (0 forward, 1 reverse; set_reverse_turn()).
 var _fixed: bool = false
 var _reverse: float = 0.0
 ## In this update, a fixed two-handed weapon was drawn in toward the off
@@ -276,7 +276,7 @@ func carry_weapons() -> void:
 ## fixed_grip()): the main hand holds the first, the off hand the second of
 ## a pair, and the off hand of a two-handed weapon reaches its OffHandGrip
 ## on IK. `reverse` turns each weapon 180° about the knuckles (the Daggers'
-## reverse grip).
+## reverse hold).
 func fix_weapons(reverse: bool = false) -> void:
 	_fixed = true
 	_reverse = 1.0 if reverse else 0.0
@@ -289,10 +289,10 @@ func is_fixed() -> bool:
 	return _fixed
 
 
-## Turns each fixed weapon part of the way into the reverse grip, `turn`
+## Turns each fixed weapon part of the way into the reverse hold, `turn`
 ## (0 forward to 1 reverse) of the 180° about the knuckles: the Daggers'
 ## flip between the reverse-grip idle and their forward-grip attacks
-## (authored-animation task 21; ClipDirector.Shot.grip).
+## (authored-animation task 21; ClipDirector.Shot.reverse_hold).
 func set_reverse_turn(turn: float) -> void:
 	_reverse = clampf(turn, 0.0, 1.0)
 
@@ -313,7 +313,7 @@ func is_posed(index: int) -> bool:
 
 ## A fixed weapon's transform in its hand's bone space: the fist round the
 ## handle, turned by the look's grip offset, and by up to 180° about the
-## knuckles (+X) toward the reverse grip (set_reverse_turn()).
+## knuckles (+X) toward the reverse hold (set_reverse_turn()).
 func fixed_grip(side: String) -> Transform3D:
 	var grip: Transform3D = hand_grip.fist(side)
 	if _look != null:

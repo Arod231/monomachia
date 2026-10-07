@@ -140,7 +140,12 @@ func test_a_human_s_inputs_replay_exactly() -> void:
 	fake.press_key(KEY_J)
 	a.step(3)
 	fake.release_key(KEY_J)
-	a.step(50)
+	a.step(20)
+	# the grip switched mid-match (KE task 6)
+	fake.press_key(KEY_R)
+	a.step(2)
+	fake.release_key(KEY_R)
+	a.step(28)
 	fake.set_axis(0, JOY_AXIS_LEFT_X, 0.0)
 	fake.press_key(KEY_SPACE)
 	a.step(2)
@@ -149,10 +154,14 @@ func test_a_human_s_inputs_replay_exactly() -> void:
 	var log_a: InputLog = a.input_log
 	a.stop()
 	var moved: bool = false
+	var gripped: bool = false
 	for i: int in log_a.step_count():
 		if log_a.input(i, 0).mx != 0.0:
 			moved = true
+		if log_a.input(i, 0).buttons & Btn.bit(Btn.GRIP):
+			gripped = true
 	assert_true(moved, "the human side's stick is in the log")
+	assert_true(gripped, "and the grip press")
 	var path: String = DIR + "/human.json"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR))
 	assert_eq(log_a.save(path), OK)

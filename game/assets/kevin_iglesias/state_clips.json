@@ -52,5 +52,11 @@
 		"hit_light": {"katana": {"front_high": "HitLightHighFront", "front_low": "HitLightLowFront", "left_high": "HitLightHighLeft", "left_low": "HitLightLowLeft", "right_high": "HitLightHighRight", "right_low": "HitLightLowRight", "back_high": "HitLightHighBack", "back_low": "HitLightLowBack"}},
 		"block_light": {"katana": "BlockLightKatana"}
 	},
-	"own_speed": {"HitLightHighFront": "hand_on", "HitLightLowFront": "hand_on", "HitLightHighLeft": "hand_on", "HitLightLowLeft": "hand_on", "HitLightHighRight": "hand_on", "HitLightLowRight": "hand_on", "HitLightHighBack": "hand_on", "HitLightLowBack": "hand_on", "BlockLightKatana": "hand_on"}
+	"own_speed": {"HitLightHighFront": "hand_on", "HitLightLowFront": "hand_on", "HitLightHighLeft": "hand_on", "HitLightLowLeft": "hand_on", "HitLightHighRight": "hand_on", "HitLightLowRight": "hand_on", "HitLightHighBack": "hand_on", "HitLightLowBack": "hand_on", "BlockLightKatana": "hand_on"},
+	"grips": {
+		"katana": {
+			"one_handed": {"idle": "KatanaGuard", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"]},
+			"two_handed": {"idle": "KatanaGuard", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"]}
+		}
+	}
 }

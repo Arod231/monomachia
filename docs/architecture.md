@@ -314,6 +314,8 @@ classDiagram
         vel : V3
         yaw
         armed
+        grip
+        string_count
         abilities[2]
         update()
         try_actions()
@@ -337,6 +339,14 @@ classDiagram
         heavy_start
         default_abilities
         ultimate
+        grips
+    }
+    class WeaponGrip {
+        id
+        string
+        block_mitigation
+        heavy
+        draw_heavy
     }
     class AttackDef {
         id
@@ -411,6 +421,7 @@ classDiagram
     Fighter --> FighterStats
     AttackState --> AttackDef : def
     WeaponDef "1" --> "*" AttackDef : moves
+    WeaponDef "1" --> "*" WeaponGrip : grips
     Moves --> WeaponDef
 ```
 
@@ -763,7 +774,7 @@ flowchart LR
     SRCW["assets/weapons/*.fbx<br/>+ tools/build_*.gd"] --> WEAPON
 ```
 
-- A **fighter** (Rogue, Hunter) is a `FighterModel` scene plus a `FighterLook` resource. The look says which weapon each fighter holds how (`WeaponHold`: reverse grip, guard stance, wrist tweaks).
+- A **fighter** (Rogue, Hunter) is a `FighterModel` scene plus a `FighterLook` resource. The look says which weapon each fighter holds how (`WeaponHold`: reverse hold, guard stance, wrist tweaks).
 - A **weapon's look** (`WeaponLook`) is separate from its rules (`WeaponDef` in `sim/moves`). They share the id (`katana`, `greatsword`, `daggers`) by convention.
 - An **arena** is an `ArenaDef` resource plus a scene that builds itself in code. Every arena must provide a `def` property, `Spawn0/1` and `Gate0/1` markers, its own environment, lights and `InkWashPass`, and apply the graphics preset to itself. Its `walkable_radius` must equal `SimConst.ARENA_RADIUS`, or `ArenaScenes` falls back to the stand-in.
   > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This is the code today. ADR 0001 retires the ink-wash pass, so an arena will no longer need an `InkWashPass` once the slice lands.

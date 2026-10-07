@@ -18,12 +18,15 @@ const SIDES: Array[StringName] = [&"left", &"right", &"centre"]
 ## moves, a follow-up starting on the wrong side, a move in a string without
 ## both its sides, and a move in no string with a side. A release variant (the
 ## horizontal Iai) stands in for its move, so it is in its move's string.
-static func _breaks(moves: Dictionary[StringName, AttackDef]) -> Array[String]:
+## Given its weapon `w`, a move's follow-ups are its grips' too (KE task 7):
+## a string hit's next hit and heavy in each grip, the heavy starter's heavy
+## follow-up in each.
+static func _breaks(moves: Dictionary[StringName, AttackDef], w: WeaponDef = null) -> Array[String]:
 	var out: Array[String] = []
 	var in_a_string: Dictionary[StringName, bool] = {}
 	for id: StringName in moves:
 		var m: AttackDef = moves[id]
-		for next_id: StringName in [m.chain_light, m.chain_heavy]:
+		for next_id: StringName in _follow_ups(m, w):
 			if next_id == &"":
 				continue
 			in_a_string[id] = true
@@ -55,6 +58,23 @@ static func _breaks(moves: Dictionary[StringName, AttackDef]) -> Array[String]:
 	return out
 
 
+## Move m's follow-ups: its own light and heavy, and with weapon `w` its
+## grips' (KE task 7).
+static func _follow_ups(m: AttackDef, w: WeaponDef) -> Array[StringName]:
+	var out: Array[StringName] = [m.chain_light, m.chain_heavy]
+	if w == null:
+		return out
+	for g: WeaponGrip in w.grips:
+		var at: int = g.string.find(m.id)
+		while at >= 0:
+			out.append(g.hit(at + 2))
+			out.append(g.heavy)
+			at = g.string.find(m.id, at + 1)
+		if m.id == w.heavy_start and m.chain_heavy != &"":
+			out.append(g.draw_heavy)
+	return out
+
+
 ## Moves for the checks on _breaks: each record gets the frames every move
 ## needs.
 static func _moves(records: Dictionary) -> Dictionary[StringName, AttackDef]:
@@ -68,7 +88,7 @@ static func _moves(records: Dictionary) -> Dictionary[StringName, AttackDef]:
 
 func test_every_follow_up_starts_where_the_move_before_it_ends() -> void:
 	for w: StringName in WEAPONS:
-		assert_eq(_breaks(Moves.WEAPONS[w].moves), [] as Array[String], String(w))
+		assert_eq(_breaks(Moves.WEAPONS[w].moves, Moves.WEAPONS[w]), [] as Array[String], String(w))
 
 
 func test_the_check_reports_a_follow_up_starting_on_the_wrong_side() -> void:

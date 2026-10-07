@@ -153,7 +153,7 @@ func test_labels_follow_the_last_device_used() -> void:
 	_start()
 	me.hp = 20.0
 	_use_pad()
-	assert_eq(_lines(), ["Ultimate ready: [R1] + [R2] or [△]"] as Array[String])
+	assert_eq(_lines(), ["Ultimate ready: [R1] + [R2] or [L2]"] as Array[String])
 	var key := InputEventKey.new()
 	key.physical_keycode = KEY_W
 	key.pressed = true

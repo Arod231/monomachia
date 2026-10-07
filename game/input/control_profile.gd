@@ -124,4 +124,34 @@ static func _read_set(raw: Variant, defaults: Dictionary, joypad: bool) -> Dicti
 			if tokens.size() < Bindings.SLOTS:
 				tokens.append(token)
 		out[action] = tokens
+	if not src.is_empty() and not src.has("grip"):
+		_add_grip(out, defaults, joypad)
 	return out
+
+
+## A set saved before the grip action (KE task 6) gains it without a clash:
+## on the controller an Ultimate still on its old place, Y, moves to its new
+## default, L2, when nothing else uses L2; then the grip takes each of its
+## defaults that no other action uses, and is left unbound for the player
+## to set when none is free.
+static func _add_grip(out: Dictionary, defaults: Dictionary, joypad: bool) -> void:
+	if joypad:
+		var old: String = Bindings.OLD_PAD_ULTIMATE
+		var moved_to: String = defaults["ultimate"][0]
+		var ultimate: Array = out["ultimate"]
+		var at: int = ultimate.find(old)
+		if at >= 0 and not _bound_elsewhere(out, moved_to, "ultimate"):
+			ultimate[at] = moved_to
+	var grip: Array = []
+	for token: String in defaults["grip"]:
+		if not _bound_elsewhere(out, token, "grip"):
+			grip.append(token)
+	out["grip"] = grip
+
+
+## Whether an action other than `action` holds `token` in the set.
+static func _bound_elsewhere(bindings: Dictionary, token: String, action: String) -> bool:
+	for other: String in bindings:
+		if other != action and (bindings[other] as Array).has(token):
+			return true
+	return false

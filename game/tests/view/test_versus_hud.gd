@@ -204,7 +204,7 @@ func test_each_player_s_prompts_name_their_own_device() -> void:
 	host.fighter(1).hp = 20.0
 	hud._process(1.0 / 60.0)
 	assert_eq(_caps(0), ["Left Click", "Right Click", "Q"] as Array[String])
-	assert_eq(_caps(1), ["R1", "R2", "△"] as Array[String])
+	assert_eq(_caps(1), ["R1", "R2", "L2"] as Array[String])
 
 
 ## Sharing the keyboard: player 2 on the arrow layout reads its J, K and U.
