@@ -1,21 +1,21 @@
 [gd_resource type="Resource" script_class="FighterPalette" format=3]
 
 [ext_resource type="Script" path="res://fighters/fighter_palette.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://fighters/hunter/hunter_palette_b_outfit.png" id="2_outfit"]
+[ext_resource type="PackedScene" uid="uid://bs8ot5gym5u75" path="res://assets/exports/fighters/hunter_indigo.glb" id="2_maps"]
 
 [resource]
 script = ExtResource("1_script")
 display_name = "Indigo"
 hood_color = Color(0.114, 0.165, 0.302, 1)
-vest_color = Color(0.09, 0.13, 0.24, 1)
-shirt_color = Color(0.35, 0.35, 0.34, 1)
-trim_color = Color(0.114, 0.165, 0.302, 1)
-sleeve_color = Color(0.15, 0.21, 0.37, 1)
-trouser_color = Color(0.12, 0.12, 0.13, 1)
-leather_color = Color(0.08, 0.08, 0.09, 1)
-boot_color = Color(0.085, 0.085, 0.09, 1)
-metal_color = Color(0.3, 0.3, 0.32, 1)
-wear = 0.75
+vest_color = Color(0.094, 0.133, 0.247, 1)
+shirt_color = Color(0.114, 0.165, 0.302, 1)
+trim_color = Color(0.133, 0.196, 0.361, 1)
+sleeve_color = Color(0.114, 0.165, 0.302, 1)
+trouser_color = Color(0.071, 0.102, 0.188, 1)
+leather_color = Color(0.169, 0.137, 0.114, 1)
+boot_color = Color(0.133, 0.11, 0.09, 1)
+metal_color = Color(0.431, 0.416, 0.384, 1)
+wear = 0.6
 hair_color = Color(0.5, 0.49, 0.47, 1)
 headwear_color = Color(0.07, 0.09, 0.16, 1)
-outfit_albedo = ExtResource("2_outfit")
+outfit_maps = ExtResource("2_maps")

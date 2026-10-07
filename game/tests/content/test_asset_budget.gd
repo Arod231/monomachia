@@ -37,9 +37,10 @@ static func _files(dir_path: String, out: Array[String]) -> Array[String]:
 	return out
 
 
-## Arena art exported from Blender (the Shrine's wisteria, milestone-1 task
-## 48): no skeleton, so no bone map.
-const UNRIGGED: String = "res://assets/exports/shrine/"
+## Art exported from Blender with no skeleton, so no bone map: the Shrine's
+## (the wisteria, milestone-1 task 48) and the fighters' dyed maps (the
+## Hunter's palettes, task 45).
+const UNRIGGED: Array[String] = ["res://assets/exports/shrine/", "res://assets/exports/fighters/"]
 
 
 ## The gitignored folders the Iglesias import tool writes (the staged FBX
@@ -123,7 +124,7 @@ func test_every_skinned_model_is_retargeted_through_the_bone_map() -> void:
 	for path: String in _files(ASSETS, []):
 		if not (path.ends_with(".gltf.import") or path.ends_with(".glb.import")):
 			continue
-		if path.begins_with(UNRIGGED):
+		if UNRIGGED.any(func(prefix: String) -> bool: return path.begins_with(prefix)):
 			var model: Node = (load(path.trim_suffix(".import")) as PackedScene).instantiate()
 			assert_eq(model.find_children("*", "Skeleton3D", true, false).size(), 0, "%s has no rig" % path.get_file())
 			model.free()

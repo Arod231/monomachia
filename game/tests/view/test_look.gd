@@ -128,6 +128,22 @@ func test_a_fighter_surface_keeps_what_it_was_imported_with() -> void:
 	assert_eq(_number(one_sided, &"normal_strength"), 0.0, "no normal map, no bumps")
 
 
+func test_a_fighter_surface_with_a_roughness_map_takes_it_and_its_metalness() -> void:
+	# milestone-1 task 45: the dyed outfit's maps carry roughness (green) and
+	# metalness (blue) in one texture, as glTF does
+	var source: StandardMaterial3D = _imported(false)
+	var orm: Texture2D = LookNoise.texture()
+	source.roughness_texture = orm
+	source.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+	source.metallic_texture = orm
+	source.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+	var m: ShaderMaterial = LookMaterials.fighter_from(source)
+	assert_eq(_param(m, &"orm_texture"), orm, "the roughness and metalness map")
+	assert_eq(_param(m, &"use_orm_texture"), true)
+	var plain: ShaderMaterial = LookMaterials.fighter_from(_imported(false))
+	assert_ne(_param(plain, &"use_orm_texture"), true, "none without one: the fixed fighter surface")
+
+
 func test_a_weapon_material_becomes_steel_or_leather() -> void:
 	var steel := StandardMaterial3D.new()
 	steel.albedo_color = Color(0.16, 0.165, 0.18)

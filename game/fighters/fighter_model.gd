@@ -159,17 +159,30 @@ func _dress(index: int) -> void:
 ## Gives a surface the physically based version of its imported material
 ## (LookMaterials), recoloured for
 ## palette `p` (on a copy of the import): the outfit takes the palette's
-## texture, the hair and the headwear its colours. The materials are
+## texture, or its dyed maps (base colour, roughness and metalness, normal),
+## the atlas the mesh wears; the hair and the headwear take its colours. The materials are
 ## cached, so switching back and forth makes no new ones. (No lambdas here:
 ## one made in the palette's setter kept the scripts alive at exit.)
 func _override(entry: Array, kind: String, p: FighterPalette) -> void:
 	var base: BaseMaterial3D = entry[2]
-	var key: String = "%s:%d:%d" % [kind, p.get_instance_id(), base.get_instance_id()]
+	var dyed: BaseMaterial3D = p.dyed_material((entry[0] as MeshInstance3D).name) if kind == "outfit" else null
+	var key: String = "%s:%d:%d:%d" % [kind, p.get_instance_id(), base.get_instance_id(),
+		dyed.get_instance_id() if dyed != null else 0]
 	if not _materials.has(key):
 		var m: BaseMaterial3D = base.duplicate()
 		match kind:
 			"outfit":
-				if p.outfit_albedo != null:
+				if dyed != null:
+					m.albedo_color = Color.WHITE
+					m.albedo_texture = dyed.albedo_texture
+					m.normal_enabled = true
+					m.normal_texture = dyed.normal_texture
+					m.normal_scale = dyed.normal_scale
+					m.roughness_texture = dyed.roughness_texture
+					m.roughness_texture_channel = dyed.roughness_texture_channel
+					m.metallic_texture = dyed.metallic_texture
+					m.metallic_texture_channel = dyed.metallic_texture_channel
+				elif p.outfit_albedo != null:
 					m.albedo_texture = p.outfit_albedo
 			"hair":
 				m.albedo_color = p.hair_color

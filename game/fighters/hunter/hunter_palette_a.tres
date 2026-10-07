@@ -1,21 +1,21 @@
 [gd_resource type="Resource" script_class="FighterPalette" format=3]
 
 [ext_resource type="Script" path="res://fighters/fighter_palette.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://fighters/hunter/hunter_palette_a_outfit.png" id="2_outfit"]
+[ext_resource type="PackedScene" uid="uid://bjy57cbv1osui" path="res://assets/exports/fighters/hunter_crimson.glb" id="2_maps"]
 
 [resource]
 script = ExtResource("1_script")
 display_name = "Crimson"
-hood_color = Color(0.5, 0.13, 0.11, 1)
-vest_color = Color(0.4, 0.1, 0.085, 1)
-shirt_color = Color(0.3, 0.25, 0.19, 1)
-trim_color = Color(0.62, 0.17, 0.145, 1)
-sleeve_color = Color(0.62, 0.17, 0.145, 1)
-trouser_color = Color(0.22, 0.19, 0.155, 1)
-leather_color = Color(0.15, 0.105, 0.075, 1)
-boot_color = Color(0.2, 0.14, 0.09, 1)
-metal_color = Color(0.42, 0.33, 0.2, 1)
-wear = 0.75
+hood_color = Color(0.62, 0.169, 0.145, 1)
+vest_color = Color(0.525, 0.133, 0.118, 1)
+shirt_color = Color(0.62, 0.169, 0.145, 1)
+trim_color = Color(0.478, 0.122, 0.11, 1)
+sleeve_color = Color(0.62, 0.169, 0.145, 1)
+trouser_color = Color(0.361, 0.086, 0.094, 1)
+leather_color = Color(0.169, 0.137, 0.114, 1)
+boot_color = Color(0.133, 0.11, 0.09, 1)
+metal_color = Color(0.431, 0.416, 0.384, 1)
+wear = 0.6
 hair_color = Color(0.26, 0.18, 0.12, 1)
 headwear_color = Color(0.1, 0.085, 0.07, 1)
-outfit_albedo = ExtResource("2_outfit")
+outfit_maps = ExtResource("2_maps")

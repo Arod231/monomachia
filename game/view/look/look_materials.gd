@@ -65,7 +65,9 @@ static func fighter(color: Color) -> ShaderMaterial:
 
 ## A fighter surface from the material it was imported with: its colour,
 ## base-colour texture, normal map and vertex colour carried over, drawn from
-## both sides when the import is. Its name is kept, so the palettes still
+## both sides when the import is. A roughness map (the Hunter's dyed outfit,
+## milestone-1 task 45: roughness in green, metalness in blue, as glTF packs
+## them) replaces the fixed FIGHTER_SURFACE. Its name is kept, so the palettes still
 ## find the outfit by name.
 static func fighter_from(source: BaseMaterial3D) -> ShaderMaterial:
 	var params: Dictionary = {
@@ -79,6 +81,9 @@ static func fighter_from(source: BaseMaterial3D) -> ShaderMaterial:
 	if source.normal_enabled and source.normal_texture != null:
 		params[&"normal_texture"] = source.normal_texture
 		params[&"normal_strength"] = source.normal_scale * FIGHTER_NORMAL_STRENGTH
+	if source.roughness_texture != null:
+		params[&"orm_texture"] = source.roughness_texture
+		params[&"use_orm_texture"] = true
 	var two_sided: bool = source.cull_mode == BaseMaterial3D.CULL_DISABLED
 	var m: ShaderMaterial = make_with_shader(SURFACE_TWO_SIDED_SHADER if two_sided else SURFACE_SHADER,
 		Surface.FIGHTER, params)

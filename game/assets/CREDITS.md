@@ -60,4 +60,6 @@ All four are FBX clips (plus Blender files) made for Kevin Iglesias's own HumanF
 |---|---|---|---|
 | `exports/shrine/wisteria_bark.glb` (its colour, normal and roughness maps) | Bark Willow (2K colour, 1K normal and roughness maps), by Poly Haven | https://polyhaven.com/a/bark_willow | CC0 1.0 |
 
+The Hunter's two dyed palettes (`exports/fighters/hunter_crimson.glb` and `hunter_indigo.glb`, each a cloth and a gear atlas of colour, roughness and normal maps) are original to this project, dyed by script in Blender (milestone-1 task 45, `scripts/blender/dye_outfit.py`) from the Quaternius Modular Character Outfits' Ranger maps (CC0, above).
+
 The Moonlit Shrine's five wisteria (`exports/shrine/wisteria_0.glb` to `wisteria_4.glb`, with their blossom texture) are original to this project, grown by script in Blender (milestone-1 task 48).

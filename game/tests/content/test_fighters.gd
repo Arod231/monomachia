@@ -134,13 +134,14 @@ func test_every_fighter_has_two_different_palettes() -> void:
 		assert_eq(f.look.palettes.size(), 2, id)
 		var a: FighterPalette = f.look.palettes[0]
 		var b: FighterPalette = f.look.palettes[1]
-		assert_not_null(a.outfit_albedo, "%s palette A is baked" % id)
-		assert_not_null(b.outfit_albedo, "%s palette B is baked" % id)
-		assert_ne(a.outfit_albedo, b.outfit_albedo)
+		var body: String = _outfit_mesh(f)
+		assert_not_null(_texture_of(a, body), "%s palette A is baked or dyed" % id)
+		assert_not_null(_texture_of(b, body), "%s palette B is baked or dyed" % id)
+		assert_ne(_texture_of(a, body), _texture_of(b, body))
 		f.apply_palette(0)
-		assert_eq(_outfit_texture(f), a.outfit_albedo, "%s wears palette A" % id)
+		assert_eq(_outfit_texture(f), _texture_of(a, body), "%s wears palette A" % id)
 		f.apply_palette(1)
-		assert_eq(_outfit_texture(f), b.outfit_albedo, "%s wears palette B" % id)
+		assert_eq(_outfit_texture(f), _texture_of(b, body), "%s wears palette B" % id)
 
 
 func test_a_palette_change_is_remembered_across_a_rebuild() -> void:
@@ -172,6 +173,23 @@ func test_detaching_from_an_unbuilt_fighter_is_harmless() -> void:
 	autofree(f)
 	f.detach_weapons()
 	assert_eq(f.weapons.size(), 0)
+
+
+## A palette's outfit texture on `mesh`: its dyed maps' (the Hunter's,
+## milestone-1 task 45) or its baked one.
+func _texture_of(p: FighterPalette, mesh: String) -> Texture2D:
+	return p.dyed_material(mesh).albedo_texture if p.outfit_maps != null else p.outfit_albedo
+
+
+## The first mesh wearing the outfit (the one _outfit_texture() reads).
+func _outfit_mesh(f: FighterModel) -> String:
+	for node: Node in f.skeleton.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = node
+		for s: int in mi.mesh.get_surface_count():
+			var override: Material = mi.get_surface_override_material(s)
+			if override is ShaderMaterial and StringName(override.resource_name) == f.look.outfit_material:
+				return mi.name
+	return ""
 
 
 func _outfit_texture(f: FighterModel) -> Texture2D:

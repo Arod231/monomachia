@@ -22,6 +22,11 @@
 // verbatim, so it shares the original's texture files and reads as the
 // original did; Blender gives it only its meshes, skin and skeleton.
 //
+// A material (milestone-1 task 45: a palette's dyed maps, made by
+// dye_outfit.py in materials/) is a GLB of small planes, each in one material
+// holding its maps; the game takes the maps from it and puts them on the
+// parts that use them.
+//
 //   node scripts/blender/export.mjs [--only=<id>] [--check]
 //
 // --only exports one source; --check writes nothing and exits 1 when an
@@ -35,7 +40,7 @@
 //   {"sources": {"<id>": {"file": "weapons/katana.blend", "licence": "own",
 //                         "game": "game/assets/exports/weapons/katana.glb"}}}
 // `file` is relative to blender/ and sits in clips/, fighters/, weapons/,
-// shrine/ or bodies/; `licence` is own, cc0 or iglesias; `game` only for own
+// shrine/, bodies/ or materials/; `licence` is own, cc0 or iglesias; `game` only for own
 // and cc0 models (not clips), under game/assets/ (a .gltf for a body part,
 // with `materials_from`, else a .glb).
 
@@ -53,7 +58,7 @@ const BONE_MAP = join(ROOT, 'game', 'assets', 'kevin_iglesias', 'iglesias_bone_m
 const UAL_BONE_MAP = join(ROOT, 'game', 'assets', 'quaternius', 'ual_bone_map.tres');
 
 /** The folders a source may sit in, each its export's kind. */
-export const KINDS = { clips: 'clip', fighters: 'fighter', weapons: 'weapon', shrine: 'shrine', bodies: 'body' };
+export const KINDS = { clips: 'clip', fighters: 'fighter', weapons: 'weapon', shrine: 'shrine', bodies: 'body', materials: 'material' };
 export const LICENCES = ['own', 'cc0', 'iglesias'];
 /** export_blend.py's exit code for a source it refuses. */
 export const REFUSED = 3;

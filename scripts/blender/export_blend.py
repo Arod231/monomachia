@@ -7,7 +7,7 @@
 # Quaternius rig's bones (the bones given).
 #
 #   blender -b <source.blend> --factory-startup --python-exit-code 1 \
-#     --python scripts/blender/export_blend.py -- --kind <clip|fighter|weapon|shrine|body> \
+#     --python scripts/blender/export_blend.py -- --kind <clip|fighter|weapon|shrine|body|material> \
 #     --out <file.glb, or file.gltf for a body> [--bones <bones.json>]
 #
 # Exit codes: 0 exported, 3 refused (the reason on a line starting
@@ -36,8 +36,8 @@ def args():
             raise SystemExit(f"export_blend: unknown or empty argument {argv[i]}")
         out[key] = argv[i + 1]
         i += 2
-    if out["kind"] not in {"clip", "fighter", "weapon", "shrine", "body"} or not out["out"]:
-        raise SystemExit("export_blend: needs --kind clip|fighter|weapon|shrine|body and --out")
+    if out["kind"] not in {"clip", "fighter", "weapon", "shrine", "body", "material"} or not out["out"]:
+        raise SystemExit("export_blend: needs --kind clip|fighter|weapon|shrine|body|material and --out")
     return out
 
 
