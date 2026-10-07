@@ -120,4 +120,6 @@ static func build() -> WeaponDef:
 		# heel and the toe
 		"foot": StrikeSegment.make(V3.make(0.03, -0.005, 0.0), V3.make(0.03, 0.205, 0.0), 0.1),
 		"off_hand_grip": null,
+		# one implicit grip (KE task 5)
+		"grips": [],
 	})

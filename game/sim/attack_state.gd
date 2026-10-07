@@ -38,6 +38,9 @@ var charging: bool = false
 var charge_frames: int = 0
 var charge_frac: float = 0.0
 var queued: StringName = &""
+## the hit of a string the queued move plays (Fighter.string_count; KE task
+## 5), 0 for a follow-up outside a string
+var queued_hit: int = 0
 var lunge_total: float = 0.0
 ## the ground direction the lunge runs along, fixed as the attack starts (a
 ## lunge along the dodge: Passing Cut); null runs it along the facing

@@ -314,6 +314,8 @@ classDiagram
         vel : V3
         yaw
         armed
+        grip
+        string_count
         abilities[2]
         update()
         try_actions()
@@ -337,6 +339,12 @@ classDiagram
         heavy_start
         default_abilities
         ultimate
+        grips
+    }
+    class WeaponGrip {
+        id
+        string
+        block_mitigation
     }
     class AttackDef {
         id
@@ -411,6 +419,7 @@ classDiagram
     Fighter --> FighterStats
     AttackState --> AttackDef : def
     WeaponDef "1" --> "*" AttackDef : moves
+    WeaponDef "1" --> "*" WeaponGrip : grips
     Moves --> WeaponDef
 ```
 

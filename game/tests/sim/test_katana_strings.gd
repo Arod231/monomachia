@@ -90,9 +90,11 @@ func test_a_heavy_ends_the_string_on_heaven_splitter_or_after_two_lights_on_risi
 	)
 
 
-func test_crown_cut_ends_the_string() -> void:
+func test_crown_cut_again_as_hit_5_ends_the_string() -> void:
+	# both grips' strings stand in as the four lights, Crown Cut repeated as
+	# hit 5, and a string ends after hit 5 (KE task 5, D4)
 	var light: int = Btn.LIGHT
-	_assert_starts_nothing_in([light, light, light, light], [&"k_l1", &"k_l2", &"k_l3", &"k_l4"], LIGHT_OR_HEAVY)
+	_assert_starts_nothing_in([light, light, light, light, light], [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"], LIGHT_OR_HEAVY)
 
 
 func test_stopping_after_any_hit_ends_the_string_when_that_move_ends() -> void:

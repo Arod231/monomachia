@@ -134,6 +134,11 @@ const MOVES: Dictionary = {
 }
 
 
+## Both grips' strings until their hits are re-keyed: today's four lights,
+## Crown Cut again as hit 5.
+const STAND_IN_STRING: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"]
+
+
 ## KATANA
 static func build() -> WeaponDef:
 	return WeaponDef.from_dict({
@@ -167,4 +172,12 @@ static func build() -> WeaponDef:
 		"foot": null,
 		# the left hand below the right on the long handle
 		"off_hand_grip": V3.make(0.0, -0.15, 0.0),
+		# Elden Ring's two grips (KE task 5), each with its five-hit string,
+		# standing in as today's four lights with Crown Cut again as hit 5
+		# until the re-keys (KE tasks 11-14); a two-handed block takes less
+		# posture (D2)
+		"grips": [
+			WeaponGrip.make(WeaponGrip.ONE_HANDED, STAND_IN_STRING, 0.7),
+			WeaponGrip.make(WeaponGrip.TWO_HANDED, STAND_IN_STRING, 0.5),
+		],
 	})

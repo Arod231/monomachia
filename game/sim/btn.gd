@@ -12,8 +12,10 @@ const JUMP: int = 4
 const INTERACT: int = 5
 const ULTIMATE: int = 6
 const SPRINT: int = 7
+## Switches the grip (KE task 5): the rebuild's.
+const GRIP: int = 8
 ## NUM_BUTTONS
-const NUM: int = 8
+const NUM: int = 9
 
 
 static func bit(b: int) -> int:

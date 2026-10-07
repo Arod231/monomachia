@@ -62,6 +62,10 @@ const GUARD_STATES: Array[StringName] = [&"free", &"step", &"blockstun", &"land"
 ## victory, moving (free, step) and jumping (jump, land). Entering any other
 ## takes the Greatsword off the shoulder at once.
 const CARRY_STATES: Array[StringName] = [&"intro", &"free", &"step", &"jump", &"land", &"victory"]
+## The states a grip press switches the grip in (KE task 5): those that act,
+## standing, moving or blocking, attacking (the Iai stance too), landing and
+## the parry's follow-through. Anywhere else it is dropped, not kept.
+const GRIP_STATES: Array[StringName] = [&"free", &"step", &"attack", &"land", &"parryAnim"]
 
 var id: int
 var opp: Fighter
@@ -75,6 +79,14 @@ var name: String
 var armed: bool = true
 ## The fighter's body in the rules: its hurt capsule (task 7.5).
 var body: FighterBody
+## The grip the weapon is held in (WeaponGrip; KE task 5): the weapon's
+## first at every round start, after a disarm and on taking a weapon (D7);
+## &"" for a weapon without grips.
+var grip: StringName = &""
+## Which hit of a string the attack under way plays (1 to
+## WeaponGrip.STRING_HITS): the next light plays the next hit of whichever
+## grip the fighter holds then, so strings mix; 0 outside a string.
+var string_count: int = 0
 
 var hp: float = SimConst.HP_MAX
 var posture: float = 0.0
@@ -185,6 +197,7 @@ func _init(p_id: int, cfg: FighterConfig) -> void:
 	abilities = cfg.abilities if not cfg.abilities.is_empty() else cfg.weapon.default_abilities
 	name = cfg.name if cfg.name != "" else cfg.weapon.name
 	body = FighterBody.of(cfg.fighter_id)
+	grip = weapon.first_grip()
 
 
 # ------------------------------------------------------------------ snapshot
@@ -414,6 +427,26 @@ func takes_follow_up_at(f: int) -> bool:
 	return state == &"attack" and atk != null and atk.queued == &"" and f > atk.def.startup
 
 
+## The grip the fighter holds its weapon in (KE task 5), or null for bare
+## hands and a weapon without grips.
+func held_grip() -> WeaponGrip:
+	return moveset().grip(grip) if armed else null
+
+
+## The share of an attack's posture damage a block takes: the grip's (D2),
+## or the weapon's for a weapon without grips.
+func block_mitigation() -> float:
+	var g: WeaponGrip = weapon.grip(grip)
+	return g.block_mitigation if g != null else weapon.block_mitigation
+
+
+## Arms the fighter with `w` (a Training swap), held in its first grip.
+func take_weapon(w: WeaponDef) -> void:
+	weapon = w
+	armed = true
+	grip = w.first_grip()
+
+
 func speed_mult() -> float:
 	return moveset().speed_mult * (1.0 if armed else SimConst.DISARMED_MULT_SPEED)
 
@@ -437,6 +470,8 @@ func reset_for_round(x: float, z: float, p_yaw: float) -> void:
 	hp = SimConst.HP_MAX
 	posture = 0.0
 	armed = true
+	grip = weapon.first_grip()
+	string_count = 0
 	pos = V3.make(x, 0.0, z)
 	vel = V3.make()
 	yaw = p_yaw
@@ -476,6 +511,7 @@ func set_state(s: StringName, dur: int = 0) -> void:
 		_off_shoulder()
 	if s != &"attack":
 		atk = null
+		string_count = 0
 	if s != &"dodge" and s != &"backstep":
 		dodge = null
 	if s != &"ult":
@@ -499,6 +535,7 @@ func update() -> void:
 	if guard_lift_left > 0:
 		guard_lift_left -= 1
 	_handle_guard_press()
+	_handle_grip_press()
 
 	match state:
 		&"intro", &"victory", &"finisher", &"finished":
@@ -596,6 +633,29 @@ func _handle_guard_press() -> void:
 	if shouldered:
 		# a parry (or a block) lifts the sword off the shoulder into the guard
 		_off_shoulder(SimConst.GS_SHOULDER_LIFT_FRAMES)
+
+
+# ------------------------------------------------------------------ grip
+
+## A grip press switches to the weapon's other grip at once (KE task 5), in
+## the states that act (GRIP_STATES), never changing the move playing; it
+## costs nothing (D6). Anywhere else, or with bare hands or a weapon without
+## grips, the press is dropped, not buffered. A press during hit-stop counts
+## as the step resumes, since the input's frame holds through it.
+func _handle_grip_press() -> void:
+	var inp: InputTracker = input
+	if not inp.buffered(Btn.GRIP, 0):
+		return
+	inp.consume(Btn.GRIP)
+	var w: WeaponDef = moveset()
+	if not armed or w.grips.size() < 2 or not GRIP_STATES.has(state):
+		return
+	var at: int = 0
+	for i: int in w.grips.size():
+		if w.grips[i].id == grip:
+			at = i
+	grip = w.grips[(at + 1) % w.grips.size()].id
+	world.emit({"t": &"grip", "f": id, "grip": grip})
 
 
 # ------------------------------------------------------------------ shoulder carry
@@ -792,7 +852,9 @@ func try_actions() -> bool:
 		return true
 	if inp.buffered(Btn.LIGHT):
 		inp.consume(Btn.LIGHT)
-		start_attack(_context_attack(&"light"), Btn.LIGHT)
+		var light: StringName = _context_attack(&"light")
+		var g: WeaponGrip = held_grip()
+		start_attack(light, Btn.LIGHT, null, 1 if g != null and light == g.hit(1) else 0)
 		return true
 	if inp.buffered(Btn.HEAVY):
 		inp.consume(Btn.HEAVY)
@@ -822,12 +884,17 @@ func _context_attack(kind: StringName) -> StringName:
 		if dodge_was_back:
 			return w.back_light if L else w.back_heavy
 		return w.dodge_light if L else w.dodge_heavy
+	# a light from neutral starts the grip's string (KE task 5)
+	var g: WeaponGrip = held_grip()
+	if L and g != null:
+		return g.hit(1)
 	return w.light_start if L else w.heavy_start
 
 
 ## started_by: the Btn that started the move, or -1 (TS null). chained_from:
-## the move this one follows, for a follow-up (its swing's entry).
-func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDef = null) -> bool:
+## the move this one follows, for a follow-up (its swing's entry). hit: the
+## hit of its grip's string the move plays (string_count), 0 outside one.
+func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDef = null, hit: int = 0) -> bool:
 	var W: World = world
 	var def: AttackDef = moveset().moves.get(p_id, null)
 	if def == null and String(p_id).begins_with("f_"):
@@ -844,6 +911,7 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 	var lift: int = _take_shoulder_lift()
 	set_state(&"attack")
 	blocking = false
+	string_count = hit
 	var lunge_total: float = def.lunge_from(SimMath.dist2(pos, opp.pos))
 	atk = AttackState.new()
 	atk.def = def
@@ -855,6 +923,7 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 	atk.charge_frames = 0
 	atk.charge_frac = 0.0
 	atk.queued = &""
+	atk.queued_hit = 0
 	atk.lunge_total = lunge_total
 	atk.lunge_dir = last_dodge_dir if def.lunge_along_dodge else null
 	atk.extra_recovery = 0
@@ -1003,17 +1072,23 @@ func _update_attack() -> void:
 	# Combo chains: a follow-up pressed after the startup and by the last frame
 	# of its window starts at its branch point, or at once if that has passed
 	# (the frame-data table's, milestone-1 task 20); any extra recovery (a
-	# charge's) moves the window's end on with the move's.
+	# charge's) moves the window's end on with the move's. A weapon with grips
+	# plays its string by count (KE task 5): see _light_follow_up().
 	if takes_follow_up_at(f):
-		if _can_follow(def.chain_light, Btn.LIGHT, f):
+		var light: Array = _light_follow_up(def)
+		if _can_follow(light[0], _light_window(def, light[0]), Btn.LIGHT, f):
 			inp.consume(Btn.LIGHT)
-			a.queued = def.chain_light
-		elif _can_follow(def.chain_heavy, Btn.HEAVY, f):
+			a.queued = light[0]
+			a.queued_hit = light[1]
+		elif _can_follow(def.chain_heavy, def.branch_window(def.chain_heavy), Btn.HEAVY, f):
 			inp.consume(Btn.HEAVY)
 			a.queued = def.chain_heavy
-	if a.queued != &"" and f >= def.branch_window(a.queued)[0]:
-		start_attack(a.queued, -1, def)
-		return
+			a.queued_hit = 0
+	if a.queued != &"":
+		var window: PackedInt32Array = _light_window(def, a.queued) if a.queued_hit > 0 else def.branch_window(a.queued)
+		if f >= window[0]:
+			start_attack(a.queued, -1, def, a.queued_hit)
+			return
 
 	# Dodge-cancel the recovery in the move's window (the table's), opening
 	# later by half any extra recovery (a charge's) and closing later by all
@@ -1038,11 +1113,37 @@ func _update_attack() -> void:
 
 ## Whether the attack takes follow-up `follow` (none for &"") pressed with
 ## button `b` on attack frame `f`: buffered, not held under a block, and by
-## the last frame of its window.
-func _can_follow(follow: StringName, b: int, f: int) -> bool:
+## the last frame of its `window`.
+func _can_follow(follow: StringName, window: PackedInt32Array, b: int, f: int) -> bool:
 	if follow == &"" or not input.buffered(b) or (armed and input.is_held(Btn.BLOCK)):
 		return false
-	return f <= atk.def.branch_window(follow)[1] + atk.extra_recovery
+	return f <= window[1] + atk.extra_recovery
+
+
+## The light follow-up of move `def`, [move, the string's hit it plays]. A
+## weapon with grips plays its string by count (KE task 5): after a string's
+## hit n the next light plays hit n + 1 of the grip the fighter holds now,
+## wherever hit n came from, and nothing after the last hit (D4); after a
+## move outside a string, its light follow-up's place in a string (the
+## horizontal Iai's Return Cut, hit 2) in the held grip's string. Otherwise
+## the move's own light follow-up, outside a string: [&"", 0] for none.
+func _light_follow_up(def: AttackDef) -> Array:
+	var g: WeaponGrip = held_grip()
+	if g == null:
+		return [def.chain_light, 0]
+	if string_count > 0:
+		var n: int = string_count + 1
+		return [g.hit(n), n] if n <= WeaponGrip.STRING_HITS else [&"", 0]
+	var at: int = moveset().string_position(def.chain_light)
+	return [g.hit(at), at] if at > 0 else [def.chain_light, 0]
+
+
+## The frames light follow-up `follow` of move `def` may start on: those of
+## the move's own light follow-up when it has one, so the hit after it keeps
+## the move's branch point whichever grip's string it comes from, else the
+## move's window for `follow` itself.
+func _light_window(def: AttackDef, follow: StringName) -> PackedInt32Array:
+	return def.branch_window(def.chain_light if def.chain_light != &"" else follow)
 
 
 ## As a chargeable heavy is drawn, the stick held sideways (as Moonsplitter
@@ -1427,6 +1528,8 @@ func disarm(by: Fighter, reason: StringName, t: ProtectedTimings = null) -> void
 	if t == null:
 		t = ProtectedTimings.for_weapon(weapon.id if weapon != null else &"")
 	armed = false
+	# bare hands have no grip; the weapon comes back in its first (D7)
+	grip = weapon.first_grip() if weapon != null else &""
 	posture = 0.0
 	last_posture_damage = W.frame
 	set_state(&"disarmStagger", t.disarm_stagger)
