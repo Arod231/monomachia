@@ -65,8 +65,34 @@ func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 	assert_eq(GraphicsPreset.CUTS, [
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
-		&"push_in_dof", &"spark_light", &"fighter_shadows",
+		&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
 	] as Array[StringName])
+
+
+func test_every_viewport_has_room_for_the_lanterns_and_canopy_lights_shadows() -> void:
+	var vp := SubViewport.new()
+	GraphicsApplier.apply_to_viewport(GraphicsPreset.load_id(&"ultra"), vp)
+	assert_eq(vp.positional_shadow_atlas_size, GraphicsApplier.POSITIONAL_SHADOW_ATLAS)
+	assert_eq(vp.get_positional_shadow_atlas_quadrant_subdiv(1), Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_16)
+	vp.free()
+
+
+func test_global_illumination_lights_ultra_and_high_only() -> void:
+	for id: StringName in GraphicsPreset.IDS:
+		assert_eq(GraphicsPreset.load_id(id).global_illumination, id == &"ultra" or id == &"high", "%s's GI" % id)
+
+
+func test_the_presets_turn_the_environments_global_illumination_on_and_off() -> void:
+	var root := Node3D.new()
+	var we := WorldEnvironment.new()
+	we.environment = Environment.new()
+	we.environment.sdfgi_enabled = true
+	root.add_child(we)
+	GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(&"low"), root)
+	assert_false(we.environment.sdfgi_enabled, "off on Low")
+	GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(&"ultra"), root)
+	assert_true(we.environment.sdfgi_enabled, "back on Ultra")
+	root.free()
 
 
 func test_the_sparks_contact_light_shows_on_ultra_and_high_only() -> void:

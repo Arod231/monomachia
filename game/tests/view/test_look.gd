@@ -199,6 +199,7 @@ func test_the_night_has_the_look_test_s_atmosphere_and_the_grade() -> void:
 	assert_almost_eq(e.tonemap_exposure, LookGrade.EXPOSURE, 1e-6)
 	assert_true(e.volumetric_fog_enabled, "mist in volumetric fog")
 	assert_true(e.ssao_enabled, "ambient occlusion")
+	assert_true(e.sdfgi_enabled, "global illumination, so glowing surfaces light what's round them")
 	assert_true(e.fog_enabled, "depth fog")
 	assert_true(e.glow_enabled, "subtle bloom")
 	assert_lt(e.glow_bloom, 0.1, "subtle")
@@ -226,7 +227,13 @@ func test_the_night_sky_quiets_a_shader_sky_and_leaves_others() -> void:
 	sky.sky_material = m
 	var quiet: Sky = LookGrade.night_sky(sky)
 	assert_ne(quiet, sky, "a copy")
-	assert_almost_eq(float((quiet.sky_material as ShaderMaterial).get_shader_parameter(&"haze_strength")), 0.12, 1e-6)
+	var qm := quiet.sky_material as ShaderMaterial
+	assert_eq(qm.get_shader_parameter(&"moon_color"), LookGrade.NIGHT_MOON_COLOR, "a purer blood red")
+	assert_gt(LookGrade.NIGHT_MOON_RADIUS, 0.085, "larger than the sky shader's own")
+	assert_almost_eq(float(qm.get_shader_parameter(&"moon_radius")), LookGrade.NIGHT_MOON_RADIUS, 1e-6)
+	assert_almost_eq(float(qm.get_shader_parameter(&"haze_strength")), LookGrade.NIGHT_MOON_HAZE, 1e-6)
+	assert_almost_eq(float(qm.get_shader_parameter(&"moon_energy")), LookGrade.NIGHT_MOON_ENERGY, 1e-6)
+	assert_gt(LookGrade.NIGHT_MOON_COLOR.r, LookGrade.NIGHT_MOON_COLOR.g * 8.0, "a deep blood red")
 	var plain := Sky.new()
 	plain.sky_material = ProceduralSkyMaterial.new()
 	assert_eq(LookGrade.night_sky(plain), plain)

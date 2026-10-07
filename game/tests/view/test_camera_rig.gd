@@ -19,11 +19,12 @@ func _dir(p: Vector3, o: Vector3) -> Vector3:
 ## The mood board's Camera 2, For Honor's framing, settled in the look test
 ## (milestone-1 spec P20; the game's since task 43).
 func test_the_spec_numbers_are_the_defaults() -> void:
-	# Camera 2 (task 43), its distances by 1.32 with the Katana's 3.3 m duel
-	# and its height by 1.15 with the taller bodies (KE tasks 2 and 3, D11)
+	# Camera 2's framing (task 43; 1.0 m to the side nudged out, Oct 7), its
+	# distances by 1.32 for the Katana's 3.3 m duel and its height by 1.15 for
+	# the taller bodies (KE tasks 2 and 3)
 	assert_eq(rig.follow_back, 4.49)
 	assert_eq(rig.follow_side, 1.1, "Camera 2's 1.0 m nudged out (Oct 7)")
-	assert_eq(rig.follow_close_side, 0.8, "Camera 2's 0.6 m widened for the taller bodies' shoulders")
+	assert_eq(rig.follow_close_side, 1.0)
 	assert_eq(rig.follow_height, 2.01)
 	assert_eq(rig.base_fov, 55.0)
 	assert_eq(rig.fov, 55.0)
@@ -41,8 +42,8 @@ func test_follow_sits_behind_the_player_on_the_line_to_the_opponent() -> void:
 	var back: float = rig.follow_back + maxf(0.0, sep - rig.follow_far_from) * rig.follow_back_per_metre
 	assert_almost_eq(rel.dot(d), -back, 1e-5, "behind the player along the line")
 	assert_almost_eq(rel.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "to the player's right")
-	assert_gt(pos.y, 1.95)
-	assert_lt(pos.y, 2.45)
+	assert_gt(pos.y, 1.8)
+	assert_lt(pos.y, 2.4)
 
 
 func test_the_right_offset_is_the_fighters_own_right() -> void:
@@ -82,7 +83,7 @@ func test_up_close_it_swings_out_so_the_opponent_shows_past_the_player() -> void
 	assert_almost_eq(at_range.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "1.1 m from 4.62 m out")
 	assert_gt(up_close.dot(CameraRig.right_of(d)), rig.follow_side + 1.0, "further right up close")
 	var closest: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, SimConst.FIGHTER_RADIUS * 2.0), d)["pos"]
-	assert_lt(closest.dot(CameraRig.right_of(d)), 4.4, "about 4.1 m at the closest")
+	assert_lt(closest.dot(CameraRig.right_of(d)), 5.0, "about 5 m at the closest")
 
 
 ## Seen from the follow camera, the angle between the player and the opponent

@@ -52,7 +52,8 @@ const DEEP_CRIMSON := Color("#5c1618")
 ## What the outfit's orange red is multiplied by to reach CRIMSON.
 const DYE := Color(0.86, 0.62, 0.66)
 ## The gameplay camera's base distance, at which Camera 2 (CameraRig's own
-## framing) is judged.
+## framing) is judged: the board's 3.5 m, by 1.32 for the taller bodies' 3.3 m
+## duel (KE tasks 2 and 3).
 const CAMERA_CLOSE_FROM: float = 4.62
 
 ## The look test's gate (Godot check 5), and the bench's run.

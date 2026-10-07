@@ -20,6 +20,7 @@ height_fog = true
 glow_enabled = true
 volumetric_fog = false
 ambient_occlusion = false
+global_illumination = false
 petal_lights = false
 minor_decals = false
 particle_ratio = 1.0

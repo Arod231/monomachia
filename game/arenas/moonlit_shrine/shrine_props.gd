@@ -21,6 +21,8 @@ const LANTERN_FIRE := Vector3(0.0, 2.12, 0.0)
 static func materials() -> Dictionary[StringName, Material]:
 	var glow := ShaderMaterial.new()
 	glow.shader = LANTERN_GLOW
+	# brighter than the shader's own, so the lanterns' paper burns (Oct 7)
+	glow.set_shader_parameter(&"energy", 4.2)
 	return {
 		&"landing": LookMaterials.prop(LookPalette.STONE_LIGHT),
 		&"parapet": LookMaterials.prop(LookPalette.STONE),
