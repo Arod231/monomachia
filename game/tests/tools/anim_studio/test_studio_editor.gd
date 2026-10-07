@@ -33,7 +33,7 @@ func test_opening_a_katana_light_shows_its_frames_against_its_band() -> void:
 	assert_eq(fields, ["✓ startup 28 (24-30)", "✓ active 4 (3-6)", "✓ recovery 28 (24-36)"])
 	var distance: Array = (editor.get_node("%DistanceLines") as Node).get_children().map(func(l: Label) -> String: return l.text)
 	assert_eq(distance.size(), 3, "the duelling, preferred and miss distances: %s" % [distance])
-	assert_true(distance[2].ends_with("misses from 3.25 m") or distance[2].contains("where it must miss"), "%s" % [distance])
+	assert_true(distance[2].ends_with("misses from 3.75 m") or distance[2].contains("where it must miss"), "%s" % [distance])
 	assert_eq(editor.get_node("%EditorTitle").text, "Right Cut · k_l1")
 
 

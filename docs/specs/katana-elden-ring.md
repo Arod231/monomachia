@@ -159,7 +159,7 @@ This spec changes `docs/specs/milestone-1.md` and its plan inside the milestone:
 
 | # | Proposal | Stories |
 |---|---|---|
-| D1 | The duelling distance becomes about 3.2 m (from 2.5) and the round start ±4.0 m (from ±3.2), the bands re-measured from the re-baked swings; the exact numbers come from the bake | 35 |
+| D1 | The duelling distance becomes about 3.2 m (from 2.5) and the round start ±4.0 m (from ±3.2), the bands re-measured from the re-baked swings; the exact numbers come from the bake. KE task 2 (Oct 7, the owner's choice): 3.0 m and ±3.85 m with today's clips, the computer preferring 2.5 m, every Katana band 0.5 m further out and the light band 5–30 cm deep until the string re-keys; task 3 re-measures on the taller bodies | 35 |
 | D2 | Posture mitigation on a block: two-handed 0.5, one-handed 0.7 (today's single 0.7) | 9 |
 | D3 | "Less damage one-handed" is set per move: each one-handed hit deals about 85% of its two-handed counterpart; startups and recoveries come from the clips | 8 |
 | D4 | A string ends after hit 5 (no loop back to hit 1); the next light starts hit 1 again | 17–19 |

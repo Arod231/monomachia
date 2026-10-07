@@ -28,8 +28,8 @@ const OFFSET: Dictionary[StringName, float] = {
 	&"ultimate": 2.5,
 }
 ## Moves the spec gives a distance of their own (m): the Iai Slashes reach
-## about 3.6 m.
-const OWN: Dictionary[StringName, float] = {&"k_iai": 3.6, &"k_iai_h": 3.6}
+## about 3.6 m, 4.1 m with the 1.3 m blade (KE task 2).
+const OWN: Dictionary[StringName, float] = {&"k_iai": 4.1, &"k_iai_h": 4.1}
 
 
 ## The kind of move `id` is on weapon `w`, for its row of the table: by the

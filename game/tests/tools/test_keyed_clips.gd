@@ -145,10 +145,12 @@ func _pose_clip(model: FighterModel, clip: StringName, f: int) -> Skeleton3D:
 
 
 ## Where the right hand's held blade tip is (FighterRig's grip: the blade
-## along the hand's X axis, the grip a little past the wrist).
-func _tip(sk: Skeleton3D, weapon: StringName) -> Vector3:
+## along the hand's X axis, the grip a little past the wrist), for a blade
+## `length` m long (0: the weapon's own).
+func _tip(sk: Skeleton3D, weapon: StringName, length: float = 0.0) -> Vector3:
 	var hand: Transform3D = _bone(sk, "RightHand")
-	var length: float = WeaponLook.blade_segment(autofree(WeaponLook.load_id(weapon).instantiate()))[1].length()
+	if length <= 0.0:
+		length = WeaponLook.blade_segment(autofree(WeaponLook.load_id(weapon).instantiate()))[1].length()
 	return hand.origin + hand.basis.x.normalized() * (length + 0.07)
 
 
@@ -158,14 +160,34 @@ func test_the_library_holds_the_thrusters_pin_fitted_to_the_stomps_stun() -> voi
 	assert_almost_eq(lib.get_animation(KeyedClips.PINNED).length * SimConst.FPS, float(ProtectedTimings.today().stomp_stun), 0.001, "built for today's 70-frame stun (family 6 re-keys it to the retuned 90)")
 
 
+## The Katana blade the stomp and the pin were keyed for (m, the habaki's
+## end to the tip). The 1.3 m blade (KE task 2) dips below the floor in
+## both; on the owner's word (Oct 7) that's recorded for their re-key, not
+## fixed, so the test holds the clips to the blade they were keyed for and
+## prints the 1.3 m blade's worst.
+const KEYED_KATANA_BLADE: float = 0.69
+
+
 func test_the_held_blades_stay_above_the_floor() -> void:
 	var model: FighterModel = _model(&"hunter")
+	var worst: Array = [["the stomper's", 0.0, -1], ["the thruster's", 0.0, -1]]
 	for f: int in 27:
-		assert_gt(_tip(_pose_clip(model, KeyedClips.STOMP, f), &"katana").y, 0.0, "the stomper's blade at frame %d" % f)
+		var sk: Skeleton3D = _pose_clip(model, KeyedClips.STOMP, f)
+		assert_gt(_tip(sk, &"katana", KEYED_KATANA_BLADE).y, 0.0, "the stomper's blade at frame %d" % f)
+		var y: float = _tip(sk, &"katana").y
+		if y < worst[0][1]:
+			worst[0] = [worst[0][0], y, f]
 	for f: int in 71:
 		if KeyedClips.pin_weight(float(f)) > 0.0:
 			continue  # pinned to the floor by the view
-		assert_gt(_tip(_pose_clip(model, KeyedClips.PINNED, f), &"katana").y, 0.0, "the thruster's blade at frame %d" % f)
+		var sk: Skeleton3D = _pose_clip(model, KeyedClips.PINNED, f)
+		assert_gt(_tip(sk, &"katana", KEYED_KATANA_BLADE).y, 0.0, "the thruster's blade at frame %d" % f)
+		var y: float = _tip(sk, &"katana").y
+		if y < worst[1][1]:
+			worst[1] = [worst[1][0], y, f]
+	for w: Array in worst:
+		if w[2] >= 0:
+			gut.p("the 1.3 m blade: %s %.1f cm below the floor at frame %d, for the re-key" % [w[0], -100.0 * w[1], w[2]])
 
 
 func test_the_thruster_is_yanked_down_then_flings_the_weapon_up() -> void:

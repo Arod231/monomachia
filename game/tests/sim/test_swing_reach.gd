@@ -96,10 +96,10 @@ func test_first_contact_agrees_with_a_stepped_world() -> void:
 	var body: FighterBody = FighterBody.of(&"")
 	# 0.9 m: too close to lunge, so the sweep from 60° to 20° already touches
 	# (at 1.0 m the Katana's curve holds its 20° pose 3.8 cm clear); 1.6 m:
-	# the lunge to 1.25 m, and the sweep across the front; 2.2 m: short by the
-	# lunge's end; 1.6 m at 40° right: the attacker turns to the defender as
-	# it winds up
-	var cases: Array[Array] = [[0.9, 0.0, 12], [1.6, 0.0, 13], [2.2, 0.0, -1], [1.6, 40.0, 13]]
+	# the lunge to 1.25 m, and the sweep across the front; 2.85 m: short by the
+	# lunge's end (2.2 m with the 0.69 m blade before KE task 2); 1.6 m at 40°
+	# right: the attacker turns to the defender as it winds up
+	var cases: Array[Array] = [[0.9, 0.0, 12], [1.6, 0.0, 13], [2.85, 0.0, -1], [1.6, 40.0, 13]]
 	for c: Array in cases:
 		var what: String = "%.1f m at %d°" % [c[0], c[1]]
 		var want: Array = _stepped_first_touch(w, c[0], c[1])
@@ -124,14 +124,14 @@ func test_a_move_reads_its_swings_reach_and_arc_and_without_one_its_authored_ran
 
 
 func test_the_weapons_reach_comes_from_its_light_starters_hand_keyed_swing() -> void:
-	assert_eq(SF.without_swings(&"katana").reach, 2.1, "the Katana's authored reach while Right Cut has no swing")
+	assert_eq(SF.without_swings(&"katana").reach, 2.5, "the Katana's authored reach while Right Cut has no swing (2.5 m since KE task 2)")
 	var other: WeaponDef = SF.without_swings(&"katana")
 	other.moves[&"k_l2"].swing = SF.level_slash(other.moves[&"k_l2"])
 	other.derive_reach()
-	assert_eq(other.reach, 2.1, "a swing on another move leaves it")
+	assert_eq(other.reach, 2.5, "a swing on another move leaves it")
 	# a swing baked from a clip leaves the authored reach (its lunge was
 	# lengthened to keep the reach table's distances; authored animation 20)
-	assert_eq(Moves.KATANA.reach, 2.1, "Right Cut's swing, baked from a clip, leaves the Katana's authored reach")
+	assert_eq(Moves.KATANA.reach, 2.5, "Right Cut's swing, baked from a clip, leaves the Katana's authored reach")
 	assert_eq(Moves.GREATSWORD.reach, 2.75, "and Heavy Swing's the Greatsword's")
 	var w: WeaponDef = _straight(SF.level_slash(_cut()))
 	assert_almost_eq(w.reach, 1.26, EPS, "a swing on the light starter gives it")

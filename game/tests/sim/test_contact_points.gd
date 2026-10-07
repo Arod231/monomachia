@@ -22,11 +22,11 @@ static func _cut() -> AttackDef:
 	return Moves.KATANA.moves[CUT]
 
 
-## Fighter 0 with a Katana whose Right Cut has `swing` (none: the cone), 1.6 m
-## from an idle Katana.
-static func _world(swing: Swing) -> World:
+## Fighter 0 with a Katana whose Right Cut has `swing` (none: the cone),
+## `gap` m from an idle Katana.
+static func _world(swing: Swing, gap: float = 1.6) -> World:
 	var w: WeaponDef = SF.weapon(&"katana", {CUT: swing}) if swing != null else SF.without_swings(&"katana")
-	return H.make_world(w, Moves.KATANA, 1.6)
+	return H.make_world(w, Moves.KATANA, gap)
 
 
 ## Plays Right Cut against `defend` (a Callable of the step; none: idle) until
@@ -156,10 +156,11 @@ func test_a_hit_or_a_block_is_kept_on_the_defender() -> void:
 
 
 func test_a_blade_short_of_the_axis_starts_on_its_sweep_inside_the_capsule() -> void:
-	# the grip 0.45 m out: the tip reaches 1.23 m, short of the defender's
-	# axis 1.25 m away, so the contact is on the blade's sweep at 1.2 m,
-	# inside the defender's capsule but off its axis
-	var W: World = _world(SF.level_slash(_cut(), 1.2))
+	# the grip 0.45 m out: the 1.3 m blade's tip reaches 1.84 m, short of the
+	# defender's axis 1.863 m away (2.213 m apart, less the 0.35 m lunge), so
+	# the contact is on the blade's sweep at 1.2 m, inside the defender's
+	# capsule but off its axis
+	var W: World = _world(SF.level_slash(_cut(), 1.2), 2.213)
 	var e: Dictionary = _first_outcome(W)
 	assert_eq(e.get("t"), &"hit")
 	var p: V3 = _pos(e)

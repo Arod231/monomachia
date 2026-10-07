@@ -55,8 +55,9 @@ const LIFT_HEIGHT: float = FootLock.LIFT_HEIGHT
 ## to 1.75 m. Task 7 puts it in the rules' fighter data.
 const DEFENDER_RADIUS: float = 0.35
 const DEFENDER_HEIGHT: float = 1.75
-## The duelling distance between the fighters (m), the demo's.
-const SPACING: float = 2.5
+## The duelling distance between the fighters (m), the Katana's (3.0 m
+## since its 1.3 m blade, KE task 2).
+const SPACING: float = 3.0
 
 ## The capsules, as [name, the bones whose vertices it wraps, its axis from
 ## one bone's joint to another's, or to the crown when the second is empty].

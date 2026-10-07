@@ -31,7 +31,7 @@ func test_the_saya_holds_the_whole_blade() -> void:
 	var blade: PackedVector3Array = WeaponLook.blade_segment(v.model.weapons[0])
 	for p: Vector3 in blade:
 		assert_true(box.grow(0.001).has_point(p), "the blade's %s inside it" % p)
-	assert_between(box.size.y, 0.65, 0.85, "as long as the blade")
+	assert_between(box.size.y, 1.25, 1.45, "as long as the blade")
 
 
 func test_through_the_iais_stance_the_blade_is_in_the_saya() -> void:

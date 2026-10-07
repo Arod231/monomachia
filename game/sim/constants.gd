@@ -79,7 +79,7 @@ const STOMP_POSTURE: float = 30.0
 # is driven into the floor (the mikiri counter's pin). A thruster nearer than
 # that (the dodge carried the defender into it) is jolted back to it over
 # STOMP_PUSH_FRAMES while the stomp's hop lands.
-const STOMP_PIN_DIST: Dictionary[StringName, float] = {&"katana": 1.55, &"daggers": 1.1, &"greatsword": 2.15}
+const STOMP_PIN_DIST: Dictionary[StringName, float] = {&"katana": 2.05, &"daggers": 1.1, &"greatsword": 2.15}
 const STOMP_PIN_DIST_DEFAULT: float = 1.55
 const STOMP_PUSH_FRAMES: int = 8
 const LEAP_POSTURE: float = 30.0

@@ -129,11 +129,11 @@ func test_the_camera_is_camera_2() -> void:
 	var c: CameraRig = t.rig_camera
 	assert_not_null(c)
 	assert_eq([c.follow_back, c.follow_side, c.follow_close_side, c.follow_close_from, c.follow_height, c.base_fov],
-		[3.4, 1.0, 0.6, 3.5, 1.75, 55.0], "the board's numbers")
-	# at Camera 2's base distance: 3.4 m back, 1.0 m right, 1.75 m up
-	var target: Dictionary = c.follow_target(Vector3.ZERO, Vector3(0.0, 0.0, 3.5), Vector3(0.0, 0.0, 1.0))
+		[4.08, 1.0, 0.6, 4.2, 1.75, 55.0], "the board's numbers, the distances by 1.2 for the 3.0 m duel (KE task 2)")
+	# at Camera 2's base distance: 4.08 m back, 1.0 m right, 1.75 m up
+	var target: Dictionary = c.follow_target(Vector3.ZERO, Vector3(0.0, 0.0, 4.2), Vector3(0.0, 0.0, 1.0))
 	var pos: Vector3 = target["pos"]
-	assert_almost_eq(pos.z, -3.4, 0.05, "back")
+	assert_almost_eq(pos.z, -4.08, 0.05, "back")
 	assert_almost_eq(absf(pos.x), 1.0, 0.05, "to the side")
 	assert_almost_eq(pos.y, 1.75, 0.05, "up")
 

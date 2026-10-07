@@ -238,8 +238,9 @@ BODY = [
     ("B-shin.L", "B-foot.L", 0.08),
     ("B-shin.R", "B-foot.R", 0.08),
 ]
-# The blade from the grip (m along the prop bone's +Y): the Katana's.
-BLADE = (0.09, 0.78)
+# The blade from the grip (m along the prop bone's +Y): the Katana's, 1.3 m from
+# the habaki since KE task 2.
+BLADE = (0.09, 1.39)
 
 
 def _segment_gap(p, a, b):

@@ -1,5 +1,5 @@
 {
-	"about": "The band tables (milestone-1 task 18): the spec's timing band table and distance band table (docs/specs/milestone-1.md, P26 and P27, approved by the owner at task 1), one row per move kind per weapon, read by MoveBands (move_bands.gd), held to by test_move_bands.gd and shown by the Studio. Kinds are the frame-data table's (FrameDataRows.kind_of). Timing ranges are rules frames [low, high]: startup to the first active frame; from_stance, an Iai draw's startup from the stance's release (its startup less the charge check); landing, a jump attack's recovery after it lands; to_wave, Moonsplitter's frames to its wave; total, the recall's whole length. Distances are metres centre to centre, played from standing: a move touches from touches (and from the weapon's duel and preferred distances where those are closer), a string light puts inside (m of blade, or of fist past the surface) into the defender at the duelling distance, and nothing touches from misses. waiting lists the moves still waiting for their family's re-key, which the band tests skip; each keying task takes its moves off.",
+	"about": "The band tables (milestone-1 task 18): the spec's timing band table and distance band table (docs/specs/milestone-1.md, P26 and P27, approved by the owner at task 1), one row per move kind per weapon, read by MoveBands (move_bands.gd), held to by test_move_bands.gd and shown by the Studio. Kinds are the frame-data table's (FrameDataRows.kind_of). Timing ranges are rules frames [low, high]: startup to the first active frame; from_stance, an Iai draw's startup from the stance's release (its startup less the charge check); landing, a jump attack's recovery after it lands; to_wave, Moonsplitter's frames to its wave; total, the recall's whole length. Distances are metres centre to centre, played from standing: a move touches from touches (and from the weapon's duel and preferred distances where those are closer), a string light puts inside (m of blade, or of fist past the surface) into the defender at the duelling distance, and nothing touches from misses. waiting lists the moves still waiting for their family's re-key, which the band tests skip; each keying task takes its moves off. Since KE task 2 the Katana's distances sit 0.5 m further out for its 1.3 m blade (a 3.0 m duelling distance), and its string lights' depth band is 5-30 cm until the strings are re-keyed (KE tasks 11-14).",
 	"timing": {
 		"katana": {
 			"string_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
@@ -35,22 +35,22 @@
 	},
 	"distance": {
 		"katana": {
-			"duel": 2.5,
-			"preferred": 2.1,
+			"duel": 3.0,
+			"preferred": 2.5,
 			"kinds": {
-				"string_light": {"touches": 2.5, "misses": 3.25, "inside": [0.15, 0.2]},
-				"string_heavy": {"touches": 3.0, "misses": 3.75},
-				"iai_follow_up": {"touches": 3.0, "misses": 3.75},
-				"iai_draw": {"touches": 3.6, "misses": 4.2},
-				"sprint_light": {"touches": 4.0, "misses": 4.75},
-				"sprint_heavy": {"touches": 5.0, "misses": 5.75},
-				"dodge_light": {"touches": 2.5, "misses": 3.25},
-				"dodge_heavy": {"touches": 2.5, "misses": 3.25},
-				"backstep_light": {"touches": 3.0, "misses": 3.75},
-				"backstep_heavy": {"touches": 4.5, "misses": 5.25},
-				"jump_light": {"touches": 2.0, "misses": 2.75},
-				"jump_heavy": {"touches": 2.0, "misses": 2.75},
-				"unblockable": {"touches": 3.5, "misses": 4.25},
+				"string_light": {"touches": 3.0, "misses": 3.75, "inside": [0.05, 0.3]},
+				"string_heavy": {"touches": 3.5, "misses": 4.25},
+				"iai_follow_up": {"touches": 3.5, "misses": 4.25},
+				"iai_draw": {"touches": 4.1, "misses": 4.7},
+				"sprint_light": {"touches": 4.5, "misses": 5.25},
+				"sprint_heavy": {"touches": 5.5, "misses": 6.25},
+				"dodge_light": {"touches": 3.0, "misses": 3.75},
+				"dodge_heavy": {"touches": 3.0, "misses": 3.75},
+				"backstep_light": {"touches": 3.5, "misses": 4.25},
+				"backstep_heavy": {"touches": 5.0, "misses": 5.75},
+				"jump_light": {"touches": 2.5, "misses": 3.25},
+				"jump_heavy": {"touches": 2.5, "misses": 3.25},
+				"unblockable": {"touches": 4.0, "misses": 4.75},
 				"ultimate": {"wave": 33.0}
 			}
 		},

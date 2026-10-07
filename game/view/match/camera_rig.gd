@@ -4,12 +4,14 @@ extends Camera3D
 ## Honor camera (spec, Decisions: "Camera"):
 ##
 ## - FOLLOW: over the player's right shoulder on the line from the player to
-##   the opponent, about 4.6 m back (a little more as they separate), 1.35 m
-##   to the right at 3.5 m apart and further, swinging further out by 0.8 m
-##   for each metre closer (about 3.5 m at the closest), so the player doesn't
+##   the opponent, about 5.5 m back (a little more as they separate), 1.35 m
+##   to the right at 4.2 m apart and further, swinging further out by 0.8 m
+##   for each metre closer (about 4 m at the closest), so the player doesn't
 ##   hide the opponent; at about head height and pitched nearly level, so
 ##   raised weapons read against the sky. It looks past the player's shoulder
-##   at the opponent's chest.
+##   at the opponent's chest. The back distance and the separations it
+##   reframes at grew by 1.2 with the Katana's duelling distance (2.5 to
+##   3.0 m, KE task 2, D11); the heights wait for the taller bodies (task 3).
 ## - WATCH: side-on to the line between the fighters, swaying slowly (Watch
 ##   mode, and the follow camera's swing to the side after a KO).
 ## - MENU: a slow orbit of the arena behind the menus.
@@ -51,10 +53,10 @@ const PUSH_EPSILON: float = 1e-5
 
 @export_group("Follow")
 ## Distance behind the player (m).
-@export var follow_back: float = 4.6
+@export var follow_back: float = 5.52
 ## Extra distance per metre of separation past follow_far_from.
 @export var follow_back_per_metre: float = 0.25
-@export var follow_far_from: float = 3.0
+@export var follow_far_from: float = 3.6
 ## Separation past follow_far_from counts up to this many metres.
 @export var follow_far_cap: float = 8.0
 ## Extra distance per metre the fighters are closer than follow_close_from
@@ -62,10 +64,10 @@ const PUSH_EPSILON: float = 1e-5
 @export var follow_close_push: float = 0.0
 ## Extra offset to the right per metre the fighters are closer than
 ## follow_close_from, so the opponent stays in view past the shoulder: at
-## 0.8 from 3.5 m a 0.35 m half-width (a real fighter's shoulders) on both
+## 0.8 from 4.2 m a 0.35 m half-width (a real fighter's shoulders) on both
 ## stays clear down to 1.5 m apart.
 @export var follow_close_side: float = 0.8
-@export var follow_close_from: float = 3.5
+@export var follow_close_from: float = 4.2
 ## Offset to the player's right (m); positive is right.
 @export var follow_side: float = 1.35
 ## Camera height above the floor (m).
