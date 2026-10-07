@@ -121,6 +121,29 @@ func test_events_shake_and_kick_the_camera() -> void:
 	assert_eq(view.camera.ko_orbit, 0.0)
 
 
+## Moonsplitter's wind-up stays on the gameplay camera with a slow push-in
+## (milestone-1 task 98, story 133): to moon_push_in over the wind-up, held
+## until the wave leaves, then out; no shot until it connects.
+func test_moonsplitter_s_wind_up_pushes_in_slowly_until_the_wave_leaves() -> void:
+	host.start(_cpu())
+	assert_eq(view.moon_push_in, 0.35)
+	view.camera.fov_kick = 0.0
+	host.sim_event.emit({"t": &"ultStart", "f": 0, "ult": &"moonsplitter"})
+	assert_almost_eq(view.camera.push_peak, view.moon_push_in, 1e-6, "pushing in")
+	assert_eq(view.camera.fov_kick, 0.0, "a push-in, not a kick")
+	assert_false(view.shots.active(), "no shot for the wind-up")
+	for i: int in SimConst.MOONSPLITTER_WAVE + 30:
+		view.camera.update_rig(1.0 / 60.0, host.display_position(0), host.display_position(1))
+	assert_almost_eq(view.camera.push_amount(), view.moon_push_in, 1e-4, "in, and held past the wind-up until the wave")
+	host.sim_event.emit({"t": &"ultWave", "f": 0, "kind": &"vertical", "pos": {"x": 0.0, "y": 1.0, "z": 0.0}, "yaw": 0.0})
+	for i: int in 30:
+		view.camera.update_rig(1.0 / 60.0, host.display_position(0), host.display_position(1))
+	assert_eq(view.camera.push_amount(), 0.0, "out once the wave leaves")
+	view.camera.fov_kick = 0.0
+	host.sim_event.emit({"t": &"ultStart", "f": 0, "ult": &"impaler"})
+	assert_eq(view.camera.fov_kick, 8.0, "the other ultimates still kick")
+
+
 ## A parry pushes the camera in toward the look point, a Flash or a
 ## redirect further (milestone-1 task 39); the push-in holds through the
 ## hit-stop and the depth of field is the graphics preset's.
@@ -447,7 +470,7 @@ func test_rematches_and_restarts_leave_no_stray_nodes() -> void:
 	host.start(_cpu())
 	await get_tree().process_frame
 	var baseline: Array[String] = _child_names()
-	assert_eq(baseline.size(), 7, "the arena, the camera, two fighters, the effects, the blood and the film grain")
+	assert_eq(baseline.size(), 8, "the arena, the camera, two fighters, the effects, the Moonsplitter waves, the blood and the film grain")
 	var at: Dictionary = {"x": 0.0, "y": 1.25, "z": 0.0}
 	for k: int in 3:
 		host.step(Match.INTRO_FRAMES + 20)

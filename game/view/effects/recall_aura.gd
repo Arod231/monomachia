@@ -14,8 +14,10 @@ extends RefCounted
 ##   the burst (frame 16) and dies away over the rest.
 ## - The burst (burst(), on the rules' recallBurst event, hit or not): a
 ##   golden flare and a white core at the chest, a golden shockwave along the
-##   ground out past the recalled weapon's reach with a white one inside it,
-##   and a spray of golden sparks.
+##   ground rolling well past the recalled weapon's reach (larger since
+##   milestone-1 task 100) with a white one inside it, a ring of distortion
+##   rolling out with it, and a spray of golden sparks. Under Reduce flashes
+##   its flashes are dimmed and slowed (CombatEffects.flash_slow).
 ##
 ## MatchView feeds it every drawn frame and calls burst() from its events.
 
@@ -91,10 +93,12 @@ static func burst(effects: CombatEffects, e: Dictionary, frame: int) -> void:
 	var ground: Vector3 = Vector3(chest.x, 0.04, chest.z)
 	var reach: float = float(e.get("reach", 2.5))
 	var born: float = float(frame)
-	effects.flash(chest, GOLD, 2.8, 24, born)
-	effects.flash(chest, WHITE, 1.4, 10, born)
-	effects.ring(ground, GOLD, 0.3, reach + 0.5, 18, born, 0.14, Vector3.UP)
-	effects.ring(ground, WHITE, 0.2, reach * 0.8, 12, born, 0.08, Vector3.UP)
+	var slow: float = effects.flash_slow
+	effects.flash(chest, GOLD, 2.8, roundi(24 * slow), born)
+	effects.flash(chest, WHITE, 1.4, roundi(10 * slow), born)
+	effects.ring(ground, GOLD, 0.3, reach * 2.2 + 0.5, 26, born, 0.12, Vector3.UP)
+	effects.ring(ground, WHITE, 0.2, reach * 1.2, 16, born, 0.08, Vector3.UP)
+	effects.distortion(ground + Vector3(0.0, 0.4, 0.0), 0.3, reach * 2.0, 24, born, 0.9, 0.25, Vector3.UP)
 	effects.ring(chest, Color(WHITE, 0.8), 0.4, 1.6, 10, born, 0.06)
 	effects.burst(chest, {
 		"count": 44, "color": GOLD, "size": 0.16, "size_end": 0.02, "life": 24, "life_jitter": 0.5,

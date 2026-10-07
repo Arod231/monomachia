@@ -13,8 +13,8 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 const CUT: StringName = &"k_l1"
 const EPS: float = 1e-9
 ## The moves re-keyed so far: the light string (task 31: Right Cut and Return
-## Cut; task 32: Kesa Cut and Crown Cut).
-const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
+## Cut; task 32: Kesa Cut and Crown Cut) and Breaker Palm (task 99).
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"f_breaker"]
 
 
 func after_each() -> void:
@@ -116,7 +116,7 @@ func test_the_stand_ins_the_counter_lunges_and_the_hidden_weapons_lunge_as_today
 	for w: WeaponDef in [Moves.KATANA, Moves.FISTS, Moves.GREATSWORD, Moves.DAGGERS]:
 		for id: StringName in w.moves:
 			var def: AttackDef = w.moves[id]
-			var keyed: bool = w == Moves.KATANA and KEYED.has(id)
+			var keyed: bool = (w == Moves.KATANA or w == Moves.FISTS) and KEYED.has(id)
 			assert_eq(def.by_travel, keyed, "%s: re-keyed only if its family keyed it" % id)
 			if not keyed:
 				assert_eq(def.lunge_from(10.0), def.lunge if def.special != &"counterLunge" else 7.0, "%s keeps its lunge" % id)

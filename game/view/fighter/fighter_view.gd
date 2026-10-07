@@ -70,7 +70,10 @@ extends Node3D
 ##
 ## A body flash (hit, disarm, KO) and a blade's glow (an unblockable winding
 ## up, a charging heavy, an ultimate) are material overlays, timed on the
-## rules' frames: the materials underneath are left alone. A floor ring
+## rules' frames: the materials underneath are left alone. While the
+## ultimate is ready (UltAura, milestone-1 task 100) a faint rim glow in the
+## side's colour takes the body's overlay when no flash does, and a heat-haze
+## veil shimmers over the fighter (show_aura()). A floor ring
 ## in the side's colour and a soft shadow keep the fighter readable from any
 ## camera.
 ##
@@ -110,6 +113,9 @@ const REACH: float = 0.96
 ## The way a blade's edge faces in a guard, or in a move that doesn't sweep
 ## it sideways (a thrust): down and forward, made square to the blade.
 const GUARD_EDGE: Vector3 = Vector3(0.0, -1.0, 0.5)
+## The ultimate-ready aura's rim glow and heat haze (UltAura, milestone-1 task 100).
+const RIM_SHADER: Shader = preload("res://shaders/ult_rim.gdshader")
+const HAZE_SHADER: Shader = preload("res://shaders/heat_haze.gdshader")
 
 var fighter_id: StringName = &""
 var palette: int = 0
@@ -135,6 +141,9 @@ var shot: ClipDirector.Shot = null
 ## (an attack's or a state's), whose pose already carries its body: the swing
 ## player's body then stays off until it ends (milestone-1 task 23).
 var _blend_from_clip: bool = false
+## The authored clips' own carry of the hips this update (_carry_of()),
+## weighted as they show, for the body layer to take out (task 99).
+var _carried: Vector3 = Vector3.ZERO
 var director: ClipDirector.Context
 var foot_lock: FootLock
 ## The world the shot and the foot lock are for: a new one starts them afresh.
@@ -148,7 +157,14 @@ var _body_overlay: StandardMaterial3D
 var _glow_overlay: StandardMaterial3D
 var _body_meshes: Array[MeshInstance3D] = []
 var _weapon_meshes: Array[MeshInstance3D] = []
-var _body_lit: bool = false
+## The overlay over the body now: a flash's, the ready aura's rim, or none.
+var _body_mat: Material = null
+## The ultimate-ready aura (UltAura, milestone-1 task 100): whether it shows,
+## its rim glow in the side's colour over the body (when no flash is), and
+## its heat-haze veil.
+var _aura: bool = false
+var _rim: ShaderMaterial
+var haze: MeshInstance3D
 var _weapon_lit: bool = false
 ## The body flash: its strength when lit, the world frame it was lit on, and
 ## its colour. Timed on the rules' frames, not the wall clock, so it holds
@@ -175,6 +191,7 @@ func setup(p_fighter: StringName, p_palette: int, p_weapon: StringName, p_side: 
 		lights.set_side(side)
 	model.apply_palette(p_palette)
 	_ring_mat.albedo_color = side_color().lightened(0.2)
+	_rim.set_shader_parameter(&"color", Color(side_color(), 1.0))
 	_hold(p_weapon)
 	shot = null
 	foot_lock.clear()
@@ -301,6 +318,7 @@ func update_from(f: Fighter, pos: Vector3, yaw: float, alpha: float, _delta: flo
 	var shown: bool = not ClipDirector.blinks(f)
 	model.visible = shown
 	_floor.visible = shown
+	show_aura(f)
 	var lit: float = flash_left(frame)
 	if lit > 0.0:
 		_light_body(Color(_flash_color, minf(FLASH_MAX, lit)))
@@ -414,6 +432,25 @@ func _show_authored(f: Fighter, alpha: float) -> void:
 		b_time = shot.clip.under.time
 		share = 1.0 - shot.clip.under_weight
 	locomotion.set_authored(a, a_time, b, b_time, share, shot.authored(), _legs_free(f))
+	_carried = (_carry_of(a, a_time) * share + _carry_of(b, b_time) * (1.0 - share)) * shot.authored()
+
+
+## How far clip `anim_name` has carried the hips from its start by `time`
+## (s), in their pose space, for a clip that carries the body (the recall
+## burst's blasted fall, milestone-1 task 99: StateClips.knockdown_blasted),
+## whose travel the rules move the fighter by; none for any other.
+func _carry_of(anim_name: String, time: float) -> Vector3:
+	var blasted: StringName = StateClips.shared().knockdown_blasted
+	if blasted == &"" or not anim_name.ends_with("/" + String(blasted)):
+		return Vector3.ZERO
+	var ap: AnimationPlayer = model.animation_player
+	if not ap.has_animation(anim_name):
+		return Vector3.ZERO
+	var anim: Animation = ap.get_animation(anim_name)
+	var track: int = anim.find_track(NodePath("%GeneralSkeleton:Hips"), Animation.TYPE_POSITION_3D)
+	if track < 0:
+		return Vector3.ZERO
+	return anim.position_track_interpolate(track, time) - anim.position_track_interpolate(track, 0.0)
 
 
 ## How much the legs are the legs' blend's under the authored clips, which
@@ -481,6 +518,7 @@ func _pose(f: Fighter, p: StickPose.Pose, _seconds: float, alpha: float) -> void
 	rig.body.clear()
 	rig.body.spine_pitch = lean
 	rig.body.hips_offset = Vector3(0.0, -crouch, 0.0)
+	rig.body.carried = _carried if shot != null else Vector3.ZERO
 	# a swing's body (its coil, shift and dip)
 	var swing_body: SwingPlayer.Body = swing_player.body(f, alpha)
 	if driving or (_blend_from_clip and rig.inertial.active and rig.inertial.blending()):
@@ -502,8 +540,9 @@ func _pose(f: Fighter, p: StickPose.Pose, _seconds: float, alpha: float) -> void
 		# the reach correction carries the body above the hips, and the arms
 		# and weapon with it
 		rig.body.hips_offset += SwingPlayer.to_skeleton(playing.reach_at(SwingPlayer.swing_frame(f, alpha)))
-	# the blade in the saya through the Iai's sheathe and stance (task 11)
-	rig.sheathed = playing != null and playing.is_sheathed(float(f.atk.frame))
+	# the blade in the saya through the Iai's sheathe and stance (task 11),
+	# and Moonsplitter's (task 98)
+	rig.sheathed = (playing != null and playing.is_sheathed(float(f.atk.frame))) or ClipDirector.ult_sheathed(f)
 	if model.weapons.is_empty():
 		return
 	if _fixed_on_clip(f) and _pin(f, alpha) > 0.0:
@@ -675,14 +714,40 @@ func _tag_side() -> void:
 
 # ------------------------------------------------------------------ overlays
 
+## Shows the ultimate-ready aura's rim and haze while UltAura.on(f), and
+## takes them off otherwise (the rim shows under no flash).
+func show_aura(f: Fighter) -> void:
+	_aura = UltAura.on(f)
+	haze.visible = _aura
+	if not _aura and _body_mat == _rim:
+		_light_body(Color(0.0, 0.0, 0.0, 0.0))
+	elif _aura and _body_mat == null:
+		_light_body(Color(0.0, 0.0, 0.0, 0.0))
+
+
+## Whether the ultimate-ready aura shows.
+func aura_shown() -> bool:
+	return _aura
+
+
+## The aura's rim glow, in the side's colour.
+func rim_material() -> ShaderMaterial:
+	return _rim
+
+
+## Lays `tint` over the body (a flash, the KO's dimming) or, with none, the
+## ready aura's rim while it shows.
 func _light_body(tint: Color) -> void:
-	var on: bool = tint.a > 0.0
-	if on:
+	var want: Material = null
+	if tint.a > 0.0:
 		_body_overlay.albedo_color = tint
-	if on != _body_lit:
-		_body_lit = on
+		want = _body_overlay
+	elif _aura:
+		want = _rim
+	if want != _body_mat:
+		_body_mat = want
 		for mi: MeshInstance3D in _body_meshes:
-			mi.material_overlay = _body_overlay if on else null
+			mi.material_overlay = want
 
 
 func _light_weapons(glow: Color) -> void:
@@ -714,7 +779,7 @@ func _build_model(id: StringName) -> void:
 	for node: Node in model.skeleton.find_children("*", "MeshInstance3D", true, false):
 		_body_meshes.append(node as MeshInstance3D)
 	_weapon_meshes.clear()
-	_body_lit = false
+	_body_mat = null
 	_weapon_lit = false
 	if _body_overlay == null:
 		_body_overlay = StandardMaterial3D.new()
@@ -760,6 +825,26 @@ func _build_floor() -> void:
 	var ring_mi: MeshInstance3D = _floor_mesh(ring, _ring_mat, &"SideRing")
 	ring_mi.position = Vector3(0.0, 0.002, 0.0)
 	ring_mi.scale = Vector3(1.0, 0.05, 1.0)
+	_build_aura()
+
+
+## The ready aura's rim material and heat-haze veil (UltAura), hidden.
+func _build_aura() -> void:
+	_rim = ShaderMaterial.new()
+	_rim.shader = RIM_SHADER
+	_rim.set_shader_parameter(&"amount", UltAura.RIM)
+	haze = MeshInstance3D.new()
+	haze.name = &"HeatHaze"
+	var quad: QuadMesh = QuadMesh.new()
+	quad.size = Vector2(1.5, 2.3)
+	haze.mesh = quad
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = HAZE_SHADER
+	haze.material_override = m
+	haze.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	haze.position = Vector3(0.0, 1.05, 0.0)
+	haze.visible = false
+	add_child(haze)
 
 
 func _floor_mesh(mesh: Mesh, mat: Material, node_name: StringName) -> MeshInstance3D:

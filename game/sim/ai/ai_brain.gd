@@ -354,7 +354,8 @@ func _think() -> RawInput:
 			_tap(Btn.ULTIMATE, frame, 2)
 			_move_x = 1.0 if horiz else 0.0
 			_move_y = 0.0 if horiz else 1.0
-			_next_think = frame + 36
+			# hold the tilt until the draw locks the pick (task 98)
+			_next_think = frame + SimConst.MOONSPLITTER_DRAW + 4
 			return _output(frame)
 		_tap(Btn.ULTIMATE, frame, 2)
 		if not me.armed:

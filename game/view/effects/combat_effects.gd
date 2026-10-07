@@ -21,7 +21,14 @@ extends Node3D
 ## half on Low so contact still reads, and the contact lights show only where
 ## the preset allows them (GraphicsPreset.spark_light: Ultra and High)
 ## (set_preset()). Reduce flashes (18.11) dims the flashes, rings and sparks
-## (flash_scale) and halves the lights (light_scale).
+## (flash_scale) and halves the lights (light_scale); the ultimates' own
+## flashes (UltEffects, RecallAura; milestone-1 task 100) are slowed too,
+## living flash_slow times as long.
+##
+## A distortion ring (milestone-1 task 100: Breaker Palm's blow, the recall's
+## burst) is a ring that bends the scene behind it as it widens, like a
+## shockwave in the air (shaders/effect_distortion.gdshader), from its own
+## pool.
 ##
 ## Sparks (milestone-1 task 37) are hot streaks thrown from a contact, falling
 ## under gravity and dying on the floor, drawn along their flight
@@ -41,6 +48,7 @@ const RINGS: StringName = &"Rings"
 const PARTICLES: StringName = &"Particles"
 const SPARKS: StringName = &"Sparks"
 const PUFFS: StringName = &"Puffs"
+const DISTORTIONS: StringName = &"Distortions"
 
 ## How many of each the pools hold; past that, the oldest go.
 const FLASH_CAPACITY: int = 64
@@ -48,6 +56,7 @@ const RING_CAPACITY: int = 32
 const PARTICLE_CAPACITY: int = 1200
 const SPARK_CAPACITY: int = 400
 const PUFF_CAPACITY: int = 64
+const DISTORTION_CAPACITY: int = 8
 ## The contact lights: few, since a light costs every surface it touches.
 const LIGHT_CAPACITY: int = 3
 ## The least share of a burst's particles a preset draws (Low's ambient
@@ -85,11 +94,15 @@ const PUFF_GROWTH: float = 2.4
 const PUFF_SPEED: float = 0.45
 ## How much of a contact light Reduce flashes leaves.
 const REDUCED_LIGHT: float = 0.5
+## Under Reduce flashes the ultimates' flashes live this many times as long
+## (flash_slow), so they swell and fade gently.
+const REDUCED_SLOW: float = 1.6
 
 const GLOW_SHADER: Shader = preload("res://shaders/particle_glow.gdshader")
 const RING_SHADER: Shader = preload("res://shaders/effect_ring.gdshader")
 const SPARK_SHADER: Shader = preload("res://shaders/spark_streak.gdshader")
 const PUFF_SHADER: Shader = preload("res://shaders/effect_puff.gdshader")
+const DISTORTION_SHADER: Shader = preload("res://shaders/effect_distortion.gdshader")
 
 ## Floats per instance in a pool's buffer: a 3x4 transform, a colour, and
 ## for rings the custom data (facing the camera, band width).
@@ -156,6 +169,9 @@ var flash_scale: float = 1.0
 ## Multiplies how bright the contact lights are (REDUCED_LIGHT under reduce
 ## flashes).
 var light_scale: float = 1.0
+## How many times as long the ultimates' flashes live (REDUCED_SLOW under
+## Reduce flashes; MatchView sets it).
+var flash_slow: float = 1.0
 ## Whether contact lights show (the preset's spark_light).
 var lights_allowed: bool = true
 ## The clock at the last update().
@@ -166,6 +182,7 @@ var _rings: Array[Fx] = []
 var _particles: Array[Particle] = []
 var _sparks: Array[Particle] = []
 var _puffs: Array[Particle] = []
+var _distortions: Array[Fx] = []
 var _lights: Array[ContactLight] = []
 ## The blades' air smears: side * 2 + hand (TrailState.RIGHT or LEFT).
 var smears: Array[AirSmear] = []
@@ -182,6 +199,7 @@ func _init() -> void:
 	_add_pool(PARTICLES, PARTICLE_CAPACITY, _glow_material(PARTICLE_ENERGY), false)
 	_add_pool(SPARKS, SPARK_CAPACITY, _shader_material(SPARK_SHADER, SPARK_ENERGY), false)
 	_add_pool(PUFFS, PUFF_CAPACITY, _shader_material(PUFF_SHADER, -1.0), false)
+	_add_pool(DISTORTIONS, DISTORTION_CAPACITY, _shader_material(DISTORTION_SHADER, -1.0), true)
 	for k: int in LIGHT_CAPACITY:
 		var light: OmniLight3D = OmniLight3D.new()
 		light.name = "ContactLight%d" % k
@@ -295,6 +313,24 @@ func ring(at: Vector3, color: Color, r0: float, r1: float, life: int, born: floa
 	fx.life = float(maxi(1, life))
 	fx.born = born
 	_push(_rings, fx, RING_CAPACITY)
+
+
+## A ring of distortion at `at` widening from radius r0 to r1 over `life`
+## frames from `born`, bending the scene behind its band (`band` of its
+## radius) by `strength` (0 to 1) as it goes; flat to `normal`, or facing
+## the camera for none.
+func distortion(at: Vector3, r0: float, r1: float, life: int, born: float, strength: float = 1.0,
+		band: float = 0.3, normal: Vector3 = Vector3.ZERO) -> void:
+	var fx: Fx = Fx.new()
+	fx.at = at
+	fx.color = Color(1.0, 1.0, 1.0, clampf(strength, 0.0, 1.0))
+	fx.size = r0
+	fx.size_end = r1
+	fx.band = band
+	fx.normal = normal.normalized()
+	fx.life = float(maxi(1, life))
+	fx.born = born
+	_push(_distortions, fx, DISTORTION_CAPACITY)
 
 
 ## Throws a burst of particles from `at`, born on `born`, scattered by
@@ -426,6 +462,7 @@ func clear() -> void:
 	_particles.clear()
 	_sparks.clear()
 	_puffs.clear()
+	_distortions.clear()
 	_lights.clear()
 	for pool: StringName in _pools:
 		_pools[pool].multimesh.visible_instance_count = 0
@@ -448,6 +485,7 @@ func update(t: float) -> void:
 	_particles = living
 	_sparks = _alive_particles(_sparks, t)
 	_puffs = _alive_particles(_puffs, t)
+	_distortions = _alive(_distortions, t)
 	var lit: Array[ContactLight] = []
 	for l: ContactLight in _lights:
 		if t - l.born < l.life:
@@ -499,6 +537,19 @@ func update(t: float) -> void:
 		_write(buf, i, 0, Basis.from_scale(Vector3(d, d, d)), s["pos"], s["color"])
 	_flush(PUFFS, _puffs.size())
 
+	buf = _buffers[DISTORTIONS]
+	for i: int in _distortions.size():
+		var s: Dictionary = distortion_state(i)
+		var fx: Fx = _distortions[i]
+		var d: float = float(s["radius"]) * 2.0
+		var basis: Basis = Basis.from_scale(Vector3(d, d, d))
+		if not s["faces_camera"]:
+			basis = _facing(fx.normal) * basis
+		_write(buf, i, _CUSTOM, basis, s["pos"], Color(1.0, 1.0, 1.0, float(s["alpha"])))
+		buf[i * stride + _XFORM + _COLOR] = 1.0 if s["faces_camera"] else 0.0
+		buf[i * stride + _XFORM + _COLOR + 1] = fx.band
+	_flush(DISTORTIONS, _distortions.size())
+
 	for k: int in _light_nodes.size():
 		var node: OmniLight3D = _light_nodes[k]
 		var i: int = _lights.size() - 1 - k
@@ -538,6 +589,10 @@ func puff_count() -> int:
 	return _puffs.size()
 
 
+func distortion_count() -> int:
+	return _distortions.size()
+
+
 func light_count() -> int:
 	return _lights.size()
 
@@ -575,6 +630,18 @@ func ring_state(i: int) -> Dictionary:
 	return {
 		"pos": fx.at, "radius": lerpf(fx.size, fx.size_end, out), "color": fx.color,
 		"alpha": 1.0 - k, "faces_camera": fx.normal == Vector3.ZERO, "born": fx.born,
+	}
+
+
+## Distortion ring i at the last update: "pos", "radius", "alpha" (its
+## strength, fading), "faces_camera", "born".
+func distortion_state(i: int) -> Dictionary:
+	var fx: Fx = _distortions[i]
+	var k: float = _progress(fx.born, fx.life)
+	var out: float = 1.0 - (1.0 - k) * (1.0 - k)
+	return {
+		"pos": fx.at, "radius": lerpf(fx.size, fx.size_end, out), "alpha": fx.color.a * (1.0 - k),
+		"faces_camera": fx.normal == Vector3.ZERO, "born": fx.born,
 	}
 
 

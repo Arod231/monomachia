@@ -1,0 +1,18 @@
+{
+	"about": "Moonsplitter's horizontal draw, milestone-1 task 98: from the stance's last frame (moonsplitter_stance frame 23, blended in over 4 frames) a quick, flat one-handed draw across, after Elden Ring's Moonveil (Transient Moonlight), from Attack1H04_R's flat cut, kept low in the stance's crouch (the crouch taken over as the blend fades and held to frame 14): the cut lands on frame 7 (14 rules frames after the draw starts, 60 from the ultimate's start: the wave), held at full extension to frame 14, then back up to frame 28 (42 rules frames after the wave). Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H04_R.fbx",
+	"out": "blender/clips/moonsplitter_draw_horizontal.blend",
+	"remap": [[0, 6], [7, 12], [14, 12.6], [28, 35]],
+	"blend_from": {
+		"source": "blender/clips/moonsplitter_stance.blend",
+		"frame": 23,
+		"frames": 4
+	},
+	"lower": {
+		"drop": 0.2,
+		"bend": 14,
+		"from": 0,
+		"peak": 4,
+		"until": 14
+	}
+}

@@ -16,11 +16,11 @@ extends RefCounted
 ##    "carry": {"pose": "ObjectGripShoulder02_R"},
 ##    "ults": {"moonsplitter": {...}, "impaler": {...}, "tempest": {...}},
 ##    "keyed": {"state": {"stomp": "Mikiri_Stomp"}, "stun": {"stomp": "Mikiri_Pinned"}},
-##    "knockdown": {"clips": {"fall": ...}, "fallbacks": {"fall": ...}, "standup_from": 6},
+##    "knockdown": {"clips": {"fall": ...}, "fallbacks": {"fall": ...}, "standup_from": 6, "blasted": "BlastedFall"},
 ##    "ko": {"clips": {"front": [light, heavy], "behind": [light, heavy]}, "fallback": "Death01"}}
 ##
 ## Every group and field is needed, but "own_speed", "transitions",
-## "deflects" and "reactions", and a field it doesn't know is an error, as in
+## "deflects", "reactions", "grips" and "states", and a field it doesn't know is an error, as in
 ## MoveClips.
 ##
 ## "own_speed" (milestone-1 task 19) lists the clips that play at 1.0 from
@@ -58,11 +58,16 @@ extends RefCounted
 ## re-grip transitions by the grip switched to ({"regrip": {"two_handed":
 ## clip}}; D15), each optional. A weapon or a grip without an entry plays the
 ## weapon's idle and guard, with no carry or re-grip.
+##
+## "states" (milestone-1 task 99) names the rules states that play a
+## manifest clip of their own with the packs ({"ultChoice": clip}), fitted
+## to the state; without the packs such a state plays its hand-keyed clip
+## ("keyed") if it has one.
 
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips", "states"]
 ## The grips a "grips" entry names (WeaponGrip's), and each one's clips.
 const GRIP_IDS: Array[String] = ["one_handed", "two_handed"]
 const GRIP_FIELDS: Array[String] = ["idle", "guard", "carry"]
@@ -80,7 +85,7 @@ const OWN_SPEED_ENDS: Array[String] = ["loop", "hand_on"]
 const KNOCKDOWN_PHASES: Array[String] = ["fall", "ground", "standUp"]
 const FADE_NAMES: Array[String] = ["attack", "follow_up", "dodge_cancel", "hitstun", "locomotion", "stance", "state", "guard", "rebound"]
 const ULT_KINDS: Array[String] = ["moonsplitter", "impaler", "tempest"]
-const MOONSPLITTER_FIELDS: Array[String] = ["clips", "fallback", "windup", "release"]
+const MOONSPLITTER_FIELDS: Array[String] = ["stance", "draws", "sheathed", "fallback"]
 const IMPALER_FIELDS: Array[String] = ["clip", "drawn", "out", "recover", "recover_frames", "fallback", "aim", "dash"]
 const TEMPEST_FIELDS: Array[String] = ["spin", "slashes", "flash", "final", "final_from", "final_frames", "recover_frames", "fallback"]
 
@@ -103,6 +108,10 @@ var fallback_idle: Dictionary[StringName, StringName] = {}
 ## stun's by what caused it (Fighter.stun_cause).
 var state_clips: Dictionary[StringName, StringName] = {}
 var stun_clips: Dictionary[StringName, StringName] = {}
+## The rules states that play a manifest clip of their own with the packs
+## (milestone-1 task 99: the disarmed choice's gathering stance and the
+## recall's power-up), by state.
+var own_clips: Dictionary[StringName, StringName] = {}
 ## Hitstun's recoil, light then heavy (by the hit's weight, Fighter.impact_heavy,
 ## since milestone-1 task 35), and without the packs. `heavy_hitstun` was the
 ## length past which a hitstun read as a heavy's; it is kept in the file but
@@ -119,12 +128,15 @@ var stun_clip: StringName = &""
 var stun_fallback: StringName = &""
 ## The Greatsword's shoulder carry pose.
 var carry_pose: StringName = &""
-## Moonsplitter's clip per variant, [clip id, source frame held at]; its
-## fallback and its wind-up and release in rules frames.
-var ult_clips: Dictionary[StringName, Array] = {}
+## Moonsplitter (milestone-1 task 98): the sheathe and held stance, played at
+## 1.0 from the ultimate's start to the draw (SimConst.MOONSPLITTER_DRAW),
+## then the draw per variant (vertical, horizontal) at 1.0 from there; the
+## source frames from the ultimate's start the blade spends in the saya
+## ([in, out]); and the fallback, stretched over the whole ultimate.
+var ult_stance: StringName = &""
+var ult_draws: Dictionary[StringName, StringName] = {}
+var ult_sheathed: Array[float] = []
 var ult_fallback: StringName = &""
-var ult_windup: int = 0
-var ult_release: int = 0
 ## Impaler: the clip, the source frames it is drawn back to, thrust out to and
 ## recovers from, the frames it recovers over, its fallback and the aim's and
 ## the dash's rules frames.
@@ -155,6 +167,12 @@ var tempest_fallback: StringName = &""
 var knockdown_clips: Dictionary[StringName, StringName] = {}
 var knockdown_fallbacks: Dictionary[StringName, StringName] = {}
 var knockdown_standup_from: float = 0.0
+## The recall burst's blasted fall (milestone-1 task 99), played over the
+## fall in Knockdown01's place when the burst knocked the fighter down
+## (Fighter.knockdown_blasted): it carries the body back over the ground
+## as the rules move the fighter by its travel, which the view takes out of
+## the clip (FighterView). Only with the packs.
+var knockdown_blasted: StringName = &""
 ## The KO's death by the final blow: [from the front, from behind] each
 ## [light, heavy]; and without the packs. Played at 1.0 from the blow, held
 ## lying at the end.
@@ -230,10 +248,10 @@ static func read(path: String = PATH) -> StateClips:
 
 	var ults: Dictionary = t._object(root.get("ults"), "ults", ULT_KINDS)
 	g = t._object(ults.get("moonsplitter"), "ults.moonsplitter", MOONSPLITTER_FIELDS)
-	t.ult_clips = t._ult_clips(g, "ults.moonsplitter", "clips")
+	t.ult_stance = t._id(g, "ults.moonsplitter", "stance")
+	t.ult_draws = t._id_map(g, "ults.moonsplitter", "draws", ["vertical", "horizontal"])
+	t.ult_sheathed = t._nums(g, "ults.moonsplitter", "sheathed", 2)
 	t.ult_fallback = t._id(g, "ults.moonsplitter", "fallback")
-	t.ult_windup = t._whole(g, "ults.moonsplitter", "windup")
-	t.ult_release = t._whole(g, "ults.moonsplitter", "release")
 	g = t._object(ults.get("impaler"), "ults.impaler", IMPALER_FIELDS)
 	t.impaler_clip = t._id(g, "ults.impaler", "clip")
 	t.impaler_drawn = t._num(g, "ults.impaler", "drawn")
@@ -257,10 +275,11 @@ static func read(path: String = PATH) -> StateClips:
 	t.state_clips = t._id_map(keyed, "keyed", "state", [])
 	t.stun_clips = t._id_map(keyed, "keyed", "stun", [])
 
-	g = t._object(root.get("knockdown"), "knockdown", ["clips", "fallbacks", "standup_from"])
+	g = t._object(root.get("knockdown"), "knockdown", ["clips", "fallbacks", "standup_from", "blasted"])
 	t.knockdown_clips = t._id_map(g, "knockdown", "clips", KNOCKDOWN_PHASES)
 	t.knockdown_fallbacks = t._id_map(g, "knockdown", "fallbacks", KNOCKDOWN_PHASES)
 	t.knockdown_standup_from = t._num(g, "knockdown", "standup_from")
+	t.knockdown_blasted = t._id(g, "knockdown", "blasted")
 
 	g = t._object(root.get("ko"), "ko", ["clips", "fallback"])
 	var deaths: Dictionary = t._object(g.get("clips"), "ko.clips", ["front", "behind"])
@@ -344,6 +363,8 @@ static func read(path: String = PATH) -> StateClips:
 					t.light_blocks[StringName(str(w))] = id
 	if root.has("grips"):
 		t._grips(root["grips"])
+	if root.has("states"):
+		t.own_clips = t._id_map({"states": root["states"]}, "state_clips", "states", [])
 	return t
 
 
@@ -568,25 +589,4 @@ func _guards(g: Dictionary, at: String, key: String) -> Dictionary[StringName, A
 			out[StringName(str(k))] = pair
 	if not (v as Dictionary).has("fists"):
 		errors.append("%s.%s: needs fists" % [at, key])
-	return out
-
-
-## Moonsplitter's [clip id, hold frame] by variant, with the vertical's.
-func _ult_clips(g: Dictionary, at: String, key: String) -> Dictionary[StringName, Array]:
-	var out: Dictionary[StringName, Array] = {}
-	if not g.has(key):
-		return out
-	var v: Variant = g[key]
-	if not v is Dictionary:
-		errors.append("%s.%s: not an object" % [at, key])
-		return out
-	for k: Variant in v:
-		var pick: Variant = v[k]
-		if not pick is Array or (pick as Array).size() != 2 or not pick[0] is String or (pick[0] as String).is_empty() \
-				or not (pick[1] is float or pick[1] is int) or float(pick[1]) < 0.0:
-			errors.append("%s.%s.%s: must be a clip id and the source frame it holds at" % [at, key, k])
-			continue
-		out[StringName(str(k))] = [StringName(pick[0]), float(pick[1])]
-	if not (v as Dictionary).has("vertical"):
-		errors.append("%s.%s: needs vertical" % [at, key])
 	return out

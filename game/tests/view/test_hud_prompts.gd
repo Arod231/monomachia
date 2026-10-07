@@ -93,6 +93,18 @@ func test_the_moonsplitter_tilt_names_the_movement_keys() -> void:
 	assert_eq(_urgent(), [true] as Array[bool])
 
 
+## The tilt shows only while the stick still picks: once the draw starts
+## (task 98) the pick is locked, so the line goes.
+func test_the_moonsplitter_tilt_goes_when_the_draw_locks_the_pick() -> void:
+	_start()
+	me.hp = 20.0
+	me.start_ult()
+	me.ult.pf = SimConst.MOONSPLITTER_DRAW
+	assert_eq(_lines().size(), 1, "still picking on the draw's frame")
+	me.ult.pf = SimConst.MOONSPLITTER_DRAW + 1
+	assert_eq(_lines(), [] as Array[String], "locked")
+
+
 ## On a controller the tilt names the stick, not the D-pad (the owner's
 ## choice, Oct 4, 2026).
 func test_on_a_controller_the_moonsplitter_tilt_names_the_stick() -> void:

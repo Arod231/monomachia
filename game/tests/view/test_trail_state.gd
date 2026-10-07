@@ -116,7 +116,7 @@ func test_moonsplitter_smears_gold_at_its_release_only() -> void:
 	var release_on: int = 0
 	var release_off: int = 0
 	H.run(W, 1, func(_i: int) -> RawInput: return H.btn(Btn.ULTIMATE))
-	for i: int in 60:
+	for i: int in SimConst.MOONSPLITTER_WAVE + SimConst.MOONSPLITTER_RECOVERY + 8:
 		H.run(W, 1)
 		if f.state != &"ult":
 			continue

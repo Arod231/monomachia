@@ -148,6 +148,11 @@ var stun_cause: StringName = &""
 ## bare hands' move knocked the fighter down) or today's (milestone-1 task
 ## 22; ProtectedTimings): its fall, time down, rise and guard window.
 var knockdown_retuned: bool = false
+## Whether the knockdown under way is the recall burst's (milestone-1 task
+## 99): through its fall the fighter is carried back by the blasted fall's
+## travel (SimConst.BLASTED_FALL's row of the frame-data table), facing the
+## recaller.
+var knockdown_blasted: bool = false
 ## The final blow (to_ko(); authored-animation task 28, for the KO's clip):
 ## whether it was a heavy, and whether it came from behind the fighter.
 var ko_heavy: bool = false
@@ -1493,6 +1498,7 @@ func enter_stun(frames: int, kind: StringName = &"stunned", cause: StringName = 
 ## when none is given).
 func enter_knockdown(t: ProtectedTimings = null) -> void:
 	knockdown_retuned = t != null and t.retuned
+	knockdown_blasted = false
 	set_state(&"knockdown", knockdown_frames())
 	vel.x = 0.0
 	vel.z = 0.0
@@ -1503,6 +1509,8 @@ func enter_knockdown(t: ProtectedTimings = null) -> void:
 ## dodge or move. Free on the last frame.
 func _update_knockdown() -> void:
 	_brake()
+	if knockdown_blasted and knockdown_phase() == &"fall":
+		_travel(FrameDataTable.shared().clip_travel_at(SimConst.BLASTED_FALL, sf))
 	blocking = armed and not is_downed() and input.is_held(Btn.BLOCK)
 	if sf >= state_dur:
 		world.emit({"t": &"standup", "f": id})
@@ -1624,9 +1632,12 @@ func _recall_burst() -> void:
 	if not hit:
 		return
 	o.release_if_impaling()
-	# the recall is bare hands' ultimate: its knockdown takes their phases
+	# the recall is bare hands' ultimate: its knockdown takes their phases,
+	# blasted: turned to face the recaller and carried back by the blasted
+	# fall's travel (task 99)
 	o.enter_knockdown(ProtectedTimings.for_weapon(&"fists"))
-	o.knock(pos.x, pos.z, SimConst.RECALL_BURST_KNOCKBACK, SimConst.RECALL_BURST_KNOCK_FRAMES)
+	o.knockdown_blasted = true
+	o.yaw = SimMath.yaw_to(o.pos, pos)
 	world.emit({"t": &"knockdown", "f": o.id, "attacker": id})
 	world.hitstop = SimConst.RECALL_BURST_HITSTOP
 
@@ -1724,13 +1735,15 @@ func _ult_moonsplitter(u: UltState) -> void:
 	var W: World = world
 	var inp: InputTracker = input
 	if u.phase == &"windup":
-		if inp.dir != -1:
+		# the stick picks until the draw starts (task 98), so the clip never
+		# changes draws mid-cut
+		if inp.dir != -1 and u.pf <= SimConst.MOONSPLITTER_DRAW:
 			u.variant = &"horizontal" if inp.sideways() else &"vertical"
-		if u.pf >= 36:
+		if u.pf >= SimConst.MOONSPLITTER_WAVE:
 			_set_ult_phase(&"release")
 			W.spawn_wave(self, u.variant)
 	elif u.phase == &"release":
-		if u.pf >= 34:
+		if u.pf >= SimConst.MOONSPLITTER_RECOVERY:
 			to_free()
 
 

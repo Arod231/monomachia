@@ -136,7 +136,7 @@ func test_state_entries_play_the_tables_clips() -> void:
 	var live: StudioCatalogue = StudioCatalogue.build(_manifest, _table, StateClips.read(), _keyed())
 	assert_eq(live.find(&"state", &"deflect_k_l1").clips, ["RightCutDeflect", "RightCutRecoil"] as Array[String], "a deflect pair: the deflect and the recoil")
 	assert_eq(cat.find(&"ult", &"tempest").clips, ["ual/Sword_Aerial_Combo", "AttackDW02"] as Array[String], "the tempest's spin and final")
-	assert_eq(cat.find(&"ult", &"moonsplitter_horizontal").clips, ["Attack2H03"] as Array[String], "a moonsplitter variant")
+	assert_eq(cat.find(&"ult", &"moonsplitter_horizontal").clips, ["MoonsplitterStance", "MoonsplitterDrawHorizontal"] as Array[String], "a moonsplitter variant: the stance, then its draw")
 
 
 func test_the_roll_and_locomotion_are_source_entries_of_the_states_group() -> void:

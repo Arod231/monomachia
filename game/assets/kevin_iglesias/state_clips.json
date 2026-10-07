@@ -1,5 +1,5 @@
 {
-	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown and the KO, the Katana string's transitions (its bridges and returns to guard), the deflect pairs, the light hit and block reactions, the crossfades' lengths, and the hand-keyed clips of the states with their own. Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
+	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown (and the recall burst's blasted fall) and the KO, the Katana string's transitions (its bridges and returns to guard), the deflect pairs, the light hit and block reactions, the crossfades' lengths, the clips of the states with their own (the disarmed choice's and the recall's, and the hand-keyed ones). Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
 	"idle": {
 		"clips": {"katana": "KatanaGuard", "daggers": "CombatIdle1H01", "greatsword": "CombatIdle2H01", "fists": "CombatIdle01"},
 		"fallbacks": {"katana": "Sword_Idle", "daggers": "Sword_Idle", "greatsword": "Sword_Idle", "fists": "Idle"}
@@ -19,10 +19,11 @@
 	"stun": {"clip": "Stun01", "fallback": "Hit_Knockback"},
 	"carry": {"pose": "ObjectGripShoulder02_R"},
 	"ults": {
-		"moonsplitter": {"clips": {"vertical": ["Attack2H01", 12], "horizontal": ["Attack2H03", 7]}, "fallback": "Sword_Heavy_Combo", "windup": 36, "release": 34},
+		"moonsplitter": {"stance": "MoonsplitterStance", "draws": {"vertical": "MoonsplitterDrawVertical", "horizontal": "MoonsplitterDrawHorizontal"}, "sheathed": [8.5, 23.5], "fallback": "Sword_Heavy_Combo"},
 		"impaler": {"clip": "AttackPolearm01", "drawn": 8, "out": 14, "recover": 18, "recover_frames": 30, "fallback": "Sword_Dash", "aim": 30, "dash": 40},
 		"tempest": {"spin": "ual/Sword_Aerial_Combo", "slashes": [2, 17], "flash": 8, "final": "AttackDW02", "final_from": 12, "final_frames": 14, "recover_frames": 24, "fallback": "Sword_Heavy_Combo"}
 	},
+	"states": {"ultChoice": "UltChoice", "recall": "RecallPowerUp"},
 	"keyed": {
 		"state": {"stomp": "Mikiri_Stomp", "recall": "Power_Up"},
 		"stun": {"stomp": "Mikiri_Pinned"}
@@ -30,7 +31,8 @@
 	"knockdown": {
 		"clips": {"fall": "Knockdown01_Fall", "ground": "Knockdown01_Ground", "standUp": "Knockdown01_StandUp"},
 		"fallbacks": {"fall": "Hit_Knockback", "ground": "LayToIdle", "standUp": "LayToIdle"},
-		"standup_from": 6
+		"standup_from": 6,
+		"blasted": "BlastedFall"
 	},
 	"ko": {
 		"clips": {"front": ["CombatDeath01", "CombatDeath02"], "behind": ["CombatDeath03", "CombatDeath04"]},

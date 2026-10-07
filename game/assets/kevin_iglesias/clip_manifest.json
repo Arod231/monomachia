@@ -334,6 +334,118 @@
 				"katana"
 			]
 		},
+		"UltChoice": {
+			"export": "exports/clips/ult_choice.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 6,
+				"contact_end": 20,
+				"settle": 20
+			},
+			"foot_contacts": {"left": [[0, 20]], "right": [[0, 20]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"RecallPowerUp": {
+			"export": "exports/clips/recall.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 8,
+				"contact_end": 13,
+				"settle": 13
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 13]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"BlastedFall": {
+			"export": "exports/clips/blasted_fall.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 4,
+				"contact_end": 11,
+				"settle": 15
+			},
+			"foot_contacts": {"left": [[0, 0], [13, 15]], "right": [[0, 0], [12, 15]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"BreakerPalm": {
+			"export": "exports/clips/breaker_palm.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 18,
+				"contact_end": 20,
+				"settle": 38
+			},
+			"foot_contacts": {"left": [[0, 15], [20, 38]], "right": [[0, 14], [19, 38]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"MoonsplitterStance": {
+			"export": "exports/clips/moonsplitter_stance.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 9,
+				"contact_end": 23,
+				"settle": 23
+			},
+			"foot_contacts": {"left": [[0, 23]], "right": [[0, 23]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"MoonsplitterDrawVertical": {
+			"export": "exports/clips/moonsplitter_draw_vertical.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 7,
+				"contact_end": 14,
+				"settle": 28
+			},
+			"foot_contacts": {"left": [[0, 28]], "right": [[21, 28]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"MoonsplitterDrawHorizontal": {
+			"export": "exports/clips/moonsplitter_draw_horizontal.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 7,
+				"contact_end": 14,
+				"settle": 28
+			},
+			"foot_contacts": {"left": [[0, 28]], "right": [[0, 28]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"RightCutToGuard": {
 			"export": "exports/clips/right_cut_to_guard.glb",
 			"mirror": false,
