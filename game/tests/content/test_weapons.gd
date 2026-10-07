@@ -25,7 +25,6 @@ func test_every_playable_weapon_has_a_look() -> void:
 		assert_not_null(look, "%s loads" % id)
 		assert_eq(look.id, id)
 		assert_not_null(look.scene, "%s has a scene" % id)
-		assert_gt(look.trail_width, 0.0, "%s has a trail width" % id)
 
 
 func test_every_weapon_has_blade_markers_with_the_tip_beyond_the_base() -> void:

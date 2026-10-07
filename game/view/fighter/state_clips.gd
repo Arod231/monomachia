@@ -59,7 +59,12 @@ const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", 
 ## Where a hit can land, for its light reaction ("reactions").
 const HIT_PLACES: Array[String] = ["front_high", "front_low", "left_high", "left_low", "right_high", "right_low", "back_high", "back_low"]
 ## A deflect pair's fields (deflect_pairs).
-const PAIR_FIELDS: Array[String] = ["deflect", "deflect_contact", "recoil", "recoil_contact"]
+const PAIR_FIELDS: Array[String] = ["direction", "deflect", "deflect_contact", "recoil", "recoil_contact"]
+## The cut directions a deflect pair names (milestone-1 task 136), which its
+## sounds go by (SoundBank.DEFLECT_SOUNDS): today's four lights, Right Cut,
+## Return Cut, Kesa Cut and Crown Cut, in that order; the later strings'
+## pairs name the nearest.
+const DEFLECT_DIRECTIONS: Array[StringName] = [&"right_to_left", &"left_to_right", &"diagonal", &"overhead"]
 ## What a clip at its own speed does past its end.
 const OWN_SPEED_ENDS: Array[String] = ["loop", "hand_on"]
 const KNOCKDOWN_PHASES: Array[String] = ["fall", "ground", "standUp"]
@@ -152,7 +157,8 @@ var bridges: Dictionary[StringName, Dictionary] = {}
 var returns: Dictionary[StringName, StringName] = {}
 ## The deflect pairs (milestone-1 task 34), by parried move: {&"deflect":
 ## clip id, &"deflect_contact": source frame, &"recoil": clip id,
-## &"recoil_contact": source frame}.
+## &"recoil_contact": source frame, &"direction": one of DEFLECT_DIRECTIONS
+## (task 136)}.
 var deflect_pairs: Dictionary[StringName, Dictionary] = {}
 ## The light hit reactions (milestone-1 task 35) by weapon, each a dictionary
 ## of clip ids by HIT_PLACES; and the light block reaction by weapon.
@@ -295,6 +301,7 @@ static func read(path: String = PATH) -> StateClips:
 				t.deflect_pairs[StringName(str(move))] = {
 					&"deflect": t._id(e, at, "deflect"), &"deflect_contact": t._num(e, at, "deflect_contact"),
 					&"recoil": t._id(e, at, "recoil"), &"recoil_contact": t._num(e, at, "recoil_contact"),
+					&"direction": t._direction(e, at),
 				}
 	if root.has("reactions"):
 		g = t._object(root["reactions"], "reactions", ["hit_light", "block_light"])
@@ -363,6 +370,21 @@ func _id(g: Dictionary, at: String, key: String) -> StringName:
 	var v: Variant = g[key]
 	if not v is String or (v as String).is_empty():
 		errors.append("%s.%s: must be a clip id (a non-empty string)" % [at, key])
+		return &""
+	return StringName(v)
+
+
+## A deflect pair's cut direction, one of DEFLECT_DIRECTIONS; empty if it
+## isn't one.
+func _direction(g: Dictionary, at: String) -> StringName:
+	if not g.has("direction"):
+		return &""
+	var v: Variant = g["direction"]
+	if not v is String or not DEFLECT_DIRECTIONS.has(StringName(v)):
+		var names := PackedStringArray()
+		for d: StringName in DEFLECT_DIRECTIONS:
+			names.append(String(d))
+		errors.append("%s.direction: must be one of %s" % [at, ", ".join(names)])
 		return &""
 	return StringName(v)
 

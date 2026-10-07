@@ -429,6 +429,24 @@ static func make_steps() -> Array[Dictionary]:
 		out.append(_event_step(c, parry[3],
 			{"t": &"parry", "parrier": 0, "attacker": 1, "pos": at, "kind": parry[0], "timing": 4, "window": 8,
 			"weapon": StringName(parry[1]), "defender_weapon": StringName(parry[2])}))
+	# the deflect pairs' halves by direction (milestone-1 task 136): you parry
+	# the opponent's light; your deflect scrapes and your coat snaps, the
+	# opponent's blade is thrown back and it staggers, each on its frame after
+	# the parry's hit-stop as in a match
+	var hitstop: int = ProtectedTimings.for_weapon(&"katana").parry_hitstop
+	for d: Array in [[&"right_to_left", "Right Cut"], [&"left_to_right", "Return Cut"], [&"diagonal", "Kesa Cut"], [&"overhead", "Crown Cut"]]:
+		var actions: Array = [{"time": 0.0, "event": {"t": &"parry", "parrier": 0, "attacker": 1, "pos": at, "kind": &"parry",
+			"timing": 4, "window": 8, "weapon": &"katana", "defender_weapon": &"katana"}}]
+		for half: Array in [[&"deflect", YOU], [&"recoil", FOE]]:
+			for cue: Dictionary in SoundBank.deflect_pair_cues(d[0], half[0]):
+				var frames: int = int(cue["frame"])
+				var where: Vector3 = CONTACT
+				if cue["place"] == &"feet":
+					where = half[1]
+				elif cue["place"] == &"chest":
+					where = (half[1] as Vector3) + Vector3(0.0, CHEST, 0.0)
+				actions.append({"time": 0.0 if frames == 0 else float(hitstop + frames) / 60.0, "cue": cue["cue"], "pos": where})
+		out.append(_step(c, "deflect pair: %s parried (%s)" % [d[1], String(d[0]).replace("_", " ")], actions))
 	for kind: StringName in [&"stomp", &"leap", &"evade"]:
 		out.append(_event_step(c, "counter: %s" % kind, {"t": &"counter", "kind": kind, "by": 0, "on": 1, "pos": at}))
 	out.append(_event_step(c, "disarm", {"t": &"disarm", "victim": 1, "by": 0, "pos": at, "reason": &"parried"}))

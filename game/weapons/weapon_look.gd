@@ -48,8 +48,6 @@ const OFF_HAND_GRIP: StringName = &"OffHandGrip"
 ## straight, its origin in the hollow of the fist. The fist itself is
 ## measured on each fighter's hand (HandGrip.fist()).
 @export var grip_offset: Transform3D = Transform3D.IDENTITY
-## Width in metres of the swing trail, measured from the tip toward the base.
-@export var trail_width: float = 0.5
 
 
 static func path_for(weapon_id: StringName) -> String:

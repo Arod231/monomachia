@@ -58,13 +58,19 @@ func test_every_preset_follows_ultra_but_for_its_named_cuts() -> void:
 
 
 ## The parry push-in's depth of field joins them (milestone-1 task 39: off on
-## Low, the owner's choice, Oct 6).
+## Low, the owner's choice, Oct 6), and the sparks' contact lights (task 37:
+## Ultra and High only, the owner's choice, Oct 6).
 func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 	assert_eq(GraphicsPreset.CUTS, [
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
-		&"push_in_dof",
+		&"push_in_dof", &"spark_light",
 	] as Array[StringName])
+
+
+func test_the_sparks_contact_light_shows_on_ultra_and_high_only() -> void:
+	for id: StringName in GraphicsPreset.IDS:
+		assert_eq(GraphicsPreset.load_id(id).spark_light, id == &"ultra" or id == &"high", "%s's contact light" % id)
 
 
 func test_ultra_renders_at_two_thirds_with_fsr_2_and_keeps_all_the_atmosphere() -> void:

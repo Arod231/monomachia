@@ -350,10 +350,6 @@ func blade_segments() -> Array[PackedVector3Array]:
 	return out
 
 
-## How far back from the tip the held weapon's blade trails (its
-## WeaponLook.trail_width), or 0 with nothing held.
-func trail_width() -> float:
-	return model.weapon_look.trail_width if model != null and model.weapon_look != null else 0.0
 
 
 ## The way a blade's edge faces: the way the strike sweeps the blade's tip

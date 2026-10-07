@@ -133,9 +133,9 @@ The Katana plays as Elden Ring's Uchigatana inside milestone 1's realistic look:
   - Check: director tests of the picks for every hit of both strings; the state-clip fit test; sheets reviewed.
   - Blocked by: 3 (and the owner's OK), 12, 14, `docs/plans/milestone-1.md` task 41 (and the owner's OK) · Stories: 21
 - [ ] **21. The owner's Cascadeur pass.** The owner polishes the signature moves, and the polished clips replace Claude's passes.
-  - Delivers: both strings' last hits, Crescent Coil, Heaven Splitter and Rising Heaven, and both Iai draws polished (D17), exported to the asset repository and imported; markers checked; the table regenerated.
-  - Check: their band, distance and continuity tests pass on the polished clips; sheets reviewed.
-  - Blocked by: 12, 14, 16, 17, 18 · Stories: 43
+  - Delivers: both strings' last hits, Crescent Coil, Heaven Splitter and Rising Heaven, and both Iai draws polished (D17), and task 19's deflect pairs (folded in from milestone-1 task 126 on Oct 6, the owner's word), exported to the asset repository and imported; markers checked; the table regenerated.
+  - Check: their band, distance and continuity tests pass on the polished clips; the deflect pairs' director tests, with the blades within 2 cm at contact on the sheets; sheets reviewed.
+  - Blocked by: 12, 14, 16, 17, 18, 19 · Stories: 43
   - **Owner:** polishes the moves in Cascadeur.
 - [ ] **22. Sound and effects for the new moves.** The new swings, impacts, the re-grip, the chiburi and the resheathe sound and show.
   - Delivers: sound-bank entries for every new swing and impact by grip, the re-grip, the chiburi and the resheathe; the effect table's rows for them (air smears on the snap strikes, sparks on the deflect pairs).

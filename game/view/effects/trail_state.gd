@@ -1,8 +1,10 @@
 class_name TrailState
 extends RefCounted
-## Whether a fighter's blades leave a trail on the frame shown, how strongly
-## (0 to 1) for each hand, and in which colour (plan task 18.2). Read from the
-## rules' state with of(); the brush-stroke trails (WeaponTrail) draw it.
+## Whether a fighter's blades smear on the frame shown, how strongly (0 to 1)
+## for each hand, and in which tint (plan task 18.2's trail rules). Read from
+## the rules' state with of(); the air smears (AirSmear, milestone-1 task 37,
+## in place of the brush-stroke trails) draw it, as strongly as the tip moves
+## fast.
 ##
 ## The rules, settled with the owner on Oct 3, 2026:
 ## - an attack trails in its active frames, then fades over FADE_FRAMES; never
@@ -11,8 +13,10 @@ extends RefCounted
 ## - only the hands the move strikes with: its `hand` (R, L or both) for a
 ##   paired weapon (the daggers), the one blade for any other;
 ## - red (DANGER) for unblockables, gold (ULT) for moves marked so (the
-##   counter lunges) and for the ultimates, white (NORMAL) otherwise: the
-##   move's `trail`, which the move data fills in that way;
+##   counter lunges) and for the ultimates, a pale sheen (NORMAL) otherwise:
+##   the move's `trail`, which the move data fills in that way (the red and
+##   gold tints stay on the smears until milestone-1 task 82's 危 and glint
+##   take the cue over, the owner's choice, Oct 6);
 ## - the ultimates trail in the phases the demo's did: the Moonsplitter for the
 ##   first ULT_RELEASE_FRAMES of its release, the Impaler in its dash, the
 ##   Tempest in its spin and the second half of its finisher;

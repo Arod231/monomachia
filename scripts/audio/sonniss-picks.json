@@ -1202,6 +1202,243 @@
       "use": "A breath on a dodge, a roll or a landing: a sharp breath in",
       "layers": [{ "source": "vox_gasp", "start": 0.0, "end": 0.28, "pitch": -2, "fadeOut": 0.1 }],
       "process": { "highpass": 120 }
+    },
+    {
+      "file": "deflect_scrape_right_to_left_01.wav",
+      "use": "Right Cut's deflect: a long steel slide, edge off edge, as the parrier turns a horizontal cut (milestone-1 task 136)",
+      "layers": [
+        { "source": "hw_slide", "take": 1, "from": 0.02, "length": 0.46, "pitch": 1, "fadeIn": 0.004, "fadeOut": 0.2 },
+        { "source": "dd_swing_scrape", "start": 0.08, "length": 0.5, "pitch": 3, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_right_to_left_02.wav",
+      "use": "Right Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 2, "from": 0.02, "length": 0.46, "pitch": 2, "fadeIn": 0.004, "fadeOut": 0.2 },
+        { "source": "dd_swing_scrape", "start": 0.08, "length": 0.5, "pitch": 4, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_right_to_left_03.wav",
+      "use": "Right Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 4, "from": 0.02, "length": 0.46, "pitch": 1, "fadeIn": 0.004, "fadeOut": 0.2 },
+        { "source": "dd_swing_scrape", "start": 0.08, "length": 0.5, "pitch": 3, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_left_to_right_01.wav",
+      "use": "Return Cut's deflect: a long steel slide, a shade lower for the backhand (milestone-1 task 136)",
+      "layers": [
+        { "source": "hw_slide", "take": 5, "from": 0.02, "length": 0.46, "pitch": 0, "fadeIn": 0.004, "fadeOut": 0.2 },
+        { "source": "dd_swing_scrape", "start": 0.12, "length": 0.5, "pitch": 2, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_left_to_right_02.wav",
+      "use": "Return Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 6, "from": 0.02, "length": 0.46, "pitch": 0, "fadeIn": 0.004, "fadeOut": 0.2 },
+        { "source": "dd_swing_scrape", "start": 0.12, "length": 0.5, "pitch": 1, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_left_to_right_03.wav",
+      "use": "Return Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 3, "from": 0.02, "length": 0.46, "pitch": -1, "fadeIn": 0.004, "fadeOut": 0.2 },
+        { "source": "dd_swing_scrape", "start": 0.12, "length": 0.5, "pitch": 2, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.2 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_diagonal_01.wav",
+      "use": "Kesa Cut's deflect: a shorter steel slide down the diagonal (milestone-1 task 136)",
+      "layers": [
+        { "source": "hw_slide", "take": 2, "from": 0.02, "length": 0.32, "pitch": 3, "fadeIn": 0.004, "fadeOut": 0.14400000000000002 },
+        { "source": "dd_swing_scrape", "start": 0.06, "length": 0.36, "pitch": 5, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.162 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_diagonal_02.wav",
+      "use": "Kesa Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 4, "from": 0.02, "length": 0.32, "pitch": 3, "fadeIn": 0.004, "fadeOut": 0.14400000000000002 },
+        { "source": "dd_swing_scrape", "start": 0.06, "length": 0.36, "pitch": 6, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.162 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_diagonal_03.wav",
+      "use": "Kesa Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 6, "from": 0.02, "length": 0.32, "pitch": 2, "fadeIn": 0.004, "fadeOut": 0.14400000000000002 },
+        { "source": "dd_swing_scrape", "start": 0.06, "length": 0.36, "pitch": 5, "gainDb": -9, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.162 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_overhead_01.wav",
+      "use": "Crown Cut's deflect: a short steel bite as the overhead is turned aside (milestone-1 task 136)",
+      "layers": [
+        { "source": "hw_slide", "take": 1, "from": -0.003, "length": 0.18, "pitch": 6, "fadeIn": 0, "fadeOut": 0.081 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.3, "pitch": 9, "gainDb": -9 },
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.16, "pitch": 7, "gainDb": -12, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.07200000000000001 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_overhead_02.wav",
+      "use": "Crown Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 3, "from": -0.003, "length": 0.18, "pitch": 7, "fadeIn": 0, "fadeOut": 0.081 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.3, "pitch": 10, "gainDb": -9 },
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.16, "pitch": 8, "gainDb": -12, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.07200000000000001 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_scrape_overhead_03.wav",
+      "use": "Crown Cut's deflect",
+      "layers": [
+        { "source": "hw_slide", "take": 5, "from": -0.003, "length": 0.18, "pitch": 6, "fadeIn": 0, "fadeOut": 0.081 },
+        { "source": "esm_metal_tap", "start": 0.125, "end": 0.3, "pitch": 8, "gainDb": -9 },
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.16, "pitch": 7, "gainDb": -12, "highpass": 2000, "offset": 0.01, "fadeIn": 0.02, "fadeOut": 0.07200000000000001 }
+      ],
+      "process": { "highpass": 300, "highShelf": { "hz": 5000, "db": 2 } }
+    },
+    {
+      "file": "deflect_cloth_01.wav",
+      "use": "The parrier's cloth snapping as its guard turns the blade (milestone-1 task 136)",
+      "layers": [
+        { "source": "esm_cloth_flip", "peakIn": [0.1,0.2], "from": -0.01, "length": 0.2, "pitch": 2, "fadeOut": 0.12 },
+        { "source": "ima_pats", "peakIn": [0.08,0.2], "from": -0.004, "length": 0.12, "pitch": 1, "gainDb": -6, "offset": 0.01, "fadeOut": 0.07 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "deflect_cloth_02.wav",
+      "use": "The parrier's cloth as its guard turns",
+      "layers": [
+        { "source": "esm_cloth_flip", "peakIn": [0.1,0.2], "from": -0.01, "length": 0.2, "pitch": 4, "fadeOut": 0.12 },
+        { "source": "ima_pats", "peakIn": [0.08,0.2], "from": -0.004, "length": 0.12, "pitch": 3, "gainDb": -6, "offset": 0.01, "fadeOut": 0.07 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "deflect_cloth_03.wav",
+      "use": "The parrier's cloth as its guard turns",
+      "layers": [
+        { "source": "ima_cloth", "peakIn": [0.9,1.15], "from": -0.01, "length": 0.2, "pitch": 1, "fadeOut": 0.12 },
+        { "source": "ima_pats", "peakIn": [0.08,0.2], "from": -0.004, "length": 0.12, "pitch": 0, "gainDb": -6, "offset": 0.01, "fadeOut": 0.07 }
+      ],
+      "process": { "highpass": 200 }
+    },
+    {
+      "file": "recoil_whoosh_right_to_left_01.wav",
+      "use": "Right Cut's recoil: the blade thrown back off the parry (milestone-1 task 136)",
+      "layers": [
+        { "source": "dd_swing_scrape", "start": 0.02, "length": 0.32, "pitch": 3, "fadeOut": 0.16 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.25, "pitch": 1, "gainDb": -7, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_whoosh_right_to_left_02.wav",
+      "use": "Right Cut's recoil",
+      "layers": [
+        { "source": "dd_swing_scrape", "start": 0.02, "length": 0.32, "pitch": 4.5, "fadeOut": 0.16 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.25, "pitch": 1, "gainDb": -7, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_whoosh_left_to_right_01.wav",
+      "use": "Return Cut's recoil: the blade thrown back off the parry (milestone-1 task 136)",
+      "layers": [
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.3, "pitch": 1, "fadeOut": 0.15 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.25, "pitch": -1, "gainDb": -6, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_whoosh_left_to_right_02.wav",
+      "use": "Return Cut's recoil",
+      "layers": [
+        { "source": "dd_swing_scrape", "start": 0.04, "length": 0.3, "pitch": 2, "fadeOut": 0.15 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.25, "pitch": -1, "gainDb": -6, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_whoosh_diagonal_01.wav",
+      "use": "Kesa Cut's recoil: the blade thrown back up off the parry, its fittings rattling (milestone-1 task 136)",
+      "layers": [
+        { "source": "ep_metal_whoosh", "start": 0.35, "length": 0.4, "pitch": 3, "fadeIn": 0.01, "fadeOut": 0.18 },
+        { "source": "dd_swing_scrape", "start": 0.02, "length": 0.25, "pitch": 2, "gainDb": -8, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_whoosh_diagonal_02.wav",
+      "use": "Kesa Cut's recoil",
+      "layers": [
+        { "source": "ep_metal_whoosh", "start": 0.4, "length": 0.4, "pitch": 5, "fadeIn": 0.01, "fadeOut": 0.18 },
+        { "source": "dd_swing_scrape", "start": 0.02, "length": 0.25, "pitch": 2, "gainDb": -8, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_whoosh_overhead_01.wav",
+      "use": "Crown Cut's recoil: the blade thrown back over the head off the parry (milestone-1 task 136)",
+      "layers": [
+        { "source": "ep_metal_whoosh", "start": 0.4, "length": 0.3, "pitch": 6, "fadeIn": 0.01, "fadeOut": 0.14 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.25, "pitch": 3, "gainDb": -8, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_whoosh_overhead_02.wav",
+      "use": "Crown Cut's recoil",
+      "layers": [
+        { "source": "ep_metal_whoosh", "start": 0.45, "length": 0.3, "pitch": 7.5, "fadeIn": 0.01, "fadeOut": 0.14 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.25, "pitch": 3, "gainDb": -8, "fadeOut": 0.1 }
+      ],
+      "process": { "highpass": 180 }
+    },
+    {
+      "file": "recoil_stagger_01.wav",
+      "use": "The parried attacker's stagger: a foot catching its weight on the stone and the coat swinging (milestone-1 task 136)",
+      "layers": [
+        { "source": "ima_case_down", "start": 0.02, "length": 0.3, "pitch": -2, "lowpass": 1200, "fadeOut": 0.15 },
+        { "source": "ima_cloth", "peakIn": [0.9,1.15], "from": -0.03, "length": 0.3, "gainDb": -4, "offset": 0.005, "fadeIn": 0.01, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "recoil_stagger_02.wav",
+      "use": "The parried attacker's stagger",
+      "layers": [
+        { "source": "ima_case_down", "start": 0.02, "length": 0.3, "pitch": -4, "lowpass": 1200, "fadeOut": 0.15 },
+        { "source": "ima_cloth_24", "peakIn": [0.6,0.9], "from": -0.03, "length": 0.3, "gainDb": -4, "offset": 0.005, "fadeIn": 0.01, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 60 }
+    },
+    {
+      "file": "recoil_stagger_03.wav",
+      "use": "The parried attacker's stagger",
+      "layers": [
+        { "source": "ima_case_down", "start": 0.02, "length": 0.3, "pitch": -3, "lowpass": 1200, "fadeOut": 0.15 },
+        { "source": "ima_cloth_24", "peakIn": [1.6,1.9], "from": -0.03, "length": 0.3, "gainDb": -4, "offset": 0.005, "fadeIn": 0.01, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 60 }
     }
   ]
 }

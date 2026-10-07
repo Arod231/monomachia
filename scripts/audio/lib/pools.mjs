@@ -37,6 +37,19 @@ export const POOLS = {
   parry_contact_katana: { files: /^parry_contact_katana_\d+\.wav$/, loudnessDb: -19, ceilingDb: -1 },
   clang_fist: { files: /^clang_fist_\d+\.wav$/, loudnessDb: -21, ceilingDb: -1 },
   redirect_arm: { files: /^redirect_arm_\d+\.wav$/, loudnessDb: -24, ceilingDb: -1 },
+  // the deflect pairs' halves (milestone-1 task 136): each direction's scrape
+  // under the parry's contact, the parrier's cloth, each direction's recoil
+  // whoosh and the attacker's stagger
+  deflect_scrape_right_to_left: { files: /^deflect_scrape_right_to_left_\d+\.wav$/, loudnessDb: -21, ceilingDb: -1 },
+  deflect_scrape_left_to_right: { files: /^deflect_scrape_left_to_right_\d+\.wav$/, loudnessDb: -21, ceilingDb: -1 },
+  deflect_scrape_diagonal: { files: /^deflect_scrape_diagonal_\d+\.wav$/, loudnessDb: -21, ceilingDb: -1 },
+  deflect_scrape_overhead: { files: /^deflect_scrape_overhead_\d+\.wav$/, loudnessDb: -21, ceilingDb: -1 },
+  deflect_cloth: { files: /^deflect_cloth_\d+\.wav$/, loudnessDb: -24, ceilingDb: -3 },
+  recoil_whoosh_right_to_left: { files: /^recoil_whoosh_right_to_left_\d+\.wav$/, loudnessDb: -18, ceilingDb: -3 },
+  recoil_whoosh_left_to_right: { files: /^recoil_whoosh_left_to_right_\d+\.wav$/, loudnessDb: -18, ceilingDb: -3 },
+  recoil_whoosh_diagonal: { files: /^recoil_whoosh_diagonal_\d+\.wav$/, loudnessDb: -21, ceilingDb: -3 },
+  recoil_whoosh_overhead: { files: /^recoil_whoosh_overhead_\d+\.wav$/, loudnessDb: -23, ceilingDb: -3 },
+  recoil_stagger: { files: /^recoil_stagger_\d+\.wav$/, loudnessDb: -19, ceilingDb: -3 },
   // weapons on the floor
   weapon_bounce: { files: /^weapon_bounce_\d+\.wav$/, loudnessDb: -17.5, ceilingDb: -1 },
   weapon_clatter: { files: /^weapon_clatter_\d+\.wav$/, loudnessDb: -12, ceilingDb: -1 },

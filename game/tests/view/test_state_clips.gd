@@ -830,16 +830,18 @@ func test_the_deflect_pairs_are_optional_and_checked() -> void:
 	var live: StateClips = StateClips.read()
 	assert_eq(live.deflect_pairs.keys(), [&"k_l1", &"k_l2", &"k_l3", &"k_l4"], "a pair for each light")
 	assert_eq(live.deflect_pairs[&"k_l1"], {&"deflect": &"RightCutDeflect", &"deflect_contact": 2.0,
-		&"recoil": &"RightCutRecoil", &"recoil_contact": 15.0})
+		&"recoil": &"RightCutRecoil", &"recoil_contact": 15.0, &"direction": &"right_to_left"})
 	assert_eq(StateClips.read(FrozenStateClips.PATH).deflect_pairs.size(), 0, "none in a table without the group")
-	var pair: String = "\"deflects\": {\"pairs\": {\"k_l1\": {\"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\", \"recoil_contact\": 12.5}}}, "
+	var pair: String = "\"deflects\": {\"pairs\": {\"k_l1\": {\"direction\": \"overhead\", \"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\", \"recoil_contact\": 12.5}}}, "
 	var t: StateClips = _read_text(_edited("\"fades\": {", pair + "\"fades\": {"))
 	assert_eq(Array(t.errors), [], "read cleanly")
-	assert_eq(t.deflect_pairs[&"k_l1"], {&"deflect": &"D", &"deflect_contact": 2.0, &"recoil": &"R", &"recoil_contact": 12.5})
+	assert_eq(t.deflect_pairs[&"k_l1"], {&"deflect": &"D", &"deflect_contact": 2.0, &"recoil": &"R", &"recoil_contact": 12.5, &"direction": &"overhead"})
 	var cases: Dictionary = {
 		"\"deflects\": {\"pairs\": []}, ": "deflects.pairs: must be an object",
-		"\"deflects\": {\"pairs\": {\"k_l1\": {\"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\"}}}, ": "deflects.pairs.k_l1: missing recoil_contact",
-		"\"deflects\": {\"pairs\": {\"k_l1\": {\"deflect\": \"D\", \"deflect_contact\": -1, \"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.pairs.k_l1.deflect_contact: must be a number, 0 or more",
+		"\"deflects\": {\"pairs\": {\"k_l1\": {\"direction\": \"overhead\", \"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\"}}}, ": "deflects.pairs.k_l1: missing recoil_contact",
+		"\"deflects\": {\"pairs\": {\"k_l1\": {\"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.pairs.k_l1: missing direction",
+		"\"deflects\": {\"pairs\": {\"k_l1\": {\"direction\": \"up\", \"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.pairs.k_l1.direction: must be one of right_to_left, left_to_right, diagonal, overhead",
+		"\"deflects\": {\"pairs\": {\"k_l1\": {\"direction\": \"overhead\", \"deflect\": \"D\", \"deflect_contact\": -1, \"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.pairs.k_l1.deflect_contact: must be a number, 0 or more",
 		"\"deflects\": {}, ": "deflects: missing pairs",
 	}
 	for group: String in cases:

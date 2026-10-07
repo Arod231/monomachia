@@ -71,6 +71,11 @@ func test_every_cue_is_used_by_an_event_or_documented_as_direct() -> void:
 			used.append_array(SoundBank.FOLEY[fighter][moment])
 	for voice: StringName in SoundBank.VOCALS:
 		used.append_array(SoundBank.VOCALS[voice].values())
+	# the deflect pairs' halves (task 136)
+	for direction: StringName in SoundBank.DEFLECT_SOUNDS:
+		for half: StringName in [&"deflect", &"recoil"]:
+			for cue: Dictionary in SoundBank.deflect_pair_cues(direction, half):
+				used.append(cue["cue"])
 	for cue_name: StringName in SoundBank.CUES:
 		assert_true(used.has(cue_name) or direct.has(cue_name), "cue %s is never played" % cue_name)
 
@@ -365,3 +370,92 @@ func test_the_fighters_vocalise_on_their_moments() -> void:
 	assert_eq(float(_vocals({"t": "swing", "f": 0, "heavy": true}, cast)[0]["chance"]), 1.0)
 	assert_eq(float(_vocals({"t": "swing", "f": 0, "heavy": true}, cast)[0]["pitch_scale"]), 1.0)
 	assert_almost_eq(float(_vocals({"t": "swing", "f": 1, "heavy": true}, cast)[0]["pitch_scale"]), pow(2.0, -2.0 / 12.0), 0.001)
+
+
+## The deflect pairs' own sounds (milestone-1 task 136), by cut direction:
+## every direction a pair can name has both halves, the parrier's deflect a
+## steel scrape on the contact frame and a cloth snap as the guard turns,
+## the attacker's recoil the thrown-back blade's whoosh and a stagger step,
+## each at its frame in the recoil clip.
+func test_each_deflect_direction_has_its_deflect_and_recoil_sounds() -> void:
+	for direction: StringName in StateClips.DEFLECT_DIRECTIONS:
+		assert_true(SoundBank.DEFLECT_SOUNDS.has(direction), "sounds for %s" % direction)
+		var deflect := SoundBank.deflect_pair_cues(direction, &"deflect")
+		var recoil := SoundBank.deflect_pair_cues(direction, &"recoil")
+		assert_eq(deflect.size(), 2, "%s: a scrape and a cloth snap" % direction)
+		assert_eq(recoil.size(), 2, "%s: a whoosh and a stagger" % direction)
+		assert_eq(String(deflect[0]["cue"]), "deflect_scrape_%s" % direction, "%s's own scrape" % direction)
+		assert_eq(int(deflect[0]["frame"]), 0, "%s: the scrape on the contact frame" % direction)
+		assert_eq(deflect[0]["place"], &"contact", "where the blades meet")
+		assert_eq(deflect[1]["cue"], &"deflect_cloth")
+		assert_gt(int(deflect[1]["frame"]), 0, "the guard turns after the contact")
+		assert_eq(String(recoil[0]["cue"]), "recoil_whoosh_%s" % direction, "%s's own whoosh" % direction)
+		assert_eq(recoil[1]["cue"], &"recoil_stagger")
+		assert_eq(recoil[1]["place"], &"feet")
+		assert_lt(int(recoil[0]["frame"]), int(recoil[1]["frame"]), "thrown back, then the step")
+		for cue: Dictionary in deflect + recoil:
+			assert_true(SoundBank.CUES.has(cue["cue"]), "%s is a cue" % cue["cue"])
+			assert_has([&"contact", &"chest", &"feet"], cue["place"])
+	assert_eq(SoundBank.deflect_pair_cues(&"sideways", &"deflect"), [] as Array[Dictionary], "none for an unknown direction")
+
+
+## The pairs' frames fall inside the clips they follow: the recoil's within
+## its throw-back and settle (its markers, from the contact at 1.0x, in
+## rules frames), so the sounds land on what the picture shows.
+func test_each_pair_s_sounds_fall_inside_its_clips() -> void:
+	var manifest := ClipManifest.read()
+	for move: StringName in StateClips.shared().deflect_pairs:
+		var pair: Dictionary = StateClips.shared().deflect_pairs[move]
+		for half: StringName in [&"deflect", &"recoil"]:
+			var markers: Dictionary = manifest.clips[pair[half]].markers
+			var frames: int = roundi((float(markers["settle"]) - float(markers["contact"])) * 2.0)
+			for cue: Dictionary in SoundBank.deflect_pair_cues(pair[&"direction"], half):
+				assert_lt(int(cue["frame"]), frames, "%s's %s %s before its settle" % [move, half, cue["cue"]])
+
+
+## Today's four lights map onto the four directions (Right Cut right to
+## left, Return Cut left to right, Kesa Cut the diagonal, Crown Cut the
+## overhead), each sounding apart.
+func test_the_four_lights_sound_their_own_directions() -> void:
+	var pairs := StateClips.shared().deflect_pairs
+	var expected := {&"k_l1": &"right_to_left", &"k_l2": &"left_to_right", &"k_l3": &"diagonal", &"k_l4": &"overhead"}
+	for move: StringName in expected:
+		assert_eq(pairs[move][&"direction"], expected[move], "%s's direction" % move)
+	var scrapes := {}
+	var whooshes := {}
+	for direction: StringName in StateClips.DEFLECT_DIRECTIONS:
+		for file: String in SoundBank.CUES[SoundBank.deflect_pair_cues(direction, &"deflect")[0]["cue"]]["files"]:
+			assert_false(scrapes.has(file), "%s is %s's alone" % [file, direction])
+			scrapes[file] = true
+		for file: String in SoundBank.CUES[SoundBank.deflect_pair_cues(direction, &"recoil")[0]["cue"]]["files"]:
+			assert_false(whooshes.has(file), "%s is %s's alone" % [file, direction])
+			whooshes[file] = true
+	# the horizontal cuts slide longer than the overhead's short bite
+	var long_slide := _longest(&"deflect_scrape_right_to_left")
+	var bite := _longest(&"deflect_scrape_overhead")
+	assert_gt(long_slide, bite + 0.1, "a longer slide on a horizontal cut (%.2f s against %.2f s)" % [long_slide, bite])
+	for cue: StringName in [&"deflect_scrape_right_to_left", &"deflect_cloth", &"recoil_whoosh_overhead", &"recoil_stagger"]:
+		assert_eq(SoundBank.CUES[cue]["bus"], &"Foley" if cue == &"deflect_cloth" or cue == &"recoil_stagger" else &"Combat")
+		assert_true(SoundBank.CUES[cue]["spatial"], "%s plays where it happens" % cue)
+
+
+func _longest(cue: StringName) -> float:
+	var longest := 0.0
+	for path: String in SoundBank.paths_for(cue):
+		longest = maxf(longest, (load(path) as AudioStream).get_length())
+	return longest
+
+
+## Steel on steel: a parry or a Flash plays its pair's sounds; a redirect
+## (a bare hand turning the blade) and a fist on a blade don't.
+func test_only_steel_on_steel_parries_sound_their_pair() -> void:
+	var parry := {"t": "parry", "kind": "parry", "weapon": &"katana", "defender_weapon": &"katana"}
+	assert_true(SoundBank.sounds_deflect_pair(parry))
+	assert_true(SoundBank.sounds_deflect_pair({"t": "parry", "kind": "flash", "weapon": &"katana", "defender_weapon": &"katana"}))
+	assert_true(SoundBank.sounds_deflect_pair({"t": "parry", "kind": "parry", "weapon": &"greatsword", "defender_weapon": &"katana"}),
+		"a parried heavy weapon sounds the pair it borrows")
+	assert_false(SoundBank.sounds_deflect_pair({"t": "parry", "kind": "redirect", "weapon": &"katana", "defender_weapon": &"fists"}))
+	assert_false(SoundBank.sounds_deflect_pair({"t": "parry", "kind": "parry", "weapon": &"fists", "defender_weapon": &"katana"}))
+	assert_false(SoundBank.sounds_deflect_pair({"t": "block", "weapon": &"katana", "defender_weapon": &"katana"}))
+	# the parry's own contact and ring stay as they were
+	assert_eq(_cue_names(parry), [&"parry_contact_katana", &"parry_ring"] as Array[StringName])
