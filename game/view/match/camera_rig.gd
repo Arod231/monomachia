@@ -26,6 +26,12 @@ extends Camera3D
 ## sets that through the hit-stop), then eases back over about 0.4 s, with a
 ## far blur (depth of field) while it is in where the graphics preset allows
 ## it (dof_allowed; off on Low).
+## show_shot() hands the camera to a cinematic shot (milestone-1 task 97;
+## ShotDirector, which MatchView asks each frame): while one plays the camera
+## stands where the shot puts it, with its lens and its depth of field (where
+## the preset allows it), takes no push-in or field-of-view kick, and shakes
+## at shake_scale; the gameplay framing goes on underneath, so end_shot()
+## cuts straight back to it.
 ## Every number is an exported tunable.
 ##
 ## The math is in follow_target(), watch_target() and menu_target(), which
@@ -172,6 +178,9 @@ var _push_from: float = 0.0
 var _push_in_t: float = 0.0
 var _push_out_t: float = 0.0
 var _dof: CameraAttributesPractical
+## The cinematic shot's view while one plays ({pos, look, fov,
+## depth_of_field, dof_margin, dof_amount}; see show_shot()), else empty.
+var _shot: Dictionary = {}
 
 
 func _init() -> void:
@@ -278,6 +287,25 @@ func _apply_dof(p: float, reach: float) -> void:
 	attributes = _dof
 
 
+## Hands the camera to a cinematic shot's view (ShotDirector.view()), until
+## end_shot(): where it stands, what it looks at, its field of view and its
+## depth of field.
+func show_shot(v: Dictionary) -> void:
+	_shot = v
+
+
+## Hands the camera back to the gameplay framing.
+func end_shot() -> void:
+	if _shot.is_empty():
+		return
+	_shot = {}
+	_apply_dof(0.0, 0.0)
+
+
+func in_shot() -> bool:
+	return not _shot.is_empty()
+
+
 ## Swing out to the side after a KO (cleared by reset_round()).
 func start_ko_orbit() -> void:
 	if ko_orbit_enabled and ko_orbit <= 0.0:
@@ -331,6 +359,9 @@ func _move(delta: float, player: Vector3, opponent: Vector3, p_snap: bool) -> vo
 
 func _apply(delta: float) -> void:
 	_advance_push(delta)
+	if in_shot():
+		_apply_shot(delta)
+		return
 	var push: float = push_amount()
 	var at: Vector3 = rig_position.lerp(rig_look, push)
 	_apply_dof(push, at.distance_to(rig_look))
@@ -352,6 +383,39 @@ func _apply(delta: float) -> void:
 		transform = t
 	fov_kick *= exp(-fov_kick_decay * delta)
 	fov = base_fov - fov_kick
+
+
+## The camera where the cinematic shot puts it, shaking at shake_scale.
+func _apply_shot(delta: float) -> void:
+	var at: Vector3 = _shot["pos"]
+	var look: Vector3 = _shot["look"]
+	if dof_allowed and bool(_shot.get("depth_of_field", false)):
+		if attributes == null or attributes == _dof:
+			if _dof == null:
+				_dof = CameraAttributesPractical.new()
+				_dof.dof_blur_far_enabled = true
+				_dof.dof_blur_near_enabled = false
+			_dof.dof_blur_far_distance = at.distance_to(look) + float(_shot.get("dof_margin", 1.0))
+			_dof.dof_blur_far_transition = push_dof_transition
+			_dof.dof_blur_amount = float(_shot.get("dof_amount", 0.1))
+			attributes = _dof
+	elif _dof != null and attributes == _dof:
+		attributes = null
+	if shake > 0.001:
+		var s: float = shake * shake_amplitude
+		at += Vector3(_rng.randf() - 0.5, _rng.randf() - 0.5, _rng.randf() - 0.5) * s
+		shake *= exp(-shake_decay * delta)
+	else:
+		shake = 0.0
+	var t: Transform3D = Transform3D(Basis.IDENTITY, at)
+	if not at.is_equal_approx(look):
+		t = t.looking_at(look, Vector3.UP)
+	if is_inside_tree():
+		global_transform = t
+	else:
+		transform = t
+	fov_kick = 0.0
+	fov = float(_shot["fov"])
 
 
 # ------------------------------------------------------------------ the math
