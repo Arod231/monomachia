@@ -433,7 +433,12 @@ describe('press-send.ps1', { skip: process.platform !== 'win32' && 'needs Window
   // box shows the prompt only once it's answered, unless -BoxBehind.
   const FAKE = String.raw`param([switch]$NoSend, [string]$Trust = '', [switch]$BoxBehind)
 Add-Type -AssemblyName PresentationFramework
-function Note($s) { Add-Content -Path $env:FAKE_LOG -Value $s }
+# Appends with read sharing: Add-Content locks readers out, and the test's
+# noted() polling then fails with EBUSY.
+function Note($s) {
+  $f = [IO.File]::Open($env:FAKE_LOG, 'Append', 'Write', 'ReadWrite, Delete')
+  try { $b = [Text.Encoding]::UTF8.GetBytes($s + [Environment]::NewLine); $f.Write($b, 0, $b.Length) } finally { $f.Dispose() }
+}
 function Hidden($win, $top) {
   $win.WindowStartupLocation = 'Manual'; $win.Left = -4000; $win.Top = $top; $win.ShowInTaskbar = $false; $win.ShowActivated = $false
   $win.WindowStyle = 'None'; $win.AllowsTransparency = $true; $win.Opacity = 0.01
