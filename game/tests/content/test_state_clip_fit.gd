@@ -26,3 +26,30 @@ func test_the_katana_light_reactions_fit_their_protected_frames() -> void:
 		var settle: int = manifest.clips[id].markers["settle"]
 		assert_almost_eq(float(settle) * MoveClips.RULES_PER_SOURCE, float(c[1]), 1.0,
 			"%s (%s) settles on rules frame %d of its %d" % [c[2], id, int(settle * MoveClips.RULES_PER_SOURCE), c[1]])
+
+
+## Moonsplitter's clips (milestone-1 task 98) fit the rules' timing at 1.0:
+## the stance settles on the draw's frame, and each draw's contact lands on
+## the wave and its settle on the fighter's release.
+func test_moonsplitter_s_clips_fit_its_rules_frames() -> void:
+	var sc: StateClips = StateClips.read()
+	var manifest: ClipManifest = ClipManifest.read()
+	var per: float = MoveClips.RULES_PER_SOURCE
+	assert_true(manifest.clips.has(sc.ult_stance), "the stance is in the manifest")
+	if manifest.clips.has(sc.ult_stance):
+		assert_eq(float(manifest.clips[sc.ult_stance].markers["settle"]) * per, float(SimConst.MOONSPLITTER_DRAW),
+			"the stance settles on the draw's frame")
+	assert_eq(sc.ult_draws.keys(), [&"vertical", &"horizontal"], "a draw per variant")
+	for variant: StringName in sc.ult_draws:
+		var id: StringName = sc.ult_draws[variant]
+		assert_true(manifest.clips.has(id), "%s is in the manifest" % id)
+		if not manifest.clips.has(id):
+			continue
+		var m: Dictionary = manifest.clips[id].markers
+		assert_eq(float(SimConst.MOONSPLITTER_DRAW) + float(m["contact"]) * per, float(SimConst.MOONSPLITTER_WAVE),
+			"%s's contact on the wave's frame" % id)
+		assert_eq(float(SimConst.MOONSPLITTER_DRAW) + float(m["settle"]) * per,
+			float(SimConst.MOONSPLITTER_WAVE + SimConst.MOONSPLITTER_RECOVERY), "%s settles as the fighter is free" % id)
+	assert_eq(sc.ult_sheathed.size(), 2, "the saya's frames")
+	if sc.ult_sheathed.size() == 2:
+		assert_true(sc.ult_sheathed[1] * per <= float(SimConst.MOONSPLITTER_DRAW) + 1.0, "drawn as the draw starts")

@@ -82,6 +82,69 @@ func test_a_shot_s_keys_are_in_the_frame_of_the_fighter_it_is_about() -> void:
 	assert_almost_eq((turned["look"] as Vector3).distance_to(Vector3(3.0, 1.0, 0.0)), 0.0, EPS)
 
 
+## A key may sit in the other fighter's frame (milestone-1 task 98): origin
+## at its feet, +Z toward the fighter the shot is about, +X to its left; the
+## path eases between the keys where they stand in the match.
+func test_a_key_may_be_in_the_other_fighter_s_frame() -> void:
+	var shot: ShotData = ShotData.new()
+	shot.times = PackedFloat32Array([0.0, 1.0])
+	shot.positions = PackedVector3Array([Vector3(1.0, 1.5, -2.0), Vector3(1.0, 1.5, -2.0)])
+	shot.looks = PackedVector3Array([Vector3(0.0, 1.0, 0.0), Vector3(0.0, 1.0, 0.0)])
+	shot.fovs = PackedFloat32Array([45.0, 45.0])
+	shot.positions_on_other = PackedByteArray([0, 1])
+	shot.looks_on_other = PackedByteArray([1, 1])
+	var me: Vector3 = Vector3(5.0, 0.0, 5.0)
+	var other: Vector3 = Vector3(5.0, 0.0, 9.0)
+	var a: Dictionary = shot.view_at(0.0, me, other)
+	assert_almost_eq((a["pos"] as Vector3).distance_to(Vector3(6.0, 1.5, 3.0)), 0.0, EPS, "the first in the fighter's frame")
+	assert_almost_eq((a["look"] as Vector3).distance_to(Vector3(5.0, 1.0, 9.0)), 0.0, EPS, "looking at the other")
+	var b: Dictionary = shot.view_at(1.0, me, other)
+	# the other faces -Z: its left is -X, behind it is +Z
+	assert_almost_eq((b["pos"] as Vector3).distance_to(Vector3(4.0, 1.5, 11.0)), 0.0, EPS, "the second in the other's")
+	var half: Dictionary = shot.view_at(0.5, me, other)
+	assert_between((half["pos"] as Vector3).z, 3.5, 10.5, "on its way between them")
+
+
+## Moonsplitter's shot (task 98, the owner's choice): about 1.8 s, from low
+## behind the attacker's shoulder looking down the wave's path at the
+## victim, swinging round to the victim's side.
+func test_moonsplitter_s_shot_looks_down_the_wave_s_path_then_swings_to_the_victim() -> void:
+	var shot: ShotData = ShotDirector.load_shot(&"moonsplitter")
+	assert_almost_eq(shot.length(), 1.8, 0.05, "about 1.8 s")
+	var me: Vector3 = Vector3(0.0, 0.0, 0.0)
+	var other: Vector3 = Vector3(0.0, 0.0, 8.0)
+	var first: Dictionary = shot.view_at(0.0, me, other)
+	var pos: Vector3 = first["pos"]
+	assert_lt(pos.z, 0.0, "behind the attacker")
+	assert_lt(pos.y, 1.6, "low, at the shoulder or under")
+	assert_almost_eq(Vector2((first["look"] as Vector3).x, (first["look"] as Vector3).z).distance_to(Vector2(0.0, 8.0)), 0.0, 0.6,
+		"looking down the path at the victim")
+	var last: Dictionary = shot.view_at(shot.length(), me, other)
+	var end: Vector3 = last["pos"]
+	assert_lt(Vector2(end.x, end.z).distance_to(Vector2(0.0, 8.0)), 4.5, "beside the victim")
+	assert_gt(absf(end.x), 1.5, "to its side")
+	# the same at 3 m
+	var near: Dictionary = shot.view_at(0.0, me, Vector3(0.0, 0.0, 3.0))
+	assert_almost_eq(Vector2((near["look"] as Vector3).x, (near["look"] as Vector3).z).distance_to(Vector2(0.0, 3.0)), 0.0, 0.6)
+
+
+func test_breaker_palm_s_shot_is_low_beside_the_victim_looking_up_and_pushing_along_the_blow() -> void:
+	# task 99: about 1.2 s, held on the victim however far the blow throws it
+	var shot: ShotData = ShotDirector.load_shot(&"breaker_palm")
+	assert_almost_eq(shot.length(), 1.2, 0.05, "about 1.2 s")
+	var me: Vector3 = Vector3(0.0, 0.0, 0.0)
+	for other: Vector3 in [Vector3(0.0, 0.0, 0.9), Vector3(0.0, 0.0, 2.7)]:
+		var first: Dictionary = shot.view_at(0.0, me, other)
+		var last: Dictionary = shot.view_at(shot.length(), me, other)
+		for v: Dictionary in [first, last]:
+			var pos: Vector3 = v["pos"]
+			assert_lt(pos.y, 0.7, "low")
+			assert_lt(Vector2(pos.x, pos.z).distance_to(Vector2(other.x, other.z)), 1.8, "beside the victim at %.1f m" % other.z)
+			assert_gt(absf(pos.x), 1.2, "to its side")
+			assert_gt((v["look"] as Vector3).y, pos.y + 0.6, "looking up")
+		assert_gt((last["pos"] as Vector3).z, (first["pos"] as Vector3).z, "pushing along the blow")
+
+
 # ------------------------------------------------------------------ the choice
 
 func test_an_ultimate_s_wind_up_has_no_shot() -> void:

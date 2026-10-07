@@ -16,8 +16,13 @@ extends GutTest
 ##   parry, an air smear on its strike);
 ## - 15, the computer uses it and answers it (seeded Hard duels).
 ## Reads committed data and runs the rules, so it runs on CI. Every keyed
-## move must pass; a clip row's results are recorded for the owner whether
-## they pass or not, as task 40 decided (the new strings re-key them).
+## move must pass, but a keyed move outside the strings (Breaker Palm, task
+## 99) has its reactions (12) and its contacts' sound and effects (13, 14)
+## recorded for its family's review, not held: bare hands' reactions and
+## the redirect's deflect pair are tasks 69's and 90's. A clip row's results
+## are recorded for the owner whether they pass or not, as task 40 decided
+## (the new strings re-key them). Each move is played on its own weapon:
+## a bare-hands one by a disarmed fighter.
 
 const SC := preload("res://tests/sim/test_string_continuity.gd")
 const H := preload("res://tests/sim/sim_helpers.gd")
@@ -47,8 +52,8 @@ static func _ctx(clips: Array) -> ClipDirector.Context:
 
 ## Plays keyed move `id` from the guard at `gap`, the defender pressing
 ## `defend` (Btn.BLOCK held from `from`, or nothing), and returns its events.
-static func _play(id: StringName, gap: float, defend: int = -1, from: int = 0) -> Array[Dictionary]:
-	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, gap)
+static func _play(wid: StringName, id: StringName, gap: float, defend: int = -1, from: int = 0) -> Array[Dictionary]:
+	var W: World = _world(wid, gap)
 	var a: Fighter = W.fighters[0]
 	a.start_attack(id)
 	var events: Array[Dictionary] = []
@@ -61,6 +66,21 @@ static func _play(id: StringName, gap: float, defend: int = -1, from: int = 0) -
 	return events
 
 
+## A Katana duel `gap` apart, fighter 0 disarmed for a bare-hands move.
+static func _world(wid: StringName, gap: float) -> World:
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, gap)
+	if wid == &"fists":
+		W.fighters[0].armed = false
+	return W
+
+
+## Whether keyed move `m` ([weapon, id]) is one of a string's (its band
+## kind string_light or string_heavy): the moves that bridge and return to
+## guard, and whose reactions are held.
+static func _of_string(m: Array) -> bool:
+	return String(FrameDataTable.shared().row(m[0], m[1]).get("kind", "")).begins_with("string_")
+
+
 static func _first(events: Array[Dictionary], t: StringName, id: StringName) -> Dictionary:
 	for e: Dictionary in events:
 		if e["t"] == t and e.get("attack", &"") == id:
@@ -70,13 +90,13 @@ static func _first(events: Array[Dictionary], t: StringName, id: StringName) -> 
 
 ## The keyed move `id`'s hit, block and parry events at the duelling
 ## distance (the parry: the guard pressed 4 frames before it lands).
-static func _contacts(id: StringName) -> Dictionary:
-	var def: AttackDef = Moves.KATANA.moves[id]
+static func _contacts(wid: StringName, id: StringName) -> Dictionary:
+	var def: AttackDef = (Moves.WEAPONS[wid] as WeaponDef).moves[id]
 	return {
-		&"swing": _first(_play(id, GAP), &"swing", id),
-		&"hit": _first(_play(id, GAP), &"hit", id),
-		&"block": _first(_play(id, GAP, Btn.BLOCK, 0), &"block", id),
-		&"parry": _first(_play(id, GAP, Btn.BLOCK, def.startup - 4), &"parry", id),
+		&"swing": _first(_play(wid, id, GAP), &"swing", id),
+		&"hit": _first(_play(wid, id, GAP), &"hit", id),
+		&"block": _first(_play(wid, id, GAP, Btn.BLOCK, 0), &"block", id),
+		&"parry": _first(_play(wid, id, GAP, Btn.BLOCK, def.startup - 4), &"parry", id),
 	}
 
 
@@ -91,7 +111,7 @@ func test_every_keyed_move_plays_its_clip_at_1x() -> void:
 			problems.append("not on its own clip's markers")
 		else:
 			var ctx: ClipDirector.Context = _ctx(def.swing.clips)
-			var W: World = H.make_world(Moves.KATANA, Moves.KATANA, APART)
+			var W: World = _world(m[0], APART)
 			var f: Fighter = W.fighters[0]
 			f.start_attack(id)
 			var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
@@ -207,7 +227,9 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 			if (w.moves[before] as AttackDef).chain_light == id and ChecklistResults.keyed_moves().has([m[0], before]) \
 					and not (sc.bridges.get(id, {}) as Dictionary).has(before):
 				hand_off.append("no bridge from %s" % before)
-		if not sc.returns.has(id):
+		# a string's moves return to guard on a clip of their own; any other
+		# hands on by the inertial blend
+		if _of_string(m) and not sc.returns.has(id):
 			hand_off.append("no return to guard")
 		ChecklistResults.record_problems(11, id, hand_off)
 		assert_eq(hand_off, [] as Array[String], "%s hands off" % id)
@@ -220,7 +242,8 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 			if not (sc.light_hits.get(w.id, {}) as Dictionary).has(StringName(place)):
 				reactions.append("no light hit reaction %s" % place)
 		ChecklistResults.record_problems(12, id, reactions)
-		assert_eq(reactions, [] as Array[String], "%s's reactions" % id)
+		if _of_string(m):
+			assert_eq(reactions, [] as Array[String], "%s's reactions" % id)
 
 
 # ------------------------------------------------------------------ items 13 and 14
@@ -229,7 +252,7 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 	var sc: StateClips = StateClips.read()
 	for m: Array in ChecklistResults.keyed_moves():
 		var id: StringName = m[1]
-		var c: Dictionary = _contacts(id)
+		var c: Dictionary = _contacts(m[0], id)
 		var sound: Array[String] = []
 		var effects: Array[String] = []
 		for t: StringName in c:
@@ -251,17 +274,18 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 		for t: StringName in [&"block", &"parry"]:
 			if not (c[t] as Dictionary).is_empty() and EffectTable.count_of(c[t], EffectTable.SPARKS) <= 0:
 				effects.append("its %s throws no sparks" % t)
-		if not _smears(id):
+		if not _smears(m[0], id):
 			effects.append("its strike leaves no air smear")
 		ChecklistResults.record_problems(13, id, sound)
 		ChecklistResults.record_problems(14, id, effects)
-		assert_eq(sound, [] as Array[String], "%s's sound" % id)
-		assert_eq(effects, [] as Array[String], "%s's effects" % id)
+		if _of_string(m):
+			assert_eq(sound, [] as Array[String], "%s's sound" % id)
+			assert_eq(effects, [] as Array[String], "%s's effects" % id)
 
 
 ## Whether keyed move `id` smears through its active frames (TrailState).
-static func _smears(id: StringName) -> bool:
-	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, APART)
+static func _smears(wid: StringName, id: StringName) -> bool:
+	var W: World = _world(wid, APART)
 	var f: Fighter = W.fighters[0]
 	f.start_attack(id)
 	var def: AttackDef = f.atk.def
@@ -317,7 +341,7 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 func test_every_clip_row_hands_off_sounds_and_shows_its_contact() -> void:
 	var sc: StateClips = StateClips.read()
 	var rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
-	var c: Dictionary = _contacts(&"k_l1")
+	var c: Dictionary = _contacts(&"katana", &"k_l1")
 	# the reactions
 	var reaction_contact: Dictionary = {&"clip_hit_light": c[&"hit"], &"clip_block_light": c[&"block"]}
 	for row: StringName in reaction_contact:

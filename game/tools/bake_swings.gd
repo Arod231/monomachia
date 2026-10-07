@@ -150,7 +150,11 @@ static func bake_extras(manifest: ClipManifest, parent: Node) -> Dictionary:
 	for id: StringName in FrameDataRows.rules_length_clips(manifest):
 		var length: float = model.animation_player.get_animation(ClipChain.anim_name(SET, id)).length
 		var sha: String = FrameDataRows.source_checksum(manifest, [id] as Array[StringName], errors)
-		clips[String(id)] = FrameDataRows.sealed(FrameDataRows.clip_row(manifest.clips[id], length, sha), null)
+		var travel: Array = []
+		if FrameDataRows.TRAVEL_CLIPS.has(id):
+			var poser: ClipPoser = ClipPoser.new(model, [ClipChain.qualified(SET, String(id))] as Array[String])
+			travel = FrameDataRows.clip_travel(poser.pose, poser.length, id, manifest.clips[id], errors)
+		clips[String(id)] = FrameDataRows.sealed(FrameDataRows.clip_row(manifest.clips[id], length, sha, travel), null)
 	parent.remove_child(model)
 	model.free()
 	return {"gaits": gaits, "clips": clips, "errors": errors}

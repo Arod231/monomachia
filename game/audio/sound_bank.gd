@@ -292,6 +292,12 @@ const CUES: Dictionary = {
 		"files": ["vocal_kiai_01.wav", "vocal_kiai_02.wav", "vocal_kiai_03.wav", "vocal_kiai_04.wav"],
 		"volume_db": -4.0, "pitch": Vector2(0.96, 1.04), "bus": BUS_COMBAT, "spatial": true,
 	},
+	# the ultimate's roar (milestone-1 task 98, story 133): Moonsplitter's
+	# wind-up and the recall's power-up, a shout over a slowed rumble
+	&"vocal_roar": {
+		"files": ["vocal_roar_01.wav", "vocal_roar_02.wav"],
+		"volume_db": -2.0, "pitch": Vector2(0.98, 1.02), "bus": BUS_COMBAT, "spatial": true,
+	},
 	&"vocal_exhale": {
 		"files": ["vocal_exhale_01.wav", "vocal_exhale_02.wav", "vocal_exhale_03.wav", "vocal_exhale_04.wav"],
 		"volume_db": -9.0, "pitch": Vector2(0.95, 1.05), "bus": BUS_COMBAT, "spatial": true,
@@ -484,6 +490,7 @@ const VOCALS: Dictionary = {
 	&"male": {
 		&"kiai": &"vocal_kiai", &"exhale": &"vocal_exhale", &"breath": &"vocal_breath",
 		&"pain": &"vocal_pain", &"pain_heavy": &"vocal_pain_heavy", &"death": &"vocal_death",
+		&"roar": &"vocal_roar",
 	},
 }
 ## How often a moment is voiced, where not every time: a light's exhale
@@ -631,7 +638,9 @@ static func footfall_cues(fighter_id: StringName) -> Array[StringName]:
 ## each [code]{"moment": StringName, "side": int, "chance": float}[/code]: a
 ## kiai on a heavy swing (abilities and ultimates count) and an exhale on a
 ## light one; a breath on a dodge or a landing; pain on being hit, more on a
-## heavy; a death cry on a K.O. (both on a double K.O.). A block is silent.
+## heavy; a death cry on a K.O. (both on a double K.O.); a roar as
+## Moonsplitter winds up and as the recall powers up (milestone-1 tasks 98
+## and 99). A block is silent.
 static func vocal_moments(event: Dictionary) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var heavy := bool(_field(event, "heavy", false))
@@ -640,6 +649,14 @@ static func vocal_moments(event: Dictionary) -> Array[Dictionary]:
 			out.append(_moment(&"kiai" if heavy else &"exhale", int(_field(event, "f", -1))))
 		&"dodge", &"land":
 			out.append(_moment(&"breath", int(_field(event, "f", -1))))
+		&"ultStart":
+			# the roar as Moonsplitter winds up (task 98); the other weapons'
+			# ultimates wait for milestone 2
+			if StringName(str(_field(event, "ult", ""))) == &"moonsplitter":
+				out.append(_moment(&"roar", int(_field(event, "f", -1))))
+		&"recall":
+			# and as the recall powers up (task 99)
+			out.append(_moment(&"roar", int(_field(event, "f", -1))))
 		&"hit":
 			out.append(_moment(&"pain_heavy" if heavy else &"pain", int(_field(event, "target", -1))))
 		&"ko":

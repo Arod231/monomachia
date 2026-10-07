@@ -329,6 +329,11 @@ func test_effort_vocal_hooks() -> void:
 	assert_eq(moments.call({"t": "ko", "loser": 0, "winner": 1}), [[&"death", 0]])
 	assert_eq(moments.call({"t": "ko", "loser": -1, "winner": -1}), [[&"death", 0], [&"death", 1]], "a double K.O.")
 	assert_eq(moments.call({"t": "block", "attacker": 0, "target": 1}), [], "nothing on a block")
+	# the ultimate's roar (milestone-1 task 98, story 133): Moonsplitter's
+	# wind-up and the recall's power-up (task 99)
+	assert_eq(moments.call({"t": "ultStart", "f": 1, "ult": &"moonsplitter"}), [[&"roar", 1]])
+	assert_eq(moments.call({"t": "recall", "f": 0}), [[&"roar", 0]])
+	assert_eq(moments.call({"t": "ultStart", "f": 0, "ult": &"impaler"}), [], "not the other weapons' (milestone 2)")
 	# a light's exhale is heard about one time in three
 	var exhale: Dictionary = SoundBank.vocal_moments({"t": "swing", "f": 0, "heavy": false})[0]
 	assert_almost_eq(float(exhale["chance"]), 1.0 / 3.0, 0.01)
@@ -341,7 +346,7 @@ func test_every_fighter_has_a_voice_with_every_moment() -> void:
 	for fighter: StringName in MatchSide.FIGHTER_NAMES:
 		var voice: StringName = SoundBank.voice_of(fighter)
 		assert_true(SoundBank.VOCALS.has(voice), "%s speaks" % fighter)
-		for moment: StringName in [&"kiai", &"exhale", &"breath", &"pain", &"pain_heavy", &"death"]:
+		for moment: StringName in [&"kiai", &"exhale", &"breath", &"pain", &"pain_heavy", &"death", &"roar"]:
 			assert_true(SoundBank.VOCALS[voice].has(moment), "%s has a %s" % [voice, moment])
 			var cue: StringName = SoundBank.VOCALS[voice][moment]
 			assert_true(SoundBank.CUES.has(cue), "%s is a cue" % cue)
@@ -364,6 +369,8 @@ func test_the_fighters_vocalise_on_their_moments() -> void:
 	assert_eq(names.call({"t": "hit", "attacker": 1, "target": 0, "heavy": true, "sound": &"blade"}), [&"vocal_pain_heavy"])
 	assert_eq(names.call({"t": "ko", "loser": 1, "winner": 0, "finisher": true}), [&"vocal_death"])
 	assert_eq(names.call({"t": "block", "attacker": 0, "target": 1, "heavy": true}), [])
+	assert_eq(names.call({"t": "ultStart", "f": 0, "ult": &"moonsplitter"}), [&"vocal_roar"])
+	assert_eq(names.call({"t": "recall", "f": 1}), [&"vocal_roar"])
 	assert_eq(_vocals({"t": "swing", "f": 0, "heavy": true}, []), [] as Array[Dictionary], "no cast, no voices")
 	# a light's exhale one time in three; the second side two semitones down
 	assert_almost_eq(float(_vocals({"t": "swing", "f": 0, "heavy": false}, cast)[0]["chance"]), 1.0 / 3.0, 0.01)

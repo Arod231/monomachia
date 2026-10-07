@@ -11,7 +11,7 @@ A [[Weapon class|medium]] weapon: a standard Japanese katana, well rounded and f
 - **Light string** of four: Right Cut → Return Cut → Kesa Cut → Crown Cut. They cut right to left, left to right, on a diagonal, then overhead. Two lights then a heavy (Return Cut → Rising Heaven) is the L-L-H.
 - **Heavy: the [[Iai Slash]].** Pressing heavy sheathes the blade, and holding it keeps the blade sheathed in the stance, strafing at block speed. On release the fighter draws: from above by default, or right to left with the stick held sideways. It reaches about 3.6 m. Rising Heaven follows the vertical draw, Returning Draw follows the horizontal one, and Heaven Splitter closes a string.
 - **[[Block ability|Block abilities]]** (pick two): [[Flash]] (a parry stance with a wide window that stuns), Piercing Thrust (an [[Unblockable]] thrust) and Swallow Sweep (an unblockable low cut).
-- **[[Ultimate]], Moonsplitter:** the fighter sheathes, then makes a slash that crosses the whole stage. Tilting the stick up or down makes it vertical (step aside to dodge it); left or right makes it horizontal (jump it).
+- **[[Ultimate]], Moonsplitter:** the fighter sheathes, holds a crouched stance, then draws a slash that crosses the whole stage. Tilting the stick up or down before the draw makes it vertical (step aside to dodge it); left or right makes it horizontal (jump it).
 
 ## Where it stands
 

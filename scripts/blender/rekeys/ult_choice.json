@@ -1,0 +1,12 @@
+{
+	"about": "The disarmed ultimate's choice (bare hands), milestone-1 task 99: a gathering stance from Angry01, its hunch into a low crouch with the fists clenched, blended in from the bare-hands guard (CombatIdle01's first frame) over 3 frames and held, drifting, over the choice's frozen 40 rules frames (20 here; the world runs it at 0.35x), lowered a little further and held. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Basic Motions/Animations/Male/Social/Emotions/HumanM@Angry01.fbx",
+	"out": "blender/clips/ult_choice.blend",
+	"remap": [[0, 2], [6, 7], [20, 9.5]],
+	"blend_from": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatIdle01.fbx",
+		"frame": 0,
+		"frames": 3
+	},
+	"lower": {"drop": 0.12, "bend": 10, "from": 0, "peak": 6, "hold": true}
+}

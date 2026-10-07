@@ -77,6 +77,6 @@
 		"f_bl": {"clips": ["AttackKick01_L@3"], "speed": 1.71, "fallback": "Melee_Hook", "marks": {"windup": 0, "contact": 6, "contact_end": 8.57, "settle": 18.83}, "markers_stand_in": true, "markers": {"windup": 0, "active_start": 3.5, "active_end": 5, "settle": 11}},
 		"f_jl": {"clips": ["ual/Melee_Knee@2"], "speed": 1.86, "fallback": "Melee_Knee", "marks": {"windup": 0, "contact": 6.5, "contact_end": 9.29, "settle": 20.45}, "markers_stand_in": true, "markers": {"windup": 0, "active_start": 3.5, "active_end": 5, "settle": 11}},
 		"f_jh": {"clips": ["AttackKick01_L", "AttackKick01_L@30*2"], "speed": 1.83, "fallback": "Melee_Hook", "marks": {"windup": 0, "contact": 11, "contact_end": 14.66, "settle": 31.13}, "markers_stand_in": true, "markers": {"windup": 0, "active_start": 6, "active_end": 8, "settle": 17, "dodge_cancel": 12.5}},
-		"f_breaker": {"clips": ["AttackPunch03_R@0-4", "AttackPunch03_R@4*4", "ual/Melee_Uppercut@3"], "speed": 1.57, "fallback": "Melee_Hook", "marks": {"windup": 0, "contact": 11, "contact_end": 13.36, "settle": 33.77}, "markers_stand_in": true, "markers": {"windup": 0, "active_start": 7, "active_end": 8.5, "settle": 21.5}}
+		"f_breaker": {"clips": ["BreakerPalm"], "fallback": "Melee_Hook", "markers": {"windup": 0, "active_start": 18, "active_end": 20, "settle": 38}}
 	}}
 }

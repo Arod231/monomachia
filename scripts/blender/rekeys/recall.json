@@ -1,0 +1,11 @@
+{
+	"about": "The recall's power-up (bare hands' ultimate), milestone-1 task 99: from the choice's gathering crouch (ult_choice frame 20, blended in over 3 frames) Angry01's burst upward, the arms flung wide and the head thrown back in the roar on frame 8 (16 rules frames: the burst, the weapon arriving in the hand), held wide to frame 13 (26 rules frames, the recall's end). Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Basic Motions/Animations/Male/Social/Emotions/HumanM@Angry01.fbx",
+	"out": "blender/clips/recall.blend",
+	"remap": [[0, 9.5], [8, 13], [13, 18]],
+	"blend_from": {
+		"source": "blender/clips/ult_choice.blend",
+		"frame": 20,
+		"frames": 3
+	}
+}

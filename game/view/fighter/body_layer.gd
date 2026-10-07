@@ -40,6 +40,11 @@ var head_yaw: float = 0.0
 var head_pitch: float = 0.0
 ## The hips moved, in skeleton space: a dip, a weight shift.
 var hips_offset: Vector3 = Vector3.ZERO
+## The clip's own carry of the hips (milestone-1 task 99), in their pose
+## space from the clip's start: its part across the ground is taken out,
+## for a clip that carries the body (the recall burst's blasted fall) by
+## the travel the rules already move the fighter by.
+var carried: Vector3 = Vector3.ZERO
 ## How much of the clip's own twist above the hips is taken out, 0 to 1: at
 ## 1 the spine, neck and head face the way the hips do, bone by bone, before
 ## the turns above. A running clip swings the shoulders round (the jog's by
@@ -90,6 +95,7 @@ func clear() -> void:
 	head_yaw = 0.0
 	head_pitch = 0.0
 	hips_offset = Vector3.ZERO
+	carried = Vector3.ZERO
 	untwist = 0.0
 
 
@@ -132,7 +138,15 @@ func hips_moved(sk: Skeleton3D) -> Transform3D:
 		m = about(sk.get_bone_global_pose(_id(sk, &"Hips")).origin, Quaternion(Vector3.UP, pelvis_yaw)) * m
 	if lean.length() > 1e-5:
 		m = about(sk.get_bone_global_pose(_id(sk, &"Root")).origin, Quaternion(lean.normalized(), lean.length())) * m
-	return Transform3D(Basis.IDENTITY, hips_offset) * m
+	return Transform3D(Basis.IDENTITY, hips_offset - _carry(sk)) * m
+
+
+## The part of `carried` across the ground, in skeleton space.
+func _carry(sk: Skeleton3D) -> Vector3:
+	if carried == Vector3.ZERO:
+		return Vector3.ZERO
+	var v: Vector3 = sk.get_bone_global_rest(_id(sk, &"Root")).basis.get_rotation_quaternion() * carried
+	return Vector3(v.x, 0.0, v.z)
 
 
 func _process_modification_with_delta(_delta: float) -> void:
@@ -151,10 +165,11 @@ func _process_modification_with_delta(_delta: float) -> void:
 		clip_feet[side] = sk.get_bone_global_pose(_id(sk, StringName(side + "Foot")))
 	if lean.length() > 1e-5:
 		rot_global(sk, _id(sk, &"Root"), Quaternion(lean.normalized(), lean.length()))
-	if hips_offset != Vector3.ZERO:
+	var shift: Vector3 = hips_offset - _carry(sk)
+	if shift != Vector3.ZERO:
 		var hips: int = _id(sk, &"Hips")
 		var root_q: Quaternion = sk.get_bone_global_pose(_id(sk, &"Root")).basis.get_rotation_quaternion()
-		sk.set_bone_pose_position(hips, sk.get_bone_pose_position(hips) + root_q.inverse() * hips_offset)
+		sk.set_bone_pose_position(hips, sk.get_bone_pose_position(hips) + root_q.inverse() * shift)
 	for bone_name: StringName in SPINE_SHARE:
 		var bone: int = _id(sk, bone_name)
 		var share: float = SPINE_SHARE[bone_name]

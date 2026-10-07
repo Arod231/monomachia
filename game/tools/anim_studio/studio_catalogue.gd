@@ -228,9 +228,10 @@ func _add_states(sc: StateClips) -> void:
 
 
 func _add_ults(sc: StateClips) -> void:
-	for variant: StringName in sc.ult_clips:
+	# the stance, then the variant's draw (task 98); one fallback stands in for both
+	for variant: StringName in sc.ult_draws:
 		var id: StringName = StringName("moonsplitter_%s" % variant)
-		_add(KIND_ULT, GROUP_ULTS, id, STATE_NAMES.get(id, "Moonsplitter (%s)" % variant), _clips([_at(sc.ult_clips[variant], 0)]), _fallbacks([sc.ult_fallback]), 1.0, STATES_FILE, [["ults", "moonsplitter", "clips", String(variant)], ["ults", "moonsplitter", "fallback"]])
+		_add(KIND_ULT, GROUP_ULTS, id, STATE_NAMES.get(id, "Moonsplitter (%s)" % variant), _clips([sc.ult_stance, sc.ult_draws[variant]]), _fallbacks([sc.ult_fallback, sc.ult_fallback]), 1.0, STATES_FILE, [["ults", "moonsplitter", "stance"], ["ults", "moonsplitter", "draws", String(variant)], ["ults", "moonsplitter", "fallback"]])
 	_add(KIND_ULT, GROUP_ULTS, &"impaler", STATE_NAMES[&"impaler"], _clips([sc.impaler_clip]), _fallbacks([sc.impaler_fallback]), 1.0, STATES_FILE, [["ults", "impaler"]])
 	# one fallback stands in for the spin and the final
 	_add(KIND_ULT, GROUP_ULTS, &"tempest", STATE_NAMES[&"tempest"], _clips([sc.tempest_spin, sc.tempest_final]), _fallbacks([sc.tempest_fallback, sc.tempest_fallback]), 1.0, STATES_FILE, [["ults", "tempest"]])

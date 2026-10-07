@@ -152,7 +152,7 @@ func test_the_pools_draw_only_what_lives() -> void:
 	effects.clear()
 	assert_eq(effects.drawn(CombatEffects.FLASHES), 0, "cleared at once")
 	assert_eq(effects.drawn(CombatEffects.PARTICLES), 0)
-	assert_eq(effects.get_child_count(), 12, "five pools, three lights and four smears, however many effects")
+	assert_eq(effects.get_child_count(), 13, "six pools (the distortion rings since task 100), three lights and four smears, however many effects")
 
 
 # ------------------------------------------------------------------ the table
