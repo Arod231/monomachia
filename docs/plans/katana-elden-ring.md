@@ -127,6 +127,7 @@ The Katana plays as Elden Ring's Uchigatana inside milestone 1's realistic look:
   - Check: band tests for the tapped and stance draws; the Iai's distance-band test at the new distance; rules tests of the release, the stance speed and a switch in the stance; sheets beside the reference's Unsheathe frames; a clean soak.
   - Blocked by: 2, 3 (and the owner's OK), 7, 10, `docs/plans/milestone-1.md` task 41 (and the owner's OK) · Stories: 28, 29, 30, 31, 32
   - Replaces: `docs/plans/milestone-1.md` task 63
+  - Also (the owner, Oct 7): milestone-1 task 98 keys Moonsplitter's sheathe, stance and two draws in Elden Ring's style on today's blade and bodies; this task refits them on the 1.3 m blade and the new bodies alongside the Iai's.
 - [ ] **19. Deflect pairs for both strings and the grip heavies.** Each new attack direction has its deflect pair at the new distance.
   - Delivers: deflect pairs (the parrier's deflect and the attacker's recoil) for every new string hit and grip heavy, measured from the new duelling distance, as Claude's block-outs (milestone-1 task 34's method); the pairs of today's four lights retired.
   - Check: the director's deflect picks; the state-clip fit test; blades meeting at the contact point on sheets; a clean soak.
