@@ -4,7 +4,10 @@
 // guard, task 33's transitions: the bridges between its hits and each
 // light's return to guard, and task 34's deflect pairs: each light's recoil
 // and the deflect aimed at it, and task 35's light hit reactions, turned
-// for their side and lowered for low, and its light block), and, where Blender is
+// for their side and lowered for low, and its light block; task 98's
+// Moonsplitter: its sheathe and stance and its two draws, one-handed, each
+// draw starting partway into its source as it blends in from the stance),
+// and, where Blender is
 // installed (local-only, skipped elsewhere, CI included), the script's time
 // warp and steps behave: the warp passes through its pairs without falling or
 // overshooting, a stepping foot moves only while it is off the ground, and
@@ -36,6 +39,7 @@ describe('the re-key specs', () => {
       'block_light', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
       'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right', 'katana_guard',
       'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
+      'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance',
       'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
       'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut',
     ]);
@@ -47,6 +51,8 @@ describe('the re-key specs', () => {
       const transition = id.includes('_to_');
       const recoil = id.endsWith('_recoil');
       const deflect = id.endsWith('_deflect');
+      // an iai's sheathe and draws hold the sword in one hand (task 98)
+      const oneHanded = id.startsWith('moonsplitter_');
 
       it('re-keys a pack clip, or for a transition a re-keyed clip, into its own Blender source', () => {
         if (transition) {
@@ -75,14 +81,16 @@ describe('the re-key specs', () => {
       });
 
       it('warps time from frame 0, rising in new frames and never falling in source frames', () => {
-        assert.deepEqual(spec.remap[0], [0, 0]);
+        // a clip blended in from another may start partway into its source
+        if (spec.blend_from && !transition) assert.equal(spec.remap[0][0], 0);
+        else assert.deepEqual(spec.remap[0], [0, 0]);
         for (let i = 1; i < spec.remap.length; i++) {
           assert.ok(spec.remap[i][0] > spec.remap[i - 1][0], `new frames rise at ${i}`);
           assert.ok(spec.remap[i][1] >= spec.remap[i - 1][1], `source frames don't fall at ${i}`);
         }
       });
 
-      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil }, () => {
+      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai') }, () => {
         assert.ok(spec.two_hands.grip > 0 && spec.two_hands.grip < 0.3);
         assert.equal(spec.two_hands.hold.length, 2);
         assert.ok(spec.two_hands.clearance >= 0.05, 'at least PoseCheck.BLADE_CLEARANCE');

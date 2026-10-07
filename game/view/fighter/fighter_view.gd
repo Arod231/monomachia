@@ -479,8 +479,9 @@ func _pose(f: Fighter, p: StickPose.Pose, _seconds: float, alpha: float) -> void
 		# the reach correction carries the body above the hips, and the arms
 		# and weapon with it
 		rig.body.hips_offset += SwingPlayer.to_skeleton(playing.reach_at(SwingPlayer.swing_frame(f, alpha)))
-	# the blade in the saya through the Iai's sheathe and stance (task 11)
-	rig.sheathed = playing != null and playing.is_sheathed(float(f.atk.frame))
+	# the blade in the saya through the Iai's sheathe and stance (task 11),
+	# and Moonsplitter's (task 98)
+	rig.sheathed = (playing != null and playing.is_sheathed(float(f.atk.frame))) or ClipDirector.ult_sheathed(f)
 	if model.weapons.is_empty():
 		return
 	if _fixed_on_clip(f) and _pin(f, alpha) > 0.0:

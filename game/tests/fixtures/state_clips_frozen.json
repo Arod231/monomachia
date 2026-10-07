@@ -19,7 +19,7 @@
 	"stun": {"clip": "Stun01", "fallback": "Hit_Knockback"},
 	"carry": {"pose": "ObjectGripShoulder02_R"},
 	"ults": {
-		"moonsplitter": {"clips": {"vertical": ["Attack2H01", 12], "horizontal": ["Attack2H03", 7]}, "fallback": "Sword_Heavy_Combo", "windup": 36, "release": 34},
+		"moonsplitter": {"stance": "MoonsplitterStance", "draws": {"vertical": "MoonsplitterDrawVertical", "horizontal": "MoonsplitterDrawHorizontal"}, "sheathed": [8.5, 23.5], "fallback": "Sword_Heavy_Combo"},
 		"impaler": {"clip": "AttackPolearm01", "drawn": 8, "out": 14, "recover": 18, "recover_frames": 30, "fallback": "Sword_Dash", "aim": 30, "dash": 40},
 		"tempest": {"spin": "ual/Sword_Aerial_Combo", "slashes": [2, 17], "flash": 8, "final": "AttackDW02", "final_from": 12, "final_frames": 14, "recover_frames": 24, "fallback": "Sword_Heavy_Combo"}
 	},

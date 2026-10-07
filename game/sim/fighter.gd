@@ -1724,13 +1724,15 @@ func _ult_moonsplitter(u: UltState) -> void:
 	var W: World = world
 	var inp: InputTracker = input
 	if u.phase == &"windup":
-		if inp.dir != -1:
+		# the stick picks until the draw starts (task 98), so the clip never
+		# changes draws mid-cut
+		if inp.dir != -1 and u.pf <= SimConst.MOONSPLITTER_DRAW:
 			u.variant = &"horizontal" if inp.sideways() else &"vertical"
-		if u.pf >= 36:
+		if u.pf >= SimConst.MOONSPLITTER_WAVE:
 			_set_ult_phase(&"release")
 			W.spawn_wave(self, u.variant)
 	elif u.phase == &"release":
-		if u.pf >= 34:
+		if u.pf >= SimConst.MOONSPLITTER_RECOVERY:
 			to_free()
 
 

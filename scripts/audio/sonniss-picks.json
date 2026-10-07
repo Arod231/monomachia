@@ -217,6 +217,16 @@
       "library": "344 Audio - Anime Fight Voices Vol. 1",
       "entry": "344 Audio - Anime Fight Voices Vol. 1/VOXMale_Male Adventurer, Active Yell 19_344 Audio_Anime Fight Voices.wav"
     },
+    "vox_boxer_level_up": {
+      "part": 1,
+      "library": "344 Audio - Anime Fight Voices Vol. 1",
+      "entry": "344 Audio - Anime Fight Voices Vol. 1/VOXMale_Boxer Level Up 1_344 Audio_Anime Fight Voices.wav"
+    },
+    "anml_herbivore_roar": {
+      "part": 1,
+      "library": "344 Audio - Dinosaurs Vol. 2",
+      "entry": "344 Audio - Dinosaurs Vol. 2/ANMLRept_Large Herbivore Roar 01_344 Audio_Dinosaurs Vol 2.wav"
+    },
     "vox_panting": {
       "part": 5,
       "library": "SoundBits - Vox Hominis - Human Effort Voices",
@@ -1160,6 +1170,24 @@
       "use": "A kiai: the battle yell, lower",
       "layers": [{ "source": "vox_active_yell", "peakIn": [0.1, 0.3], "from": -0.07, "length": 0.28, "pitch": -3, "fadeIn": 0.01, "fadeOut": 0.1 }],
       "process": { "highpass": 90 }
+    },
+    {
+      "file": "vocal_roar_01.wav",
+      "use": "The ultimate's roar (milestone-1 task 98, story 133; the recall's too, task 99): a warrior's rising power-up shout over a deep, slowed rumble, as Moonsplitter winds up and as the recall powers up",
+      "layers": [
+        { "source": "vox_boxer_level_up", "start": 3.8, "end": 5.2, "fadeIn": 0.08, "fadeOut": 0.25 },
+        { "source": "anml_herbivore_roar", "start": 0.4, "length": 1.5, "pitch": -7, "lowpass": 350, "gainDb": -6, "fadeIn": 0.15, "fadeOut": 0.4 }
+      ],
+      "process": { "highpass": 45 }
+    },
+    {
+      "file": "vocal_roar_02.wav",
+      "use": "The ultimate's roar: the shout a little lower, over another stretch of the rumble",
+      "layers": [
+        { "source": "vox_boxer_level_up", "start": 3.7, "end": 5.2, "pitch": -1, "fadeIn": 0.08, "fadeOut": 0.25 },
+        { "source": "anml_herbivore_roar", "start": 1.4, "length": 1.5, "pitch": -8, "lowpass": 350, "gainDb": -6, "fadeIn": 0.15, "fadeOut": 0.4 }
+      ],
+      "process": { "highpass": 45 }
     },
     {
       "file": "vocal_exhale_01.wav",

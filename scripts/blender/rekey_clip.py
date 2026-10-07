@@ -47,10 +47,12 @@
 #   task 35's hit reactions): every bone's move from frame 0 turned that far
 #   about the hips, so a reel back becomes one sideways (-90: away from a hit
 #   on the right) or forward (180: from behind); omit for a clip as it is;
-# - lower: {"drop": metres, "bend": degrees, "peak": frame}: a reaction taken
-#   low (lower()): the hips dropped and the chest bent forward, rising from
-#   nothing at frame 0 to all of it at "peak" and back to nothing at the
-#   clip's end, the feet kept where the clip has them on IK; omit for none;
+# - lower: {"drop": metres, "bend": degrees, "peak": frame, "from": frame,
+#   "until": frame, "hold": true}: a reaction taken low (lower()): the hips
+#   dropped and the chest bent forward, rising from nothing at frame "from"
+#   (0) to all of it at "peak", held to "until" (the peak) and back to
+#   nothing at the clip's end, or held to the end with "hold" (a crouched
+#   stance), the feet kept where the clip has them on IK; omit for none;
 # - two_hands may add "aim": {"frame": frame, "move": [x, y, z], "turn":
 #   [x, y, z, degrees], "frames": n}: the weapon moved by "move" (m, world,
 #   the clip facing -Y) and turned about the grip by "turn" (an axis and an
@@ -740,9 +742,11 @@ def turn(arm, scene, length, degrees):
 def lower(arm, scene, length, spec):
     """A reaction taken low: the hips dropped spec["drop"] m and the spine
     (40%) and the chest (60%) bent forward spec["bend"] degrees, by a weight
-    rising (smootherstep) from 0 at frame 0 to 1 at spec["peak"] and falling
-    back to 0 at the clip's end; the feet kept where the clip has them on
-    IK. The clip faces -Y."""
+    rising (smootherstep) from 0 at frame spec["from"] (default 0) to 1 at
+    spec["peak"], held to spec["until"] (default the peak), and falling back
+    to 0 at the clip's end, or held there to the end with spec["hold"] (a
+    stance the next clip rises from); the feet
+    kept where the clip has them on IK. The clip faces -Y."""
     mw = arm.matrix_world
     pbs = arm.pose.bones
     to_arm = mw.inverted().to_3x3()
@@ -761,8 +765,15 @@ def lower(arm, scene, length, spec):
             hip, knee = mw @ pbs["B-thigh." + side].head, mw @ pbs["B-shin." + side].head
             bend = knee - (hip + m.to_translation()) / 2
             knees[side].append(knee + (bend.normalized() if bend.length > 1e-4 else mathutils.Vector((0.0, -1.0, 0.0))) * 0.5)
+    start = float(spec.get("from", 0.0))
+    until = max(float(spec.get("until", peak)), peak)
     for n in range(length + 1):
-        w = _smoother(n / peak) if n <= peak else 1.0 - _smoother((n - peak) / max(length - peak, 1e-6))
+        if n <= peak:
+            w = _smoother((n - start) / max(peak - start, 1e-6))
+        elif spec.get("hold") or n <= until:
+            w = 1.0
+        else:
+            w = 1.0 - _smoother((n - until) / max(length - until, 1e-6))
         scene.frame_set(1 + n)
         bpy.context.view_layer.update()
         hips = pbs["B-hips"]

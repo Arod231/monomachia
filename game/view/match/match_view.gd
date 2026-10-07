@@ -75,6 +75,9 @@ const FOOTFALL_LAG: int = 4
 ## camera's look point, on a parry and on a Flash or a redirect.
 @export var parry_push_in: float = 0.15
 @export var flash_push_in: float = 0.25
+## Moonsplitter's wind-up (milestone-1 task 98, story 133): a slow push-in to
+## this share over the wind-up, held until the wave leaves.
+@export var moon_push_in: float = 0.35
 ## The camera's kick on contact (plan task 14.12): degrees of field of view
 ## when a strike lands or is blocked, by the class of the attacker's weapon
 ## (its weight), half again for a heavy.
@@ -478,6 +481,17 @@ func _push_in(amount: float) -> void:
 		cam.push_in(amount)
 
 
+## A slow push-in on every camera, held until _release_push_in().
+func _push_in_held(amount: float, over: float) -> void:
+	for cam: CameraRig in cameras:
+		cam.push_in_held(amount, over)
+
+
+func _release_push_in() -> void:
+	for cam: CameraRig in cameras:
+		cam.release_push_in()
+
+
 ## Kicks every camera's field of view (both halves in Versus).
 func _kick(amount: float) -> void:
 	for cam: CameraRig in cameras:
@@ -571,8 +585,14 @@ func _on_sim_event(e: Dictionary) -> void:
 			_kick(7.0)
 			_body_flash(int(e["victim"]), Color.WHITE, 0.6)
 		&"ultStart":
-			_kick(8.0)
+			if e.get("ult", &"") == &"moonsplitter":
+				# the wind-up stays on the gameplay camera, pushing in slowly
+				# until the wave leaves (task 98)
+				_push_in_held(moon_push_in, float(SimConst.MOONSPLITTER_WAVE) / float(SimConst.FPS))
+			else:
+				_kick(8.0)
 		&"ultWave":
+			_release_push_in()
 			_shake(0.5)
 		&"ultImpale":
 			_shake(0.6)

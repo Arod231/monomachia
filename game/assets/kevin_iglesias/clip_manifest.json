@@ -334,6 +334,54 @@
 				"katana"
 			]
 		},
+		"MoonsplitterStance": {
+			"export": "exports/clips/moonsplitter_stance.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 9,
+				"contact_end": 23,
+				"settle": 23
+			},
+			"foot_contacts": {"left": [[0, 23]], "right": [[0, 23]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"MoonsplitterDrawVertical": {
+			"export": "exports/clips/moonsplitter_draw_vertical.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 7,
+				"contact_end": 14,
+				"settle": 28
+			},
+			"foot_contacts": {"left": [[0, 28]], "right": [[21, 28]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"MoonsplitterDrawHorizontal": {
+			"export": "exports/clips/moonsplitter_draw_horizontal.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 7,
+				"contact_end": 14,
+				"settle": 28
+			},
+			"foot_contacts": {"left": [[0, 28]], "right": [[0, 28]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"RightCutToGuard": {
 			"export": "exports/clips/right_cut_to_guard.glb",
 			"mirror": false,

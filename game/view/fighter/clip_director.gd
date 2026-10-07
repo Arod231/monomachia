@@ -1043,11 +1043,28 @@ static func _move_clip(f: Fighter, def: AttackDef, ctx: Context, t: float) -> Cl
 	return chain_clip(swing.clips, set_name, timing.clip_time(t), ctx)
 
 
+## Moonsplitter's rules frames from its start for ultimate state `u` (the
+## wind-up, then the release from the wave).
+static func moonsplitter_frame(u: UltState) -> float:
+	return float(u.pf) if u.phase == &"windup" else float(SimConst.MOONSPLITTER_WAVE + u.pf)
+
+
+## Whether `f`'s blade is in the saya through Moonsplitter's sheathe and
+## stance (StateClips.ult_sheathed, source frames from its start).
+static func ult_sheathed(f: Fighter) -> bool:
+	var sc: StateClips = StateClips.shared()
+	if f.state != &"ult" or f.ult == null or f.ult.kind != &"moonsplitter" or sc.ult_sheathed.size() != 2:
+		return false
+	var source: float = moonsplitter_frame(f.ult) / MoveClips.RULES_PER_SOURCE
+	return source >= sc.ult_sheathed[0] and source < sc.ult_sheathed[1]
+
+
 ## Moonsplitter's clip for `f` in the ultimate's state, or null when it
-## isn't playing it: the wind-up raising the blade (1.0) to the hold and
-## waiting there, the release cutting from it (2.0) as the wave goes out;
-## without the packs the fallback stretched over both. A Greatsword's lift
-## off the shoulder waits at the clip's start.
+## isn't playing it (milestone-1 task 98): the sheathe and held stance at
+## 1.0 from the start to the draw (SimConst.MOONSPLITTER_DRAW), then the
+## picked variant's draw at 1.0, the wave leaving on its contact; without
+## the packs the fallback stretched over the whole. A Greatsword's lift off
+## the shoulder waits at the clip's start.
 static func ult_clip(f: Fighter, ctx: Context) -> Clip:
 	var sc: StateClips = StateClips.shared()
 	if f.state != &"ult" or f.ult == null:
@@ -1058,18 +1075,18 @@ static func ult_clip(f: Fighter, ctx: Context) -> Clip:
 		return tempest_clip(f.ult, ctx)
 	if f.ult.kind != &"moonsplitter":
 		return null
-	var u: UltState = f.ult
-	var pf: float = float(u.pf)
+	var t: float = moonsplitter_frame(f.ult)
 	if not ctx.libraries:
 		var anim_name: String = "%s/%s" % [FighterModel.LIBRARY, sc.ult_fallback]
-		var done: float = pf if u.phase == &"windup" else float(sc.ult_windup) + pf
-		return Clip.make(anim_name, clampf(done / float(sc.ult_windup + sc.ult_release), 0.0, 1.0) * ctx.lengths.get(anim_name, 0.0))
-	var pick: Array = sc.ult_clips.get(u.variant, sc.ult_clips[&"vertical"])
-	var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), pick[0])
-	var hold: float = pick[1]
-	var source: float = minf(pf * 0.5, hold) if u.phase == &"windup" else hold + pf
+		var whole: float = float(SimConst.MOONSPLITTER_WAVE + SimConst.MOONSPLITTER_RECOVERY)
+		return Clip.make(anim_name, clampf(t / whole, 0.0, 1.0) * ctx.lengths.get(anim_name, 0.0))
+	var id: StringName = sc.ult_stance
+	if t >= float(SimConst.MOONSPLITTER_DRAW):
+		id = sc.ult_draws.get(f.ult.variant, sc.ult_draws.get(&"vertical", &""))
+		t -= float(SimConst.MOONSPLITTER_DRAW)
+	var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id)
 	var length: float = ctx.lengths.get(anim_name, 0.0)
-	return Clip.make(anim_name, clampf(source / float(ClipManifest.SOURCE_FPS), 0.0, length))
+	return Clip.make(anim_name, clampf(t / MoveClips.RULES_PER_SOURCE / float(ClipManifest.SOURCE_FPS), 0.0, length))
 
 
 ## Impaler's clip in ultimate state `u` (see StateClips.impaler_clip); without the packs

@@ -80,7 +80,7 @@ const OWN_SPEED_ENDS: Array[String] = ["loop", "hand_on"]
 const KNOCKDOWN_PHASES: Array[String] = ["fall", "ground", "standUp"]
 const FADE_NAMES: Array[String] = ["attack", "follow_up", "dodge_cancel", "hitstun", "locomotion", "stance", "state", "guard", "rebound"]
 const ULT_KINDS: Array[String] = ["moonsplitter", "impaler", "tempest"]
-const MOONSPLITTER_FIELDS: Array[String] = ["clips", "fallback", "windup", "release"]
+const MOONSPLITTER_FIELDS: Array[String] = ["stance", "draws", "sheathed", "fallback"]
 const IMPALER_FIELDS: Array[String] = ["clip", "drawn", "out", "recover", "recover_frames", "fallback", "aim", "dash"]
 const TEMPEST_FIELDS: Array[String] = ["spin", "slashes", "flash", "final", "final_from", "final_frames", "recover_frames", "fallback"]
 
@@ -119,12 +119,15 @@ var stun_clip: StringName = &""
 var stun_fallback: StringName = &""
 ## The Greatsword's shoulder carry pose.
 var carry_pose: StringName = &""
-## Moonsplitter's clip per variant, [clip id, source frame held at]; its
-## fallback and its wind-up and release in rules frames.
-var ult_clips: Dictionary[StringName, Array] = {}
+## Moonsplitter (milestone-1 task 98): the sheathe and held stance, played at
+## 1.0 from the ultimate's start to the draw (SimConst.MOONSPLITTER_DRAW),
+## then the draw per variant (vertical, horizontal) at 1.0 from there; the
+## source frames from the ultimate's start the blade spends in the saya
+## ([in, out]); and the fallback, stretched over the whole ultimate.
+var ult_stance: StringName = &""
+var ult_draws: Dictionary[StringName, StringName] = {}
+var ult_sheathed: Array[float] = []
 var ult_fallback: StringName = &""
-var ult_windup: int = 0
-var ult_release: int = 0
 ## Impaler: the clip, the source frames it is drawn back to, thrust out to and
 ## recovers from, the frames it recovers over, its fallback and the aim's and
 ## the dash's rules frames.
@@ -230,10 +233,10 @@ static func read(path: String = PATH) -> StateClips:
 
 	var ults: Dictionary = t._object(root.get("ults"), "ults", ULT_KINDS)
 	g = t._object(ults.get("moonsplitter"), "ults.moonsplitter", MOONSPLITTER_FIELDS)
-	t.ult_clips = t._ult_clips(g, "ults.moonsplitter", "clips")
+	t.ult_stance = t._id(g, "ults.moonsplitter", "stance")
+	t.ult_draws = t._id_map(g, "ults.moonsplitter", "draws", ["vertical", "horizontal"])
+	t.ult_sheathed = t._nums(g, "ults.moonsplitter", "sheathed", 2)
 	t.ult_fallback = t._id(g, "ults.moonsplitter", "fallback")
-	t.ult_windup = t._whole(g, "ults.moonsplitter", "windup")
-	t.ult_release = t._whole(g, "ults.moonsplitter", "release")
 	g = t._object(ults.get("impaler"), "ults.impaler", IMPALER_FIELDS)
 	t.impaler_clip = t._id(g, "ults.impaler", "clip")
 	t.impaler_drawn = t._num(g, "ults.impaler", "drawn")
@@ -568,25 +571,4 @@ func _guards(g: Dictionary, at: String, key: String) -> Dictionary[StringName, A
 			out[StringName(str(k))] = pair
 	if not (v as Dictionary).has("fists"):
 		errors.append("%s.%s: needs fists" % [at, key])
-	return out
-
-
-## Moonsplitter's [clip id, hold frame] by variant, with the vertical's.
-func _ult_clips(g: Dictionary, at: String, key: String) -> Dictionary[StringName, Array]:
-	var out: Dictionary[StringName, Array] = {}
-	if not g.has(key):
-		return out
-	var v: Variant = g[key]
-	if not v is Dictionary:
-		errors.append("%s.%s: not an object" % [at, key])
-		return out
-	for k: Variant in v:
-		var pick: Variant = v[k]
-		if not pick is Array or (pick as Array).size() != 2 or not pick[0] is String or (pick[0] as String).is_empty() \
-				or not (pick[1] is float or pick[1] is int) or float(pick[1]) < 0.0:
-			errors.append("%s.%s.%s: must be a clip id and the source frame it holds at" % [at, key, k])
-			continue
-		out[StringName(str(k))] = [StringName(pick[0]), float(pick[1])]
-	if not (v as Dictionary).has("vertical"):
-		errors.append("%s.%s: needs vertical" % [at, key])
 	return out

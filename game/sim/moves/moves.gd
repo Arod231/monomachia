@@ -34,16 +34,18 @@ const COUNTER_LUNGE: Dictionary[StringName, StringName] = {
 
 # Hits dealt by scripted ultimates. They run through the same hit pipeline as
 # ordinary attacks, so parry/block/i-frame rules apply consistently.
+# Moonsplitter is re-keyed (milestone-1 task 98, real_markers), so its waves
+# take the retuned protected hitstun and hit-stop (ProtectedTimings).
 static var ULT_HITS: Dictionary[StringName, AttackDef] = AttackDef.finalize_moves({
 	&"u_moon_v": {
 		"id": &"u_moon_v", "name": "Moonsplitter", "weapon": &"katana", "kind": &"ultimate", "type": &"slash", "anim": &"ult",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 30, "posture": 40, "knockback": 2.2,
-		"range": 30, "arc": 360, "unblockable": true, "undodgeable": true, "hitstun": 50, "hitstop": 12,
+		"range": 30, "arc": 360, "unblockable": true, "undodgeable": true, "real_markers": true,
 	},
 	&"u_moon_h": {
 		"id": &"u_moon_h", "name": "Moonsplitter", "weapon": &"katana", "kind": &"ultimate", "type": &"sweep", "anim": &"ult",
 		"startup": 0, "active": 1, "recovery": 0, "damage": 30, "posture": 40, "knockback": 2.2,
-		"range": 30, "arc": 360, "unblockable": true, "undodgeable": true, "jumpable": true, "hitstun": 50, "hitstop": 12,
+		"range": 30, "arc": 360, "unblockable": true, "undodgeable": true, "jumpable": true, "real_markers": true,
 	},
 	&"u_impale": {
 		"id": &"u_impale", "name": "Impaler", "weapon": &"greatsword", "kind": &"ultimate", "type": &"thrust", "anim": &"ult", "sound": &"colossal",

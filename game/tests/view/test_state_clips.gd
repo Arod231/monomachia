@@ -51,10 +51,11 @@ const OLD: Dictionary = {
 	"STUN_CLIP": &"Stun01",
 	"STUN_FALLBACK": &"Hit_Knockback",
 	"CARRY_POSE": &"ObjectGripShoulder02_R",
-	"ULT_CLIPS": {&"vertical": [&"Attack2H01", 12.0], &"horizontal": [&"Attack2H03", 7.0]},
+	# Moonsplitter re-keyed (milestone-1 task 98): its stance and two draws
+	"ULT_STANCE": &"MoonsplitterStance",
+	"ULT_DRAWS": {&"vertical": &"MoonsplitterDrawVertical", &"horizontal": &"MoonsplitterDrawHorizontal"},
+	"ULT_SHEATHED": [8.5, 23.5],
 	"ULT_FALLBACK": &"Sword_Heavy_Combo",
-	"ULT_WINDUP": 36,
-	"ULT_RELEASE": 34,
 	"IMPALER_CLIP": &"AttackPolearm01",
 	"IMPALER_DRAWN": 8.0,
 	"IMPALER_OUT": 14.0,
@@ -156,6 +157,10 @@ static func _ctx(libraries: bool, fighter_id: StringName = &"hunter") -> ClipDir
 	for set_name: StringName in ClipLibraries.SETS:
 		for id: String in ["Clip_k_l1", "Clip_k_l2"]:
 			lengths["%s/%s" % [set_name, id]] = LENGTH
+		# Moonsplitter's old clips, which the Greatsword's swings still play
+		# (Moonsplitter left them in task 98)
+		for id: String in ["Attack2H01", "Attack2H03"]:
+			lengths["%s/%s" % [set_name, id]] = _length_of(id)
 	lengths["ual/Sword_Attack"] = 1.2
 	lengths[KeyedClips.anim_name(&"Mikiri_Stomp")] = 26.0 / 60.0
 	lengths[KeyedClips.anim_name(&"Mikiri_Pinned")] = 70.0 / 60.0
@@ -481,7 +486,7 @@ static func _ults(bout: Bout) -> void:
 			f.state = &"ult"
 			f.ult = UltState.make(&"moonsplitter", &"windup", 0, variant, 0, false)
 			var shot: ClipDirector.Shot = bout.step(null, f, ctx)
-			for phase: Array in [[&"windup", 36], [&"release", 34]]:
+			for phase: Array in [[&"windup", SimConst.MOONSPLITTER_WAVE], [&"release", SimConst.MOONSPLITTER_RECOVERY]]:
 				for pf: int in range(0, phase[1] + 1, 3):
 					W.frame += 1
 					f.ult.phase = phase[0]
@@ -657,8 +662,8 @@ const FIELDS: Dictionary = {
 	"FADES": "fades", "IDLE": "idle", "FALLBACK_IDLE": "fallback_idle", "STATE_CLIPS": "state_clips",
 	"STUN_CLIPS": "stun_clips", "HIT_CLIPS": "hit_clips", "HIT_FALLBACKS": "hit_fallbacks",
 	"HEAVY_HITSTUN": "heavy_hitstun", "GUARD_CLIPS": "guard_clips", "GUARD_FALLBACK": "guard_fallback",
-	"STUN_CLIP": "stun_clip", "STUN_FALLBACK": "stun_fallback", "CARRY_POSE": "carry_pose", "ULT_CLIPS": "ult_clips",
-	"ULT_FALLBACK": "ult_fallback", "ULT_WINDUP": "ult_windup", "ULT_RELEASE": "ult_release",
+	"STUN_CLIP": "stun_clip", "STUN_FALLBACK": "stun_fallback", "CARRY_POSE": "carry_pose", "ULT_STANCE": "ult_stance",
+	"ULT_DRAWS": "ult_draws", "ULT_SHEATHED": "ult_sheathed", "ULT_FALLBACK": "ult_fallback",
 	"IMPALER_CLIP": "impaler_clip", "IMPALER_DRAWN": "impaler_drawn", "IMPALER_OUT": "impaler_out",
 	"IMPALER_RECOVER": "impaler_recover", "IMPALER_RECOVER_FRAMES": "impaler_recover_frames",
 	"IMPALER_FALLBACK": "impaler_fallback", "IMPALER_AIM": "impaler_aim", "IMPALER_DASH": "impaler_dash",
@@ -684,7 +689,7 @@ func test_the_table_has_the_values_the_constants_held() -> void:
 		assert_eq(d, "", "%s -> %s" % [name, FIELDS[name]])
 		# the types the code reads: whole numbers stay ints, the rest floats
 		assert_eq(typeof(got), typeof(OLD[name]), "%s: the same type" % name)
-	assert_eq(typeof((t.ult_clips[&"vertical"] as Array)[1]), TYPE_FLOAT, "a hold frame is a float")
+	assert_eq(typeof(t.ult_sheathed[0]), TYPE_FLOAT, "a source frame is a float")
 	assert_eq(typeof(t.heavy_hitstun), TYPE_INT, "a frame count is an int")
 
 

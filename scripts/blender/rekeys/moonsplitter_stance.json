@@ -1,0 +1,12 @@
+{
+	"about": "Moonsplitter's sheathe and stance (the Katana's ultimate), milestone-1 task 98: SheatheHips01_R from the two-handed guard (KatanaGuard's first frame, blended in over 4 frames), the blade going into the saya at the left hip by frame 9, then the hand held on the hilt in a crouched iai stance (the hips dropped and the chest bent, from frame 6 to 14, held) to frame 23, where a draw (moonsplitter_draw_vertical or moonsplitter_draw_horizontal) takes over: 46 rules frames, the stick's pick locking at the draw. In Elden Ring's rhythm: a quick sheathe and a long, still held stance. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Misc/Unsheathe/HumanM@SheatheHips01_R.fbx",
+	"out": "blender/clips/moonsplitter_stance.blend",
+	"remap": [[0, 0], [3, 2], [9, 10], [12, 12], [23, 13]],
+	"blend_from": {
+		"source": "blender/clips/katana_guard.blend",
+		"frame": 0,
+		"frames": 4
+	},
+	"lower": {"drop": 0.2, "bend": 14, "from": 6, "peak": 14, "hold": true}
+}
