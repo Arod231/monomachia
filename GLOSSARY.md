@@ -38,6 +38,10 @@ A heavy attack held before release. At 2.5 seconds it releases by itself as a **
 **Iai Slash**:
 The Katana's heavy attack, a quick-draw. Pressing heavy sheathes the blade; holding heavy keeps it sheathed, in the **stance**, which is the Katana's charged heavy; letting go draws one long-reaching cut, vertical, or horizontal if the stick is held left or right.
 
+**Grip**:
+How a fighter holds a weapon that can be wielded either way: one-handed or two-handed. Each grip has its own string, heavy, guard and way of carrying the weapon, and the fighter switches grip at the press of a button, even mid-string.
+_Avoid_: Stance (the Iai's sheathed hold), mode, wield, power stance
+
 **String**:
 A sequence of attacks that flow into one another when the player keeps pressing.
 _Avoid_: Combo (outside the phrase "combo breaker"), chain

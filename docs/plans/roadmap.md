@@ -12,6 +12,7 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
 - **Short keys.** A phase lists tasks from several plans:
   - `gr` is `docs/plans/godot-rebuild.md` (its stage 14 is the consolidation; its kept stage-10 tasks are the master follow-ups);
   - `m1` is `docs/plans/milestone-1.md` (`m1 *` means every task in it that isn't retired or moved);
+  - `ke` is `docs/plans/katana-elden-ring.md`, the Elden Ring Katana (Oct 6, ADR 0002), part of milestone 1; its review gates milestone 1's first balance run (`m1 120`);
   - `aa` is `docs/plans/authored-animation.md`, closed after task 30b and kept as history; its tasks 32, 33 and 35 moved to milestone 1 and 34 to milestone 2;
   - `R1`, `R2`, … are this roadmap's own tasks.
 - **The Animation Studio plan** (`docs/plans/animation-studio.md`) isn't followed on its own: milestone 1's tasks 11, 25, 26, 27 and 41 absorb what is left of it. The session tracker plan was dropped on Oct 4 (PR #7 closed; the lanes board's Sessions tab replaced it).
@@ -23,7 +24,7 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
 ## Phases
 
 1. **Consolidation:** R1, gr 25.4, gr 25.5, gr 26.1, gr 26.2, gr 26.3, gr 25.6, gr 25.7, m1 1, R2, gr 26.4, R3
-2. **Milestone 1:** R4, m1 *, R5
+2. **Milestone 1:** R4, m1 *, ke *, R5
 3. **Master follow-ups** (alongside phase 2): gr 24.3–24.5, gr 18.11, gr 22.7, gr 23.4–23.7, gr 22.16, gr 22.17
 4. **Milestone 2:** R8, R6, R7, R9, R10, R11, R12, R13, R14, R15, R16
 5. **Breadth:** R17, R18, R19, R20, R21, R22, R23, R24, R25, R26, R27, R28
