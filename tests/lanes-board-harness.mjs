@@ -5,7 +5,8 @@
 // The tests drive the server's API the way the pages do.
 
 import { execFileSync, spawn } from 'node:child_process';
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -29,6 +30,13 @@ export async function waitFor(fn, ms = 8000, what = 'the condition') {
     await new Promise((r) => setTimeout(r, 50));
   }
   throw new Error(`Timed out waiting for ${what}`);
+}
+
+// Removes a throwaway folder. On Windows a folder the board just used can stay
+// held for a moment after it exits (EPERM); the promise form of rm waits that
+// out, while rmSync ignores maxRetries on Node 24 and throws at once.
+export async function removeTree(dir) {
+  await rm(dir, { recursive: true, force: true, maxRetries: 10 });
 }
 
 // Starts a board (with extra environment variables, if given); `stop()` ends
@@ -103,7 +111,7 @@ export async function startBoard({ env: extraEnv = {} } = {}) {
     async stop() {
       server.kill();
       await new Promise((r) => { if (server.exitCode !== null) r(); else server.on('exit', r); });
-      rmSync(root, { recursive: true, force: true, maxRetries: 5 });
+      await removeTree(root);
     },
   };
   // A hook run as Claude Code runs it: the event on stdin, its JSON answer (or null) when it exits.
