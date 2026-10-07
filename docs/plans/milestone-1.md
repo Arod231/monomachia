@@ -655,6 +655,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: jump and landing clips keyed to the arcs (armed and disarmed); the rules refuse a jump attack whose startup and active frames no longer fit the airtime left; landing plays the attack's landing recovery from its clip instead of skipping forward.
   - Check: rules tests of the refusal and of a landing mid-attack; sheets of the jump reviewed; a clean soak.
   - Blocked by: 41 (and the owner's OK) · Stories: 48, 93
+  - Decided with the owner (Oct 7, before building; the side lane `lane/m1-59-93-94-95`, which takes 59, 93, 94 and 95 in order, so Done notes only, no Progress or spec status line): every clip in this lane is made in Cascadeur: Claude rigs the taller Hunter there once by script (fit-checked by exporting straight back, flagging any bone over 2 cm off, with a shot posted and work going on, no owner gate), scripts the key poses on the rig (taken from pack clips where they fit), lets AutoPosing, AI inbetweening and AutoPhysics make the motion, and exports back through Blender and `npm run export` as every clip is; the tooling lands in the repository for later tasks. The jump is one flight clip from take-off to touchdown keyed to the rules' arc (30 frames armed, 35 disarmed) and one landing clip fitting the 5-frame land state, for the Katana and for bare hands: four clips, used for every direction (the rules carry the travel; no running-jump variant), replacing the pack's `Jump01_Begin`/`Jump01`/`Jump01_Land` splice for the jump (the leap and the shared take-off frames keep theirs). Falling Crown's dive (a forced 6 m/s fall one frame after its startup) retires, so every jump attack rides the normal arc and one airtime rule holds. Until tasks 76 and 94 re-key them, a stand-in jump attack's landing recovery is its row's recovery (Aerial Cut 12, Falling Crown 18, Air Kick 12, Axe Kick 18 frames).
 - [ ] **60. The procedural poses retire.** The stick poses, the swing player, the weapon-hold idles, the demo swings and the posing of weapons in space go, for every weapon.
   - Delivers: `StickPose`, `SwingPlayer`, `WeaponHold`, `tools/swings/katana_demo.json` and `scripts/swings` deleted; the Greatsword and the Daggers ride their current clips' hands; a director test that every move of every weapon resolves to a clip; the labelled stand-ins stay; `test_stick_pose.gd`, `test_swing_player.gd` and the procedural-pose tests in `test_fighter_view.gd` go.
   - Check: the director test; the weapon-in-hand test for every weapon; CI green without the packs; the scene smoke test; a clean soak.
@@ -746,6 +747,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: the four re-keyed, exported and in band.
   - Check: band and distance tests; the airtime rules tests for both jump attacks; sheets reviewed; a clean soak.
   - Blocked by: 59, 75 · Stories: 60, 93
+  - (Oct 7, the owner, at task 59) Falling Crown's dive retires in task 59, so its re-key rides the normal arc and shows the dive in its clip.
 - [ ] **77. Family 5's sound and effects.** Swings, impacts and air smears for the eight movement attacks.
   - Delivers: sound-bank entries and effects for the eight.
   - Check: sound-bank entries for each of the eight's swings and impacts; effect tests that each of the eight leaves its air smear; shots reviewed.
@@ -831,6 +833,7 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: a dust-and-cloth impact and the physical layer's push for bare-hand hits, not a blood burst; the disarm's effect along the weapon's flight; sounds for the stuck weapon, the pull-out and the redirect. It is part of godot-rebuild 18.9, which task 118 finishes.
   - Check: the sound-bank and effect tests; shots and a listening pass reviewed.
   - Blocked by: 87, 90, 133 · Stories: 158, 167, 171
+  - (Oct 7, the owner) The dust-and-cloth impact for bare-hand hits is built in task 95; this task keeps the rest.
 - [ ] **129. The owner's polish of the redirect's deflect pair.** The owner polishes Claude's block-out in Cascadeur, and the polished clip replaces it.
   - Delivers: the redirect's deflect pair polished, exported and imported; its markers checked and the table regenerated.
   - Check: task 90's director tests pass on the polished clip; sheets reviewed.
@@ -848,14 +851,17 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: the four re-keyed, exported and in band.
   - Check: band and distance tests; sheets reviewed; a clean soak.
   - Blocked by: 41 (and the owner's OK) · Stories: 73
+  - Decided with the owner (Oct 7, before building; the side lane `lane/m1-59-93-94-95`, see task 59): 93 and 94 stay whole, not re-sliced (Notes, "Re-slicing after the pilot"), each committing after every two moves. Keyed in Cascadeur as task 59 says, in a grounded martial-arts style (fast, clean, Tekken 8-like technique with real weight shift), on the striking limbs the rules have today, starting from and settling into bare hands' idle (`CombatIdle01`) until task 89's guard: Flying Knee a running leap into a right knee; Dragon Kick a leaping flying side kick with the right foot; Slip Jab the head slipping off line, then a left jab; Spinning Backfist a full turn into a right backfist. Each gets a new clip id, since the pack clips they stood in on are shared with other moves. Re-keyed, the lights' damage and posture rise 20% and the heavies' 30%, rounded (Flying Knee 6/14, Dragon Kick 9/23, Slip Jab 4/11, Spinning Backfist 7/18), and hitstun and hit-stop take the frozen protected timings as the pilot's did; further balance waits on family 8's review (96).
 - [ ] **94. Snap Kick, Lunging Palm, Air Kick and Axe Kick.** The backstep and jump attacks re-keyed, the jump attacks fitting the disarmed airtime.
   - Delivers: the four re-keyed, exported and in band.
   - Check: band and distance tests; the airtime rules tests; sheets reviewed; a clean soak.
   - Blocked by: 59, 93 · Stories: 73, 93
+  - Decided with the owner (Oct 7, before building; see tasks 59 and 93, whose answers hold here too): Snap Kick a rebound off the back foot into a left front snap kick; Lunging Palm a push-off into a long right palm strike; Air Kick a front kick down and forward in the air with the right foot; Axe Kick the left heel brought down from overhead. Damage and posture: Snap Kick 4/12, Lunging Palm 7/21, Air Kick 5/12, Axe Kick 8/21. The jump attacks ride the normal disarmed arc (35 frames) and land into their own landing recovery, as task 59 makes the rules do.
 - [ ] **95. Family 8's sound and effects.** Impacts and air smears for the eight.
   - Delivers: sound-bank entries and effects for the eight.
   - Check: sound-bank entries for each of the eight's impacts; effect tests of the dust-and-cloth impact and an air smear for each; shots reviewed.
   - Blocked by: 94 · Stories: 158, 170
+  - Decided with the owner (Oct 7, before building; the side lane `lane/m1-59-93-94-95`): this task builds the dust-and-cloth hit impact for every bare-hand hit (with the physical reaction layer's push, which task 70 already gives); task 91 keeps the rest (the disarm's effect along the flight, the stuck weapon's, the pull-out's and the redirect's sounds). Impact sounds by striking limb, picked from the Sonniss bundle as task 136's were: fist, palm (an open-hand slap), knee (a dull body thud), kick and heel drop (a heavier thump), each light and heavy, and a cloth whoosh on each kick; each move picks by its limb. Air smears in the Katana's clear distortion (task 37) along the striking fist, knee or foot, fainter on the lights, switched on for the eight only (tasks 89 and 133 can switch theirs on).
 - [ ] **96. Family 8's review.** Bare hands' movement attacks go to the owner.
   - Delivers: the review package as in task 40.
   - Check: every CI-checked checklist item passes for the eight.
