@@ -330,3 +330,61 @@ func test_end_push_in_clears_it() -> void:
 	rig.end_push_in()
 	assert_eq(rig.push_amount(), 0.0)
 	assert_null(rig.attributes)
+
+
+# ------------------------------------------------------------------ cinematic shots (milestone-1 task 97)
+
+func _shot_view(dof: bool = true) -> Dictionary:
+	return {"pos": Vector3(2.0, 1.4, 0.5), "look": Vector3(0.0, 1.2, 1.0), "fov": 40.0,
+		"depth_of_field": dof, "dof_margin": 1.0, "dof_amount": 0.1}
+
+
+func test_a_shot_takes_the_camera_and_hands_back_to_the_gameplay_camera() -> void:
+	rig.snap(P, O)
+	var rest: Transform3D = rig.transform
+	rig.show_shot(_shot_view())
+	_step()
+	assert_true(rig.in_shot())
+	assert_almost_eq(rig.transform.origin, Vector3(2.0, 1.4, 0.5), Vector3.ONE * 1e-4, "where the shot puts it")
+	var ahead: Vector3 = -rig.transform.basis.z
+	assert_almost_eq(ahead.dot((Vector3(0.0, 1.2, 1.0) - Vector3(2.0, 1.4, 0.5)).normalized()), 1.0, 1e-4, "looking at its look point")
+	assert_almost_eq(rig.fov, 40.0, 1e-4, "its lens")
+	var dof := rig.attributes as CameraAttributesPractical
+	assert_not_null(dof, "its depth of field")
+	assert_almost_eq(dof.dof_blur_far_distance, Vector3(2.0, 1.4, 0.5).distance_to(Vector3(0.0, 1.2, 1.0)) + 1.0, 1e-4)
+	assert_almost_eq(dof.dof_blur_amount, 0.1, 1e-6)
+	rig.end_shot()
+	_step()
+	assert_false(rig.in_shot())
+	assert_almost_eq(rig.transform.origin, rest.origin, Vector3.ONE * 1e-3, "back behind the player")
+	assert_eq(rig.fov, rig.base_fov)
+	assert_null(rig.attributes, "and its blur gone")
+
+
+func test_a_shot_has_no_blur_where_the_preset_drops_depth_of_field_or_the_shot_has_none() -> void:
+	rig.snap(P, O)
+	rig.show_shot(_shot_view(false))
+	_step()
+	assert_null(rig.attributes, "the shot has none")
+	rig.dof_allowed = false
+	rig.show_shot(_shot_view(true))
+	_step()
+	assert_null(rig.attributes, "the preset has none (Low)")
+
+
+func test_a_shot_takes_no_push_in_or_kick_and_shakes_at_the_shake_scale() -> void:
+	rig.snap(P, O)
+	rig.show_shot(_shot_view())
+	rig.push_in(0.25)
+	rig.kick_fov(6.0)
+	_step()
+	assert_almost_eq(rig.transform.origin, Vector3(2.0, 1.4, 0.5), Vector3.ONE * 1e-4, "no push-in")
+	assert_almost_eq(rig.fov, 40.0, 1e-4, "no kick")
+	rig.shake_scale = 0.0
+	rig.add_shake(1.0)
+	_step()
+	assert_almost_eq(rig.transform.origin, Vector3(2.0, 1.4, 0.5), Vector3.ONE * 1e-4, "Reduce flashes' scale reaches its shake")
+	rig.shake_scale = 1.0
+	rig.add_shake(1.0)
+	_step()
+	assert_gt(rig.transform.origin.distance_to(Vector3(2.0, 1.4, 0.5)), 1e-4, "it shakes")

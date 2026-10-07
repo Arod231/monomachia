@@ -148,9 +148,9 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 93. As a player, I want the jump, the landing and the jump attacks keyed to the rules' jump arcs, with a jump attack starting only while its startup and active frames fit the airtime left and a landing never skipping an air attack's frames **(P53, confirmed Oct 4)**, so that a jump looks like the arc that decides it.
 94. [x] As a player, I want every hand-off between motions to use inertial blending, the new motion starting at once and the old pose fading over a few frames, hit reactions included, so that nothing pops. (Ticked with task 23.)
 95. As a player, I want authored transition clips (returns to guard, bridges between the hits of a string, run stops and pivots) on top of the blending, so that hand-offs look keyed, not computed.
-96. As a developer, I want inertial blending and the physical reaction layer built as custom skeleton modifiers that change only the picture, so that the rules never depend on them. **(P11, confirmed Oct 4)**
+96. [x] As a developer, I want inertial blending and the physical reaction layer built as custom skeleton modifiers that change only the picture, so that the rules never depend on them. **(P11, confirmed Oct 4)** (Ticked with task 70.)
 97. As a player hit by an attack, I want a directional reaction (front, left, right or back; high or low; light or heavy), so that I can see where the hit landed.
-98. As a player, I want a physical layer on the spine, head and arms, pushed from where and how hard the hit landed, so that every hit lands a little differently.
+98. [x] As a player, I want a physical layer on the spine, head and arms, pushed from where and how hard the hit landed, so that every hit lands a little differently. (Ticked with task 70.)
 99. As a player, I want the knockdown (fall, down, rise), the stuns and the staggers re-keyed to fit their retuned frames at their own speed, so that the biggest hits feel big without a sped-up clip.
 100. As a player, I want knockback and pushback to come from the reaction clips' travel, the recall burst's knock-back included, so that a fighter moves only as clips carry them.
 101. As a player, I want planted feet to slide no more than 1 cm under every clip, so that the fighter looks connected to the floor.

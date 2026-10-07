@@ -343,6 +343,87 @@ func test_inertial_blending_runs_first_in_the_rig() -> void:
 	assert_same(v.model.rig.inertial, v.model.skeleton.get_node(^"InertialBlend"))
 
 
+# ------------------------------------------------------------------ the physical reaction layer (milestone-1 task 70)
+
+func test_the_reaction_layer_runs_right_after_inertial_blending() -> void:
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	var order: Array[StringName] = []
+	for child: Node in v.model.skeleton.get_children():
+		if child is SkeletonModifier3D:
+			order.append(child.name)
+	assert_eq(order[1], &"PhysicalReactionLayer", "after inertial blending: %s" % [order])
+	for later: StringName in [&"BodyLayer", &"LegIK", &"HandGrip"]:
+		assert_gt(order.find(later), 1, "%s after it" % later)
+	assert_same(v.model.rig.reaction, v.model.skeleton.get_node(^"PhysicalReactionLayer"))
+
+
+func test_the_reaction_layer_runs_on_the_world_s_time_and_a_new_world_clears_it() -> void:
+	var W: World = _world()
+	var f: Fighter = W.fighters[0]
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	_step(W, 3)
+	_update(v, f, 0.25)
+	assert_almost_eq(v.model.rig.reaction.time, float(W.frame) - 1.0 + 0.25, 1e-9, "the world's frame and alpha")
+	v.react(Vector3(0.0, 1.4, 0.2), Vector3(0.0, 1.4, 2.0), 1.0, PhysicalReactionLayer.HIT, 1.0, float(W.frame))
+	assert_true(v.model.rig.reaction.reacting())
+	var W2: World = _world()
+	_update(v, W2.fighters[0])
+	assert_false(v.model.rig.reaction.reacting(), "a new match starts still")
+
+
+func test_a_blow_from_in_front_pushes_the_head_back_wherever_the_fighter_stands() -> void:
+	var W: World = _world()
+	var f: Fighter = W.fighters[0]
+	var v: FighterView = _view(&"hunter", Moves.KATANA)
+	var at: Vector3 = Vector3(2.0, 0.0, -1.0)
+	var yaw: float = 0.7
+	v.update_from(f, at, yaw, 1.0, 1.0 / 60.0, 0.0)
+	await _posed(v)
+	var before: Array[Transform3D] = await _posed(v)
+	# the attacker 2 m in front of it (the fighter faces +Z turned by yaw),
+	# the blade landing on the chest: on the push's frame (hit-stop holds the
+	# world there) the kick shows
+	var ahead: Vector3 = Vector3(sin(yaw), 0.0, cos(yaw))
+	v.react(at + Vector3(0.0, 1.4, 0.0) + ahead * 0.2, at + Vector3(0.0, 1.4, 0.0) + ahead * 2.0, 1.7,
+		PhysicalReactionLayer.HIT, 1.0, float(W.frame))
+	v.update_from(f, at, yaw, 1.0, 1.0 / 60.0, 0.0)
+	var after: Array[Transform3D] = await _posed(v)
+	var head_before: Vector3 = _bone(v, before, "Head").origin
+	var head_after: Vector3 = _bone(v, after, "Head").origin
+	assert_lt(head_after.z - head_before.z, -0.005, "back, in the fighter's own frame (%s to %s)" % [head_before, head_after])
+	assert_almost_eq(head_after.x - head_before.x, 0.0, 0.01, "not to the side")
+
+
+func test_the_rules_are_the_same_with_the_reaction_layer_off() -> void:
+	# picture only: two seeded computer matches, one shown with the layer on
+	# and pushed by every hit and block, one with it off, step to the same
+	# state
+	var hashes: Array[String] = []
+	var pushes: Array[int] = []
+	for on: bool in [true, false]:
+		var W: World = _world()
+		var views: Array[FighterView] = [_view(&"hunter", Moves.KATANA), _view(&"rogue", Moves.KATANA, 1)]
+		var brains: Array[AIBrain] = [AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"].copy(), 3),
+			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"].copy(), 4)]
+		for i: int in 2:
+			views[i].model.rig.reaction.active = on
+		var pushed: int = 0
+		for step: int in 600:
+			W.step([brains[0].think(), brains[1].think()])
+			for e: Dictionary in W.drain_events():
+				var r: Dictionary = MatchView.reaction_of(e, W)
+				if not r.is_empty():
+					pushed += 1
+					views[int(r["side"])].react(r["contact"], r["from"], r["strength"], r["parts"], r["arms"], float(W.frame))
+			for i: int in 2:
+				_update(views[i], W.fighters[i])
+				views[i].model.skeleton.advance(1.0 / 60.0)
+		hashes.append(W.state_hash())
+		pushes.append(pushed)
+	assert_gt(pushes[0], 0, "the match had blows to show")
+	assert_eq(hashes[0], hashes[1])
+
+
 func test_a_hand_off_asks_the_rig_for_its_blend_on_the_world_s_time() -> void:
 	var W: World = _world()
 	var f: Fighter = W.fighters[0]
