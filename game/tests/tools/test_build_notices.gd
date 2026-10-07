@@ -65,9 +65,11 @@ func test_notices_carry_each_bundled_fonts_licence() -> void:
 			continue
 		licences += 1
 		assert_true(text.contains(FileAccess.get_file_as_string(BuildNotices.FONTS.path_join(file)).strip_edges()), file)
-	assert_eq(licences, 2, "Zen Antique and Zen Kaku Gothic New")
-	assert_string_contains(text, "Zen Antique")
+	assert_eq(licences, 3, "Shippori Mincho B1, Yuji Boku and Zen Kaku Gothic New")
+	assert_string_contains(text, "Shippori Mincho B1")
+	assert_string_contains(text, "Yuji Boku")
 	assert_string_contains(text, "Zen Kaku Gothic New")
+	assert_false(text.contains("Zen Antique"), "retired with the ink-wash theme")
 
 
 func test_write_puts_the_three_files_in_the_folder() -> void:

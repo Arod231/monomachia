@@ -6,7 +6,7 @@ extends SubViewportContainer
 ##
 ## A SubViewport with its own World3D, so nothing of the duel behind the
 ## menus lights or hides it, and a transparent background, so the fighter
-## stands over the ink veil with no frame or backdrop (the owner's choice,
+## stands over the black veil with no frame or backdrop (the owner's choice,
 ## Oct 4, 2026). Plain lighting: a key and a fill over a soft ambient. The
 ## stage is restyled with the milestone-1 UI redesign.
 ##

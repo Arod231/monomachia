@@ -25,6 +25,7 @@
     "godot": "node scripts/godot.mjs",
     "check:sizes": "node scripts/check-sizes.mjs",
     "checklist": "node scripts/checklist.mjs",
+    "fonts": "node scripts/fonts.mjs",
     "export": "node scripts/blender/export.mjs",
     "audio:sonniss": "node scripts/audio/extract-sonniss.mjs",
     "audio:synth": "node scripts/audio/synth.mjs",

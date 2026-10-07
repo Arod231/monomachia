@@ -76,7 +76,7 @@ func _init() -> void:
 	label = UiTheme.label("Your weapon", UiTheme.EYEBROW, TEXT_SIZE)
 	label.name = "Label"
 	label.add_theme_color_override("font_color", COLOR)
-	label.add_theme_color_override("font_outline_color", Color(UiPalette.INK, 0.9))
+	label.add_theme_color_override("font_outline_color", Color(UiPalette.LACQUER, 0.9))
 	label.add_theme_constant_override("outline_size", 4)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_right = Arrow.new(Side.RIGHT)

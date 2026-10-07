@@ -100,11 +100,11 @@ func _init(p_input: InputDevices = null, p_profiles: ControlProfiles = null) -> 
 	profiles = p_profiles if p_profiles != null else GameServices.profiles
 	fighter_ids = Roster.fighters()
 
-	# an ink veil over the duel behind, so the page reads (the demo dimmed
+	# a lacquer-black veil over the duel behind, so the page reads (the demo dimmed
 	# its menu screens the same way)
 	var veil: ColorRect = ColorRect.new()
 	veil.name = "Veil"
-	veil.color = Color(UiPalette.INK, 0.62)
+	veil.color = Color(UiPalette.LACQUER, 0.62)
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	veil.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(veil)

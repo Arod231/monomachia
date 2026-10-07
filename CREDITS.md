@@ -50,10 +50,11 @@ The other sound effects and the placeholder music are made by Monomachia's own c
 
 ## Fonts
 
-- Zen Antique, © 2021 The Zen Antique Project Authors (https://github.com/googlefonts/zen-antique)
+- Shippori Mincho B1, © 2021 The Shippori Mincho Project Authors (https://github.com/fontdasu/ShipporiMincho), cut down to the characters the game uses
+- Yuji Boku, © 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji), cut down to the characters the game uses
 - Zen Kaku Gothic New, © 2022 The Zen Kaku Gothic Project Authors (https://github.com/googlefonts/zen-kakugothic)
 
-Both under the SIL Open Font License 1.1, whose text is in THIRD-PARTY-NOTICES.txt beside the game.
+All under the SIL Open Font License 1.1, whose text is in THIRD-PARTY-NOTICES.txt beside the game.
 
 ## Development tools (not in the game)
 

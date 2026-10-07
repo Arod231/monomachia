@@ -38,7 +38,7 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [gui]
 
-theme/custom="res://ui/theme/ink_wash.tres"
+theme/custom="res://ui/theme/lacquer_gold.tres"
 
 [physics]
 

@@ -54,8 +54,8 @@ func _init() -> void:
 	wrap.alignment = BoxContainer.ALIGNMENT_CENTER
 	wrap.add_theme_constant_override("separation", 34)
 	column.add_child(wrap)
-	# 一騎討ち down the side (the demo's vertical writing)
-	var side: Label = UiTheme.label("一\n騎\n討\nち", UiTheme.DISPLAY, 34)
+	# 一騎討ち brushed down the side (the demo's vertical writing)
+	var side: Label = UiTheme.label("一\n騎\n討\nち", UiTheme.KANJI, 34)
 	side.name = "Vertical"
 	side.add_theme_constant_override("line_spacing", 0)
 	side.modulate.a = 0.9
@@ -81,12 +81,12 @@ func _init() -> void:
 	gap.custom_minimum_size = Vector2(0.0, 12.0)
 	column.add_child(gap)
 	_prompt = UiTheme.label("Press any key or button", UiTheme.EYEBROW, 22)
-	_prompt.add_theme_color_override("font_color", UiPalette.PAPER)
+	_prompt.add_theme_color_override("font_color", UiPalette.IVORY)
 	column.add_child(_prompt)
 	column.add_child(UiTheme.label(DEVICE_NOTE, UiTheme.MUTED, 18))
 
 
-## The 一騎 seal (the demo's .hanko): a lacquer square with the two kanji set
+## The 一騎 seal (the demo's .hanko): a crimson lacquer square with the two kanji set
 ## downward, turned a little.
 static func _seal() -> Control:
 	var holder: Control = Control.new()
@@ -102,12 +102,12 @@ static func _seal() -> Control:
 	return holder
 
 
-## A radial pool of ink, darkest at the centre and clear at 72% out.
+## A radial pool of black lacquer, darkest at the centre and clear at 72% out.
 static func _pool_texture() -> GradientTexture2D:
 	var g: Gradient = Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.45, 0.72])
 	g.colors = PackedColorArray([
-		Color(UiPalette.INK, 0.78), Color(UiPalette.INK, 0.45), Color(UiPalette.INK, 0.0),
+		Color(UiPalette.LACQUER, 0.78), Color(UiPalette.LACQUER, 0.45), Color(UiPalette.LACQUER, 0.0),
 	])
 	var t: GradientTexture2D = GradientTexture2D.new()
 	t.gradient = g
