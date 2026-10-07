@@ -198,7 +198,12 @@ func _capsule_distance(p: Vector3, i: int) -> float:
 	return p.distance_to(q) - r
 
 
-func test_the_ribbon_stays_clear_of_the_attackers_body() -> void:
+## Local-only: the Katana rides the clip's hands (milestone-1 task 135), and
+## the CC0 stand-ins aren't keyed for it, so its blade crosses their bodies.
+func test_local_the_ribbon_stays_clear_of_the_attackers_body() -> void:
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
 	for id: StringName in [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_thrust", &"k_sweep"]:
 		_start()
 		var f: Fighter = host.fighter(0)

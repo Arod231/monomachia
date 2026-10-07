@@ -9,10 +9,12 @@ extends VBoxContainer
 ## ruler, the markers and the feet (StudioTimeline). Space plays and pauses,
 ## Left and Right step a frame, L loops.
 ##
-## Foot locking and inertial blending (milestone-1 task 23) have toggles,
-## both on as in a match; the reaction layer's task adds its own. Inertial
-## blending runs on the playhead's rules frames: a loop back to the start
-## hands off as a follow-up would (StateClips.blends), any other jump cuts.
+## Foot locking, inertial blending (milestone-1 task 23) and the physical
+## reaction layer (task 70) have toggles, all on as in a match. Inertial
+## blending and the reaction layer run on the playhead's rules frames: a loop
+## back to the start hands off as a follow-up would (StateClips.blends), any
+## other jump cuts. The Studio has no hits, so Test push lands a light Katana
+## blow on the chest from in front at the playhead.
 ##
 ## Markers (milestone-1 task 26) are edited in the Markers panel's boxes or by
 ## dragging them on the timeline: a move's (MoveClips: wind-up, active start
@@ -53,6 +55,8 @@ var view: FramesAndBands = null
 var foot_lock_on: bool = true
 ## Whether the inertial-blending layer is on (milestone-1 task 23).
 var inertial_on: bool = true
+## Whether the physical reaction layer is on (milestone-1 task 70).
+var reaction_on: bool = true
 ## The Studio's pending edits (shared with the gallery's badges).
 var session: EditSession = EditSession.new()
 ## The data files marker edits go to (fixture copies in tests).
@@ -80,6 +84,7 @@ var _fields: VBoxContainer = null
 var _distance: VBoxContainer = null
 var _foot_lock: CheckBox = null
 var _inertial: CheckBox = null
+var _reaction: CheckBox = null
 var _play: Button = null
 var _loop: CheckBox = null
 var _rate: HSlider = null
@@ -159,6 +164,26 @@ func set_inertial_blending(on: bool) -> void:
 	_pose()
 
 
+## Switches the physical reaction layer on or off (milestone-1 task 70).
+func set_physical_reaction(on: bool) -> void:
+	reaction_on = on
+	_reaction.set_pressed_no_signal(on)
+	if model != null:
+		model.rig.reaction.clear()
+	_pose()
+
+
+## Lands a light Katana blow on the chest from in front at the playhead,
+## to see the reaction layer (the Studio has no hits).
+func push_test_blow() -> void:
+	if model == null:
+		return
+	var rig: FighterRig = model.rig
+	rig.reaction.push(rig.reaction.time, Vector3(0.0, 1.4, 0.2), Vector3(0.0, 0.0, -1.0),
+		PhysicalReactionLayer.strength(false, &"medium"))
+	_pose()
+
+
 ## A loop back to the start: blends into it as a follow-up would.
 func _wrapped() -> void:
 	if model != null:
@@ -230,11 +255,14 @@ func _pose(wrapped: bool = false) -> void:
 		rig.foot_lock = rig.new_foot_lock()
 	rig.inertial.active = inertial_on
 	rig.inertial.time = playback.frame * MoveClips.RULES_PER_SOURCE
+	rig.reaction.active = reaction_on
+	rig.reaction.time = rig.inertial.time
 	if rules < _last_rules or rules > _last_rules + FootLock.EASE_FRAMES:
 		if wrapped:
 			_wrapped()
 		else:
 			rig.inertial.clear()
+			rig.reaction.clear()
 	_last_rules = rules
 	rig.rules_frame = rules
 	poser.pose(playback.source_time())
@@ -704,6 +732,16 @@ func _build_ui() -> void:
 	_inertial.button_pressed = inertial_on
 	_inertial.toggled.connect(set_inertial_blending)
 	side.add_child(_inertial)
+	_reaction = _named(CheckBox.new(), "PhysicalReaction")
+	_reaction.text = "Physical reaction"
+	_reaction.button_pressed = reaction_on
+	_reaction.toggled.connect(set_physical_reaction)
+	side.add_child(_reaction)
+	var push_button: Button = _named(Button.new(), "TestPush")
+	push_button.text = "Test push"
+	push_button.tooltip_text = "A light Katana blow to the chest from in front, at the playhead"
+	push_button.pressed.connect(push_test_blow)
+	side.add_child(push_button)
 
 	var controls: HBoxContainer = HBoxContainer.new()
 	add_child(controls)

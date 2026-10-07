@@ -18,6 +18,15 @@ extends Node3D
 ## flash_push_in for a Flash or a redirect), held through the hit-stop, with
 ## the graphics preset's depth of field.
 ##
+## A hit or a block pushes its target's physical reaction layer (milestone-1
+## task 70, reaction_of()): from where it landed, by its weight and the
+## attacker's weapon, the guard alone on a block; picture only.
+##
+## The shot director (milestone-1 task 97, `shots`) takes every event: a
+## connecting ultimate, a finisher or the match-winning KO hands every camera
+## (both halves in Versus) to its cinematic shot for as long as it plays, and
+## the recall pushes them in instead.
+##
 ## A walking or running fighter puts its feet down where its clips land them
 ## (Locomotion, authored-animation task 29): the view reports each as a
 ## footfall, for the match's sound to play its footstep there (MatchAudio).
@@ -76,6 +85,10 @@ const HEAVY_KICK: float = 1.5
 ## Reduce flashes and shaking: the shake's scale, and the flashes' brightness.
 const REDUCED_SHAKE: float = 0.15
 const REDUCED_FLASH: float = 0.45
+## The share of a reaction's push the arms take while the pushed fighter's
+## own swing is in its active frames, so a traded swing still reads along
+## its path (milestone-1 task 70).
+const ACTIVE_SWING_ARMS: float = 0.3
 ## How deep a stuck weapon's point sits in the ground (milestone-1 task 86).
 const STUCK_EMBED: float = 0.12
 
@@ -106,6 +119,9 @@ var recall_aura: RecallAura = RecallAura.new()
 ## Blood (milestone-1 task 38): bursts, stains on bodies and blades, the
 ## floor's splatter, at the settings' Blood level.
 var blood: BloodEffects
+## The shot director (milestone-1 task 97): chooses and plays the cinematic
+## shots.
+var shots: ShotDirector = ShotDirector.new()
 ## The settings whose Reduce flashes switch the view follows (use_settings();
 ## the game's by default).
 var settings: GameSettings
@@ -225,6 +241,7 @@ func render(delta: float) -> void:
 	blood.update(effects.clock())
 	for cam: CameraRig in cameras:
 		cam.frozen = host.world.hitstop > 0
+	_show_shot(delta)
 	if split != null:
 		for i: int in 2:
 			cameras[i].update_rig(delta, host.display_position(i), host.display_position(1 - i))
@@ -319,12 +336,14 @@ func _on_match_started(cfg: MatchConfig) -> void:
 		camera_mode = CameraRig.Mode.MENU
 	elif cfg.mode == MatchConfig.WATCH:
 		camera_mode = CameraRig.Mode.WATCH
+	shots.stop()
 	for cam: CameraRig in cameras:
 		cam.mode = camera_mode
 		cam.reset_round()
 		cam.shake = 0.0
 		cam.fov_kick = 0.0
 		cam.end_push_in()
+		cam.end_shot()
 		cam.dof_allowed = GameServices.graphics_preset().push_in_dof
 		cam.current = true
 	snap_camera()
@@ -464,6 +483,18 @@ func _kick(amount: float) -> void:
 		cam.kick_fov(amount)
 
 
+## Moves the cinematic shot on by `delta` seconds of real time and hands
+## every camera its view, or back to the gameplay framing once it is done.
+func _show_shot(delta: float) -> void:
+	shots.advance(delta, host.world.frame)
+	var v: Dictionary = shots.view([host.display_position(0), host.display_position(1)])
+	for cam: CameraRig in cameras:
+		if v.is_empty():
+			cam.end_shot()
+		else:
+			cam.show_shot(v)
+
+
 # ------------------------------------------------------------------ events
 
 ## Kicks the camera for a hit or block event `e`, by the weight of the
@@ -482,10 +513,42 @@ func _body_flash(i: int, color: Color, strength: float) -> void:
 	fighters[i].flash(color, strength * body_flash_scale, host.world.frame)
 
 
+## The push a rules event gives a fighter's physical reaction layer
+## (milestone-1 task 70): {side, contact, from, strength, parts, arms} for a
+## hit or a block with a contact point, {} for anything else. A hit pushes
+## every part, a block the guard (PhysicalReactionLayer.BLOCK), each by its
+## weight and the attacker's weapon class; driven from the attacker's place
+## at the contact's height; the arms take ACTIVE_SWING_ARMS of it while the
+## target's own swing is active.
+static func reaction_of(e: Dictionary, W: World) -> Dictionary:
+	var t: StringName = e["t"]
+	if (t != &"hit" and t != &"block") or not e.has("pos") or W == null:
+		return {}
+	var block: bool = t == &"block"
+	var by: Fighter = W.fighters[int(e["attacker"])]
+	var on: Fighter = W.fighters[int(e["target"])]
+	var p: Dictionary = e["pos"]
+	var contact: Vector3 = Vector3(float(p["x"]), float(p["y"]), float(p["z"]))
+	return {
+		"side": on.id,
+		"contact": contact,
+		"from": Vector3(by.pos.x, contact.y, by.pos.z),
+		"strength": PhysicalReactionLayer.strength(bool(e["heavy"]), by.moveset().cls, block),
+		"parts": PhysicalReactionLayer.BLOCK if block else PhysicalReactionLayer.HIT,
+		"arms": ACTIVE_SWING_ARMS if on.attack_phase() == &"active" else 1.0,
+	}
+
+
 func _on_sim_event(e: Dictionary) -> void:
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
 	blood.on_event(e, effects.clock())
+	var asked: Dictionary = shots.on_event(e, host.world)
+	if asked.has("push_in"):
+		_push_in(float(asked["push_in"]))
+	var push: Dictionary = reaction_of(e, host.world)
+	if not push.is_empty():
+		fighters[int(push["side"])].react(push["contact"], push["from"], push["strength"], push["parts"], push["arms"], float(host.world.frame))
 	match e["t"]:
 		&"hit":
 			var heavy: bool = e["heavy"]

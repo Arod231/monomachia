@@ -231,3 +231,17 @@ func test_the_versus_listener_sits_between_the_fighters() -> void:
 	assert_almost_eq(xf.origin.x, 0.0, 0.0001, "midway along")
 	assert_almost_eq(xf.origin.y, 1.25, 0.0001, "at chest height")
 	assert_almost_eq(xf.basis.x.normalized().dot(Vector3.RIGHT), 1.0, 0.0001, "its right toward player 2")
+
+
+func test_a_cinematic_shot_plays_in_both_halves() -> void:
+	# milestone-1 task 97: the split stays, and each half plays the shot
+	_start(_versus())
+	host.world.fighters[0].enter_hitstun(54)
+	view._on_sim_event({"t": &"hit", "attacker": 1, "target": 0, "attack": &"f_breaker", "heavy": true, "sound": &"fist",
+		"pos": {"x": 0.0, "y": 1.2, "z": 0.0}})
+	view.render(1.0 / 60.0)
+	assert_not_null(view.split, "still split")
+	for i: int in 2:
+		assert_true(view.cameras[i].in_shot(), "camera %d plays it" % i)
+	assert_almost_eq(view.cameras[0].global_transform.origin.distance_to(view.cameras[1].global_transform.origin), 0.0, 1e-3,
+		"the same shot")
