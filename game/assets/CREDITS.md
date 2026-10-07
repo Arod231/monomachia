@@ -62,4 +62,4 @@ All four are FBX clips (plus Blender files) made for Kevin Iglesias's own HumanF
 
 The Hunter's two dyed palettes (`exports/fighters/hunter_crimson.glb` and `hunter_indigo.glb`, each a cloth and a gear atlas of colour, roughness and normal maps) are original to this project, dyed by script in Blender (milestone-1 task 45, `scripts/blender/dye_outfit.py`) from the Quaternius Modular Character Outfits' Ranger maps (CC0, above).
 
-The Moonlit Shrine's five wisteria (`exports/shrine/wisteria_0.glb` to `wisteria_4.glb`, with their blossom texture) are original to this project, grown by script in Blender (milestone-1 task 48).
+The Moonlit Shrine's five wisteria (`exports/shrine/wisteria_0.glb` to `wisteria_4.glb`, with their blossom texture) are original to this project, grown by script in Blender (milestone-1 task 48). Its nobori banners and grass (`exports/shrine/nobori.glb`, `grass.glb`; milestone-1 task 131) are original to this project too, built by `scripts/blender/build_banners_grass.py`; the banners' kanji are rasterised from Yuji Boku (SIL Open Font License 1.1, the game's UI font).

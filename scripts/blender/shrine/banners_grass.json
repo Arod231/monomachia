@@ -1,0 +1,28 @@
+{
+	"about": "Milestone-1 task 131: the Moonlit Shrine's nobori banners and grass, built by scripts/blender/build_banners_grass.py into blender/shrine/nobori.blend and grass.blend in the asset repository (the owner's answers, Oct 7: twelve banners round the ledge, dark weathered cloth in black, deep purple and faded ivory, each with a brushed kanji column and the gold sagari-fuji mon at its head, no side colours; short grass in the paving's breaks, the project's own blade cards). The kanji are the game's own (its cut Yuji Boku): 一騎討 (single combat), 決戦 (the deciding battle), 勝利 (victory) and 義戦 (a righteous war).",
+	"banners": {
+		"pole_height": 4.4,
+		"pole_radius": 0.024,
+		"cloth_width": 0.62,
+		"cloth_height": 3.3,
+		"loops": 6,
+		"gold": "#b8955a",
+		"mon_at": 0.075,
+		"mon_size": 0.3,
+		"text_top": 0.17,
+		"char_size": 0.2,
+		"variants": [
+			{"text": "一騎討", "cloth": "#141214", "ink": "#cbbfa4", "ink_strength": 0.85, "seed": 1},
+			{"text": "決戦", "cloth": "#2b1d38", "ink": "#d6cab0", "ink_strength": 0.8, "seed": 2},
+			{"text": "勝利", "cloth": "#b4a98f", "ink": "#151213", "ink_strength": 0.9, "seed": 3},
+			{"text": "義戦", "cloth": "#1c1a1f", "ink": "#c4b89c", "ink_strength": 0.8, "seed": 4}
+		]
+	},
+	"grass": {
+		"variants": 4,
+		"blades": [10, 16],
+		"height": [0.055, 0.11],
+		"root": "#1e2419",
+		"tip": "#5a6448"
+	}
+}

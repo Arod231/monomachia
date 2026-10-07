@@ -20,6 +20,7 @@ const INCLUDES: Array[String] = [
 const LIT_SHADERS: Array[String] = [
 	"res://shaders/surface.gdshader",
 	"res://shaders/surface_two_sided.gdshader",
+	"res://shaders/surface_sway.gdshader",
 	"res://shaders/stone_floor.gdshader",
 	"res://shaders/rock.gdshader",
 	"res://weapons/katana/katana_blade.gdshader",
