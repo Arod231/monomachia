@@ -72,3 +72,44 @@ func test_a_later_result_replaces_its_item_and_row() -> void:
 	var results: Array = JSON.parse_string(FileAccess.get_file_as_string(ChecklistResults.path))["results"]
 	assert_eq(results.size(), 2)
 	assert_eq(results[0], {"item": 8.0, "row": "k_l1", "passed": true, "note": "fixed"})
+
+
+func test_a_list_of_problems_records_a_pass_or_its_first_problems() -> void:
+	ChecklistResults.record_problems(1, &"k_l1", [])
+	ChecklistResults.record_problems(2, &"k_l1", ["too short", "misses", "grazes", "a fourth"])
+	var results: Array = JSON.parse_string(FileAccess.get_file_as_string(ChecklistResults.path))["results"]
+	assert_eq(results[0], {"item": 1.0, "row": "k_l1", "passed": true, "note": ""})
+	assert_eq(results[1], {"item": 2.0, "row": "k_l1", "passed": false, "note": "too short; misses; grazes (+1 more)"})
+
+
+func test_a_clip_row_records_once_failing_on_any_of_its_clips() -> void:
+	ChecklistResults.record_clips(3, &"clip_hit_light", {&"HitLightHighFront": [], &"HitLightLowBack": ["settles 2 frames late"]})
+	ChecklistResults.record_clips(4, &"clip_hit_light", {&"HitLightHighFront": [], &"HitLightLowBack": []})
+	var results: Array = JSON.parse_string(FileAccess.get_file_as_string(ChecklistResults.path))["results"]
+	assert_eq(results.size(), 2)
+	assert_eq(results[0], {"item": 3.0, "row": "clip_hit_light", "passed": false, "note": "HitLightLowBack: settles 2 frames late"})
+	assert_eq(results[1], {"item": 4.0, "row": "clip_hit_light", "passed": true, "note": ""})
+
+
+func test_the_keyed_moves_are_the_banded_moves_off_the_waiting_list() -> void:
+	var keyed: Array[Array] = ChecklistResults.keyed_moves()
+	assert_eq(keyed, [[&"katana", &"k_l1"], [&"katana", &"k_l2"], [&"katana", &"k_l3"], [&"katana", &"k_l4"]] as Array[Array],
+		"the light string, the only family keyed so far")
+
+
+func test_the_clip_rows_group_the_state_clips_the_families_keyed() -> void:
+	var rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
+	assert_eq(rows.keys(), [&"clip_deflect_light", &"clip_hit_light", &"clip_block_light"])
+	assert_eq(rows[&"clip_deflect_light"], [&"RightCutDeflect", &"RightCutRecoil", &"ReturnCutDeflect", &"ReturnCutRecoil",
+		&"KesaCutDeflect", &"KesaCutRecoil", &"CrownCutDeflect", &"CrownCutRecoil"], "each light's pair, deflect then recoil")
+	assert_eq(rows[&"clip_hit_light"].size(), 8, "the Katana's light hits, every place")
+	assert_true(rows[&"clip_hit_light"].has(&"HitLightHighFront"))
+	assert_eq(rows[&"clip_block_light"], [&"BlockLightKatana"])
+
+
+func test_every_row_the_tests_record_is_a_checklist_row() -> void:
+	var ids: PackedStringArray = _row_ids()
+	for m: Array in ChecklistResults.keyed_moves():
+		assert_true(ids.has(String(m[1])), "%s has a row" % m[1])
+	for row: StringName in ChecklistResults.clip_rows():
+		assert_true(ids.has(String(row)), "%s has a row" % row)

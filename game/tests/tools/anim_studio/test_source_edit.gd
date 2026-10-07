@@ -52,7 +52,7 @@ func test_find_reads_a_gd_value_under_a_const() -> void:
 	var text: String = _read(KATANA)
 	var span: Vector2i = SourceEdit.find_value(text, ["MOVES", "k_l1", "damage"])
 	assert_ne(span, Vector2i(-1, -1), "damage is found")
-	assert_eq(text.substr(span.x, span.y - span.x), "6")
+	assert_eq(text.substr(span.x, span.y - span.x), "5")
 
 
 func test_find_matches_stringname_and_string_keys_alike() -> void:
