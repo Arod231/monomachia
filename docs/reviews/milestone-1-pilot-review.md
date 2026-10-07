@@ -46,12 +46,13 @@ The rebalance changed the lights only, one change at a time, each soaked over 40
 | The lights' posture 7/7/8/10 → 5/5/6/7 | 56.7 s | 1.51 |
 | And their damage 6/6/7/8 → 5/5/6/7 | 58.3 s | 1.65 |
 | The 300-match `soak:tune` on those numbers | 56.8 s (1,090 rounds, the longest 163.4 s) | 1.62 |
+| 40 matches after merging `master`'s grip (KE tasks 5–8), the play build's rules | 65.3 s (157 rounds) | 1.75 |
 
 Targets: 60–90 s rounds and 0.3–0.6 disarms. Almost every disarm is a parry landing on a fighter whose posture is full (about 12 parries and 530 frames at full posture a round), which the lights' numbers can't reach; on your word (Oct 7) the two changes stay, and disarms are left to the disarm family's review (family 7, task 85). The 300-match run had no failures, finishers in 49 of 1,090 rounds (4.5%), and every item of the must-appear list (the stomp 522, the leap 480, Flash 356, Moonsplitter 684, Breaker Palm 190, the recall 25, a pick-up 1,525).
 
 ## The play session
 
-The exported build with the licensed clips is `build/windows/Monomachia.exe` in this lane's worktree (`.claude/worktrees/lane-m1-40-41-42`), exported on Oct 7 at the rebalance's numbers; its `--smoke` match plays clean. It stays on this PC. The match keeps the toon look until the art conversion; the look test shows the pilot in the realistic look.
+The exported build with the licensed clips is `build/windows/Monomachia.exe` in this lane's worktree (`.claude/worktrees/lane-m1-40-41-42`), exported on Oct 7 at the rebalance's numbers, after merging `master`'s grip (`docs/plans/katana-elden-ring.md` tasks 5–8: the grip button, pad Y or keyboard R, switches between one and two hands, and both grips play today's four lights, a fifth hit repeating Crown Cut, until the re-keys); its `--smoke` match plays clean. It stays on this PC. The match keeps the toon look until the art conversion; the look test shows the pilot in the realistic look.
 
 What to play, and what to judge:
 
