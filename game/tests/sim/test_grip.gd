@@ -317,8 +317,8 @@ func test_a_two_handed_block_takes_less_posture() -> void:
 		H.run(W, 60, H.tap_at(1, Btn.LIGHT), p1, r)
 		assert_true(r.has(&"block"), "%s: blocked" % grip)
 		takes[grip] = W.fighters[1].posture
-	assert_almost_eq(float(takes[ONE]), 7.0 * 0.7, CLOSE, "one-handed: 0.7 of Right Cut's 7 (D2)")
-	assert_almost_eq(float(takes[TWO]), 7.0 * 0.5, CLOSE, "two-handed: 0.5 (D2)")
+	assert_almost_eq(float(takes[ONE]), 5.0 * 0.7, CLOSE, "one-handed: 0.7 of Right Cut's 5 (D2)")
+	assert_almost_eq(float(takes[TWO]), 5.0 * 0.5, CLOSE, "two-handed: 0.5 (D2)")
 
 
 # ------------------------------------------------------------------ disarmed
