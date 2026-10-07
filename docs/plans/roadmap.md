@@ -69,7 +69,7 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
 ### Phase 4: Milestone 2
 
 - [ ] **R6. Milestone 2's grilling and spec.** The Greatsword, the Twin Daggers and the second fighter at final quality, specified.
-  - Delivers: a grilling of the owner on milestone 2's open questions (the Greatsword's and the Daggers' bands, their protected-timing retune, the Rogue's look, cloth and faces, the Daggers' finisher names), then `docs/specs/milestone-2.md`, built on milestone 1's pipeline and checklist, and on R8's decision on the models.
+  - Delivers: a grilling of the owner on milestone 2's open questions (the Greatsword's and the Daggers' bands, their protected-timing retune, the Rogue's look from the owner's concept art, cloth and faces, the Daggers' finisher names), then `docs/specs/milestone-2.md`, built on milestone 1's pipeline and checklist, and on R8's decision on the models.
   - Check: the spec covers every item below and every milestone-2 line in milestone 1's Out of Scope.
   - Blocked by: R8
   - **Owner:** answers the grilling and approves the spec.
@@ -83,12 +83,13 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
   - Check: the decision fits the spending limit and allows selling the game; R6's spec records it.
   - Blocked by: R5
   - **Owner:** decides.
+  - Asked by the owner (Oct 7): the models made in Blender, following the owner's concept art (`docs/design.md`, Concept art and outfits; the images are in the asset repository's mood board). A throwaway Hunter blockout (Oct 7, not committed to the game) tested how close scripted modelling gets, so that this decision weighs making against buying or commissioning on evidence.
 - [ ] **R9. The new fighter models.** The Hunter and the Rogue as new models on the UE5-style skeleton, with milestone 1's clips carried over.
-  - Delivers: both fighters' models and palettes; milestone 1's clips retargeted by bone name, with a pass for the twist and prop bones.
-  - Check: milestone 1's checklist still passes for every Katana and bare-hands move on the new Hunter.
+  - Delivers: the shared UE5-style skeleton, designed in Blender; both fighters' models and palettes after the owner's concept art, at the heights and proportions `docs/plans/katana-elden-ring.md` task 3 sets (D10); each fighter's clothing as its own meshes, skinned to the shared skeleton over a whole body, so that a skin (R27) swaps an outfit without touching the body; milestone 1's clips retargeted by bone name, with a pass for the twist and prop bones.
+  - Check: milestone 1's checklist still passes for every Katana and bare-hands move on the new Hunter; shots of both fighters beside their concept art, reviewed by the owner; the body renders whole with every outfit piece hidden.
   - Blocked by: R7
 - [ ] **R10. Cloth simulation and faces.** Capes, coats and loose clothing are cloth-simulated, and faces show effort, pain, the ultimate's roar and death.
-  - Delivers: cloth on the new models under the one wind; event-driven facial expressions.
+  - Delivers: cloth on the new models under the one wind, as the concept art implies (the Hunter's coat skirts, cape, torn hems and tassels; the Rogue's long torn cloak, sash tails, cords and hood edge, its cloak trailing smoke and embers as an effect); event-driven facial expressions (the masks hide most of both faces, so the spec settles what shows).
   - Check: both performance gates still hold; the faces' events are covered by a parity test like the effects'.
   - Blocked by: R9
 - [ ] **R11. The Greatsword's families at final quality, the slams included.** Every Greatsword move re-keyed into its bands, with its draw, victory, finisher and effects.
@@ -163,7 +164,7 @@ The finished game of `docs/design.md`: nine weapons, eight fighters and several 
   - Check: both performance gates hold on every arena.
   - Blocked by: R16
 - [ ] **R27. Progression and cosmetics.** Unlockable skins earned through fighter proficiency.
-  - Delivers: `docs/design.md`'s Progression and Customization.
+  - Delivers: `docs/design.md`'s Progression and Customization; skins as swapped outfits on R9's separate clothing meshes.
   - Check: its own spec's checks.
   - Blocked by: R24, R25
 - [ ] **R28. Licensed or recorded music.** Real music in place of the code-generated score.
