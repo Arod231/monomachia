@@ -332,6 +332,8 @@ nav.tabs .count:empty { display: none; }
 .qlaunch { margin-top: 14px; display: grid; gap: 10px; }
 .newsess { margin-bottom: 18px; }
 .newsess .qnote { margin-top: 8px; }
+.restart { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border); }
+.restart .qnote { margin-top: 8px; }
 #toast { position: fixed; left: var(--side); right: var(--side); bottom: calc(var(--tabbar) + var(--bottom) + 12px); z-index: 25; background: var(--text); color: var(--page);
   border-radius: 12px; padding: 12px 14px; font-size: 15px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
 #toast.on { opacity: 1; transform: none; pointer-events: auto; }
@@ -888,6 +890,38 @@ function newSessionBlock() {
     <p class="qnote">${line}</p>${st?.retry ? `<button class="btn small" data-retry="${esc(st.id)}">Try again</button>` : ''}</div>`;
 }
 let startingNew = false;
+// The restart button: the board exits, its loop on the PC starts it again on the
+// latest master, and this page reloads once /data answers from a new start.
+let restartFrom = null, restartUntil = 0;
+function restartBlock() {
+  const st = U.restartStatus(data?.board, restartFrom !== null);
+  return `<div class="restart"><button class="btn block" id="restartBoard" ${st.enabled ? '' : 'disabled'}>${restartFrom !== null ? 'Restarting…' : 'Restart the Project Manager'}</button>
+    <p class="qnote">${esc(st.text)}</p></div>`;
+}
+async function restartBoard() {
+  if (restartFrom !== null || !data?.board?.restartable) return;
+  if (!confirm('Restart the Project Manager? It goes away for about 40 seconds and comes back on the latest master.')) return;
+  const from = data.board.startedAt;
+  try { await post('/restart', {}); }
+  catch (e) { toast(`Couldn't restart: ${e.message}`, true); return; }
+  restartFrom = from; restartUntil = Date.now() + 3 * 60 * 1000;
+  toast('Restarting the Project Manager. This page reloads when it is back.');
+  renderQueue();
+  setTimeout(waitForRestart, 5000);
+}
+async function waitForRestart() {
+  try {
+    const d = await (await fetch('/data', { cache: 'no-store' })).json();
+    if (d.board && d.board.startedAt !== restartFrom) { location.reload(); return; }
+  } catch { /* still down */ }
+  if (Date.now() > restartUntil) {
+    restartFrom = null;
+    toast("The Project Manager hasn't come back after 3 minutes: check it on the PC.", true);
+    renderQueue();
+    return;
+  }
+  setTimeout(waitForRestart, 3000);
+}
 async function startNewSession() {
   if (startingNew) return;
   startingNew = true; renderQueue();
@@ -900,7 +934,7 @@ function renderQueue() {
   $('cQueue').textContent = queue.length ? String(queue.length) : '';
   if (tab !== 'queue') return;
   if (!queue.length) {
-    $('queue').innerHTML = newSessionBlock() + `<div class="empty">Nothing queued. Open Plans, tap a task that hasn't started, and add it here.</div>`;
+    $('queue').innerHTML = newSessionBlock() + `<div class="empty">Nothing queued. Open Plans, tap a task that hasn't started, and add it here.</div>` + restartBlock();
     return;
   }
   const byPlan = {};
@@ -919,7 +953,7 @@ function renderQueue() {
   }).join('');
   $('queue').innerHTML = newSessionBlock() + groups + `<div class="qlaunch"><button class="btn primary block" id="qLaunch">Launch ${sessions === 1 ? 'a session' : `${sessions} sessions`} on the PC</button>
     <button class="btn block" id="qClear">Clear the queue</button></div>
-    <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app, so nobody needs to be at the PC (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</p>`;
+    <p class="qnote">Each plan gets its own new session in the Claude app on your PC, with its own worktree. The Project Manager starts it for you: it presses Send in the Claude app, so nobody needs to be at the PC (a launch made while the PC is locked starts once it's unlocked). The session asks wayfinder's questions as clickable choices before writing code, then builds the tasks in plan order.</p>` + restartBlock();
 }
 function setQueued(refs, on) {
   queue = on ? [...new Set([...queue, ...refs])] : queue.filter((r) => !refs.includes(r));
@@ -1065,6 +1099,7 @@ document.addEventListener('click', async (e) => {
   if (b?.dataset.retry) { retryLaunch(b.dataset.retry); return; }
   if (b?.id === 'qLaunch') { launchQueue(); return; }
   if (b?.id === 'newSession') { startNewSession(); return; }
+  if (b?.id === 'restartBoard') { restartBoard(); return; }
   if (b?.id === 'qClear') { queue = []; saveQueue(); render(); return; }
   if (b?.dataset.plan) { planKey = b.dataset.plan; store.set('m-plan', planKey); setTab('plans'); return; }
   if (b?.dataset.goto) { setTab(b.dataset.goto); return; }
