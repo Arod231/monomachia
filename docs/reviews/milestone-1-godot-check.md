@@ -21,6 +21,8 @@ The engine throughout: Godot 4.7.2, the official standard build (`4.7.2.stable.o
 
 No criterion clearly fails. **Recommended: Godot stays.**
 
+**Your judgement:** Oct 7, 2026, accepted. Godot stays, and the art conversion (tasks 43–54) may start; criteria 7 and 8 are confirmed at sign-off.
+
 ## 1. The pilot passes its checklist in the running game
 
 - **The checklist:** the pilot's rows in `docs/reviews/milestone-1-checklist.md`, filled from a full test run (task 40) and reviewed by you (task 41). Right Cut, Return Cut, Kesa Cut and Crown Cut pass every item a test checks (1–5 and 8–16) and your three (6, 7 and 17). Among them:
