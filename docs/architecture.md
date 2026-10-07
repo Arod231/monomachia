@@ -345,6 +345,8 @@ classDiagram
         id
         string
         block_mitigation
+        heavy
+        draw_heavy
     }
     class AttackDef {
         id

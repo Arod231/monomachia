@@ -181,8 +181,9 @@ func test_the_lights_dummy_throws_its_weapons_whole_light_string_110_frames_apar
 ## Iai variant shows with and without its follow-up.
 func test_the_katana_heavies_dummy_alternates_both_iai_variants_with_and_without_their_follow_ups() -> void:
 	var run: DummyRun = _play(Moves.KATANA, &"heavies", 1080)
-	var expected: Array[StringName] = [&"k_iai", &"k_h1f", &"k_iai_h", &"k_iai", &"k_iai_h", &"k_rdraw", &"k_iai", &"k_h1f"]
-	assert_eq(run.swung().slice(0, expected.size()), expected, "vertical and Rising Heaven, horizontal, vertical, horizontal and Returning Draw, again")
+	# one-handed, the vertical Iai's heavy follow-up is Crescent Coil (KE task 7, D5)
+	var expected: Array[StringName] = [&"k_iai", &"k_coil", &"k_iai_h", &"k_iai", &"k_iai_h", &"k_rdraw", &"k_iai", &"k_coil"]
+	assert_eq(run.swung().slice(0, expected.size()), expected, "vertical and Crescent Coil, horizontal, vertical, horizontal and Returning Draw, again")
 	for e: Dictionary in run.by_dummy(&"swing"):
 		assert_true(e["heavy"], "%s is a heavy" % e["attack"])
 	var draws: Array[Dictionary] = run.by_dummy(&"swing").filter(
@@ -269,6 +270,9 @@ func test_the_random_dummy_drills_lights_heavies_and_every_unblockable_its_weapo
 		# its heavies take the follow-up every other time, first time included,
 		# as the heavies drill does (a heavy the run ends on is left out)
 		var follow_up: StringName = weapon.moves[weapon.heavy_start].chain_heavy
+		if not weapon.grips.is_empty() and weapon.grips[0].draw_heavy != &"":
+			# the dummy holds its first grip, whose heavy follows the Iai (KE task 7)
+			follow_up = weapon.grips[0].draw_heavy
 		var took: Array[bool] = []
 		for k: int in swung.size() - 1:
 			if swung[k] == weapon.heavy_start:

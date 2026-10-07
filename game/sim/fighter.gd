@@ -924,6 +924,7 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 	atk.charge_frac = 0.0
 	atk.queued = &""
 	atk.queued_hit = 0
+	atk.queued_branch = &""
 	atk.lunge_total = lunge_total
 	atk.lunge_dir = last_dodge_dir if def.lunge_along_dodge else null
 	atk.extra_recovery = 0
@@ -1076,19 +1077,20 @@ func _update_attack() -> void:
 	# plays its string by count (KE task 5): see _light_follow_up().
 	if takes_follow_up_at(f):
 		var light: Array = _light_follow_up(def)
-		if _can_follow(light[0], _light_window(def, light[0]), Btn.LIGHT, f):
+		var heavy: StringName = _heavy_follow_up(def)
+		if _can_follow(light[0], _window(def, def.chain_light, light[0]), Btn.LIGHT, f):
 			inp.consume(Btn.LIGHT)
 			a.queued = light[0]
 			a.queued_hit = light[1]
-		elif _can_follow(def.chain_heavy, def.branch_window(def.chain_heavy), Btn.HEAVY, f):
+			a.queued_branch = def.chain_light if def.chain_light != &"" else light[0]
+		elif _can_follow(heavy, _window(def, def.chain_heavy, heavy), Btn.HEAVY, f):
 			inp.consume(Btn.HEAVY)
-			a.queued = def.chain_heavy
+			a.queued = heavy
 			a.queued_hit = 0
-	if a.queued != &"":
-		var window: PackedInt32Array = _light_window(def, a.queued) if a.queued_hit > 0 else def.branch_window(a.queued)
-		if f >= window[0]:
-			start_attack(a.queued, -1, def, a.queued_hit)
-			return
+			a.queued_branch = def.chain_heavy if def.chain_heavy != &"" else heavy
+	if a.queued != &"" and f >= def.branch_window(a.queued_branch)[0]:
+		start_attack(a.queued, -1, def, a.queued_hit)
+		return
 
 	# Dodge-cancel the recovery in the move's window (the table's), opening
 	# later by half any extra recovery (a charge's) and closing later by all
@@ -1138,12 +1140,26 @@ func _light_follow_up(def: AttackDef) -> Array:
 	return [g.hit(at), at] if at > 0 else [def.chain_light, 0]
 
 
-## The frames light follow-up `follow` of move `def` may start on: those of
-## the move's own light follow-up when it has one, so the hit after it keeps
-## the move's branch point whichever grip's string it comes from, else the
-## move's window for `follow` itself.
-func _light_window(def: AttackDef, follow: StringName) -> PackedInt32Array:
-	return def.branch_window(def.chain_light if def.chain_light != &"" else follow)
+## The heavy follow-up of move `def`. A weapon with grips (KE task 7): after
+## any hit of a string, the held grip's heavy; after the weapon's heavy
+## starter (the vertical Iai), the grip's heavy follow-up of it (D5).
+## Otherwise, or where the grip names none, the move's own.
+func _heavy_follow_up(def: AttackDef) -> StringName:
+	var g: WeaponGrip = held_grip()
+	if g != null:
+		if string_count > 0 and g.heavy != &"":
+			return g.heavy
+		if def.id == moveset().heavy_start and def.chain_heavy != &"" and g.draw_heavy != &"":
+			return g.draw_heavy
+	return def.chain_heavy
+
+
+## The frames follow-up `follow` of move `def` may start on: those of the
+## move's own follow-up `own` (its light or heavy) when it has one, so a
+## grip's move in its place keeps the move's branch point, else the move's
+## window for `follow` itself.
+func _window(def: AttackDef, own: StringName, follow: StringName) -> PackedInt32Array:
+	return def.branch_window(own if own != &"" else follow)
 
 
 ## As a chargeable heavy is drawn, the stick held sideways (as Moonsplitter

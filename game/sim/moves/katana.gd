@@ -51,9 +51,10 @@ const MOVES: Dictionary = {
 	},
 	&"k_h1f": {
 		"id": &"k_h1f", "name": "Rising Heaven", "kind": &"heavy", "type": &"slash", "anim": &"diagUp",
-		"side_start": &"right", "side_end": &"left",
+		# rising from the crouch Heaven Splitter ends in (KE task 7)
+		"side_start": &"centre", "side_end": &"left",
 		"damage": 12, "posture": 15, "knockback": 0.9,
-		"range": 2.3, "arc": 90, "lunge": 1.2, "lunge_end": 18, "chain_heavy": &"k_h2",
+		"range": 2.3, "arc": 90, "lunge": 1.2, "lunge_end": 18,
 	},
 	# the horizontal Iai's heavy follow-up, back the other way
 	&"k_rdraw": {
@@ -62,11 +63,24 @@ const MOVES: Dictionary = {
 		"damage": 12, "posture": 15, "knockback": 0.9,
 		"range": 2.3, "arc": 110, "lunge": 1.1, "lunge_end": 18,
 	},
+	# the two-handed heavy (KE task 7): charged by holding heavy (D9), Rising
+	# Heaven its follow-up
 	&"k_h2": {
 		"id": &"k_h2", "name": "Heaven Splitter", "kind": &"heavy", "type": &"overhead", "anim": &"overhead",
 		"side_start": &"centre", "side_end": &"centre",
 		"damage": 15, "posture": 18, "knockback": 1.2,
 		"range": 2.4, "arc": 60, "lunge": 0.95, "lunge_start": 8, "lunge_end": 24,
+		"chargeable": true, "chain_heavy": &"k_h1f",
+	},
+	# the one-handed heavy (KE task 7, D13), charged by holding heavy (D9):
+	# about 85% of Heaven Splitter (D3), standing in on its clip until its
+	# re-key (KE task 16)
+	&"k_coil": {
+		"id": &"k_coil", "name": "Crescent Coil", "kind": &"heavy", "type": &"slash", "anim": &"overhead",
+		"side_start": &"centre", "side_end": &"centre",
+		"damage": 13, "posture": 15, "knockback": 1.0,
+		"range": 2.4, "arc": 60, "lunge": 0.95, "lunge_start": 8, "lunge_end": 24,
+		"chargeable": true,
 	},
 	&"k_sl": {
 		"id": &"k_sl", "name": "Running Draw", "kind": &"light", "type": &"slash", "anim": &"drawCut",
@@ -175,9 +189,10 @@ static func build() -> WeaponDef:
 		# Elden Ring's two grips (KE task 5), each with its five-hit string,
 		# standing in as today's four lights with Crown Cut again as hit 5
 		# until the re-keys (KE tasks 11-14); a two-handed block takes less
-		# posture (D2)
+		# posture (D2). Each hit's heavy branch is the grip's heavy, and the
+		# vertical Iai's heavy follow-up the grip's too (KE task 7, D5)
 		"grips": [
-			WeaponGrip.make(WeaponGrip.ONE_HANDED, STAND_IN_STRING, 0.7),
-			WeaponGrip.make(WeaponGrip.TWO_HANDED, STAND_IN_STRING, 0.5),
+			WeaponGrip.make(WeaponGrip.ONE_HANDED, STAND_IN_STRING, 0.7, &"k_coil", &"k_coil"),
+			WeaponGrip.make(WeaponGrip.TWO_HANDED, STAND_IN_STRING, 0.5, &"k_h2", &"k_h1f"),
 		],
 	})

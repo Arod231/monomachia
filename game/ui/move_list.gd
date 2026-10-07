@@ -146,7 +146,8 @@ static func _grip_rows(w: WeaponDef, g: WeaponGrip, first: bool) -> Array[Row]:
 			if w.string_position(m.id) == 0 and m.chain_light != &"" and w.string_position(m.chain_light) == n:
 				hit.also_after.append(m.name)
 		out.append(hit)
-		var heavy: StringName = (w.moves[hit.move_id] as AttackDef).chain_heavy
+		# every hit branches into the grip's heavy (KE task 7)
+		var heavy: StringName = g.heavy if g.heavy != &"" else (w.moves[hit.move_id] as AttackDef).chain_heavy
 		queue.append([_row(w, section, heavy, _then(tokens, HEAVY), PackedInt32Array([2, n])), hit.name])
 	var branches: Array[Row] = []
 	var seen: Dictionary = {}
@@ -156,7 +157,10 @@ static func _grip_rows(w: WeaponDef, g: WeaponGrip, first: bool) -> Array[Row]:
 		if r == null:
 			continue
 		if seen.has(r.move_id):
-			(seen[r.move_id] as Row).also_after.append(entry[1])
+			var also: PackedStringArray = (seen[r.move_id] as Row).also_after
+			if not also.has(entry[1]):
+				also.append(entry[1])
+				(seen[r.move_id] as Row).also_after = also
 			continue
 		seen[r.move_id] = r
 		r.id = "%s_%s" % [g.id, r.move_id]
@@ -212,7 +216,15 @@ static func _walk(w: WeaponDef) -> Array[Row]:
 			queue.push_front(_row(w, r.section, m.release_variant, drawn, _key(r, _STEP_VARIANT)))
 		if m.chain_light != &"" and w.string_position(m.chain_light) == 0:
 			queue.append(_row(w, r.section, m.chain_light, _then(tokens, LIGHT), _key(r, _STEP_LIGHT)))
-		if m.chain_heavy != &"":
+		if m.chain_heavy != &"" and r.move_id == w.heavy_start and not w.grips.is_empty():
+			# the heavy starter's heavy follow-up is each grip's (KE task 7, D5)
+			for i: int in w.grips.size():
+				var g: WeaponGrip = w.grips[i]
+				var in_grip: Array[String] = _then(tokens, HEAVY)
+				in_grip[-1] += ", %s" % SECTION_NAMES[GRIP_SECTIONS[g.id]].to_lower()
+				var k: PackedInt32Array = _key(r, _STEP_HEAVY + i)
+				queue.append(_row(w, r.section, g.draw_heavy if g.draw_heavy != &"" else m.chain_heavy, in_grip, k))
+		elif m.chain_heavy != &"":
 			queue.append(_row(w, r.section, m.chain_heavy, _then(tokens, HEAVY), _key(r, _STEP_HEAVY)))
 	return out
 

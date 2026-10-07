@@ -28,8 +28,8 @@ func after_each() -> void:
 static func _test_katana() -> WeaponDef:
 	var w: WeaponDef = KatanaMoves.build()
 	var grips: Array[WeaponGrip] = [
-		WeaponGrip.make(ONE, STAND_IN, w.grips[0].block_mitigation),
-		WeaponGrip.make(TWO, TEST_TWO, w.grips[1].block_mitigation),
+		WeaponGrip.make(ONE, STAND_IN, w.grips[0].block_mitigation, w.grips[0].heavy, w.grips[0].draw_heavy),
+		WeaponGrip.make(TWO, TEST_TWO, w.grips[1].block_mitigation, w.grips[1].heavy, w.grips[1].draw_heavy),
 	]
 	w.grips = grips
 	return w
@@ -284,7 +284,7 @@ func test_a_light_from_neutral_starts_the_grip_s_hit_1() -> void:
 
 
 func test_a_heavy_branch_ends_the_count() -> void:
-	# L, H (Heaven Splitter), then L from neutral starts hit 1 again
+	# L, H (the one-handed heavy, Crescent Coil), then L from neutral starts hit 1 again
 	var W: World = H.make_world(_test_katana(), Moves.KATANA)
 	var r: H.Rec = H.Rec.new()
 	var presses: Array[int] = [Btn.LIGHT, Btn.HEAVY, Btn.LIGHT]
@@ -302,7 +302,7 @@ func test_a_heavy_branch_ends_the_count() -> void:
 			if e["t"] == &"swing" and e["f"] == 0:
 				due = true
 				swung.append(e["attack"])
-	assert_eq(swung, [&"k_l1", &"k_h2", &"k_l1"] as Array[StringName])
+	assert_eq(swung, [&"k_l1", &"k_coil", &"k_l1"] as Array[StringName])
 
 
 # ------------------------------------------------------------------ guarding

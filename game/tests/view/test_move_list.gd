@@ -75,12 +75,18 @@ func test_each_grip_lists_its_string_hit_by_hit_then_its_heavy_branches() -> voi
 		for r: MoveList.Row in rows:
 			if r.section == section and r.move_id != MoveList.GRIP:
 				inputs.append("%s: %s" % [r.input, r.name])
-		assert_eq(inputs, [
+		var heavies: Array[String] = ["Light → Heavy: Crescent Coil"]
+		if section == MoveList.Section.TWO_HANDED:
+			heavies = ["Light → Heavy: Heaven Splitter", "Light → Heavy → Heavy: Rising Heaven"]
+		var want: Array[String] = [
 			"Light: Right Cut", "Light → Light: Return Cut", "Light → Light → Light: Kesa Cut",
 			"Light → Light → Light → Light: Crown Cut", "Light → Light → Light → Light → Light: Crown Cut",
-			"Light → Heavy: Heaven Splitter", "Light → Light → Heavy: Rising Heaven",
-		] as Array[String], MoveList.SECTION_NAMES[section])
-	assert_eq(_row(rows, &"k_h2", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Kesa Cut", "Rising Heaven"]))
+		]
+		want.append_array(heavies)
+		assert_eq(inputs, want, MoveList.SECTION_NAMES[section])
+	# every hit branches into the grip's heavy (KE task 7)
+	assert_eq(_row(rows, &"k_coil", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Return Cut", "Kesa Cut", "Crown Cut"]))
+	assert_eq(_row(rows, &"k_h2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Return Cut", "Kesa Cut", "Crown Cut"]))
 	assert_eq(_row(rows, &"k_l2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Iai Slash (horizontal)"]), "the horizontal Iai's light plays hit 2")
 
 
@@ -100,8 +106,9 @@ func test_katana_string_inputs_take_the_shortest_way_in() -> void:
 		&"k_iai": "Heavy",
 		&"k_iai_h": "Heavy + left/right",
 		&"k_rdraw": "Heavy + left/right → Heavy",
-		&"k_h1f": "Heavy → Heavy",
-		&"k_h2": "Heavy → Heavy → Heavy",
+		# the vertical Iai's heavy follow-up is the grip's (KE task 7, D5)
+		&"k_coil": "Heavy → Heavy, one-handed",
+		&"k_h1f": "Heavy → Heavy, two-handed",
 	}
 	for move_id: StringName in expect:
 		var r: MoveList.Row = _row(rows, move_id, MoveList.Section.STRING)
@@ -113,14 +120,14 @@ func test_katana_string_inputs_take_the_shortest_way_in() -> void:
 
 func test_other_ways_into_a_follow_up_are_listed() -> void:
 	var rows: Array[MoveList.Row] = MoveList.rows(Moves.KATANA)
-	assert_eq(Array(_row(rows, &"k_h2", MoveList.Section.STRING).also_after), [], "the Iai's: only through Rising Heaven")
-	assert_eq(Array(_row(rows, &"k_h1f", MoveList.Section.ONE_HANDED).also_after), [], "one way in")
+	assert_eq(Array(_row(rows, &"k_h1f", MoveList.Section.STRING).also_after), [], "the Iai's: one way in")
+	assert_eq(Array(_row(rows, &"k_h1f", MoveList.Section.TWO_HANDED).also_after), [], "Heaven Splitter's: one way in")
 	assert_eq(Array(_row(rows, &"k_l1", MoveList.Section.ONE_HANDED).also_after), [])
 
 
 func test_strings_read_light_first_then_each_heavy_branch() -> void:
 	assert_eq(_names(MoveList.rows(Moves.KATANA), MoveList.Section.STRING), [
-		"Iai Slash (vertical)", "Iai Slash (horizontal)", "Returning Draw", "Rising Heaven", "Heaven Splitter",
+		"Iai Slash (vertical)", "Iai Slash (horizontal)", "Returning Draw", "Crescent Coil", "Rising Heaven",
 	])
 	assert_eq(_names(MoveList.rows(Moves.GREATSWORD), MoveList.Section.STRING), [
 		"Heavy Swing", "Backswing", "Overhead Strike", "Low Sweep",
