@@ -30,7 +30,7 @@ func test_a_light_attack_hits_an_idle_opponent_for_its_hp_and_posture_damage() -
 	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), IDLE, r)
 	var b: Fighter = W.fighters[1]
 	assert_true(r.has(&"hit"))
-	assert_almost_eq(b.hp, 94.0, CLOSE)
+	assert_almost_eq(b.hp, 95.0, CLOSE)
 	assert_almost_eq(b.posture, 5.0 * SimConst.HIT_POSTURE_MULT, CLOSE)
 
 
@@ -308,7 +308,7 @@ func test_a_disarmed_fighter_cannot_block() -> void:
 	W.fighters[1].armed = false
 	H.run(W, RUN, H.tap_at(0, Btn.LIGHT), func(_i: int) -> RawInput: return H.btn(Btn.BLOCK), r)
 	assert_true(r.has(&"hit"))
-	assert_almost_eq(W.fighters[1].hp, 94.0, CLOSE)
+	assert_almost_eq(W.fighters[1].hp, 95.0, CLOSE)
 
 
 func test_a_timed_block_press_while_disarmed_is_a_redirect_counter() -> void:

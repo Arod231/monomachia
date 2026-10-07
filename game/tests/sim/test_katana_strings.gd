@@ -5,19 +5,19 @@ extends WeaponStringsTest
 ## The spec's Katana table, all nine rows (see WeaponStringsTest.rows).
 const ROWS: Dictionary[StringName, Dictionary] = {
 	&"k_l1": {
-		"name": "Right Cut", "damage": 6, "posture": 5,
+		"name": "Right Cut", "damage": 5, "posture": 5,
 		"light": &"k_l2", "heavy": &"k_h2", "sides": [&"right", &"left"],
 	},
 	&"k_l2": {
-		"name": "Return Cut", "damage": 6, "posture": 5,
+		"name": "Return Cut", "damage": 5, "posture": 5,
 		"light": &"k_l3", "heavy": &"k_h1f", "sides": [&"left", &"right"],
 	},
 	&"k_l3": {
-		"name": "Kesa Cut", "damage": 7, "posture": 6,
+		"name": "Kesa Cut", "damage": 6, "posture": 6,
 		"light": &"k_l4", "heavy": &"k_h2", "sides": [&"right", &"left"],
 	},
 	&"k_l4": {
-		"name": "Crown Cut", "damage": 8, "posture": 7,
+		"name": "Crown Cut", "damage": 7, "posture": 7,
 		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
 	},
 	# the data counts the sheathe in the startup: 9 + 14 = 23
