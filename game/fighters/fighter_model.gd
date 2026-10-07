@@ -31,6 +31,15 @@ extends Node3D
 
 const ANIMATION_LIBRARY: AnimationLibrary = preload("res://assets/quaternius/animations/ual_library.res")
 const HEADWEAR_CLOTH: Material = preload("res://fighters/materials/headwear_cloth.tres")
+## The scarf's tails (their bones are <name>0 to <name>3) and how they swing:
+## the length past the last bone, stiffness, drag, gravity (m/s²) and each
+## joint's radius against the back.
+const SCARF_TAILS: Array[String] = ["TailL", "TailR"]
+const SCARF_TAIL_END: float = 0.08
+const SCARF_STIFFNESS: float = 2.0
+const SCARF_DRAG: float = 0.5
+const SCARF_GRAVITY: float = 2.0
+const SCARF_RADIUS: float = 0.02
 const LIBRARY: StringName = &"ual"
 const SKELETON_NAME: StringName = &"GeneralSkeleton"
 ## The render layers of every fighter mesh.
@@ -331,8 +340,8 @@ func _take_head() -> MeshInstance3D:
 	return body
 
 
-## Adds the look's head wrap (skinned like the head) and hat (on the Head
-## bone).
+## Adds the look's head wrap (skinned like the head), its hat (on the Head
+## bone) and its scarf (on the Neck bone, its tails on spring bones).
 func _take_headwear(head: MeshInstance3D) -> void:
 	if look.head_wrap != null:
 		var wrap: MeshInstance3D = MeshInstance3D.new()
@@ -341,15 +350,69 @@ func _take_headwear(head: MeshInstance3D) -> void:
 		wrap.skin = head.skin
 		skeleton.add_child(wrap)
 		wrap.skeleton = ^".."
-	if look.hat != null:
+	var hat_mesh: Mesh = look.hat
+	if look.hat_scene != null:
+		var scene: Node = look.hat_scene.instantiate()
+		var found: Array[Node] = scene.find_children("Hat", "MeshInstance3D", true, false)
+		hat_mesh = (found[0] as MeshInstance3D).mesh if not found.is_empty() else null
+		scene.free()
+	if hat_mesh != null:
 		var attachment: BoneAttachment3D = BoneAttachment3D.new()
 		attachment.name = &"HeadAttachment"
 		skeleton.add_child(attachment)
 		attachment.bone_name = &"Head"
 		var hat: MeshInstance3D = MeshInstance3D.new()
 		hat.name = &"Hat"
-		hat.mesh = look.hat
+		hat.mesh = hat_mesh
 		attachment.add_child(hat)
+	if look.scarf_scene != null:
+		_take_scarf(look.scarf_scene)
+
+
+## The scarf: its scene on a BoneAttachment3D on the Neck bone, and a
+## SpringBoneSimulator3D on its own rig swinging each tail (TailL0 to TailL3,
+## TailR0 to TailR3) under gravity, kept off the back by a capsule where the
+## scene's "BackCapsule" empty says.
+func _take_scarf(scene: PackedScene) -> void:
+	var attachment: BoneAttachment3D = BoneAttachment3D.new()
+	attachment.name = &"NeckAttachment"
+	skeleton.add_child(attachment)
+	attachment.bone_name = &"Neck"
+	var scarf: Node3D = scene.instantiate()
+	attachment.add_child(scarf)
+	var rigs: Array[Node] = scarf.find_children("*", "Skeleton3D", true, false)
+	if rigs.is_empty():
+		push_error("FighterModel: the scarf %s has no rig for its tails" % scene.resource_path)
+		return
+	var rig: Skeleton3D = rigs[0]
+	var sim: SpringBoneSimulator3D = SpringBoneSimulator3D.new()
+	sim.name = &"ScarfSprings"
+	rig.add_child(sim)
+	sim.setting_count = SCARF_TAILS.size()
+	for i: int in SCARF_TAILS.size():
+		sim.set_root_bone_name(i, SCARF_TAILS[i] + "0")
+		sim.set_end_bone_name(i, SCARF_TAILS[i] + "3")
+		sim.set_extend_end_bone(i, true)
+		sim.set_end_bone_length(i, SCARF_TAIL_END)
+		sim.set_stiffness(i, SCARF_STIFFNESS)
+		sim.set_drag(i, SCARF_DRAG)
+		sim.set_gravity(i, SCARF_GRAVITY)
+		sim.set_radius(i, SCARF_RADIUS)
+		sim.set_enable_all_child_collisions(i, true)
+	var marker: Node3D = scarf.find_child("BackCapsule", true, false)
+	if marker != null:
+		var back: SpringBoneCollisionCapsule3D = SpringBoneCollisionCapsule3D.new()
+		back.name = &"Back"
+		sim.add_child(back)
+		back.bone_name = rig.get_bone_name(0)
+		# the empty's scale is the capsule's radius (x) and half its straight
+		# part's length (y)
+		var at: Transform3D = _transform_in(rig, scarf).affine_inverse() * _transform_in(marker, scarf)
+		back.radius = at.basis.get_scale().x
+		back.height = (at.basis.get_scale().y + back.radius) * 2.0
+		back.position_offset = (rig.get_bone_global_rest(0).affine_inverse() * at).origin
+		marker.get_parent().remove_child(marker)
+		marker.free()
 
 
 ## Puts every mesh on the fighters' layer, finds the surfaces the palettes

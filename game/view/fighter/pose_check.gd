@@ -494,7 +494,8 @@ static func _skinned_vertices(sk: Skeleton3D) -> Dictionary[int, PackedVector3Ar
 	var lists: Dictionary[int, Array] = {}
 	for node: Node in sk.find_children("*", "MeshInstance3D", true, false):
 		var mi: MeshInstance3D = node
-		if mi.skin == null:
+		# (cloth on a rig of its own, the Hunter's scarf, isn't the body)
+		if mi.skin == null or mi.get_node_or_null(mi.skeleton) != sk:
 			continue
 		var bind_bone: PackedInt32Array = []
 		var to_rest: Array[Transform3D] = []
