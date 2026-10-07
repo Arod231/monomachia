@@ -16,7 +16,7 @@ const FIGHTER_RADIUS: float = 0.5
 const CENTRE_LIMIT: float = WALL - FIGHTER_RADIUS
 ## The Impaler's dash ends 0.7 m inside the wall.
 const IMPALER_STOP: float = WALL - 0.7
-## Dropped weapons bounce off a ring 0.8 m inside the wall.
+## Dropped weapons bounce off a ring 0.95 m inside the wall.
 ## The Impaler dashes 24 m/s: 0.4 m a frame.
 const DASH_STEP: float = 0.4
 

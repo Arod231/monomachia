@@ -1,11 +1,11 @@
 extends GutTest
 ## The duelling-distance reach test (task 7.14). Every light of a weapon's
 ## string with a swing, played from standing at a defender standing at its
-## weapon's duelling distance (WeaponDef.duel_distance: Katana 3.3 m since KE task 3,
-## Greatsword 3.0, Daggers 2.0, bare hands 1.85), puts the last 15-20 cm of its
-## blade into them: the most blade inside the defender's capsule at any
-## moment of the active ticks (SwingReach.touches(), BladeSweep's length
-## inside); bare hands' fist, shorter than that across its knuckles, goes
+## weapon's duelling distance (WeaponDef.duel_distance: Katana 3.3 m and bare
+## hands 1.85 since KE task 3, Greatsword 3.35 and Daggers 2.3 since KE task
+## 4), puts the last 15-20 cm of its blade into them: the most blade inside
+## the defender's capsule at any moment of the active ticks
+## (SwingReach.touches(), BladeSweep's length inside); bare hands' fist, shorter than that across its knuckles, goes
 ## 15-20 cm deep (SwingReach.inside(), authored-animation task 24). Its
 ## lunge ends on the frame it first touches, so the front foot lands on
 ## contact, and from 6 m it whiffs. The check itself is tested on synthetic
@@ -78,7 +78,7 @@ static func _weapon_problems(w: WeaponDef) -> Array[String]:
 
 
 func test_each_weapon_has_its_duelling_distance() -> void:
-	var want: Dictionary[StringName, float] = {&"katana": 3.3, &"greatsword": 3.0, &"daggers": 2.0, &"fists": 1.85}
+	var want: Dictionary[StringName, float] = {&"katana": 3.3, &"greatsword": 3.35, &"daggers": 2.3, &"fists": 1.85}
 	for id: StringName in want:
 		assert_eq(Moves.WEAPONS[id].duel_distance, want[id], String(id))
 

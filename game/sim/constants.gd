@@ -22,8 +22,10 @@ const ARENA_RADIUS: float = 15.0 # inner wall radius (m); the demo's was 11.5
 ## The Impaler's dash ends this far inside the wall (the demo's 10.8 m stop).
 const IMPALER_WALL_MARGIN: float = 0.7
 ## A disarmed weapon sticks no nearer the wall than this (milestone-1 task
-## 86): its flight is shortened to land on a ring this far inside it.
-const STUCK_WEAPON_MARGIN: float = 0.8
+## 86): its flight is shortened to land on a ring this far inside it. 0.95
+## since the Greatsword grew to 1.98 m (KE task 4), so lying straight out it
+## stays inside the parapet.
+const STUCK_WEAPON_MARGIN: float = 0.95
 ## The first bodies' 0.42 m, grown with KE task 3's bodies (20% round the
 ## torso, as FighterBody's hurt capsule).
 const FIGHTER_RADIUS: float = 0.5
@@ -81,7 +83,7 @@ const STOMP_POSTURE: float = 30.0
 # is driven into the floor (the mikiri counter's pin). A thruster nearer than
 # that (the dodge carried the defender into it) is jolted back to it over
 # STOMP_PUSH_FRAMES while the stomp's hop lands.
-const STOMP_PIN_DIST: Dictionary[StringName, float] = {&"katana": 2.2, &"daggers": 1.1, &"greatsword": 2.15}
+const STOMP_PIN_DIST: Dictionary[StringName, float] = {&"katana": 2.2, &"daggers": 1.1, &"greatsword": 2.35}
 const STOMP_PIN_DIST_DEFAULT: float = 1.55
 const STOMP_PUSH_FRAMES: int = 8
 const LEAP_POSTURE: float = 30.0
@@ -147,10 +149,11 @@ const PICKUP_ATTACH_FRAME: int = 14
 # milestone-1 task 99 the distance is the blasted fall's travel: the
 # opponent, turned to face the recaller, is carried back over the
 # knockdown's fall by BLASTED_FALL's row of the frame-data table, which the
-# bake measures from the clip (RECALL_BURST_KNOCKBACK is what it carries).
+# bake measures from the clip (RECALL_BURST_KNOCKBACK is what it carries:
+# 2.0 m, grown by 1.15 with KE task 3's taller bodies, the owner's choice).
 const RECALL_FRAMES: int = 26
 const RECALL_BURST_FRAME: int = 16
-const RECALL_BURST_KNOCKBACK: float = 2.0
+const RECALL_BURST_KNOCKBACK: float = 2.3
 const BLASTED_FALL: StringName = &"BlastedFall"
 const RECALL_BURST_HITSTOP: int = 6
 

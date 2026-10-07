@@ -5,8 +5,9 @@ extends GutTest
 ## edge, the greatsword clearly the biggest, the katana curved with a
 ## defined point.
 
-## Overall length in metres (pommel to tip), with a tolerance.
-const LENGTHS: Dictionary[StringName, float] = {&"katana": 1.6, &"greatsword": 1.72, &"daggers": 0.4}
+## Overall length in metres (pommel to tip), with a tolerance: the
+## Greatsword and the Daggers grew by 1.15 with the bodies (KE task 4).
+const LENGTHS: Dictionary[StringName, float] = {&"katana": 1.6, &"greatsword": 1.98, &"daggers": 0.46}
 const LENGTH_TOLERANCE: float = 0.05
 
 
@@ -48,7 +49,7 @@ func test_two_handed_weapons_have_an_off_hand_grip_below_the_main_one() -> void:
 		if look.two_handed:
 			assert_not_null(off_hand, "%s has OffHandGrip" % id)
 			if off_hand != null:
-				assert_between(off_hand.position.y, -0.3, -0.1, "%s: the off hand sits below the main hand" % id)
+				assert_between(off_hand.position.y, -0.35, -0.1, "%s: the off hand sits below the main hand" % id)
 		else:
 			assert_null(off_hand, "%s is one-handed" % id)
 
@@ -233,9 +234,9 @@ func test_the_katana_blade_has_a_bright_temper_line_on_a_dark_body() -> void:
 func test_the_greatsword_outclasses_the_katana() -> void:
 	var great: AABB = _bounds(_instance(&"greatsword"))
 	var katana: AABB = _bounds(_instance(&"katana"))
-	# longer, though no longer by much since the Katana's 1.3 m blade (KE task
-	# 2); the Greatsword's own milestone sizes it
-	assert_gt(great.size.y, katana.size.y, "longer")
+	# at least 25 cm longer since it grew with the bodies (KE task 4), as the
+	# Katana's 1.3 m blade (KE task 2) had nearly caught it up
+	assert_gt(great.size.y, katana.size.y + 0.25, "at least 25 cm longer (%.2f m against %.2f)" % [great.size.y, katana.size.y])
 	var mesh: Mesh = (_instance(&"greatsword").get_node(^"Mesh") as MeshInstance3D).mesh
 	var widest: float = 0.0
 	for s: int in [_surface(mesh, "steel"), _surface(mesh, "steel_edge")]:

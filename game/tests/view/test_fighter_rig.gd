@@ -108,7 +108,7 @@ func test_limbs_and_fists_are_measured_from_each_skeleton() -> void:
 	assert_almost_eq(fist.z, 0.0301, 0.001, "a katana's radius out of the Rogue's palm")
 	assert_gt(hunter.rig.fist("Right").origin.y, fist.y + 0.015, "the Hunter's larger hand")
 	rogue.attach_weapon(WeaponLook.load_id(&"greatsword"))
-	assert_almost_eq(rogue.rig.fist("Right").origin.z - fist.z, 0.027 - 0.0138, 0.0005, "a thicker handle sits further out of the palm")
+	assert_almost_eq(rogue.rig.fist("Right").origin.z - fist.z, 0.031 - 0.0138, 0.0005, "a thicker handle sits further out of the palm")
 
 
 ## The katana in a guard on both fighters: each wrist within 1 cm of its

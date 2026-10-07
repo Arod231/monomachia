@@ -185,11 +185,12 @@ func test_the_distance_bands_are_the_spec_s_table() -> void:
 			&"unblockable": [4.3, 5.05],
 		},
 		&"fists": {
-			# the spec's table 0.25 m further out for the taller bodies (KE task 3)
+			# the spec's table 0.25 m further out for the taller bodies (KE task 3),
+			# Breaker Palm 0.5 m as its re-keyed surge grew with them
 			&"string_light": [1.85, 2.35], &"string_heavy": [2.35, 2.85], &"sprint_light": [3.35, 3.85],
 			&"sprint_heavy": [4.35, 4.85], &"dodge_light": [1.85, 2.35], &"dodge_heavy": [1.85, 2.35],
 			&"backstep_light": [2.35, 2.85], &"backstep_heavy": [3.85, 4.35], &"jump_light": [1.35, 1.85],
-			&"jump_heavy": [1.35, 1.85], &"ultimate": [4.35, 4.85],
+			&"jump_heavy": [1.35, 1.85], &"ultimate": [4.6, 5.0],
 		},
 	}
 	for wid: StringName in want:

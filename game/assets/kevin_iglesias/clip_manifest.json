@@ -440,7 +440,7 @@
 				"contact_end": 14,
 				"settle": 28
 			},
-			"foot_contacts": {"left": [[0, 28]], "right": [[0, 28]]},
+			"foot_contacts": {"left": [[0, 28]], "right": [[0, 5], [18, 28]]},
 			"provisional": false,
 			"groups": [
 				"katana"
