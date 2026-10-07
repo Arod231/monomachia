@@ -640,16 +640,36 @@ func _update_dropped() -> void:
 		# centred on the rules' position as it leaves the hands, its point
 		# STUCK_EMBED into the ground there once it sticks (milestone-1 task 86)
 		var flown: float = 1.0 if w.grounded else float(w.flown) / float(w.flight_frames)
+		# torn out and flown back to the hand while its owner recalls it
+		# (task 99)
+		var recall: Dictionary = _recall_flight(w)
+		if not recall.is_empty():
+			node.position = recall["pos"]
+			stick.rotation = Vector3(w.pitch + float(recall["spin"]), w.yaw, 0.0)
+			flown = 1.0 - float(recall["out"])
 		for model: Node in stick.get_children():
 			var m: Node3D = model
 			m.position.y = lerpf(-float(m.get_meta(&"middle")), STUCK_EMBED - float(m.get_meta(&"tip")), flown)
 		var beam: Node3D = node.get_node("Beam")
-		beam.visible = w.grounded
+		beam.visible = w.grounded and recall.is_empty()
 		beam.position = Vector3(0.0, 1.75 - w.pos.y, 0.0)
 	for side_id: int in _dropped.keys():
 		if not seen.has(side_id):
 			_dropped[side_id].queue_free()
 			_dropped.erase(side_id)
+
+
+## The recalled weapon's flight (RecallFlight) while its owner recalls it,
+## stuck where the rules hold it and flying to the owner's right hand; empty
+## otherwise.
+func _recall_flight(w: DroppedWeapon) -> Dictionary:
+	if not w.grounded or w.owner >= fighters.size() or host.fighter(w.owner).state != &"recall":
+		return {}
+	var sk: Skeleton3D = fighters[w.owner].model.skeleton if fighters[w.owner].model != null else null
+	if sk == null:
+		return {}
+	var hand: Vector3 = sk.global_transform * sk.get_bone_global_pose(sk.find_bone("RightHand")).origin
+	return RecallFlight.at(Vector3(w.pos.x, w.pos.y, w.pos.z), hand, float(host.fighter(w.owner).sf))
 
 
 func _clear_dropped() -> void:

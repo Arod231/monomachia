@@ -93,8 +93,8 @@ func test_a_clip_row_records_once_failing_on_any_of_its_clips() -> void:
 
 func test_the_keyed_moves_are_the_banded_moves_off_the_waiting_list() -> void:
 	var keyed: Array[Array] = ChecklistResults.keyed_moves()
-	assert_eq(keyed, [[&"katana", &"k_l1"], [&"katana", &"k_l2"], [&"katana", &"k_l3"], [&"katana", &"k_l4"]] as Array[Array],
-		"the light string, the only family keyed so far")
+	assert_eq(keyed, [[&"katana", &"k_l1"], [&"katana", &"k_l2"], [&"katana", &"k_l3"], [&"katana", &"k_l4"], [&"fists", &"f_breaker"]] as Array[Array],
+		"the light string and Breaker Palm (task 99)")
 
 
 func test_the_clip_rows_group_the_state_clips_the_families_keyed() -> void:

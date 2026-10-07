@@ -6,9 +6,11 @@
 script = ExtResource("1")
 id = &"breaker_palm"
 about = &"attacker"
-times = PackedFloat32Array(0, 0.55, 1.1)
-positions = PackedVector3Array(-1.1, 0.7, 0.2, -1.4, 0.8, 0.9, -1.6, 1, 1.6)
-looks = PackedVector3Array(0, 1.4, 1, 0, 1.6, 1.1, 0, 1.8, 1.2)
-fovs = PackedFloat32Array(48, 42, 40)
+times = PackedFloat32Array(0, 0.25, 0.7, 1.2)
+positions = PackedVector3Array(1.6, 0.4, 0.6, 1.55, 0.42, 0.45, 1.5, 0.45, 0.15, 1.5, 0.5, -0.1)
+looks = PackedVector3Array(0, 1.35, 0.55, 0, 1.5, 0.4, 0, 1.6, 0.2, 0, 1.45, 0.1)
+fovs = PackedFloat32Array(50, 46, 44, 44)
+positions_on_other = PackedByteArray(1, 1, 1, 1)
+looks_on_other = PackedByteArray(1, 1, 1, 1)
 dof_margin = 1.0
 dof_amount = 0.1

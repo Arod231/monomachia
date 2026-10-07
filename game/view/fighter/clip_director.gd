@@ -53,9 +53,11 @@ extends RefCounted
 ##   (regrip_clip(), phase &"regrip"; D15), or, without one, an inertial blend
 ##   into the new grip's pose; a switch mid-attack plays nothing, the next
 ##   hit's clip being the new grip's;
-## - the states with a clip of their own (StateClips.state_clips; the stomp
-##   counter's hand-keyed Mikiri_Stomp and the recall's Power_Up, task 30b,
-##   KeyedClips; and by cause, stun_clips,
+## - the states with a clip of their own: with the packs a manifest clip
+##   (StateClips.own_clips, milestone-1 task 99: the disarmed choice's
+##   UltChoice and the recall's RecallPowerUp), else a hand-keyed one
+##   (StateClips.state_clips; the stomp counter's Mikiri_Stomp and the
+##   recall's Power_Up, task 30b, KeyedClips; and by cause, stun_clips,
 ##   the stomped thruster's Mikiri_Pinned): the clip fitted to the
 ##   state's length, whole body, with or without the packs (the keyed clips
 ##   are committed);
@@ -87,7 +89,10 @@ extends RefCounted
 ##   Parry Hit through its recovery and the attacker Stun01 from the start
 ##   (the rebound, its attack's clip run backwards, retired with task 34);
 ## - knockdown and KO (task 28; down_clip()): Knockdown01's Fall, Ground and
-##   StandUp fitted to the knockdown's three phases, and the KO's death
+##   StandUp fitted to the knockdown's three phases (the recall burst's
+##   BlastedFall in the fall's place, milestone-1 task 99, its carry over
+##   the ground taken out by FighterView as the rules move the fighter by
+##   its travel), and the KO's death
 ##   (StateClips.ko_clips, by the final blow's side and weight) at 1.0, so the
 ##   final-blow slow motion slows it with the rules;
 ## - the roll and the other movement states (task 30; move_clip()): the
@@ -485,6 +490,14 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 ## tree. Keyed clips are committed, so it plays without the packs too.
 static func state_clip(f: Fighter, ctx: Context) -> Clip:
 	var sc: StateClips = StateClips.shared()
+	var own: StringName = sc.own_clips.get(f.state, &"")
+	if own != &"" and ctx.libraries:
+		# the state's own manifest clip with the packs (task 99), fitted
+		var own_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), own)
+		var own_length: float = ctx.lengths.get(own_name, 0.0)
+		if own_length > 0.0:
+			var at: float = state_time(own, f.sf, f.state_dur, own_length)
+			return null if at < 0.0 else Clip.make(own_name, at)
 	var id: StringName = sc.state_clips.get(f.state, &"")
 	if id == &"" and f.state == &"stunned":
 		id = sc.stun_clips.get(f.stun_cause, &"")
@@ -743,6 +756,9 @@ static func down_clip(f: Fighter, ctx: Context) -> Clip:
 	elif phase != &"":
 		id = sc.knockdown_clips[phase]
 		fallback = sc.knockdown_fallbacks[phase]
+		if phase == &"fall" and f.knockdown_blasted and sc.knockdown_blasted != &"":
+			# the recall burst's blasted fall (task 99)
+			id = sc.knockdown_blasted
 	else:
 		return null
 	var anim_name: String = "%s/%s" % [FighterModel.LIBRARY, fallback]

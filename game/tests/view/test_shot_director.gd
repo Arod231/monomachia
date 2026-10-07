@@ -128,6 +128,23 @@ func test_moonsplitter_s_shot_looks_down_the_wave_s_path_then_swings_to_the_vict
 	assert_almost_eq(Vector2((near["look"] as Vector3).x, (near["look"] as Vector3).z).distance_to(Vector2(0.0, 3.0)), 0.0, 0.6)
 
 
+func test_breaker_palm_s_shot_is_low_beside_the_victim_looking_up_and_pushing_along_the_blow() -> void:
+	# task 99: about 1.2 s, held on the victim however far the blow throws it
+	var shot: ShotData = ShotDirector.load_shot(&"breaker_palm")
+	assert_almost_eq(shot.length(), 1.2, 0.05, "about 1.2 s")
+	var me: Vector3 = Vector3(0.0, 0.0, 0.0)
+	for other: Vector3 in [Vector3(0.0, 0.0, 0.9), Vector3(0.0, 0.0, 2.7)]:
+		var first: Dictionary = shot.view_at(0.0, me, other)
+		var last: Dictionary = shot.view_at(shot.length(), me, other)
+		for v: Dictionary in [first, last]:
+			var pos: Vector3 = v["pos"]
+			assert_lt(pos.y, 0.7, "low")
+			assert_lt(Vector2(pos.x, pos.z).distance_to(Vector2(other.x, other.z)), 1.8, "beside the victim at %.1f m" % other.z)
+			assert_gt(absf(pos.x), 1.2, "to its side")
+			assert_gt((v["look"] as Vector3).y, pos.y + 0.6, "looking up")
+		assert_gt((last["pos"] as Vector3).z, (first["pos"] as Vector3).z, "pushing along the blow")
+
+
 # ------------------------------------------------------------------ the choice
 
 func test_an_ultimate_s_wind_up_has_no_shot() -> void:

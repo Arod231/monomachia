@@ -77,6 +77,7 @@ const OLD: Dictionary = {
 	},
 	"KNOCKDOWN_FALLBACKS": {&"fall": &"Hit_Knockback", &"ground": &"LayToIdle", &"standUp": &"LayToIdle"},
 	"KNOCKDOWN_STANDUP_FROM": 6.0,
+	"KNOCKDOWN_BLASTED": &"BlastedFall",
 	"KO_CLIPS": [[&"CombatDeath01", &"CombatDeath02"], [&"CombatDeath03", &"CombatDeath04"]],
 	"KO_FALLBACK": &"Death01",
 }
@@ -671,7 +672,8 @@ const FIELDS: Dictionary = {
 	"TEMPEST_FINAL": "tempest_final", "TEMPEST_FINAL_FROM": "tempest_final_from",
 	"TEMPEST_FINAL_FRAMES": "tempest_final_frames", "TEMPEST_RECOVER_FRAMES": "tempest_recover_frames",
 	"TEMPEST_FALLBACK": "tempest_fallback", "KNOCKDOWN_CLIPS": "knockdown_clips", "KNOCKDOWN_FALLBACKS": "knockdown_fallbacks",
-	"KNOCKDOWN_STANDUP_FROM": "knockdown_standup_from", "KO_CLIPS": "ko_clips", "KO_FALLBACK": "ko_fallback",
+	"KNOCKDOWN_STANDUP_FROM": "knockdown_standup_from", "KNOCKDOWN_BLASTED": "knockdown_blasted",
+	"KO_CLIPS": "ko_clips", "KO_FALLBACK": "ko_fallback",
 }
 
 

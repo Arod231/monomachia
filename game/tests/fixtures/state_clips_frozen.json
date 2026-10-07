@@ -23,6 +23,7 @@
 		"impaler": {"clip": "AttackPolearm01", "drawn": 8, "out": 14, "recover": 18, "recover_frames": 30, "fallback": "Sword_Dash", "aim": 30, "dash": 40},
 		"tempest": {"spin": "ual/Sword_Aerial_Combo", "slashes": [2, 17], "flash": 8, "final": "AttackDW02", "final_from": 12, "final_frames": 14, "recover_frames": 24, "fallback": "Sword_Heavy_Combo"}
 	},
+	"states": {"ultChoice": "UltChoice", "recall": "RecallPowerUp"},
 	"keyed": {
 		"state": {"stomp": "Mikiri_Stomp", "recall": "Power_Up"},
 		"stun": {"stomp": "Mikiri_Pinned"}
@@ -30,7 +31,8 @@
 	"knockdown": {
 		"clips": {"fall": "Knockdown01_Fall", "ground": "Knockdown01_Ground", "standUp": "Knockdown01_StandUp"},
 		"fallbacks": {"fall": "Hit_Knockback", "ground": "LayToIdle", "standUp": "LayToIdle"},
-		"standup_from": 6
+		"standup_from": 6,
+		"blasted": "BlastedFall"
 	},
 	"ko": {
 		"clips": {"front": ["CombatDeath01", "CombatDeath02"], "behind": ["CombatDeath03", "CombatDeath04"]},

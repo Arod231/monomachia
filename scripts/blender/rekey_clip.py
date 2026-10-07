@@ -31,6 +31,11 @@
 #   frame-data generator's travel), the hips no higher than "hips_top" and
 #   back at their guard height over "hips_home" (by the settle, where the game
 #   hands on), both legs on IK, baked; omit for a clip that keeps its feet;
+# - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
+#   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
+#   over the ground taken out, then the whole body moved along the path
+#   (back negative), which the frame-data generator reads as travel; omit
+#   for a clip that keeps its hips;
 # - blend_from: {"source": path, "frame": source frame, "frames": n}: a
 #   transition (blend_from(); milestone-1 task 33's bridges and returns to
 #   guard): the clip starts in that clip's pose at that frame and carries it
@@ -795,6 +800,34 @@ def lower(arm, scene, length, spec):
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
 
 
+def carry(arm, scene, length, spec):
+    """A body carried over the ground off its feet (milestone-1 task 99: the
+    recall burst's blasted fall): the hips' own shift over the ground taken
+    out (from frame 0's), then the hips, and the whole body with them, moved
+    along spec["body"] ([frame, metres forward] pairs, back negative, a
+    monotone cubic through them) as the clip faces (-Y). Nothing on IK: the
+    feet go where the body takes them. The frame-data generator reads the
+    path as the clip's travel. Keyed."""
+    mw = arm.matrix_world
+    to_arm = mw.inverted().to_3x3()
+    hips = arm.pose.bones["B-hips"]
+    pairs = spec["body"]
+    body = monotone([float(p[0]) for p in pairs], [float(p[1]) for p in pairs])
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    h0 = mw @ hips.head
+    fwd = mathutils.Vector((0.0, -1.0, 0.0))
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        h = mw @ hips.head
+        move = mathutils.Vector((h0.x - h.x, h0.y - h.y, 0.0)) + fwd * (body(float(n)) - body(0.0))
+        hips.matrix = mathutils.Matrix.Translation(to_arm @ move) @ hips.matrix
+        bpy.context.view_layer.update()
+        hips.keyframe_insert("location", frame=1 + n, group=hips.name)
+    print(f"rekey_clip: carried the body {body(float(length)) - body(0.0):.2f} m forward", flush=True)
+
+
 # The bones a transition (blend_from()) leaves to the leg IK.
 LEGS = ("B-thigh.", "B-shin.", "B-foot.", "B-toe.")
 
@@ -882,6 +915,8 @@ def main():
     scene.frame_start, scene.frame_end = 1, 1 + length
     if spec.get("step"):
         step(arm, scene, length, spec["step"])
+    if spec.get("carry"):
+        carry(arm, scene, length, spec["carry"])
     if start is not None:
         blend_from(arm, scene, length, start, float(spec["blend_from"]["frames"]))
     if spec.get("knock"):

@@ -36,12 +36,13 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'block_light', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
+      'blasted_fall', 'block_light', 'breaker_palm', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
       'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right', 'katana_guard',
       'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
-      'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance',
+      'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall',
       'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
       'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut',
+      'ult_choice',
     ]);
   });
 
@@ -53,6 +54,8 @@ describe('the re-key specs', () => {
       const deflect = id.endsWith('_deflect');
       // an iai's sheathe and draws hold the sword in one hand (task 98)
       const oneHanded = id.startsWith('moonsplitter_');
+      // bare hands' ultimate and the burst's blasted fall hold nothing (task 99)
+      const bare = ['ult_choice', 'recall', 'breaker_palm', 'blasted_fall'].includes(id);
 
       it('re-keys a pack clip, or for a transition a re-keyed clip, into its own Blender source', () => {
         if (transition) {
@@ -90,7 +93,7 @@ describe('the re-key specs', () => {
         }
       });
 
-      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai') }, () => {
+      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai') || (bare && 'bare hands') }, () => {
         assert.ok(spec.two_hands.grip > 0 && spec.two_hands.grip < 0.3);
         assert.equal(spec.two_hands.hold.length, 2);
         assert.ok(spec.two_hands.clearance >= 0.05, 'at least PoseCheck.BLADE_CLEARANCE');
@@ -183,6 +186,7 @@ print(json.dumps([f(i / 10.0) for i in range(431)]))`);
       if (spec.knock) assert.match(r.stdout, /knocked back from frame/, id);
       if (spec.turn) assert.match(r.stdout, new RegExp(`turned the motion ${spec.turn} degrees`), id);
       if (spec.lower) assert.match(r.stdout, /lowered \d\.\d\d m/, id);
+      if (spec.carry) assert.match(r.stdout, /carried the body -?\d\.\d\d m forward/, id);
       if (spec.two_hands?.aim?.at) assert.match(r.stdout, /aimed at \d+% of the attacker's blade/, id);
       assert.doesNotMatch(r.stdout, /out of the leg's reach/, id);
     }

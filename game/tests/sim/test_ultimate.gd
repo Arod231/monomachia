@@ -202,3 +202,41 @@ func test_ultimates_disarmed_choosing_heavy_throws_the_breaker_palm_posture_blow
 	var hit: Dictionary = r.find(&"hit")
 	assert_eq(hit.get("attack"), &"f_breaker")
 	assert_almost_eq(b.posture, minf(100.0, 50.0 * SimConst.HIT_POSTURE_MULT), CLOSE)
+
+
+func test_breaker_palm_is_re_keyed_led_by_its_clip_s_travel_with_the_retuned_hitstun_and_hit_stop() -> void:
+	# task 99: 36 / 4 / 36 off its clip's markers, the rules' lunge retired
+	var m: AttackDef = Moves.FISTS.moves[&"f_breaker"]
+	assert_eq([m.startup, m.active, m.recovery], [36, 4, 36])
+	assert_true(m.by_travel, "moved by its clip's travel")
+	assert_eq(m.lunge_from(4.1), 0.0, "no lunge")
+	assert_eq(m.hitstun, 54)
+	assert_eq(m.hitstop, 14)
+	var forward: float = 0.0
+	for f: int in m.startup + m.active + 1:
+		var t: PackedFloat64Array = m.travel_at(f)
+		if not t.is_empty():
+			forward += t[0]
+	assert_between(forward, 3.0, 3.6, "a surging step of about 3 m by the end of its active frames")
+
+
+func test_breaker_palm_surges_on_its_travel_touching_from_4_1_m_and_missing_from_4_6_m() -> void:
+	for d: float in [4.1, 4.6]:
+		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, d)
+		var a: Fighter = W.fighters[0]
+		var b: Fighter = W.fighters[1]
+		a.hp = 20.0
+		a.armed = false
+		var from: V3 = V3.make(a.pos.x, a.pos.y, a.pos.z)
+		var r: H.Rec = H.Rec.new()
+		var p0: Callable = func(i: int) -> RawInput:
+			return H.btn(Btn.ULTIMATE) if i == 0 else (H.btn(Btn.HEAVY) if i == 10 else H.idle())
+		H.run(W, 120, p0, IDLE, r)
+		var hit: Dictionary = r.find(&"hit")
+		if d < 4.5:
+			assert_eq(hit.get("attack"), &"f_breaker", "touches from %.1f m" % d)
+			assert_lt(b.hp, 100.0, "it lands")
+		else:
+			assert_true(hit.is_empty(), "misses from %.1f m" % d)
+			assert_gt(SimMath.dist2(a.pos, from), 3.0, "the surge carried it on")
+		H.dispose_all()

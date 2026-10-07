@@ -334,6 +334,70 @@
 				"katana"
 			]
 		},
+		"UltChoice": {
+			"export": "exports/clips/ult_choice.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 6,
+				"contact_end": 20,
+				"settle": 20
+			},
+			"foot_contacts": {"left": [[0, 20]], "right": [[0, 20]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"RecallPowerUp": {
+			"export": "exports/clips/recall.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 8,
+				"contact_end": 13,
+				"settle": 13
+			},
+			"foot_contacts": {"left": [[0, 13]], "right": [[0, 13]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"BlastedFall": {
+			"export": "exports/clips/blasted_fall.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 4,
+				"contact_end": 11,
+				"settle": 15
+			},
+			"foot_contacts": {"left": [[0, 0], [13, 15]], "right": [[0, 0], [12, 15]]},
+			"provisional": false,
+			"groups": [
+				"states"
+			]
+		},
+		"BreakerPalm": {
+			"export": "exports/clips/breaker_palm.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 18,
+				"contact_end": 20,
+				"settle": 38
+			},
+			"foot_contacts": {"left": [[0, 15], [20, 38]], "right": [[0, 14], [19, 38]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
 		"MoonsplitterStance": {
 			"export": "exports/clips/moonsplitter_stance.glb",
 			"mirror": false,

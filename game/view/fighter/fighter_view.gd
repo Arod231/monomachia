@@ -130,6 +130,9 @@ var shot: ClipDirector.Shot = null
 ## (an attack's or a state's), whose pose already carries its body: the swing
 ## player's body then stays off until it ends (milestone-1 task 23).
 var _blend_from_clip: bool = false
+## The authored clips' own carry of the hips this update (_carry_of()),
+## weighted as they show, for the body layer to take out (task 99).
+var _carried: Vector3 = Vector3.ZERO
 var director: ClipDirector.Context
 var foot_lock: FootLock
 ## The world the shot and the foot lock are for: a new one starts them afresh.
@@ -391,6 +394,25 @@ func _show_authored(f: Fighter, alpha: float) -> void:
 		b_time = shot.clip.under.time
 		share = 1.0 - shot.clip.under_weight
 	locomotion.set_authored(a, a_time, b, b_time, share, shot.authored(), _legs_free(f))
+	_carried = (_carry_of(a, a_time) * share + _carry_of(b, b_time) * (1.0 - share)) * shot.authored()
+
+
+## How far clip `anim_name` has carried the hips from its start by `time`
+## (s), in their pose space, for a clip that carries the body (the recall
+## burst's blasted fall, milestone-1 task 99: StateClips.knockdown_blasted),
+## whose travel the rules move the fighter by; none for any other.
+func _carry_of(anim_name: String, time: float) -> Vector3:
+	var blasted: StringName = StateClips.shared().knockdown_blasted
+	if blasted == &"" or not anim_name.ends_with("/" + String(blasted)):
+		return Vector3.ZERO
+	var ap: AnimationPlayer = model.animation_player
+	if not ap.has_animation(anim_name):
+		return Vector3.ZERO
+	var anim: Animation = ap.get_animation(anim_name)
+	var track: int = anim.find_track(NodePath("%GeneralSkeleton:Hips"), Animation.TYPE_POSITION_3D)
+	if track < 0:
+		return Vector3.ZERO
+	return anim.position_track_interpolate(track, time) - anim.position_track_interpolate(track, 0.0)
 
 
 ## How much the legs are the legs' blend's under the authored clips, which
@@ -458,6 +480,7 @@ func _pose(f: Fighter, p: StickPose.Pose, _seconds: float, alpha: float) -> void
 	rig.body.clear()
 	rig.body.spine_pitch = lean
 	rig.body.hips_offset = Vector3(0.0, -crouch, 0.0)
+	rig.body.carried = _carried if shot != null else Vector3.ZERO
 	# a swing's body (its coil, shift and dip)
 	var swing_body: SwingPlayer.Body = swing_player.body(f, alpha)
 	if driving or (_blend_from_clip and rig.inertial.active and rig.inertial.blending()):

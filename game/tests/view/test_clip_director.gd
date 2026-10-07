@@ -1651,3 +1651,57 @@ func test_the_recall_plays_the_keyed_power_up_fitted_to_it() -> void:
 		assert_eq([shot.drive, shot.clip.name], [ClipDirector.STATE, name], "frame %d: the power-up, whole body" % sf)
 		assert_almost_eq(shot.clip.time, float(sf) / 60.0, 1e-6, "frame %d: on the recall's frames" % sf)
 	assert_eq(ClipDirector.step(null, f, _ctx()).drive, ClipDirector.LEGS, "without the clip in the tree: none")
+
+
+func test_the_recall_and_the_choice_play_their_own_clips_with_the_packs() -> void:
+	# milestone-1 task 99: the choice's gathering stance over its 40 frames,
+	# the recall's power-up over its 26, each fitted
+	var ctx: ClipDirector.Context = _ctx()
+	var lengths: Dictionary[StringName, float] = {&"UltChoice": 20.0 / 30.0, &"RecallPowerUp": 13.0 / 30.0}
+	for id: StringName in lengths:
+		ctx.lengths["HumanM/%s" % id] = lengths[id]
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	f.armed = false
+	for c: Array in [[&"ultChoice", SimConst.ULT_CHOICE_FRAMES, &"UltChoice"], [&"recall", SimConst.RECALL_FRAMES, &"RecallPowerUp"]]:
+		f.set_state(c[0], c[1])
+		for sf: int in [1, int(c[1]) / 2, c[1]]:
+			f.sf = sf
+			W.frame += 1
+			var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
+			assert_eq([shot.drive, shot.clip.name], [ClipDirector.STATE, "HumanM/%s" % c[2]], "%s frame %d: its own clip, whole body" % [c[0], sf])
+			assert_almost_eq(shot.clip.time, ClipDirector.fitted_time(sf, c[1], lengths[c[2]]), 1e-9, "%s frame %d: fitted" % [c[0], sf])
+	# the recall's power-up bursts as the rules' burst does
+	assert_almost_eq(ClipDirector.fitted_time(SimConst.RECALL_BURST_FRAME, SimConst.RECALL_FRAMES, lengths[&"RecallPowerUp"]) * 30.0, 8.0, 1e-6,
+		"the arms flung wide on the burst (its source frame 8)")
+	# without the packs the recall keeps its keyed power-up
+	var bare: ClipDirector.Context = _ctx(&"hunter", false)
+	var keyed: String = KeyedClips.anim_name(KeyedClips.POWER_UP)
+	bare.lengths[keyed] = KeyedClips.load_library().get_animation(KeyedClips.POWER_UP).length
+	f.set_state(&"recall", SimConst.RECALL_FRAMES)
+	f.sf = 4
+	assert_eq(ClipDirector.step(null, f, bare).clip.name, keyed)
+
+
+func test_the_recall_burst_s_knockdown_falls_on_the_blasted_fall() -> void:
+	var ctx: ClipDirector.Context = _down_ctx()
+	for set_name: StringName in ClipLibraries.SETS:
+		ctx.lengths["%s/BlastedFall" % set_name] = 15.0 / 30.0
+	var W: World = SimHelpers.make_world()
+	var f: Fighter = W.fighters[0]
+	f.enter_knockdown(ProtectedTimings.for_weapon(&"fists"))
+	f.knockdown_blasted = true
+	var fall: int = f.knockdown_timings().knockdown_fall
+	for sf: int in [1, fall / 2, fall]:
+		f.sf = sf
+		var clip: ClipDirector.Clip = ClipDirector.down_clip(f, ctx)
+		assert_eq(clip.name, "HumanM/BlastedFall", "frame %d: blasted" % sf)
+		assert_almost_eq(clip.time, ClipDirector.fitted_time(sf, fall, 0.5), 1e-9, "frame %d: over the fall" % sf)
+	f.sf = fall + 1
+	assert_eq(ClipDirector.down_clip(f, ctx).name, "HumanM/Knockdown01_Ground", "then lies as any knockdown")
+	f.enter_knockdown()
+	f.sf = 1
+	assert_eq(ClipDirector.down_clip(f, ctx).name, "HumanM/Knockdown01_Fall", "an ordinary knockdown isn't blasted")
+	var bare: ClipDirector.Context = _down_ctx(false)
+	f.knockdown_blasted = true
+	assert_eq(ClipDirector.down_clip(f, bare).name, "ual/Hit_Knockback", "without the packs, the stand-in")

@@ -141,11 +141,15 @@ const PICKUP_ATTACH_FRAME: int = 14
 # returns to the hand (invulnerable up to it), and the power-up burst on that
 # frame (authored-animation task 30b, the owner's design): an opponent within
 # the recalled weapon's duelling distance is blasted this far away (twice a
-# heavy's 1.0) and knocked down, with no damage or posture.
+# heavy's 1.0) and knocked down, with no damage or posture. Since
+# milestone-1 task 99 the distance is the blasted fall's travel: the
+# opponent, turned to face the recaller, is carried back over the
+# knockdown's fall by BLASTED_FALL's row of the frame-data table, which the
+# bake measures from the clip (RECALL_BURST_KNOCKBACK is what it carries).
 const RECALL_FRAMES: int = 26
 const RECALL_BURST_FRAME: int = 16
 const RECALL_BURST_KNOCKBACK: float = 2.0
-const RECALL_BURST_KNOCK_FRAMES: int = 14
+const BLASTED_FALL: StringName = &"BlastedFall"
 const RECALL_BURST_HITSTOP: int = 6
 
 # --- Input -----------------------------------------------------------------

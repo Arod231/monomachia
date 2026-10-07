@@ -20,7 +20,9 @@ extends RefCounted
 ##   the right of forward), stride (m over one loop), length and foot
 ##   contacts;
 ## - "clips": a clip that sets a rules length (today the state clips) -> its
-##   length and markers in rules frames;
+##   length and markers in rules frames, and for a clip the rules move a
+##   fighter by (FrameDataRows.TRAVEL_CLIPS, the recall burst's blasted
+##   fall) its travel as a move's;
 ## - "not_keyed_yet": the rules-length clips this plan adds that have no clip
 ##   yet, each task that keys one taking it off.
 ## Gaits and clips carry the same two checksums, their digest over the row
@@ -70,6 +72,17 @@ static func read(path: String = PATH) -> FrameDataTable:
 	for name: Variant in (data as Dictionary).get("not_keyed_yet", []):
 		t.not_keyed_yet.append(str(name))
 	return t
+
+
+## The body's travel over rules frame `f` of rules-length clip `id` (its
+## row's "travel", from the frame before; milestone-1 task 99): [metres
+## forward, metres to the right, degrees turned to the right], or none
+## outside its frames or for a clip without travel.
+func clip_travel_at(id: StringName, f: int) -> PackedFloat64Array:
+	var rows: Array = (clips.get(String(id), {}) as Dictionary).get("travel", [])
+	if f < 1 or f >= rows.size():
+		return PackedFloat64Array([0.0, 0.0, 0.0])
+	return PackedFloat64Array(rows[f])
 
 
 ## A move's row, or an empty Dictionary for none.
