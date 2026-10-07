@@ -48,7 +48,7 @@ extends Node3D
 ##
 ## An entry is a preset id, optionally followed by ":" and comma-separated
 ## overrides: <setting>=<value> sets any GraphicsPreset setting
-## (outline_props=false, shadow_atlas_size=2048), and hide=<path> hides a
+## (volumetric_fog=false, shadow_atlas_size=2048), and hide=<path> hides a
 ## node under the match view (hide=Arena/World, hide=Fighter1), to find what
 ## costs what. An entry that can't run is reported, so the run fails, and
 ## left out. On the command line, --bench= takes the entries
@@ -354,15 +354,11 @@ func _add_shot_camera(far_plane: float) -> void:
 
 # ------------------------------------------------------------------ top-down
 
-## No fog, distance mist or vignette, the overlay, the legend and the
-## close-up.
+## No fog or volumetric mist, the overlay, the legend and the close-up.
 func _setup_top_down(arena: Node3D) -> void:
 	for node: Node in arena.find_children("*", "WorldEnvironment", true, false):
 		(node as WorldEnvironment).environment.fog_enabled = false
-	for node: Node in arena.find_children("*", "InkWashPass", true, false):
-		var ink: InkWashPass = node
-		ink.set_param(&"vignette_strength", 0.0)
-		ink.set_param(&"fade_max", 0.0)
+		(node as WorldEnvironment).environment.volumetric_fog_enabled = false
 	var def: ArenaDef = arena.get("def") as ArenaDef
 	add_child(_overlay(arena, def))
 	var layer := CanvasLayer.new()

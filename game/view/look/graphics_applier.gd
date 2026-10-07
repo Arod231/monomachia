@@ -18,15 +18,14 @@ extends RefCounted
 ##   are shown when the preset's scenery_detail reaches that level;
 ## - Light3D nodes in group look_petal_light (the petals' lights) and Decal
 ##   nodes in group look_minor_decal are shown or hidden;
-## - InkWashPass nodes get the post quality and the normal lines;
+## - Light3D nodes in group look_fighter_key (each fighter's key light,
+##   FighterLights) cast shadows or not;
 ## - WorldEnvironment nodes get fog, height fog and glow, volumetric fog and
 ##   ambient occlusion (only where the environment had them), and the look's
-##   colour grade (InkGrade) unless they bring their own;
+##   colour grade (LookGrade) unless they bring their own;
 ## - SubViewports in group graphics_viewports (Versus's split-screen halves)
 ##   get the anti-aliasing and render scale, as the root viewport does
-##   (apply_to_group(); GameServices.apply_graphics() calls it);
-## - every material made by ToonMaterials has its outline switched by its
-##   OutlineKind.
+##   (apply_to_group(); GameServices.apply_graphics() calls it).
 
 ## Viewports besides the root that draw the match (SplitView's halves).
 const VIEWPORTS_GROUP: StringName = &"graphics_viewports"
@@ -36,6 +35,7 @@ const GROUP_PARTICLES: StringName = &"look_particles"
 const GROUP_SCENERY: StringName = &"look_scenery_detail"
 const GROUP_PETAL_LIGHT: StringName = &"look_petal_light"
 const GROUP_MINOR_DECAL: StringName = &"look_minor_decal"
+const GROUP_FIGHTER_KEY: StringName = &"look_fighter_key"
 const META_DETAIL: StringName = &"look_detail"
 ## The environment's own height fog density, kept so a preset that turned it
 ## off can turn it back on.
@@ -68,12 +68,7 @@ static func apply(preset: GraphicsPreset, root: Node, viewport: Viewport = null)
 ## Applies preset to root and every matching node under it, leaving the
 ## renderer and the viewport alone.
 static func apply_to_tree(preset: GraphicsPreset, root: Node) -> void:
-	var materials: Dictionary[Material, bool] = {}
-	_walk(preset, root, materials)
-	for material: Material in materials:
-		var kind: ToonMaterials.OutlineKind = ToonMaterials.outline_kind_of(material)
-		if kind != ToonMaterials.OutlineKind.NONE:
-			ToonMaterials.set_outline(material, preset.outlines_on(kind), preset.outline_width_scale)
+	_walk(preset, root)
 
 
 ## Applies the preset's anti-aliasing, render scale and upscaler to every
@@ -92,7 +87,7 @@ static func apply_to_viewport(preset: GraphicsPreset, viewport: Viewport) -> voi
 	viewport.scaling_3d_mode = preset.scaling_3d_mode
 
 
-static func _walk(preset: GraphicsPreset, node: Node, materials: Dictionary[Material, bool]) -> void:
+static func _walk(preset: GraphicsPreset, node: Node) -> void:
 	if node is DirectionalLight3D and node.is_in_group(GROUP_SHADOW_LIGHT):
 		var sun := node as DirectionalLight3D
 		sun.shadow_enabled = preset.shadows_enabled
@@ -102,6 +97,8 @@ static func _walk(preset: GraphicsPreset, node: Node, materials: Dictionary[Mate
 		(node as Light3D).visible = preset.minor_lights
 	if node is Light3D and node.is_in_group(GROUP_PETAL_LIGHT):
 		(node as Light3D).visible = preset.petal_lights
+	if node is Light3D and node.is_in_group(GROUP_FIGHTER_KEY):
+		(node as Light3D).shadow_enabled = preset.fighter_shadows
 	if node is Decal and node.is_in_group(GROUP_MINOR_DECAL):
 		(node as Decal).visible = preset.minor_decals
 	if node is GPUParticles3D and node.is_in_group(GROUP_PARTICLES):
@@ -112,15 +109,10 @@ static func _walk(preset: GraphicsPreset, node: Node, materials: Dictionary[Mate
 		(node as CameraRig).dof_allowed = preset.push_in_dof
 	if node is Node3D and node.is_in_group(GROUP_SCENERY):
 		(node as Node3D).visible = int(node.get_meta(META_DETAIL, 0)) <= preset.scenery_detail
-	if node is InkWashPass:
-		(node as InkWashPass).set_quality(preset.post_quality)
-		(node as InkWashPass).set_normal_lines(preset.ink_normal_lines)
 	if node is WorldEnvironment:
 		_apply_environment(preset, (node as WorldEnvironment).environment)
-	if node is GeometryInstance3D:
-		_collect_materials(node as GeometryInstance3D, materials)
 	for child: Node in node.get_children():
-		_walk(preset, child, materials)
+		_walk(preset, child)
 
 
 static func _apply_environment(preset: GraphicsPreset, env: Environment) -> void:
@@ -136,29 +128,5 @@ static func _apply_environment(preset: GraphicsPreset, env: Environment) -> void
 	env.fog_height_density = float(env.get_meta(META_BASE_HEIGHT_FOG)) if preset.height_fog else 0.0
 	env.glow_enabled = preset.glow_enabled
 	if env.adjustment_color_correction == null:
-		InkGrade.apply(env)
-
-
-## Every material geo draws with: its override, its surface overrides and its
-## mesh's own surface materials.
-static func _collect_materials(geo: GeometryInstance3D, materials: Dictionary[Material, bool]) -> void:
-	if geo.material_override != null:
-		materials[geo.material_override] = true
-	var source: Mesh = null
-	if geo is MeshInstance3D:
-		var mi := geo as MeshInstance3D
-		source = mi.mesh
-		for s: int in mi.get_surface_override_material_count():
-			var m: Material = mi.get_surface_override_material(s)
-			if m != null:
-				materials[m] = true
-	elif geo is MultiMeshInstance3D:
-		var mm: MultiMesh = (geo as MultiMeshInstance3D).multimesh
-		if mm != null:
-			source = mm.mesh
-	if source != null:
-		for s: int in source.get_surface_count():
-			var m: Material = source.surface_get_material(s)
-			if m != null:
-				materials[m] = true
+		LookGrade.grade(env)
 

@@ -1,16 +1,15 @@
 extends Node3D
-## The stand-in arena until the Moonlit Shrine lands (task 17), in the toon
-## look: a flat stone floor out to the wall at SimConst.ARENA_RADIUS with ink
-## rings on it, a low lacquered wall along the wall line, a lower apron outside
-## it so the follow camera never looks into the void, and a few pillars for
-## scale. Built in code with MeshKit from the rules' radius, so it follows when
-## task 8 changes it.
+## The stand-in arena until the Moonlit Shrine lands (task 17), in the
+## realistic look (milestone-1 task 43): a flat stone floor out to the wall
+## at SimConst.ARENA_RADIUS with dark rings on it, a low lacquered wall
+## along the wall line, a lower apron outside it so the follow camera never
+## looks into the void, and a few pillars for scale. Built in code with
+## MeshKit from the rules' radius, so it follows when task 8 changes it.
 ##
-## Like a real arena it brings its own look: the night environment under a
+## Like a real arena it brings its own look: the night (LookGrade) under a
 ## dusk sky, the moon's key light, a warm rim light that touches fighters only
-## (LookPalette.FIGHTER_LAYER), two lantern lights and the ink-wash pass. It
-## applies the chosen graphics preset to itself when it loads, which also
-## puts the colour grade (InkGrade) on its environment.
+## (LookPalette.FIGHTER_LAYER) and two lantern lights. It applies the chosen
+## graphics preset to itself when it loads.
 ##
 ## It carries the arena seams the real arena will fill (see ArenaScenes):
 ## Spawn0, Spawn1, Gate0 and Gate1 markers.
@@ -38,19 +37,16 @@ func _ready() -> void:
 	_build_wall(kits.kit(&"lacquer"), r)
 	_build_pillars(kits, r)
 	var meshes: Array[MeshInstance3D] = kits.finish(self, {
-		&"floor": ToonMaterials.prop(FLOOR_COLOR, 0.35, false),
-		&"apron": ToonMaterials.prop(APRON_COLOR, 0.2, false),
-		&"lines": ToonMaterials.prop(LINE_COLOR, 0.0, false),
-		&"lacquer": ToonMaterials.prop(LACQUER_COLOR, 0.3),
-		&"stone": ToonMaterials.prop(STONE_COLOR),
-	}, [&"lacquer", &"stone"], [&"floor", &"apron", &"lines"])
+		&"floor": LookMaterials.prop(FLOOR_COLOR),
+		&"apron": LookMaterials.prop(APRON_COLOR),
+		&"lines": LookMaterials.prop(LINE_COLOR),
+		&"lacquer": LookMaterials.prop(LACQUER_COLOR),
+		&"stone": LookMaterials.prop(STONE_COLOR),
+	}, [&"floor", &"apron", &"lines"])
 	for mi: MeshInstance3D in meshes:
 		if mi.name in [&"Floor", &"Apron", &"Lines"]:
 			mi.layers = LookPalette.GROUND_LAYER
 	_build_markers(r)
-	var ink := InkWashPass.new()
-	ink.name = "InkWash"
-	add_child(ink)
 	GraphicsApplier.apply_to_tree(GameServices.graphics_preset(), self)
 
 
@@ -63,10 +59,9 @@ func _build_environment() -> void:
 	sky_mat.ground_bottom_color = Color(0.01, 0.01, 0.015)
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
-	# A copy of the night environment, so a preset can change its fog.
-	var env := (load("res://view/look/ink_night_environment.tres") as Environment).duplicate() as Environment
-	env.background_mode = Environment.BG_SKY
-	env.sky = sky
+	var base := Environment.new()
+	base.sky = sky
+	var env: Environment = LookGrade.environment(base)
 	var we := WorldEnvironment.new()
 	we.name = "Environment"
 	we.environment = env
@@ -113,8 +108,8 @@ func _build_floor(kits: MeshKitSet, r: float) -> void:
 	kits.kit(&"apron").lathe(Transform3D.IDENTITY, PackedVector2Array([
 		Vector2(outer - 1.5, -1.35), Vector2(outer, -0.15), Vector2(r, -0.15),
 	]), 96, false)
-	# Ink rings every 3 m and a centre mark, so movement reads against the
-	# floor. They sit 4 mm up: too little for the ink-wash pass to see an edge.
+	# Dark rings every 3 m and a centre mark, so movement reads against the
+	# floor. They sit 4 mm up.
 	var lines: MeshKit = kits.kit(&"lines")
 	var lift := Transform3D(Basis(), Vector3(0.0, 0.004, 0.0))
 	var ring_r: float = 3.0

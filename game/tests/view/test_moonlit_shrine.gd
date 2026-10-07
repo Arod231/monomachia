@@ -1,10 +1,12 @@
 extends GutTest
-## The Moonlit Shrine, built headless: the arena's own lights, ink-wash pass
-## and night sky, with its fog and the moon ahead of player one where the
+## The Moonlit Shrine, built headless: the arena's own lights and night sky
+## in the realistic look (physically based, no outline, the night's grade, a
+## ground mist and dust), with its fog and the moon ahead of player one where the
 ## layout puts it; the backdrop inside the far clip, cheap, dipping under the
 ## moon to show the lake, and trimmed per preset; the markers the match
 ## reads, a floor at y = 0 under the spawns, a parapet, gate ropes and props
-## outside the walkable circle with only flat pebbles inside it, the torii on
+## outside the walkable circle with only flat pebbles inside it (and the
+## wisteria's canopies high over it), the torii on
 ## the gate landings, the lanterns' lights, halos and flicker, bought art in
 ## place of a procedural prop, the ledge under the props, the rock under the
 ## rim left out per camera by the cameras above the courtyard, the floating
@@ -112,7 +114,7 @@ func test_its_environment_is_its_own_copy_of_the_night_sky() -> void:
 	assert_eq(sky.shader, SKY_SHADER)
 	assert_ne(sky, arena.def.environment.sky.sky_material, "its own sky, so the moon set on it leaves the resource alone")
 	assert_eq(_sky_param(arena, LookNoise.PARAM), LookNoise.texture(), "the sky fetches the look's noise")
-	assert_eq(_sky_param(arena, &"horizon_color"), env.fog_light_color, "the depth fog fades into the sky's horizon")
+	assert_eq(_sky_param(arena, &"horizon_color"), LookPalette.MIST.darkened(0.45), "the night's horizon, into the mist")
 
 
 ## A sky that isn't a shader (bought art, say) comes through as it is.
@@ -172,9 +174,62 @@ func test_the_moon_casts_the_shadows_and_the_rim_light_touches_fighters_only() -
 	assert_almost_eq(rim.global_basis.z, toward_moon, Vector3.ONE * 1e-4, "the rim light shines from the moon")
 
 
-func test_it_brings_exactly_one_ink_wash_pass() -> void:
-	assert_true(arena.get_node("InkWash") is InkWashPass)
-	assert_eq(arena.find_children("*", "InkWashPass", true, false).size(), 1)
+## Milestone-1 task 43: no toon material, outline or ink-wash pass anywhere in
+## the Shrine; every lit surface physically based, the night graded.
+func test_the_shrine_is_in_the_realistic_look() -> void:
+	var lit: int = 0
+	for node: Node in arena.find_children("*", "GeometryInstance3D", true, false):
+		var geo := node as GeometryInstance3D
+		for m: Material in _materials_of(geo):
+			assert_null(m.next_pass, "%s draws no outline" % geo.name)
+			var sm := m as ShaderMaterial
+			if sm != null and sm.shader != null:
+				assert_false(sm.shader.code.contains("void light()"), "%s brings no toon light" % geo.name)
+			if LookMaterials.is_physical(m):
+				lit += 1
+	assert_gt(lit, 10, "the courtyard, its props and the rock are physically based")
+	assert_eq(arena.find_children("*", "MeshInstance3D", true, false).filter(
+		func(n: Node) -> bool: return n.name == &"InkWash").size(), 0, "no ink-wash pass")
+	assert_true(LookGrade.is_graded(_environment(arena)), "the night's grade")
+	assert_true(_environment(arena).volumetric_fog_enabled, "mist in volumetric fog on Ultra")
+
+
+func test_a_ground_mist_and_dust_hang_over_the_courtyard() -> void:
+	var mist := arena.get_node("GroundMist") as FogVolume
+	assert_not_null(mist)
+	assert_gt(mist.size.x, arena.def.floor_radius * 2.0, "over the whole floor")
+	assert_lt(mist.size.y, 2.0, "and low")
+	var dust := arena.get_node("Dust") as GPUParticles3D
+	assert_not_null(dust)
+	assert_true(dust.is_in_group(GraphicsApplier.GROUP_PARTICLES), "the preset thins it")
+	assert_eq(dust.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+
+
+## The moon's key and the lanterns light the mist; the rim, which touches
+## fighters only, doesn't.
+func test_the_lights_are_the_look_test_s() -> void:
+	var key := arena.get_node("Lights/MoonKey") as DirectionalLight3D
+	assert_eq(key.light_color, LookPalette.MOON_STEEL.lightened(0.25))
+	assert_gt(key.light_volumetric_fog_energy, 1.0)
+	assert_eq((arena.get_node("Lights/MoonRim") as Light3D).light_volumetric_fog_energy, 0.0)
+	for light: Node in _lantern_lights(arena):
+		var lamp := light as OmniLight3D
+		assert_eq(lamp.light_color, LookPalette.LANTERN_EMBER, "%s glows ember" % lamp.name)
+		assert_true(lamp.shadow_enabled, "%s casts shadows" % lamp.name)
+
+
+## Every material geo draws with.
+static func _materials_of(geo: GeometryInstance3D) -> Array[Material]:
+	var out: Array[Material] = []
+	if geo.material_override != null:
+		out.append(geo.material_override)
+	if geo is MeshInstance3D and (geo as MeshInstance3D).mesh != null:
+		var mi := geo as MeshInstance3D
+		for i: int in mi.mesh.get_surface_count():
+			var m: Material = mi.get_active_material(i)
+			if m != null:
+				out.append(m)
+	return out
 
 
 # ------------------------------------------------------------------ the platform
@@ -225,6 +280,14 @@ func test_nothing_but_flat_pebbles_is_built_inside_the_walkable_circle() -> void
 	assert_gt(meshes.size(), 10, "the floor, the plinth, the props and the ropes")
 	for node: Node in meshes:
 		if node.name in [&"Floor", &"Pebbles"]:
+			continue
+		if platform.get_node("Wisteria").is_ancestor_of(node):
+			# the wisteria's canopies hang over the arena, high over the fight
+			# (test_shrine_wisteria.gd holds them out of the cameras' room)
+			for w: Vector3 in _world_vertices(node as MeshInstance3D):
+				if Vector2(w.x, w.z).length() < arena.def.walkable_radius and w.y < ShrineWisteria.CANOPY_FLOOR:
+					fail_test("%s reaches into the walkable circle at %s" % [node.name, w])
+					break
 			continue
 		assert_gte(_min_radius(node as MeshInstance3D), arena.def.walkable_radius - 0.001, "%s stays outside the walkable circle" % node.name)
 	var pebbles := platform.get_node("Props/Pebbles") as MeshInstance3D
@@ -298,7 +361,8 @@ func test_every_lantern_has_a_light_that_lights_fighters_and_skips_the_ground() 
 		assert_eq(light.light_cull_mask & LookPalette.GROUND_LAYER, 0, "light %d skips the ground" % i)
 		assert_ne(light.light_cull_mask & LookPalette.FIGHTER_LAYER, 0, "light %d lights fighters" % i)
 		assert_true(light.is_in_group(GraphicsApplier.GROUP_MINOR_LIGHT), "the preset turns light %d on or off" % i)
-		assert_false(light.shadow_enabled, "light %d casts no shadow" % i)
+		assert_true(light.shadow_enabled, "light %d casts shadows, as the look test settled (task 43)" % i)
+		assert_eq(light.light_color, LookPalette.LANTERN_EMBER, "light %d glows ember" % i)
 
 
 ## Where the halos sit is for the shots: the headless renderer keeps no
@@ -360,19 +424,17 @@ func test_a_scene_in_prop_scenes_replaces_the_procedural_lantern_at_the_same_spo
 	assert_null(shrine.get_node_or_null("Platform/Props/Glow"), "no procedural lantern's lit paper")
 	assert_eq(_lantern_lights(shrine).size(), layout.lantern_angles.size(), "the bought lanterns still light")
 	assert_eq(_lantern_embers(shrine).size(), layout.lantern_angles.size(), "and give off embers")
-	for kit_name: String in ["Bark", "Pine", "StoneDark"]:
-		assert_eq(_props_aabb(shrine, kit_name), _props_aabb(arena, kit_name), "%s as it was without the bought lanterns" % kit_name)
+	assert_eq(_props_aabb(shrine, "StoneDark"), _props_aabb(arena, "StoneDark"), "the pillars as they were without the bought lanterns")
+	assert_eq(shrine.get_node("Platform/Wisteria").find_children("Wisteria*", "Node3D", false, false).size(),
+		layout.trees.size(), "and the wisteria")
 
 
 func test_every_prop_kind_can_be_swapped_for_bought_art() -> void:
 	var shrine: MoonlitShrine = _shrine_with_art(ShrineLayout.PROP_KINDS)
 	var layout: ShrineLayout = shrine.layout
-	var pines: int = 0
-	for t: Vector4 in layout.trees:
-		pines += 1 if t.w < 0.5 else 0
 	var expected: Dictionary[String, int] = {
 		"Lantern": layout.lantern_angles.size(), "Torii": 2, "Pillar": layout.pillars.size(),
-		"Pine": pines, "DeadTree": layout.trees.size() - pines,
+		"Wisteria": layout.trees.size(),
 		"Pagoda": 0, "TempleHall": 0,
 	}
 	for c: Vector4 in layout.cliffs:
@@ -392,7 +454,9 @@ func test_every_prop_kind_can_be_swapped_for_bought_art() -> void:
 			if child.name.begins_with(kind) and child.name.trim_prefix(kind).is_valid_int():
 				placed += 1
 		assert_eq(placed, expected[kind], "bought %s in every spot" % kind)
-	for kit_name: String in ["Stone", "Lacquer", "BlackLacquer", "Bark", "Pine", "Glow"]:
+	assert_eq(shrine.get_node("Platform/Wisteria").find_children("Wisteria*", "Node3D", false, false).size(), 0,
+		"no procedural wisteria left")
+	for kit_name: String in ["Stone", "Lacquer", "BlackLacquer", "Glow"]:
 		assert_null(props.get_node_or_null(kit_name), "no procedural %s left" % kit_name)
 	for kit_name: String in ["Wood", "Roof", "Window", "StoneDark"]:
 		assert_null(cliffs.get_node_or_null(kit_name), "no procedural %s left on the cliffs" % kit_name)
@@ -486,7 +550,8 @@ func _draws_below_deck(cam: Camera3D) -> bool:
 
 func test_the_fight_and_menu_cameras_leave_out_the_rock_under_the_rim() -> void:
 	var rig: CameraRig = autofree(CameraRig.new())
-	rig.apply_arena(arena.def.camera_max_radius, arena.def.camera_far)
+	var d: ArenaDef = arena.def
+	rig.apply_arena(d.camera_max_radius, d.camera_far, d.camera_rim_height, d.camera_rim_from(), d.camera_rim_full())
 	# The rig clamps the fight cameras to its limit, but not the menu's orbit.
 	var spots: Array[Vector3] = [rig.menu_target(0.0)["pos"], rig.menu_target(10.0)["pos"]]
 	for side: int in 2:
@@ -499,8 +564,8 @@ func test_the_fight_and_menu_cameras_leave_out_the_rock_under_the_rim() -> void:
 			var a: Vector3 = pair[0]
 			var b: Vector3 = pair[1]
 			var dir: Vector3 = (b - a).normalized()
-			spots.append(rig.clamp_to_arena(rig.follow_target(a, b, dir)["pos"]))
-			spots.append(rig.clamp_to_arena(rig.watch_target(a, b, dir, 0.0)["pos"]))
+			spots.append(rig.rise_over_rim(rig.clamp_to_arena(rig.follow_target(a, b, dir)["pos"])))
+			spots.append(rig.rise_over_rim(rig.clamp_to_arena(rig.watch_target(a, b, dir, 0.0)["pos"])))
 	for pos: Vector3 in spots:
 		var cam: Camera3D = _camera_at(pos)
 		arena.cull_below_deck(cam)
@@ -637,16 +702,14 @@ func test_the_rings_in_front_of_the_lake_dip_under_the_water_toward_the_moon() -
 	assert_gt(in_front, 0, "some rings stand in front of the lake")
 
 
-## Far scenery stays cheap: on any preset nothing in it casts a shadow or
-## draws an outline.
-func test_the_backdrop_casts_no_shadows_and_draws_no_outlines() -> void:
+## Far scenery stays cheap: on any preset nothing in it casts a shadow.
+func test_the_backdrop_casts_no_shadows() -> void:
 	GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(&"high"), arena)
 	var parts: Array[Node] = arena.get_node("World").find_children("*", "GeometryInstance3D", true, false)
 	assert_gt(parts.size(), 0, "the backdrop has parts")
 	for node: Node in parts:
 		var geo := node as GeometryInstance3D
 		assert_eq(geo.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "%s casts no shadow" % geo.name)
-		assert_false(ToonMaterials.is_outlined(geo.material_override), "%s has no outline" % geo.name)
 
 
 func test_the_backdrop_shaders_take_the_look_noise() -> void:
@@ -796,32 +859,19 @@ func test_the_saved_preset_is_applied_when_it_loads() -> void:
 	assert_true(env.has_meta(GraphicsApplier.META_BASE_VOLUMETRIC), "the preset reached the environment")
 	assert_false(env.volumetric_fog_enabled, "no volumetric fog on Low")
 	assert_false(env.ssao_enabled, "no ambient occlusion on Low")
-	var parapet := low_shrine.get_node("Platform/Props/Parapet") as MeshInstance3D
-	assert_true(ToonMaterials.is_outlined(parapet.material_override), "Low keeps Ultra's prop outlines")
+	assert_true(LookGrade.is_graded(env), "Low keeps Ultra's grade")
 
 
 func test_every_preset_applies_to_the_courtyard_and_its_props() -> void:
-	var outlined: Array[String] = ["Parapet", "Landing", "StoneDark", "Rope", "Stone", "Lacquer", "BlackLacquer", "Bark", "Pine"]
 	for id: StringName in GraphicsPreset.IDS:
 		var preset: GraphicsPreset = GraphicsPreset.load_id(id)
 		GraphicsApplier.apply_to_tree(preset, arena)
-		for kit_name: String in outlined:
-			var mi := arena.get_node("Platform/Props/" + kit_name) as MeshInstance3D
-			assert_eq(ToonMaterials.is_outlined(mi.material_override), preset.outline_props, "%s: %s outline" % [id, kit_name])
-		for kit_name: String in ["Pebbles", "Paper"]:
-			var mi := arena.get_node("Platform/Props/" + kit_name) as MeshInstance3D
-			assert_false(ToonMaterials.is_outlined(mi.material_override), "%s: %s never outlined" % [id, kit_name])
 		for light: Node in _lantern_lights(arena):
 			assert_eq((light as Light3D).visible, preset.minor_lights, "%s: lantern lights" % id)
-		for part: String in ["Roots", "Chains"]:
-			var geo := arena.get_node("Underside/BelowDeck/" + part) as GeometryInstance3D
-			assert_eq(ToonMaterials.is_outlined(geo.material_override), preset.outline_props, "%s: %s outline" % [id, part])
-		for rock: String in ["Ledge", "BelowDeck/Crag"]:
-			var geo := arena.get_node("Underside/" + rock) as GeometryInstance3D
-			assert_false(ToonMaterials.is_outlined(geo.material_override), "%s: %s never outlined" % [id, rock])
 		var key := arena.get_node("Lights/MoonKey") as DirectionalLight3D
 		assert_eq(key.directional_shadow_max_distance, preset.shadow_max_distance, "%s: moon shadows" % id)
-		assert_eq((arena.get_node("InkWash") as InkWashPass).quality, preset.post_quality, "%s: ink wash" % id)
 		var env: Environment = _environment(arena)
 		assert_eq(env.fog_enabled, preset.fog_enabled, "%s: fog" % id)
-		assert_eq(env.fog_height_density > 0.0, preset.height_fog, "%s: height fog" % id)
+		assert_eq(env.volumetric_fog_enabled, preset.volumetric_fog, "%s: volumetric fog" % id)
+		assert_eq(env.glow_enabled, preset.glow_enabled, "%s: bloom" % id)
+		assert_true(LookGrade.is_graded(env), "%s: the grade" % id)

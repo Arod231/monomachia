@@ -1,17 +1,14 @@
 // The Moonlit Shrine's courtyard paving, painted procedurally: concentric rings
 // of worn stone tiles around a round centre stone with a faded crescent-moon
-// crest, dark grout, chipped edges, cracks and painterly mottling. Lit by the
-// shared toon model. No image textures: its noise comes from the look's
+// crest, dark grout, chipped edges, cracks and painterly mottling. Lit physically
+// (milestone-1 task 43). No image textures: its noise comes from the look's
 // generated noise texture (LookNoise), which is far cheaper than computing it.
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back;
 
-// toon_light brings the look's noise (look_noise.gdshaderinc) too.
-#include "res://shaders/toon_light.gdshaderinc"
+#include "res://shaders/look_noise.gdshaderinc"
 
-// Set on every toon material (ToonMaterials); the floor has no outline or
-// wash to use it.
-uniform vec4 ink_color : source_color = vec4(0.05, 0.05, 0.07, 1.0);
+uniform float roughness : hint_range(0.0, 1.0) = 0.86;
 uniform vec4 stone_light : source_color = vec4(0.47, 0.465, 0.46, 1.0);
 uniform vec4 stone_dark : source_color = vec4(0.32, 0.32, 0.36, 1.0);
 uniform vec4 grout_color : source_color = vec4(0.13, 0.13, 0.16, 1.0);
@@ -149,7 +146,7 @@ void fragment() {
 	float long_mask = smoothstep(0.55, 0.72, large.g) * long_crack_amount;
 	crack = max(crack, (1.0 - smoothstep(0.006, 0.006 + pix * 1.2, iso_dist)) * long_mask);
 	col = mix(col, grout_color.rgb, crack * 0.7);
-	// Ink-wash stains and grime gathered against the parapet.
+	// Stains and grime gathered against the parapet.
 	float stain = smoothstep(0.5, 0.85, large.r * 0.7 + m * 0.3);
 	col *= 1.0 - 0.28 * stain;
 	col *= 1.0 - 0.22 * smoothstep(wall_radius - 2.6, wall_radius + 0.1, r);
@@ -163,8 +160,5 @@ void fragment() {
 	col *= 1.0 + wear * 0.12 * (1.0 - smoothstep(4.0, 13.0, r));
 
 	ALBEDO = col;
-	ROUGHNESS = 1.0;
-	SPECULAR = 0.0;
-	// Cheap brush noise for the band edges: reuse the layout wobble.
-	toon_brush = (wob.x + wob.y) * 0.8;
+	ROUGHNESS = roughness;
 }

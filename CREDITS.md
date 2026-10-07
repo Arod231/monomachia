@@ -26,6 +26,10 @@ Animation by Kevin Iglesias (https://www.keviniglesias.com), used under the Stan
 
 The Katana, the Hunter's tricorn, the worn-cloth texture and the hand-keyed animations are Monomachia's own.
 
+## The arena
+
+The bark of the Moonlit Shrine's wisteria is Bark Willow by Poly Haven (https://polyhaven.com), dedicated to the public domain under CC0 1.0. The wisteria are Monomachia's own.
+
 ## Sound
 
 Most sound effects are cut and mixed from the Sonniss #GameAudioGDC 2026 bundle (https://gdc.sonniss.com), used under its royalty-free licence, with sounds by:

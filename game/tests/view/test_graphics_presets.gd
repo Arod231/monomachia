@@ -59,12 +59,13 @@ func test_every_preset_follows_ultra_but_for_its_named_cuts() -> void:
 
 ## The parry push-in's depth of field joins them (milestone-1 task 39: off on
 ## Low, the owner's choice, Oct 6), and the sparks' contact lights (task 37:
-## Ultra and High only, the owner's choice, Oct 6).
+## Ultra and High only, the owner's choice, Oct 6), and the fighters' key
+## light shadows (task 44: off on Low, the owner's choice, Oct 7).
 func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 	assert_eq(GraphicsPreset.CUTS, [
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
-		&"push_in_dof", &"spark_light",
+		&"push_in_dof", &"spark_light", &"fighter_shadows",
 	] as Array[StringName])
 
 
@@ -120,8 +121,8 @@ func test_low_keeps_what_reads_the_fight() -> void:
 	# the applier touches on fighters, weapons and effects matches Ultra's.
 	var low: GraphicsPreset = GraphicsPreset.load_id(&"low")
 	var ultra: GraphicsPreset = GraphicsPreset.ultra()
-	for key: StringName in [&"outline_fighters", &"outline_weapons", &"outline_width_scale", &"particle_ratio",
-			&"shadows_enabled", &"shadow_atlas_size", &"minor_lights", &"post_quality"]:
+	for key: StringName in [&"particle_ratio", &"shadows_enabled", &"shadow_atlas_size", &"minor_lights",
+			&"glow_enabled", &"fog_enabled"]:
 		assert_eq(low.get(key), ultra.get(key), "Low keeps Ultra's %s" % key)
 
 
@@ -175,13 +176,13 @@ func test_the_card_table_is_committed_data_and_names_only_real_presets() -> void
 # ------------------------------------------------------------------ applying
 
 ## A small scene with one of everything the applier touches, in this order:
-## environment, shadow light, minor light, particles, far scenery, ink-wash
-## pass, petal light, minor decal, then a fighter, a weapon, a prop and an
-## unoutlined scenery mesh.
+## environment (with height fog), shadow light, minor light, particles, far
+## scenery, petal light, a fighter's key light, minor decal and a camera rig.
 func _scene(volumetric: bool = true, ssao: bool = true) -> Node3D:
 	var root := Node3D.new()
 	var env := WorldEnvironment.new()
-	env.environment = (load("res://view/look/ink_night_environment.tres") as Environment).duplicate()
+	env.environment = Environment.new()
+	env.environment.fog_height_density = 0.02
 	env.environment.volumetric_fog_enabled = volumetric
 	env.environment.ssao_enabled = ssao
 	root.add_child(env)
@@ -198,30 +199,17 @@ func _scene(volumetric: bool = true, ssao: bool = true) -> Node3D:
 	far.set_meta(GraphicsApplier.META_DETAIL, 2)
 	far.add_to_group(GraphicsApplier.GROUP_SCENERY)
 	root.add_child(far)
-	root.add_child(InkWashPass.new())
 	var petal := OmniLight3D.new()
 	petal.add_to_group(GraphicsApplier.GROUP_PETAL_LIGHT)
 	root.add_child(petal)
+	var fighter_key := SpotLight3D.new()
+	fighter_key.add_to_group(GraphicsApplier.GROUP_FIGHTER_KEY)
+	root.add_child(fighter_key)
 	var decal := Decal.new()
 	decal.add_to_group(GraphicsApplier.GROUP_MINOR_DECAL)
 	root.add_child(decal)
-	var materials: Array[ShaderMaterial] = [
-		ToonMaterials.fighter(LookPalette.SIDE_COLORS[0]),
-		ToonMaterials.weapon(LookPalette.STEEL),
-		ToonMaterials.prop(LookPalette.STONE),
-		ToonMaterials.prop(LookPalette.STONE, 0.3, false),
-	]
-	for m: ShaderMaterial in materials:
-		var mi := MeshInstance3D.new()
-		mi.mesh = BoxMesh.new()
-		mi.material_override = m
-		root.add_child(mi)
 	root.add_child(CameraRig.new())
 	return root
-
-
-func _material(root: Node3D, index: int) -> Material:
-	return (root.get_child(index) as MeshInstance3D).material_override
 
 
 func test_each_preset_applies_to_the_scene_and_the_viewport() -> void:
@@ -242,10 +230,8 @@ func test_each_preset_applies_to_the_scene_and_the_viewport() -> void:
 		assert_eq((root.get_child(2) as OmniLight3D).visible, p.minor_lights, "%s minor lights" % p.id)
 		assert_almost_eq((root.get_child(3) as GPUParticles3D).amount_ratio, p.particle_ratio, 0.001, "%s particles" % p.id)
 		assert_eq((root.get_child(4) as Node3D).visible, p.scenery_detail >= 2, "%s scenery detail" % p.id)
-		var ink := root.get_child(5) as InkWashPass
-		assert_eq(ink.quality, p.post_quality, "%s post quality" % p.id)
-		assert_eq(ink.normal_lines, p.ink_normal_lines, "%s normal lines" % p.id)
-		assert_eq((root.get_child(6) as OmniLight3D).visible, p.petal_lights, "%s petal lights" % p.id)
+		assert_eq((root.get_child(5) as OmniLight3D).visible, p.petal_lights, "%s petal lights" % p.id)
+		assert_eq((root.get_child(6) as SpotLight3D).shadow_enabled, p.fighter_shadows, "%s fighter key shadows" % p.id)
 		assert_eq((root.get_child(7) as Decal).visible, p.minor_decals, "%s minor decals" % p.id)
 		var env: Environment = (root.get_child(0) as WorldEnvironment).environment
 		assert_eq(env.fog_enabled, p.fog_enabled, "%s fog" % p.id)
@@ -253,16 +239,12 @@ func test_each_preset_applies_to_the_scene_and_the_viewport() -> void:
 		assert_eq(env.fog_height_density > 0.0, p.height_fog, "%s height fog" % p.id)
 		assert_eq(env.volumetric_fog_enabled, p.volumetric_fog, "%s volumetric fog" % p.id)
 		assert_eq(env.ssao_enabled, p.ambient_occlusion, "%s ambient occlusion" % p.id)
-		assert_eq(env.adjustment_color_correction, InkGrade.lut(), "%s colour grade" % p.id)
-		assert_eq(ToonMaterials.is_outlined(_material(root, 8)), p.outline_fighters, "%s fighter outline" % p.id)
-		assert_eq(ToonMaterials.is_outlined(_material(root, 9)), p.outline_weapons, "%s weapon outline" % p.id)
-		assert_eq(ToonMaterials.is_outlined(_material(root, 10)), p.outline_props, "%s prop outline" % p.id)
-		assert_false(ToonMaterials.is_outlined(_material(root, 11)), "%s leaves scenery without an outline" % p.id)
+		assert_true(LookGrade.is_graded(env), "%s colour grade" % p.id)
 		assert_eq(vp.msaa_3d, p.msaa_3d, "%s MSAA" % p.id)
 		assert_eq(vp.screen_space_aa, p.screen_space_aa, "%s screen-space AA" % p.id)
 		assert_almost_eq(vp.scaling_3d_scale, p.render_scale, 0.001, "%s render scale" % p.id)
 		assert_eq(vp.scaling_3d_mode, p.scaling_3d_mode, "%s upscaler" % p.id)
-		assert_eq((root.get_child(12) as CameraRig).dof_allowed, p.push_in_dof, "%s push-in depth of field" % p.id)
+		assert_eq((root.get_child(8) as CameraRig).dof_allowed, p.push_in_dof, "%s push-in depth of field" % p.id)
 
 
 func test_atmosphere_the_scene_lacks_stays_off_and_switching_brings_back_what_it_has() -> void:
@@ -290,18 +272,3 @@ func test_a_scene_with_its_own_grade_keeps_it() -> void:
 	env.adjustment_color_correction = own
 	GraphicsApplier.apply(GraphicsPreset.default_preset(), root)
 	assert_same(env.adjustment_color_correction, own)
-
-
-func test_a_material_shared_by_two_meshes_is_switched_once_and_consistently() -> void:
-	var root: Node3D = add_child_autofree(_scene())
-	var shared: Material = _material(root, 10)
-	var twin := MeshInstance3D.new()
-	twin.mesh = BoxMesh.new()
-	twin.material_override = shared
-	root.add_child(twin)
-	var preset: GraphicsPreset = GraphicsPreset.ultra().duplicate() as GraphicsPreset
-	preset.outline_props = false
-	GraphicsApplier.apply(preset, root)
-	assert_false(ToonMaterials.is_outlined(shared))
-	GraphicsApplier.apply(GraphicsPreset.ultra(), root)
-	assert_true(ToonMaterials.is_outlined(shared))

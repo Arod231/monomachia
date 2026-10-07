@@ -74,11 +74,10 @@ static func bob_rocks(rocks: Node3D, layout: ShrineLayout, time: float) -> void:
 		rock.rotation.y = phase + time * TURN_SPEED
 
 
-## The rock's toon material, for the crag, the floating rocks and the
-## backdrop's cliffs. No outline: the rock is huge, and the ink-wash pass
-## draws its silhouette.
+## The rock's physically based material, for the crag, the floating rocks
+## and the backdrop's cliffs.
 static func rock_material() -> ShaderMaterial:
-	return ToonMaterials.make_with_shader(ROCK, ToonMaterials.OutlineKind.NONE, {&"brush_noise": 0.12})
+	return LookMaterials.make_with_shader(ROCK, LookMaterials.Surface.PROP)
 
 
 ## The crag's surface as a lattice of rows, each a closed ring of segments + 1
@@ -211,7 +210,7 @@ static func _roots(layout: ShrineLayout, surface: Array[PackedVector3Array], rng
 			var dir := Vector3(rng.randf_range(-1, 1), -1.5, rng.randf_range(-1, 1)).normalized()
 			bark.tube(PackedVector3Array([base, base + dir * 1.2, base + dir * 2.2 + Vector3(0, -0.6, 0)]),
 				PackedFloat32Array([radii[k0] * 0.6, radii[k0] * 0.35, 0.01]), 4)
-	var roots := MeshKit.instance(bark.commit(true), ToonMaterials.prop(LookPalette.WOOD_DARK, 0.2), false)
+	var roots := MeshKit.instance(bark.commit(), LookMaterials.prop(LookPalette.WOOD_DARK), false)
 	roots.name = "Roots"
 	return roots
 
@@ -221,7 +220,7 @@ static func _roots(layout: ShrineLayout, surface: Array[PackedVector3Array], rng
 static func _chains(layout: ShrineLayout, surface: Array[PackedVector3Array]) -> MultiMeshInstance3D:
 	var link := MeshKit.new()
 	link.torus(Transform3D(Basis().scaled(Vector3(1.0, 1.0, 1.75)), Vector3.ZERO), 0.2, 0.05, 8, 4)
-	var link_mesh: ArrayMesh = link.commit(true)
+	var link_mesh: ArrayMesh = link.commit()
 	var transforms: Array[Transform3D] = []
 	var row: int = LEDGE_ROWS + CHAIN_ROW
 	var cols: int = surface[0].size() - 1
@@ -243,7 +242,7 @@ static func _chains(layout: ShrineLayout, surface: Array[PackedVector3Array]) ->
 			b = b.rotated(dir, PI * 0.5 * (k % 2))
 			transforms.append(Transform3D(b, (p + prev) * 0.5))
 			prev = p
-	var chains: MultiMeshInstance3D = MeshKit.multimesh(link_mesh, transforms, ToonMaterials.prop(LookPalette.IRON, 0.0))
+	var chains: MultiMeshInstance3D = MeshKit.multimesh(link_mesh, transforms, LookMaterials.prop(LookPalette.IRON, LookMaterials.METAL_SURFACE))
 	chains.name = "Chains"
 	chains.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return chains
@@ -266,7 +265,8 @@ static func _floating_rocks(layout: ShrineLayout, rock: Material) -> Node3D:
 
 
 ## Floating rock index: a small crag with its flat top at y = 0, carrying a
-## lantern and a dead tree, a pine or a broken pillar, or nothing, in turn.
+## lantern and a young wisteria, a young wisteria or a broken pillar, or
+## nothing, in turn (milestone-1 task 48).
 static func _floating_rock(layout: ShrineLayout, index: int, rock: Material,
 		props: Dictionary[StringName, Material], rng: RandomNumberGenerator) -> Node3D:
 	var size: float = layout.floating_rocks[index].w
@@ -289,10 +289,15 @@ static func _floating_rock(layout: ShrineLayout, index: int, rock: Material,
 	match index % 4:
 		0:
 			ShrineProps.lantern(kits, Transform3D(Basis(), Vector3(size * 0.2, 0, -size * 0.1)), rng)
-			ShrineProps.dead_tree(kits, Transform3D(Basis(), Vector3(-size * 0.35, 0, size * 0.2)), 0.6, rng)
+			var small: Node3D = ShrineWisteria.young(index, size * 0.02)
+			small.position = Vector3(-size * 0.35, 0, size * 0.2)
+			node.add_child(small)
 		1:
-			ShrineProps.pine(kits, Transform3D.IDENTITY, size * 0.35, rng)
+			# where a pine stood
+			var tree: Node3D = ShrineWisteria.young(index, size * 0.03)
+			tree.rotation.y = rng.randf() * TAU
+			node.add_child(tree)
 		2:
 			ShrineProps.pillar(kits, Transform3D(Basis(), Vector3(size * 0.2, 0, 0)), 3.0, true, rng)
-	kits.finish(node, props, ShrinePlatform.OUTLINED, ShrinePlatform.NO_SHADOW)
+	kits.finish(node, props, ShrinePlatform.NO_SHADOW)
 	return node

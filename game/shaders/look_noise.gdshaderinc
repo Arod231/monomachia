@@ -16,17 +16,11 @@ vec3 look_noise(vec2 p) {
 	return texture(look_noise_tex, p / LOOK_NOISE_CELLS).rgb;
 }
 
-// The same without mipmaps (always the full-size texture), for screen-space
-// use (the ink-wash pass), where a lattice cell spans only a few pixels and
-// the screen-space derivatives would pick a blurred mipmap.
-vec3 look_noise_lod0(vec2 p) {
-	return textureLod(look_noise_tex, p / LOOK_NOISE_CELLS, 0.0).rgb;
-}
-
-// White noise in [0, 1] for a pixel (FRAGCOORD.xy), repeating with the
-// texture (LookNoise.SIZE pixels).
-float look_white(vec2 frag) {
-	return texelFetch(look_noise_tex, ivec2(frag) % textureSize(look_noise_tex, 0), 0).a;
+// Value noise in [0, 1] at a world position: one fetch on a skewed plane, so
+// it varies across floors and walls alike. Much cheaper than true 3D value
+// noise on integrated GPUs.
+float look_noise3(vec3 p) {
+	return look_noise(p.xz + p.y * vec2(0.37, 0.71)).r;
 }
 
 #endif

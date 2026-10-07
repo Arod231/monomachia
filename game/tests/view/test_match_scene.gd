@@ -376,6 +376,37 @@ func _fake_arena(max_radius: float, far_plane: float) -> Node3D:
 	return node
 
 
+## Milestone-1 task 43: the gameplay, Watch and menu cameras all see the
+## night's grade on both arenas, under the light film grain, which sits
+## under the HUD.
+func test_every_camera_sees_the_grade_under_the_film_grain() -> void:
+	for arena_id: StringName in [ArenaScenes.MOONLIT_SHRINE, ArenaScenes.STANDIN]:
+		for mode: StringName in [MatchConfig.DUEL, MatchConfig.WATCH]:
+			var cfg: MatchConfig = _cpu(mode)
+			cfg.arena_id = arena_id
+			host.start(cfg)
+			for cam: CameraRig in view.cameras:
+				var env: Environment = cam.get_world_3d().environment
+				assert_true(LookGrade.is_graded(env), "%s %s: the grade on the camera" % [arena_id, mode])
+	host.start(_with_standin(MatchConfig.attract()), true)
+	assert_true(LookGrade.is_graded(view.camera.get_world_3d().environment), "the menus' backdrop camera too")
+	assert_not_null(view.grain, "the film grain")
+	assert_lt(view.grain.layer, hud.layer, "under the HUD")
+
+
+## Milestone-1 task 44: each fighter brings its own key and rim light, which
+## light only that fighter, in every mode.
+func test_each_fighter_brings_its_own_key_and_rim_light() -> void:
+	for mode: StringName in [MatchConfig.DUEL, MatchConfig.WATCH]:
+		host.start(_cpu(mode))
+		for i: int in 2:
+			var lights: FighterLights = view.fighters[i].lights
+			assert_not_null(lights, "%s: fighter %d has its lights" % [mode, i])
+			if lights != null:
+				assert_eq(lights.key.light_cull_mask, LookPalette.side_layer(i), "%s: fighter %d's key lights it alone" % [mode, i])
+				assert_eq(lights.rim.light_cull_mask, LookPalette.side_layer(i), "%s: fighter %d's rim lights it alone" % [mode, i])
+
+
 func test_the_camera_takes_the_arenas_camera_data() -> void:
 	var standin: MatchConfig = _cpu()
 	host.start(standin)
@@ -439,7 +470,7 @@ func test_rematches_and_restarts_leave_no_stray_nodes() -> void:
 	host.start(_cpu())
 	await get_tree().process_frame
 	var baseline: Array[String] = _child_names()
-	assert_eq(baseline.size(), 7, "the arena, the camera, two fighters, the effects, the Moonsplitter waves and the blood")
+	assert_eq(baseline.size(), 8, "the arena, the camera, two fighters, the effects, the Moonsplitter waves, the blood and the film grain")
 	var at: Dictionary = {"x": 0.0, "y": 1.25, "z": 0.0}
 	for k: int in 3:
 		host.step(Match.INTRO_FRAMES + 20)
@@ -456,7 +487,7 @@ func test_rematches_and_restarts_leave_no_stray_nodes() -> void:
 		assert_eq(_child_names(), baseline, "match %d: nothing left behind" % k)
 
 
-func test_a_dropped_weapon_is_in_the_toon_look() -> void:
+func test_a_dropped_weapon_is_in_the_realistic_look() -> void:
 	host.start(_cpu())
 	host.step(Match.INTRO_FRAMES + 5)
 	host.world.weapons.append(DroppedWeapon.stuck_at(1, &"daggers", V3.make(1.0, 0.0, 1.0), 0.0))
@@ -468,12 +499,12 @@ func test_a_dropped_weapon_is_in_the_toon_look() -> void:
 		assert_gt(meshes.size(), 0, "the dagger's own model")
 		for node: Node in meshes:
 			var mi: MeshInstance3D = node
-			assert_eq(mi.layers, 1 | LookPalette.FIGHTER_LAYER, "on the fighters' layer, so the rim light finds it")
+			assert_eq(mi.layers, 1 | LookPalette.FIGHTER_LAYER, "on the fighters' layer, so the fighters' lights find it")
 			for i: int in mi.mesh.get_surface_count():
 				var m: Material = mi.get_active_material(i)
-				assert_true(ToonMaterials.is_toon(m), "a toon dagger")
-				assert_eq(ToonMaterials.outline_kind_of(m), ToonMaterials.OutlineKind.WEAPON)
-				assert_true(ToonMaterials.is_outlined(m), "weapons are outlined on every preset")
+				assert_true(LookMaterials.is_physical(m), "a physically based dagger")
+				assert_eq(LookMaterials.surface_of(m), LookMaterials.Surface.WEAPON)
+				assert_null(m.next_pass, "no outline")
 
 
 ## A dropped weapon's beam is drawn with a material and mesh the view built
