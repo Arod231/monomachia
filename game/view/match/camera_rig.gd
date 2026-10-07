@@ -56,8 +56,9 @@ const PUSH_EPSILON: float = 1e-5
 ## The follow camera is framed as the mood board's Camera 2, For Honor's,
 ## settled in the look test (milestone-1 tasks 30 and 43): about 4.49 m back,
 ## 1.1 m to the right (Camera 2's 1.0 m, nudged out so the player's shoulders
-## never hide the opponent's; the owner's choice, Oct 7), swinging out 0.6 m
-## for each metre closer than 4.62 m, 2.01 m up, a 55° field of view. Its
+## never hide the opponent's; the owner's choice, Oct 7), swinging out 0.8 m
+## (Camera 2's 0.6 m, widened for the taller bodies' shoulders) for each
+## metre closer than 4.62 m, 2.01 m up, a 55° field of view. Its
 ## distances are the board's by 1.32 for the Katana's 3.3 m duel and its
 ## height by 1.15 for the taller bodies (KE tasks 2 and 3, D11). Near the
 ## wall it rises over the arena's rim (rise_over_rim()).
@@ -72,8 +73,10 @@ const PUSH_EPSILON: float = 1e-5
 ## (the demo used 0.5, which hid the opponent behind the player up close).
 @export var follow_close_push: float = 0.0
 ## Extra offset to the right per metre the fighters are closer than
-## follow_close_from, so the opponent stays in view past the shoulder.
-@export var follow_close_side: float = 0.6
+## follow_close_from, so the opponent stays in view past the shoulder: at
+## 0.8 a 0.4 m half-width (KE task 3's shoulders) on both stays clear down to
+## 1.5 m apart (0.6 hid them there).
+@export var follow_close_side: float = 0.8
 @export var follow_close_from: float = 4.62
 ## Offset to the player's right (m); positive is right.
 @export var follow_side: float = 1.1

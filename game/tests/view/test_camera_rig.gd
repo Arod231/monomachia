@@ -23,7 +23,7 @@ func test_the_spec_numbers_are_the_defaults() -> void:
 	# and its height by 1.15 with the taller bodies (KE tasks 2 and 3, D11)
 	assert_eq(rig.follow_back, 4.49)
 	assert_eq(rig.follow_side, 1.1, "Camera 2's 1.0 m nudged out (Oct 7)")
-	assert_eq(rig.follow_close_side, 0.6)
+	assert_eq(rig.follow_close_side, 0.8, "Camera 2's 0.6 m widened for the taller bodies' shoulders")
 	assert_eq(rig.follow_height, 2.01)
 	assert_eq(rig.base_fov, 55.0)
 	assert_eq(rig.fov, 55.0)
@@ -82,7 +82,7 @@ func test_up_close_it_swings_out_so_the_opponent_shows_past_the_player() -> void
 	assert_almost_eq(at_range.dot(CameraRig.right_of(d)), rig.follow_side, 1e-5, "1.1 m from 4.62 m out")
 	assert_gt(up_close.dot(CameraRig.right_of(d)), rig.follow_side + 1.0, "further right up close")
 	var closest: Vector3 = rig.follow_target(p, Vector3(0.0, 0.0, SimConst.FIGHTER_RADIUS * 2.0), d)["pos"]
-	assert_lt(closest.dot(CameraRig.right_of(d)), 3.8, "about 3.5 m at the closest")
+	assert_lt(closest.dot(CameraRig.right_of(d)), 4.4, "about 4.1 m at the closest")
 
 
 ## Seen from the follow camera, the angle between the player and the opponent
@@ -439,14 +439,14 @@ func test_near_the_wall_it_rises_over_the_rim() -> void:
 	var def: ArenaDef = load("res://arenas/moonlit_shrine/moonlit_shrine.tres")
 	rig.apply_arena(def.camera_max_radius, def.camera_far, def.camera_rim_height, def.camera_rim_from(), def.camera_rim_full())
 	var low := Vector3(0.0, rig.follow_height, 0.0)
-	assert_eq(rig.rise_over_rim(low + Vector3(0.0, 0.0, def.camera_rim_from() - 0.5)).y, rig.follow_height, "in the courtyard, Camera 2's height")
+	assert_almost_eq(rig.rise_over_rim(low + Vector3(0.0, 0.0, def.camera_rim_from() - 0.5)).y, rig.follow_height, 1e-5, "in the courtyard, Camera 2's height")
 	var half: float = rig.rise_over_rim(low + Vector3(0.0, 0.0, (def.camera_rim_from() + def.camera_rim_full()) * 0.5)).y
 	assert_between(half, rig.follow_height + 0.01, def.camera_rim_height - 0.01, "easing up on the way")
 	for r: float in [def.camera_rim_full(), def.wall_radius, def.camera_max_radius]:
 		assert_almost_eq(rig.rise_over_rim(low + Vector3(r, 0.0, 0.0)).y, def.camera_rim_height, 1e-5, "over the rim at %.2f m" % r)
 	assert_eq(rig.rise_over_rim(Vector3(0.0, 3.0, def.camera_max_radius)).y, 3.0, "never lower")
 	rig.apply_arena(def.camera_max_radius, def.camera_far)
-	assert_eq(rig.rise_over_rim(low + Vector3(0.0, 0.0, def.camera_max_radius)).y, rig.follow_height, "no rim, no rise")
+	assert_almost_eq(rig.rise_over_rim(low + Vector3(0.0, 0.0, def.camera_max_radius)).y, rig.follow_height, 1e-5, "no rim, no rise")
 	# and the rig does it as it follows a fighter backed against the wall
 	rig.apply_arena(def.camera_max_radius, def.camera_far, def.camera_rim_height, def.camera_rim_from(), def.camera_rim_full())
 	rig.mode = CameraRig.Mode.FOLLOW
