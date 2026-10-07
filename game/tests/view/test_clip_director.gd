@@ -791,40 +791,40 @@ func test_the_daggers_flip_forward_into_an_attack_and_back_after_it() -> void:
 			f.atk.chained_from = Moves.DAGGERS.moves[from] if from != &"" else null
 		f.atk.frame = frame
 	var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
-	assert_eq(shot.grip, 1.0, "the idle holds the reverse grip")
+	assert_eq(shot.reverse_hold, 1.0, "the idle holds the reverse hold")
 	var grips: Array[float] = []
 	for i: int in 4:
 		poke.call(&"d_l1", 1 + i)
 		shot = ClipDirector.step(shot, f, ctx)
-		grips.append(shot.grip)
+		grips.append(shot.reverse_hold)
 	assert_eq(shot.fade, StateClips.shared().fades[&"attack"])
 	assert_eq(grips[0], 1.0, "reverse on the attack's first frame")
 	assert_true(grips[1] < 1.0 and grips[1] > 0.0, "turning over the crossfade: %s" % [grips])
 	assert_eq(grips[3], 0.0, "forward once it is done")
 	var total: int = Moves.DAGGERS.moves[&"d_l1"].total_frames()
-	poke.call(&"d_l1", total - ClipDirector.GRIP_BACK)
+	poke.call(&"d_l1", total - ClipDirector.REVERSE_HOLD_BACK)
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.grip, 0.0, "forward until the last recovery frames")
+	assert_eq(shot.reverse_hold, 0.0, "forward until the last recovery frames")
 	poke.call(&"d_l1", total - 3)
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_almost_eq(shot.grip, 0.5, 1e-6, "turning back over the last 6")
+	assert_almost_eq(shot.reverse_hold, 0.5, 1e-6, "turning back over the last 6")
 	f.atk.queued = &"d_l2"
 	shot = ClipDirector.step(shot, f, ctx)
 	W.frame += 1
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.grip, 0.0, "not while a follow-up is queued")
+	assert_eq(shot.reverse_hold, 0.0, "not while a follow-up is queued")
 	f.atk.queued = &""
 	poke.call(&"d_l1", total - 3)
 	shot = ClipDirector.step(shot, f, ctx)
-	var from: float = shot.grip
+	var from: float = shot.reverse_hold
 	poke.call(&"d_l2", 1, &"d_l1")
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.grip_from, from, "a follow-up turns forward from where the grip stood")
+	assert_eq(shot.reverse_hold_from, from, "a follow-up turns forward from where the hold stood")
 	W.frame += 1
 	f.state = &"free"
 	f.atk = null
 	shot = ClipDirector.step(shot, f, ctx)
-	assert_eq(shot.grip, 1.0, "back to the legs: the reverse grip")
+	assert_eq(shot.reverse_hold, 1.0, "back to the legs: the reverse hold")
 
 
 func test_the_stomped_thruster_plays_its_pin_fitted_to_the_stun() -> void:

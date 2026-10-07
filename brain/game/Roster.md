@@ -8,7 +8,7 @@ Before a match each player picks a [[Fighter]] and a [[Loadout]]. Any fighter ca
 
 | Fighter | Personality | Status |
 |---|---|---|
-| Rogue / Ninja | Lives only for the mission and will do anything to slay the enemy | **Built:** the female Ranger outfit in dark colours, a hood and a cloth mask, idling with her daggers in a reverse grip |
+| Rogue / Ninja | Lives only for the mission and will do anything to slay the enemy | **Built:** the female Ranger outfit in dark colours, a hood and a cloth mask, idling with her daggers in a reverse hold |
 | Hunter | Bloodborne's Hunter with an old-English flavour; a slayer of nightmares | **Built:** the male Ranger outfit in crimson or indigo, a tricorn hat, a neck scarf and a scar |
 | Fantasy Knight | Noble and duty-driven | Planned |
 | Samurai | Honour-driven | Planned |

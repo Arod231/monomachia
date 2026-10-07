@@ -51,7 +51,8 @@ extends Node3D
 ## iai_walk: walking in the Iai stance; carry_walk, carry_lift and
 ## carry_guard: the Greatsword going onto the shoulder as it walks, then
 ## standing and strafing, attacking from it, or raising the guard off it
-## (task 18); string_l to string_llll: the Katana's
+## (task 18); grip_switch: the Katana switched to two hands standing and back
+## guarding (KE task 8); string_l to string_llll: the Katana's
 ## light string stopped after one, two, three and four lights, each press
 ## made after the move before has passed its startup, so it follows it), with
 ## the opponent out of the way (but for stomp: the opponent thrusts its
@@ -275,6 +276,14 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 		"views": [&"side", &"three_quarter"],
 		"spacing": 8.0,
 		"every": 2,
+	},
+	&"grip_switch": {
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.GRIP], [30, 0.0, 0.0, 0], [12, 0.0, 0.0, BLOCK],
+			[1, 0.0, 0.0, BLOCK | (1 << Btn.GRIP)], [30, 0.0, 0.0, BLOCK], [12, 0.0, 0.0, 0]],
+		"notes": "still for 12 frames, switching to the two-handed grip, standing for 30, then guarding and switching back to one hand, guarding for 30 (KE task 8: both grips stand in on the guard idle and guard until task 10)",
+		"views": [&"three_quarter", &"hands"],
+		"spacing": 4.0,
+		"every": 4,
 	},
 	&"string_l": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [70, 0.0, 0.0, 0]],
