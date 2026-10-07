@@ -95,8 +95,8 @@ func test_the_top_down_view_rings_the_rules_wall_and_marks_spawns_and_gates() ->
 func test_the_chosen_preset_reaches_the_arena() -> void:
 	var low: GraphicsPreset = GraphicsPreset.load_id(&"low")
 	var rig: ArenaShot = _rig(ArenaShot.View.GAMEPLAY, &"low")
-	var ink: InkWashPass = _match_view(rig).arena.find_children("*", "InkWashPass", true, false)[0]
-	assert_eq(ink.quality, low.post_quality)
+	var env: Environment = (_match_view(rig).arena.find_children("*", "WorldEnvironment", true, false)[0] as WorldEnvironment).environment
+	assert_eq(env.volumetric_fog_enabled, low.volumetric_fog, "Low's atmosphere")
 	assert_eq(rig.preset.id, &"low")
 
 
@@ -125,11 +125,11 @@ func _positions(host: MatchHost) -> Array[Vector3]:
 func test_the_command_line_sets_up_a_bench() -> void:
 	var rig: ArenaShot = ArenaShot.new()
 	rig.apply_args(PackedStringArray([
-		"--preset=low", "--bench=low;high:outline_props=false", "--bench-passes=2",
+		"--preset=low", "--bench=low;high:volumetric_fog=false", "--bench-passes=2",
 		"--bench-frames=120", "--bench-res=1600x900",
 	]))
 	assert_eq(rig.preset_id, &"low")
-	assert_eq(rig.bench, PackedStringArray(["low", "high:outline_props=false"]))
+	assert_eq(rig.bench, PackedStringArray(["low", "high:volumetric_fog=false"]))
 	assert_eq(rig.bench_passes, 2)
 	assert_eq(rig.bench_frames, 120)
 	assert_eq(rig.bench_resolution, Vector2i(1600, 900))
@@ -173,15 +173,15 @@ func test_bad_bench_counts_and_sizes_on_the_command_line_are_reported() -> void:
 
 
 func test_a_bench_entry_is_a_preset_with_overrides() -> void:
-	var entry: Dictionary = ArenaShot.bench_entry("high:outline_props=false,particle_ratio=0.5,shadow_atlas_size=2048")
+	var entry: Dictionary = ArenaShot.bench_entry("high:volumetric_fog=false,particle_ratio=0.5,shadow_atlas_size=2048")
 	assert_eq(entry["error"], "")
 	var p: GraphicsPreset = entry["preset"]
 	assert_eq(p.id, &"high")
-	assert_false(p.outline_props)
+	assert_false(p.volumetric_fog)
 	assert_almost_eq(p.particle_ratio, 0.5, 1e-6)
 	assert_eq(p.shadow_atlas_size, 2048)
-	assert_true(GraphicsPreset.load_id(&"high").outline_props, "the saved preset is left as it is")
-	assert_eq(entry["label"], "High: outline_props=false, particle_ratio=0.5, shadow_atlas_size=2048")
+	assert_true(GraphicsPreset.load_id(&"high").volumetric_fog, "the saved preset is left as it is")
+	assert_eq(entry["label"], "High: volumetric_fog=false, particle_ratio=0.5, shadow_atlas_size=2048")
 	assert_eq(ArenaShot.bench_entry("medium")["label"], "Medium")
 
 
@@ -194,7 +194,7 @@ func test_a_bench_entry_can_hide_parts_of_the_match() -> void:
 func test_a_bad_bench_entry_says_what_is_wrong() -> void:
 	assert_string_contains(ArenaShot.bench_entry("extreme")["error"], "no preset 'extreme'")
 	assert_string_contains(ArenaShot.bench_entry("high:bloom=true")["error"], "no preset setting 'bloom'")
-	assert_string_contains(ArenaShot.bench_entry("high:outline_props=maybe")["error"], "outline_props")
+	assert_string_contains(ArenaShot.bench_entry("high:volumetric_fog=maybe")["error"], "volumetric_fog")
 	assert_string_contains(ArenaShot.bench_entry("high:shadow_atlas_size")["error"], "shadow_atlas_size")
 
 
@@ -230,8 +230,8 @@ func test_each_bench_entry_replays_the_fight_from_the_same_moment() -> void:
 	assert_eq(rig.preset.id, &"high")
 	var camera: CameraRig = _match_view(rig).camera
 	assert_eq(camera.mode, CameraRig.Mode.FOLLOW, "still the view's camera")
-	var ink: InkWashPass = _match_view(rig).arena.find_children("*", "InkWashPass", true, false)[0]
-	assert_eq(ink.quality, GraphicsPreset.load_id(&"high").post_quality, "the entry's preset reaches the arena")
+	var env: Environment = (_match_view(rig).arena.find_children("*", "WorldEnvironment", true, false)[0] as WorldEnvironment).environment
+	assert_eq(env.volumetric_fog_enabled, GraphicsPreset.load_id(&"high").volumetric_fog, "the entry's preset reaches the arena")
 
 
 func test_an_entry_hides_what_it_names_and_the_next_shows_it_again() -> void:

@@ -58,10 +58,10 @@ static func load_id(weapon_id: StringName) -> WeaponLook:
 	return load(path_for(weapon_id)) as WeaponLook
 
 
-## Instantiates the model in the toon look: each surface's material (as the
-## model was made) becomes a toon weapon material with an ink outline
-## (ToonMaterials.weapon_from()), and every mesh goes on the fighters' render
-## layer, so the arena's rim light finds it. Each instance gets its own
+## Instantiates the model in the realistic look: each surface's material (as
+## the model was made) becomes a physically based weapon material
+## (LookMaterials.weapon_from()), and every mesh goes on the fighters' render
+## layer, so the fighters' lights find it. Each instance gets its own
 ## materials, so a graphics preset applied to one scene leaves the others
 ## alone.
 func instantiate() -> Node3D:
@@ -69,14 +69,14 @@ func instantiate() -> Node3D:
 	for node: Node in weapon.find_children("*", "MeshInstance3D", true, false):
 		var mi: MeshInstance3D = node
 		mi.layers = 1 | LookPalette.FIGHTER_LAYER
-		var toon: Array[Material] = []
+		var physical: Array[Material] = []
 		for s: int in mi.mesh.get_surface_count():
-			toon.append(ToonMaterials.weapon_from(mi.mesh.surface_get_material(s)))
-			mi.set_surface_override_material(s, toon[s])
+			physical.append(LookMaterials.weapon_from(mi.mesh.surface_get_material(s)))
+			mi.set_surface_override_material(s, physical[s])
 		# Held in the node's metadata too: a material only the override holds
 		# is freed before the mesh instance lets go of it, which the renderer
 		# reports. Metadata outlives the instance.
-		mi.set_meta(&"toon_materials", toon)
+		mi.set_meta(&"look_materials", physical)
 	return weapon
 
 

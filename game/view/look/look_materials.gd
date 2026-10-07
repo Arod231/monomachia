@@ -1,0 +1,134 @@
+class_name LookMaterials
+extends RefCounted
+## The realistic look's materials (milestone-1 task 43): physically based
+## surfaces for fighters, weapons and props, lit by Godot's own model under
+## the night's grade (LookGrade), as the look test (task 30) settled them. No
+## toon bands, outlines or ink-wash.
+##
+## Each material is a ShaderMaterial on SURFACE_SHADER (or its two-sided
+## twin), so a fighter's surfaces take blood stains (blood_stain.gdshaderinc,
+## BloodEffects), and remembers its Surface kind (META_SURFACE), which sets
+## its roughness and metalness:
+## - a fighter: rough cloth, leather and skin (FIGHTER_SURFACE);
+## - a weapon: worn steel (METAL_SURFACE), or wrapped leather and wood
+##   (WEAPON_SURFACE);
+## - a prop: plain stone and wood (PROP_SURFACE).
+## Shaders of their own (the stone floor, the rock, the Katana's blade and
+## wrap) set their own roughness and metalness; make_with_shader() gives them
+## the look's noise and the kind.
+
+enum Surface { PROP, FIGHTER, WEAPON }
+
+const SURFACE_SHADER: Shader = preload("res://shaders/surface.gdshader")
+## The same surface drawn from both sides, for open shells (hoods, cloth
+## edges, hair cards).
+const SURFACE_TWO_SIDED_SHADER: Shader = preload("res://shaders/surface_two_sided.gdshader")
+
+const META_SURFACE: StringName = &"look_surface"
+
+## Roughness and metalness (x, y) by surface, the look test's.
+const FIGHTER_SURFACE := Vector2(0.82, 0.0)
+const METAL_SURFACE := Vector2(0.42, 0.85)
+const WEAPON_SURFACE := Vector2(0.75, 0.0)
+const PROP_SURFACE := Vector2(0.88, 0.0)
+## How much of an imported normal map a fighter keeps, as the approved look
+## test drew it.
+const FIGHTER_NORMAL_STRENGTH: float = 0.4
+
+
+## A surface of `kind` in `color`, with roughness and metalness from
+## `surface`. params are more shader parameters to set.
+static func make(color: Color, kind: Surface, surface: Vector2, params: Dictionary = {}) -> ShaderMaterial:
+	return make_with_shader(SURFACE_SHADER, kind, params.merged({
+		&"base_color": color,
+		&"roughness": surface.x,
+		&"metallic": surface.y,
+	}, true))
+
+
+## A material on `shader` (SURFACE_SHADER, or a shader of its own like the
+## stone floor's) of `kind`, with the look's noise and params set.
+static func make_with_shader(shader: Shader, kind: Surface, params: Dictionary = {}) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = shader
+	LookNoise.apply_to(m)
+	for key: Variant in params:
+		m.set_shader_parameter(key, params[key])
+	m.set_meta(META_SURFACE, kind)
+	return m
+
+
+## A fighter's cloth or skin in one colour.
+static func fighter(color: Color) -> ShaderMaterial:
+	return make(color, Surface.FIGHTER, FIGHTER_SURFACE)
+
+
+## A fighter surface from the material it was imported with: its colour,
+## base-colour texture, normal map and vertex colour carried over, drawn from
+## both sides when the import is. Its name is kept, so the palettes still
+## find the outfit by name.
+static func fighter_from(source: BaseMaterial3D) -> ShaderMaterial:
+	var params: Dictionary = {
+		&"base_color": source.albedo_color,
+		&"albedo_texture": source.albedo_texture,
+		&"use_vertex_color": source.vertex_color_use_as_albedo,
+		&"roughness": FIGHTER_SURFACE.x,
+		&"metallic": FIGHTER_SURFACE.y,
+		&"normal_strength": 0.0,
+	}
+	if source.normal_enabled and source.normal_texture != null:
+		params[&"normal_texture"] = source.normal_texture
+		params[&"normal_strength"] = source.normal_scale * FIGHTER_NORMAL_STRENGTH
+	var two_sided: bool = source.cull_mode == BaseMaterial3D.CULL_DISABLED
+	var m: ShaderMaterial = make_with_shader(SURFACE_TWO_SIDED_SHADER if two_sided else SURFACE_SHADER,
+		Surface.FIGHTER, params)
+	m.resource_name = source.resource_name
+	return m
+
+
+## A weapon's steel, or (metal false) its leather, wood or lacquer.
+static func weapon(color: Color, metal: bool = true) -> ShaderMaterial:
+	return make(color, Surface.WEAPON, METAL_SURFACE if metal else WEAPON_SURFACE)
+
+
+## A weapon surface from the material its model was made with, keeping its
+## name:
+## - a StandardMaterial3D becomes steel when it is at all metallic, and
+##   leather or wood otherwise, in its colour;
+## - a ShaderMaterial of its own (the Katana's blade and wrap) is copied,
+##   every parameter it sets kept, with the look's noise.
+static func weapon_from(source: Material) -> ShaderMaterial:
+	var m: ShaderMaterial
+	if source is BaseMaterial3D:
+		var base := source as BaseMaterial3D
+		m = weapon(base.albedo_color, base.metallic > 0.0)
+	else:
+		m = (source as ShaderMaterial).duplicate() as ShaderMaterial
+		LookNoise.apply_to(m)
+		m.set_meta(META_SURFACE, Surface.WEAPON)
+	m.resource_name = source.resource_name
+	return m
+
+
+## A prop's stone, wood, lacquer or paper, taking the mesh's vertex colour
+## (MeshKit's baked shading) as the toon props did.
+static func prop(color: Color, surface: Vector2 = PROP_SURFACE) -> ShaderMaterial:
+	return make(color, Surface.PROP, surface, {&"use_vertex_color": true})
+
+
+## Whether `material` was made here, so it carries its Surface kind.
+static func is_physical(material: Material) -> bool:
+	return material is ShaderMaterial and material.has_meta(META_SURFACE)
+
+
+## The kind a material was made as; PROP for any other material.
+static func surface_of(material: Material) -> Surface:
+	if material == null or not material.has_meta(META_SURFACE):
+		return Surface.PROP
+	return material.get_meta(META_SURFACE) as Surface
+
+
+## Whether `shader` is the shared surface, either side (the surfaces a
+## fighter's blood stains go on).
+static func is_surface_shader(shader: Shader) -> bool:
+	return shader == SURFACE_SHADER or shader == SURFACE_TWO_SIDED_SHADER

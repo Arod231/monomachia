@@ -37,6 +37,11 @@ static func _files(dir_path: String, out: Array[String]) -> Array[String]:
 	return out
 
 
+## Arena art exported from Blender (the Shrine's wisteria, milestone-1 task
+## 48): no skeleton, so no bone map.
+const UNRIGGED: String = "res://assets/exports/shrine/"
+
+
 ## The gitignored folders the Iglesias import tool writes (the staged FBX
 ## copies and the clip libraries): never committed, so outside the budget.
 const UNCOMMITTED: Array[String] = ["res://assets/kevin_iglesias/staging/", "res://assets/kevin_iglesias/library/"]
@@ -117,6 +122,11 @@ func test_every_texture_a_model_references_exists() -> void:
 func test_every_skinned_model_is_retargeted_through_the_bone_map() -> void:
 	for path: String in _files(ASSETS, []):
 		if not (path.ends_with(".gltf.import") or path.ends_with(".glb.import")):
+			continue
+		if path.begins_with(UNRIGGED):
+			var model: Node = (load(path.trim_suffix(".import")) as PackedScene).instantiate()
+			assert_eq(model.find_children("*", "Skeleton3D", true, false).size(), 0, "%s has no rig" % path.get_file())
+			model.free()
 			continue
 		var text: String = FileAccess.get_file_as_string(path)
 		var bone_map: String = IGLESIAS_BONE_MAP if path.begins_with(IGLESIAS) else BONE_MAP

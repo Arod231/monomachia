@@ -1,7 +1,8 @@
 extends GutTest
-## The stand-in arena in the toon look: every surface a toon prop material,
-## the floor on the ground layer, the night environment with the colour grade,
-## the ink-wash pass, the moon casting the preset's shadows, a rim light that
+## The stand-in arena in the realistic look (milestone-1 task 43): every
+## surface a physically based prop with no outline, the floor on the ground
+## layer, the night with the colour grade, the moon casting the preset's
+## shadows, a rim light that
 ## touches fighters only, the chosen graphics preset applied when the arena
 ## loads, and spawn and gate markers placed and facing as ArenaDef's are.
 
@@ -40,8 +41,7 @@ func _arena() -> Node3D:
 func _meshes(arena: Node3D) -> Array[MeshInstance3D]:
 	var out: Array[MeshInstance3D] = []
 	for node: Node in arena.find_children("*", "MeshInstance3D", true, false):
-		if not node is InkWashPass:
-			out.append(node as MeshInstance3D)
+		out.append(node as MeshInstance3D)
 	return out
 
 
@@ -52,27 +52,18 @@ func _lights(arena: Node3D, type: String) -> Array[Light3D]:
 	return out
 
 
-func test_every_surface_is_a_toon_material() -> void:
+func test_every_surface_is_a_physically_based_prop_with_no_outline() -> void:
 	var meshes: Array[MeshInstance3D] = _meshes(_arena())
 	assert_gte(meshes.size(), 5, "the floor, the apron, the lines, the wall and the pillars")
 	for mi: MeshInstance3D in meshes:
 		var m: ShaderMaterial = mi.material_override as ShaderMaterial
 		assert_not_null(m, "%s draws with a material of its own" % mi.name)
 		if m != null:
-			assert_eq(m.shader, ToonMaterials.TOON_SHADER, "%s is toon" % mi.name)
+			assert_true(LookMaterials.is_physical(m), "%s is physically based" % mi.name)
+			assert_eq(LookMaterials.surface_of(m), LookMaterials.Surface.PROP, mi.name)
+			assert_null(m.next_pass, "%s has no outline" % mi.name)
 		for s: int in mi.mesh.get_surface_count():
 			assert_null(mi.mesh.surface_get_material(s), "%s has no other material underneath" % mi.name)
-
-
-func test_the_wall_and_pillars_are_outlined_props_and_the_ground_is_not() -> void:
-	var arena: Node3D = _arena()
-	for node_name: String in ["Lacquer", "Stone"]:
-		var m: Material = (arena.get_node(node_name) as MeshInstance3D).material_override
-		assert_eq(ToonMaterials.outline_kind_of(m), ToonMaterials.OutlineKind.PROP, node_name)
-		assert_true(ToonMaterials.is_outlined(m), "%s is outlined on High" % node_name)
-	for node_name: String in ["Floor", "Apron", "Lines"]:
-		var m: Material = (arena.get_node(node_name) as MeshInstance3D).material_override
-		assert_eq(ToonMaterials.outline_kind_of(m), ToonMaterials.OutlineKind.NONE, "%s is never outlined" % node_name)
 
 
 func test_the_ground_is_on_the_ground_layer_and_the_lanterns_leave_it_out() -> void:
@@ -97,41 +88,28 @@ func test_the_moon_casts_the_presets_shadows_and_the_rim_lights_fighters_only() 
 	assert_false(rim.shadow_enabled)
 
 
-func test_the_night_environment_is_copied_and_graded() -> void:
+func test_the_night_is_the_look_s_and_graded() -> void:
 	var arena: Node3D = _arena()
 	var env: Environment = (arena.get_node("Environment") as WorldEnvironment).environment
-	var night: Environment = load("res://view/look/ink_night_environment.tres")
-	assert_ne(env, night, "a copy, so a preset can change it")
-	assert_eq(env.ambient_light_color, night.ambient_light_color)
-	assert_eq(env.tonemap_mode, night.tonemap_mode)
 	assert_eq(env.background_mode, Environment.BG_SKY, "a dusk sky behind the pillars")
-	assert_true(env.adjustment_enabled)
-	assert_eq(env.adjustment_color_correction, InkGrade.lut(), "the look's colour grade")
-
-
-func test_the_ink_wash_pass_draws_at_the_presets_quality() -> void:
-	var passes: Array[Node] = _arena().find_children("*", "InkWashPass", true, false)
-	assert_eq(passes.size(), 1)
-	var ink: InkWashPass = passes[0]
-	assert_eq(ink.quality, InkWashPass.Quality.FULL, "Ultra draws the full pass")
-	assert_true(ink.visible)
+	assert_eq(env.ambient_light_color, LookPalette.MIST, "the night's mist")
+	assert_true(env.volumetric_fog_enabled, "volumetric fog on Ultra")
+	assert_true(LookGrade.is_graded(env), "the look's colour grade")
+	assert_ne(env, (_arena().get_node("Environment") as WorldEnvironment).environment, "each arena its own, so a preset can change it")
 
 
 func test_the_chosen_preset_is_applied_when_the_arena_loads() -> void:
 	_settings().graphics_preset_id = &"low"
 	var low: GraphicsPreset = GraphicsPreset.load_id(&"low")
 	var arena: Node3D = _arena()
-	# Low drops only atmosphere (milestone-1 task 29): the pass, the outlines,
-	# the lanterns and the height fog stay as on Ultra
-	var ink: InkWashPass = arena.find_children("*", "InkWashPass", true, false)[0]
-	assert_eq(ink.quality, low.post_quality)
-	assert_true(ink.visible, "the ink-wash pass on Low")
-	assert_true(ToonMaterials.is_outlined((arena.get_node("Lacquer") as MeshInstance3D).material_override), "prop outlines on Low")
+	# Low drops only atmosphere (milestone-1 task 29): the lanterns and the
+	# grade stay as on Ultra
 	for lamp: Light3D in _lights(arena, "OmniLight3D"):
 		assert_true(lamp.visible, "lantern lights on Low")
 	assert_eq((arena.get_node("Moon") as DirectionalLight3D).directional_shadow_max_distance, low.shadow_max_distance)
 	var env: Environment = (arena.get_node("Environment") as WorldEnvironment).environment
-	assert_gt(env.fog_height_density, 0.0, "height fog on Low")
+	assert_false(env.volumetric_fog_enabled, "no volumetric fog on Low")
+	assert_true(LookGrade.is_graded(env), "the grade on Low")
 	assert_true(env.has_meta(GraphicsApplier.META_BASE_VOLUMETRIC), "the preset reached the environment")
 	assert_false(env.volumetric_fog_enabled, "no volumetric fog on Low")
 

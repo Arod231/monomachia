@@ -85,7 +85,7 @@ flowchart TD
 | `game/core` | `GameServices` (the only autoload), `GameSettings`, `MatchConfig`, `MatchSide`, `MatchResults`, `Roster`. |
 | `game/view/match` | `MatchHost` (the fixed-step loop), `MatchView`, `CameraRig`, `MatchAudio`, `StickPose`, the arena registry. |
 | `game/view/fighter` | Animating a rigged fighter from the rules' state: the clip director, locomotion, foot locking, IK rig. |
-| `game/view/look` | Toon materials, outline, ink-wash post pass, colour grade, graphics presets. **Superseded by ADR 0001 (Oct 4):** This is the code today; as the slice lands, a realistic look (physically based materials under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass, and four presets with Ultra as the reference preset replaced today's three in milestone-1 task 29. |
+| `game/view/look` | The realistic look (milestone-1 task 43): physically based materials (`LookMaterials`), the night and its colour grade (`LookGrade`), the film grain (`FilmGrain`), the shared noise, the palette and render layers, and the four graphics presets with Ultra as the reference (task 29). The toon materials, outlines and ink-wash pass are gone. |
 | `game/view/mesh_kit*.gd` | Procedural mesh building for props and stand-ins. |
 | `game/fighters`, `game/weapons`, `game/arenas` | Content: fighter models and palettes, weapon models, the Moonlit Shrine. |
 | `game/shaders` | Every `.gdshader` and shared include. |
@@ -116,7 +116,7 @@ flowchart BT
     CORE["core/<br/>GameServices, GameSettings,<br/>MatchConfig, MatchSide, MatchResults,<br/>Roster"]
     HOST["view/match/MatchHost<br/>fixed-step loop"]
     VIEW["view/match, view/fighter<br/>MatchView, CameraRig, FighterView"]
-    LOOK["view/look<br/>toon, outline, ink wash, presets"]
+    LOOK["view/look<br/>materials, grade, grain, presets"]
     AUDIO["audio/ + view/match/MatchAudio"]
     UI["ui/<br/>MatchHud, menus"]
     MAIN["scenes/main.gd<br/>screen flow"]
@@ -706,14 +706,14 @@ flowchart LR
 
 ### 9.2 `view/fighter`: from rules state to a moving body
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This describes the code today. As the slice lands, physically based materials replace the toon materials built here, and while the game runs a clip is adjusted only by foot locking, the hands' grip on the weapon, mirroring and blending, plus the hit reactions' physical layer.
+> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This describes the code today. While the game runs a clip is adjusted only by foot locking, the hands' grip on the weapon, mirroring and blending, plus the hit reactions' physical layer. Since milestone-1 task 43 the fighters are drawn in physically based materials (`LookMaterials`).
 
 The rules know only a position, a yaw, a state and a frame. The fighter view turns that into a rigged, animated body.
 
 ```mermaid
 flowchart TD
     subgraph BUILD["Once per fighter"]
-        FL["FighterLook.instantiate_fighter(id)"] --> FM["FighterModel.build()<br/>skeleton, outfit, hair, head,<br/>toon materials, palette"]
+        FL["FighterLook.instantiate_fighter(id)"] --> FM["FighterModel.build()<br/>skeleton, outfit, hair, head,<br/>physically based materials, palette"]
         FM --> RIG["FighterRig: installs the<br/>skeleton modifier stack"]
         FM --> LOCO["Locomotion: AnimationTree (manual),<br/>gaits measured by FootPhase"]
         WL["WeaponLook.instantiate()"] --> HOLD["FighterModel.attach_weapon<br/>+ WeaponHold for this fighter"]
@@ -746,7 +746,8 @@ flowchart TD
 
 | File | Class | Role |
 | --- | --- | --- |
-| `fighter_view.gd` | `FighterView` | One side's fighter; runs the per-frame pipeline above. The Katana rides the clip's hands in every state (`CLIP_HELD`, milestone-1 task 135); the other weapons are posed in space outside their clips until task 60. |
+| `fighter_view.gd` | `FighterView` | One side's fighter; runs the per-frame pipeline above. The Katana rides the clip's hands in every state (`CLIP_HELD`, milestone-1 task 135); the other weapons are posed in space outside their clips until task 60. Its body and held weapons carry its side's render layer (`LookPalette.side_layer()`), and in a match it shows its own lights (`show_lights()`). |
+| `fighter_lights.gd` | `FighterLights` | Milestone-1 task 44: the fighter's own key and rim light, aimed from the fighter as the look test lit it (the key ahead and to its left, the rim behind and above) and lighting only its side's layer, so neither the arena nor the other fighter catches them; the key's shadows follow the preset (`fighter_shadows`, off on Low). |
 | `fighter_rig.gd` | `FighterRig` | Builds the modifier stack; seats hands on weapons. Since KE task 10 the off hand of a fixed two-handed weapon holds its grip by `off_hand` (the director's `Shot.off_hand`): on the handle by IK, or left on the clip and open for the Katana's one-handed grip (`StateClips.one_handed()`: its idle, block, carry, re-grip and the moves it lists). |
 | `inertial_blend.gd` | `InertialBlend` | Inertial blending (milestone-1 task 23), the stack's first modifier: on a hand-off the new clip shows whole at once and what is left of the pose shown before (each bone's turn and move, with the speed it had) decays over the blend's frames (`StateClips.blends`, which the director asks for in `Shot.blend`) without overshooting; on the world's time, so hit-stop holds it; picture only. The director no longer crossfades clips. |
 | `physical_reaction_layer.gd` | `PhysicalReactionLayer` | The physical reaction layer (milestone-1 task 70), the stack's second modifier: `MatchView.reaction_of()` turns each hit (every part) and block (the arms and upper spine, softer) into a push from its contact point, by its weight and the attacker's weapon class, and `FighterView.react()` hands it to the layer in the skeleton's frame; each bone of the spine, head and arms is a damped spring kicked by it (summed in closed form on the world's time, so hit-stop holds the kick and the same frames give the same pose), the arms pushed less while the fighter's own swing is active; picture only. |
@@ -770,7 +771,7 @@ flowchart LR
     end
     subgraph ARENA["arenas/moonlit_shrine/"]
         ADEF["moonlit_shrine.tres<br/>ArenaDef: radius 15, spawns,<br/>gates, camera limits, ambience"] --> ASCN["moonlit_shrine.tscn<br/>MoonlitShrine"]
-        ASCN --> PARTS["ShrinePlatform, ShrineProps,<br/>ShrineUnderside, ShrineBackdrop,<br/>ShrineParticles"]
+        ASCN --> PARTS["ShrinePlatform, ShrineProps,<br/>ShrineWisteria, ShrineUnderside,<br/>ShrineBackdrop, ShrineParticles"]
         LAYOUT["moonlit_shrine_layout.tres<br/>ShrineLayout: placement data"] --> ASCN
     end
     ASSETS["assets/quaternius<br/>outfits, hair, base bodies,<br/>UAL animation library"] --> FIGHTER
@@ -779,13 +780,12 @@ flowchart LR
 
 - A **fighter** (Rogue, Hunter) is a `FighterModel` scene plus a `FighterLook` resource. The look says which weapon each fighter holds how (`WeaponHold`: reverse hold, guard stance, wrist tweaks).
 - A **weapon's look** (`WeaponLook`) is separate from its rules (`WeaponDef` in `sim/moves`). They share the id (`katana`, `greatsword`, `daggers`) by convention.
-- An **arena** is an `ArenaDef` resource plus a scene that builds itself in code. Every arena must provide a `def` property, `Spawn0/1` and `Gate0/1` markers, its own environment, lights and `InkWashPass`, and apply the graphics preset to itself. Its `walkable_radius` must equal `SimConst.ARENA_RADIUS`, or `ArenaScenes` falls back to the stand-in.
-  > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This is the code today. ADR 0001 retires the ink-wash pass, so an arena will no longer need an `InkWashPass` once the slice lands.
+- An **arena** is an `ArenaDef` resource plus a scene that builds itself in code. Every arena must provide a `def` property, `Spawn0/1` and `Gate0/1` markers, its own environment (the night, `LookGrade.environment()`) and lights, and apply the graphics preset to itself. Its `walkable_radius` must equal `SimConst.ARENA_RADIUS`, or `ArenaScenes` falls back to the stand-in.
 - `fighters/preview/` is a dev stage for looking at fighters and weapons; it isn't part of the game or the export.
 
 ## 11. The look: shaders and graphics presets
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** This section describes the code today. As the slice lands, a realistic look (physically based materials, dark lighting and volumetric fog under a painterly colour grade) replaces the toon materials, outlines and ink-wash pass. Four presets replaced the three in milestone-1 task 29: Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
+Milestone-1 task 43 put the game in the realistic look the look test (task 30) settled beside the mood board: physically based materials, dark lighting and volumetric fog under one colour grade, with light film grain. The toon materials, outlines and ink-wash pass, and their tests, are gone. Ultra is the reference preset at 4K and 60 fps on the RTX 3090, High and Medium scale down, and Low must hold 60 fps at 1080p, upscaled, on the Ryzen 7 4700U laptop.
 
 ```mermaid
 flowchart TD
@@ -794,27 +794,20 @@ flowchart TD
     PRESET --> APP["GraphicsApplier.apply / apply_to_tree"]
     APP --> VP["Viewport: AA, render scale, upscaler (FSR 2.2, FSR 1), shadows"]
     APP --> GROUPS["Node groups: look_shadow_light,<br/>look_minor_light, look_particles,<br/>look_scenery_detail, look_petal_light,<br/>look_minor_decal"]
-    APP --> OUTL["Outline on or off per kind<br/>(fighter, weapon, prop)"]
-    APP --> ENV["Environment: fog, volumetric fog, ambient occlusion,<br/>InkGrade colour LUT"]
-    APP --> INK["InkWashPass quality<br/>OFF / LINES / FULL"]
+    APP --> ENV["Environment: fog, bloom, volumetric fog,<br/>ambient occlusion, global illumination (SDFGI),<br/>the grade (LookGrade)"]
 
-    TM["ToonMaterials"] --> TOON["toon.gdshader<br/>toon_two_sided.gdshader"]
-    TM --> OUT["outline.gdshader<br/>(inverted hull, next_pass)"]
-    INK --> IW["ink_wash_lite.gdshader<br/>ink_wash.gdshader"]
+    LM["LookMaterials<br/>fighter, weapon, prop"] --> SURF["surface.gdshader<br/>surface_two_sided.gdshader<br/>(Godot's physically based lighting)"]
+    LG["LookGrade.environment()<br/>the night over an arena's sky"] --> ENV
 ```
 
 | Shader | Used by |
 | --- | --- |
-| `toon`, `toon_two_sided` (+ `toon_light`, `toon_surface` includes) | Fighters, weapons and props, through `ToonMaterials`. **Superseded by ADR 0001 (Oct 4):** Retires with the toon look; physically based materials replace it as the slice lands. |
-| `outline` | Inverted-hull outline on fighters, weapons and (on High) props. **Superseded by ADR 0001 (Oct 4):** Retires; the realistic look has no outlines, and dyed palettes with key and rim lights on the fighters tell the sides apart. |
-| `ink_wash_lite`, `ink_wash` (+ include) | The full-screen `InkWashPass` in each arena. **Superseded by ADR 0001 (Oct 4):** Retires; there is no ink-wash screen effect during play, and ink survives only as calligraphy in the UI. |
+| `surface`, `surface_two_sided` (+ `surface` include) | Fighters, weapons and props, through `LookMaterials`: base colour, texture, normal map, roughness and metalness, and a fighter's blood stains (`blood_stain.gdshaderinc`) |
 | `sky_moonlit`, `stone_floor`, `rock`, `cloud_sea`, `mountain_layer`, `lake_water`, `waterfall`, `mist_puff`, `lantern_glow`, `particle_glow`, `particle_flake` | The Moonlit Shrine |
 | `weapons/katana/katana_blade`, `katana_wrap` | The Katana's blade and grip |
-| `look_noise.gdshaderinc` | Shared noise texture (`LookNoise`) |
+| `look_noise.gdshaderinc` | Shared noise texture (`LookNoise`), and `look_noise3()` for world-space noise |
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** Outlines and ink-wash quality leave the presets with the toon look. High, Medium and Low scale the realistic look down from Ultra.
-
-Milestone-1 task 29: four presets, Low, Medium, High and Ultra. Ultra (`GraphicsPreset.REFERENCE_ID`, also `DEFAULT_ID`, so tests and shots render at it) is the reference: it renders at 67% of the output and upscales with FSR 2.2, with every atmosphere feature on. The others follow it in every setting but `GraphicsPreset.CUTS`, the resolution and upscaler and the atmosphere (a test holds them to it): High upscales from 59% with FSR 2.2; Medium also drops ambient occlusion and the minor decals; Low renders at 67% with FSR 1 and FXAA (until the laptop bench picks its upscaler) and drops volumetric fog (the height fog stays), the petals' lights, ambient occlusion and the minor decals. Volumetric fog and ambient occlusion come on only where the arena's environment brings them. The first launch (no preset saved) picks a preset from the graphics card's name with `GraphicsPreset.for_card()`, the first matching rule of `presets/cards.json`, and Medium for a card it doesn't know. Fighter and weapon outlines are always on. Anything a preset should be able to turn off joins one of the `look_*` node groups.
+Milestone-1 task 29: four presets, Low, Medium, High and Ultra. Ultra (`GraphicsPreset.REFERENCE_ID`, also `DEFAULT_ID`, so tests and shots render at it) is the reference: it renders at 67% of the output and upscales with FSR 2.2, with every atmosphere feature on. The others follow it in every setting but `GraphicsPreset.CUTS`, the resolution and upscaler and the atmosphere (a test holds them to it): High upscales from 59% with FSR 2.2; Medium also drops ambient occlusion and the minor decals; Low renders at 67% with FSR 1 and FXAA (until the laptop bench picks its upscaler) and drops the fighters' key-light shadows (task 44), volumetric fog, the petals' lights, ambient occlusion and the minor decals. Volumetric fog and ambient occlusion come on only where the arena's environment brings them. The first launch (no preset saved) picks a preset from the graphics card's name with `GraphicsPreset.for_card()`, the first matching rule of `presets/cards.json`, and Medium for a card it doesn't know. Bloom is on everywhere (task 43). Anything a preset should be able to turn off joins one of the `look_*` node groups.
 
 ## 12. Sound and music (`game/audio`)
 
@@ -953,16 +946,14 @@ flowchart LR
 | --- | --- | --- |
 | `game/tests/` (root) | 2 | Godot version; every scene loads |
 | `game/tests/sim` | 16 | Ports of the web rule tests, fixture parity (`rng`, `moves`, `math`, port regressions), fluid combat, each weapon's strings, string continuity, training brain, soak. **Superseded by ADR 0001 (Oct 4):** Tests that pin frame data to the web demo, such as the `moves` fixture parity, will be replaced as the slice lands, and a test will keep every attack inside its timing band. |
-| `game/tests/view` | 24 | Arenas, camera, fighter rig and view, stick pose, locomotion, toon and ink look, presets, MatchHost, main flow, the `--smoke` run, tool scenes. **Superseded by ADR 0001 (Oct 4):** The toon and ink look tests will be replaced as the slice lands. |
+| `game/tests/view` | 24 | Arenas, camera, fighter rig and view, stick pose, locomotion, the realistic look (materials, grade, look test), presets, MatchHost, main flow, the `--smoke` run, tool scenes. |
 | `game/tests/audio` | 10 | Bus layout and ducking, FadedLoop, footsteps, music director and player, sound bank, sound player, headless playback of a match |
 | `game/tests/input` | 7 | Device state, InputFeed, labels, profiles, rebinding, sampling, seats and pause |
 | `game/tests/content` | 5 | Animation library, asset hygiene (no art file over 25 MB, textures scaled down, every referenced texture there), fighter scenes, palettes, weapon models. The art's 110 MB cap went in milestone-1 task 8: `check:sizes` holds the size budgets per place. |
 | `game/tests/core` | 3 | GameServices, GameSettings, MatchConfig and MatchSide |
 | `game/tests/fixtures` | data | JSON from the TypeScript (`rng`, `moves`, `math`, `port`) and a hand-made arena scene |
 
-> **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** The ink-line and outline-width render checks below belong to the toon look, which ADR 0001 retires. They will be replaced as the slice lands.
-
-Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on events and state; `sim_helpers.gd` holds the shared helpers. Nothing graphical is needed. Render checks that need a real window (shaders compile, ink lines, outline width) are screenshot scenes in `game/tools/shot_scenes` run by `npm run shots`.
+Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on events and state; `sim_helpers.gd` holds the shared helpers. Nothing graphical is needed. Render checks that need a real window (shaders compile, the look beside the look test) are screenshot scenes in `game/tools/shot_scenes` run by `npm run shots`.
 
 ## 16. Tools, scripts and pipelines
 
@@ -984,7 +975,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run godot -- script res://tools/x.gd` | Run any headless tool script; `npm run godot -- help` lists the runner's other commands (`import`, `clips`, `bake`…). `clips` builds the clip libraries from the clip manifest: the packs' FBX, and the GLBs of clips exported from Blender (milestone-1 task 13: an entry's `export` path in the asset repository, one export for every clip set, with its pack clip kept as its origin when it replaces one, and `props` keeping the prop bones' motion) |
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
 | `npm run checklist` | Write the last test run's move-by-move results (`build/checklist-results.json`, recorded through `ChecklistResults`) into the per-move checklist, `docs/reviews/milestone-1-checklist.md`; the owner's columns are never touched (milestone-1 task 10) |
-| `npm run export` | The Blender export (`scripts/blender/export.mjs` running `export_blend.py` in Blender headless): each source in the asset repository's `blender/sources.json` to one GLB in its `exports/`, with a record of its source and checksums; a clip's keys start at 0 s whatever Blender frame its source starts on, so its frame k plays at k/30 s; clip and fighter sources must carry the Kevin Iglesias rig's bones; self-made and CC0 models are copied into `game/assets/` inside the art budget. A body part (KE task 3) goes out as a `.gltf` and its `.bin` instead, on the Quaternius rig's bones, and lands in the game beside the original part as `<Part>_Tall.gltf`, keeping the original's materials and textures; the parts are re-proportioned for it by `scripts/blender/reproportion_fighter.py` (Blender headless, one spec per fighter in `scripts/blender/bodies/`: the scale about the floor, the shoulders' spread and the head's size baked into each part's rest pose and meshes), which writes the sources into the asset repository's `blender/bodies/`. Claude's scripted re-keys of pack clips are made for it by `scripts/blender/rekey_clip.py` (Blender headless, one spec per clip in `scripts/blender/rekeys/`: the time warp, a real step with the legs on IK, both hands on the grip clear of the body, and for a transition the pose of another clip carried into this one's motion, the feet kept on IK), which writes the source into the asset repository's `blender/clips/` (milestone-1 task 31; the light string's four, tasks 31 and 32; the Katana's guard idle, the bridges between the string's hits and each light's return to guard, task 33, which `state_clips.json`'s `transitions` and `ClipDirector` play; each light's deflect pair, task 34: its recoil, thrown back from the contact, and the deflect aimed so the two blades meet at the rules' contact point, which `state_clips.json`'s `deflects` and `ClipDirector` play; the light hit reactions, turned for their side and lowered for low, and the light block, task 35, which its `reactions` and `own_speed` and `ClipDirector` play; each grip's guard idle, the one-handed one's blade re-aimed low, the two-handed block and the two re-grips between the guards, KE task 10, which its `grips` and `ClipDirector` play) |
+| `npm run export` | The Blender export (`scripts/blender/export.mjs` running `export_blend.py` in Blender headless): each source in the asset repository's `blender/sources.json` to one GLB in its `exports/`, with a record of its source and checksums; a clip's keys start at 0 s whatever Blender frame its source starts on, so its frame k plays at k/30 s; clip and fighter sources must carry the Kevin Iglesias rig's bones; self-made and CC0 models are copied into `game/assets/` inside the art budget (the Shrine's five wisteria and their bark, milestone-1 task 48, grown by the asset repository's `blender/shrine/wisteria_build.py` in Blender headless against the Shrine that `game/tools/export_shrine_reference.gd` writes as glTF). A body part (KE task 3) goes out as a `.gltf` and its `.bin` instead, on the Quaternius rig's bones, and lands in the game beside the original part as `<Part>_Tall.gltf`, keeping the original's materials and textures; the parts are re-proportioned for it by `scripts/blender/reproportion_fighter.py` (Blender headless, one spec per fighter in `scripts/blender/bodies/`: the scale about the floor, the shoulders' spread and the head's size baked into each part's rest pose and meshes), which writes the sources into the asset repository's `blender/bodies/`. Claude's scripted re-keys of pack clips are made for it by `scripts/blender/rekey_clip.py` (Blender headless, one spec per clip in `scripts/blender/rekeys/`: the time warp, a real step with the legs on IK, both hands on the grip clear of the body, and for a transition the pose of another clip carried into this one's motion, the feet kept on IK), which writes the source into the asset repository's `blender/clips/` (milestone-1 task 31; the light string's four, tasks 31 and 32; the Katana's guard idle, the bridges between the string's hits and each light's return to guard, task 33, which `state_clips.json`'s `transitions` and `ClipDirector` play; each light's deflect pair, task 34: its recoil, thrown back from the contact, and the deflect aimed so the two blades meet at the rules' contact point, which `state_clips.json`'s `deflects` and `ClipDirector` play; the light hit reactions, turned for their side and lowered for low, and the light block, task 35, which its `reactions` and `own_speed` and `ClipDirector` play; each grip's guard idle, the one-handed one's blade re-aimed low, the two-handed block and the two re-grips between the guards, KE task 10, which its `grips` and `ClipDirector` play) |
 | `npm run check:sizes` | Fail on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB (the spec's size budget table; the asset repository's own budgets are its `tools/check-budgets.mjs`) |
 | `npm run brain`, `npm run brain:serve`, `npm run board` | The second brain's generated notes and its viewer; the Project Manager (lanes board) |
 

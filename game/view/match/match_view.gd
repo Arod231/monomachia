@@ -132,6 +132,9 @@ var blood: BloodEffects
 ## The shot director (milestone-1 task 97): chooses and plays the cinematic
 ## shots.
 var shots: ShotDirector = ShotDirector.new()
+## The realistic look's light film grain over the match (milestone-1 task
+## 43), over both halves of a split screen and under the HUD.
+var grain: FilmGrain
 ## The settings whose Reduce flashes switch the view follows (use_settings();
 ## the game's by default).
 var settings: GameSettings
@@ -148,6 +151,9 @@ var _dropped: Dictionary[int, Node3D] = {}
 var _beam_mesh: CylinderMesh = _make_beam_mesh()
 var _beam_mats: Array[StandardMaterial3D] = [_make_beam_material(), _make_beam_material()]
 var _time: float = 0.0
+## Each side's round wins, from the last roundOver: the next round is match
+## point when one has MusicDirector.MATCH_POINT_WINS.
+var _round_wins: Array[int] = [0, 0]
 
 
 func _ready() -> void:
@@ -170,6 +176,9 @@ func _ready() -> void:
 		blood = BloodEffects.new()
 		add_child(blood)
 		blood.host = host
+	if grain == null:
+		grain = FilmGrain.new()
+		add_child(grain)
 	if settings == null:
 		use_settings(GameServices.settings)
 	if host == null and has_node(host_path):
@@ -340,10 +349,14 @@ func steps_from_clips(side: int) -> bool:
 
 func _on_match_started(cfg: MatchConfig) -> void:
 	_load_arena(cfg.arena_id)
+	_round_wins = [0, 0]
+	_tell_arena_match_point(false)
 	while fighters.size() < 2:
 		var f: FighterView = FighterView.new()
 		f.name = "Fighter%d" % fighters.size()
 		add_child(f)
+		# each fighter's own key and rim light (milestone-1 task 44)
+		f.show_lights(true)
 		fighters.append(f)
 	for i: int in 2:
 		var s: MatchSide = cfg.sides[i]
@@ -400,14 +413,22 @@ func set_arena(node: Node3D, id: StringName) -> void:
 	arena_id = id
 	var data: Dictionary = arena_camera_data(arena)
 	for cam: CameraRig in cameras:
-		cam.apply_arena(data["max_radius"], data["far"])
+		cam.apply_arena(data["max_radius"], data["far"], data["rim_height"], data["rim_from"], data["rim_full"])
 
 
-## { "max_radius", "far" } from an arena root's `def`, 0 for what it lacks.
+## { "max_radius", "far", "rim_height", "rim_from", "rim_full" } from an arena
+## root's `def`, 0 for what it lacks.
 static func arena_camera_data(node: Node) -> Dictionary:
-	var out: Dictionary = {"max_radius": 0.0, "far": 0.0}
+	var out: Dictionary = {"max_radius": 0.0, "far": 0.0, "rim_height": 0.0, "rim_from": 0.0, "rim_full": 0.0}
 	var def: Variant = node.get("def")
-	if def is Object:
+	if def is ArenaDef:
+		var a := def as ArenaDef
+		out["max_radius"] = a.camera_max_radius
+		out["far"] = a.camera_far
+		out["rim_height"] = a.camera_rim_height
+		out["rim_from"] = a.camera_rim_from()
+		out["rim_full"] = a.camera_rim_full()
+	elif def is Object:
 		var r: Variant = (def as Object).get("camera_max_radius")
 		var f: Variant = (def as Object).get("camera_far")
 		if r is float or r is int:
@@ -467,7 +488,8 @@ func _use_split(on: bool) -> void:
 		second.name = "CameraRig2"
 		camera.reparent(split.viewports[0], false)
 		split.viewports[1].add_child(second)
-		second.apply_arena(camera.arena_max_radius, camera.arena_far)
+		second.apply_arena(camera.arena_max_radius, camera.arena_far, camera.arena_rim_height, camera.arena_rim_from,
+			camera.arena_rim_full)
 		cameras = [camera, second]
 	else:
 		camera.reparent(self, false)
@@ -637,7 +659,12 @@ func _on_sim_event(e: Dictionary) -> void:
 				_body_flash(loser, Color.WHITE, 0.8)
 			if host.config.mode != MatchConfig.VERSUS:
 				camera.start_ko_orbit()
+		&"roundOver":
+			var wins: Variant = e.get("wins")
+			if wins is Array and (wins as Array).size() == 2:
+				_round_wins = [int(wins[0]), int(wins[1])]
 		&"roundStart":
+			_tell_arena_match_point(is_match_point(_round_wins))
 			for cam: CameraRig in cameras:
 				cam.reset_round()
 			_clear_dropped()
@@ -646,6 +673,19 @@ func _on_sim_event(e: Dictionary) -> void:
 			ult_effects.clear()
 			ult_aura.clear()
 			moon_waves.clear()
+
+
+## Whether the round that follows wins (each side's round wins) is match
+## point, as the music hears it (MusicDirector.MATCH_POINT_WINS).
+static func is_match_point(wins: Array) -> bool:
+	return wins.size() == 2 and maxi(int(wins[0]), int(wins[1])) >= MusicDirector.MATCH_POINT_WINS
+
+
+## Tells an arena that dresses for match point (the Shrine's wisteria turn
+## blood red) whether this round is one.
+func _tell_arena_match_point(on: bool) -> void:
+	if arena != null and arena.has_method(&"set_match_point"):
+		arena.call(&"set_match_point", on)
 
 
 # ------------------------------------------------------------------ dropped weapons

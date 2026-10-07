@@ -23,6 +23,9 @@ uniform float star_amount = 0.75;
 uniform vec4 cloud_color : source_color = vec4(0.018, 0.018, 0.028, 1.0);
 uniform vec4 cloud_edge_color : source_color = vec4(0.40, 0.12, 0.10, 1.0);
 uniform float cloud_amount = 0.85;
+// How brightly the moon lights the clouds round it (0: dark silhouettes),
+// their edges facing it brightest, so they glow.
+uniform float cloud_moon_glow = 0.0;
 
 // The moon's seas, laid out like the real moon's face: centre (x right, y up)
 // and radius, in moon radii. They overlap into the familiar dark shapes.
@@ -79,26 +82,67 @@ void sky() {
 		}
 	}
 
-	// The moon: a disc with soft darker seas, a darker limb and a dark rim.
-	// p is the point on its face, in moon radii, x right and y up (toward
-	// the zenith, or toward -Z for a moon straight overhead).
+	// The moon: a sphere's face (features foreshortened toward the limb) with
+	// soft seas warped by noise, grainy highlands, craters with dark floors
+	// and lit rims, one bright rayed crater, limb darkening, and an eclipse's
+	// shading, darker crimson toward one edge and brighter copper toward the
+	// other. p is the point on its face, in moon radii, x right and y up
+	// (toward the zenith, or toward -Z for a moon straight overhead).
 	vec3 face_x = normalize(cross(m, abs(m.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, -1.0)));
 	vec3 face_y = cross(face_x, m);
 	vec2 p = vec2(dot(d, face_x), dot(d, face_y)) / moon_radius;
 	float r = length(p);
 	if (cosang > 0.0 && r < 1.05) {
-		// Soft seas with ragged shores, and a fine mottle over everything.
-		vec2 q = p + (look_noise(p * 1.1 + vec2(3.0, 1.0)).rg - 0.5) * 0.42 + (look_noise(p * 3.2 + vec2(9.0, 6.0)).gb - 0.5) * 0.14;
+		vec3 n = vec3(p, sqrt(max(1.0 - r * r, 0.0)));
+		// the surface's own coordinates: longitude and latitude, about -1 to 1
+		vec2 uv = vec2(atan(n.x, max(n.z, 1e-4)), asin(clamp(n.y, -1.0, 1.0))) / 1.5707963;
+		// seas: the familiar shapes, their shores ragged at two scales
+		vec2 q = uv + (vec2(sky_fbm(uv * 1.6 + vec2(3.0, 1.0)), sky_fbm(uv * 1.6 + vec2(8.0, 5.0))) - 0.5) * 0.34;
 		float seas = 0.0;
 		for (int i = 0; i < 12; i++) {
-			seas += 1.0 - smoothstep(MOON_SEAS[i].z * 0.2, MOON_SEAS[i].z * 1.25, length(q - MOON_SEAS[i].xy));
+			seas += 1.0 - smoothstep(MOON_SEAS[i].z * 0.35, MOON_SEAS[i].z * 1.35, length(q - MOON_SEAS[i].xy));
 		}
-		float mottle = look_noise(p * 5.0 + vec2(11.0, 2.0)).b;
-		float dark = clamp(seas, 0.0, 1.0) * 0.85 + (mottle - 0.5) * 0.16;
-		vec3 mc = mix(moon_color.rgb, moon_shadow_color.rgb, clamp(dark, 0.0, 1.0));
-		float limb = sqrt(max(1.0 - r * r, 0.0));
-		mc *= mix(0.55, 1.0, limb);
-		mc = mix(mc, moon_shadow_color.rgb * 0.6, smoothstep(0.9, 1.0, r) * 0.6);
+		seas = clamp(seas, 0.0, 1.0) * mix(0.7, 1.0, sky_fbm(uv * 5.0 + vec2(2.0, 9.0)));
+		float light = 1.0 - seas * 0.85;
+		// highlands: a soft mottle
+		light += (sky_fbm(uv * 5.0 + vec2(11.0, 2.0)) - 0.5) * 0.16 * (1.0 - seas * 0.6);
+		// a few soft craters: a darker floor and a faint rim lit from the
+		// upper left
+		for (int level = 0; level < 1; level++) {
+			float scale = level == 0 ? 6.0 : 13.0;
+			vec2 g = uv * scale;
+			vec2 cell = floor(g);
+			for (int j = -1; j <= 1; j++) {
+				for (int i = -1; i <= 1; i++) {
+					vec2 c = cell + vec2(float(i), float(j));
+					float h = sky_hash(vec3(c, float(level) * 7.0 + 3.0));
+					if (h > (level == 0 ? 0.28 : 0.4)) {
+						continue;
+					}
+					vec2 centre = c + vec2(sky_hash(vec3(c, 11.0)), sky_hash(vec3(c, 23.0)));
+					float rad = mix(0.08, 0.34, pow(sky_hash(vec3(c, 37.0)), 2.0));
+					vec2 v = g - centre;
+					float dd = length(v) / rad;
+					float floor_dark = (1.0 - smoothstep(0.3, 1.0, dd)) * 0.1;
+					float rim = smoothstep(0.7, 1.0, dd) * (1.0 - smoothstep(1.0, 1.4, dd));
+					float lit = dot(normalize(v + 1e-5), normalize(vec2(-0.6, 0.8)));
+					light += -floor_dark + rim * (0.02 + 0.04 * lit);
+				}
+			}
+		}
+		// a bright young crater low on the face, its rays across the seas
+		vec2 t = uv - vec2(-0.08, -0.6);
+		float td = length(t);
+		float rays = pow(abs(sin(atan(t.y, t.x) * 9.0 + sky_fbm(t * 3.0) * 6.0)), 18.0) * exp(-td * 3.2);
+		light += rays * 0.08 + (1.0 - smoothstep(0.03, 0.08, td)) * 0.12;
+		light = clamp(light, 0.12, 1.4);
+		// the eclipse: brighter copper toward the lower left, deep crimson
+		// toward the upper right
+		float side = smoothstep(-0.9, 0.9, dot(p, normalize(vec2(-0.55, -0.85))));
+		vec3 mc = mix(moon_shadow_color.rgb, moon_color.rgb, clamp(light, 0.0, 1.0)) * max(light, 1.0);
+		mc *= mix(vec3(0.8, 0.75, 0.8), vec3(1.08, 1.3, 1.1), side);
+		// a little limb darkening, and a soft edge
+		mc *= mix(0.7, 1.0, pow(n.z, 0.5));
 		float disc = smoothstep(1.0, 0.985, r);
 		col = mix(col, mc * moon_energy, disc);
 	}
@@ -111,6 +155,9 @@ void sky() {
 		float mask = smoothstep(0.52, 0.72, c) * band * cloud_amount;
 		float edge = smoothstep(0.52, 0.6, c) - smoothstep(0.6, 0.72, c);
 		vec3 cc = mix(cloud_color.rgb, cloud_edge_color.rgb, clamp(edge * haze * 1.6, 0.0, 1.0));
+		// lit by the moon: the nearer it, the brighter, the edges most
+		float lit = exp(-ang * 4.5) * 0.8 + exp(-ang * 14.0) * 2.2;
+		cc += moon_color.rgb * moon_energy * lit * cloud_moon_glow * (0.35 + 1.4 * edge);
 		col = mix(col, cc, mask);
 	}
 

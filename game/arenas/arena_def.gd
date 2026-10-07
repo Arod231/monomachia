@@ -12,6 +12,10 @@ extends Resource
 ## z = -4.15 facing +Z and side 1 at z = +4.15 facing -Z).
 
 ## Stable id, used by saves, menus and the match setup.
+## How far short of the wall's inner face a camera has finished rising over
+## it (m): a little more than the camera's near plane and shake.
+const CAMERA_RIM_CLEARANCE: float = 0.4
+
 @export var id: StringName = &""
 @export var display_name: String = ""
 ## Path of the arena scene. A path, not a PackedScene, so the scene may point
@@ -49,6 +53,15 @@ extends Resource
 ## Far clip plane the arena's cameras need to see the whole backdrop (the
 ## farthest mountains and the edge of the sea of clouds).
 @export var camera_far: float = 3000.0
+## The least height (m) a match camera sits at once it backs out over the
+## wall, clear of the wall's top with its near plane and its shake; 0 for an
+## arena whose wall the cameras clear anyway. Camera 2's 1.75 m (milestone-1
+## task 43) is lower than the Shrine's parapet, so near the wall the camera
+## eases up to it (CameraRig.rise_over_rim(), the owner's choice, Oct 7).
+@export var camera_rim_height: float = 0.0
+## Over how many metres inward of the full height the camera eases up to
+## camera_rim_height (camera_rim_from() to camera_rim_full()).
+@export var camera_rim_rise: float = 1.5
 
 @export_group("Sound")
 ## The looping ambience bed: a cue id in SoundBank.CUES.
@@ -68,6 +81,17 @@ func wall_inner_radius() -> float:
 ## Outer face of the wall.
 func wall_outer_radius() -> float:
 	return wall_radius + wall_thickness * 0.5
+
+
+## Where a camera has risen all the way to camera_rim_height: its near plane
+## and a little more short of the wall's inner face.
+func camera_rim_full() -> float:
+	return wall_inner_radius() - CAMERA_RIM_CLEARANCE
+
+
+## Where a camera starts easing up to camera_rim_height.
+func camera_rim_from() -> float:
+	return camera_rim_full() - camera_rim_rise
 
 
 ## Is a point (ignoring height) inside the walkable area?

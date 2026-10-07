@@ -23,17 +23,13 @@ const HALO: Shader = preload("res://shaders/particle_glow.gdshader")
 const LEDGE_Y := -0.3
 ## A lantern light's brightness, which MoonlitShrine flickers around, and
 ## the colour of its light and halo.
-const LANTERN_ENERGY := 2.25
+const LANTERN_ENERGY := 8.0
 const FIRE_COLOR := Color(1.0, 0.54, 0.24)
 ## Half the width of a parapet post, and how much wider the posts beside a
 ## gate opening are.
 const POST_HALF := 0.16
 const END_POST_WIDEN := 1.3
 
-## Kits whose meshes get smoothed outline normals and the prop outline.
-const OUTLINED: Array[StringName] = [
-	&"landing", &"parapet", &"stone", &"stone_dark", &"lacquer", &"black_lacquer", &"rope", &"bark", &"pine",
-]
 const NO_SHADOW: Array[StringName] = [&"paper", &"pebbles", &"glow"]
 
 
@@ -55,9 +51,9 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> Node3D:
 	_pebbles(kits, layout, def)
 	_lanterns(kits, root, props, layout)
 	_pillars(kits, props, layout)
-	_trees(kits, props, layout)
+	root.add_child(ShrineWisteria.build(layout, props))
 	_debris(kits, layout, def)
-	kits.finish(props, mats, OUTLINED, NO_SHADOW)
+	kits.finish(props, mats, NO_SHADOW)
 	return root
 
 
@@ -80,11 +76,10 @@ static func fire_points(layout: ShrineLayout) -> PackedVector3Array:
 static func _floor(root: Node3D, layout: ShrineLayout, def: ArenaDef) -> void:
 	var kit := MeshKit.new()
 	kit.disc(Transform3D.IDENTITY, def.floor_radius, 96, 6)
-	var mat: ShaderMaterial = ToonMaterials.make_with_shader(STONE_FLOOR, ToonMaterials.OutlineKind.NONE, {
+	var mat: ShaderMaterial = LookMaterials.make_with_shader(STONE_FLOOR, LookMaterials.Surface.PROP, {
 		&"centre_radius": layout.centre_radius,
 		&"ring_width": layout.ring_width,
 		&"tile_length": layout.tile_length,
-		&"brush_noise": 0.06,
 		&"wall_radius": def.wall_inner_radius(),
 	})
 	var floor_mi := MeshKit.instance(kit.commit(), mat, false)
@@ -97,7 +92,7 @@ static func _floor(root: Node3D, layout: ShrineLayout, def: ArenaDef) -> void:
 		Vector2(def.floor_radius + 0.25, LEDGE_Y - 0.25), Vector2(def.floor_radius + 0.08, -0.08),
 		Vector2(def.floor_radius, 0.0),
 	]), 128, false, false)
-	var plinth_mi := MeshKit.instance(plinth.commit(true), ToonMaterials.prop(LookPalette.STONE_DARK, 0.4), false)
+	var plinth_mi := MeshKit.instance(plinth.commit(), LookMaterials.prop(LookPalette.STONE_DARK), false)
 	plinth_mi.name = "Plinth"
 	root.add_child(plinth_mi)
 
@@ -234,7 +229,7 @@ static func _gates(kits: MeshKitSet, root: Node3D, props: Node3D, layout: Shrine
 		var rope := Node3D.new()
 		rope.name = "GateRope%d" % side
 		root.add_child(rope)
-		rope_kits.finish(rope, mats, OUTLINED, NO_SHADOW)
+		rope_kits.finish(rope, mats, NO_SHADOW)
 
 
 ## Angle of the gate end posts from the gate axis.
@@ -300,17 +295,24 @@ static func _lanterns(kits: MeshKitSet, root: Node3D, props: Node3D, layout: Shr
 
 
 ## A warm lantern light that lights the fighters and the props but skips the
-## ground (LookPalette.SMALL_LIGHT_MASK), shown or hidden by the preset.
+## ground (LookPalette.SMALL_LIGHT_MASK), shown or hidden by the preset: an
+## ember casting shadows and glowing in the mist, as the look test settled it
+## (milestone-1 task 43).
 static func _lantern_light(fire: Vector3) -> OmniLight3D:
 	var light := OmniLight3D.new()
 	light.position = fire
-	light.light_color = FIRE_COLOR
+	light.light_color = LookPalette.LANTERN_EMBER
 	light.light_energy = LANTERN_ENERGY
-	light.omni_range = 4.6
+	light.light_volumetric_fog_energy = 2.0
+	light.omni_range = 9.5
 	light.omni_attenuation = 1.1
-	light.shadow_enabled = false
+	light.shadow_enabled = true
+	# a soft-edged flame: the posts' and fighters' shadows fall into the
+	# courtyard (the owner's word, Oct 7)
+	light.light_size = 0.12
 	light.light_specular = 0.0
-	light.light_cull_mask = LookPalette.SMALL_LIGHT_MASK
+	# a natural light source (the owner's word, Oct 7): it lights the ground
+	# round its lantern too
 	light.add_to_group(GraphicsApplier.GROUP_MINOR_LIGHT)
 	return light
 
@@ -321,11 +323,11 @@ static func _lantern_halos(fires: PackedVector3Array) -> MultiMeshInstance3D:
 	var transforms: Array[Transform3D] = []
 	var colors := PackedColorArray()
 	for p: Vector3 in fires:
-		transforms.append(Transform3D(Basis().scaled(Vector3.ONE * 2.0), p))
+		transforms.append(Transform3D(Basis().scaled(Vector3.ONE * 2.6), p))
 		colors.append(Color(FIRE_COLOR, 0.36))
 	var mat := ShaderMaterial.new()
 	mat.shader = HALO
-	mat.set_shader_parameter(&"energy", 1.6)
+	mat.set_shader_parameter(&"energy", 2.0)
 	mat.set_shader_parameter(&"toward_camera", 0.75)
 	var halos := MeshKit.multimesh(QuadMesh.new(), transforms, mat, colors)
 	halos.name = "LanternHalos"
@@ -341,20 +343,3 @@ static func _pillars(kits: MeshKitSet, props: Node3D, layout: ShrineLayout) -> v
 		var xform := Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)), ShrineLayout.polar(p.x, p.y, LEDGE_Y))
 		if not layout.place_art(props, &"pillar", i, xform):
 			ShrineProps.pillar(kits, xform, p.z, p.w > 0.5, rng)
-
-
-## The pines and dead trees on the ledge, leaning outward (their local +x).
-static func _trees(kits: MeshKitSet, props: Node3D, layout: ShrineLayout) -> void:
-	var pine_rng: RandomNumberGenerator = layout.random_stream(&"pine")
-	var dead_rng: RandomNumberGenerator = layout.random_stream(&"dead_tree")
-	for i: int in layout.trees.size():
-		var t: Vector4 = layout.trees[i]
-		var xform := Transform3D(Basis(Vector3.UP, deg_to_rad(t.x - 90.0)), ShrineLayout.polar(t.x, t.y, LEDGE_Y))
-		var kind: StringName = &"pine" if t.w < 0.5 else &"dead_tree"
-		if layout.place_art(props, kind, i, xform):
-			continue
-		if kind == &"pine":
-			ShrineProps.pine(kits, xform, t.z, pine_rng)
-		else:
-			ShrineProps.dead_tree(kits, xform, t.z, dead_rng)
-
