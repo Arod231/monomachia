@@ -10,4 +10,3 @@ display_name = "Greatsword"
 scene = ExtResource("2_scene")
 two_handed = true
 grip_radius = 0.027
-trail_width = 0.9

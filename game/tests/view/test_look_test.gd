@@ -188,3 +188,41 @@ func test_the_game_s_shrine_keeps_the_toon_look() -> void:
 			toon += 1
 	assert_gt(toon, 5, "its toon materials, untouched by the look test's")
 	assert_ne((shrine.get_node(^"WorldEnvironment") as WorldEnvironment).environment, t.environment)
+
+
+## The pilot's effects in the look (milestone-1 task 37): each light's strike
+## leaves its air smear, and a staged contact (--contact=) throws the match's
+## sparks, white-hot point and contact light at the blade's tip.
+func test_the_lights_smear_and_a_staged_parry_throws_sparks() -> void:
+	var t: LookTest = _look({"contact": &"parry"})
+	assert_not_null(t.effects)
+	assert_true(t.effects.lights_allowed, "Ultra lights the contact")
+	var smeared: bool = false
+	var sparks: int = 0
+	var lit: bool = false
+	for i: int in 160:
+		t._advance()
+		t._show(0.0)
+		smeared = smeared or t.effects.smear(0, TrailState.RIGHT).sample_count() > 0
+		sparks = maxi(sparks, t.effects.spark_count())
+		lit = lit or t.effects.lights_shown() > 0
+	assert_true(smeared, "the string's strikes smear")
+	assert_gte(sparks, EffectTable.count_of({"t": &"parry", "kind": &"parry"}, EffectTable.SPARKS), "a parry's shower")
+	assert_true(lit, "and its light")
+
+
+func test_a_staged_redirect_puffs_and_none_stages_nothing() -> void:
+	var t: LookTest = _look({"contact": &"redirect"})
+	var puffs: int = 0
+	for i: int in 60:
+		t._advance()
+		t._show(0.0)
+		puffs = maxi(puffs, t.effects.puff_count())
+		assert_eq(t.effects.spark_count(), 0, "no steel, no sparks")
+	assert_gt(puffs, 0, "a bare hand's puff")
+	var plain: LookTest = _look()
+	for i: int in 60:
+		plain._advance()
+		plain._show(0.0)
+	assert_eq(plain.effects.spark_count() + plain.effects.puff_count(), 0, "nothing staged without --contact")
+	assert_eq(plain.read_args(PackedStringArray(["--contact=clash"])), "--contact takes block, heavy_block, parry, flash or redirect, not clash")

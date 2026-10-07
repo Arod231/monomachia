@@ -1,9 +1,12 @@
 extends GutTest
-## Trail rules (plan task 18.2): when each hand's blade leaves a trail, how
-## strongly, and in which colour, read from the rules' state. The tests drive
-## a rules World through a Katana light, a Greatsword unblockable, a charged
-## heavy and an ultimate, and check the owner's choices: only the striking
-## hands, Flash off but Shadow Step on, and never bare hands.
+## The air smears' rules (plan task 18.2's trail rules, kept for milestone-1
+## task 37's air smears): when each hand's blade smears, how strongly, and in
+## which tint, read from the rules' state. The tests drive a rules World
+## through a Katana light, a Greatsword unblockable, a charged heavy and an
+## ultimate, and check the owner's choices: only the striking hands, Flash
+## off but Shadow Step on, never bare hands, a plain swing's pale sheen, an
+## unblockable's red and an ultimate's gold. How fast the tip must move to
+## smear is the smear's own (test_air_smear.gd).
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 const R: int = TrailState.RIGHT
@@ -31,7 +34,7 @@ func _drive(W: World, steps: int, input: Callable = Callable()) -> Array[Diction
 	return out
 
 
-func test_a_katana_light_trails_white_in_its_active_frames_then_fades_in_two() -> void:
+func test_a_katana_light_smears_pale_in_its_active_frames_then_fades_in_two() -> void:
 	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	assert_true(f.start_attack(&"k_l1"))
@@ -74,7 +77,7 @@ func test_the_fade_follows_the_host_alpha_between_steps() -> void:
 	assert_almost_eq(TrailState.of(f, 0.5).intensity(R), 0.25, 1e-6)
 
 
-func test_a_greatsword_unblockable_trails_red() -> void:
+func test_a_greatsword_unblockable_smears_red() -> void:
 	var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 8.0)
 	var f: Fighter = W.fighters[0]
 	assert_true(f.start_attack(&"g_sweep"))
@@ -88,7 +91,7 @@ func test_a_greatsword_unblockable_trails_red() -> void:
 	assert_gt(on, 0)
 
 
-func test_a_charged_heavy_trails_only_once_released() -> void:
+func test_a_charged_heavy_smears_only_once_released() -> void:
 	var W: World = H.make_world(Moves.GREATSWORD, Moves.KATANA, 8.0)
 	var held: int = 50
 	var rows: Array[Dictionary] = _drive(W, 120, func(i: int) -> RawInput: return H.btn(Btn.HEAVY) if i < held else H.idle())
@@ -105,7 +108,7 @@ func test_a_charged_heavy_trails_only_once_released() -> void:
 	assert_gt(on_after, 0, "and trails once it strikes")
 
 
-func test_moonsplitter_trails_gold_at_its_release_only() -> void:
+func test_moonsplitter_smears_gold_at_its_release_only() -> void:
 	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 8.0)
 	var f: Fighter = W.fighters[0]
 	f.hp = 20.0
@@ -133,7 +136,7 @@ func test_moonsplitter_trails_gold_at_its_release_only() -> void:
 	assert_gt(release_off, 0)
 
 
-func test_an_attack_marked_gold_trails_gold_the_counter_lunge() -> void:
+func test_an_attack_marked_gold_smears_gold_the_counter_lunge() -> void:
 	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 8.0)
 	var f: Fighter = W.fighters[0]
 	var ult_attack: StringName = &""
@@ -151,7 +154,7 @@ func test_an_attack_marked_gold_trails_gold_the_counter_lunge() -> void:
 	assert_gt(on, 0)
 
 
-func test_daggers_trail_only_the_hands_that_strike() -> void:
+func test_daggers_smear_only_the_hands_that_strike() -> void:
 	var cases: Dictionary[StringName, Array] = {
 		&"d_l1": [true, false], # Quick Slice, the right dagger
 		&"d_bl": [false, true], # Flick, the left
@@ -168,7 +171,7 @@ func test_daggers_trail_only_the_hands_that_strike() -> void:
 		assert_eq([t.on(R), t.on(L)], cases[id], "%s: %s" % [id, def.name])
 
 
-func test_flash_leaves_no_trail_but_shadow_step_does() -> void:
+func test_flash_leaves_no_smear_but_shadow_step_does() -> void:
 	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	f.start_attack(&"k_flash")
@@ -187,7 +190,7 @@ func test_flash_leaves_no_trail_but_shadow_step_does() -> void:
 	assert_gt(shadow_on, 0, "Shadow Step trails in its active frames")
 
 
-func test_bare_hands_never_trail() -> void:
+func test_bare_hands_never_smear() -> void:
 	var W: World = H.make_world(Moves.FISTS, Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	f.start_attack(&"f_l2")
@@ -203,7 +206,7 @@ func test_bare_hands_never_trail() -> void:
 		assert_false(t.on(R) or t.on(L), "a disarmed fighter")
 
 
-func test_nothing_trails_outside_an_attack_or_ultimate() -> void:
+func test_nothing_smears_outside_an_attack_or_ultimate() -> void:
 	var W: World = H.make_world(Moves.DAGGERS, Moves.KATANA, 6.0)
 	for row: Dictionary in _drive(W, 20, func(_i: int) -> RawInput: return H.move(0.0, 1.0)):
 		var t: TrailState = row["trail"]

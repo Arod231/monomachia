@@ -23,13 +23,21 @@ extends Node
 ##   (a damp stain and moss), GPU particles (dust in the moonlight), temporal
 ##   anti-aliasing and FSR 2.2, spring bones (a sageo cord with a tassel on
 ##   the saya, in the fighter's crimson) and skeleton modifiers (the fighter's
-##   rig).
+##   rig);
+## - the pilot's effects in the look (milestone-1 task 37): each light's
+##   strike leaves its air smear, and with --contact= each light, as its
+##   strike lands, meets an imagined guard at the blade's tip, throwing that
+##   contact's sparks and lighting the fighter with them (block, heavy_block,
+##   parry, flash or redirect, the effect table's, CombatEffects as in a
+##   match).
 ##
 ## Shots, beside the mood board:
 ##   npm run shots -- res://tools/look_test/look_test.tscn <out.png> 40 [options]
 ## Options: --view=gameplay (default), close or wide; --at=<step> holds the
 ## string at that rules step of its loop (else it plays); --aa=fsr2
-## (default), taa or off; --preset=<id> (default ultra).
+## (default), taa or off; --preset=<id> (default ultra); --contact=block,
+## heavy_block, parry, flash or redirect (none by default) stages that contact
+## at each light's first active frame.
 ## The bench (Godot check 5: 99% of frames at 14 ms or less on the RTX 3090):
 ##   npm run bench:look [-- --res=3840x2160 --frames=1800 --out=<file.csv>]
 ## renders at --res into its own target, warms up for WARMUP_FRAMES, times
@@ -74,6 +82,15 @@ const STRING_LENGTH: int = 4
 
 ## The sageo cord: segments, each this long (m), and the tassel.
 const CORD_SEGMENTS: int = 6
+## The contacts --contact= stages, as the rules' events would name them
+## (a Katana on a Katana; a redirect by a bare hand).
+const CONTACTS: Dictionary = {
+	&"block": {"t": &"block", "heavy": false},
+	&"heavy_block": {"t": &"block", "heavy": true},
+	&"parry": {"t": &"parry", "kind": &"parry"},
+	&"flash": {"t": &"parry", "kind": &"flash"},
+	&"redirect": {"t": &"parry", "kind": &"redirect", "defender_weapon": &"fists"},
+}
 const CORD_SEGMENT: float = 0.045
 
 enum View { GAMEPLAY, CLOSE, WIDE }
@@ -105,6 +122,11 @@ var rim_light: SpotLight3D
 var cord: Skeleton3D
 var cord_sim: SkeletonModifier3D
 var materials: LookMaterials = LookMaterials.new()
+## The match's effects layer: the air smears and the staged contacts'
+## sparks, puffs and light (milestone-1 task 37).
+var effects: CombatEffects
+## The contact staged at each light's strike (--contact=), or none.
+var contact: StringName = &""
 
 var _spot: Vector3
 var _facing: Vector3
@@ -134,8 +156,8 @@ func _ready() -> void:
 			WARMUP_FRAMES, bench_frames, RenderingServer.get_video_adapter_name()])
 
 
-## Reads --view=, --at=, --aa=, --preset=, --bench, --res=, --frames= and
-## --out=; returns what is wrong with them, or "".
+## Reads --view=, --at=, --aa=, --preset=, --contact=, --bench, --res=,
+## --frames= and --out=; returns what is wrong with them, or "".
 func read_args(args: PackedStringArray) -> String:
 	preset = GraphicsPreset.ultra()
 	for a: String in args:
@@ -163,6 +185,10 @@ func read_args(args: PackedStringArray) -> String:
 				bench_frames = int(v)
 			"--out":
 				out_path = v
+			"--contact":
+				if not CONTACTS.has(StringName(v)):
+					return "--contact takes block, heavy_block, parry, flash or redirect, not %s" % v
+				contact = StringName(v)
 	return ""
 
 
@@ -205,10 +231,14 @@ func build() -> void:
 	_build_dust()
 	_build_mist()
 	_build_grain()
+	effects = CombatEffects.new()
+	stage.add_child(effects)
 	_apply_preset()
 	if hold_step >= 0:
+		# each step drawn, so the smear and a staged contact see the blade
 		for i: int in hold_step:
 			_advance()
+			_show(0.0)
 	_show(0.0)
 	if rig_camera != null:
 		rig_camera.snap(_pos(0), _pos(1))
@@ -395,6 +425,7 @@ func _advance() -> void:
 		_presses += 1
 		_pressed_in = a.atk
 	world.step([RawInput.make(0.0, 0.0, 1 << Btn.LIGHT) if press else RawInput.make(0.0, 0.0, 0), RawInput.make(0.0, 0.0, 0)])
+	_stage_contact()
 	_loop_step += 1
 	_step += 1
 	if _presses > 0 and a.state == &"free":
@@ -408,10 +439,36 @@ func _pos(i: int) -> Vector3:
 	return Vector3(f.pos.x, f.pos.y, f.pos.z)
 
 
-## Poses the fighter and moves the lights and the camera with it.
+## On a light's first active frame, with --contact=, the contact's effects
+## where the rules' blade is (its tip, as the rules place it that frame), the
+## sparks thrown along its sweep (the tip's travel over the frame), as the
+## rules' event for that contact would spawn.
+func _stage_contact() -> void:
+	var a: Fighter = world.fighters[0]
+	if contact == &"" or a.state != &"attack" or a.atk == null or a.atk.frame != a.atk.def.startup + 1 or a.atk.blades.is_empty():
+		return
+	var blade: BladeSegment = a.atk.blades[0]
+	var tip: Vector3 = Vector3(blade.tip.x, blade.tip.y, blade.tip.z)
+	var e: Dictionary = {"pos": {"x": tip.x, "y": tip.y, "z": tip.z}, "weapon": &"katana", "defender_weapon": &"katana",
+		"attacker": 0, "parrier": 1, "target": 1}
+	e.merge(CONTACTS[contact], true)
+	var sweep: Vector3 = tip - Vector3(blade.prev_tip.x, blade.prev_tip.y, blade.prev_tip.z)
+	if sweep.length() > 1e-4:
+		e["dir"] = {"x": sweep.x, "y": sweep.y, "z": sweep.z}
+	effects.on_event(e, world.frame)
+
+
+## Poses the fighter and moves the lights and the camera with it; lays the
+## blade into its air smear and ages the effects.
 func _show(delta: float) -> void:
 	var f: Fighter = world.fighters[0]
 	fighter.update_from(f, _pos(0), f.yaw, 1.0, delta, _time)
+	var blades: Array[PackedVector3Array] = fighter.blade_segments()
+	if not blades.is_empty():
+		var rules: TrailState = TrailState.of(f, 1.0)
+		var span: PackedVector3Array = AirSmear.span(blades[0][0], blades[0][1])
+		effects.feed_smear(0, TrailState.RIGHT, float(world.frame), span[0], span[1], rules.intensity(TrailState.RIGHT), rules.kind)
+	effects.update(float(world.frame))
 	var chest: Vector3 = _pos(0) + Vector3(0.0, 1.3, 0.0)
 	var ahead: Vector3 = (_pos(1) - _pos(0)).normalized()
 	var left: Vector3 = Vector3.UP.cross(ahead).normalized()

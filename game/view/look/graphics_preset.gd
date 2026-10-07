@@ -14,7 +14,8 @@ extends Resource
 ## upscaler) and drops all four atmosphere items, keeping the palettes, the
 ## rim lights, blood, the 危 and the cinematic shots. Low also drops the
 ## parry push-in's depth of field (push_in_dof, milestone-1 task 39; the
-## owner's choice, Oct 6).
+## owner's choice, Oct 6). Medium and Low also drop the sparks' contact
+## lights (spark_light, milestone-1 task 37; the owner's choice, Oct 6).
 ##
 ## The first launch picks a preset from the graphics card's name (for_card(),
 ## the rules in CARDS); a card no rule names gets UNKNOWN_CARD_ID.
@@ -37,7 +38,7 @@ const CARDS: String = "res://view/look/presets/cards.json"
 const CUTS: Array[StringName] = [
 	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
-	&"push_in_dof",
+	&"push_in_dof", &"spark_light",
 ]
 
 @export var id: StringName = &"high"
@@ -106,6 +107,9 @@ const CUTS: Array[StringName] = [
 ## The far blur (depth of field) while the camera is pushed in on a parry
 ## (CameraRig.dof_allowed).
 @export var push_in_dof: bool = true
+## The warm light a spark burst throws on the fighters and blades for a few
+## frames (CombatEffects.contact_light()).
+@export var spark_light: bool = true
 
 
 ## Loads a preset by id (low, medium, high or ultra); null for any other id.

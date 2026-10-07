@@ -1,47 +1,65 @@
-class_name WeaponTrail
+class_name AirSmear
 extends MeshInstance3D
-## One blade's brush-stroke trail (plan task 18.3): a ribbon over the last
-## stretch of the blade (its WeaponLook.trail_width back from the tip),
-## swept through the frames it has just passed, tapering and breaking up like
-## a dry brush toward the tail, in white, red or gold with an ink edge on the
-## tip side (shaders/brush_trail.gdshader).
+## One blade's air smear (milestone-1 task 37, in place of plan task 18.3's
+## brush-stroke trail): a short ribbon behind the blade's last third
+## (SHARE of it, back from the tip), swept through the frames it has just
+## passed and tapering toward the tail, that bends the scene behind it like
+## heat haze with a faint pale sheen (shaders/air_smear.gdshader). It shows
+## only on fast swings: each stretch's strength rises with how fast the tip
+## moved over it, from nothing at SLOW to whole at FAST. An unblockable's
+## smear keeps a faint red tint and an ultimate's its gold (TrailState's
+## kinds) until milestone-1 task 82's 危 and glint take the cue over.
 ##
 ## CombatEffects keeps one per fighter and hand and feeds it every drawn
-## frame with the blade's span and TrailState's strength and colour, on the
-## effect clock: a sample is kept for LIFE_FRAMES world frames, so the ribbon
+## frame with the blade's span and TrailState's strength and kind, on the
+## effect clock: a sample is kept for LIFE_FRAMES world frames, so the smear
 ## stands still in hit-stop and pause and stretches in the KO's slow motion.
-## While the trail is off nothing new is laid down, and what is there fades
-## out within LIFE_FRAMES.
+## While the rules say no smear nothing new is laid down, and what is there
+## fades out within LIFE_FRAMES.
 
-## World frames a sample stays (the demo's 0.14 s).
-const LIFE_FRAMES: float = 8.0
+## The share of the blade, back from the tip, that smears.
+const SHARE: float = 1.0 / 3.0
+## World frames a sample stays: a short smear, shorter than the brush
+## strokes' 8.
+const LIFE_FRAMES: float = 6.0
 ## The most samples kept (a 240 Hz display lays down four a world frame).
 const MAX_SAMPLES: int = 40
 ## Points laid between two samples along a Catmull-Rom curve, so a fast cut
 ## sweeps a curve, not a fan of straight spokes.
 const SUBDIVISIONS: int = 3
-## How far the ribbon's inner edge has closed toward the tip at the tail:
-## the stroke tapers to a point.
-const TAPER: float = 0.75
-## The trail colours (TrailState's kinds), the demo's.
-const COLORS: Dictionary[StringName, Color] = {
-	TrailState.NORMAL: Color("dfe6ff"),
-	TrailState.DANGER: Color("ff3020"),
-	TrailState.ULT: Color("ffc040"),
+## How far the ribbon's inner edge has closed toward the tip at the tail.
+const TAPER: float = 0.6
+## The tip's speed (m/s) under which nothing smears, and from which the smear
+## is whole: a guard shift or a slow wind-up leaves nothing, a cut's strike
+## its full smear.
+const SLOW: float = 3.0
+const FAST: float = 8.0
+## The tints (TrailState's kinds): a plain swing's pale sheen, an
+## unblockable's red, an ultimate's gold.
+const TINTS: Dictionary[StringName, Color] = {
+	TrailState.NORMAL: Color(0.9, 0.93, 1.0),
+	TrailState.DANGER: Color(1.0, 0.2, 0.12),
+	TrailState.ULT: Color(1.0, 0.75, 0.25),
 }
 
-const SHADER: Shader = preload("res://shaders/brush_trail.gdshader")
+const SHADER: Shader = preload("res://shaders/air_smear.gdshader")
 
 
 class Sample:
 	var t: float = 0.0
 	var base: Vector3 = Vector3.ZERO
 	var tip: Vector3 = Vector3.ZERO
+	## The rules' strength times the tip speed's share of the smear.
 	var strength: float = 1.0
 	var color: Color = Color.WHITE
 
 
 var _samples: Array[Sample] = []
+## Where the tip was at the last frame fed, and when, for its speed; kept
+## while the rules say no smear, so the first stretch of a cut has a speed.
+var _last_tip: Vector3 = Vector3.ZERO
+var _last_t: float = -INF
+var _speed: float = 0.0
 var _array_mesh: ArrayMesh = ArrayMesh.new()
 var _vertices: PackedVector3Array = PackedVector3Array()
 var _colors: PackedColorArray = PackedColorArray()
@@ -60,7 +78,7 @@ func _init() -> void:
 	custom_aabb = AABB(Vector3(-40.0, -10.0, -40.0), Vector3(80.0, 40.0, 80.0))
 
 
-## The one material every trail shares.
+## The one material every smear shares.
 static func shared_material() -> ShaderMaterial:
 	if _material == null:
 		_material = ShaderMaterial.new()
@@ -69,31 +87,38 @@ static func shared_material() -> ShaderMaterial:
 	return _material
 
 
-## The stretch of a blade from `base` to `tip` that trails: `width` back from
-## the tip, or the whole blade when it is shorter. [inner end, tip].
-static func span(base: Vector3, tip: Vector3, width: float) -> PackedVector3Array:
-	var along: Vector3 = base - tip
-	var length: float = along.length()
-	if length <= 0.0:
-		return PackedVector3Array([tip, tip])
-	return PackedVector3Array([tip + along / length * minf(width, length), tip])
+## The stretch of a blade from `base` to `tip` that smears: its last SHARE,
+## back from the tip. [inner end, tip].
+static func span(base: Vector3, tip: Vector3) -> PackedVector3Array:
+	return PackedVector3Array([tip.lerp(base, SHARE), tip])
+
+
+## The share of a full smear a tip moving at `speed` m/s leaves.
+static func speed_share(speed: float) -> float:
+	return smoothstep(SLOW, FAST, speed)
 
 
 ## Lays down the blade's span (`inner` to `tip`) at effect clock `t`, with
-## TrailState's strength and kind. Nothing is laid at strength 0. A second
+## TrailState's strength and kind, scaled by how fast the tip moved since the
+## last frame fed (speed_share()). Nothing is laid at no strength. A second
 ## sample on the same frame shown replaces the first (hit-stop, pause); a
-## clock that went back (a new round) starts the trail over.
+## clock that went back (a new round) starts the smear over.
 func feed(t: float, inner: Vector3, tip: Vector3, strength: float, kind: StringName) -> void:
-	if not _samples.is_empty() and t < _samples[-1].t - 1e-4:
+	if t < _last_t - 1e-4:
 		clear()
+	if absf(t - _last_t) > 1e-4:
+		# a new frame shown: the tip's speed since the last one
+		_speed = tip.distance_to(_last_tip) / ((t - _last_t) * SimConst.DT) if _last_t > -INF else 0.0
+		_last_tip = tip
+		_last_t = t
 	if strength <= 0.0:
 		return
 	var s: Sample = Sample.new()
 	s.t = t
 	s.base = inner
 	s.tip = tip
-	s.strength = strength
-	s.color = COLORS.get(kind, COLORS[TrailState.NORMAL])
+	s.strength = strength * speed_share(_speed)
+	s.color = TINTS.get(kind, TINTS[TrailState.NORMAL])
 	if not _samples.is_empty() and absf(t - _samples[-1].t) <= 1e-4:
 		_samples[-1] = s
 		return
@@ -102,7 +127,7 @@ func feed(t: float, inner: Vector3, tip: Vector3, strength: float, kind: StringN
 		_samples.remove_at(0)
 
 
-## Ages the trail to effect clock `t`, drops the samples past LIFE_FRAMES
+## Ages the smear to effect clock `t`, drops the samples past LIFE_FRAMES
 ## and rebuilds the ribbon.
 func update(t: float) -> void:
 	_now = t
@@ -116,6 +141,8 @@ func update(t: float) -> void:
 
 func clear() -> void:
 	_samples.clear()
+	_last_t = -INF
+	_speed = 0.0
 	_rebuild()
 
 
@@ -129,14 +156,14 @@ func vertices() -> PackedVector3Array:
 	return _vertices
 
 
-## The vertices' colours (the trail's colour, its alpha the strength fading
-## with age), as last built.
+## The vertices' colours (the smear's tint, its alpha the strength fading with
+## age), as last built.
 func colors() -> PackedColorArray:
 	return _colors
 
 
 func _rebuild() -> void:
-	# an idle trail stays empty without touching the mesh every frame
+	# an idle smear stays empty without touching the mesh every frame
 	if _samples.size() < 2 and _vertices.is_empty():
 		return
 	_array_mesh.clear_surfaces()
@@ -146,7 +173,7 @@ func _rebuild() -> void:
 	var n: int = _samples.size()
 	if n < 2:
 		return
-	# newest first, so the head of the stroke is at the blade
+	# newest first, so the head of the smear is at the blade
 	var steps: int = SUBDIVISIONS + 1
 	for i: int in range(n - 1, 0, -1):
 		for k: int in steps:
