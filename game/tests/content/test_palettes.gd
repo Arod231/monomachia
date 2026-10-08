@@ -20,6 +20,18 @@ const PIXEL: float = 0.02
 ## (they only swapped her chest trim and hair, which the art review found
 ## too alike), and 12 to 14 for the Hunter, which it found clearly apart.
 const MIN_DIFFERENCE: float = 12.0
+## Mean lightness difference (CIELAB L*) between the Hunter's crimson and
+## indigo over the pixels the dye changes (a colour difference of DYED_DELTA_E
+## or more), from each side, at the least, so the sides read apart in grey
+## too (story 143: the black-and-white mode can come later without
+## re-dyeing). The mood board's dyes differ by 18.5 in L*. The skin, hat,
+## leather, boots and metal are the same on both sides, so they are left out,
+## and the dyed pixels must cover MIN_DYED_SHARE of the silhouette. The
+## painted shading darkens both dyes, so the dyed cloth came to 11.5 to 11.8
+## (a plain step in grey; 2 is just noticeable) over 63 to 73% of him.
+const MIN_GREY_DIFFERENCE: float = 10.0
+const DYED_DELTA_E: float = 10.0
+const MIN_DYED_SHARE: float = 0.4
 ## The views: the direction the "camera" looks along.
 const VIEWS: Dictionary[String, Vector3] = {
 	"front": Vector3(0, 0, -1), "back": Vector3(0, 0, 1), "side": Vector3(1, 0, 0),
@@ -47,6 +59,33 @@ func test_palettes_differ_over_a_large_area_from_every_side() -> void:
 			gut.p("%s palettes A and B, %s: mean difference %.3f over %d pixels" % [id, view, mean, a.size()])
 			assert_gt(a.size(), 400, "%s seen from the %s covers the render" % [id, view])
 			assert_gt(mean, MIN_DIFFERENCE, "%s's palettes differ seen from the %s" % [id, view])
+
+
+func test_the_hunters_crimson_and_indigo_read_apart_in_grey_from_every_side() -> void:
+	var f: FighterModel = FighterLook.instantiate_fighter(&"hunter")
+	f.autoplay_idle = false
+	add_child_autofree(f)
+	var tris: Array[Dictionary] = _triangles(f)
+	for view: String in VIEWS:
+		var hits: Dictionary = _rasterise(tris, VIEWS[view])
+		f.apply_palette(0)
+		var a: PackedColorArray = _shade(tris, hits)
+		f.apply_palette(1)
+		var b: PackedColorArray = _shade(tris, hits)
+		var total: float = 0.0
+		var dyed: int = 0
+		for i: int in a.size():
+			var la: Vector3 = _lab(a[i])
+			var lb: Vector3 = _lab(b[i])
+			if la.distance_to(lb) >= DYED_DELTA_E:
+				total += absf(la.x - lb.x)
+				dyed += 1
+		var mean: float = total / maxf(1.0, dyed)
+		var share: float = float(dyed) / maxf(1.0, a.size())
+		gut.p("hunter crimson and indigo, %s: mean lightness difference %.3f over the %.0f%% dyed" % [view, mean, share * 100.0])
+		assert_gt(a.size(), 400, "the Hunter seen from the %s covers the render" % view)
+		assert_gt(share, MIN_DYED_SHARE, "the dye covers the Hunter seen from the %s" % view)
+		assert_gt(mean, MIN_GREY_DIFFERENCE, "crimson and indigo read apart in grey from the %s" % view)
 
 
 ## Every triangle of the fighter's meshes in fighter space (rest pose), with
@@ -151,9 +190,13 @@ static func _lab_f(t: float) -> float:
 
 
 func _sample(tex: Texture2D, uv: Vector2) -> Color:
-	var path: String = tex.resource_path
+	# by the texture's own image: a dyed palette's maps sit inside the
+	# export's GLB, with no file of their own
+	var path: String = str(tex.get_instance_id())
 	if not _images.has(path):
-		var img: Image = Image.load_from_file(ProjectSettings.globalize_path(path))
+		var img: Image = tex.get_image()
+		if img.is_compressed():
+			img.decompress()
 		img.convert(Image.FORMAT_RGB8)
 		_images[path] = img
 	var image: Image = _images[path]

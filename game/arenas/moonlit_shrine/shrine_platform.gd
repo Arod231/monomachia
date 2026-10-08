@@ -4,9 +4,10 @@ extends RefCounted
 ## floor and its stone edge, the parapet that stops fighters, a landing at
 ## each gate with steps down and a torii on it, each gate's rope barrier,
 ## flat pebbles along the foot of the parapet, and on the ledge outside the
-## stone lanterns with their lights and halos, the roped pillars, the trees
-## and loose rocks. Everything stands outside the walkable circle except the
-## floor and the pebbles.
+## stone lanterns with their lights and halos, the roped pillars, the trees,
+## the banners (ShrineBanners) and loose rocks. Everything stands outside the
+## walkable circle except the floor, the pebbles and the short grass in the
+## paving's joints (ShrineGrass).
 ##
 ## Each gate's rope barrier is its own node (GateRope0, GateRope1, by gate
 ## index), so the match intro can drop it while a fighter walks in. A prop
@@ -52,6 +53,8 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> Node3D:
 	_lanterns(kits, root, props, layout)
 	_pillars(kits, props, layout)
 	root.add_child(ShrineWisteria.build(layout, props))
+	root.add_child(ShrineBanners.build(layout))
+	root.add_child(ShrineGrass.build(layout, def))
 	_debris(kits, layout, def)
 	kits.finish(props, mats, NO_SHADOW)
 	return root

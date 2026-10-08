@@ -17,7 +17,9 @@ extends SceneTree
 ## Run: node scripts/godot.mjs script res://tools/bake_palettes.gd
 ## then `node scripts/godot.mjs import`. Takes about a minute.
 ##
-## Palettes are found through the fighter looks (FighterLook.IDS). A new
+## Palettes are found through the fighter looks (FighterLook.IDS). A palette
+## dyed in Blender (outfit_maps, the Hunter's since milestone-1 task 45) is
+## skipped: scripts/blender/dye_outfit.py makes its maps. A new
 ## palette's .tres can be written without its outfit_albedo first; point it
 ## at the baked PNG once the PNG has been imported.
 
@@ -61,6 +63,9 @@ func _initialize() -> void:
 		fighter.free()
 		print("bake_palettes: %s outfit covers %.0f%% of the texture" % [id, texels.coverage() * 100.0])
 		for p: FighterPalette in look.palettes:
+			if p.outfit_maps != null:
+				print("bake_palettes: %s (%s) is dyed in Blender; skipped" % [id, p.display_name])
+				continue
 			var out_path: String = p.resource_path.get_basename() + "_outfit.png"
 			var img: Image = recolour(src, orm, normal_map, materials, texels, landmarks, p)
 			var err: Error = img.save_png(ProjectSettings.globalize_path(out_path))

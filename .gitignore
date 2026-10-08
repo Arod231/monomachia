@@ -42,3 +42,4 @@ brain/.obsidian/cache
 
 # Whole fonts the UI theme cuts down (scripts/fonts.mjs)
 .font-cache/
+__pycache__/

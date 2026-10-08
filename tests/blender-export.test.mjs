@@ -66,7 +66,7 @@ describe('sources.json', () => {
     );
     assert.deepEqual(errors, [
       'Bad-Id: an id is lower-case letters, digits and underscores',
-      'loose: file must be a .blend in clips/, fighters/, weapons/, shrine/, bodies/',
+      'loose: file must be a .blend in clips/, fighters/, weapons/, shrine/, bodies/, materials/, headwear/',
       'pack: licence must be own, cc0, iglesias',
       'clip_out: a clip export stays in the asset repository (no game path)',
       'paid_out: only self-made and CC0 art is copied into the game',
@@ -75,6 +75,36 @@ describe('sources.json', () => {
     ]);
     assert.deepEqual(readSources('{').errors.length, 1);
     assert.deepEqual(readSources('{}').errors, ['sources.json has no "sources" object']);
+  });
+});
+
+describe('a dyed material (milestone-1 task 45)', () => {
+  it('is a GLB of its maps, copied under game/assets', () => {
+    const { sources, errors } = readSources(
+      JSON.stringify({
+        sources: {
+          hunter_crimson: { file: 'materials/hunter_crimson.blend', licence: 'own', game: 'game/assets/exports/fighters/hunter_crimson.glb' },
+        },
+      }),
+    );
+    assert.deepEqual(errors, []);
+    assert.equal(sources.hunter_crimson.kind, 'material');
+    assert.equal(exportPath('hunter_crimson', sources.hunter_crimson), 'exports/materials/hunter_crimson.glb');
+  });
+});
+
+describe('headwear (milestone-1 task 46)', () => {
+  it('is a GLB on a rig of its own, if any, copied under game/assets', () => {
+    const { sources, errors } = readSources(
+      JSON.stringify({
+        sources: {
+          hunter_scarf: { file: 'headwear/hunter_scarf.blend', licence: 'own', game: 'game/assets/exports/headwear/hunter_scarf.glb' },
+        },
+      }),
+    );
+    assert.deepEqual(errors, []);
+    assert.equal(sources.hunter_scarf.kind, 'headwear');
+    assert.equal(exportPath('hunter_scarf', sources.hunter_scarf), 'exports/headwear/hunter_scarf.glb');
   });
 });
 

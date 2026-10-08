@@ -23,6 +23,9 @@ const SURFACE_SHADER: Shader = preload("res://shaders/surface.gdshader")
 ## The same surface drawn from both sides, for open shells (hoods, cloth
 ## edges, hair cards).
 const SURFACE_TWO_SIDED_SHADER: Shader = preload("res://shaders/surface_two_sided.gdshader")
+## The same surface from both sides, swayed by the wind (the Shrine's grass
+## and banners, milestone-1 task 131; sway()).
+const SWAY_SHADER: Shader = preload("res://shaders/surface_sway.gdshader")
 
 const META_SURFACE: StringName = &"look_surface"
 
@@ -65,7 +68,9 @@ static func fighter(color: Color) -> ShaderMaterial:
 
 ## A fighter surface from the material it was imported with: its colour,
 ## base-colour texture, normal map and vertex colour carried over, drawn from
-## both sides when the import is. Its name is kept, so the palettes still
+## both sides when the import is. A roughness map (the Hunter's dyed outfit,
+## milestone-1 task 45: roughness in green, metalness in blue, as glTF packs
+## them) replaces the fixed FIGHTER_SURFACE. Its name is kept, so the palettes still
 ## find the outfit by name.
 static func fighter_from(source: BaseMaterial3D) -> ShaderMaterial:
 	var params: Dictionary = {
@@ -79,6 +84,9 @@ static func fighter_from(source: BaseMaterial3D) -> ShaderMaterial:
 	if source.normal_enabled and source.normal_texture != null:
 		params[&"normal_texture"] = source.normal_texture
 		params[&"normal_strength"] = source.normal_scale * FIGHTER_NORMAL_STRENGTH
+	if source.roughness_texture != null:
+		params[&"orm_texture"] = source.roughness_texture
+		params[&"use_orm_texture"] = true
 	var two_sided: bool = source.cull_mode == BaseMaterial3D.CULL_DISABLED
 	var m: ShaderMaterial = make_with_shader(SURFACE_TWO_SIDED_SHADER if two_sided else SURFACE_SHADER,
 		Surface.FIGHTER, params)
@@ -94,18 +102,70 @@ static func weapon(color: Color, metal: bool = true) -> ShaderMaterial:
 ## A weapon surface from the material its model was made with, keeping its
 ## name:
 ## - a StandardMaterial3D becomes steel when it is at all metallic, and
-##   leather or wood otherwise, in its colour;
-## - a ShaderMaterial of its own (the Katana's blade and wrap) is copied,
-##   every parameter it sets kept, with the look's noise.
+##   leather or wood otherwise, in its colour; one with maps of its own (a
+##   model from the Blender export: the Katana's mounting and saya,
+##   milestone-1 task 47) keeps its base-colour texture, normal map and
+##   roughness map (roughness green, metalness blue, as glTF packs them);
+## - a ShaderMaterial of its own (the Katana's blade) is copied, every
+##   parameter it sets kept, with the look's noise.
 static func weapon_from(source: Material) -> ShaderMaterial:
 	var m: ShaderMaterial
 	if source is BaseMaterial3D:
 		var base := source as BaseMaterial3D
 		m = weapon(base.albedo_color, base.metallic > 0.0)
+		_carry_maps(m, base)
 	else:
 		m = (source as ShaderMaterial).duplicate() as ShaderMaterial
 		LookNoise.apply_to(m)
 		m.set_meta(META_SURFACE, Surface.WEAPON)
+	m.resource_name = source.resource_name
+	return m
+
+
+## A material's own maps carried onto a look material: its base-colour
+## texture, normal map and roughness map (roughness green, metalness blue,
+## as glTF packs them).
+static func _carry_maps(m: ShaderMaterial, base: BaseMaterial3D) -> void:
+	if base.albedo_texture != null:
+		m.set_shader_parameter(&"albedo_texture", base.albedo_texture)
+	if base.normal_enabled and base.normal_texture != null:
+		m.set_shader_parameter(&"normal_texture", base.normal_texture)
+		m.set_shader_parameter(&"normal_strength", base.normal_scale)
+	if base.roughness_texture != null:
+		m.set_shader_parameter(&"orm_texture", base.roughness_texture)
+		m.set_shader_parameter(&"use_orm_texture", true)
+
+
+## A prop surface from the material a model from the Blender export was made
+## with (the Shrine's banner poles, milestone-1 task 131): its colour and its
+## own maps, keeping its name.
+static func prop_from(source: Material) -> ShaderMaterial:
+	var base := source as BaseMaterial3D
+	var m: ShaderMaterial = make(base.albedo_color, Surface.PROP, PROP_SURFACE,
+		{&"use_vertex_color": base.vertex_color_use_as_albedo})
+	_carry_maps(m, base)
+	m.resource_name = source.resource_name
+	return m
+
+
+## A prop surface that sways on `wind` (SWAY_SHADER), from the material its
+## model was made with: the freest vertex leaning `sway` metres in a wind of
+## 1 and fluttering by `flutter`, its weight in its vertex alpha, or in its
+## vertex red (`from_red`, the banners' cloth, whose colour is its
+## texture's); with the weight in the alpha, the vertex colour is its
+## colour (the grass).
+static func sway(source: BaseMaterial3D, wind: Vector2, sway_amount: float, flutter: float, from_red: bool) -> ShaderMaterial:
+	var m: ShaderMaterial = make_with_shader(SWAY_SHADER, Surface.PROP, {
+		&"base_color": source.albedo_color,
+		&"roughness": PROP_SURFACE.x,
+		&"metallic": PROP_SURFACE.y,
+		&"use_vertex_color": not from_red,
+		&"wind": wind,
+		&"sway": sway_amount,
+		&"flutter": flutter,
+		&"sway_from_red": from_red,
+	})
+	_carry_maps(m, source)
 	m.resource_name = source.resource_name
 	return m
 

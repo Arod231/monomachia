@@ -37,9 +37,14 @@ static func _files(dir_path: String, out: Array[String]) -> Array[String]:
 	return out
 
 
-## Arena art exported from Blender (the Shrine's wisteria, milestone-1 task
-## 48): no skeleton, so no bone map.
-const UNRIGGED: String = "res://assets/exports/shrine/"
+## Art exported from Blender with no skeleton, so no bone map: the Shrine's
+## (the wisteria, milestone-1 task 48) and the fighters' dyed maps (the
+## Hunter's palettes, task 45).
+const UNRIGGED: Array[String] = ["res://assets/exports/shrine/", "res://assets/exports/fighters/"]
+## Exports whose rig, if any, is their own: cloth on spring bones (the
+## Hunter's scarf, milestone-1 task 46; the saya's sageo, task 47), never a
+## fighter's, so never retargeted.
+const OWN_RIGS: Array[String] = ["res://assets/exports/headwear/", "res://assets/exports/weapons/"]
 
 
 ## The gitignored folders the Iglesias import tool writes (the staged FBX
@@ -123,10 +128,17 @@ func test_every_skinned_model_is_retargeted_through_the_bone_map() -> void:
 	for path: String in _files(ASSETS, []):
 		if not (path.ends_with(".gltf.import") or path.ends_with(".glb.import")):
 			continue
-		if path.begins_with(UNRIGGED):
+		if UNRIGGED.any(func(prefix: String) -> bool: return path.begins_with(prefix)):
 			var model: Node = (load(path.trim_suffix(".import")) as PackedScene).instantiate()
 			assert_eq(model.find_children("*", "Skeleton3D", true, false).size(), 0, "%s has no rig" % path.get_file())
 			model.free()
+			continue
+		if OWN_RIGS.any(func(prefix: String) -> bool: return path.begins_with(prefix)):
+			var worn: Node = (load(path.trim_suffix(".import")) as PackedScene).instantiate()
+			for sk: Node in worn.find_children("*", "Skeleton3D", true, false):
+				assert_eq((sk as Skeleton3D).find_bone("Hips"), -1, "%s's rig is its own, not a fighter's" % path.get_file())
+				assert_lt((sk as Skeleton3D).get_bone_count(), 20, "%s's rig is small" % path.get_file())
+			worn.free()
 			continue
 		var text: String = FileAccess.get_file_as_string(path)
 		var bone_map: String = IGLESIAS_BONE_MAP if path.begins_with(IGLESIAS) else BONE_MAP

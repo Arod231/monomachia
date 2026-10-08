@@ -1,0 +1,38 @@
+{
+	"about": "Milestone-1 task 45: the Hunter's crimson palette, dyed by scripts/blender/dye_outfit.py into blender/materials/hunter_crimson.blend in the asset repository (the owner's answers, Oct 7: the cloth in the side's dye, the trousers darker, the leather, boots and metal a neutral dark the same on both sides; crimson wears asanoha, the trim seigaiha; worn through at the knees and cuffs).",
+	"name": "hunter_crimson",
+	"source": "materials/hunter_crimson.blend",
+	"parts": [
+		"res://assets/quaternius/outfits/Male_Ranger_Body_Tall.gltf",
+		"res://assets/quaternius/outfits/Male_Ranger_Arms_Tall.gltf",
+		"res://assets/quaternius/outfits/Male_Ranger_Legs_Tall.gltf",
+		"res://assets/quaternius/outfits/Male_Ranger_Feet_Boots_Tall.gltf",
+		"res://assets/quaternius/outfits/Male_Ranger_Acc_Pauldron_Tall.gltf"
+	],
+	"material": "MI_Ranger",
+	"atlases": {"cloth": ["hood", "body", "arms", "legs", "pauldron", "bracer"], "gear": ["belt", "boots"]},
+	"neutral": ["gear"],
+	"maps": {
+		"base_color": "res://assets/quaternius/outfits/T_Ranger_3_BaseColor.png",
+		"orm": "res://assets/quaternius/outfits/T_Ranger_ORM.png",
+		"normal": "res://assets/quaternius/outfits/T_Ranger_Normal.png"
+	},
+	"dyed": ["hood", "vest", "shirt", "trim", "sleeve", "trouser"],
+	"slots": {
+		"hood": "#9e2b25",
+		"vest": "#86221e",
+		"shirt": "#9e2b25",
+		"trim": "#7a1f1c",
+		"sleeve": "#9e2b25",
+		"trouser": "#5c1618",
+		"leather": "#2b231d",
+		"boot": "#221c17",
+		"metal": "#6e6a62"
+	},
+	"undyed": "#8a7f6c",
+	"pattern": {"kind": "asanoha", "cell": 0.06, "width": 0.045, "strength": 0.55},
+	"trim_pattern": {"kind": "seigaiha", "cell": 0.035, "width": 0.05, "strength": 0.5},
+	"roughness": {"cloth": 0.86, "trim": 0.8, "leather": 0.58, "metal": 0.36},
+	"relief": 3.0,
+	"wear": 0.6
+}
