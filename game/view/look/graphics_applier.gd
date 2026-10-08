@@ -12,6 +12,8 @@ extends RefCounted
 ##   settings;
 ## - Light3D nodes in group look_minor_light are shown or hidden;
 ## - GPUParticles3D nodes in group look_particles get the particle ratio;
+## - nodes in group look_floor_petals (the Shrine's fallen petals) take the
+##   floor's petal ratio through set_ratio();
 ## - CombatEffects nodes take the preset (their particle counts);
 ## - CameraRig nodes take whether a push-in brings its depth of field;
 ## - Node3D nodes in group look_scenery_detail with meta look_detail (0..2)
@@ -41,6 +43,7 @@ const GROUP_SCENERY: StringName = &"look_scenery_detail"
 const GROUP_PETAL_LIGHT: StringName = &"look_petal_light"
 const GROUP_MINOR_DECAL: StringName = &"look_minor_decal"
 const GROUP_FIGHTER_KEY: StringName = &"look_fighter_key"
+const GROUP_FLOOR_PETALS: StringName = &"look_floor_petals"
 const META_DETAIL: StringName = &"look_detail"
 ## The environment's own height fog density, kept so a preset that turned it
 ## off can turn it back on.
@@ -117,6 +120,8 @@ static func _walk(preset: GraphicsPreset, node: Node) -> void:
 		(node as Decal).visible = preset.minor_decals
 	if node is GPUParticles3D and node.is_in_group(GROUP_PARTICLES):
 		(node as GPUParticles3D).amount_ratio = preset.particle_ratio
+	if node.is_in_group(GROUP_FLOOR_PETALS) and node.has_method(&"set_ratio"):
+		node.call(&"set_ratio", preset.floor_petal_ratio)
 	if node is CombatEffects:
 		(node as CombatEffects).set_preset(preset)
 	if node is CameraRig:

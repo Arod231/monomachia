@@ -181,14 +181,18 @@ func test_every_tree_lights_the_fight_purple_under_its_blossoms() -> void:
 			assert_gt(light.omni_range, marker.global_position.y + 2.0, "reaching down to the fighters")
 
 
-## The trees cast no shadows, branches or blossoms, and the glowing
-## blossoms take none; the moon lights the arena blood red without a red
-## haze in the mist, the fighters casting its shadows away from it.
+## The trees cast no shadows on the arena, branches or blossoms (only the
+## moon shafts in the mist take theirs, milestone-1 task 49:
+## test_shrine_mist_sky.gd), and the glowing blossoms take none; the moon
+## lights the arena blood red without a red haze in the mist, the fighters
+## casting its shadows away from it.
 func test_the_trees_cast_no_shadows_and_the_moon_lights_without_a_haze() -> void:
 	for tree: Node3D in _trees():
 		for node: Node in tree.find_children("*", "GeometryInstance3D", true, false):
-			assert_eq((node as GeometryInstance3D).cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,
-				"%s's %s casts no shadow" % [tree.name, node.name])
+			var geo := node as GeometryInstance3D
+			if geo.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+				assert_eq(geo.layers & LookPalette.CANOPY_LAYER, LookPalette.CANOPY_LAYER,
+					"%s's %s casts its shadow only on the canopy layer" % [tree.name, node.name])
 		for node: Node in tree.find_children("*_Blossom", "GeometryInstance3D", false, false):
 			assert_true(((node as GeometryInstance3D).material_override as BaseMaterial3D).disable_receive_shadows,
 				"%s's blossoms take no shadow" % tree.name)
@@ -196,6 +200,7 @@ func test_the_trees_cast_no_shadows_and_the_moon_lights_without_a_haze() -> void
 	assert_ne(moon.light_cull_mask & LookPalette.GROUND_LAYER, 0, "the moon lights the arena")
 	assert_eq(moon.light_volumetric_fog_energy, 0.0, "no red haze in the mist")
 	assert_true(moon.shadow_enabled, "the fighters cast its shadows")
+	assert_eq(moon.shadow_caster_mask & LookPalette.CANOPY_LAYER, 0, "the trees don't")
 	assert_gt(moon.light_color.r, moon.light_color.g * 4.0, "blood red")
 	assert_almost_eq(moon.global_transform.basis.z, arena.layout.moon_direction.normalized(), Vector3.ONE * 0.01, "from the moon")
 	assert_null(arena.get_node_or_null("Lights/MoonRays"))

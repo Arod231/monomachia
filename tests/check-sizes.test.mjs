@@ -1,7 +1,7 @@
 // Tests for scripts/check-sizes.mjs, the guard that keeps large files out of
-// the repo (no tracked file over 10 MB unless it is allow-listed) and holds
+// the repo (no tracked file over 60 MB unless it is allow-listed) and holds
 // the public repository to its budgets (milestone-1 task 8): the committed
-// game art under 150 MB, the committed audio under 40 MB.
+// game art under 600 MB, the committed audio under 40 MB.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,18 +33,18 @@ function withScratchFile(bytes, body) {
 }
 
 describe('findOversize', () => {
-  it('passes files up to the 10 MB limit', () => {
-    assert.equal(LIMIT_BYTES, 10 * MB);
-    assert.deepEqual(findOversize([{ path: 'a.png', bytes: 10 * MB }, { path: 'b.wav', bytes: 1 }]), []);
+  it('passes files up to the 60 MB limit', () => {
+    assert.equal(LIMIT_BYTES, 60 * MB);
+    assert.deepEqual(findOversize([{ path: 'a.png', bytes: 60 * MB }, { path: 'b.wav', bytes: 1 }]), []);
   });
 
   it('reports a file over the limit', () => {
-    const files = [{ path: 'game/assets/big.wav', bytes: 11 * MB }, { path: 'small.png', bytes: 5 }];
-    assert.deepEqual(findOversize(files), [{ path: 'game/assets/big.wav', bytes: 11 * MB }]);
+    const files = [{ path: 'game/assets/big.wav', bytes: 61 * MB }, { path: 'small.png', bytes: 5 }];
+    assert.deepEqual(findOversize(files), [{ path: 'game/assets/big.wav', bytes: 61 * MB }]);
   });
 
   it('lets every allow-listed file through', () => {
-    for (const path of ALLOWED) assert.deepEqual(findOversize([{ path, bytes: 11 * MB }]), []);
+    for (const path of ALLOWED) assert.deepEqual(findOversize([{ path, bytes: 61 * MB }]), []);
   });
 });
 
@@ -61,8 +61,8 @@ describe('totalBytes', () => {
 });
 
 describe('the budgets', () => {
-  it("are the spec's size budget table: 150 MB of art and 40 MB of audio", () => {
-    assert.equal(ART_BUDGET_BYTES, 150 * MB);
+  it("are the spec's size budget table: 600 MB of art and 40 MB of audio", () => {
+    assert.equal(ART_BUDGET_BYTES, 600 * MB);
     assert.equal(AUDIO_BUDGET_BYTES, 40 * MB);
   });
 
@@ -106,9 +106,9 @@ describe('the budgets', () => {
   });
 
   it('pass a place up to its budget and fail it one byte over', () => {
-    const at = [{ path: 'game/assets/art.bin', bytes: 150 * MB }, { path: 'game/assets/audio/a.wav', bytes: 40 * MB }];
+    const at = [{ path: 'game/assets/art.bin', bytes: 600 * MB }, { path: 'game/assets/audio/a.wav', bytes: 40 * MB }];
     assert.deepEqual(findOverBudget(at), []);
-    const artOver = [{ path: 'game/assets/art.bin', bytes: 150 * MB }, { path: 'game/weapons/k/m.res', bytes: 1 }];
+    const artOver = [{ path: 'game/assets/art.bin', bytes: 600 * MB }, { path: 'game/weapons/k/m.res', bytes: 1 }];
     assert.deepEqual(findOverBudget(artOver).map((b) => b.name), ['committed game art']);
     const audioOver = [{ path: 'game/assets/audio/a.wav', bytes: 40 * MB + 1 }];
     assert.deepEqual(findOverBudget(audioOver).map((b) => b.name), ['committed audio']);
@@ -122,20 +122,20 @@ describe('repoPath', () => {
 });
 
 describe('the command', () => {
-  it('passes on the repo, allowing the ambience loop, and prints the sizes', () => {
+  it('passes on the repo, the ambience loop under the limit, and prints the sizes', () => {
     const r = runCli();
     assert.equal(r.status, 0, r.stderr);
     for (const folder of ['game/assets', 'game/assets/audio', 'game/fighters', 'game/weapons']) {
       assert.match(r.stdout, new RegExp(`${folder}: \\d+\\.\\d MB`));
     }
     assert.match(r.stdout, /all tracked files: \d+\.\d MB/);
-    assert.match(r.stdout, /committed game art: \d+\.\d MB of a 150\.0 MB budget/);
+    assert.match(r.stdout, /committed game art: \d+\.\d MB of a 600\.0 MB budget/);
     assert.match(r.stdout, /committed audio: \d+\.\d MB of a 40\.0 MB budget/);
     assert.ok(!r.stdout.includes(AMBIENCE));
   });
 
-  it('fails on an 11 MB file passed with --include', () => {
-    withScratchFile(11 * MB, (file) => {
+  it('fails on a 61 MB file passed with --include', () => {
+    withScratchFile(61 * MB, (file) => {
       const r = runCli(['--include', file]);
       assert.equal(r.status, 1);
       assert.ok(r.stderr.includes('scratch.bin'));

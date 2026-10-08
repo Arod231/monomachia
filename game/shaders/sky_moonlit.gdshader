@@ -1,8 +1,12 @@
 // Night sky for the Moonlit Shrine: a dark ink gradient with a cold mist band
 // at the horizon, stars, streaks of ink cloud, and a large blood-red moon
 // with a red haze. The arena sets moon_direction from its layout, the
-// horizon to its depth fog's colour, and the look's noise texture. It uses
-// no TIME, so Godot doesn't redraw its radiance map every frame.
+// horizon to its depth fog's colour, and the look's noise texture. Since
+// milestone-1 task 49 the stars are many, of varied size and colour, some
+// twinkling, with a faint Milky Way away from the moon (milky_way_pole, which
+// the arena sets from the moon). The twinkling (TIME) stays out of the
+// cubemap passes, so a radiance map, where an environment takes one, stays
+// still.
 shader_type sky;
 
 #include "res://shaders/look_noise.gdshaderinc"
@@ -20,6 +24,14 @@ uniform float moon_radius = 0.085;
 uniform float moon_energy = 1.8;
 uniform float haze_strength = 0.35;
 uniform float star_amount = 0.75;
+// How far the stars' colours spread from white, toward blue and orange; how
+// deeply the twinkling ones dim; the Milky Way's brightness, the pole of its
+// great circle and its half-width (as the sine of an angle).
+uniform float star_colour_spread : hint_range(0.0, 1.0) = 0.6;
+uniform float twinkle : hint_range(0.0, 1.0) = 0.55;
+uniform float milky_way : hint_range(0.0, 1.0) = 0.1;
+uniform vec3 milky_way_pole = vec3(0.5, 0.4, 0.75);
+uniform float milky_way_width = 0.16;
 uniform vec4 cloud_color : source_color = vec4(0.018, 0.018, 0.028, 1.0);
 uniform vec4 cloud_edge_color : source_color = vec4(0.40, 0.12, 0.10, 1.0);
 uniform float cloud_amount = 0.85;
@@ -68,17 +80,46 @@ void sky() {
 	haze *= mix(1.0, 1.6, smoothstep(0.35, 0.0, abs(h)));
 	col += haze_color.rgb * haze * haze_strength;
 
-	// Stars: one candidate per cell of a direction grid, none near the moon.
+	// The Milky Way: a faint band along the great circle round
+	// milky_way_pole, mottled and torn by dark lanes of dust; and the stars,
+	// in three layers from many faint ones to a few bright ones (one
+	// candidate per cell of a direction grid), thicker in the band, tinted
+	// blue to orange, some twinkling; none near the moon or the horizon.
 	if (h > 0.0) {
-		vec3 g = d * 220.0;
-		vec3 cell = floor(g);
-		float s = sky_hash(cell);
-		if (s > 0.985) {
-			vec3 centre = cell + 0.5 + (vec3(sky_hash(cell + 1.3), sky_hash(cell + 2.7), sky_hash(cell + 5.1)) - 0.5) * 0.6;
-			float dist = length(g - centre);
-			float b = smoothstep(0.32, 0.0, dist) * (s - 0.985) / 0.015;
-			b *= smoothstep(0.02, 0.25, h) * smoothstep(0.15, 0.4, ang);
-			col += vec3(0.75, 0.8, 0.95) * b * star_amount;
+		float shown = smoothstep(0.02, 0.25, h) * smoothstep(0.15, 0.4, ang);
+		vec3 pole = normalize(milky_way_pole);
+		vec3 ax = normalize(cross(pole, abs(pole.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+		vec3 ay = cross(pole, ax);
+		float across = dot(d, pole);
+		vec2 gp = vec2(atan(dot(d, ay), dot(d, ax)) * 2.5, across * 9.0);
+		float band = exp(-across * across / (milky_way_width * milky_way_width));
+		float lanes = smoothstep(0.48, 0.66, sky_fbm(gp * 1.7 + vec2(5.0, 2.0)));
+		float glow = band * (0.45 + 0.55 * sky_fbm(gp * 0.8 + vec2(1.0, 7.0))) * (1.0 - 0.75 * lanes * band);
+		// grained with stars too faint to see one by one
+		glow *= 0.55 + 0.9 * look_noise(gp * 14.0 + vec2(3.0, 1.0)).g * look_noise(gp * 31.0).b;
+		col += vec3(0.5, 0.54, 0.68) * glow * milky_way * shown;
+		for (int layer = 0; layer < 3; layer++) {
+			float scale = layer == 0 ? 300.0 : (layer == 1 ? 150.0 : 70.0);
+			float keep = layer == 0 ? 0.95 - band * 0.05 : (layer == 1 ? 0.975 : 0.988);
+			vec3 g = d * scale;
+			vec3 cell = floor(g);
+			float lc = float(layer) * 31.7;
+			float s = sky_hash(cell + lc);
+			if (s > keep) {
+				vec3 centre = cell + 0.5 + (vec3(sky_hash(cell + 1.3 + lc), sky_hash(cell + 2.7 + lc), sky_hash(cell + 5.1 + lc)) - 0.5) * 0.6;
+				float dist = length(g - centre);
+				float size = layer == 0 ? 0.24 : (layer == 1 ? 0.3 : 0.34);
+				float b = smoothstep(size, 0.0, dist) * (s - keep) / (1.0 - keep);
+				b *= layer == 0 ? 0.45 : (layer == 1 ? 1.0 : 2.4);
+				float temp = sky_hash(cell + 9.3 + lc);
+				vec3 tint = mix(vec3(1.0, 0.7, 0.48), vec3(0.66, 0.78, 1.0), temp);
+				tint = mix(vec3(0.8, 0.84, 0.95), tint, star_colour_spread);
+				float tw = sky_hash(cell + 4.4 + lc);
+				if (!AT_CUBEMAP_PASS && tw < 0.45) {
+					b *= 1.0 - twinkle * (0.5 + 0.5 * sin(TIME * (1.5 + 5.0 * tw) + temp * 40.0));
+				}
+				col += tint * b * star_amount * shown;
+			}
 		}
 	}
 

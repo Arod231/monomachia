@@ -1,0 +1,117 @@
+{
+	"about": "Milestone-1 task 132: the Moonlit Shrine's buildings remodelled in place, built by scripts/blender/build_shrine_buildings.py into blender/shrine/ in the asset repository (the owner's answers, Oct 8: Kasuga-doro lanterns; everything ancient, chipped vermilion lacquer showing the wood, moss and lichen in the stone's crevices, cracked and chipped edges, frayed rope, the broken pillars still broken; Poly Haven's rock_surface with mossy_rock for the stone, vermilion over wood_peeling_paint_weathered for the torii, grey_roof_tiles and weathered_planks on the pagoda and temple hall; a shimenawa with shide under each torii's tie beam; the pagoda and hall detailed for their distance). Lengths in metres.",
+	"lantern": {
+		"seeds": [
+			3,
+			8
+		],
+		"voxel": 0.012,
+		"chips": 10,
+		"chip_size": 0.035,
+		"roughen": 0.004,
+		"texture_size": 2048,
+		"paper": [
+			0.92,
+			0.84,
+			0.66
+		],
+		"stone": {
+			"stone_scale": 0.6,
+			"moss": 0.9,
+			"moss_on_tops": 0.75,
+			"stone_tint": [
+				0.8,
+				0.8,
+				0.84
+			],
+			"grime": 0.45
+		}
+	},
+	"torii": {
+		"height": 6.6,
+		"span": 5.4,
+		"texture_size": 4096,
+		"wood_scale": 0.55,
+		"paint_from": [
+			0.15,
+			0.1
+		],
+		"bare_wood": [
+			0.62,
+			0.63,
+			0.64
+		],
+		"paint_roughness": 0.55,
+		"grime": 0.5,
+		"vermilion": [
+			0.62,
+			0.1,
+			0.05
+		],
+		"black": [
+			0.03,
+			0.028,
+			0.028
+		],
+		"rope_sag": 0.35,
+		"rope_thick": 0.16,
+		"tassels": 6,
+		"shide": 5,
+		"straw": [
+			0.66,
+			0.55,
+			0.34
+		],
+		"straw_dark": [
+			0.36,
+			0.29,
+			0.16
+		],
+		"paper": [
+			0.9,
+			0.87,
+			0.8
+		]
+	},
+	"pillar": {
+		"whole_height": 5.5,
+		"broken_height": 3.0,
+		"seed_whole": 11,
+		"seed_broken": 17,
+		"voxel": 0.02,
+		"chips": 14,
+		"chip_size": 0.06,
+		"roughen": 0.006,
+		"texture_size": 2048,
+		"stone": {
+			"stone_scale": 0.5,
+			"moss": 0.85,
+			"moss_on_tops": 0.7,
+			"stone_tint": [
+				0.82,
+				0.82,
+				0.86
+			],
+			"grime": 0.45
+		},
+		"stone_broken": {
+			"stone_scale": 0.5,
+			"moss": 1.0,
+			"moss_on_tops": 0.9,
+			"stone_tint": [
+				0.78,
+				0.78,
+				0.82
+			],
+			"grime": 0.55
+		}
+	},
+	"pagoda": {
+		"width": 6.5,
+		"tiers": 5
+	},
+	"temple_hall": {
+		"width": 12.0,
+		"depth": 8.0
+	}
+}

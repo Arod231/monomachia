@@ -17,6 +17,8 @@ extends Resource
 ## owner's choice, Oct 6), and the shadows of the fighters' own key lights
 ## (fighter_shadows, milestone-1 task 44; the owner's choice, Oct 7). Medium and Low also drop the sparks' contact
 ## lights (spark_light, milestone-1 task 37; the owner's choice, Oct 6).
+## Medium and Low thin the Shrine's fallen petals (floor_petal_ratio, 0.6
+## and 0.3; milestone-1 task 137, which the plan asked to thin per preset).
 ##
 ## The first launch picks a preset from the graphics card's name (for_card(),
 ## the rules in CARDS); a card no rule names gets UNKNOWN_CARD_ID.
@@ -40,6 +42,7 @@ const CUTS: Array[StringName] = [
 	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
 	&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
+	&"floor_petal_ratio",
 ]
 
 @export var id: StringName = &"high"
@@ -98,6 +101,9 @@ const CUTS: Array[StringName] = [
 @export_group("Effects")
 ## Fraction of each ambient particle emitter's amount that is drawn.
 @export_range(0.0, 1.0) var particle_ratio: float = 1.0
+## Fraction of the arena's fallen petals drawn (the Shrine's floor cover,
+## milestone-1 task 137): nodes in group look_floor_petals.
+@export_range(0.0, 1.0) var floor_petal_ratio: float = 1.0
 ## Lantern lights and other small omni lights.
 @export var minor_lights: bool = true
 ## Distant scenery detail: 0 = silhouettes only, 1 = with props, 2 = all.

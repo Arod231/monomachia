@@ -29,7 +29,9 @@ extends RefCounted
 ## which Low drops (group look_petal_light; drift_petal_lights() moves them).
 ## Shadows (the owner's choice, Oct 7): the trees cast none, the glowing
 ## blossoms take none either; the canopy lights cast the fighters' and
-## props' shadows.
+## props' shadows. Since milestone-1 task 49 the trees stand on the canopy
+## layer (LookPalette.CANOPY_LAYER) and cast shadows there, which only the
+## moon shafts in the mist take, so the shafts break through the canopy.
 ## At match point the petals turn blood red, their glow and the light they
 ## cast, to bring doom and despair to the final round (the owner's word, Oct
 ## 7; set_doom(), which MoonlitShrine.set_match_point() eases in): a deep red
@@ -156,10 +158,13 @@ static func tree_of(variant: int, bark_material: Material = null, blossom_materi
 		(node as MeshInstance3D).material_override = blossom_material
 		# baked into the global illumination, so the blossoms' glow lights
 		(node as MeshInstance3D).gi_mode = GeometryInstance3D.GI_MODE_STATIC
-	for node: Node in tree.find_children("*_Bark", "GeometryInstance3D", false, false):
-		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	for node: Node in tree.find_children("*_Blossom", "GeometryInstance3D", false, false):
-		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# on the canopy layer, casting shadows only in the moon shafts' light
+	# (milestone-1 task 49; every other light leaves the layer out)
+	for suffix: String in ["*_Bark", "*_Blossom"]:
+		for node: Node in tree.find_children(suffix, "GeometryInstance3D", false, false):
+			var geo := node as GeometryInstance3D
+			geo.layers |= LookPalette.CANOPY_LAYER
+			geo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return tree
 
 
@@ -285,8 +290,10 @@ static func _canopy_light(height: float) -> OmniLight3D:
 	light.omni_range = maxf(CANOPY_RANGE, height + 4.0)
 	light.light_energy = CANOPY_ENERGY
 	light.omni_attenuation = CANOPY_FALLOFF
-	# the fighters and props cast shadows in the blossoms' light
+	# the fighters and props cast shadows in the blossoms' light, the
+	# trees none
 	light.shadow_enabled = true
+	light.shadow_caster_mask = LookPalette.SHADOW_CASTERS
 	light.light_specular = 0.3
 	light.light_volumetric_fog_energy = 0.2
 	return light
