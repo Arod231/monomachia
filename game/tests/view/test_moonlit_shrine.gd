@@ -211,12 +211,13 @@ func test_a_ground_mist_and_dust_hang_over_the_courtyard() -> void:
 	assert_eq(dust.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
 
 
-## The moon's key and the lanterns light the mist; the rim, which touches
-## fighters only, doesn't.
+## The moon's key and the lanterns light the mist (the key softly, for the
+## shafts to stand out: milestone-1 task 49); the rim, which touches fighters
+## only, doesn't.
 func test_the_lights_are_the_look_test_s() -> void:
 	var key := arena.get_node("Lights/MoonKey") as DirectionalLight3D
 	assert_eq(key.light_color, LookPalette.MOON_STEEL.lightened(0.25))
-	assert_gt(key.light_volumetric_fog_energy, 1.0)
+	assert_gt(key.light_volumetric_fog_energy, 0.0)
 	assert_eq((arena.get_node("Lights/MoonRim") as Light3D).light_volumetric_fog_energy, 0.0)
 	for light: Node in _lantern_lights(arena):
 		var lamp := light as OmniLight3D

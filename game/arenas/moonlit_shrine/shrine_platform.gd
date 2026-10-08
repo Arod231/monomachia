@@ -18,6 +18,13 @@ extends RefCounted
 ## instead of being built.
 
 const STONE_FLOOR: Shader = preload("res://shaders/stone_floor.gdshader")
+## The paving's scans (milestone-1 task 49; paving_maps()).
+const PAVING: String = "res://assets/exports/shrine/paving.glb"
+## The share of the paving's slabs chipped at their edges and corners, and
+## how far (m) the moss and grime spread onto the stone from a joint
+## (milestone-1 task 49).
+const BROKEN_SLABS: float = 0.14
+const GRIME_SPREAD: float = 0.02
 const HALO: Shader = preload("res://shaders/particle_glow.gdshader")
 
 ## Ledge height: the rock shelf around the courtyard (task 17.5), just below
@@ -82,12 +89,14 @@ static func fire_points(layout: ShrineLayout) -> PackedVector3Array:
 static func _floor(root: Node3D, layout: ShrineLayout, def: ArenaDef) -> void:
 	var kit := MeshKit.new()
 	kit.disc(Transform3D.IDENTITY, def.floor_radius, 96, 6)
-	var mat: ShaderMaterial = LookMaterials.make_with_shader(STONE_FLOOR, LookMaterials.Surface.PROP, {
+	var params: Dictionary = {
 		&"centre_radius": layout.centre_radius,
 		&"ring_width": layout.ring_width,
 		&"tile_length": layout.tile_length,
 		&"wall_radius": def.wall_inner_radius(),
-	})
+	}
+	params.merge(paving_maps())
+	var mat: ShaderMaterial = LookMaterials.make_with_shader(STONE_FLOOR, LookMaterials.Surface.PROP, params)
 	var floor_mi := MeshKit.instance(kit.commit(), mat, false)
 	floor_mi.name = "Floor"
 	floor_mi.layers = LookPalette.GROUND_LAYER
@@ -101,6 +110,29 @@ static func _floor(root: Node3D, layout: ShrineLayout, def: ArenaDef) -> void:
 	var plinth_mi := MeshKit.instance(plinth.commit(), LookMaterials.prop(LookPalette.STONE_DARK), false)
 	plinth_mi.name = "Plinth"
 	root.add_child(plinth_mi)
+
+
+## The paving's scans for the floor's shader (milestone-1 task 49): the
+## paving export's two cards, Paving_Stone (Poly Haven's rock_surface) and
+## Paving_Grime (concrete_moss), each material's maps as the shader's
+## parameters, with use_scans on.
+static func paving_maps() -> Dictionary:
+	var model: Node = (load(PAVING) as PackedScene).instantiate()
+	var stone := model.find_child("Paving_Stone", true, false) as MeshInstance3D
+	var grime := model.find_child("Paving_Grime", true, false) as MeshInstance3D
+	var s := stone.mesh.surface_get_material(0) as BaseMaterial3D
+	var g := grime.mesh.surface_get_material(0) as BaseMaterial3D
+	model.free()
+	return {
+		&"use_scans": true,
+		&"stone_albedo": s.albedo_texture,
+		&"stone_normal": s.normal_texture,
+		&"stone_rough": s.roughness_texture,
+		&"grime_albedo": g.albedo_texture,
+		&"grime_normal": g.normal_texture,
+		&"broken_amount": BROKEN_SLABS,
+		&"grime_spread": GRIME_SPREAD,
+	}
 
 
 ## Angle of parapet post i, in degrees.
@@ -314,6 +346,7 @@ static func _lantern_light(fire: Vector3) -> OmniLight3D:
 	light.omni_range = 9.5
 	light.omni_attenuation = 1.1
 	light.shadow_enabled = true
+	light.shadow_caster_mask = LookPalette.SHADOW_CASTERS
 	# a soft-edged flame: the posts' and fighters' shadows fall into the
 	# courtyard (the owner's word, Oct 7)
 	light.light_size = 0.12

@@ -5,6 +5,11 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("1")
 shader_parameter/moon_radius = 0.085
+shader_parameter/star_amount = 0.75
+shader_parameter/star_colour_spread = 0.6
+shader_parameter/twinkle = 0.55
+shader_parameter/milky_way = 0.16
+shader_parameter/milky_way_width = 0.2
 
 [sub_resource type="Sky" id="Sky_moonlit"]
 sky_material = SubResource("ShaderMaterial_sky")

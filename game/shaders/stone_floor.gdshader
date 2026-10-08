@@ -1,8 +1,13 @@
-// The Moonlit Shrine's courtyard paving, painted procedurally: concentric rings
-// of worn stone tiles around a round centre stone with a faded crescent-moon
-// crest, dark grout, chipped edges, cracks and painterly mottling. Lit physically
-// (milestone-1 task 43). No image textures: its noise comes from the look's
-// generated noise texture (LookNoise), which is far cheaper than computing it.
+// The Moonlit Shrine's courtyard paving: concentric rings of worn stone tiles
+// around a round centre stone with a faded crescent-moon crest, chipped
+// edges, cracks and mottling, lit physically (milestone-1 task 43). Since
+// milestone-1 task 49 the stone is a scan (Poly Haven's rock_surface, CC0:
+// stone_albedo, stone_normal, stone_rough), laid at its own offset and turn on
+// each slab and varied per slab in tone; the joints and cracks fill with moss
+// and grime (concrete_moss: grime_albedo, grime_normal); and some slabs are
+// broken (broken_amount), chunks of them gone to the grit and moss under
+// them. Its other noise comes from the look's generated noise texture
+// (LookNoise).
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back;
 
@@ -23,6 +28,25 @@ uniform float crack_amount : hint_range(0.0, 1.0) = 0.45;
 uniform float long_crack_amount : hint_range(0.0, 1.0) = 1.0;
 uniform float crest_strength : hint_range(0.0, 1.0) = 0.42;
 uniform float wear : hint_range(0.0, 1.0) = 0.5;
+// The scans (task 49): how many metres a tile of them covers, how much of
+// the stone scan's own detail and relief the paving takes, and the grime's.
+uniform sampler2D stone_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable, hint_default_white;
+uniform sampler2D stone_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D stone_rough : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D grime_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable, hint_default_white;
+uniform sampler2D grime_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform bool use_scans = false;
+uniform float scan_size = 1.6;
+uniform float scan_detail : hint_range(0.0, 1.0) = 0.7;
+uniform float scan_relief : hint_range(0.0, 2.0) = 0.9;
+// The scan's mean colour (rock_surface's, linear), so only its detail varies
+// the slab's own tone, round 1.
+uniform vec3 scan_mean = vec3(0.162, 0.117, 0.087);
+uniform vec4 grime_tint : source_color = vec4(0.42, 0.46, 0.36, 1.0);
+// How wide the moss and grime spread from a joint (m), and the share of
+// slabs broken.
+uniform float grime_spread = 0.02;
+uniform float broken_amount : hint_range(0.0, 1.0) = 0.14;
 
 varying vec3 world_pos;
 
@@ -30,6 +54,30 @@ float sf_hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
 	p3 += dot(p3, p3.yzx + 33.33);
 	return fract((p3.x + p3.y) * p3.z);
+}
+
+// The nearest Voronoi cell's id (xy) and its border distance (z) at p.
+vec3 sf_cell(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	float f1 = 8.0;
+	float f2 = 8.0;
+	vec2 best = vec2(0.0);
+	for (int y = -1; y <= 1; y++) {
+		for (int x = -1; x <= 1; x++) {
+			vec2 g = vec2(float(x), float(y));
+			vec2 o = vec2(sf_hash(i + g), sf_hash(i + g + 17.1));
+			float d = length(g + o - f);
+			if (d < f1) {
+				f2 = f1;
+				f1 = d;
+				best = i + g;
+			} else if (d < f2) {
+				f2 = d;
+			}
+		}
+	}
+	return vec3(best, f2 - f1);
 }
 
 float sf_fbm(vec2 p) {
@@ -133,6 +181,31 @@ void fragment() {
 	float iso_dist = abs(iso - 0.5) * pix / max(fwidth(iso), 1e-5);
 	col *= 0.82 + 0.36 * m;
 	col *= mix(vec3(1.03, 1.0, 0.95), vec3(0.94, 0.98, 1.06), h2);
+	// The scan, at its own offset and quarter turn on each slab, so no two
+	// neighbours share its pattern, and the slab's own tone over it.
+	float turn = floor(h * 4.0) * 1.5707963;
+	mat2 rot = mat2(vec2(cos(turn), sin(turn)), vec2(-sin(turn), cos(turn)));
+	vec2 suv = rot * (p / scan_size) + vec2(h, h2) * 17.0;
+	vec2 guv = p / (scan_size * 1.3);
+	vec3 scan = use_scans ? texture(stone_albedo, suv).rgb : scan_mean;
+	col *= mix(vec3(1.0), scan / scan_mean, scan_detail);
+	float rough = use_scans ? mix(roughness, texture(stone_rough, suv).g, 0.7) : roughness;
+	vec3 nm = use_scans ? texture(stone_normal, suv).rgb * 2.0 - 1.0 : vec3(0.0, 0.0, 1.0);
+	nm.xy = rot * nm.xy;
+	nm.xy *= scan_relief;
+	// A broken slab: chunks of it gone (cells of a coarse Voronoi inside it),
+	// grit and moss where they were, the break's edge dark.
+	float gone = 0.0;
+	float break_edge = 0.0;
+	if (sf_hash(id + 29.7) < broken_amount) {
+		// Pieces break off at the slab's edges and corners, not its middle.
+		vec3 piece = sf_cell(p * 3.2 + id * 3.1);
+		if (sf_hash(piece.xy + id) < 0.5 && edge < 0.16 + 0.22 * h2) {
+			gone = 1.0;
+		} else {
+			break_edge = 1.0 - smoothstep(0.0, 0.05 + pix * 2.0, piece.z);
+		}
+	}
 	// Dirt gathers along the joints.
 	col *= mix(0.84, 1.0, smoothstep(0.0, 0.08, e));
 	// Cracks: angular cell borders on some nearby tiles, partly faded out
@@ -155,10 +228,28 @@ void fragment() {
 		float worn = smoothstep(0.28, 0.62, sf_fbm(p * 2.2 + 3.0));
 		col = mix(col, crest_color.rgb * (0.7 + 0.5 * m), sf_crest(p) * crest_strength * worn);
 	}
-	col = mix(col, grout_color.rgb, grout * 0.85);
+	// Moss and grime in the joints, the cracks and the broken chunks, spreading
+	// a little onto the stone at the joints' edges.
+	vec3 grime = use_scans ? texture(grime_albedo, guv).rgb * grime_tint.rgb * 2.2 : grout_color.rgb;
+	float spread = 1.0 - smoothstep(grout_width, grout_width + grime_spread * (0.4 + look_noise(p * 3.0).r), e);
+	float filled = max(max(grout, crack * 0.9), max(gone, break_edge * 0.8));
+	float grimy = max(filled, spread * 0.4);
+	// Where a piece is gone, grit and broken stone under the moss.
+	vec3 grit = mix(grime, stone_dark.rgb * (0.55 + 0.4 * m), 0.55);
+	vec3 filler = mix(mix(grime, grit, gone), grout_color.rgb, break_edge * 0.6);
+	col = mix(col, filler, grimy * 0.9);
+	col = mix(col, grout_color.rgb, grout * 0.35);
+	if (use_scans && grimy > 0.0) {
+		vec3 gn = texture(grime_normal, guv).rgb * 2.0 - 1.0;
+		nm = mix(nm, gn, grimy);
+	}
+	rough = mix(rough, 0.95, grimy);
 	// The fighting area is worn a little smoother and paler.
 	col *= 1.0 + wear * 0.12 * (1.0 - smoothstep(4.0, 13.0, r));
 
 	ALBEDO = col;
-	ROUGHNESS = roughness;
+	ROUGHNESS = rough;
+	// The floor lies flat in xz: the scan's u runs along x and its v along z.
+	vec3 world_n = normalize(vec3(nm.x, max(nm.z, 0.05), nm.y));
+	NORMAL = normalize((VIEW_MATRIX * vec4(world_n, 0.0)).xyz);
 }

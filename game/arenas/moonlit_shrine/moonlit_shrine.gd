@@ -9,7 +9,9 @@ extends Node3D
 ## Like every arena it brings its own environment and lights, in the
 ## realistic look (milestone-1 task 43, as the look test settled it): the
 ## night (LookGrade) over its sky, the moon's cold key, the lanterns' embers,
-## a ground mist in the volumetric fog and dust in the moonlight. It applies
+## a ground mist in the volumetric fog and dust in the moonlight; since
+## milestone-1 task 49, banks of mist drifting through shafts of the cool
+## moonlight that break through the canopy (MoonShafts, MistBanks). It applies
 ## the chosen graphics preset to itself when it loads; the match brings the
 ## camera and the fighters. It flickers its lantern lights,
 ## bobs its floating rocks, and leaves the rock under its rim out of the
@@ -43,6 +45,14 @@ const DOOM_FADE: float = 3.0
 ## (the owner's word, Oct 7).
 const MOON_LIGHT := Color(1.0, 0.16, 0.08)
 const MOON_LIGHT_ENERGY: float = 0.6
+## The moon shafts (milestone-1 task 49): the cool moonlight from high up
+## (the key's direction), breaking through gaps in the canopy into the mist
+## and lighting nothing else; and the banks of mist drifting through them.
+const SHAFT_LIGHT: Color = Color(0.62, 0.72, 0.95)
+const SHAFT_FOG_ENERGY: float = 12.0
+const MIST_BANK: Shader = preload("res://shaders/mist_bank.gdshader")
+## How high the mist banks rise (m): through the canopy.
+const MIST_BANK_HEIGHT: float = 11.0
 ## The dust motes over the courtyard (the look test's 140 over a corner,
 ## spread over the whole floor at about a third of that density).
 const DUST_AMOUNT: int = 700
@@ -132,6 +142,7 @@ func _build() -> void:
 	add_child(ShrineBackdrop.build(layout, base.fog_light_color))
 	add_child(ShrineParticles.build(layout, ShrinePlatform.fire_points(layout)))
 	add_child(_ground_mist())
+	add_child(_mist_banks())
 	add_child(_dust())
 	_fallen = ShrineFallenPetals.build(layout, def)
 	add_child(_fallen)
@@ -168,7 +179,8 @@ func _build_lights() -> Node3D:
 	key.name = "MoonKey"
 	key.light_color = LookPalette.MOON_STEEL.lightened(0.25)
 	key.light_energy = 0.9
-	key.light_volumetric_fog_energy = 1.2
+	# softly in the mist, for the shafts to stand out of it (task 49)
+	key.light_volumetric_fog_energy = 0.2
 	key.shadow_enabled = false
 	key.light_angular_distance = 0.0
 	key.basis = _shining_from(layout.key_light_direction)
@@ -180,6 +192,7 @@ func _build_lights() -> Node3D:
 	moon.light_volumetric_fog_energy = 0.0
 	moon.light_specular = 0.3
 	moon.shadow_enabled = true
+	moon.shadow_caster_mask = LookPalette.SHADOW_CASTERS
 	moon.shadow_blur = 1.0
 	moon.shadow_bias = 0.04
 	moon.shadow_normal_bias = 1.2
@@ -201,7 +214,33 @@ func _build_lights() -> Node3D:
 	rim.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	rim.basis = _shining_from(layout.moon_direction)
 	root.add_child(rim)
+	root.add_child(_moon_shafts())
 	return root
+
+
+## The moon shafts: the cool moonlight from the key's direction, lighting
+## the mist and, of the surfaces, only the canopy (its cull mask, which also
+## limits its shadow casters, so it must take the canopy in), and shadowed
+## only by the canopy (its caster mask), so the mist under the wisteria lies
+## in shadow and the light breaks through the gaps in shafts. The preset sets
+## its shadows (on Low, which has no volumetric fog, there's no mist to
+## light).
+func _moon_shafts() -> DirectionalLight3D:
+	var shafts := DirectionalLight3D.new()
+	shafts.name = "MoonShafts"
+	shafts.light_color = SHAFT_LIGHT
+	shafts.light_energy = 1.0
+	shafts.light_cull_mask = LookPalette.CANOPY_LAYER
+	shafts.light_specular = 0.0
+	shafts.light_volumetric_fog_energy = SHAFT_FOG_ENERGY
+	shafts.shadow_enabled = true
+	shafts.shadow_caster_mask = LookPalette.CANOPY_LAYER
+	shafts.shadow_blur = 1.5
+	shafts.directional_shadow_blend_splits = true
+	shafts.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	shafts.add_to_group(GraphicsApplier.GROUP_SHADOW_LIGHT)
+	shafts.basis = _shining_from(layout.key_light_direction)
+	return shafts
 
 
 ## The red wash toward the moon of the mountains, the cloud sea and anything
@@ -236,6 +275,27 @@ func _ground_mist() -> FogVolume:
 	m.albedo = LookPalette.MIST.lightened(0.15)
 	m.height_falloff = 1.6
 	m.edge_fade = 0.6
+	v.material = m
+	return v
+
+
+## Banks of mist drifting on the night's wind over the courtyard and out past
+## the parapet, thick low down and thinning in wisps up through the canopy,
+## for the moon shafts to light (milestone-1 task 49). A fog shader
+## (MIST_BANK) over the look's noise, so it needs volumetric fog like the
+## ground mist.
+func _mist_banks() -> FogVolume:
+	var v := FogVolume.new()
+	v.name = "MistBanks"
+	v.shape = RenderingServer.FOG_VOLUME_SHAPE_BOX
+	var reach: float = def.floor_radius * 2.0 + 10.0
+	v.size = Vector3(reach, MIST_BANK_HEIGHT, reach)
+	v.position = Vector3(0.0, MIST_BANK_HEIGHT * 0.5 - 0.2, 0.0)
+	var m := ShaderMaterial.new()
+	m.shader = MIST_BANK
+	m.set_shader_parameter(&"wind", layout.wind)
+	m.set_shader_parameter(&"albedo", LookPalette.MIST.lightened(0.3))
+	LookNoise.apply_to(m)
 	v.material = m
 	return v
 
@@ -299,7 +359,8 @@ static func _mote() -> Texture2D:
 	return t
 
 
-## Puts the sky's moon where the layout says, paints its horizon in the
+## Puts the sky's moon where the layout says (and its Milky Way away from
+## it), paints its horizon in the
 ## depth fog's colour so the fog fades into it, and gives it the look's noise.
 ## A sky that isn't a shader (bought art, say) is left as it is.
 func _dress_sky(environment: Environment) -> void:
@@ -307,8 +368,16 @@ func _dress_sky(environment: Environment) -> void:
 		return
 	var sky := environment.sky.sky_material as ShaderMaterial
 	sky.set_shader_parameter(&"moon_direction", layout.moon_direction.normalized())
+	sky.set_shader_parameter(&"milky_way_pole", milky_way_pole(layout.moon_direction))
 	sky.set_shader_parameter(&"horizon_color", environment.fog_light_color)
 	LookNoise.apply_to(sky)
+
+
+## The pole of the Milky Way's great circle for a moon toward moon_dir: near
+## the moon, tipped a little, so the band arcs across the sky well away from
+## it (milestone-1 task 49).
+static func milky_way_pole(moon_dir: Vector3) -> Vector3:
+	return (moon_dir.normalized() + Vector3(0.25, 0.3, 0.0)).normalized()
 
 
 ## Match point (the owner's word, Oct 7): the wisteria's petals glow and
