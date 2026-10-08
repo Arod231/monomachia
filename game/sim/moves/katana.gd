@@ -101,12 +101,15 @@ const MOVES: Dictionary = {
 		"range": 3.6, "arc": 110, "lunge": 2.1, "lunge_start": 9, "lunge_end": 25,
 		"chain_light": &"k_2l2", "chain_heavy": &"k_rdraw",
 	},
+	# Heaven Splitter's follow-up (KE task 7), Elden Ring's (KE task 17): it
+	# rises out of the Splitter's settled crouch, the blade drawn back low on
+	# the left, and cuts rising up through the front to high on the right; its
+	# step comes from its clip. The vertical Iai hands off to the same clip.
 	&"k_h1f": {
 		"id": &"k_h1f", "name": "Rising Heaven", "kind": &"heavy", "type": &"slash", "anim": &"diagUp",
-		# rising from the crouch Heaven Splitter ends in (KE task 7)
-		"side_start": &"centre", "side_end": &"left",
+		"side_start": &"centre", "side_end": &"right",
 		"damage": 12, "posture": 15, "knockback": 0.9,
-		"range": 2.3, "arc": 90, "lunge": 1.25, "lunge_end": 18,
+		"range": 2.3, "arc": 90,
 	},
 	# the horizontal Iai's heavy follow-up, back the other way
 	&"k_rdraw": {
@@ -115,14 +118,15 @@ const MOVES: Dictionary = {
 		"damage": 12, "posture": 15, "knockback": 0.9,
 		"range": 2.3, "arc": 110, "lunge": 1.1, "lunge_end": 18,
 	},
-	# the two-handed heavy (KE task 7): charged by holding heavy (D9), Rising
-	# Heaven its follow-up
+	# the two-handed heavy (KE task 7), Elden Ring's (KE task 17): the blade
+	# raised and held overhead, then cut straight down with a long lunge into
+	# a deep crouch; charged by holding heavy (D9), held overhead; Rising
+	# Heaven its follow-up once the crouch settles, else a long rise
 	&"k_h2": {
 		"id": &"k_h2", "name": "Heaven Splitter", "kind": &"heavy", "type": &"overhead", "anim": &"overhead",
-		"side_start": &"centre", "side_end": &"centre",
+		"side_start": &"centre", "side_end": &"centre", "grip": &"two_handed",
 		"damage": 15, "posture": 18, "knockback": 1.2,
-		"range": 2.4, "arc": 60, "lunge": 1.0, "lunge_start": 8, "lunge_end": 24,
-		"chargeable": true, "chain_heavy": &"k_h1f",
+		"range": 2.4, "arc": 60, "chargeable": true, "chain_heavy": &"k_h1f",
 	},
 	# the one-handed heavy (KE task 7, D13), Elden Ring's (KE task 16): the
 	# blade coiled back over the shoulder, a loop low and up, and a wide level

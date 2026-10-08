@@ -1,0 +1,129 @@
+{
+	"about": "Heaven Splitter (katana.k_h2), the two-handed heavy (KE task 17), Elden Ring's: Attack2H04's overhead without its jump (the hips held down and the legs stepping on IK): the blade raised over the head (source frames 0-2 over 10) and held there upright (source 2-3.2 to frame 50; the charge holds on frame 30; past source 3.5 the pack cocks the blade back behind the head, which the two-handed grip turns flat, so the warp skips from 3.2 to the landing at 11.6), then lifted a little as the long lunge starts and cut straight down on frames 55-57, into its deep crouch, settled by frame 71 (where Rising Heaven may rise from it) and held to frame 80, then up to the two-handed guard. Both hands on the handle. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H04.fbx",
+	"out": "blender/clips/heaven_splitter.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			10,
+			2
+		],
+		[
+			30,
+			2.9
+		],
+		[
+			50,
+			3.2
+		],
+		[
+			51,
+			11.6
+		],
+		[
+			53,
+			12.5
+		],
+		[
+			55,
+			14
+		],
+		[
+			57,
+			15.2
+		],
+		[
+			60,
+			16.5
+		],
+		[
+			80,
+			22
+		],
+		[
+			100,
+			46
+		]
+	],
+	"two_hands": {
+		"grip": 0.13,
+		"hold": [
+			0.32,
+			0.12
+		],
+		"square": 0,
+		"clearance": 0.05
+	},
+	"step": {
+		"body": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				0
+			],
+			[
+				10,
+				0.1
+			],
+			[
+				47,
+				0.1
+			],
+			[
+				48,
+				0.28
+			],
+			[
+				56,
+				1.6
+			],
+			[
+				58,
+				1.85
+			],
+			[
+				61,
+				1.95
+			],
+			[
+				100,
+				1.95
+			]
+		],
+		"feet": {
+			"L": [
+				[
+					47,
+					57,
+					1.95,
+					0.22
+				]
+			],
+			"R": [
+				[
+					3,
+					10,
+					0.32,
+					0.16
+				],
+				[
+					48,
+					59,
+					1.63,
+					0.2
+				]
+			]
+		},
+		"hips_top": 0.84,
+		"hips_home": [
+			82,
+			100
+		]
+	}
+}

@@ -7,8 +7,9 @@ extends GutTest
 ## the grip's (Crescent Coil one-handed, Rising Heaven two-handed) and the
 ## horizontal one keeps Returning Draw and the grip's hit 2 (D5). Crescent
 ## Coil is Elden Ring's since KE task 16, holding its charge at its coil;
-## Heaven Splitter and Rising Heaven stand in on today's heavy clips until
-## their re-key (KE task 17).
+## Heaven Splitter and Rising Heaven since KE task 17, the Splitter holding
+## its charge overhead and Rising Heaven rising from its settled crouch, or
+## left alone the Splitter rising slowly out of it.
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 const CLOSE: float = 0.005
@@ -114,14 +115,71 @@ func test_a_switch_before_the_heavy_picks_the_new_grip_s_heavy() -> void:
 	assert_eq(swung, [&"k_1l1", &"k_h2"] as Array[StringName], "one-handed Slanting Cut, then two-handed Heaven Splitter")
 
 
+## Fighter 0, two-handed, plays Heavy Slant, then Heaven Splitter from its
+## branch, and presses heavy on each of the Splitter's frames in `presses`
+## (and once more on Rising Heaven's frame 10, if it swings). Returns [the
+## moves that swung, the Splitter's last frame played, the step fighter 0
+## was free again (-1: never)].
+static func _splitter(presses: Array[int]) -> Array:
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 2.2)
+	var a: Fighter = W.fighters[0]
+	W.step([_with_grip(H.idle()), H.idle()])
+	W.drain_events()
+	var swung: Array[StringName] = []
+	var played: int = 0
+	var free_at: int = -1
+	var pressed: bool = false
+	for i: int in 600:
+		var p0: RawInput = H.idle()
+		if i == 0:
+			p0 = H.btn(Btn.LIGHT)
+		elif not pressed and a.state == &"attack" and a.atk.def.id == &"k_2l1" and a.atk.frame >= 32:
+			pressed = true
+			p0 = H.btn(Btn.HEAVY)
+		elif a.state == &"attack" and a.atk.def.id == &"k_h2" and presses.has(a.atk.frame + 1):
+			p0 = H.btn(Btn.HEAVY)
+		elif a.state == &"attack" and a.atk.def.id == &"k_h1f" and a.atk.frame == 9:
+			p0 = H.btn(Btn.HEAVY)
+		W.step([p0, H.idle()])
+		if a.state == &"attack" and a.atk.def.id == &"k_h2":
+			played = maxi(played, a.atk.frame)
+		for e: Dictionary in W.drain_events():
+			if e["t"] == &"swing" and e["f"] == 0:
+				swung.append(e["attack"])
+		if free_at < 0 and swung.size() >= 2 and a.state == &"free":
+			free_at = i
+	return [swung, played, free_at]
+
+
 func test_heaven_splitter_s_follow_up_is_rising_heaven_and_the_pair_ends() -> void:
-	var swung: Array[StringName] = (_play(TWO, [Btn.LIGHT, Btn.HEAVY, Btn.HEAVY, Btn.HEAVY])[0] as Array[StringName])
-	assert_eq(swung, [&"k_2l1", &"k_h2", &"k_h1f"] as Array[StringName], "Rising Heaven, then nothing")
+	var splitter: AttackDef = Moves.KATANA.moves[&"k_h2"]
+	var opens: int = splitter.branch_window(&"k_h1f")[0]
+	var swung: Array[StringName] = (_splitter([opens])[0] as Array[StringName])
+	assert_eq(swung, [&"k_2l1", &"k_h2", &"k_h1f"] as Array[StringName], "Rising Heaven from the crouch, then nothing")
+
+
+# Rising Heaven's branch opens once the Splitter's crouch settles, so it
+# lands about 1.3-1.45 s after the Splitter, as in Elden Ring (the owner's
+# word, Oct 8)
+func test_rising_heaven_rises_once_the_splitter_s_crouch_settles() -> void:
+	var splitter: AttackDef = Moves.KATANA.moves[&"k_h2"]
+	var rising: AttackDef = Moves.KATANA.moves[&"k_h1f"]
+	var opens: int = splitter.branch_window(&"k_h1f")[0]
+	assert_gt(opens - (splitter.startup + splitter.active), 24, "well after the cut, the crouch settled")
+	var after: int = opens + rising.startup + 1 - splitter.startup
+	assert_between(after, 78, 87, "landing 1.3-1.45 s after the Splitter's cut")
+	var early: Array = _splitter([opens - 30])
+	assert_eq(early[0], [&"k_2l1", &"k_h2", &"k_h1f"] as Array[StringName], "pressed in the cut's follow-through, it waits")
+	assert_eq(int(early[1]) + 1, opens, "and rises only once the crouch settles")
 
 
 func test_rising_heaven_is_optional() -> void:
-	var swung: Array[StringName] = (_play(TWO, [Btn.LIGHT, Btn.HEAVY])[0] as Array[StringName])
-	assert_eq(swung, [&"k_2l1", &"k_h2"] as Array[StringName])
+	var splitter: AttackDef = Moves.KATANA.moves[&"k_h2"]
+	var got: Array = _splitter([])
+	assert_eq(got[0], [&"k_2l1", &"k_h2"] as Array[StringName])
+	assert_eq(int(got[1]) + 1, splitter.startup + splitter.active + splitter.recovery, "left alone, the Splitter plays out its long rise from the crouch")
+	assert_gt(splitter.recovery, 75, "a long recovery, its own band row's")
+	assert_gt(int(got[2]), 0, "and the fighter is free after it")
 
 
 func test_crescent_coil_takes_no_follow_up() -> void:
@@ -194,7 +252,8 @@ static func _coil_charge(hold: int) -> Array:
 
 # The grip heavies hold their charge at their own pose, Elden Ring's (KE task
 # 16): Crescent Coil at its coil over the shoulder, its row's hold frame,
-# not today's frame 9, which the Iai keeps.
+# not today's frame 9, which the Iai keeps; Heaven Splitter overhead (KE
+# task 17).
 func test_crescent_coil_holds_its_charge_at_the_coil() -> void:
 	var coil: AttackDef = Moves.KATANA.moves[&"k_coil"]
 	assert_gt(coil.charge_hold, Fighter.CHARGE_CHECK_FRAME, "past today's frame 9")
@@ -204,6 +263,31 @@ func test_crescent_coil_holds_its_charge_at_the_coil() -> void:
 		assert_eq(held[0], coil.charge_hold, "from the coil, on its hold frame")
 		assert_eq(held.max(), coil.charge_hold, "and holds that frame while it charges")
 	assert_eq(_coil_charge(coil.charge_hold - 4), [] as Array[int], "let go before the coil: a tap, no charge")
+
+
+func test_heaven_splitter_holds_its_charge_overhead() -> void:
+	var splitter: AttackDef = Moves.KATANA.moves[&"k_h2"]
+	assert_gt(splitter.charge_hold, Fighter.CHARGE_CHECK_FRAME, "past today's frame 9")
+	var W: World = H.make_world()
+	var a: Fighter = W.fighters[0]
+	W.step([_with_grip(H.idle()), H.idle()])
+	var charging: Array[int] = []
+	var pressed: int = -1
+	for i: int in 400:
+		var p0: RawInput = H.idle()
+		if i == 0:
+			p0 = H.btn(Btn.LIGHT)
+		elif pressed < 0 and a.state == &"attack" and a.atk.def.id == &"k_2l1" and a.atk.frame >= 32:
+			pressed = i
+			p0 = H.btn(Btn.HEAVY)
+		elif pressed >= 0 and i < pressed + splitter.charge_hold + 60:
+			p0 = H.btn(Btn.HEAVY)
+		W.step([p0, H.idle()])
+		if a.state == &"attack" and a.atk.def.id == &"k_h2" and a.atk.charging:
+			charging.append(a.atk.frame)
+	assert_false(charging.is_empty(), "held past the raise, it charges")
+	if not charging.is_empty():
+		assert_eq([charging[0], charging.max()], [splitter.charge_hold, splitter.charge_hold], "overhead, on its hold frame, held there")
 
 
 ## Fighter 0 plays Slanting Cut, then Crescent Coil from its branch, heavy

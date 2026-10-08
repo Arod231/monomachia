@@ -39,7 +39,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Right Cut `k_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
 | Return Cut `k_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
 | Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
-| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
+| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
 | Slanting Cut `k_1l1` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Backhand Rise `k_1l2` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Twisting Rise `k_1l3` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
@@ -65,9 +65,9 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Iai Slash (vertical) `k_iai` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Iai Slash (horizontal) `k_iai_h` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Rising Heaven `k_h1f` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Rising Heaven `k_h1f` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Returning Draw `k_rdraw` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Heaven Splitter `k_h2` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Heaven Splitter `k_h2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Crescent Coil `k_coil` | move (KE task 16) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | The heavy deflect pairs `clip_deflect_heavy` | not built | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | Heavy hit reactions `clip_hit_heavy` | stand-in clips | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |

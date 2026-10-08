@@ -31,7 +31,7 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 	},
 	&"k_h1f": {
 		"name": "Rising Heaven", "damage": 12, "posture": 15,
-		"light": &"", "heavy": &"", "sides": [&"centre", &"left"],
+		"light": &"", "heavy": &"", "sides": [&"centre", &"right"],
 	},
 	&"k_rdraw": {
 		"name": "Returning Draw", "damage": 12, "posture": 15,
@@ -216,7 +216,9 @@ func test_crown_cut_again_as_hit_5_ends_the_string() -> void:
 	var light: int = Btn.LIGHT
 	_assert_starts_nothing_in([light, light, light, light, light], [&"k_2l1", &"k_2l2", &"k_l3", &"k_l4", &"k_l4"], [light])
 	# its heavy branch is the grip's heavy, as every hit's (KE task 7)
-	assert_eq(_play([light, light, light, light, light, Btn.HEAVY]).ids(&"swing").back(), &"k_h2")
+	# (played long enough for the heavy to start after five hits)
+	var r: PlayedString = PlayedString.play(Moves.KATANA, [light, light, light, light, light, Btn.HEAVY], 2.2, 0.0, &"", -1, 480)
+	assert_eq(r.ids(&"swing").back(), &"k_h2")
 
 
 func test_stopping_after_any_hit_ends_the_string_when_that_move_ends() -> void:

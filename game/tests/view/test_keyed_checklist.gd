@@ -513,10 +513,11 @@ const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
 const SELDOM_ANSWERABLE: Array[StringName] = [&"f_h2", &"f_bl"]
 
 
-## Whether keyed move `id` is hit 4 or 5 of a grip's own string.
+## Whether keyed move `id` is hit 4 or 5 of a grip's string: its own, or a
+## stand-in's (Crown Cut, the two-handed string's hit 4 until KE task 14,
+## which the computer's Hard duels seldom reach since KE task 17 either).
 static func _late_hit(id: StringName) -> bool:
-	var def: AttackDef = Moves.KATANA.moves.get(id, null)
-	return def != null and def.grip != &"" and Moves.KATANA.string_position(id) >= 4
+	return Moves.KATANA.moves.has(id) and Moves.KATANA.string_position(id) >= 4
 
 
 # ------------------------------------------------------------------ the clip rows' 11, 13 and 14

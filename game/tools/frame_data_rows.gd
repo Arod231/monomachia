@@ -12,7 +12,7 @@ const ImportClips := preload("res://tools/import_clips.gd")
 ## The timing band table's rows (docs/specs/milestone-1.md), a move's kind.
 const BAND_KINDS: Array[StringName] = [
 	&"string_light", &"string_light_1h", &"string_last_1h", &"string_light_2h", &"string_last_2h",
-	&"string_heavy", &"grip_heavy_1h", &"grip_heavy_2h", &"iai_draw", &"iai_follow_up", &"unblockable",
+	&"string_heavy", &"grip_heavy_1h", &"grip_heavy_2h", &"grip_heavy_follow_up", &"iai_draw", &"iai_follow_up", &"unblockable",
 	&"sprint_light", &"sprint_heavy", &"dodge_light", &"dodge_heavy", &"backstep_light", &"backstep_heavy",
 	&"jump_light", &"jump_heavy", &"block_ability", &"ultimate", &"counter_lunge",
 ]
@@ -42,8 +42,9 @@ const ABOUT: String = "The frame-data table (milestone-1 task 16): each move's f
 ## played from (sprint, dodge, backstep, jump), else a counter lunge, a
 ## block ability (unblockable or not), an ultimate, an Iai draw (a stance
 ## charge, or the variant one draws as), a grip's own heavy keyed for it
-## (grip_heavy_1h, grip_heavy_2h; KE task 16), an Iai follow-up (a heavy one
-## follows), a light of the string, or a heavy of it. A move has one kind
+## (grip_heavy_1h, grip_heavy_2h; KE task 16), a grip heavy's follow-up
+## (Rising Heaven, after Heaven Splitter; KE task 17), an Iai follow-up (a
+## heavy one follows), a light of the string, or a heavy of it. A move has one kind
 ## wherever it is played from.
 static func kind_of(w: WeaponDef, id: StringName) -> StringName:
 	var m: AttackDef = w.moves[id]
@@ -65,6 +66,11 @@ static func kind_of(w: WeaponDef, id: StringName) -> StringName:
 		for g: WeaponGrip in w.grips:
 			if g.id == m.grip and g.heavy == id:
 				return StringName("grip_heavy_" + ("1h" if m.grip == WeaponGrip.ONE_HANDED else "2h"))
+	if m.kind == &"heavy":
+		for g: WeaponGrip in w.grips:
+			var heavy: AttackDef = w.moves.get(g.heavy, null)
+			if heavy != null and heavy.grip == g.id and heavy.chain_heavy == id:
+				return &"grip_heavy_follow_up"
 	if m.kind != &"light":
 		for other: StringName in w.moves:
 			if is_iai_draw(w, other) and (w.moves[other] as AttackDef).chain_heavy == id:

@@ -146,10 +146,11 @@ const GRIP_LOW_POSTURE: float = 62.0
 const GRIP_RANGE_MARGIN: float = 0.9
 const GRIP_SWITCH_GAP: int = 45
 ## The extra chance a heavy ending is charged against a guarding opponent,
-## and the frames heavy is held from its press (COMBO_LEAD before the branch
-## point, then the heavy's startup to its charge check, then the charge).
+## and the frames heavy is held past the heavy's charge check (its own hold
+## frame, KE tasks 16 and 17: the press COMBO_LEAD before the branch point,
+## held to that frame, then the charge).
 const BRANCH_CHARGE_GUARDED: float = 0.25
-const BRANCH_CHARGE_HOLD: Vector2i = Vector2i(40, 160)
+const BRANCH_CHARGE_HOLD: Vector2i = Vector2i(25, 140)
 
 
 class Tap:
@@ -392,7 +393,10 @@ func _think() -> RawInput:
 			elif at.frame >= (next[1] as PackedInt32Array)[0] - COMBO_LEAD:
 				if btn == Btn.HEAVY and _charges_ending():
 					_hold_mask |= 1 << Btn.HEAVY
-					_charge_until = frame + rng.int(BRANCH_CHARGE_HOLD.x, BRANCH_CHARGE_HOLD.y)
+					var heavy: AttackDef = me.moveset().moves[next[0]]
+					var check: int = heavy.charge_hold if heavy.charge_hold != AttackDef.UNSET else Fighter.CHARGE_CHECK_FRAME
+					var to_branch: int = maxi(0, (next[1] as PackedInt32Array)[0] - at.frame)
+					_charge_until = frame + to_branch + check + rng.int(BRANCH_CHARGE_HOLD.x, BRANCH_CHARGE_HOLD.y)
 				else:
 					if btn == Btn.LIGHT and _mixes():
 						_tap(Btn.GRIP, frame, 2)

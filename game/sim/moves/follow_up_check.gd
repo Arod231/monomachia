@@ -30,6 +30,7 @@ const EARLIEST_BRANCH: Dictionary[StringName, int] = {
 	&"string_heavy": 18,
 	&"grip_heavy_1h": 18,
 	&"grip_heavy_2h": 18,
+	&"grip_heavy_follow_up": 18,
 	&"iai_draw": 18,
 	&"iai_follow_up": 18,
 }
