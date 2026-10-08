@@ -253,11 +253,11 @@ static func _floating_rocks(layout: ShrineLayout, rock: Material) -> Node3D:
 	var root := Node3D.new()
 	root.name = "FloatingRocks"
 	var rng: RandomNumberGenerator = layout.random_stream(&"floating_rock")
-	var props: Dictionary[StringName, Material] = ShrineProps.materials()
+	var buildings := ShrineBuildings.new()
 	for i: int in layout.floating_rocks.size():
 		if layout.place_art(root, &"floating_rock", i, Transform3D.IDENTITY):
 			continue
-		var node: Node3D = _floating_rock(layout, i, rock, props, rng)
+		var node: Node3D = _floating_rock(layout, i, rock, buildings, rng)
 		node.name = "FloatingRock%d" % i
 		root.add_child(node)
 	bob_rocks(root, layout, 0.0)
@@ -266,9 +266,10 @@ static func _floating_rocks(layout: ShrineLayout, rock: Material) -> Node3D:
 
 ## Floating rock index: a small crag with its flat top at y = 0, carrying a
 ## lantern and a young wisteria, a young wisteria or a broken pillar, or
-## nothing, in turn (milestone-1 task 48).
+## nothing, in turn (milestone-1 task 48), the lantern and the pillar the
+## modelled ones (ShrineBuildings, milestone-1 task 132).
 static func _floating_rock(layout: ShrineLayout, index: int, rock: Material,
-		props: Dictionary[StringName, Material], rng: RandomNumberGenerator) -> Node3D:
+		buildings: ShrineBuildings, rng: RandomNumberGenerator) -> Node3D:
 	var size: float = layout.floating_rocks[index].w
 	var node := Node3D.new()
 	var noise := FastNoiseLite.new()
@@ -285,10 +286,9 @@ static func _floating_rock(layout: ShrineLayout, index: int, rock: Material,
 	var mi := MeshKit.instance(kit.commit(), rock, false)
 	mi.name = "Rock"
 	node.add_child(mi)
-	var kits := MeshKitSet.new()
 	match index % 4:
 		0:
-			ShrineProps.lantern(kits, Transform3D(Basis(), Vector3(size * 0.2, 0, -size * 0.1)), rng)
+			node.add_child(buildings.lantern(index, Transform3D(Basis(), Vector3(size * 0.2, 0, -size * 0.1)), rng.randf()))
 			var small: Node3D = ShrineWisteria.young(index, size * 0.02)
 			small.position = Vector3(-size * 0.35, 0, size * 0.2)
 			node.add_child(small)
@@ -298,6 +298,5 @@ static func _floating_rock(layout: ShrineLayout, index: int, rock: Material,
 			tree.rotation.y = rng.randf() * TAU
 			node.add_child(tree)
 		2:
-			ShrineProps.pillar(kits, Transform3D(Basis(), Vector3(size * 0.2, 0, 0)), 3.0, true, rng)
-	kits.finish(node, props, ShrinePlatform.NO_SHADOW)
+			node.add_child(buildings.pillar(index, Transform3D(Basis(), Vector3(size * 0.2, 0, 0)), 3.0, true))
 	return node

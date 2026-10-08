@@ -121,14 +121,14 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 69. As a player whose opponent is disarmed, I want to stand in their way to keep the advantage, so that the disarm game stays live.
 70. As a disarmed player, I want to move faster, dodge farther and jump higher than when armed, so that bare hands keep their agility.
 71. As a disarmed player, I want a longer roll clip covering the disarmed dodge's 1.5× distance inside the same protected frames, so that the longer dodge doesn't slide. **(P15, confirmed Oct 4)**
-72. As a disarmed player, I want the light string (Jab, Cross, Hook) and the heavies (Roundhouse, Spinning Heel) re-keyed in the bare-hands bands, so that disarmed fighting looks like fighting.
+72. [x] As a disarmed player, I want the light string (Jab, Cross, Hook) and the heavies (Roundhouse, Spinning Heel) re-keyed in the bare-hands bands, so that disarmed fighting looks like fighting. (Ticked with tasks 89 and 133.)
 73. [x] As a disarmed player, I want the eight bare-hands movement attacks re-keyed (Flying Knee and Dragon Kick out of a sprint, Slip Jab and Spinning Backfist out of a dodge, Snap Kick and Lunging Palm out of a backstep, Air Kick and Axe Kick out of a jump), so that every way in has a real motion. (Ticked with task 94.)
-74. As a disarmed player, I want the redirect to play its own deflect pair, turning the attack aside by hand, so that it reads apart from a parry.
-75. As a player whose fist or foot is parried by a blade, I want my fighter to recoil without being cut, so that the moment reads right. **(P9, confirmed Oct 4)**
+74. [x] As a disarmed player, I want the redirect to play its own deflect pair, turning the attack aside by hand, so that it reads apart from a parry. (Ticked with task 90, Claude's block-out; the owner's polish follows in task 129.)
+75. [x] As a player whose fist or foot is parried by a blade, I want my fighter to recoil without being cut, so that the moment reads right. **(P9, confirmed Oct 4)** (Ticked with task 90.)
 76. [x] As a disarmed player at 25% HP or less, I want the ultimate to open its choice of the recall or Breaker Palm, so that I can re-arm or hit back hard. (Ticked with task 99.)
 77. [x] As a disarmed player, I want the recall's power-up (the roar, the golden burst, the weapon flying back into my hands, a nearby opponent blasted off their feet) at final quality, the burst still reaching an opponent within the weapon's duelling distance and knocking them back about 2.0 m as today, now through the reaction clip's travel **(P43, confirmed Oct 4)**, so that re-arming feels like a power-up. (Ticked with task 99.)
 78. [x] As a disarmed player, I want Breaker Palm re-keyed with its crouch into the uppercut as its own travel, so that the ultimate's lunge is real. (Ticked with task 99.)
-79. As the owner, I want all fighters to share one bare-hands moveset, re-animated at the new quality, until the breadth phase brings per-fighter styles, so that milestone 1 stays in scope.
+79. [x] As the owner, I want all fighters to share one bare-hands moveset, re-animated at the new quality, until the breadth phase brings per-fighter styles, so that milestone 1 stays in scope. (Ticked with task 89.)
 80. [x] As the owner, I want bare hands' Counter Lunge left on today's clip until milestone 2, played at 1.0× with generated frame data and no band test **(P48, confirmed Oct 4)**, so that no work goes into an unreachable move. (Ticked with task 17.)
 
 ### Movement and the body
@@ -609,7 +609,7 @@ When a finisher prompt opens for the computer, it presses heavy on a share of pr
 
 | Place | Budget |
 |---|---|
-| Public repository | no tracked file over 10 MB (today's guard); committed game art (CC0 and self-made models and materials, including the exports copied from the asset repository, and labelled stand-ins) under 150 MB in all, replacing the 110 MB cap; committed audio under 40 MB (today's test) |
+| Public repository | no tracked file over 60 MB; committed game art (CC0 and self-made models and materials, including the exports copied from the asset repository, and labelled stand-ins) under 600 MB in all, replacing the 110 MB cap; committed audio under 40 MB (today's test). Raised by the owner on Oct 8, 2026 from 10 MB a file and 150 MB of art, for the Shrine's buildings and their lossless baked maps (task 132) |
 | Asset repository (Git LFS) | under 8 GiB in all, inside GitHub Free's 10 GiB; per fighter under 400 MB of sources and 120 MB exported; per weapon under 60 MB of sources and 20 MB exported; per exported clip under 5 MB; the arena under 1.5 GB of sources and 600 MB exported; textures at 4K only for fighters, weapons and hero props, 2K elsewhere |
 | Shipped game | milestone 1's build under 2 GB zipped and 3 GB installed |
 

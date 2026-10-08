@@ -44,6 +44,16 @@ extends RefCounted
 ## recoil, each played from its contact frame (source frames at 30 fps),
 ## where the blades meet. A parried move without a pair plays the nearest
 ## light's (ClipDirector.pick_pair()). Picture only, and only with the packs.
+## Beside "pairs" it may name the redirect's pair (milestone-1 task 90),
+## {"redirect": {"deflect", "deflect_contact", "recoil", "recoil_contact"}},
+## the bare-handed parrier's deflect and the attacker's recoil, played for
+## every redirected attack; each striking limb's recoil, {"limbs": {"fist":
+## {"recoil", "recoil_contact"}, "foot": {...}}}, played when a blade parries
+## a fist or a foot and when a bare-hand attack is redirected; and the
+## blade's deflects at a limb, {"blade_at_limb": {"high": {"deflect",
+## "deflect_contact"}, "low": {...}, "low_under": metres}}, the low one for a
+## contact under that height, the high one for the rest (the owner, Oct 8:
+## most kicks land as high as a punch).
 ##
 ## "reactions" (milestone-1 task 35) names a weapon's light hit reactions by
 ## where the hit landed ({"hit_light": {"katana": {"front_high": clip,
@@ -79,6 +89,10 @@ const GRIP_FIELDS: Array[String] = ["idle", "guard", "carry", "moves"]
 const HIT_PLACES: Array[String] = ["front_high", "front_low", "left_high", "left_low", "right_high", "right_low", "back_high", "back_low"]
 ## A deflect pair's fields (deflect_pairs).
 const PAIR_FIELDS: Array[String] = ["direction", "deflect", "deflect_contact", "recoil", "recoil_contact"]
+## The striking limbs with a recoil of their own (limb_recoils).
+const LIMBS: Array[StringName] = [&"fist", &"foot"]
+## The redirect's fields (deflect_redirect).
+const REDIRECT_FIELDS: Array[String] = ["deflect", "deflect_contact", "recoil", "recoil_contact"]
 ## The cut directions a deflect pair names (milestone-1 task 136), which its
 ## sounds go by (SoundBank.DEFLECT_SOUNDS): today's four lights, Right Cut,
 ## Return Cut, Kesa Cut and Crown Cut, in that order; the later strings'
@@ -192,6 +206,18 @@ var returns: Dictionary[StringName, StringName] = {}
 ## &"recoil_contact": source frame, &"direction": one of DEFLECT_DIRECTIONS
 ## (task 136)}.
 var deflect_pairs: Dictionary[StringName, Dictionary] = {}
+## The redirect's pair (milestone-1 task 90): {&"deflect": clip id,
+## &"deflect_contact": source frame, &"recoil": clip id, &"recoil_contact":
+## source frame}; empty for none.
+var deflect_redirect: Dictionary = {}
+## Each striking limb's recoil (task 90), LIMBS to {&"recoil": clip id,
+## &"recoil_contact": source frame}.
+var limb_recoils: Dictionary[StringName, Dictionary] = {}
+## The blade's deflects at a limb (task 90), &"high" and &"low" to
+## {&"deflect": clip id, &"deflect_contact": source frame}, the low one for
+## a contact under limb_low_under metres.
+var limb_deflects: Dictionary[StringName, Dictionary] = {}
+var limb_low_under: float = 0.0
 ## The light hit reactions (milestone-1 task 35) by weapon, each a dictionary
 ## of clip ids by HIT_PLACES; and the light block reaction by weapon.
 var light_hits: Dictionary[StringName, Dictionary] = {}
@@ -332,21 +358,36 @@ static func read(path: String = PATH) -> StateClips:
 				if id != &"":
 					t.returns[StringName(str(move))] = id
 	if root.has("deflects"):
-		g = t._object(root["deflects"], "deflects", ["pairs"])
+		g = t._some_of(root["deflects"], "deflects", ["pairs", "redirect", "limbs", "blade_at_limb"])
+		if root["deflects"] is Dictionary and not g.has("pairs"):
+			t.errors.append("deflects: missing pairs")
 		var pairs: Variant = g.get("pairs", {})
 		if not pairs is Dictionary:
 			t.errors.append("deflects.pairs: must be an object")
 		else:
 			for move: Variant in pairs:
-				var at: String = "deflects.pairs.%s" % move
-				var e: Dictionary = t._object(pairs[move], at, PAIR_FIELDS)
-				if e.is_empty():
-					continue
-				t.deflect_pairs[StringName(str(move))] = {
-					&"deflect": t._id(e, at, "deflect"), &"deflect_contact": t._num(e, at, "deflect_contact"),
-					&"recoil": t._id(e, at, "recoil"), &"recoil_contact": t._num(e, at, "recoil_contact"),
-					&"direction": t._direction(e, at),
-				}
+				var e: Dictionary = t._pair(pairs[move], "deflects.pairs.%s" % move)
+				if not e.is_empty():
+					t.deflect_pairs[StringName(str(move))] = e
+		if g.has("redirect"):
+			var e: Dictionary = t._object(g["redirect"], "deflects.redirect", REDIRECT_FIELDS)
+			if not e.is_empty():
+				t.deflect_redirect = t._halves(e, "deflects.redirect", true, true)
+		if g.has("limbs"):
+			var limbs: Dictionary = t._object(g["limbs"], "deflects.limbs", ["fist", "foot"] as Array[String])
+			for limb: StringName in LIMBS:
+				var at: String = "deflects.limbs.%s" % limb
+				var e: Dictionary = t._object(limbs[String(limb)], at, ["recoil", "recoil_contact"] as Array[String]) if limbs.has(String(limb)) else {}
+				if not e.is_empty():
+					t.limb_recoils[limb] = t._halves(e, at, false, true)
+		if g.has("blade_at_limb"):
+			var at_limb: Dictionary = t._object(g["blade_at_limb"], "deflects.blade_at_limb", ["high", "low", "low_under"] as Array[String])
+			for height: String in ["high", "low"]:
+				var at: String = "deflects.blade_at_limb.%s" % height
+				var e: Dictionary = t._object(at_limb[height], at, ["deflect", "deflect_contact"] as Array[String]) if at_limb.has(height) else {}
+				if not e.is_empty():
+					t.limb_deflects[StringName(height)] = t._halves(e, at, true, false)
+			t.limb_low_under = t._num(at_limb, "deflects.blade_at_limb", "low_under")
 	if root.has("reactions"):
 		g = t._object(root["reactions"], "reactions", ["hit_light", "block_light"])
 		var hits: Variant = g.get("hit_light", {})
@@ -518,6 +559,30 @@ func _some_of(v: Variant, at: String, fields: Array[String]) -> Dictionary:
 		if not fields.has(str(key)):
 			errors.append("%s: unknown field %s" % [at, key])
 	return v
+
+
+## `v` as a deflect pair (deflect_pairs' entries), read at `at`; empty when
+## it isn't an object with every PAIR_FIELDS.
+func _pair(v: Variant, at: String) -> Dictionary:
+	var e: Dictionary = _object(v, at, PAIR_FIELDS)
+	if e.is_empty():
+		return {}
+	var out: Dictionary = _halves(e, at, true, true)
+	out[&"direction"] = _direction(e, at)
+	return out
+
+
+## The deflect's half of entry `e` (its clip and contact frame), the
+## recoil's, or both, read at `at`.
+func _halves(e: Dictionary, at: String, deflect: bool, recoil: bool) -> Dictionary:
+	var out: Dictionary = {}
+	if deflect:
+		out[&"deflect"] = _id(e, at, "deflect")
+		out[&"deflect_contact"] = _num(e, at, "deflect_contact")
+	if recoil:
+		out[&"recoil"] = _id(e, at, "recoil")
+		out[&"recoil_contact"] = _num(e, at, "recoil_contact")
+	return out
 
 
 ## A clip or weapon id: a non-empty string; empty if `key` isn't one.

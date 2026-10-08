@@ -1201,9 +1201,9 @@ func _pairs_ctx(libraries: bool = true) -> ClipDirector.Context:
 
 
 ## Fighter `f` parried on move `move` (the rules' record, Fighter.keep_parry())
-## sweeping `sweep` in the attacker's frame.
-static func _parried(f: Fighter, move: StringName, sweep: V3 = V3.make(1.0, 0.0, 0.0)) -> void:
-	f.keep_parry(move, 28, V3.make(0.0, 1.2, 1.2), SimMath.local_to_world(V3.make(), f.yaw, sweep), f.yaw)
+## sweeping `sweep` in the attacker's frame, the contact `height` m up.
+static func _parried(f: Fighter, move: StringName, sweep: V3 = V3.make(1.0, 0.0, 0.0), height: float = 1.2) -> void:
+	f.keep_parry(move, 28, V3.make(0.0, height, 1.2), SimMath.local_to_world(V3.make(), f.yaw, sweep), f.yaw)
 
 
 ## A parried light plays its recoil, the pair's half for the attacker, whole
@@ -1339,6 +1339,114 @@ func test_a_move_with_no_pair_plays_the_nearest_lights() -> void:
 		W.frame += 1
 		assert_eq(ClipDirector.step(sa, a, ctx).clip.name, "HumanM/Recoil_" + want, "a heavy sweeping as %s: its recoil" % want)
 		assert_eq(ClipDirector.step(sb, b, ctx).clip.name, "HumanM/Deflect_" + want, "and its deflect")
+
+
+## _pairs_ctx() with the redirect's pair (RedirectDeflect and RedirectRecoil),
+## each limb's recoil (Recoil_<limb>) and the blade's deflects at a limb
+## (Deflect_high, Deflect_low under 1.2 m) made up, the deflects' contacts at
+## source frame 3 and the recoils' at 9 (milestone-1 task 90). Undone by
+## after_each.
+func _limbs_ctx() -> ClipDirector.Context:
+	var ctx: ClipDirector.Context = _pairs_ctx()
+	var t: StateClips = StateClips.shared()
+	t.deflect_redirect = {&"deflect": &"RedirectDeflect", &"deflect_contact": 3.0, &"recoil": &"RedirectRecoil", &"recoil_contact": 9.0}
+	for limb: StringName in StateClips.LIMBS:
+		t.limb_recoils[limb] = {&"recoil": StringName("Recoil_" + limb), &"recoil_contact": 9.0}
+	for height: StringName in [&"high", &"low"]:
+		t.limb_deflects[height] = {&"deflect": StringName("Deflect_" + height), &"deflect_contact": 3.0}
+	t.limb_low_under = 1.2
+	for set_name: StringName in ClipLibraries.SETS:
+		for id: String in ["RedirectDeflect", "RedirectRecoil", "Recoil_fist", "Recoil_foot", "Deflect_high", "Deflect_low"]:
+			ctx.lengths["%s/%s" % [set_name, id]] = 1.0
+	return ctx
+
+
+## One parry of `move` in a fresh world: fighter 0 parried out of its attack
+## (recoiling, or stunned when `redirected`), fighter 1 the parrier, bare-handed
+## when `redirected`; each stepped once: [attacker's shot, parrier's shot].
+func _parry_of(ctx: ClipDirector.Context, move: StringName, redirected: bool, height: float = 1.2) -> Array:
+	var got: Array = _attacking(ctx, 12)
+	var W: World = got[0]
+	var a: Fighter = W.fighters[0]
+	var b: Fighter = W.fighters[1]
+	var sb: ClipDirector.Shot = ClipDirector.step(null, b, ctx)
+	b.armed = not redirected
+	_parried(a, move, V3.make(1.0, 0.0, 0.0), height)
+	_parried(b, move, V3.make(1.0, 0.0, 0.0), height)
+	if redirected:
+		a.enter_stun(ProtectedTimings.for_weapon(&"katana").redirect_stun)
+	else:
+		a.enter_recoil(SimConst.PARRY_RECOIL, SimConst.PARRY_RECOIL_GUARD_AFTER)
+	b.set_state(&"parryAnim", SimConst.PARRIER_RECOVERY)
+	W.frame += 1
+	return [ClipDirector.step(got[1], a, ctx), ClipDirector.step(sb, b, ctx)]
+
+
+## A redirect plays its one pair whatever it redirected (milestone-1 task 90):
+## the bare-handed parrier's deflect, cut in from its guard, and the
+## attacker's recoil, pulled through, which blends in from whatever attack it
+## was, the one recoil serving every armed attack; a light's own pair is
+## passed over.
+func test_a_redirect_plays_its_one_pair_whatever_it_redirected() -> void:
+	var ctx: ClipDirector.Context = _limbs_ctx()
+	for move: StringName in [&"k_l1", &"k_h2", &"k_l4"]:
+		var got: Array = _parry_of(ctx, move, true)
+		var sa: ClipDirector.Shot = got[0]
+		var sb: ClipDirector.Shot = got[1]
+		assert_eq([sa.phase, sa.clip.name], [&"recoil", "HumanM/RedirectRecoil"], "%s: pulled through" % move)
+		assert_almost_eq(sa.clip.time, 9.0 / 30.0, 1e-9, "from its contact frame")
+		assert_eq(sa.blend, StateClips.shared().blends[&"rebound"], "blended in")
+		assert_eq([sb.phase, sb.clip.name], [&"deflect", "HumanM/RedirectDeflect"], "%s: the redirect" % move)
+		assert_almost_eq(sb.clip.time, 3.0 / 30.0, 1e-9, "from its contact frame")
+		assert_eq([sb.fade, sb.blend], [0, 0], "cut in from the guard")
+
+
+## A blade parrying a fist or a foot (milestone-1 task 90) plays the limb's
+## recoil, blended in, the one recoil serving every attack by that limb (a
+## kick's knee counts as its foot), and the blade's deflect at the contact's
+## height: the high one from limb_low_under up (a Jab, a Roundhouse at head
+## height), the low one under it (a Snap Kick, an Air Kick, a low fist).
+func test_a_blade_parrying_a_fist_or_foot_plays_the_limb_s_recoil_and_the_deflect_at_its_height() -> void:
+	var ctx: ClipDirector.Context = _limbs_ctx()
+	var cases: Array = [[&"f_l1", 1.36, "fist", "high"], [&"f_bh", 1.39, "fist", "high"], [&"f_h1", 1.40, "foot", "high"],
+		[&"f_sl", 1.59, "foot", "high"], [&"f_h2", 1.2, "foot", "high"], [&"f_bl", 1.06, "foot", "low"], [&"f_jl", 0.65, "foot", "low"],
+		[&"f_l2", 1.0, "fist", "low"]]
+	for c: Array in cases:
+		var got: Array = _parry_of(ctx, c[0], false, c[1])
+		var sa: ClipDirector.Shot = got[0]
+		var sb: ClipDirector.Shot = got[1]
+		assert_eq([sa.phase, sa.clip.name], [&"recoil", "HumanM/Recoil_" + c[2]], "%s: its limb's recoil" % c[0])
+		assert_almost_eq(sa.clip.time, 9.0 / 30.0, 1e-9, "from its contact frame")
+		assert_eq(sa.blend, StateClips.shared().blends[&"rebound"], "blended in")
+		assert_eq([sb.phase, sb.clip.name], [&"deflect", "HumanM/Deflect_" + c[3]], "%s at %.2f m: the %s deflect" % [c[0], c[1], c[3]])
+		assert_almost_eq(sb.clip.time, 3.0 / 30.0, 1e-9, "from its contact frame")
+	assert_eq(ClipDirector.limb_of(&"k_l1"), &"", "a blade is no limb")
+
+
+## A redirected fist or foot (milestone-1 task 90) plays the redirect's deflect
+## and the limb's recoil, then Stun01 over the rest of the redirect's stun.
+func test_a_redirected_fist_or_foot_recoils_by_its_limb_then_staggers() -> void:
+	var ctx: ClipDirector.Context = _limbs_ctx()
+	for move: StringName in [&"f_l1", &"f_h1"]:
+		var limb: String = ClipDirector.limb_of(move)
+		var got: Array = _parry_of(ctx, move, true)
+		assert_eq((got[0] as ClipDirector.Shot).clip.name, "HumanM/Recoil_" + limb, "%s: its limb's recoil" % move)
+		assert_eq((got[1] as ClipDirector.Shot).clip.name, "HumanM/RedirectDeflect", "%s: the redirect's deflect" % move)
+	var stun: int = ProtectedTimings.for_weapon(&"fists").redirect_stun
+	var got2: Array = _attacking(ctx, 12)
+	var W: World = got2[0]
+	var a: Fighter = W.fighters[0]
+	W.fighters[1].armed = false
+	_parried(a, &"f_l1")
+	a.enter_stun(stun)
+	W.frame += 1
+	var shot: ClipDirector.Shot = ClipDirector.step(got2[1], a, ctx)
+	var played: int = int(roundf((30.0 - 9.0) / 30.0 * 60.0))
+	while a.sf < played + 6:
+		a.sf += 1
+		W.frame += 1
+		shot = ClipDirector.step(shot, a, ctx)
+	assert_eq([shot.phase, shot.clip.name], [&"stun", "HumanM/Stun01"], "then Stun01")
 
 
 ## Without the packs, or with no pairs in the table, nothing plays a pair: the

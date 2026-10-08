@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/shot_scenes/shrine_closeup_shot.gd" id="1"]
+
+[node name="ShrineCloseupShot" type="Node"]
+script = ExtResource("1")

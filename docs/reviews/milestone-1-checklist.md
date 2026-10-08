@@ -113,14 +113,15 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Jab `f_l1` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Cross `f_l2` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Hook `f_l3` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Roundhouse `f_h1` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Spinning Heel `f_h2` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
+| Jab `f_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Cross `f_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Hook `f_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Roundhouse `f_h1` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Spinning Heel `f_h2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✗ | ✓ | ☐ |
 | The pull-out pick-up `clip_pull_out` | not built | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | The disarmed roll `clip_roll_disarmed` | not built | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
-| The redirect's deflect pair `clip_deflect_redirect` | not built | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
+| The redirect's deflect pair `clip_deflect_redirect` | keyed clips (task 90) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | ✗ | ✓ | ✓ | – | · | · | – | – | ☐ |
+| A blade parrying a fist or a foot (the Katana's high and low deflects, the fist and foot recoils) `clip_deflect_limb` | keyed clips (task 90) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | ✗ | ✓ | ✓ | – | · | · | – | – | ☐ |
 
 ## 8. Bare hands' movement attacks
 
@@ -130,7 +131,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Dragon Kick `f_sh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
 | Slip Jab `f_dl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
 | Spinning Backfist `f_dh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
-| Snap Kick `f_bl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Snap Kick `f_bl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | ☐ |
 | Lunging Palm `f_bh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
 | Air Kick `f_jl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
 | Axe Kick `f_jh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |

@@ -1,6 +1,8 @@
 // The lit paper of stone lanterns: unshaded and warm, brighter toward the
 // middle of each panel like a flame behind paper, and flickering on its own
-// (the vertex colour's alpha is the flicker phase), so no script touches it.
+// (the vertex colour's alpha is the flicker phase, or phase_offset when an
+// instance sets it: the modelled lanterns, milestone-1 task 132), so no
+// script touches it.
 shader_type spatial;
 render_mode unshaded, cull_back, shadows_disabled;
 
@@ -8,11 +10,12 @@ uniform vec4 glow_color : source_color = vec4(1.0, 0.56, 0.22, 1.0);
 uniform vec4 core_color : source_color = vec4(1.0, 0.85, 0.55, 1.0);
 uniform float energy = 3.0;
 uniform float flicker = 0.25;
+instance uniform float phase_offset = -1.0;
 
 varying float phase;
 
 void vertex() {
-	phase = COLOR.a * TAU;
+	phase = (phase_offset >= 0.0 ? phase_offset : COLOR.a) * TAU;
 }
 
 void fragment() {
