@@ -755,7 +755,9 @@ func world_dir(mx: float, my: float) -> V2:
 
 ## Walk or run where the stick points, at the gait clips' own speeds
 ## (Gaits, milestone-1 task 55): the tilt picks the walk or the run, or a
-## blend of them, and the way between two clips blends their speeds.
+## blend of them, and the way between two clips blends their speeds. Blocking
+## with guarded cycles (the Katana, bare hands) moves at theirs whatever the
+## tilt, and a disarmed walk is bare hands' (task 56).
 ## at_block_speed: at the blocking walk's speed and never sprinting, as while
 ## blocking (the Iai stance).
 func _locomotion(at_block_speed: bool = false) -> void:
@@ -772,10 +774,24 @@ func _locomotion(at_block_speed: bool = false) -> void:
 		var block_pace: bool = blocking or at_block_speed
 		var sprinting: bool = inp.sprinting() and not block_pace
 		# the way from straight ahead (at the opponent), positive to the left
-		var s: float = Gaits.sprint_speed() if sprinting else Gaits.at_tilt(JsMath.atan2(-mx, my), tilt)
+		var way: float = JsMath.atan2(-mx, my)
+		var guard: StringName = moveset().id
+		var s: float = Gaits.sprint_speed() if sprinting else Gaits.at_tilt(way, tilt)
 		var mult: float = speed_mult()
-		if block_pace:
+		if block_pace and Gaits.has_guard(guard):
+			# blocking with guarded cycles of its own (task 56): their speed
+			s = Gaits.guard_speed(guard, way)
+			mult = 1.0
+		elif block_pace:
 			mult *= SimConst.MOVE_BLOCK_SPEED_MULT
+		elif not armed and not sprinting:
+			# disarmed, the walk is bare hands' guarded cycle, blending into
+			# the disarmed run at full tilt
+			var walk: float = Gaits.guard_speed(guard, way)
+			var run: float = Gaits.speed(&"run", way) * mult
+			var k: float = clampf((tilt - Gaits.WALK_TILT) / (1.0 - Gaits.WALK_TILT), 0.0, 1.0)
+			s = walk + (run - walk) * k
+			mult = 1.0
 		tx = n.x * s * mult
 		tz = n.z * s * mult
 		sprint_frames = sprint_frames + 1 if sprinting else 0

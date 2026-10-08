@@ -52,6 +52,14 @@ const MOVEMENT_CLIPS: Dictionary[StringName, String] = {
 	&"StrafeRun01_Left_Mirror": "Strafe run right",
 	&"Turn01_Left": "Turn left",
 	&"Turn01_Right": "Turn right",
+	&"KatanaShuffleForward": "Katana guard shuffle forward",
+	&"KatanaShuffleBack": "Katana guard shuffle back",
+	&"KatanaStrafeLeft": "Katana guard strafe left",
+	&"KatanaStrafeRight": "Katana guard strafe right",
+	&"FistsShuffleForward": "Bare hands guard shuffle forward",
+	&"FistsShuffleBack": "Bare hands guard shuffle back",
+	&"FistsStrafeLeft": "Bare hands guard strafe left",
+	&"FistsStrafeRight": "Bare hands guard strafe right",
 }
 ## The display names of the states and ultimates that aren't per weapon.
 const STATE_NAMES: Dictionary[StringName, String] = {

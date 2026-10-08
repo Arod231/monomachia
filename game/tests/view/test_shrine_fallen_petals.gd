@@ -252,7 +252,10 @@ func _duel(petals: bool, frames: int) -> Array:
 
 
 func test_the_match_view_stirs_the_floor_and_a_new_match_clears_it() -> void:
-	var got: Array = _duel(true, 1500)
+	# 40 s: long enough that petals have settled where the seeded duel's
+	# fighters walk (25 s was, until the guarded cycles' speeds moved its
+	# path in milestone-1 task 56)
+	var got: Array = _duel(true, 2400)
 	var view: MatchView = got[1]
 	var fallen := view.arena.get_node("FallenPetals") as ShrineFallenPetals
 	assert_gt(fallen.count(), 0, "petals falling and lying in the arena")

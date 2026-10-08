@@ -57,6 +57,13 @@ extends RefCounted
 ##   laid on the idle's legs as a difference (additive(): its motion from its
 ##   own first frame), keeping the combat idle's wide stance while its feet
 ##   lift and step; the foot lock replants them.
+## - **Guarded** (milestone-1 task 56): blocking or in the Iai stance with a
+##   moveset that has guarded cycles (Gaits.GUARD_CLIPS: the Katana, bare
+##   hands), and always disarmed, the walk is the guarded shuffles and
+##   strafes, four ways blended every 90° (guard_of()); the rules move the
+##   fighter at their speeds, so they play at 1.0x too. The legs cross over
+##   to and from them over MOVING_FRAMES; the block itself shows on the upper
+##   body (the clip director's legs_free).
 ## - **Footsteps** fall where the clips' feet come down (footfalls): the
 ##   shared phase passing a foot's contact while the legs walk or run, at
 ##   that foot.
@@ -83,6 +90,8 @@ const GAITS: Array[StringName] = [&"walk", &"run", &"sprint"]
 ## The packs' clip for each gait and way (clip-manifest ids; "" for none):
 ## the rules' (milestone-1 task 55).
 const PACK_CLIPS: Dictionary[StringName, Array] = Gaits.CLIPS
+## The guarded cycles by moveset, the rules' (task 56).
+const GUARD_CLIPS: Dictionary[StringName, Array] = Gaits.GUARD_CLIPS
 ## Without the packs: the CC0 library's (UAL2's eight walks, UAL's jog and
 ## sprint ahead).
 const FALLBACK_CLIPS: Dictionary[StringName, Array] = {
@@ -129,6 +138,15 @@ var fighter_id: StringName = &""
 ## gaits.
 var clips: Dictionary[StringName, Array] = {}
 var gaits: Dictionary[String, FootPhase.Gait] = {}
+## The guarded cycles by moveset (forward, left, back, right), as names in
+## the tree; empty without the packs.
+var guard_clips: Dictionary[StringName, Array] = {}
+## How guarded the walk is (0 to 1) after the last rules frame and the one
+## before, eased toward guard_of() over MOVING_FRAMES, and the guarded cycles
+## it walks on (a guard_clips row; the last one while it eases out).
+var guarded: float = 0.0
+var prev_guarded: float = 0.0
+var guard_row: Array = []
 ## The turns on the spot as names in the tree, or empty without the packs.
 var turn_clips: Array[String] = []
 ## The shared step phase (0..1) after the last rules frame, and after the
@@ -209,8 +227,8 @@ func _init(p_model: FighterModel, p_fighter_id: StringName, libraries: bool = Cl
 	run_speed = run_speed_at(0.0)
 	sprint_speed = Gaits.sprint_speed()
 	_build(libraries)
-	for gait: StringName in GAITS:
-		for clip: String in clips[gait]:
+	for row: Array in clips.values() + guard_clips.values():
+		for clip: String in row:
 			if clip != "" and not gaits.has(clip):
 				gaits[clip] = gait_of(model, fighter_id, clip)
 
@@ -276,11 +294,23 @@ static func run_speed_at(p_way: float) -> float:
 ## sprint anchors `walk`, `run` and `sprint`, over clip table `table` (gait
 ## -> eight names, "" for none): idle's weight, then each moving clip's, as
 ## {name: weight}; a way with no clip at a gait gives its share to the gait
-## below.
-static func blend(p_way: float, p_speed: float, walk: float, run: float, sprint: float, table: Dictionary[StringName, Array]) -> Dictionary:
+## below. `guard_share` of the walk's share goes to guarded cycles `guard`
+## (four names: forward, left, back, right), the two ways round blended.
+static func blend(p_way: float, p_speed: float, walk: float, run: float, sprint: float, table: Dictionary[StringName, Array],
+		guard: Array = [], guard_share: float = 0.0) -> Dictionary:
 	var ways: Vector3 = way_weights(p_way)
 	var g: PackedFloat32Array = gait_weights(p_speed, walk, run, sprint)
 	var out: Dictionary = {"": g[0]}
+	if guard.is_empty():
+		guard_share = 0.0
+	if guard_share > 0.0 and g[1] > 1e-9:
+		var gw: V3 = Gaits.guard_weights(p_way)
+		for k: int in 2:
+			var w: float = g[1] * guard_share * (1.0 - gw.z if k == 0 else gw.z)
+			if w > 1e-9:
+				var clip: String = guard[int(gw.x) if k == 0 else int(gw.y)]
+				out[clip] = float(out.get(clip, 0.0)) + w
+	g[1] *= 1.0 - guard_share
 	for k: int in 2:
 		var d: int = int(ways.x) if k == 0 else int(ways.y)
 		var dw: float = 1.0 - ways.z if k == 0 else ways.z
@@ -373,19 +403,40 @@ func clip_time(clip: String, p: float) -> float:
 
 
 ## The walk's pace, the run's anchor at legs' way `p_way`: the walk clips' own
-## speeds, between the two ways round it.
-func walk_speed(p_way: float) -> float:
+## speeds, between the two ways round it, and the guarded cycles' by how
+## guarded the walk is (`share`; -1 for `guarded`).
+func walk_speed(p_way: float, share: float = -1.0) -> float:
+	if share < 0.0:
+		share = guarded
 	var ways: Vector3 = way_weights(p_way)
 	var row: Array = clips[&"walk"]
 	var a: String = row[int(ways.x)] if row[int(ways.x)] != "" else _nearest(row, int(ways.x))
 	var b: String = row[int(ways.y)] if row[int(ways.y)] != "" else _nearest(row, int(ways.y))
-	return lerpf(gaits[a].speed, gaits[b].speed, ways.z)
+	var walk: float = lerpf(gaits[a].speed, gaits[b].speed, ways.z)
+	if share <= 0.0 or guard_row.is_empty():
+		return walk
+	var gw: V3 = Gaits.guard_weights(p_way)
+	var guard: float = lerpf(gaits[guard_row[int(gw.x)]].speed, gaits[guard_row[int(gw.y)]].speed, gw.z)
+	return lerpf(walk, guard, share)
 
 
 ## The blend (as blend() gives it) for the legs at way `p_way` and speed
-## `p_speed`, with the run's anchor at `run` and the sprint's at `sprint`.
-func blend_at(p_way: float, p_speed: float, run: float, sprint: float) -> Dictionary:
-	return blend(p_way, p_speed, minf(walk_speed(p_way), run * 0.95), run, sprint, clips)
+## `p_speed`, with the run's anchor at `run` and the sprint's at `sprint`,
+## guarded by `share` (-1 for `guarded`).
+func blend_at(p_way: float, p_speed: float, run: float, sprint: float, share: float = -1.0) -> Dictionary:
+	if share < 0.0:
+		share = guarded
+	return blend(p_way, p_speed, minf(walk_speed(p_way, share), run * 0.95), run, sprint, clips, guard_row, share)
+
+
+## Which guarded cycles fighter `f` walks on (a GUARD_CLIPS key), or &"" for
+## none: its moveset's while it blocks or stands in the Iai stance, and bare
+## hands' whenever it is disarmed (task 56).
+static func guard_of(f: Fighter) -> StringName:
+	var id: StringName = f.moveset().id
+	if not Gaits.has_guard(id):
+		return &""
+	return id if not f.armed or f.blocking or f.in_stance() else &""
 
 
 ## How far the body travels per cycle in blend `b` (as blend() gives it): the
@@ -446,6 +497,9 @@ func update(f: Fighter, idle_clip: StringName, idle_seconds: float, alpha: float
 		prev_phase = phase
 		set_yaw = f.yaw
 		turn_frame = -1
+		_set_guard(guard_of(f))
+		guarded = 1.0 if guard_of(f) != &"" and not guard_row.is_empty() else 0.0
+		prev_guarded = guarded
 		moving = 1.0 - float(blend_at(way, speed, run_speed, sprint_speed).get("", 1.0))
 		prev_moving = moving
 	elif frame > _frame:
@@ -462,6 +516,12 @@ func update(f: Fighter, idle_clip: StringName, idle_seconds: float, alpha: float
 		run_speed = run_speed_at(wrapf(way + away, -PI, PI)) * mult
 		sprint_speed = Gaits.sprint_speed() * mult
 		var stepping: bool = f.state == &"step" and not f.airborne()
+		var guard: StringName = guard_of(f)
+		_set_guard(guard)
+		var guard_target: float = 1.0 if guard != &"" and not guard_row.is_empty() else 0.0
+		for i: int in n:
+			prev_guarded = guarded
+			guarded = move_toward(guarded, guard_target, 1.0 / float(MOVING_FRAMES))
 		var b: Dictionary = blend_at(way, s, run_speed, sprint_speed)
 		if stepping:
 			b = blend_at(way, walk_speed(way), run_speed, sprint_speed)
@@ -489,7 +549,8 @@ func update(f: Fighter, idle_clip: StringName, idle_seconds: float, alpha: float
 	shown_phase = fposmod(prev_phase + wrapf(phase - prev_phase, -0.5, 0.5) * alpha, 1.0)
 	shown_away = lerpf(prev_away, away, alpha)
 	var shown_way: float = lerp_angle(prev_way, way, alpha)
-	var shown_blend: Dictionary = blend_at(shown_way, lerpf(prev_speed, speed, alpha), run_speed, sprint_speed)
+	var shown_guarded: float = smoothstep(0.0, 1.0, lerpf(prev_guarded, guarded, alpha))
+	var shown_blend: Dictionary = blend_at(shown_way, lerpf(prev_speed, speed, alpha), run_speed, sprint_speed, shown_guarded)
 	# the moving clips scaled to how far the legs have set off (a stop fades
 	# out of the last ones that moved)
 	var shown_moving: float = smoothstep(0.0, 1.0, lerpf(prev_moving, moving, alpha))
@@ -510,6 +571,13 @@ func update(f: Fighter, idle_clip: StringName, idle_seconds: float, alpha: float
 		var t: float = float(turn_frame) + alpha
 		shown_turn = smoothstep(0.0, 1.0, minf(t, float(TURN_FRAMES) - t) / float(TURN_FADE))
 	_show(idle_clip, idle_seconds)
+
+
+## Walks on moveset `id`'s guarded cycles from now (&"" for none: the last
+## ones stay while the walk eases out of them).
+func _set_guard(id: StringName) -> void:
+	if id != &"" and guard_clips.has(id):
+		guard_row = guard_clips[id]
 
 
 ## Standing still: once the facing has turned TURN_AT from where the feet
@@ -577,6 +645,12 @@ func _build(libraries: bool) -> void:
 			else:
 				row.append("%s/%s" % [FighterModel.LIBRARY, id])
 		clips[gait] = row
+	guard_clips.clear()
+	if libraries:
+		for id: StringName in GUARD_CLIPS:
+			var row: Array = GUARD_CLIPS[id].map(func(c: String) -> String: return "%s/%s" % [set_name, c])
+			if row.all(func(c: String) -> bool: return tree.has_animation(c)):
+				guard_clips[id] = row
 	turn_clips.clear()
 	if libraries:
 		var added: AnimationLibrary = AnimationLibrary.new()

@@ -20,10 +20,17 @@ extends RefCounted
 ## - **The tilt.** The stick walks from the dead zone (SimConst.DIR_DEADZONE)
 ##   to WALK_TILT and blends from the walk into the run between WALK_TILT and
 ##   full tilt (at_tilt()); the keyboard always tilts fully, so it runs.
+## - **The guarded cycles** (GUARD_CLIPS, task 56, the owner's answers of
+##   Oct 8): the Katana's and bare hands' guarded shuffles (okuri-ashi,
+##   forward and back) and strafes (left and right), keyed to about 60% of the
+##   run. A Katana fighter blocking or in the Iai stance moves at them
+##   whatever the tilt, the diagonals blending the two ways round
+##   (guard_speed()); a disarmed fighter walks at bare hands' ones.
 ##
 ## The weapon's speed (WeaponDef.speed_mult: the Greatsword and the Daggers
 ## until milestone 2) and the disarmed ×1.2 (until task 88's disarmed gaits)
-## scale these in Fighter, as before.
+## scale the walk, run and sprint in Fighter, as before; the guarded cycles
+## move at their own speeds.
 
 const WAYS: int = 8
 const WAY_STEP: float = PI / 4.0
@@ -37,6 +44,13 @@ const CLIPS: Dictionary[StringName, Array] = {
 		"RunBackward", "RunBackwardLeft_Mirror", "StrafeRun01_Left_Mirror", "Run01_ForwardRight"],
 	&"sprint": ["Sprint01_Forward", "Sprint01_ForwardLeft", "Sprint01_Left", "", "", "", "Sprint01_Right", "Sprint01_ForwardRight"],
 }
+## Each moveset's guarded cycles (WeaponDef ids to clip-manifest ids), in
+## four ways: forward, left, back, right. The Greatsword and the Daggers have
+## none until milestone 2 and block at MOVE_BLOCK_SPEED_MULT of their run.
+const GUARD_CLIPS: Dictionary[StringName, Array] = {
+	&"katana": ["KatanaShuffleForward", "KatanaStrafeLeft", "KatanaShuffleBack", "KatanaStrafeRight"],
+	&"fists": ["FistsShuffleForward", "FistsStrafeLeft", "FistsShuffleBack", "FistsStrafeRight"],
+}
 ## Below this tilt (past the dead zone) the stick walks; from it to full
 ## tilt it blends into the run (the owner's answer, Oct 8).
 const WALK_TILT: float = 0.7
@@ -48,8 +62,8 @@ static var _speeds: Dictionary = {}
 ## Every gait clip, each once, in id order.
 static func clips() -> Array[StringName]:
 	var found: Dictionary[StringName, bool] = {}
-	for gait: StringName in GAITS:
-		for c: Variant in CLIPS[gait]:
+	for row: Array in CLIPS.values() + GUARD_CLIPS.values():
+		for c: Variant in row:
 			if str(c) != "":
 				found[StringName(str(c))] = true
 	var out: Array[StringName] = []
@@ -100,6 +114,30 @@ static func at_tilt(way: float, tilt: float) -> float:
 ## The sprint's speed: the forward sprint clip's, whichever way it is held.
 static func sprint_speed() -> float:
 	return clip_speed(CLIPS[&"sprint"][0])
+
+
+## Whether moveset `weapon_id` has guarded cycles.
+static func has_guard(weapon_id: StringName) -> bool:
+	return GUARD_CLIPS.has(weapon_id)
+
+
+## Moveset `weapon_id`'s guarded speed travelling `way` (radians, positive to
+## the left): its two cycles round the way blended, every 90°.
+static func guard_speed(weapon_id: StringName, way: float) -> float:
+	var row: Array = GUARD_CLIPS[weapon_id]
+	var w: V3 = guard_weights(way)
+	return clip_speed(str(row[int(w.x)])) * (1.0 - w.z) + clip_speed(str(row[int(w.y)])) * w.z
+
+
+## The two guarded ways round `way` (radians, positive to the left) and the
+## share of the second, as way_weights() gives them, the ways as indices into
+## a GUARD_CLIPS row (forward, left, back, right).
+static func guard_weights(way: float) -> V3:
+	var at: float = fposmod(way, TAU) / (PI / 2.0)
+	if absf(at - roundf(at)) < 1e-9:
+		at = fposmod(roundf(at), 4.0)
+	var before: int = floori(at) % 4
+	return V3.make(before, (before + 1) % 4, at - floorf(at))
 
 
 static func _clip_or_forward(row: Array, d: int) -> String:

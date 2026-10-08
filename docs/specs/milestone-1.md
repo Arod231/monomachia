@@ -135,8 +135,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 81. As a player, I want the walk, run, strafe and sprint speeds to be each clip's own measured speed, committed with the frame data, so that the feet never skate. (Task 55 moves the rules at the measured speeds; the packs' walks and strafes still skate, which family 2's review, task 62, takes up, so this stays open.)
 82. [x] As a player, I want a blend between gaits or directions kept in step and moving at the blended pace, so that circling the opponent looks natural. (Ticked with task 55.)
-83. As a player, I want guarded strafe and shuffle cycles for the Katana and for bare hands, so that guarded movement looks like a duel.
-84. As a player, I want to keep walking a little faster while blocking than in the demo, at about 55–65% of the run speed **(P29, confirmed Oct 4)**, so that I can reposition while guarding.
+83. [x] As a player, I want guarded strafe and shuffle cycles for the Katana and for bare hands, so that guarded movement looks like a duel. (Ticked with task 56.)
+84. [x] As a player, I want to keep walking a little faster while blocking than in the demo, at about 55–65% of the run speed **(P29, confirmed Oct 4)**, so that I can reposition while guarding. (Ticked with task 56: the guarded cycles move at 60% of the run.)
 85. As a player, I want guarded steps to start and stop within about 0.1 s, so that guarded footwork stays responsive.
 86. As a player, I want run stops and plant-and-reverse pivots to take about 0.2–0.25 s and up to about 0.5 m, and a sprint stop about a third of a second and 1 m, so that every movement carries momentum and the weight visibly shifts.
 87. As a player, I want the rules to move me exactly as the start, stop and pivot clips do, so that what I see is where I am.

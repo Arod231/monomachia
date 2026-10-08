@@ -1,0 +1,46 @@
+{
+	"about": "The guarded strafe left for bare hands (milestone-1 task 56, the owner's answers of Oct 8): an okuri-ashi cycle keyed as legs and hips only (each grip's block plays above them), lighter and springier, on the balls of the feet, each step lifting its foot 16 cm in place, travelling while up and setting it down in place (so the foot lock never drags a planted foot; the hips sinking up to 6 cm as the feet spread); the left foot leads and the right follows, never crossing, standing 15 cm narrower than and riding the hips over the feet's midpoint through each step from bare hands' fighting stance (CombatIdle01's first frame), the stance the block and the guard stand in. The body travels 0.5775 m a cycle of 8 source frames on the pack's rig (about 2.76 m/s on the Hunter, 60% of the run), each planted foot sweeping back at that even pace, so the clip plays at 1.0x without skating. A loop: its last frame its first. Every frame kept as a key pose: every frame has a foot planted, which Cascadeur's inbetweening would move. Source frames at 30 fps from 0.",
+	"out": "blender/clips/guard_left_fists.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatIdle01.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				8,
+				0
+			]
+		],
+		"shuffle": {
+			"distance": 0.5775,
+			"heading": -90,
+			"steps": {
+				"L": [
+					0,
+					4
+				],
+				"R": [
+					4,
+					8
+				]
+			},
+			"lift": 0.16,
+			"sink": 0.06,
+			"narrow": 0.15,
+			"follow": 1
+		}
+	},
+	"keys": [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7,
+		8
+	]
+}

@@ -953,8 +953,11 @@ def shuffle(arm, scene, length, spec):
     on frame 0, each planted there and sweeping back at the cycle's even
     pace (distance / length a frame), so a body moving at that speed leaves
     it still, except over its step (spec["steps"]: {"L"|"R": [from, to]},
-    frames), when it travels on to its next plant, lifted spec["lift"] m on
-    an arc. The hips ride spec["follow"] (default 0.5) of the way with the
+    frames), when it travels on to its next plant: it rises spec["lift"] m
+    in place over the step's first spec["rise"] (default 0.25), travels
+    while up, and sets down in place over its last, so FootLock's ankle
+    rule (lifted above 6 cm, planted within 3 cm) never sees a planted foot
+    move. The hips ride spec["follow"] (default 0.5) of the way with the
     feet's midpoint along the travel (the body carried over the lead foot
     as it steps, the trail closing under it) and sink up to spec["sink"] m
     as the feet spread, all of it at the widest stance. The feet keep their frame-0 turn; both legs on IK, baked.
@@ -969,6 +972,7 @@ def shuffle(arm, scene, length, spec):
     up = mathutils.Vector((0.0, 0.0, 1.0))
     per = dist / length
     lift = float(spec.get("lift", 0.06))
+    rise = float(spec.get("rise", 0.25))
     sink = float(spec.get("sink", 0.0))
     narrow = float(spec.get("narrow", 0.0))
     follow = float(spec.get("follow", 0.5))
@@ -996,7 +1000,9 @@ def shuffle(arm, scene, length, spec):
                 path[side].append((dist if n > b_end else 0.0) - per * n)
                 path[side][-1] = (path[side][-1], 0.0)
             else:
-                path[side].append((dist * _smoother(t) - per * n, lift * math.sin(math.pi * t)))
+                go = _smoother(min(max((t - rise) / (1.0 - 2.0 * rise), 0.0), 1.0))
+                up_by = _smoother(min(1.0, t / rise, (1.0 - t) / rise))
+                path[side].append((dist * go - per * n, lift * up_by))
     # the hips sink as the feet spread: not at all at the cycle's narrowest
     # stance, all of it at its widest
     spread = [abs(path["L"][n][0] - path["R"][n][0]) for n in range(length + 1)]

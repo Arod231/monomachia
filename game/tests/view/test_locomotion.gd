@@ -171,6 +171,22 @@ func test_each_way_plays_its_clip_and_between_two_ways_both() -> void:
 			assert_almost_eq(sum, 1.0, 1e-5, "the weights sum to 1 at %+.0f°, %.1f m/s" % [deg, s])
 
 
+func test_guarded_the_walk_is_the_guarded_cycle_blended_every_90_degrees() -> void:
+	# milestone-1 task 56: the guarded shuffles and strafes in four ways take
+	# the walk's place, a diagonal blending the two ways round it
+	var t: Dictionary[StringName, Array] = Locomotion.PACK_CLIPS
+	var guard: Array = Gaits.GUARD_CLIPS[&"katana"]
+	var at: Callable = func(deg: float, s: float, share: float) -> Dictionary:
+		return Locomotion.blend(deg_to_rad(deg), s, 2.8, 3.9, 7.2, t, guard, share)
+	_assert_blend(at.call(0.0, 2.8, 1.0), {"": 0.0, "KatanaShuffleForward": 1.0}, "shuffling forward")
+	_assert_blend(at.call(180.0, 2.8, 1.0), {"": 0.0, "KatanaShuffleBack": 1.0}, "shuffling back")
+	_assert_blend(at.call(90.0, 1.4, 1.0), {"": 0.5, "KatanaStrafeLeft": 0.5}, "setting off left")
+	_assert_blend(at.call(-90.0, 2.8, 1.0), {"": 0.0, "KatanaStrafeRight": 1.0}, "strafing right")
+	_assert_blend(at.call(45.0, 2.8, 1.0), {"": 0.0, "KatanaShuffleForward": 0.5, "KatanaStrafeLeft": 0.5}, "a diagonal")
+	_assert_blend(at.call(0.0, 2.8, 0.25), {"": 0.0, "KatanaShuffleForward": 0.25, "Walk01_Forward": 0.75}, "a quarter guarded")
+	_assert_blend(at.call(0.0, 3.9, 1.0), {"": 0.0, "Run01_Forward": 1.0}, "the run is the run's")
+
+
 func test_each_fighters_gaits_are_measured_from_its_own_clips() -> void:
 	var strides: Array[float] = []
 	for id: StringName in FighterLook.IDS:
@@ -641,5 +657,35 @@ func test_local_every_gait_clip_plays_at_1x_at_the_rules_speed() -> void:
 			if i >= 30:
 				rates.append(fposmod(loco.phase - before, 1.0) * loco.gaits[clip].length * 60.0)
 		assert_eq(_top(loco), clip, "%s %s: its clip shows" % [spec[3], clip])
+		for r: float in rates:
+			assert_almost_eq(r, 1.0, 0.02, "%s plays at 1.0x (%.4f)" % [clip, r])
+
+
+func test_local_blocking_the_katanas_legs_play_its_guarded_cycles_at_1x() -> void:
+	# milestone-1 task 56: blocking, the Katana moves at its guarded shuffles'
+	# and strafes' own speeds, so the legs play them at 1.0x; disarmed, the walk
+	# is bare hands' guarded cycles
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	# [stick x, stick y, armed, the way's index in a GUARD_CLIPS row]
+	for spec: Array in [[0.0, 1.0, true, 0], [-1.0, 0.0, true, 1], [0.0, -1.0, true, 2], [1.0, 0.0, true, 3],
+			[0.0, 0.5, false, 0], [-0.5, 0.0, false, 1], [0.0, -0.5, false, 2], [0.5, 0.0, false, 3]]:
+		var W: World = _world(40.0)
+		var f: Fighter = W.fighters[0]
+		if not spec[2]:
+			f.armed = false
+		var v: FighterView = _view(&"hunter")
+		var loco: Locomotion = v.locomotion
+		var input: RawInput = SimHelpers.move(spec[0], spec[1], Btn.BLOCK) if spec[2] else SimHelpers.move(spec[0], spec[1])
+		var rates: Array[float] = []
+		var clip: String = ""
+		for i: int in 40:
+			var before: float = loco.phase
+			_step(W, v, input)
+			clip = loco.guard_clips[&"katana" if spec[2] else &"fists"][spec[3]]
+			if i >= 30:
+				rates.append(fposmod(loco.phase - before, 1.0) * loco.gaits[clip].length * 60.0)
+		assert_eq(_top(loco), clip, "%s shows" % clip)
 		for r: float in rates:
 			assert_almost_eq(r, 1.0, 0.02, "%s plays at 1.0x (%.4f)" % [clip, r])

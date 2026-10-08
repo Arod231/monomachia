@@ -3223,6 +3223,134 @@
 			"groups": [
 				"states"
 			]
+		},
+		"KatanaShuffleForward": {
+			"export": "exports/clips/guard_forward_katana.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 0], [4, 8]], "right": [[0, 4], [8, 8]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStrafeLeft": {
+			"export": "exports/clips/guard_left_katana.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 0], [4, 8]], "right": [[0, 4], [8, 8]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaShuffleBack": {
+			"export": "exports/clips/guard_back_katana.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 4], [8, 8]], "right": [[0, 0], [4, 8]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStrafeRight": {
+			"export": "exports/clips/guard_right_katana.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 4], [8, 8]], "right": [[0, 0], [4, 8]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"FistsShuffleForward": {
+			"export": "exports/clips/guard_forward_fists.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 0], [4, 8]], "right": [[0, 4], [8, 8]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStrafeLeft": {
+			"export": "exports/clips/guard_left_fists.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 0], [4, 8]], "right": [[0, 4], [8, 8]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsShuffleBack": {
+			"export": "exports/clips/guard_back_fists.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 4], [8, 8]], "right": [[0, 0], [4, 8]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStrafeRight": {
+			"export": "exports/clips/guard_right_fists.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 4], [8, 8]], "right": [[0, 0], [4, 8]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
 		}
 	}
 }

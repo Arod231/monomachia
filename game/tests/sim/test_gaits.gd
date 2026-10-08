@@ -122,3 +122,55 @@ func test_a_running_jump_still_flies_at_the_rules_speed() -> void:
 	W.step([H.move(0.0, 1.0), H.idle()])
 	assert_eq(a.state, &"jump")
 	assert_almost_eq(JsMath.hypot(a.vel.x, a.vel.z), JUMP_FLIGHT, 0.2, "the jump's own flight speed")
+
+
+# ------------------------------------------------------------------ guarded cycles (task 56)
+# The owner's answers (Oct 8): the Katana's and bare hands' guarded shuffle
+# and strafe cycles in four ways, keyed to 60% of the run; the blocking walk
+# is their speed; bare hands' cycles are the disarmed walk.
+
+const KATANA_GUARD: Array[String] = ["KatanaShuffleForward", "KatanaStrafeLeft", "KatanaShuffleBack", "KatanaStrafeRight"]
+const FISTS_GUARD: Array[String] = ["FistsShuffleForward", "FistsStrafeLeft", "FistsShuffleBack", "FistsStrafeRight"]
+## Forward, left, back, right on the stick.
+const WAYS4: Array[Vector2] = [Vector2(0.0, 1.0), Vector2(-1.0, 0.0), Vector2(0.0, -1.0), Vector2(1.0, 0.0)]
+
+
+func test_the_guarded_cycles_run_55_to_65_percent_of_the_run() -> void:
+	for id: String in KATANA_GUARD + FISTS_GUARD:
+		var share: float = _speed(id) / _speed(RUN_FORWARD)
+		assert_between(share, 0.55, 0.65, "%s at %.0f%% of the forward run" % [id, share * 100.0])
+
+
+func test_blocking_walks_at_the_katanas_guarded_cycles_own_speeds() -> void:
+	for i: int in 4:
+		var w: Vector2 = WAYS4[i]
+		# a strafe orbits the opponent; each step is pulled back onto the circle
+		var moved: float = _one_second(Moves.KATANA, 10.0, H.move(w.x, w.y, Btn.BLOCK))
+		assert_almost_eq(moved, _speed(KATANA_GUARD[i]), 2e-3, "blocking %s" % KATANA_GUARD[i])
+
+
+func test_blocking_walks_at_the_guarded_speed_whatever_the_tilt() -> void:
+	var half: float = _one_second(Moves.KATANA, 10.0, H.move(0.0, 0.5, Btn.BLOCK))
+	assert_almost_eq(half, _speed(KATANA_GUARD[0]), 1e-6, "a partial tilt blocking walks the guarded shuffle too")
+
+
+func test_a_guarded_diagonal_blends_its_two_ways() -> void:
+	var d: float = sqrt(0.5)
+	var expected: float = (_speed(KATANA_GUARD[0]) + _speed(KATANA_GUARD[1])) / 2.0
+	assert_almost_eq(_one_second(Moves.KATANA, 10.0, H.move(-d, d, Btn.BLOCK)), expected, 3e-3)
+
+
+func test_the_greatsword_and_the_daggers_keep_the_blocking_multiplier() -> void:
+	# no guarded cycles of their own until milestone 2: 0.6 of their run
+	assert_almost_eq(_one_second(Moves.GREATSWORD, 10.0, H.move(0.0, 1.0, Btn.BLOCK)), _speed(RUN_FORWARD) * 0.9 * 0.6, 1e-6)
+
+
+func test_a_disarmed_walk_is_bare_hands_guarded_cycle() -> void:
+	for i: int in 4:
+		var w: Vector2 = WAYS4[i] * 0.5
+		var moved: float = _one_second(Moves.KATANA, 10.0, H.move(w.x, w.y), false)
+		assert_almost_eq(moved, _speed(FISTS_GUARD[i]), 2e-3, "disarmed, walking %s" % FISTS_GUARD[i])
+
+
+func test_a_disarmed_full_tilt_still_runs_at_the_disarmed_run() -> void:
+	assert_almost_eq(_one_second(Moves.KATANA, 10.0, H.move(0.0, 1.0), false), _speed(RUN_FORWARD) * 1.2, 1e-6)
