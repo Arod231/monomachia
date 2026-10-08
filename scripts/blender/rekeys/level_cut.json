@@ -1,0 +1,20 @@
+{
+	"about": "Level Cut (katana.k_1l4), the one-handed string's hit 4 (KE task 12): the second half of Attack1H05_R, going on from where Twisting Rise holds (source frame 13, the blade high on the left): the blade carried down behind the left shoulder, then the level cut across the front from the left to the right at the chest, and back to the guard. In Elden Ring's rhythm: the wind-up (source frames 13-22 over 11), the cocked pose held, the strike snapped through into the active frames, the follow-through held on the right. The blade starts as Twisting Rise leaves it and ends 45 degrees lower, as the one-handed guard carries it, turned on where it would pass within 9 cm of the body. A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H05_R.fbx",
+	"out": "blender/clips/level_cut.blend",
+	"goes_on_from": "twisting_rise",
+	"remap": [[0, 13], [11, 22], [12.5, 22.4], [14.5, 27.5], [20, 30], [30, 33], [34, 36]],
+	"one_hand": {
+		"lower": [[0, 0], [20, 0], [34, 45]],
+		"clearance": 0.09
+	},
+	"step": {
+		"body": [[0, 0], [3, 0], [9, 0.3], [12.5, 0.9], [14.5, 1.2], [18, 1.32], [34, 1.32]],
+		"feet": {
+			"L": [[10, 16, 1.32, 0.2]],
+			"R": [[3, 9, 0.45, 0.16], [11, 18, 0.87, 0.24]]
+		},
+		"hips_top": 0.76,
+		"hips_home": [20, 34]
+	}
+}

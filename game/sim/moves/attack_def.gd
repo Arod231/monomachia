@@ -189,6 +189,11 @@ var landing: int = UNSET
 ## or a record names it, as the scripted ultimate hits do): it picks the
 ## move's protected timings (ProtectedTimings, milestone-1 task 22)
 var weapon: StringName = &""
+## the grip whose string the move was keyed for (KE tasks 11-14: a
+## WeaponGrip id), which gives it that grip's band kind
+## (FrameDataRows.kind_of()); &"" for a move every grip plays, the strings'
+## stand-ins among them
+var grip: StringName = &""
 ## the path the weapon travels through the move (task 7, the rebuild's), put
 ## on it from the weapon's swing file when the weapon is built
 ## (WeaponDef.from_dict); null until the move has one. A record may also
@@ -203,7 +208,7 @@ const KEYS: Array[String] = [
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
 	"sound", "trail", "smear", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "landing", "weapon", "swing",
+	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "landing", "weapon", "grip", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
 const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches", "by_travel", "landing"]
@@ -272,6 +277,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	m.by_travel = bool(d.get("by_travel", false))
 	m.landing = int(d.get("landing", UNSET))
 	m.weapon = StringName(d.get("weapon", &""))
+	m.grip = StringName(d.get("grip", &""))
 	m.swing = d.get("swing", null)
 	return m
 

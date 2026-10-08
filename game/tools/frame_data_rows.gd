@@ -11,7 +11,8 @@ const ImportClips := preload("res://tools/import_clips.gd")
 
 ## The timing band table's rows (docs/specs/milestone-1.md), a move's kind.
 const BAND_KINDS: Array[StringName] = [
-	&"string_light", &"string_heavy", &"iai_draw", &"iai_follow_up", &"unblockable",
+	&"string_light", &"string_light_1h", &"string_last_1h", &"string_light_2h", &"string_last_2h",
+	&"string_heavy", &"iai_draw", &"iai_follow_up", &"unblockable",
 	&"sprint_light", &"sprint_heavy", &"dodge_light", &"dodge_heavy", &"backstep_light", &"backstep_heavy",
 	&"jump_light", &"jump_heavy", &"block_ability", &"ultimate", &"counter_lunge",
 ]
@@ -63,7 +64,21 @@ static func kind_of(w: WeaponDef, id: StringName) -> StringName:
 		for other: StringName in w.moves:
 			if is_iai_draw(w, other) and (w.moves[other] as AttackDef).chain_heavy == id:
 				return &"iai_follow_up"
+	if m.kind == &"light" and m.grip != &"":
+		return grip_kind(w, id)
 	return &"string_light" if m.kind == &"light" else &"string_heavy"
+
+
+## A grip's own string hit's kind (KE task 11): its grip's light row
+## (string_light_1h, string_light_2h), or its grip's last-hit row
+## (string_last_1h, string_last_2h; D16) for the string's last hit.
+static func grip_kind(w: WeaponDef, id: StringName) -> StringName:
+	var m: AttackDef = w.moves[id]
+	var suffix: String = "1h" if m.grip == WeaponGrip.ONE_HANDED else "2h"
+	for g: WeaponGrip in w.grips:
+		if g.id == m.grip and g.hit(WeaponGrip.STRING_HITS) == id:
+			return StringName("string_last_" + suffix)
+	return StringName("string_light_" + suffix)
 
 
 ## Whether move `id` is drawn from a stance: a charge walked in (the Iai),

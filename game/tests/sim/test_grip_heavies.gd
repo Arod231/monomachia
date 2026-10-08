@@ -18,6 +18,11 @@ const TWO: StringName = WeaponGrip.TWO_HANDED
 const FULL_CHARGE_DAMAGE: float = 1.8
 
 
+# rounds start in the first grip, one-handed: these tests begin there
+func before_each() -> void:
+	H.grip = &""
+
+
 func after_each() -> void:
 	H.dispose_all()
 
@@ -97,29 +102,29 @@ func test_every_string_hit_branches_into_the_held_grip_s_heavy() -> void:
 func test_a_switch_before_the_heavy_picks_the_new_grip_s_heavy() -> void:
 	var W: World = H.make_world()
 	var swung: Array[StringName] = []
-	# heavy pressed once Right Cut takes a follow-up, past its startup
+	# heavy pressed once Slanting Cut takes a follow-up, past its startup
 	var inputs: Dictionary = {0: H.btn(Btn.LIGHT), 10: _with_grip(H.idle()), 32: H.btn(Btn.HEAVY)}
 	for i: int in 200:
 		W.step([inputs.get(i, H.idle()), H.idle()])
 		for e: Dictionary in W.drain_events():
 			if e["t"] == &"swing" and e["f"] == 0:
 				swung.append(e["attack"])
-	assert_eq(swung, [&"k_l1", &"k_h2"] as Array[StringName], "one-handed Right Cut, then two-handed Heaven Splitter")
+	assert_eq(swung, [&"k_1l1", &"k_h2"] as Array[StringName], "one-handed Slanting Cut, then two-handed Heaven Splitter")
 
 
 func test_heaven_splitter_s_follow_up_is_rising_heaven_and_the_pair_ends() -> void:
 	var swung: Array[StringName] = (_play(TWO, [Btn.LIGHT, Btn.HEAVY, Btn.HEAVY, Btn.HEAVY])[0] as Array[StringName])
-	assert_eq(swung, [&"k_l1", &"k_h2", &"k_h1f"] as Array[StringName], "Rising Heaven, then nothing")
+	assert_eq(swung, [&"k_2l1", &"k_h2", &"k_h1f"] as Array[StringName], "Rising Heaven, then nothing")
 
 
 func test_rising_heaven_is_optional() -> void:
 	var swung: Array[StringName] = (_play(TWO, [Btn.LIGHT, Btn.HEAVY])[0] as Array[StringName])
-	assert_eq(swung, [&"k_l1", &"k_h2"] as Array[StringName])
+	assert_eq(swung, [&"k_2l1", &"k_h2"] as Array[StringName])
 
 
 func test_crescent_coil_takes_no_follow_up() -> void:
 	var swung: Array[StringName] = (_play(ONE, [Btn.LIGHT, Btn.HEAVY, Btn.HEAVY, Btn.LIGHT])[0] as Array[StringName])
-	assert_eq(swung, [&"k_l1", &"k_coil"] as Array[StringName])
+	assert_eq(swung, [&"k_1l1", &"k_coil"] as Array[StringName])
 
 
 # ------------------------------------------------------------------ charging
@@ -175,4 +180,5 @@ func test_the_vertical_iai_s_heavy_follow_up_is_the_grip_s() -> void:
 func test_the_horizontal_iai_keeps_returning_draw_and_the_grip_s_hit_2() -> void:
 	for grip: StringName in [ONE, TWO]:
 		assert_eq((_play(grip, [Btn.HEAVY, Btn.HEAVY], 1.0)[0] as Array[StringName]), [&"k_iai_h", &"k_rdraw"] as Array[StringName], "%s: Returning Draw" % grip)
-		assert_eq((_play(grip, [Btn.HEAVY, Btn.LIGHT, Btn.LIGHT], 1.0)[0] as Array[StringName]), [&"k_iai_h", &"k_l2", &"k_l3"] as Array[StringName], "%s: hit 2, then on to hit 3" % grip)
+		var g: WeaponGrip = Moves.KATANA.grip(grip)
+		assert_eq((_play(grip, [Btn.HEAVY, Btn.LIGHT, Btn.LIGHT], 1.0)[0] as Array[StringName]), [&"k_iai_h", g.hit(2), g.hit(3)] as Array[StringName], "%s: hit 2, then on to hit 3" % grip)

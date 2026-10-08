@@ -52,7 +52,11 @@ extends RefCounted
 ##   moving or guarding the new grip's re-grip on the upper body at 1.0
 ##   (regrip_clip(), phase &"regrip"; D15), or, without one, an inertial blend
 ##   into the new grip's pose; a switch mid-attack plays nothing, the next
-##   hit's clip being the new grip's;
+##   hit's clip being the new grip's. Since KE task 10 the grip's carry loops
+##   at 1.0 as an idle does, and the off hand follows the clip shown
+##   (Shot.off_hand, off_hand()): left on the clip for the one-handed grip's
+##   (StateClips.one_handed()), on the handle by IK for every other, joining
+##   it with the re-grip into two hands;
 ## - the states with a clip of their own: with the packs a manifest clip
 ##   (StateClips.own_clips, milestone-1 task 99: the disarmed choice's
 ##   UltChoice and the recall's RecallPowerUp), else a hand-keyed one
@@ -200,6 +204,16 @@ const STUN_STATES: Array[StringName] = [&"stunned", &"stagger", &"disarmStagger"
 ## tasks 104 and 105 bring the finishers' own clips: the Katana's vertical Iai
 ## Slash and bare hands' Cross. The victim (&"finished") holds the stun.
 const FINISHER_STANDINS: Dictionary[StringName, StringName] = {&"katana": &"k_iai", &"fists": &"f_l2"}
+## A grip's carry gives way to the gait's own upper body while the fighter
+## runs ahead (KE task 10): faster than this (m/s over the ground, between
+## the walk's pace and the run's) within CARRY_AHEAD_ANGLE of where it faces,
+## a sprint among them. Standing, walking, strafing and backing off keep it.
+const CARRY_AHEAD_SPEED: float = 3.0
+const CARRY_AHEAD_ANGLE: float = 60.0
+## The off hand takes this many rules frames to let go of the handle or to
+## take it again (KE task 10), outside the re-grip into two hands, which
+## brings it on with its clip.
+const OFF_HAND_FRAMES: int = 4
 ## The reactions that show on the upper body alone.
 const UPPER_REACTIONS: Array[StringName] = [&"guard", &"blockstun", &"parry", &"regrip"]
 ## The states a parried attacker plays its recoil in: a block's parry
@@ -303,6 +317,11 @@ class Shot:
 	## The grip the fighter held (Fighter.grip; KE task 8), &"" disarmed: a
 	## change is a switch, which plays the new grip's re-grip.
 	var held_grip: StringName = &""
+	## How far a two-handed weapon's off hand is on its grip (KE task 10;
+	## FighterRig.off_hand): 1 on its OffHandGrip by IK, 0 left on the clip
+	## (the one-handed grip's clips), at this frame and the frame before.
+	var off_hand: float = 1.0
+	var off_hand_before: float = 1.0
 
 	## How far the fade is in (0 to 1, smoothed), for what still hands over
 	## by it (the daggers' turn into the reverse hold); poses blend
@@ -415,7 +434,10 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			playing = regrip
 			drive = STATE
 			phase = &"regrip"
+	out.off_hand_before = prev.off_hand if prev != null else -1.0
+	out.off_hand = off_hand(prev, f, ctx, drive, playing, phase, out.idle)
 	if prev == null:
+		out.off_hand_before = out.off_hand
 		out.drive = drive
 		out.clip = playing
 		out.clip_before = playing
@@ -920,18 +942,53 @@ static func _reverse_hold(s: Shot, f: Fighter) -> float:
 
 ## The carry `f` shows on the upper body (held, a pose), or null: the
 ## Greatsword's shoulder carry while shouldered, else its grip's carry
-## (StateClips.carry_for(); KE task 8) standing or moving unguarded; none
-## without the packs.
+## (StateClips.carry_for(); KE task 8) standing or moving unguarded, but not
+## running ahead (running_ahead(), KE task 10); none without the packs.
 static func carry_clip(f: Fighter, ctx: Context) -> Clip:
 	if not ctx.libraries:
 		return null
 	if f.shouldered:
 		return Clip.make(carry_name(ctx), 0.0)
-	if f.armed and f.weapon != null and not f.blocking and (f.state == &"free" or f.state == &"step"):
+	if f.armed and f.weapon != null and not f.blocking and (f.state == &"free" or f.state == &"step") and not running_ahead(f):
 		var id: StringName = StateClips.shared().carry_for(f.weapon.id, f.grip)
 		if id != &"":
-			return Clip.make(ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id), 0.0)
+			# a guard idle doubling as the carry (KE task 10) loops at 1.0 on
+			# the world's frames
+			var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id)
+			var length: float = ctx.lengths.get(anim_name, 0.0)
+			var frame: int = f.world.frame if f.world != null else 0
+			return Clip.make(anim_name, fposmod(float(frame) / float(SimConst.FPS), length) if length > 0.0 else 0.0)
 	return null
+
+
+## Whether `f` runs ahead: faster than CARRY_AHEAD_SPEED over the ground,
+## within CARRY_AHEAD_ANGLE of the way it faces (KE task 10).
+static func running_ahead(f: Fighter) -> bool:
+	var v: Vector2 = Vector2(f.vel.x, f.vel.z)
+	if v.length() <= CARRY_AHEAD_SPEED:
+		return false
+	return absf(rad_to_deg(v.angle_to(Vector2(sin(f.yaw), cos(f.yaw))))) <= CARRY_AHEAD_ANGLE
+
+
+## How far `f`'s off hand is on its two-handed weapon's grip this frame (KE
+## task 10; Shot.off_hand), the clip shown being `playing` (or the idle
+## `idle` under the legs): none for a clip the one-handed grip plays
+## (StateClips.one_handed()), all of it for any other. The re-grip into two
+## hands brings it on with the clip (its share played, smoothed); every other
+## change goes over OFF_HAND_FRAMES. All of it without the packs (the CC0
+## stand-ins are held as they always were) or without a weapon.
+static func off_hand(prev: Shot, f: Fighter, ctx: Context, drive: StringName, playing: Clip, phase: StringName, idle: String) -> float:
+	if not ctx.libraries or not f.armed or f.weapon == null:
+		return 1.0
+	var shown: String = idle if drive == LEGS or playing == null else playing.name
+	var want: float = 0.0 if StateClips.shared().one_handed(f.weapon.id, StringName(shown.get_file())) else 1.0
+	if prev == null:
+		return want
+	if phase == &"regrip" and want == 1.0:
+		var length: float = ctx.lengths.get(playing.name, 0.0)
+		var along: float = smoothstep(0.0, 1.0, playing.time / length) if length > 0.0 else 1.0
+		return maxf(along, prev.off_hand) if prev.phase == &"regrip" else along
+	return move_toward(prev.off_hand, want, 1.0 / float(OFF_HAND_FRAMES))
 
 
 ## The re-grip `f` plays on a grip switch (StateClips.regrip_for(); KE task

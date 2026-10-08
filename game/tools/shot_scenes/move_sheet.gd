@@ -297,10 +297,10 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 	&"grip_switch": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.GRIP], [30, 0.0, 0.0, 0], [12, 0.0, 0.0, BLOCK],
 			[1, 0.0, 0.0, BLOCK | (1 << Btn.GRIP)], [30, 0.0, 0.0, BLOCK], [12, 0.0, 0.0, 0]],
-		"notes": "still for 12 frames, switching to the two-handed grip, standing for 30, then guarding and switching back to one hand, guarding for 30 (KE task 8: both grips stand in on the guard idle and guard until task 10)",
+		"notes": "still for 12 frames, switching to the two-handed grip, standing for 30, then guarding and switching back to one hand, guarding for 30 (KE task 10: each grip its own guard idle and block, the re-grips between them)",
 		"views": [&"three_quarter", &"hands"],
 		"spacing": 4.0,
-		"every": 4,
+		"every": 3,
 	},
 	&"string_l": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [70, 0.0, 0.0, 0]],
@@ -765,7 +765,8 @@ func _look_from(pos: Vector3, target: Vector3, fov: float) -> void:
 
 
 ## Where the attacker's hands grip, in world space: the grip points of the
-## hands on posed weapons, or the hands themselves when none are posed.
+## hands on posed weapons, or the hands holding a weapon when none are posed
+## (the one-handed grip's main hand alone, KE task 10), or both hands.
 ## The attacker's ankles in the world as last posed, right then left.
 func _ankles() -> PackedVector3Array:
 	var sk: Skeleton3D = bench.view.model.skeleton
@@ -782,6 +783,10 @@ func _hands() -> PackedVector3Array:
 	for side: String in ["Right", "Left"]:
 		if model.rig.drives(side):
 			out.append(sk.global_transform * model.rig.grip_point(side))
+	if out.is_empty():
+		for side: String in ["Right", "Left"]:
+			if model.rig.holds(side):
+				out.append(sk.global_transform * sk.get_bone_global_pose(sk.find_bone(side + "Hand")).origin)
 	if out.is_empty():
 		for side: String in ["Right", "Left"]:
 			out.append(sk.global_transform * sk.get_bone_global_pose(sk.find_bone(side + "Hand")).origin)

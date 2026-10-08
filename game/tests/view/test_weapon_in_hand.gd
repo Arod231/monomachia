@@ -173,10 +173,34 @@ func test_local_the_off_hand_holds_the_grip_through_the_iglesias_clips() -> void
 			assert_lt(worst, NEAR, "%s with the %s: worst off-hand gap %.1f cm (%s)" % [pair[0], weapon, worst * 100.0, where])
 
 
-## Through a grip switch (KE task 8): the clips each of the Katana's grips
-## plays standing and guarding (StateClips' grips: its idle, its guard's loop
-## and hit) and its re-grip into it, when it has one, keep the blade in the
-## right fist and the off hand on its grip.
+## KE task 10: with the off hand let go (FighterRig.off_hand 0, the
+## one-handed grip's clips) the IK leaves it on the clip, open, and the main
+## hand holds the weapon alone; part of the way, it reaches part of the way.
+func test_the_off_hand_lets_go_of_the_grip_in_one_hand() -> void:
+	for id: StringName in FighterLook.IDS:
+		var f: FighterModel = _fighter(id, &"katana")
+		_at(f, "ual/" + CLIP, 0.45)
+		f.rig.off_hand = 0.0
+		assert_false(f.rig.drives("Left"), "%s: no IK on the off hand" % id)
+		var poses: Array[Transform3D] = await _posed(f)
+		var free: float = _off_hand_gap(f, poses)
+		assert_gt(free, 0.05, "%s: the clip's off hand, %.1f cm off the grip" % [id, free * 100.0])
+		assert_false(f.hand_grip.left_hand, "%s: the off hand open" % id)
+		assert_true(f.weapons[0].transform.is_equal_approx(_bone(f, poses, "RightHand") * f.rig.fixed_grip("Right")), "%s: in the right fist" % id)
+		f.rig.off_hand = 0.5
+		assert_true(f.rig.drives("Left"), "%s: part of the way, on IK" % id)
+		var half: float = _off_hand_gap(f, await _posed(f))
+		assert_between(half, NEAR, free - NEAR, "%s: part of the way there (%.1f cm)" % [id, half * 100.0])
+		f.rig.off_hand = 1.0
+		assert_lt(_off_hand_gap(f, await _posed(f)), NEAR, "%s: all the way on" % id)
+
+
+## Through a grip switch (KE tasks 8 and 10): the clips each of the Katana's
+## grips plays standing and guarding (StateClips' grips: its idle, which is
+## also its carry, its guard's loop and hit) and its re-grip into it keep the
+## blade in the right fist; the two-handed grip's keep the off hand on its
+## grip by IK, the one-handed grip's leave it off the handle on the clip, and
+## the re-grip into two hands brings it to the handle by its own end.
 func test_local_the_katana_stays_in_hand_through_a_grip_switch() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
@@ -187,33 +211,56 @@ func test_local_the_katana_stays_in_hand_through_a_grip_switch() -> void:
 		var lib: AnimationLibrary = ClipLibraries.load_set(pair[1])
 		f.animation_player.add_animation_library(pair[1], lib)
 		for grip: StringName in [WeaponGrip.ONE_HANDED, WeaponGrip.TWO_HANDED]:
-			var clips: Array[StringName] = [sc.idle_for(&"katana", grip)]
+			var clips: Array[StringName] = [sc.idle_for(&"katana", grip), sc.carry_for(&"katana", grip)]
 			clips.append_array(sc.guard_for(&"katana", grip))
-			if sc.regrip_for(&"katana", grip) != &"":
-				clips.append(sc.regrip_for(&"katana", grip))
+			clips.append(sc.regrip_for(&"katana", grip))
 			for clip: StringName in clips:
+				var one: bool = sc.one_handed(&"katana", clip)
+				assert_eq(one, grip == WeaponGrip.ONE_HANDED, "%s is the %s grip's" % [clip, grip])
+				f.rig.off_hand = 0.0 if one else 1.0
 				var length: float = lib.get_animation(clip).length
 				for i: int in 5:
 					_at(f, "%s/%s" % [pair[1], clip], length * i / 4.0)
 					var poses: Array[Transform3D] = await _posed(f)
 					var gap: float = _off_hand_gap(f, poses)
-					assert_lt(gap, NEAR, "%s %s %s at %.2f s: off hand %.1f cm off" % [pair[0], grip, clip, length * i / 4.0, gap * 100.0])
+					if one:
+						if clip != sc.regrip_for(&"katana", grip) or i == 4:
+							assert_gt(gap, 0.05, "%s %s at %.2f s: the off hand off the handle (%.1f cm)" % [pair[0], clip, length * i / 4.0, gap * 100.0])
+					else:
+						assert_lt(gap, NEAR, "%s %s at %.2f s: off hand %.1f cm off" % [pair[0], clip, length * i / 4.0, gap * 100.0])
 					assert_lt(_grip_centre(f, poses, "Right").distance_to(f.weapons[0].transform.origin), 0.05, "%s %s %s: in the right fist" % [pair[0], grip, clip])
+		# the re-grip into two hands carries the clip's own off hand toward the
+		# handle (the IK, coming in with it, seats it there)
+		var into: StringName = sc.regrip_for(&"katana", WeaponGrip.TWO_HANDED)
+		f.rig.off_hand = 0.0
+		_at(f, "%s/%s" % [pair[1], into], 0.0)
+		var from: float = _off_hand_gap(f, await _posed(f))
+		_at(f, "%s/%s" % [pair[1], into], lib.get_animation(into).length)
+		var reached: float = _off_hand_gap(f, await _posed(f))
+		gut.p("%s: the re-grip's own off hand goes from %.1f to %.1f cm from the grip" % [pair[0], from * 100.0, reached * 100.0])
+		assert_lt(reached, from * 0.5, "%s: the re-grip carries the off hand to the handle" % pair[0])
 
 
 ## The per-move checklist's item 10 (milestone-1 task 40): each keyed move's
 ## clip, every deflect pair and the light block keep the off hand on the
 ## Katana's grip (within NEAR) on every rules frame, on both fighters, the
-## worst recorded by row (a bare-hands move holds nothing: item 10 doesn't
-## apply). Recorded for the owner, not held: task 40 reports
+## worst recorded by row (a bare-hands move holds nothing, and a one-handed
+## grip's own hit lets the off hand go, KE task 11: item 10 doesn't apply).
+## Recorded for the owner, not held: task 40 reports
 ## these, and the new strings re-key them.
 func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
 		return
+	var sc: StateClips = StateClips.read()
 	var rows: Dictionary[StringName, Array] = {}
+	var free: int = 0
 	for m: Array in ChecklistResults.keyed_moves():
-		if m[0] != &"fists":
+		var clip: StringName = (Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0] if m[0] != &"fists" else &""
+		if clip != &"" and sc.one_handed(m[0], clip):
+			ChecklistResults.record_problems(10, m[1], [] as Array[String])
+			free += 1
+		elif m[0] != &"fists":
 			rows[m[1]] = [(Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0]]
 	var clip_rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
 	rows[&"clip_deflect_light"] = clip_rows[&"clip_deflect_light"]
@@ -246,4 +293,5 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 		else:
 			ChecklistResults.record_problems(10, row, by_clip.values()[0])
 	gut.p("the keyed clips' off hand, worst over every rules frame:\n" + "\n".join(lines))
-	assert_eq(worst.size(), 13, "four lights, four pairs and the block")
+	assert_eq(worst.size(), 16, "four lights, four pairs, the block, Crouching Crown and the two-handed hits 1 and 2, their off hand on the grip (KE tasks 12 and 13)")
+	assert_eq(free, 4, "the one-handed grip's own hits 1 to 4 (KE tasks 11 and 12), the off hand free")
