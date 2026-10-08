@@ -1,0 +1,7 @@
+{
+	"about": "The Katana's two-handed block hit (KE task 10): Parry1H01's right guard hit at its own speed (the director fits it to the blockstun), made two-handed by the guard's pass (6 cm clear of the body, as the parry's raised blade allows; 8 cm leaves the hands off the handle on its first frames), the one-handed grip keeping the pack's clip as it is. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Parry1H01_R - Hit.fbx",
+	"out": "blender/clips/katana_block_hit.blend",
+	"remap": [[0, 0], [26, 26]],
+	"two_hands": {"grip": 0.11, "hold": [0.32, 0.12], "square": 0.6, "clearance": 0.06}
+}

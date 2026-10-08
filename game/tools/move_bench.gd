@@ -55,6 +55,9 @@ var weapon: WeaponDef
 ## every weapon, task 27).
 var defender_weapon: WeaponDef = Moves.KATANA
 var spacing: float = PoseCheck.SPACING
+## The grip stand() puts the fighter in, for a weapon with grips (KE task
+## 10); empty keeps the rules' own (one-handed, as a round starts).
+var grip: StringName = &""
 var world: World
 var attacker: Fighter
 var defender: Fighter
@@ -121,6 +124,8 @@ func stand() -> void:
 	defender.set_state(&"free")
 	# in its guard, not on the shoulder: the bench plays a move's own frames
 	attacker.shouldered = false
+	if grip != &"" and attacker.weapon != null and not attacker.weapon.grips.is_empty():
+		attacker.grip = grip
 	_show()
 
 

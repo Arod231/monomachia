@@ -24,7 +24,7 @@ var pressed_on: Array[int] = []
 
 
 ## Fighter 0, holding weapon, plays a string of presses (Btn.LIGHT or
-## Btn.HEAVY) for 240 steps against an idle Katana gap m away: the first on
+## Btn.HEAVY) for steps steps (240 unless asked) against an idle Katana gap m away: the first on
 ## step 0, each next one on the step after the attack before it swings, the
 ## first step that attack takes a follow-up. mx is the stick's sideways push
 ## throughout (1.0 draws the Katana's horizontal Iai). With dodge_in set, it
@@ -32,7 +32,8 @@ var pressed_on: Array[int] = []
 ## dodge_on, holding the stick to the side from then on (a buffered dodge
 ## with the stick let go is a backstep).
 static func play(
-	weapon: WeaponDef, presses: Array[int], gap: float = 2.2, mx: float = 0.0, dodge_in: StringName = &"", dodge_on: int = -1
+	weapon: WeaponDef, presses: Array[int], gap: float = 2.2, mx: float = 0.0, dodge_in: StringName = &"", dodge_on: int = -1,
+	steps: int = 240,
 ) -> PlayedString:
 	var W: World = SimHelpers.make_world(weapon, Moves.KATANA, gap)
 	var a: Fighter = W.fighters[0]
@@ -40,7 +41,7 @@ static func play(
 	var next: int = 0
 	var due: bool = true
 	var dodged: bool = false
-	for i: int in 240:
+	for i: int in steps:
 		var p0: RawInput = SimHelpers.move(mx, 0.0)
 		if due and next < presses.size():
 			p0 = SimHelpers.move(mx, 0.0, presses[next])

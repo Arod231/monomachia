@@ -13,8 +13,9 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 const CUT: StringName = &"k_l1"
 const EPS: float = 1e-9
 ## The moves re-keyed so far: the light string (task 31: Right Cut and Return
-## Cut; task 32: Kesa Cut and Crown Cut) and Breaker Palm (task 99).
-const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"f_breaker"]
+## Cut; task 32: Kesa Cut and Crown Cut), the one-handed grip's own five hits and the two-handed grip's hits 1 and 2
+## (KE task 11) and Breaker Palm (task 99).
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2", &"f_breaker"]
 
 
 func after_each() -> void:
