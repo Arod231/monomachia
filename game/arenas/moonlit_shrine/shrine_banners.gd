@@ -10,7 +10,7 @@ extends RefCounted
 ## foot at the origin, the cloth facing +Z). They stand round the ledge at
 ## ShrineLayout.banners (every 30 degrees, each at its own radius among the
 ## wisteria's roots), facing the courtyard, the variants in turn; the cloth sways and flutters
-## on the layout's wind (LookMaterials.sway(), its weight in the cloth's
+## on the arena's one wind (LookMaterials.sway(), its weight in the cloth's
 ## vertex red). They stand beyond the cameras' room (ArenaDef
 ## camera_max_radius), so none ever comes between a camera and a fighter.
 
@@ -39,7 +39,7 @@ static func build(layout: ShrineLayout) -> Node3D:
 		for s: int in pole.mesh.get_surface_count():
 			pole_mats.append(LookMaterials.prop_from(pole.mesh.surface_get_material(s)))
 		var cloth_mat: Material = LookMaterials.sway(cloth.mesh.surface_get_material(0) as BaseMaterial3D,
-			layout.wind, CLOTH_SWAY, CLOTH_FLUTTER, true)
+			CLOTH_SWAY, CLOTH_FLUTTER, true)
 		parts.append([pole.mesh, pole_mats, cloth.mesh, cloth_mat])
 	model.free()
 	var spot_list: PackedVector3Array = spots(layout)

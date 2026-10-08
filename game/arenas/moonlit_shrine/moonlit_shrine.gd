@@ -79,10 +79,20 @@ var _time: float = 0.0
 func _ready() -> void:
 	_build()
 	GraphicsApplier.apply_to_tree(GameServices.graphics_preset(), self)
+	# the night's wind is everyone's: the shaders' globals, and the fighters'
+	# springs (Wind.active)
+	layout.wind.apply()
+	Wind.active = layout.wind
+
+
+func _exit_tree() -> void:
+	if Wind.active == layout.wind:
+		Wind.active = null
 
 
 func _process(delta: float) -> void:
 	_time += delta
+	layout.wind.advance(delta)
 	for i: int in _lantern_lights.size():
 		_lantern_lights[i].light_energy = ShrinePlatform.LANTERN_ENERGY * _flicker(_time, i)
 	ShrineUnderside.bob_rocks(_floating_rocks, layout, _time)
@@ -298,7 +308,6 @@ func _mist_banks() -> FogVolume:
 	v.position = Vector3(0.0, MIST_BANK_HEIGHT * 0.5 - 0.2, 0.0)
 	var m := ShaderMaterial.new()
 	m.shader = MIST_BANK
-	m.set_shader_parameter(&"wind", layout.wind)
 	m.set_shader_parameter(&"albedo", LookPalette.MIST.lightened(0.3))
 	LookNoise.apply_to(m)
 	v.material = m

@@ -53,9 +53,9 @@ func test_banks_of_mist_drift_on_the_wind_over_the_courtyard_and_up_through_the_
 	var m := banks.material as ShaderMaterial
 	assert_not_null(m, "a fog shader")
 	assert_eq(m.shader, MoonlitShrine.MIST_BANK)
-	assert_eq(_param(m, &"wind"), arena.layout.wind, "drifting on the night's wind")
+	assert_true(m.shader.code.contains("wind.gdshaderinc"), "drifting on the night's one wind")
 	assert_eq(_param(m, &"look_noise_tex"), LookNoise.texture(), "banks of the look's noise")
-	assert_true(m.shader.code.contains("TIME"), "they drift")
+	assert_true(m.shader.code.contains("wind_time"), "they drift")
 	assert_lt(Color(_param(m, &"albedo")).r, Color(_param(m, &"albedo")).b, "cool, not red")
 
 

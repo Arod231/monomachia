@@ -2,13 +2,14 @@
 // drifting on the night's wind over the courtyard, thick low down and
 // thinning in wisps up through the canopy, for the moon shafts to light. Its
 // shape is two scales of the look's noise (LookNoise, set by the arena) in
-// world space, carried downwind with TIME, so the banks drift through the
-// still volume; its edges fade out.
+// world space, carried downwind by the arena's one wind (wind.gdshaderinc,
+// milestone-1 task 52), so the banks drift through the still volume and
+// surge on as a gust passes; its edges fade out.
 shader_type fog;
 
+#include "res://shaders/wind.gdshaderinc"
+
 uniform sampler2D look_noise_tex : filter_linear, repeat_enable;
-// The night's wind (m/s, x and z): the banks drift with it.
-uniform vec2 wind = vec2(-0.55, -0.19);
 uniform vec4 albedo : source_color = vec4(0.42, 0.46, 0.56, 1.0);
 // The banks' density low down, and the wisps' up high.
 uniform float bank_density = 0.15;
@@ -30,15 +31,17 @@ float mb_noise(vec2 p, int c) {
 
 void fog() {
 	vec3 w = WORLD_POSITION;
-	vec2 p = (w.xz - wind * TIME) / bank_size;
+	// how far the wind has carried the air: the breeze, and a gust's surge
+	vec2 carried = wind_direction() * wind.z * (wind_time + (wind_gust(w) - 1.0) * 0.8);
+	vec2 p = (w.xz - carried) / bank_size;
 	// the banks, their edges ragged with a finer noise drifting a little faster
-	float n = mb_noise(p, 0) * 0.7 + mb_noise(p * 2.6 - wind * TIME * 0.04 + w.y * 0.08, 1) * 0.3;
+	float n = mb_noise(p, 0) * 0.7 + mb_noise(p * 2.6 - carried * 0.04 + w.y * 0.08, 1) * 0.3;
 	float bank = smoothstep(1.0 - cover - 0.12, 1.0 - cover + 0.18, n);
 	// thick low down, each bank's top rolling with the noise
 	float top = bank_depth * (0.55 + 0.9 * n);
 	float low = 1.0 - smoothstep(top * 0.35, top, w.y);
 	// the wisps up through the canopy: thin streaks along the wind
-	vec2 q = (w.xz - wind * TIME * 1.6) / (bank_size * 0.7) + vec2(w.y * 0.13, -w.y * 0.07);
+	vec2 q = (w.xz - carried * 1.6) / (bank_size * 0.7) + vec2(w.y * 0.13, -w.y * 0.07);
 	float wisp = smoothstep(0.35, 0.75, mb_noise(q * vec2(0.6, 1.4), 2)) * smoothstep(0.5, 3.0, w.y);
 	// fade out at the volume's sides and top
 	vec3 e = min(UVW, 1.0 - UVW);

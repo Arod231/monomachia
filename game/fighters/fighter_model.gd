@@ -40,6 +40,11 @@ const SCARF_STIFFNESS: float = 2.0
 const SCARF_DRAG: float = 0.5
 const SCARF_GRAVITY: float = 2.0
 const SCARF_RADIUS: float = 0.02
+## How much the wind catches the scarf (m/s² downwind for each m/s of wind;
+## Wind.blow_springs()): its tails trail visibly downwind, more in a gust,
+## the fighter's own motion still leading (the owner's choice, Oct 8,
+## milestone-1 task 52).
+const SCARF_WIND_CATCH: float = 4.0
 const LIBRARY: StringName = &"ual"
 const SKELETON_NAME: StringName = &"GeneralSkeleton"
 ## The render layers of every fighter mesh.
@@ -59,6 +64,9 @@ const LAYERS: int = 1 | LookPalette.FIGHTER_LAYER
 ## Play the idle clip on entering the tree.
 @export var autoplay_idle: bool = true
 
+## The scarf's springs (null without a scarf), which the arena's wind blows
+## on (_process()).
+var scarf_springs: SpringBoneSimulator3D
 var skeleton: Skeleton3D
 var animation_player: AnimationPlayer
 ## The modifier stack on the skeleton: body layer, IK and grip.
@@ -92,6 +100,12 @@ func _ready() -> void:
 	build()
 	if autoplay_idle and _built:
 		play_idle(0.0)
+
+
+## The arena's wind blows on the scarf (milestone-1 task 52).
+func _process(_delta: float) -> void:
+	if scarf_springs != null:
+		Wind.blow_springs(scarf_springs, SCARF_GRAVITY, SCARF_WIND_CATCH, scarf_springs.global_position)
 
 
 ## Assembles the model from the look. Does nothing if already built.
@@ -397,6 +411,7 @@ func _take_scarf(scene: PackedScene) -> void:
 	var sim: SpringBoneSimulator3D = SpringBoneSimulator3D.new()
 	sim.name = &"ScarfSprings"
 	rig.add_child(sim)
+	scarf_springs = sim
 	sim.setting_count = SCARF_TAILS.size()
 	for i: int in SCARF_TAILS.size():
 		sim.set_root_bone_name(i, SCARF_TAILS[i] + "0")

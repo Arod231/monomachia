@@ -7,7 +7,7 @@ extends RefCounted
 ## to hide a fighter's feet (FLOOR_HEIGHT). The tufts are the project's own,
 ## blade cards built in Blender by scripts/blender/build_banners_grass.py
 ## (MODEL: Tuft0..3, coloured by their vertex colour, its alpha the sway's
-## weight), swaying on the layout's wind (LookMaterials.sway()).
+## weight), swaying on the arena's one wind (LookMaterials.sway()).
 ##
 ## On the floor they grow along the paving's ring joints (the stone floor
 ## shader's rings: ShrineLayout.centre_radius, then every ring_width, out to
@@ -50,7 +50,7 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> Node3D:
 			continue
 		meshes.append(mi.mesh)
 		if material == null:
-			material = LookMaterials.sway(mi.mesh.surface_get_material(0) as BaseMaterial3D, layout.wind, SWAY, 0.0, false)
+			material = LookMaterials.sway(mi.mesh.surface_get_material(0) as BaseMaterial3D, SWAY, 0.0, false)
 	model.free()
 	if meshes.is_empty():
 		return root

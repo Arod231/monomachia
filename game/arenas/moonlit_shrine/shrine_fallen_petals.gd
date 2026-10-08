@@ -6,7 +6,7 @@ extends MultiMeshInstance3D
 ##
 ## - Falling: LAND_RATE petals a second (at the preset's full count) set off
 ##   under the canopy, FALL_FROM metres up and upwind, drifting down on the
-##   layout's wind at a petal's fall speed (SINK, as the canopy's own
+##   arena's one wind at a petal's fall speed (SINK, as the canopy's own
 ##   petals), fluttering and tumbling as they go, and land where they were
 ##   aimed: DRIFT_SHARE of them at the foot of the parapet (within
 ##   DRIFT_DEPTH, most of them downwind), JOINT_SHARE in the paving's ring
@@ -83,6 +83,8 @@ const CELL: float = 0.5
 enum { FREE, AIR, SLIDE, SETTLED }
 
 var _layout: ShrineLayout
+## The arena's one wind (milestone-1 task 52), and its breeze, level.
+var _wind_source: Wind
 var _wind := Vector3.ZERO
 ## Where petals may lie: inside the parapet's inner face, all round.
 var _radius: float = 0.0
@@ -130,7 +132,9 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> ShrineFallenPetals:
 
 func _setup(layout: ShrineLayout, def: ArenaDef) -> void:
 	_layout = layout
-	_wind = Vector3(layout.wind.x, 0.0, layout.wind.y)
+	_wind_source = layout.wind
+	var breeze: Vector2 = layout.wind.velocity()
+	_wind = Vector3(breeze.x, 0.0, breeze.y)
 	_radius = def.wall_inner_radius() - 0.03
 	_rng = layout.random_stream(&"fallen_petals")
 	_state.resize(MAX_PETALS)
@@ -222,6 +226,11 @@ func set_doom(t: float) -> void:
 
 ## Moves the petals on by dt seconds: the stirring since the last advance,
 ## new petals setting off, the falling and kicked ones on their way.
+## The wind the petals ride: the arena's one wind.
+func wind() -> Wind:
+	return _wind_source
+
+
 func advance(dt: float) -> void:
 	_time += dt
 	_material.set_shader_parameter(&"now", _time)
@@ -459,7 +468,9 @@ func _move(dt: float) -> void:
 		var p: Vector3 = _pos[i]
 		var v: Vector3 = _vel[i]
 		if _state[i] == AIR:
-			v += (Vector3(_wind.x, -_sink[i], _wind.z) - v) * air
+			# the air carries them as the wind blows where they are, gusts and all
+			var w: Vector2 = _wind_source.at(p)
+			v += (Vector3(w.x, -_sink[i], w.y) - v) * air
 			p += v * dt
 			if p.y <= _rest[i]:
 				p.y = _rest[i]

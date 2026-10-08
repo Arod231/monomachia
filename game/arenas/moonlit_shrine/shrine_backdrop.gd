@@ -77,8 +77,7 @@ static func build(layout: ShrineLayout, horizon: Color) -> Node3D:
 	var moon: Vector3 = layout.moon_direction.normalized()
 	var lake_centre: Vector3 = ShrineLayout.polar(layout.lake.x, layout.lake.y, layout.lake.z)
 	var clearing := Vector3(lake_centre.x, lake_centre.z, layout.lake.w * 0.75)
-	var shared: Dictionary = {&"moon_direction": moon, &"horizon_color": horizon, &"clearing": clearing,
-		&"drift_direction": layout.wind.normalized()}
+	var shared: Dictionary = {&"moon_direction": moon, &"horizon_color": horizon, &"clearing": clearing}
 	root.add_child(_clouds(&"CloudSea", layout.cloud_sea_height - CLOUD_SEA_DEPTH, shared.merged({
 		&"coverage": 0.3, &"scale": 0.006, &"lit_color": Color(0.28, 0.3, 0.38), &"opacity": 1.0})))
 	root.add_child(_clouds(&"CloudVeil", layout.cloud_sea_height, shared.merged({&"opacity": 0.8})))

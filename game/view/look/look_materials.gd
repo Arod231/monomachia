@@ -151,19 +151,19 @@ static func prop_from(source: Material) -> ShaderMaterial:
 	return m
 
 
-## A prop surface that sways on `wind` (SWAY_SHADER), from the material its
-## model was made with: the freest vertex leaning `sway` metres in a wind of
-## 1 and fluttering by `flutter`, its weight in its vertex alpha, or in its
+## A prop surface that sways on the arena's one wind (SWAY_SHADER, which
+## reads it from wind.gdshaderinc), from the material its model was made
+## with: the freest vertex leaning `sway` metres for each m/s of wind and
+## fluttering by `flutter`, its weight in its vertex alpha, or in its
 ## vertex red (`from_red`, the banners' cloth, whose colour is its
 ## texture's); with the weight in the alpha, the vertex colour is its
 ## colour (the grass).
-static func sway(source: BaseMaterial3D, wind: Vector2, sway_amount: float, flutter: float, from_red: bool) -> ShaderMaterial:
+static func sway(source: BaseMaterial3D, sway_amount: float, flutter: float, from_red: bool) -> ShaderMaterial:
 	var m: ShaderMaterial = make_with_shader(SWAY_SHADER, Surface.PROP, {
 		&"base_color": source.albedo_color,
 		&"roughness": PROP_SURFACE.x,
 		&"metallic": PROP_SURFACE.y,
 		&"use_vertex_color": not from_red,
-		&"wind": wind,
 		&"sway": sway_amount,
 		&"flutter": flutter,
 		&"sway_from_red": from_red,

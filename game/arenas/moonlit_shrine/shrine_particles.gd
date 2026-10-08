@@ -43,7 +43,7 @@ static func build(layout: ShrineLayout, fires: PackedVector3Array) -> Node3D:
 	root.name = "Particles"
 	var glow := _material(GLOW)
 	for i: int in fires.size():
-		root.add_child(_lantern_embers(i, fires[i], layout.wind, glow))
+		root.add_child(_lantern_embers(i, fires[i], layout.wind.velocity(), glow))
 	root.add_child(_updraft(layout, glow))
 	root.add_child(_ash(layout))
 	return root
@@ -79,7 +79,7 @@ static func _updraft(layout: ShrineLayout, glow: Material) -> GPUParticles3D:
 	m.emission_ring_inner_radius = layout.crag_radius + UPDRAFT_RING.x
 	m.emission_ring_radius = layout.crag_radius + UPDRAFT_RING.y
 	m.emission_ring_height = UPDRAFT_BAND
-	_launch(m, layout.wind, Vector2(0.8, 1.6), 15.0)
+	_launch(m, layout.wind.velocity(), Vector2(0.8, 1.6), 15.0)
 	m.gravity = Vector3(0, 0.05, 0)
 	m.scale_min = 0.09
 	m.scale_max = 0.18
@@ -97,7 +97,7 @@ static func _ash(layout: ShrineLayout) -> GPUParticles3D:
 	var m := ParticleProcessMaterial.new()
 	m.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
 	m.emission_box_extents = Vector3(reach, ASH_BAND, reach)
-	_launch(m, layout.wind, -ASH_FALL, 12.0)
+	_launch(m, layout.wind.velocity(), -ASH_FALL, 12.0)
 	m.gravity = Vector3.ZERO
 	m.scale_min = 0.06
 	m.scale_max = 0.12

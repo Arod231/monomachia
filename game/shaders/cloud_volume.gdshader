@@ -12,7 +12,7 @@
 // The cloud is a field of tops: a billowing height over the sea's own
 // (cloud_top), rising into fog banks between the ranges (bank_radii,
 // bank_heights), thinning where the lake shows through (clearing), and
-// drifting with the wind (drift_direction, speed). Inside it the density
+// drifting with the arena's one wind (wind.gdshaderinc). Inside it the density
 // grows down from the top and is broken up by the look's noise. The key
 // moonlight lights the tops and leaves the hollows and the undersides of
 // the billows in shade, the red moon glows through the cloud toward it, and
@@ -23,6 +23,7 @@ shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_back, shadows_disabled;
 
 #include "res://shaders/look_noise.gdshaderinc"
+#include "res://shaders/wind.gdshaderinc"
 
 uniform sampler2D depth_texture : hint_depth_texture, filter_nearest;
 uniform vec4 lit_color : source_color = vec4(0.42, 0.45, 0.56, 1.0);
@@ -48,10 +49,9 @@ uniform float detail_scale = 0.06;
 // How thick the cloud gets (per metre), and the light's extinction through it.
 uniform float density = 0.07;
 uniform float shade_depth = 6.0;
-// Noise cells per second the cloud drifts, and which way: level, a unit
-// vector (the wind's).
-uniform float speed = 0.012;
-uniform vec2 drift_direction = vec2(-0.944, -0.33);
+// Noise cells the cloud drifts for each metre the wind carries the air (the
+// arena's one wind, wind.gdshaderinc: milestone-1 task 52).
+uniform float drift_rate = 0.0207;
 uniform float fade_start = 260.0;
 uniform float fade_end = 1900.0;
 // A gap in the clouds (x, z, radius) so the lake below can show.
@@ -111,7 +111,7 @@ void fragment() {
 	if (span <= 0.0) {
 		discard;
 	}
-	vec2 drift = drift_direction * TIME * speed;
+	vec2 drift = wind_direction() * wind.z * wind_time * drift_rate;
 	vec3 key = normalize(key_direction);
 	vec3 moon = normalize(moon_direction);
 	float jitter = texture(look_noise_tex, FRAGCOORD.xy / 256.0).a;
