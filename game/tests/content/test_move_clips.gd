@@ -122,6 +122,19 @@ func test_a_charge_may_hold_on_a_loop() -> void:
 	assert_eq((t.of(&"katana")[&"k_l2"] as MoveClips.Entry).loop, &"", "none")
 
 
+## Milestone-1 task 133: the Roundhouse's held charge holds on its own keyed
+## loop, loaded on the back foot, which the manifest imports as a loop and
+## the baked swing carries for the director.
+func test_the_roundhouse_charge_holds_on_its_own_loop() -> void:
+	var manifest: ClipManifest = ClipManifest.read()
+	var t: MoveClips = MoveClips.read(manifest)
+	assert_eq((t.of(&"fists")[&"f_h1"] as MoveClips.Entry).loop, &"RoundhouseCharge")
+	var loop: ClipManifest.Clip = manifest.clips[&"RoundhouseCharge"]
+	assert_true(loop.loop, "it loops")
+	assert_eq((Moves.FISTS.moves[&"f_h1"] as AttackDef).swing.loop, &"RoundhouseCharge", "the baked swing carries it")
+	assert_true((Moves.FISTS.moves[&"f_h1"] as AttackDef).chargeable)
+
+
 func test_mistakes_are_named() -> void:
 	var t: MoveClips = _read({
 		"spear": {"guard": "CombatIdle1H01", "moves": {}},

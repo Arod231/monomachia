@@ -84,13 +84,51 @@ func test_travel_comes_from_the_planted_foot_and_the_hips_with_none_planted() ->
 		assert_almost_eq(r.turn[f], 0.5, 1e-6, "frame %d: the foot turns left, the body right" % f)
 	for f: int in range(21, 41):
 		# the foot lifted: the root carries on as it last moved, and the
-		# hips' move rides on top
+		# hips' move rides on top, but it doesn't turn: the clip shows any
+		# turn in the air (milestone-1 task 133)
 		assert_almost_eq(r.forward[f], 0.0075, 1e-9, "frame %d forward, carried" % f)
-		assert_almost_eq(r.turn[f], 0.5, 1e-6, "frame %d turn, carried" % f)
+		assert_almost_eq(r.turn[f], 0.0, 1e-6, "frame %d: no turn in the air" % f)
 	var still: FrameDataGenerator.Result = _generate(_stepping, 20.0 / 30.0,
 		{"windup": 0, "active_start": 4, "active_end": 5, "settle": 20}, {})
 	for f: int in range(1, 41):
 		assert_almost_eq(still.forward[f], 0.0025, 1e-9, "no foot planted from the start: the hips' move only")
+
+
+## A made-up spin, 20 source frames long: the left foot planted where it
+## stands and turning 3 degrees right a source frame, the hips turning with
+## it by `hips` degrees a source frame (a pivot on the foot when they match;
+## a clip turning in place, its root's turn taken out, when they stay still).
+func _spinning(time: float, hips: float) -> Dictionary:
+	var s: float = time * ClipManifest.SOURCE_FPS
+	var heading: float = deg_to_rad(3.0 * s)
+	var body: Swing.Sample = Swing.Sample.new()
+	body.pelvis = wrapf(hips * s, -180.0, 180.0)
+	return {
+		&"left_foot": _sample(V3.make(0.1, 0.09, 0.2), V3.make(sin(heading), 0.0, cos(heading))),
+		&"right_foot": _sample(V3.make(-0.1, 0.2, 0.3)),
+		&"right_hand": _sample(V3.make(-0.3, 1.2, 0.4)),
+		&"body": body,
+	}
+
+
+func test_a_planted_foot_turning_with_the_hips_is_a_pivot_not_a_turn() -> void:
+	var markers: Dictionary = {"windup": 0, "active_start": 4, "active_end": 5, "settle": 20}
+	var contacts: Dictionary = {"left": [[0, 20]], "right": []}
+	# milestone-1 task 133: the Spinning Heel turns a whole turn on the ball
+	# of its planted foot; the clip shows the spin, so the body doesn't turn
+	var pivot: FrameDataGenerator.Result = _generate(func(t: float) -> Dictionary: return _spinning(t, 3.0), 20.0 / 30.0, markers, contacts)
+	# the hips turning more than the foot (a coil on top) leave no turn either
+	var coil: FrameDataGenerator.Result = _generate(func(t: float) -> Dictionary: return _spinning(t, 5.0), 20.0 / 30.0, markers, contacts)
+	# a clip turning in place: the planted foot turns, the hips don't, so the
+	# body turns the other way
+	var in_place: FrameDataGenerator.Result = _generate(func(t: float) -> Dictionary: return _spinning(t, 0.0), 20.0 / 30.0, markers, contacts)
+	# the hips turning half as far as the foot: the rest is the body's turn
+	var half: FrameDataGenerator.Result = _generate(func(t: float) -> Dictionary: return _spinning(t, 1.5), 20.0 / 30.0, markers, contacts)
+	for f: int in range(1, 41):
+		assert_almost_eq(pivot.turn[f], 0.0, 1e-6, "frame %d: a pivot" % f)
+		assert_almost_eq(coil.turn[f], 0.0, 1e-6, "frame %d: a pivot and a coil" % f)
+		assert_almost_eq(in_place.turn[f], -1.5, 1e-6, "frame %d: turning in place" % f)
+		assert_almost_eq(half.turn[f], -0.75, 1e-6, "frame %d: half a pivot" % f)
 
 
 func test_travel_is_not_counted_twice() -> void:

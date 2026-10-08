@@ -1,7 +1,8 @@
 // Tests for the clips made in Cascadeur by key poses and AI inbetweening
 // (scripts/cascadeur/, milestone-1 task 89 on): every spec in
 // scripts/cascadeur/clips/ is a well-formed block-out (a re-key spec for
-// rekey_clip.py) with key poses inside it, writes its working files beside
+// rekey_clip.py, or a held pose of another Cascadeur clip, as a charge's
+// loop is) with key poses inside it, writes its working files beside
 // the other Cascadeur files and its clip among the clips, and names a clip
 // the clip manifest imports; the driver's helpers build the script Cascadeur
 // runs and keep its answer readable; the rig template maps our bones.
@@ -25,15 +26,22 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 
 describe('the Cascadeur clip specs', () => {
   it('has the clips made in Cascadeur', () => {
-    assert.deepEqual(specs.map((s) => s.id).sort(), ['cross', 'hook', 'jab']);
+    assert.deepEqual(specs.map((s) => s.id).sort(), ['cross', 'hook', 'jab', 'roundhouse', 'roundhouse_charge', 'spinning_heel']);
   });
 
   for (const { id, spec } of specs) {
     describe(id, () => {
       const length = spec.remap.at(-1)[0];
+      // a held pose (a charge's loop): one frame of another Cascadeur clip
+      const held = spec.source.startsWith('blender/clips/');
 
-      it('blocks out from a pack clip into the Cascadeur folder, its clip among the clips', () => {
-        assert.match(spec.source, /^kevin_iglesias\/.+\.fbx$/);
+      it('blocks out from a pack clip, or holds a pose of another Cascadeur clip, into the Cascadeur folder, its clip among the clips', () => {
+        if (held) {
+          const from = spec.source.match(/^blender\/clips\/(.+)\.blend$/)?.[1];
+          assert.ok(specs.some((s) => s.id === from && !s.spec.source.startsWith('blender/clips/')), `holds a pose of the Cascadeur clip ${from}`);
+        } else {
+          assert.match(spec.source, /^kevin_iglesias\/.+\.fbx$/);
+        }
         assert.equal(spec.out, `blender/cascadeur/${id}_keys.blend`);
         assert.equal(spec.clip, `blender/clips/${id}.blend`);
         assert.deepEqual(workFiles(id, spec), {
@@ -45,7 +53,13 @@ describe('the Cascadeur clip specs', () => {
         });
       });
 
-      it('warps time from frame 0, rising in new frames and never falling in source frames', () => {
+      it('warps time from frame 0, rising in new frames and never falling in source frames (a held pose: on one)', () => {
+        if (held) {
+          assert.equal(spec.remap[0][0], 0);
+          assert.ok(spec.remap.every(([, f]) => f === spec.remap[0][1]), 'one source frame held');
+          assert.ok(Number.isInteger(length), 'a whole number of frames');
+          return;
+        }
         assert.deepEqual(spec.remap[0], [0, 0]);
         assert.ok(Number.isInteger(length), 'a whole number of frames');
         for (let i = 1; i < spec.remap.length; i++) {
@@ -65,7 +79,11 @@ describe('the Cascadeur clip specs', () => {
         }
       });
 
-      it('steps as far as the body goes, each foot lifted clear of the ground, and ends in its stance', () => {
+      it('steps as far as the body goes, each foot lifted clear of the ground, and ends in its stance', (t) => {
+        if (!spec.step) {
+          assert.ok(held, 'only a held pose keeps its feet');
+          return t.skip('a held pose keeps its feet');
+        }
         const { body, feet } = spec.step;
         assert.deepEqual(body[0], [0, 0]);
         for (let i = 1; i < body.length; i++) {

@@ -41,6 +41,9 @@ const APART: float = 6.0
 ## Breaker Palm, which needs a disarmed fighter's ultimate, is swung and
 ## answered only in the 22nd.
 const DUELS: int = 22
+## How many more batches of DUELS Katana duels item 15 may play for a keyed
+## move still unused or unanswered.
+const EXTRA_BATCHES: int = 3
 const DUEL_STEPS: int = 3600
 
 
@@ -319,7 +322,11 @@ static func _smears(wid: StringName, id: StringName) -> bool:
 
 ## Each weapon's keyed moves are played in its own Hard duels, across its
 ## duelling distance (bare hands' since milestone-1 task 89: in the Katana's
-## duels they come only after a disarm).
+## duels they come only after a disarm). A move that comes only after a
+## disarm and the disarmed choice (Breaker Palm) is rare in them, so while
+## any keyed move is still unused or unanswered, up to EXTRA_BATCHES more
+## batches of the Katana's duels are played on new seeds (task 133: the
+## re-keyed kicks moved the seeded duels, and 22 gave three choices).
 func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 	var used: Dictionary[StringName, int] = {}
 	var answered: Dictionary[StringName, int] = {}
@@ -327,24 +334,31 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 	for m: Array in ChecklistResults.keyed_moves():
 		if not weapons.has(m[0]):
 			weapons.append(m[0])
+	var duels: int = 0
 	for wid: StringName in weapons:
-		_duel(Moves.WEAPONS[wid], _gap(wid), used, answered)
+		_duel(Moves.WEAPONS[wid], _gap(wid), used, answered, 0)
+		duels += DUELS
+	for batch: int in range(1, EXTRA_BATCHES + 1):
+		if ChecklistResults.keyed_moves().all(func(m: Array) -> bool: return used.get(m[1], 0) > 0 and answered.get(m[1], 0) > 0):
+			break
+		_duel(Moves.KATANA, GAP, used, answered, batch * DUELS)
+		duels += DUELS
 	for m: Array in ChecklistResults.keyed_moves():
 		var id: StringName = m[1]
 		var problems: Array[String] = []
 		if used.get(id, 0) == 0:
-			problems.append("the computer never used it in %d Hard duels" % DUELS)
+			problems.append("the computer never used it in %d Hard duels" % duels)
 		if answered.get(id, 0) == 0:
-			problems.append("the computer never blocked or parried it in %d Hard duels" % DUELS)
+			problems.append("the computer never blocked or parried it in %d Hard duels" % duels)
 		ChecklistResults.record_problems(15, id, problems)
 		assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
 
 
-## Plays DUELS seeded Hard duels of weapon `w` against itself from `gap` m
-## apart, counting each attack's swings into `used` and the blocks and parries
-## of it into `answered`, by move id.
-static func _duel(w: WeaponDef, gap: float, used: Dictionary[StringName, int], answered: Dictionary[StringName, int]) -> void:
-	for seed_value: int in DUELS:
+## Plays DUELS seeded Hard duels (seeds from `first`) of weapon `w` against
+## itself from `gap` m apart, counting each attack's swings into `used` and
+## the blocks and parries of it into `answered`, by move id.
+static func _duel(w: WeaponDef, gap: float, used: Dictionary[StringName, int], answered: Dictionary[StringName, int], first: int) -> void:
+	for seed_value: int in range(first, first + DUELS):
 		var W: World = H.make_world(w, w, gap)
 		var brains: Array[AIBrain] = [
 			AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"], 4000 + seed_value * 2),

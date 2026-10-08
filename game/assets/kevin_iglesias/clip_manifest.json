@@ -430,6 +430,54 @@
 				"bare"
 			]
 		},
+		"Roundhouse": {
+			"export": "exports/clips/roundhouse.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 18,
+				"contact_end": 20,
+				"settle": 37
+			},
+			"foot_contacts": {"left": [[0, 5], [10, 37]], "right": [[0, 8], [34, 37]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"RoundhouseCharge": {
+			"export": "exports/clips/roundhouse_charge.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 30,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 30]], "right": [[0, 30]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"SpinningHeel": {
+			"export": "exports/clips/spinning_heel.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 20,
+				"contact_end": 22,
+				"settle": 41
+			},
+			"foot_contacts": {"left": [[0, 17], [30, 41]], "right": [[0, 12], [33, 41]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
 		"BreakerPalm": {
 			"export": "exports/clips/breaker_palm.glb",
 			"mirror": false,

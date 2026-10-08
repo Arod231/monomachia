@@ -121,7 +121,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 69. As a player whose opponent is disarmed, I want to stand in their way to keep the advantage, so that the disarm game stays live.
 70. As a disarmed player, I want to move faster, dodge farther and jump higher than when armed, so that bare hands keep their agility.
 71. As a disarmed player, I want a longer roll clip covering the disarmed dodge's 1.5× distance inside the same protected frames, so that the longer dodge doesn't slide. **(P15, confirmed Oct 4)**
-72. As a disarmed player, I want the light string (Jab, Cross, Hook) and the heavies (Roundhouse, Spinning Heel) re-keyed in the bare-hands bands, so that disarmed fighting looks like fighting.
+72. [x] As a disarmed player, I want the light string (Jab, Cross, Hook) and the heavies (Roundhouse, Spinning Heel) re-keyed in the bare-hands bands, so that disarmed fighting looks like fighting. (Ticked with tasks 89 and 133.)
 73. As a disarmed player, I want the eight bare-hands movement attacks re-keyed (Flying Knee and Dragon Kick out of a sprint, Slip Jab and Spinning Backfist out of a dodge, Snap Kick and Lunging Palm out of a backstep, Air Kick and Axe Kick out of a jump), so that every way in has a real motion.
 74. As a disarmed player, I want the redirect to play its own deflect pair, turning the attack aside by hand, so that it reads apart from a parry.
 75. As a player whose fist or foot is parried by a blade, I want my fighter to recoil without being cut, so that the moment reads right. **(P9, confirmed Oct 4)**

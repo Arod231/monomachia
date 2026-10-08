@@ -38,11 +38,28 @@
 #   for where the foot lands), eased in and out over two frames, and
 #   "pivot": ["L"|"R"] feet that turn, tilt and lift their heel as the clip
 #   has them, on the ball of the foot where the step puts it (the standing
-#   foot of a kick or a spin), the knees then bent as the clip bends them;
-#   both legs on IK, baked; omit for a clip that keeps its feet;
-# - leg_arc: {"side": "L"|"R", "angles": [[frame, degrees], ...]}: a kick
-#   swung round (leg_arc(); milestone-1 task 133): the thigh turned about the
-#   vertical through its hip by the angles, before any step; omit for none;
+#   foot of a kick or a spin), or {"L"|"R": [[from, to], ...]} spans they do
+#   so over, eased in and out as a free span is (a kick's standing foot
+#   turning back as it recovers), the knees then bent as the clip bends them,
+#   and with "pivot_hips": true a pivoting foot turns exactly as far as the
+#   hips (its tilt and heel's rise still the clip's: a pack clip's foot can
+#   run ahead of the hips through a spin and lift off before they catch up,
+#   which the frame-data generator would read as the body turning); both
+#   legs on IK, baked; omit for a clip that keeps its feet;
+# - kick: {"side": "L"|"R", "turn": [[frame, degrees], ...], "lean":
+#   [[frame, degrees], ...], "foot": [[frame, ahead, right, up], ...],
+#   "knee": [[frame, ahead, right, up], ...], "blend": [in_from, in_to,
+#   out_from, out_to]}: a kick authored by key poses (kick(); milestone-1
+#   task 133's Roundhouse, the owner's call of Oct 8): the body turned about
+#   the vertical through its hips (positive toward the fighter's
+#   left seen from above), the spine leaning away from the target (positive
+#   top back), and the kicking foot (ankle) and knee carried through the
+#   given points (metres from frame 0's hips on the ground, ahead, to the
+#   right, up; a Catmull-Rom curve through them), the foot pointed along the
+#   shin, blended in from the clip's own leg over the in frames and back
+#   onto it over the out frames, on IK, baked; before any step, which then
+#   re-plants the standing foot (pivot it) and lets the kicking leg follow
+#   (free); omit for none;
 # - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
 #   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
 #   over the ground taken out, then the whole body moved along the path
@@ -622,13 +639,18 @@ def step(arm, scene, length, spec):
     up = mathutils.Vector((0.0, 0.0, 1.0))
     free = spec.get("free", {})
     pivot = spec.get("pivot", [])
+    pivot_hips = bool(spec.get("pivot_hips", False))
     # the clip's own feet and knees, under the hips as they now are (a kick's
     # leg, a foot pivoting through a spin)
     own, own_knees = {"L": [], "R": []}, {"L": [], "R": []}
+    hips_yaw = []
     if free or pivot:
         for n in range(length + 1):
             scene.frame_set(1 + n)
             bpy.context.view_layer.update()
+            # the hips' heading from the line between the hip joints, which a
+            # lean doesn't swing round
+            hips_yaw.append(_yaw(mw @ pbs["B-thigh.L"].head - mw @ pbs["B-thigh.R"].head))
             for side in ("L", "R"):
                 own[side].append((mw @ pbs["B-foot." + side].matrix).copy())
                 own_knees[side].append((mw @ pbs["B-shin." + side].head).copy())
@@ -639,14 +661,22 @@ def step(arm, scene, length, spec):
             m = feet0[side]
             at = m.to_translation() + fwd * (ahead - (body(float(n)) - body(0.0))) + up * high
             turn = m.to_quaternion()
-            if side in pivot:
+            pw = _pivot_weight(pivot, side, float(n))
+            if pw > 0.0:
                 # on the ball of the foot: its place on the ground the step's,
                 # its turn, tilt and heel's rise the clip's own
                 o = own[side][n]
-                turn = o.to_quaternion()
+                own_turn = o.to_quaternion()
+                if pivot_hips:
+                    # its yaw the hips' turn since frame 0, unwound
+                    want = _unwound(hips_yaw, n) + _yaw(feet0[side].to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0)))
+                    has = _yaw(o.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0)))
+                    own_turn = mathutils.Quaternion((0.0, 0.0, 1.0), want - has) @ own_turn
+                turn = turn.slerp(own_turn, pw)
                 if o.to_translation().z > at.z:
-                    high += o.to_translation().z - at.z
-                    at.z = o.to_translation().z
+                    lift = (o.to_translation().z - at.z) * pw
+                    high += lift
+                    at.z += lift
             w = free_weight(free.get(side, []), float(n))
             if w > 0.0:
                 o = own[side][n]
@@ -658,6 +688,29 @@ def step(arm, scene, length, spec):
     print(f"rekey_clip: the body steps {body(float(length)) - body(0.0):.2f} m forward", flush=True)
     if over:
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
+def _pivot_weight(pivot, side, t):
+    """How much foot `side` pivots as the clip turns it at frame `t` (0-1):
+    `pivot` lists the sides that pivot throughout, or maps a side to the
+    [from, to] spans it pivots over, eased in and out as a free span is."""
+    if isinstance(pivot, dict):
+        return free_weight(pivot.get(side, []), t)
+    return 1.0 if side in pivot else 0.0
+
+
+def _yaw(v):
+    """A direction's heading about the vertical (radians)."""
+    return math.atan2(v.y, v.x)
+
+
+def _unwound(yaws, n):
+    """How far headings `yaws` (radians, one a frame) have turned from the
+    first to frame n, counting whole turns."""
+    total = 0.0
+    for i in range(1, n + 1):
+        total += (yaws[i] - yaws[i - 1] + math.pi) % (2.0 * math.pi) - math.pi
+    return total
 
 
 def legs_to(arm, scene, length, feet, rest, knees=None):
@@ -865,31 +918,102 @@ def lower(arm, scene, length, spec):
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
 
 
-def leg_arc(arm, scene, length, spec):
-    """A kick swung round (milestone-1 task 133's Roundhouse from a front
-    kick): the thigh of leg spec["side"] (and the leg below it) turned about
-    the vertical through its hip by spec["angles"] ([frame, degrees] pairs, a
-    monotone cubic through them; positive turns it toward the fighter's left
-    seen from above), so the foot comes in from the side. Baked; the clip
-    faces -Y."""
+def _catmull(keys, t):
+    """The point at frame `t` on a Catmull-Rom curve through `keys` ([frame,
+    Vector] pairs in order), held at the ends."""
+    if t <= keys[0][0]:
+        return keys[0][1].copy()
+    if t >= keys[-1][0]:
+        return keys[-1][1].copy()
+    i = max(k for k in range(len(keys) - 1) if keys[k][0] <= t)
+    t0, p1 = keys[i]
+    t1, p2 = keys[i + 1]
+    p0 = keys[i - 1][1] if i > 0 else p1 + (p1 - p2)
+    p3 = keys[i + 2][1] if i + 2 < len(keys) else p2 + (p2 - p1)
+    u = (t - t0) / (t1 - t0)
+    return 0.5 * ((2.0 * p1) + (-p0 + p2) * u + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * u * u
+                  + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * u * u * u)
+
+
+def kick(arm, scene, length, spec):
+    """A kick authored by key poses (milestone-1 task 133's Roundhouse: the
+    packs' only kicks are a front kick and a spinning kick). In order: the
+    whole body turned about the vertical through its hips by spec["turn"]
+    (the step after it re-plants the standing foot, pivoting it); the spine leaned away from the target by spec["lean"]; then
+    the kicking leg (spec["side"]) on IK, its ankle and knee carried through
+    spec["foot"] and spec["knee"] (metres ahead, right, up from frame 0's
+    hips on the ground; the clip faces -Y), the foot pointed along the shin,
+    weighted in from the clip's own leg over spec["blend"]'s in frames and
+    back out over its out frames, the standing leg kept as the turned clip
+    has it. Baked; a step after it re-plants the feet."""
     mw = arm.matrix_world
+    inv = mw.inverted()
+    pbs = arm.pose.bones
     side = spec["side"]
-    pairs = spec["angles"]
-    angle = monotone([float(p[0]) for p in pairs], [float(p[1]) for p in pairs])
-    thigh = arm.pose.bones["B-thigh." + side]
     up = mathutils.Vector((0.0, 0.0, 1.0))
+    fwd = mathutils.Vector((0.0, -1.0, 0.0))
+    right = mathutils.Vector((-1.0, 0.0, 0.0))
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    h0 = mw @ pbs["B-hips"].head
+    ground = mathutils.Vector((h0.x, h0.y, 0.0))
+    feet0 = {s_: (mw @ pbs["B-foot." + s_].matrix) for s_ in ("L", "R")}
+
+    def curve(pairs):
+        return monotone([float(p[0]) for p in pairs], [float(p[1]) for p in pairs])
+    turn = curve(spec.get("turn", [[0, 0], [length, 0]]))
+    lean = curve(spec.get("lean", [[0, 0], [length, 0]]))
+    hips = pbs["B-hips"]
+    spine = pbs["B-spine"]
     for n in range(length + 1):
         scene.frame_set(1 + n)
         bpy.context.view_layer.update()
-        world = mw @ thigh.matrix
-        head = world.to_translation()
-        turn = mathutils.Matrix.Translation(head) @ mathutils.Matrix.Rotation(math.radians(angle(float(n))), 4, up) \
-            @ mathutils.Matrix.Translation(-head)
-        thigh.matrix = mw.inverted() @ turn @ world
+        at = mw @ hips.head
+        r = mathutils.Matrix.Translation((at.x, at.y, 0.0)) @ mathutils.Matrix.Rotation(math.radians(turn(float(n))), 4, up) \
+            @ mathutils.Matrix.Translation((-at.x, -at.y, 0.0))
+        hips.matrix = inv @ r @ mw @ hips.matrix
         bpy.context.view_layer.update()
-        thigh.keyframe_insert("rotation_quaternion", frame=1 + n, group=thigh.name)
-        thigh.keyframe_insert("location", frame=1 + n, group=thigh.name)
-    print(f"rekey_clip: swung the {side} leg round, {min(float(p[1]) for p in pairs):g} to {max(float(p[1]) for p in pairs):g} degrees", flush=True)
+        hips.keyframe_insert("rotation_quaternion", frame=1 + n, group=hips.name)
+        hips.keyframe_insert("location", frame=1 + n, group=hips.name)
+        head = mw @ spine.head
+        tilt = mathutils.Matrix.Translation(head) @ mathutils.Matrix.Rotation(math.radians(-lean(float(n))), 4, "X") \
+            @ mathutils.Matrix.Translation(-head)
+        spine.matrix = inv @ tilt @ mw @ spine.matrix
+        bpy.context.view_layer.update()
+        spine.keyframe_insert("rotation_quaternion", frame=1 + n, group=spine.name)
+
+    def place(p):
+        return ground + fwd * float(p[1]) + right * float(p[2]) + up * float(p[3])
+    foot_keys = [(float(p[0]), place(p)) for p in spec["foot"]]
+    knee_keys = [(float(p[0]), place(p)) for p in spec["knee"]]
+    b = [float(x) for x in spec["blend"]]
+    feet = {"L": [], "R": []}
+    knees = {"L": [], "R": []}
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        t = float(n)
+        w = _smoother((t - b[0]) / max(b[1] - b[0], 1e-6)) if t < b[2] else 1.0 - _smoother((t - b[2]) / max(b[3] - b[2], 1e-6))
+        for s_ in ("L", "R"):
+            m = mw @ pbs["B-foot." + s_].matrix
+            hip, knee = mw @ pbs["B-thigh." + s_].head, mw @ pbs["B-shin." + s_].head
+            bend = knee - (hip + m.to_translation()) / 2
+            pole = knee + (bend.normalized() if bend.length > 1e-4 else fwd) * 0.5
+            pos, rot = m.to_translation(), m.to_quaternion()
+            if s_ == side and w > 0.0:
+                ankle = _catmull(foot_keys, t)
+                k = _catmull(knee_keys, t)
+                shin = ankle - k
+                y = rot @ mathutils.Vector((0.0, 1.0, 0.0))
+                pointed = y.rotation_difference(shin) @ rot if shin.length > 1e-4 else rot
+                pos = pos.lerp(ankle, w)
+                rot = rot.slerp(pointed, w)
+                aim = k + (k - (hip + ankle) / 2).normalized() * 0.5 if (k - (hip + ankle) / 2).length > 1e-4 else k
+                pole = pole.lerp(aim, w)
+            feet[s_].append((pos, rot, pos.z - feet0[s_].to_translation().z))
+            knees[s_].append(pole)
+    legs_to(arm, scene, length, feet, feet0, knees)
+    print(f"rekey_clip: authored a kick with the {side} leg, the body turned up to {max(abs(float(p[1])) for p in spec.get('turn', [[0, 0]])):g} degrees", flush=True)
 
 
 def carry(arm, scene, length, spec):
@@ -1005,8 +1129,8 @@ def main():
     scene.frame_start, scene.frame_end = 1, int(src_action.frame_range[1])
     new, length = retime(arm, scene, src_action, remap)
     scene.frame_start, scene.frame_end = 1, 1 + length
-    if spec.get("leg_arc"):
-        leg_arc(arm, scene, length, spec["leg_arc"])
+    if spec.get("kick"):
+        kick(arm, scene, length, spec["kick"])
     if spec.get("step"):
         step(arm, scene, length, spec["step"])
     if spec.get("carry"):
