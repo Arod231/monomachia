@@ -71,20 +71,49 @@ static func keyed_moves() -> Array[Array]:
 	return out
 
 
+## The checklist's rows that stand for deflect pairs, each with its pairs
+## (StateClips.deflect_pairs entries, as ClipDirector plays them), from the
+## state clip table: the light deflect pairs (milestone-1 task 34), the
+## redirect's (task 90) and a blade's at a fist or a foot (task 90: each
+## limb's recoil with each of the blade's deflects at a limb); a row with no
+## pairs is left out.
+static func pair_rows() -> Dictionary[StringName, Array]:
+	var sc: StateClips = StateClips.read()
+	var out: Dictionary[StringName, Array] = {&"clip_deflect_light": sc.deflect_pairs.values()}
+	if not sc.deflect_redirect.is_empty():
+		out[&"clip_deflect_redirect"] = [sc.deflect_redirect]
+	var at_limb: Array = []
+	for limb: StringName in sc.limb_recoils:
+		for height: StringName in sc.limb_deflects:
+			var pair: Dictionary = (sc.limb_recoils[limb] as Dictionary).duplicate()
+			pair.merge(sc.limb_deflects[height])
+			at_limb.append(pair)
+	if not at_limb.is_empty():
+		out[&"clip_deflect_limb"] = at_limb
+	return out
+
+
 ## The checklist's rows that stand for a group of state clips, each with its
-## clips, from the state clip table (StateClips): every deflect pair's clips
-## (deflect then recoil, by move), the Katana's light hit reactions and its
-## light block reaction (milestone-1 tasks 34 and 35).
+## clips, from the state clip table (StateClips): every deflect pair row's
+## clips (pair_rows(): deflect then recoil, each once), the Katana's light hit
+## reactions and its light block reaction (milestone-1 tasks 34, 35 and 90).
 static func clip_rows() -> Dictionary[StringName, Array]:
 	var sc: StateClips = StateClips.read()
-	var deflects: Array[StringName] = []
-	for move: StringName in sc.deflect_pairs:
-		deflects.append(StringName(sc.deflect_pairs[move]["deflect"]))
-		deflects.append(StringName(sc.deflect_pairs[move]["recoil"]))
+	var out: Dictionary[StringName, Array] = {}
+	var pairs: Dictionary[StringName, Array] = pair_rows()
+	for row: StringName in pairs:
+		var clips: Array[StringName] = []
+		for pair: Dictionary in pairs[row]:
+			for half: StringName in [&"deflect", &"recoil"]:
+				if not clips.has(StringName(pair[half])):
+					clips.append(StringName(pair[half]))
+		out[row] = clips
 	var hits: Array[StringName] = []
 	for place: StringName in sc.light_hits.get(&"katana", {}):
 		hits.append(StringName(sc.light_hits[&"katana"][place]))
 	var blocks: Array[StringName] = []
 	if sc.light_blocks.has(&"katana"):
 		blocks.append(sc.light_blocks[&"katana"])
-	return {&"clip_deflect_light": deflects, &"clip_hit_light": hits, &"clip_block_light": blocks}
+	out[&"clip_hit_light"] = hits
+	out[&"clip_block_light"] = blocks
+	return out

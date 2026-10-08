@@ -178,6 +178,16 @@ print(json.dumps([f(i / 10.0) for i in range(431)]))`);
     }
   });
 
+  it('steps a foot off the line by a step\'s fifth number, only while it is off the ground (milestone-1 task 90)', { timeout: 300000 }, () => {
+    const out = inBlender(`print(json.dumps([[rk.foot_path([[2, 8, 0.1, 0.12, -0.2]], i / 20.0), rk.foot_path([[2, 8, 0.1, 0.12]], i / 20.0)] for i in range(201)]))`);
+    assert.ok(Math.abs(out[0][0][2]) < 1e-9 && Math.abs(out.at(-1)[0][2] + 0.2) < 1e-9, '0.2 m to the left by the end');
+    assert.ok(Math.abs(out.at(-1)[0][0] - 0.1) < 1e-9, 'and 0.1 m forward');
+    for (let i = 1; i < out.length; i++) {
+      if (Math.abs(out[i][0][2] - out[i - 1][0][2]) > 1e-9) assert.ok(out[i][0][1] > LIFT_HEIGHT, `off the ground while it moves at ${i / 20}`);
+      assert.equal(out[i][1][2], 0, 'a four-number step stays on the line');
+    }
+  });
+
   it('moves a hand-shaped bone that many metres in the world, on the pack\'s armature scaled 0.01', { timeout: 300000 }, () => {
     const out = inBlender(`import bpy
 arm = bpy.data.objects.new("a", bpy.data.armatures.new("a"))

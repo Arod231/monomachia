@@ -1,0 +1,23 @@
+{
+	"about": "The fist recoil (milestone-1 task 90), made in Cascadeur: the parried attacker's half when a blade parries a fist, and when a bare-hand punch is redirected, played from its contact frame (9) for every punch, blended in from its own pose. The Jab up to its contact, where the fist is met, then knocked back: everything above the legs thrown toward the Jab's cocked wind-up (frame 3), the chest leaning back, the lead arm knocked across the body by 12, the rear foot then the lead stepping 0.35 m back as the rules knock the fighter back, and the hand shaken out on 16-20, settling toward the guard by 22 (13 source frames from the contact: the parry recoil's 26 rules frames). Cascadeur's AI inbetweening generates every frame but the key poses. Picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/jab.blend",
+	"out": "blender/cascadeur/fist_recoil_keys.blend",
+	"remap": [[0, 0], [9, 9], [22, 9]],
+	"knock": {"from": 9, "frames": 5, "toward": 3, "share": 0.85, "lean": 12},
+	"step": {
+		"body": [[0, 0], [9, 0], [14, -0.35], [22, -0.35]],
+		"feet": {
+			"R": [[9.5, 13.5, -0.35, 0.1]],
+			"L": [[11, 15.5, -0.35, 0.12]]
+		},
+		"hips_keep": 1
+	},
+	"pose": [
+		{"frame": 12, "turn": [["B-upperArm.L", "up", -28], ["B-forearm.L", "up", -10]]},
+		{"frame": 16, "turn": [["B-upperArm.L", "up", -18], ["B-hand.L", "forward", 32]]},
+		{"frame": 18, "turn": [["B-upperArm.L", "up", -12], ["B-hand.L", "forward", -30]]},
+		{"frame": 20, "turn": [["B-upperArm.L", "up", -6], ["B-hand.L", "forward", 14]]}
+	],
+	"keys": [0, 9, 12, 16, 18, 20, 22],
+	"clip": "blender/clips/fist_recoil.blend"
+}

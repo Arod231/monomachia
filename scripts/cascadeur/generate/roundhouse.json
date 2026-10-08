@@ -1,0 +1,40 @@
+{
+	"about": "Roundhouse (fists.f_h1, bare hands' string heavy), milestone-1 task 133, made in Cascadeur. A true roundhouse, its key poses authored by script (the owner's call of Oct 8: the packs' only kicks are a front kick and a spinning kick) on AttackKick01_R's timing: the guard (frame 0) sinks onto the back foot, leaning back, by frame 4.5 (rules frame 9, where a held charge holds and its loop, RoundhouseCharge, plays); the lead foot steps in 0.25 m on 5-10; then the body turns over 80 degrees to the left, side-on, the torso leaning 35 degrees away, the rear knee lifting out to the side and chambering at hip height (15), the shin whipping round at head height to land on frame 18 (36 rules frames from the press), still extending through the first active frame so it lands from 1.45 m as well as 2.35 m, and sweeping on across through 20; the knee re-chambers (24), the leg comes down to set down 0.25 m ahead at the guard's turn by 33, and the body turns back into the guard by 37 (34 rules frames of recovery). The standing foot pivots on its ball with the hips through the kick (9-30). Cascadeur's AI inbetweening generates every frame but the key poses. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_R.fbx",
+	"out": "blender/cascadeur/roundhouse_keys.blend",
+	"remap": [[0, 0], [4.5, 0.4], [9, 1], [13, 5], [16, 7], [18, 8.5], [20, 10.5], [26, 16], [37, 29]],
+	"step": {
+		"body": [[0, 0], [6, 0], [9, 0.08], [11, 0.2], [13, 0.25], [37, 0.25]],
+		"hips_keep": 1,
+		"hips_home": [31, 37],
+		"feet": {
+			"L": [[5, 10, 0.25, 0.15]],
+			"R": [[9, 33, 0.25, 0.12]]
+		},
+		"free": {
+			"R": [[9, 31]]
+		},
+		"pivot": {
+			"L": [[9, 30]]
+		},
+		"pivot_hips": true
+	},
+	"lower": {
+		"drop": 0.05,
+		"bend": -6,
+		"from": 0,
+		"peak": 4.5,
+		"until": 6,
+		"to": 12
+	},
+	"keys": [0, 4, 9, 15, 18, 20, 24, 37],
+	"clip": "blender/clips/roundhouse.blend",
+	"kick": {
+		"side": "R",
+		"turn": [[0, 0], [9, 0], [15, 45], [18, 80], [21, 80], [28, 25], [34, 0], [37, 0]],
+		"lean": [[0, 0], [11, 0], [17, 35], [21, 35], [28, 8], [37, 0]],
+		"foot": [[12, -0.25, 0.4, 0.35], [15, -0.05, 0.6, 0.85], [18, 1.15, 0.15, 1.15], [20, 1.05, -0.25, 1.1], [24, 0.1, 0.3, 0.65]],
+		"knee": [[12, 0, 0.35, 0.55], [15, 0.35, 0.35, 0.9], [18, 0.75, 0.3, 1.05], [20, 0.65, 0.05, 1], [24, 0.3, 0.25, 0.75]],
+		"blend": [9, 12, 24, 30]
+	}
+}

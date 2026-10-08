@@ -117,7 +117,8 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Spinning Heel `f_h2` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
 | The pull-out pick-up `clip_pull_out` | not built | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | The disarmed roll `clip_roll_disarmed` | not built | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
-| The redirect's deflect pair `clip_deflect_redirect` | not built | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
+| The redirect's deflect pair `clip_deflect_redirect` | keyed clips (task 90) | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
+| A blade parrying a fist or a foot (the Katana's high and low deflects, the fist and foot recoils) `clip_deflect_limb` | keyed clips (task 90) | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 
 ## 8. Bare hands' movement attacks
 

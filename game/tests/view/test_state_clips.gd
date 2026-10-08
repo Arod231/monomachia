@@ -875,7 +875,45 @@ func test_the_deflect_pairs_are_optional_and_checked() -> void:
 		"\"deflects\": {\"pairs\": {\"k_l1\": {\"direction\": \"up\", \"deflect\": \"D\", \"deflect_contact\": 2, \"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.pairs.k_l1.direction: must be one of right_to_left, left_to_right, diagonal, overhead",
 		"\"deflects\": {\"pairs\": {\"k_l1\": {\"direction\": \"overhead\", \"deflect\": \"D\", \"deflect_contact\": -1, \"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.pairs.k_l1.deflect_contact: must be a number, 0 or more",
 		"\"deflects\": {}, ": "deflects: missing pairs",
+		"\"deflects\": {\"pairs\": {}, \"heavies\": {}}, ": "deflects: unknown field heavies",
 	}
 	for group: String in cases:
 		t = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))
 		assert_eq(Array(t.errors), [cases[group]], group)
+
+
+func test_the_redirect_and_limb_pairs_are_optional_and_checked() -> void:
+	# milestone-1 task 90: one pair for every redirected attack, a recoil for
+	# each striking limb, and the blade's deflects at a limb by the height it
+	# meets it (the owner, Oct 8)
+	var live: StateClips = StateClips.read()
+	assert_eq(live.deflect_redirect, {&"deflect": &"RedirectDeflect", &"deflect_contact": 3.0, &"recoil": &"RedirectRecoil",
+		&"recoil_contact": 15.0}, "the redirect's pair")
+	assert_eq(live.limb_recoils, {&"fist": {&"recoil": &"FistRecoil", &"recoil_contact": 9.0},
+		&"foot": {&"recoil": &"FootRecoil", &"recoil_contact": 20.0}}, "a recoil for each limb")
+	assert_eq(live.limb_deflects, {&"high": {&"deflect": &"LimbDeflectHigh", &"deflect_contact": 2.0},
+		&"low": {&"deflect": &"LimbDeflectLow", &"deflect_contact": 2.0}}, "the blade's two deflects at a limb")
+	assert_almost_eq(live.limb_low_under, 1.3, 1e-9, "the low one under 1.3 m: the Snap Kick meets at 1.23 m, every punch and high kick from 1.35 m")
+	var frozen: StateClips = StateClips.read(FrozenStateClips.PATH)
+	assert_true(frozen.deflect_redirect.is_empty(), "no redirect pair without the group")
+	assert_eq([frozen.limb_recoils.size(), frozen.limb_deflects.size()], [0, 0], "nor limb recoils or deflects")
+	var redirect: String = "\"redirect\": {\"deflect\": \"RD\", \"deflect_contact\": 3, \"recoil\": \"RR\", \"recoil_contact\": 9}"
+	var limbs: String = "\"limbs\": {\"fist\": {\"recoil\": \"FR\", \"recoil_contact\": 8}, \"foot\": {\"recoil\": \"KR\", \"recoil_contact\": 17}}"
+	var at_limb: String = "\"blade_at_limb\": {\"high\": {\"deflect\": \"HD\", \"deflect_contact\": 2}, \"low\": {\"deflect\": \"LD\", \"deflect_contact\": 4}, \"low_under\": 1.2}"
+	var group: String = "\"deflects\": {\"pairs\": {}, %s, %s, %s}, " % [redirect, limbs, at_limb]
+	var t: StateClips = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))
+	assert_eq(Array(t.errors), [], "read cleanly")
+	assert_eq(t.deflect_redirect, {&"deflect": &"RD", &"deflect_contact": 3.0, &"recoil": &"RR", &"recoil_contact": 9.0})
+	assert_eq(t.limb_recoils, {&"fist": {&"recoil": &"FR", &"recoil_contact": 8.0}, &"foot": {&"recoil": &"KR", &"recoil_contact": 17.0}})
+	assert_eq(t.limb_deflects, {&"high": {&"deflect": &"HD", &"deflect_contact": 2.0}, &"low": {&"deflect": &"LD", &"deflect_contact": 4.0}})
+	assert_almost_eq(t.limb_low_under, 1.2, 1e-9)
+	var cases: Dictionary = {
+		"\"deflects\": {\"pairs\": {}, \"redirect\": {\"deflect\": \"D\", \"deflect_contact\": 3, \"recoil\": \"R\"}}, ": "deflects.redirect: missing recoil_contact",
+		"\"deflects\": {\"pairs\": {}, \"limbs\": {\"fist\": {\"recoil\": \"R\", \"recoil_contact\": 3}}}, ": "deflects.limbs: missing foot",
+		"\"deflects\": {\"pairs\": {}, \"limbs\": {\"fist\": {\"recoil\": \"R\", \"recoil_contact\": 3}, \"foot\": {\"recoil\": \"R\", \"recoil_contact\": 3}, \"knee\": {}}}, ": "deflects.limbs: unknown field knee",
+		"\"deflects\": {\"pairs\": {}, \"blade_at_limb\": {\"high\": {\"deflect\": \"D\", \"deflect_contact\": 2}, \"low\": {\"deflect\": \"D\", \"deflect_contact\": 2}}}, ": "deflects.blade_at_limb: missing low_under",
+		"\"deflects\": {\"pairs\": {}, \"blade_at_limb\": {\"high\": {\"deflect\": \"D\", \"deflect_contact\": 2}, \"low\": {\"deflect\": \"D\", \"deflect_contact\": 2}, \"low_under\": -1}}, ": "deflects.blade_at_limb.low_under: must be a number, 0 or more",
+	}
+	for edit: String in cases:
+		t = _read_text(_edited("\"fades\": {", edit + "\"fades\": {"))
+		assert_eq(Array(t.errors).slice(0, 1), [cases[edit]], edit)

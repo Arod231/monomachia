@@ -1,0 +1,16 @@
+{
+	"about": "Roundhouse's held charge (fists.f_h1's loop), milestone-1 task 133, made in Cascadeur: the Roundhouse's own loaded pose on frame 4.5 (sunk onto the back foot, leaning back, the lead hand out) held with a slow sway down and back up over a second, starting and ending on that pose so it loops. The director plays it at 1.0 from when the charge began. Cascadeur's AI inbetweening generates every frame but the key poses. Source frames at 30 fps from 0.",
+	"source": "blender/clips/roundhouse.blend",
+	"out": "blender/cascadeur/roundhouse_charge_keys.blend",
+	"remap": [[0, 4.5], [30, 4.5]],
+	"lower": {
+		"drop": 0.025,
+		"bend": -2.5,
+		"from": 0,
+		"peak": 15,
+		"until": 15,
+		"to": 30
+	},
+	"keys": [0, 8, 15, 22, 30],
+	"clip": "blender/clips/roundhouse_charge.blend"
+}

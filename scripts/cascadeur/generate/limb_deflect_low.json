@@ -1,0 +1,49 @@
+{
+	"about": "The Katana's low deflect at a limb (milestone-1 task 90), made in Cascadeur: the parrier's half when a blade parries a fist or a foot meeting it under 1.3 m (the owner, Oct 8: the Snap, Axe and Air Kicks, which meet at 1.23, 1.09 and 0.60 m), played from its contact frame (2), cut in from the guard. Parry1H01's right hit at its own speed, made two-handed as the lights' deflects are (task 34), the hands drawn 0.1 m back, 0.1 m right and 0.2 m down and the blade turned down across the kick (a low parry) and aimed at the moment of contact so it crosses the Snap Kick's shin near the knee (its foot lands at the parrier's chest), at the point of it that needs the least turn on the Snap Kick's contact frame, at bare hands' duelling distance less the kick's travel to it (0.89 m), knocking the leg away. Cascadeur's AI inbetweening generates every frame but the key poses. Picture only. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Parry1H01_R - Hit.fbx",
+	"out": "blender/cascadeur/limb_deflect_low_keys.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			26,
+			26
+		]
+	],
+	"two_hands": {
+		"grip": 0.11,
+		"hold": [
+			0.32,
+			0.12
+		],
+		"square": 0.6,
+		"clearance": 0.08,
+		"aim": {
+			"frame": 2,
+			"at": {
+				"source": "blender/clips/snap_kick.blend",
+				"frame": 10,
+				"distance": 0.89,
+				"bone": "B-foot.L"
+			},
+			"grip_move": [
+				-0.1,
+				0.1,
+				-0.2
+			],
+			"frames": 4
+		}
+	},
+	"keys": [
+		0,
+		2,
+		5,
+		9,
+		14,
+		20,
+		26
+	],
+	"clip": "blender/clips/limb_deflect_low.blend"
+}
