@@ -36,16 +36,16 @@ func _parses(text: String) -> bool:
 
 func test_find_reads_a_json_value_by_key_path() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	# Heaven Splitter, a stand-in (a re-keyed move names no speed: it plays at 1.0x)
-	var span: Vector2i = SourceEdit.find_value(text, ["katana", "moves", "k_h2", "speed"])
+	# Leaping Cleave, a stand-in (a re-keyed move names no speed: it plays at 1.0x)
+	var span: Vector2i = SourceEdit.find_value(text, ["katana", "moves", "k_sh", "speed"])
 	assert_ne(span, Vector2i(-1, -1), "speed is found")
-	assert_eq(text.substr(span.x, span.y - span.x), "1.25", "the span is the value alone")
+	assert_eq(text.substr(span.x, span.y - span.x), "1.4", "the span is the value alone")
 
 
 func test_find_reads_a_whole_object_value() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var span: Vector2i = SourceEdit.find_value(text, ["katana", "moves", "k_h2", "marks"])
-	assert_eq(text.substr(span.x, span.y - span.x), '{"windup": 0, "contact": 14, "contact_end": 16, "settle": 34}')
+	var span: Vector2i = SourceEdit.find_value(text, ["katana", "moves", "k_sh", "marks"])
+	assert_eq(text.substr(span.x, span.y - span.x), '{"windup": 0, "contact": 14, "contact_end": 17.5, "settle": 36}')
 
 
 func test_find_reads_a_gd_value_under_a_const() -> void:
@@ -107,7 +107,7 @@ func test_find_without_an_errors_array_still_works() -> void:
 
 func test_replacing_speed_in_move_clips_changes_only_those_bytes() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var path: Array[String] = ["katana", "moves", "k_h2", "speed"]
+	var path: Array[String] = ["katana", "moves", "k_sh", "speed"]
 	var span: Vector2i = SourceEdit.find_value(text, path)
 	var errors: Array[String] = _errors()
 	var edited: String = SourceEdit.replace_value(text, path, 2.5, errors)
@@ -131,7 +131,7 @@ func test_numbers_are_written_the_way_jsformat_does() -> void:
 
 func test_replacing_a_whole_object_value() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var path: Array[String] = ["katana", "moves", "k_h2", "marks"]
+	var path: Array[String] = ["katana", "moves", "k_sh", "marks"]
 	var edited: String = SourceEdit.replace_value(text, path, {"windup": 9, "contact": 15.5}, _errors())
 	var span: Vector2i = SourceEdit.find_value(edited, path)
 	assert_eq(edited.substr(span.x, span.y - span.x), '{"windup": 9, "contact": 15.5}')
@@ -364,7 +364,7 @@ func test_replacing_a_value_that_wraps_across_lines() -> void:
 
 func test_a_load_with_no_edit_is_identical_bytes() -> void:
 	var text: String = _read(MOVE_CLIPS)
-	var path: Array[String] = ["katana", "moves", "k_h2", "speed"]
+	var path: Array[String] = ["katana", "moves", "k_sh", "speed"]
 	var span: Vector2i = SourceEdit.find_value(text, path)
 	var same: String = SourceEdit.replace_value(text, path, text.substr(span.x, span.y - span.x).to_float(), _errors())
 	assert_eq(same, text, "writing the value it already has changes nothing")

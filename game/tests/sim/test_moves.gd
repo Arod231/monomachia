@@ -74,9 +74,11 @@ func test_every_attack_def_field_is_a_key() -> void:
 	assert_eq(wprops, WeaponDef.KEYS)
 
 
-func test_every_release_variant_has_its_moves_frames() -> void:
-	# a variant swaps in mid-move, on the same attack state, so it must keep
-	# its move's frames and lunge
+func test_every_release_variant_shares_its_moves_frames_to_the_draw() -> void:
+	# a variant swaps in mid-move, on the same attack state, as the charge
+	# check draws it, so it must keep its move's frames up to there and its
+	# lunge; from the draw on it plays its own (the Iai's draws, Elden
+	# Ring's, KE task 18)
 	var variants: int = 0
 	for wid: StringName in Moves.WEAPONS:
 		var moves: Dictionary[StringName, AttackDef] = Moves.WEAPONS[wid].moves
@@ -90,11 +92,17 @@ func test_every_release_variant_has_its_moves_frames() -> void:
 			if v == null:
 				continue
 			assert_eq(
-				[v.startup, v.active, v.recovery, v.lunge, v.lunge_start, v.lunge_end],
-				[m.startup, m.active, m.recovery, m.lunge, m.lunge_start, m.lunge_end],
-				"%s.%s and its variant %s: frames and lunge" % [wid, id, v.id],
+				[_hold_at(v), v.lunge, v.lunge_start, v.lunge_end],
+				[_hold_at(m), m.lunge, m.lunge_start, m.lunge_end],
+				"%s.%s and its variant %s: the charge check and lunge" % [wid, id, v.id],
 			)
+			assert_gt(v.startup, _hold_at(m), "%s: swapped in before it strikes" % v.id)
 	assert_gt(variants, 0, "the Iai has a variant")
+
+
+## The frame a chargeable move checks for a held heavy on.
+static func _hold_at(m: AttackDef) -> int:
+	return m.charge_hold if m.charge_hold != AttackDef.UNSET else Fighter.CHARGE_CHECK_FRAME
 
 
 func test_finalize_keeps_u_impale_dodgeable() -> void:

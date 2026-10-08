@@ -91,13 +91,13 @@ static func set_move_marker(session: EditSession, file: String, wid: StringName,
 			r.error = "%s has no follow-up %s" % [id, path[1]]
 			return r
 		candidate["branch"][path[1]] = frame
-	elif not (MoveClips.RULES_MARKERS + MoveClips.DODGE_CANCEL_MARKERS).has(name):
+	elif not (MoveClips.RULES_MARKERS + MoveClips.DODGE_CANCEL_MARKERS + [MoveClips.HOLD_MARKER]).has(name):
 		r.error = "%s is not a move's marker" % name
 		return r
 	else:
 		candidate[name] = frame
 	var why: Array[String] = []
-	MoveClips._markers(wid, candidate, why)
+	MoveClips._markers(wid, id, candidate, why)
 	if not why.is_empty():
 		r.error = "; ".join(why)
 		return r

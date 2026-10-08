@@ -17,6 +17,18 @@
 #   cubic through the pairs gives, so the motion keeps its speed where the
 #   pairs keep it and nothing jumps where they change it. A planted foot stays
 #   planted: a warp moves nothing, only when;
+# - loop: true for a held charge's loop (KE task 16: Crescent Coil's held
+#   coil): its remap may fall in source frames, going there and back over its
+#   move's own clip, and must end on the source frame it starts on, so it
+#   loops without a pop;
+# - lead: {"source": path, "remap": [[new frame, source frame], ...]}: another
+#   pack clip's motion played first (lead(); KE task 16: Crescent Coil's coil
+#   over the shoulder, from one clip, before its level cut, from another):
+#   the new clip's frames from 0 to the remap's first new frame come from
+#   the lead alone, by its own warp, and from there to the lead's last new
+#   frame the lead fades into the source on a smootherstep, every bone's
+#   local pose carried from one to the other (lead_weight()); the rest is
+#   the source's;
 # - goes_on_from: a spec's id, for a clip cut from further into a source
 #   that another spec's clip holds the start of (KE task 12: Level Cut, the
 #   second half of Twisting Rise's source): its remap starts on the source
@@ -144,7 +156,11 @@
 #   n each bone turned about its head by the degrees about the fighter's own
 #   axis ("right", "up" or "forward", the fighter facing forward, a turn
 #   following the right hand), in the order given, its children going with
-#   it, and moved by metres along those axes; applied last.
+#   it, and moved by metres along those axes; applied last. "frames": [in,
+#   from, to, out] in place of "frame" shapes a stretch of frames (KE task
+#   16: Crescent Coil's elbow bent through its coil): none of it before
+#   frame "in", all of it from "from" to "to", none after "out", eased in
+#   and out between on a smootherstep, every frame keyed.
 #
 # The source keeps the armature and the new action only (the export takes
 # every action, the import the first). Re-running gives the same file's
@@ -211,10 +227,25 @@ def monotone(xs, ys):
     return f
 
 
-def check_remap(remap):
+def check_remap(remap, loop=False):
+    """A remap rises in new frames and, but for a loop, never falls in source
+    frames; a loop ends on the source frame it starts on."""
     for (n0, s0), (n1, s1) in zip(remap, remap[1:]):
-        if n1 <= n0 or s1 < s0:
+        if n1 <= n0 or (s1 < s0 and not loop):
             raise SystemExit(f"rekey_clip: the remap must rise in new frames and not fall in source frames ({n0},{s0}) -> ({n1},{s1})")
+    if loop and remap[-1][1] != remap[0][1]:
+        raise SystemExit(f"rekey_clip: a loop must end on the source frame it starts on ({remap[0][1]}, not {remap[-1][1]})")
+
+
+def lead_weight(n, start, end):
+    """How much of a lead (lead()) shows on new frame `n`: all of it up to
+    `start` (the source's first new frame), none from `end` (the lead's
+    last), a smootherstep between."""
+    if n <= start:
+        return 1.0
+    if n >= end:
+        return 0.0
+    return 1.0 - _smoother((n - start) / float(end - start))
 
 
 def import_clip(path):
@@ -242,11 +273,45 @@ def sample(arm, scene, src_frame):
     return out
 
 
-def retime(arm, scene, src_action, remap):
-    """A new action: every frame of the new clip from the source at the warp's frame."""
+def lead(path, remap):
+    """The lead's (see the header's lead) local pose of every bone on each of
+    its new frames, by its own warp: read before the source is imported."""
+    check_remap(remap)
+    arm, _ = import_clip(path)
+    scene = bpy.context.scene
+    warp = monotone([float(p[0]) for p in remap], [float(p[1]) for p in remap])
+    out = []
+    for n in range(int(round(remap[-1][0])) + 1):
+        pose = sample(arm, scene, warp(n))
+        out.append({name: (loc.copy(), rot.copy(), scl.copy()) for name, (loc, rot, scl) in pose.items()})
+    return out
+
+
+def _mix(a, b, w):
+    """Pose `a` with weight `w` over pose `b` (1 - w), bone by bone; a bone
+    only one of them has keeps that one's."""
+    out = dict(b)
+    for name, (la, ra, sa) in a.items():
+        if name not in b:
+            out[name] = (la, ra, sa)
+            continue
+        lb, rb, sb = b[name]
+        if ra.dot(rb) < 0:
+            ra = -ra
+        out[name] = (lb.lerp(la, w), rb.slerp(ra, w), sb.lerp(sa, w))
+    return out
+
+
+def retime(arm, scene, src_action, remap, led=None):
+    """A new action: every frame of the new clip from the source at the
+    warp's frame, the lead's frames (lead()) fading into it when there is one."""
     warp = monotone([float(p[0]) for p in remap], [float(p[1]) for p in remap])
     length = int(round(remap[-1][0]))
     frames = [sample(arm, scene, warp(n)) for n in range(length + 1)]
+    if led:
+        start, end = float(remap[0][0]), float(len(led) - 1)
+        for n in range(min(len(led), length + 1)):
+            frames[n] = _mix(led[n], frames[n], lead_weight(n, start, end))
     base = src_action.name.split("|")[1] if "|" in src_action.name else src_action.name
     new = bpy.data.actions.new(base if base.endswith("_rekeyed") else base + "_rekeyed")
     arm.animation_data.action = new
@@ -1331,7 +1396,8 @@ def blend_from(arm, scene, length, start, frames):
         bpy.context.view_layer.update()
         for side in ("L", "R"):
             m = mw @ pbs["B-foot." + side].matrix
-            feet[side].append((m.to_translation(), m.to_quaternion(), 0.0))
+            high = max(0.0, m.to_translation().z - rest[side].to_translation().z)
+            feet[side].append((m.to_translation(), m.to_quaternion(), high))
             hip, knee = mw @ pbs["B-thigh." + side].head, mw @ pbs["B-shin." + side].head
             ankle = m.to_translation()
             bend = knee - (hip + ankle) / 2
@@ -1389,32 +1455,58 @@ def borrow(arm, scene, borrowed):
         print(f"rekey_clip: frames {first}-{last} borrowed from {b['source']} at {b['at']}", flush=True)
 
 
+def pose_weight(n, a, b, c, d):
+    """How much of a pose shaped over frames [a, b, c, d] (see the header's
+    pose) shows on frame `n`."""
+    if n <= a or n >= d:
+        return 0.0
+    if n < b:
+        return _smoother((n - a) / (b - a))
+    if n > c:
+        return 1.0 - _smoother((n - c) / (d - c))
+    return 1.0
+
+
 def pose(arm, scene, poses):
     """Each hand-shaped key pose (see the header's pose) keyed at its frame."""
     to_arm = arm.matrix_world.to_3x3().normalized().inverted()
     # metres into the armature's space, its scale included (the pack's is 0.01)
     metres = arm.matrix_world.to_3x3().inverted()
     for p in poses:
-        frame = 1 + int(p["frame"])
-        scene.frame_set(frame)
-        bpy.context.view_layer.update()
-        touched = []
-        for name, axis, degrees in p.get("turn", []):
-            pb = arm.pose.bones[name]
-            pb.rotation_mode = "QUATERNION"
-            r = (to_arm @ mathutils.Matrix.Rotation(math.radians(float(degrees)), 3, AXES[axis]) @ to_arm.inverted()).to_4x4()
-            head = pb.matrix.to_translation()
-            pb.matrix = mathutils.Matrix.Translation(head) @ r @ mathutils.Matrix.Translation(-head) @ pb.matrix
+        if "frames" in p:
+            a, b, c, d = (float(x) for x in p["frames"])
+            at = [(n, pose_weight(n, a, b, c, d)) for n in range(int(a), int(d) + 1)]
+        else:
+            at = [(int(p["frame"]), 1.0)]
+        # each frame keeps its own pose under the shaping, keyed or not
+        names = [name for name, _, _ in p.get("turn", [])] + list(p.get("move", {}).keys())
+        for n, _ in at:
+            scene.frame_set(1 + n)
             bpy.context.view_layer.update()
-            touched.append(pb)
-        for name, (x, y, z) in p.get("move", {}).items():
-            pb = arm.pose.bones[name]
-            shift = metres @ (AXES["right"] * x + AXES["up"] * y + AXES["forward"] * z)
-            pb.matrix = mathutils.Matrix.Translation(shift) @ pb.matrix
+            for name in names:
+                arm.pose.bones[name].rotation_mode = "QUATERNION"
+                key_bone(arm.pose.bones[name], 1 + n)
+        for n, w in at:
+            frame = 1 + n
+            scene.frame_set(frame)
             bpy.context.view_layer.update()
-            touched.append(pb)
-        for pb in touched:
-            key_bone(pb, frame)
+            touched = []
+            for name, axis, degrees in p.get("turn", []):
+                pb = arm.pose.bones[name]
+                pb.rotation_mode = "QUATERNION"
+                r = (to_arm @ mathutils.Matrix.Rotation(math.radians(float(degrees) * w), 3, AXES[axis]) @ to_arm.inverted()).to_4x4()
+                head = pb.matrix.to_translation()
+                pb.matrix = mathutils.Matrix.Translation(head) @ r @ mathutils.Matrix.Translation(-head) @ pb.matrix
+                bpy.context.view_layer.update()
+                touched.append(pb)
+            for name, (x, y, z) in p.get("move", {}).items():
+                pb = arm.pose.bones[name]
+                shift = metres @ ((AXES["right"] * x + AXES["up"] * y + AXES["forward"] * z) * w)
+                pb.matrix = mathutils.Matrix.Translation(shift) @ pb.matrix
+                bpy.context.view_layer.update()
+                touched.append(pb)
+            for pb in touched:
+                key_bone(pb, frame)
     if poses:
         print(f"rekey_clip: shaped {len(poses)} key poses by hand", flush=True)
 
@@ -1424,7 +1516,7 @@ def main():
     with open(a["spec"], encoding="utf-8") as f:
         spec = json.load(f)
     remap = spec["remap"]
-    check_remap(remap)
+    check_remap(remap, bool(spec.get("loop")))
     src = os.path.join(a["assets"], spec["source"])
     if not os.path.isfile(src):
         raise SystemExit(f"rekey_clip: no source clip at {src}")
@@ -1456,12 +1548,22 @@ def main():
         if not os.path.isfile(path):
             raise SystemExit(f"rekey_clip: no clip to borrow from at {path}")
         borrowed.append({**b, "pose": pose_at(path, float(b["at"]))})
+    led = None
+    if spec.get("lead"):
+        lead_path = os.path.join(a["assets"], spec["lead"]["source"])
+        if not os.path.isfile(lead_path):
+            raise SystemExit(f"rekey_clip: no clip to lead with at {lead_path}")
+        led = lead(lead_path, spec["lead"]["remap"])
     arm, src_action = import_clip(src)
     scene = bpy.context.scene
     scene.render.fps = FPS
     scene.frame_start, scene.frame_end = 1, int(src_action.frame_range[1])
-    new, length = retime(arm, scene, src_action, remap)
+    new, length = retime(arm, scene, src_action, remap, led)
     scene.frame_start, scene.frame_end = 1, 1 + length
+    if led:
+        print(f"rekey_clip: led in by {spec['lead']['source']} over frames {int(remap[0][0])}-{len(led) - 1}", flush=True)
+    if spec.get("loop"):
+        print(f"rekey_clip: looped there and back from source frame {remap[0][1]:g}", flush=True)
     if spec.get("kick"):
         kick(arm, scene, length, spec["kick"])
     if spec.get("knock") and spec.get("step"):

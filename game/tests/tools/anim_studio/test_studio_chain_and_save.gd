@@ -49,14 +49,15 @@ func _to_copy(editor: StudioEditor) -> void:
 
 
 func test_the_chain_panel_lists_the_parts_and_shows_the_speed_read_only() -> void:
-	var editor: StudioEditor = await _open(&"k_iai")
+	var editor: StudioEditor = await _open(&"k_flash")
 	var panel: Node = editor.get_node("%ChainPanel")
-	assert_eq((panel.get_node("Part0/Clip") as LineEdit).text, "SheatheHips01_R")
-	assert_eq((panel.get_node("Part0/From") as SpinBox).value, 3.0)
-	assert_eq((panel.get_node("Part0/To") as LineEdit).text, "12")
+	# Flash, a stand-in chain (the Iai's until KE task 18 re-keyed it)
+	assert_eq((panel.get_node("Part0/Clip") as LineEdit).text, "Parry1H01_R_Loop")
+	assert_eq((panel.get_node("Part0/From") as SpinBox).value, 0.0)
+	assert_eq((panel.get_node("Part0/To") as LineEdit).text, "20")
 	assert_eq((panel.get_node("Part1/To") as LineEdit).text, "", "to the clip's end")
 	assert_not_null(panel.get_node_or_null("AddPart"))
-	assert_eq(editor.get_node("%SpeedLabel").text, "speed 1.3 (goes with the stand-ins)")
+	assert_eq(editor.get_node("%SpeedLabel").text, "speed 2.0 (goes with the stand-ins)")
 
 
 func test_a_hold_shows_read_only() -> void:
@@ -66,13 +67,13 @@ func test_a_hold_shows_read_only() -> void:
 
 
 func test_moving_a_part_down_is_a_pending_edit() -> void:
-	var editor: StudioEditor = await _open(&"k_iai")
+	var editor: StudioEditor = await _open(&"k_flash")
 	_to_copy(editor)
 	editor.open(editor.entry)
 	var down: Button = editor.get_node("%ChainPanel").get_node("Part0").get_child(4)
 	assert_eq(down.text, "↓")
 	down.pressed.emit()
-	assert_eq(ChainEdits.current(editor.session, COPY, &"katana", editor.move_entry), ["Attack1H04_R@2", "SheatheHips01_R@3-12"] as Array[String])
+	assert_eq(ChainEdits.current(editor.session, COPY, &"katana", editor.move_entry), ["Parry1H01_R_Hit", "Parry1H01_R_Loop@0-20"] as Array[String])
 	assert_string_ends_with(editor.get_node("%EditorTitle").text, "· unsaved")
 
 
@@ -82,7 +83,7 @@ func test_local_the_fighter_plays_the_pending_chain() -> void:
 	if not ClipLibraries.available():
 		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
 		return
-	var editor: StudioEditor = await _open(&"k_iai")
+	var editor: StudioEditor = await _open(&"k_flash")
 	_to_copy(editor)
 	editor.open(editor.entry)
 	var before: Array[String] = editor.poser.chain.duplicate()
@@ -91,7 +92,7 @@ func test_local_the_fighter_plays_the_pending_chain() -> void:
 
 
 func test_save_writes_the_copy_and_shows_the_report() -> void:
-	var editor: StudioEditor = await _open(&"k_iai")
+	var editor: StudioEditor = await _open(&"k_flash")
 	_to_copy(editor)
 	editor.open(editor.entry)
 	var rows: Array[ChainEdits.Row] = editor.chain_rows()
@@ -104,7 +105,7 @@ func test_save_writes_the_copy_and_shows_the_report() -> void:
 	editor._unhandled_key_input(key)
 	assert_not_null(editor.last_save, "Ctrl+S saved")
 	assert_eq(editor.last_save.written, PackedStringArray([COPY]))
-	assert_true(FileAccess.get_file_as_string(COPY).contains("\"SheatheHips01_R@4-12\""))
+	assert_true(FileAccess.get_file_as_string(COPY).contains("\"Parry1H01_R_Loop@4-20\""))
 	var report: String = editor.get_node("%SaveReport").text
 	assert_string_contains(report, "saved test_studio_chain_and_save.json")
 	assert_string_contains(report, "table not regenerated: no clip libraries")
@@ -112,7 +113,7 @@ func test_save_writes_the_copy_and_shows_the_report() -> void:
 
 
 func test_a_bad_part_is_refused_and_says_why() -> void:
-	var editor: StudioEditor = await _open(&"k_iai")
+	var editor: StudioEditor = await _open(&"k_flash")
 	var rows: Array[ChainEdits.Row] = editor.chain_rows()
 	rows[0].clip = "NoSuchClip"
 	assert_string_contains(editor.set_chain(rows).error, "not a clip")

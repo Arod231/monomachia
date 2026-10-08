@@ -12,7 +12,7 @@ const ImportClips := preload("res://tools/import_clips.gd")
 ## The timing band table's rows (docs/specs/milestone-1.md), a move's kind.
 const BAND_KINDS: Array[StringName] = [
 	&"string_light", &"string_light_1h", &"string_last_1h", &"string_light_2h", &"string_last_2h",
-	&"string_heavy", &"iai_draw", &"iai_follow_up", &"unblockable",
+	&"string_heavy", &"grip_heavy_1h", &"grip_heavy_2h", &"grip_heavy_follow_up", &"iai_draw_vertical", &"iai_draw_horizontal", &"iai_follow_up", &"unblockable",
 	&"sprint_light", &"sprint_heavy", &"dodge_light", &"dodge_heavy", &"backstep_light", &"backstep_heavy",
 	&"jump_light", &"jump_heavy", &"block_ability", &"ultimate", &"counter_lunge",
 ]
@@ -27,7 +27,7 @@ const NOT_KEYED_YET: Array[String] = [
 ]
 ## The order a row's fields are written in.
 const FIELD_ORDER: Array[String] = [
-	"kind", "chain", "stand_in", "startup", "active", "recovery", "landing", "dodge_cancel", "branches",
+	"kind", "chain", "stand_in", "startup", "active", "recovery", "landing", "hold", "dodge_cancel", "branches",
 	"frames", "markers", "speed", "heading", "stride", "foot_contacts", "travel", "source_sha256", "digest",
 ]
 ## The rules-length clips the rules move a fighter by (milestone-1 task 99):
@@ -41,8 +41,10 @@ const ABOUT: String = "The frame-data table (milestone-1 task 16): each move's f
 ## The band kind of move `id` on weapon `w` (BAND_KINDS): by the slot it is
 ## played from (sprint, dodge, backstep, jump), else a counter lunge, a
 ## block ability (unblockable or not), an ultimate, an Iai draw (a stance
-## charge, or the variant one draws as), an Iai follow-up (a heavy one
-## follows), a light of the string, or a heavy of it. A move has one kind
+## charge, or the variant one draws as), a grip's own heavy keyed for it
+## (grip_heavy_1h, grip_heavy_2h; KE task 16), a grip heavy's follow-up
+## (Rising Heaven, after Heaven Splitter; KE task 17), an Iai follow-up (a
+## heavy one follows), a light of the string, or a heavy of it. A move has one kind
 ## wherever it is played from.
 static func kind_of(w: WeaponDef, id: StringName) -> StringName:
 	var m: AttackDef = w.moves[id]
@@ -59,7 +61,18 @@ static func kind_of(w: WeaponDef, id: StringName) -> StringName:
 	if m.kind == &"ultimate":
 		return &"ultimate"
 	if is_iai_draw(w, id):
-		return &"iai_draw"
+		# each draw its own row (KE task 18): the stance's own, the vertical,
+		# and the variant it draws as, the horizontal
+		return &"iai_draw_vertical" if m.charge_move else &"iai_draw_horizontal"
+	if m.kind == &"heavy" and m.grip != &"":
+		for g: WeaponGrip in w.grips:
+			if g.id == m.grip and g.heavy == id:
+				return StringName("grip_heavy_" + ("1h" if m.grip == WeaponGrip.ONE_HANDED else "2h"))
+	if m.kind == &"heavy":
+		for g: WeaponGrip in w.grips:
+			var heavy: AttackDef = w.moves.get(g.heavy, null)
+			if heavy != null and heavy.grip == g.id and heavy.chain_heavy == id:
+				return &"grip_heavy_follow_up"
 	if m.kind != &"light":
 		for other: StringName in w.moves:
 			if is_iai_draw(w, other) and (w.moves[other] as AttackDef).chain_heavy == id:
@@ -185,6 +198,8 @@ static func move_row(kind: StringName, parts: Array[ClipChain.Part], stand_in: b
 	row["recovery"] = r.recovery
 	if JUMP_KINDS.has(kind) and not stand_in:
 		row["landing"] = r.recovery
+	if r.hold != AttackDef.UNSET and not stand_in:
+		row["hold"] = r.hold
 	if not r.dodge_cancel.is_empty():
 		row["dodge_cancel"] = Array(r.dodge_cancel)
 	if not r.branches.is_empty():

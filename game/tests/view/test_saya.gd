@@ -39,7 +39,9 @@ func test_through_the_iais_stance_the_blade_is_in_the_saya() -> void:
 	var v: FighterView = _view(&"hunter", &"katana")
 	var f: Fighter = W.fighters[0]
 	var swing: Swing = Moves.KATANA.moves[&"k_iai"].swing
-	assert_eq(swing.sheathed.size(), 2, "the Iai's swing gives its sheathed frames")
+	# sheathed twice: the stance, then the resheathe after the chiburi (KE
+	# task 18)
+	assert_eq(swing.sheathed.size(), 4, "the Iai's swing gives its sheathed frames")
 	for i: int in 30:
 		W.step([SimHelpers.btn(Btn.HEAVY), SimHelpers.idle()])
 		v.update_from(f, Vector3(f.pos.x, f.pos.y, f.pos.z), f.yaw, 1.0, 1.0 / 60.0, 0.0)

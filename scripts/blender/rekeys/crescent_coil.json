@@ -1,0 +1,200 @@
+{
+	"about": "Crescent Coil (katana.k_coil), the one-handed heavy (KE task 16), Elden Ring's: led in by Attack1H02_R's wind-up, the blade raised and coiled back over the right shoulder (source frames 0-11 over 10) the elbow bent so the hand rises by the head and the blade lies back over the shoulder (shaped by hand over frames 6-29), and held there, drifting deeper (to frame 24; the charge holds on frame 22), then swung over and down in front to the low left (its cut, slowed: the loop low); Attack1H03_R takes over from there (faded in over frames 30-34), carrying the blade up behind the head to the left (the loop up, source frames 5-9.5), and cuts level from the left out to the right, snapped through on frames 43-46, held at full extension to frame 58, then back to the guard. One-handed: the blade starts and ends 45 degrees lower, as the one-handed guard carries it, and is turned on where it would pass within 12 cm of the body. Two long steps carry the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H03_R.fbx",
+	"out": "blender/clips/crescent_coil.blend",
+	"lead": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H02_R.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				5,
+				6
+			],
+			[
+				9,
+				9.3
+			],
+			[
+				24,
+				9.8
+			],
+			[
+				30,
+				14
+			],
+			[
+				34,
+				16
+			]
+		]
+	},
+	"remap": [
+		[
+			30,
+			5
+		],
+		[
+			40,
+			8.8
+		],
+		[
+			42.5,
+			9.1
+		],
+		[
+			44,
+			9.5
+		],
+		[
+			45.5,
+			10.3
+		],
+		[
+			47,
+			11
+		],
+		[
+			58,
+			11.9
+		],
+		[
+			64,
+			28
+		],
+		[
+			70,
+			38
+		]
+	],
+	"one_hand": {
+		"lower": [
+			[
+				0,
+				45
+			],
+			[
+				6,
+				0
+			],
+			[
+				10,
+				20
+			],
+			[
+				24,
+				20
+			],
+			[
+				28,
+				0
+			],
+			[
+				58,
+				0
+			],
+			[
+				70,
+				45
+			]
+		],
+		"clearance": 0.12
+	},
+	"step": {
+		"body": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				0
+			],
+			[
+				10,
+				0.3
+			],
+			[
+				24,
+				0.35
+			],
+			[
+				30,
+				0.5
+			],
+			[
+				36,
+				0.85
+			],
+			[
+				40,
+				1.15
+			],
+			[
+				44.5,
+				1.5
+			],
+			[
+				48,
+				1.6
+			],
+			[
+				70,
+				1.6
+			]
+		],
+		"feet": {
+			"L": [
+				[
+					10,
+					18,
+					0.45,
+					0.16
+				],
+				[
+					40,
+					48,
+					1.15,
+					0.22
+				]
+			],
+			"R": [
+				[
+					3,
+					9,
+					0.3,
+					0.16
+				],
+				[
+					24,
+					38,
+					1.3,
+					0.24
+				]
+			]
+		},
+		"hips_home": [
+			60,
+			70
+		]
+	},
+	"pose": [
+		{
+			"frames": [
+				6,
+				11,
+				24,
+				29
+			],
+			"turn": [
+				[
+					"B-forearm.R",
+					"forward",
+					-105
+				]
+			]
+		}
+	]
+}

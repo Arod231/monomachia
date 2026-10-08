@@ -211,12 +211,12 @@ static func _phases(poses: Array[Dictionary]) -> Array[StringName]:
 
 func test_the_iai_sheathes_then_draws() -> void:
 	assert_eq(
-		_phases(_iai_poses(1, 0.0, 60)),
+		_phases(_iai_poses(1, 0.0, 170)),
 		[&"sheathe", &"draw", &"strike", &"follow", &"recover", &"guard"] as Array[StringName],
 		"tapped: sheathed and drawn at once",
 	)
 	assert_eq(
-		_phases(_iai_poses(40, 0.0, 100)),
+		_phases(_iai_poses(40, 0.0, 200)),
 		[&"sheathe", &"sheathed", &"draw", &"strike", &"follow", &"recover", &"guard"] as Array[StringName],
 		"held: the sheathed stance until heavy is let go",
 	)
@@ -233,17 +233,18 @@ func test_the_sheathed_hand_sits_by_the_left_hip() -> void:
 	assert_eq(p.glow, &"charge", "glowing as the charge builds")
 
 
-## The Iai's wind-up ends on frame 16: 70% of its 23-frame startup, as every
-## attack's wind-up does.
-const IAI_WINDUP_END: int = 16
+## Each draw's wind-up ends at 70% of its startup, as every attack's does:
+## Elden Ring's vertical draw's 33 frames (KE task 18) put its end after frame
+## 23, the horizontal's 28 after frame 19; each draw is halfway out about
+## frame 16 and frame 14.
 
 
 func test_both_draws_start_from_the_sheathe() -> void:
 	# held to step 40, so the draw starts on step 40, on frame 10, and goes out
 	# in front before it rises into the cut's wind-up
 	var draws: Array[Dictionary] = [
-		{"way": "the vertical", "mx": 0.0, "draws_into": &"overhead"},
-		{"way": "the horizontal", "mx": 1.0, "draws_into": &"slashRL"},
+		{"way": "the vertical", "mx": 0.0, "draws_into": &"overhead", "midway": 16, "windup_end": 23},
+		{"way": "the horizontal", "mx": 1.0, "draws_into": &"slashRL", "midway": 14, "windup_end": 19},
 	]
 	for d: Dictionary in draws:
 		var poses: Array[Dictionary] = _iai_poses(40, d["mx"], 60)
@@ -251,11 +252,11 @@ func test_both_draws_start_from_the_sheathe() -> void:
 		var drawing: StickPose.Pose = poses[40]["pose"]
 		assert_eq([sheathed.phase, drawing.phase], [&"sheathed", &"draw"], "%s: sheathed, then drawn" % d["way"])
 		assert_lt(sheathed.right.pos.distance_to(drawing.right.pos), 0.15, "%s starts from the sheathe" % d["way"])
-		var midway: StickPose.Pose = _pose_at(poses, 12)
+		var midway: StickPose.Pose = _pose_at(poses, d["midway"])
 		assert_gt(midway.right.dir.z, 0.7, "%s: halfway, the blade points forward, out of the sheathe" % d["way"])
 		assert_gt(midway.right.pos.z, 0.3, "%s: and the hands are out in front, clear of the body" % d["way"])
 		var windup: Vector3 = StickPose.local(StickPose.ARCH[d["draws_into"]][0]["rh"])
-		var at_windup_end: StickPose.Pose = _pose_at(poses, IAI_WINDUP_END)
+		var at_windup_end: StickPose.Pose = _pose_at(poses, d["windup_end"])
 		assert_lt(at_windup_end.right.pos.distance_to(windup), 0.1, "%s draws into the %s wind-up" % [d["way"], d["draws_into"]])
 
 

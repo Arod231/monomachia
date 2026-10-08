@@ -230,9 +230,11 @@ const DOOM_STEP: float = 1.0
 
 ## A seeded computer-against-computer duel on the Shrine, in the match
 ## scene, its rules stepped and drawn frame by frame for `frames`; with the
-## fallen petals or without them (thinned to none). Returns [the world's
-## state hash, the match view].
-func _duel(petals: bool, frames: int) -> Array:
+## fallen petals or without them (thinned to none), and with a carpet of
+## them laid across the middle of the floor first when `carpet` (so the
+## fighters walk through some whichever way the duel goes). Returns [the
+## world's state hash, the match view].
+func _duel(petals: bool, frames: int, carpet: bool = false) -> Array:
 	var host: MatchHost = (load("res://view/match/match_host.tscn") as PackedScene).instantiate()
 	host.auto_run = false
 	host.use_services = false
@@ -244,6 +246,8 @@ func _duel(petals: bool, frames: int) -> Array:
 		MatchSide.computer(&"hunter", &"katana", 1, &"hard"), 11, &"moonlit_shrine"))
 	var fallen := view.arena.get_node("FallenPetals") as ShrineFallenPetals
 	fallen.set_ratio(1.0 if petals else 0.0)
+	if carpet:
+		_patch(fallen, Vector3(1.0, 0.0, 0.0), 4.5, 1200)
 	for i: int in frames:
 		host.step(1)
 		view.render(1.0 / 60.0)
@@ -252,10 +256,10 @@ func _duel(petals: bool, frames: int) -> Array:
 
 
 func test_the_match_view_stirs_the_floor_and_a_new_match_clears_it() -> void:
-	var got: Array = _duel(true, 1500)
+	var got: Array = _duel(true, 1500, true)
 	var view: MatchView = got[1]
 	var fallen := view.arena.get_node("FallenPetals") as ShrineFallenPetals
-	assert_gt(fallen.count(), 0, "petals falling and lying in the arena")
+	assert_gt(fallen.count(), 0, "petals lying in the arena")
 	assert_gt(fallen.stirred_count(), 0, "the fighters stirred them")
 	view.host.start(view.host.config)
 	assert_eq(fallen.count(), 0, "a new match: a clean floor")

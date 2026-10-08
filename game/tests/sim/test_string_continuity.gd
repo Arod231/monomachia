@@ -94,6 +94,25 @@ func test_every_follow_up_starts_where_the_move_before_it_ends() -> void:
 		assert_eq(_breaks(Moves.WEAPONS[w].moves, Moves.WEAPONS[w]), [] as Array[String], String(w))
 
 
+# Into and out of the two-handed heavy pair (KE task 17): Heaven Splitter,
+# an overhead from the centre, follows every two-handed hit; Rising Heaven
+# rises from the centre of its crouch (and from the vertical Iai's end) to
+# the right, and nothing follows it.
+func test_the_two_handed_heavy_pair_flows_in_and_out() -> void:
+	var w: WeaponDef = Moves.KATANA
+	var splitter: AttackDef = w.moves[&"k_h2"]
+	var rising: AttackDef = w.moves[&"k_h1f"]
+	var two: WeaponGrip = w.grip(WeaponGrip.TWO_HANDED)
+	assert_eq(two.heavy, &"k_h2")
+	for id: StringName in two.string:
+		assert_true(_follow_ups(w.moves[id], w).has(&"k_h2"), "%s branches into Heaven Splitter" % id)
+	assert_eq([splitter.side_start, splitter.side_end], [&"centre", &"centre"], "straight down the centre")
+	assert_eq(splitter.chain_heavy, &"k_h1f")
+	assert_eq(two.draw_heavy, &"k_h1f", "the vertical Iai's heavy follow-up too")
+	assert_eq([rising.side_start, rising.side_end], [&"centre", &"right"], "up from the crouch to the right")
+	assert_eq([rising.chain_light, rising.chain_heavy], [&"", &""], "the pair ends there")
+
+
 ## KE task 15: a mixed string flows across the grips, one-handed hit n into
 ## two-handed hit n+1 and back, each pair starting where the hit before ends.
 func test_every_mixed_pair_starts_where_the_hit_before_ends() -> void:

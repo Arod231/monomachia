@@ -41,8 +41,8 @@
 	"transitions": {
 		"bridges": {
 			"k_l2": {"k_l1": "RightCutToReturnCut"}, "k_l3": {"k_l2": "ReturnCutToKesaCut"}, "k_l4": {"k_l3": "KesaCutToCrownCut"},
-			"k_1l2": {"k_1l1": "SlantingCutToBackhandRise"}, "k_1l3": {"k_1l2": "BackhandRiseToTwistingRise"}, "k_1l5": {"k_1l4": "LevelCutToCrouchingCrown"},
-			"k_2l3": {"k_2l2": "LeftRiseToRightRise"}, "k_2l4": {"k_2l3": "RightRiseToSecondSlant"}, "k_2l5": {"k_2l4": "SecondSlantToKneelingCrown"}
+			"k_1l2": {"k_1l1": "SlantingCutToBackhandRise"}, "k_1l3": {"k_1l2": "BackhandRiseToTwistingRise", "k_iai_h": "IaiDrawHorizontalToTwistingRise"}, "k_1l5": {"k_1l4": "LevelCutToCrouchingCrown"},
+			"k_2l3": {"k_2l2": "LeftRiseToRightRise", "k_iai_h": "IaiDrawHorizontalToRightRise"}, "k_2l4": {"k_2l3": "RightRiseToSecondSlant"}, "k_2l5": {"k_2l4": "SecondSlantToKneelingCrown"}
 		},
 		"returns": {
 			"k_l1": "RightCutToGuard", "k_l2": "ReturnCutToGuard", "k_l3": "KesaCutToGuard", "k_l4": "CrownCutToGuard",
@@ -77,7 +77,7 @@
 	"own_speed": {"HitLightHighFront": "hand_on", "HitLightLowFront": "hand_on", "HitLightHighLeft": "hand_on", "HitLightLowLeft": "hand_on", "HitLightHighRight": "hand_on", "HitLightLowRight": "hand_on", "HitLightHighBack": "hand_on", "HitLightLowBack": "hand_on", "BlockLightKatana": "hand_on", "JumpKatana": "hand_on", "JumpFists": "hand_on", "LandKatana": "hand_on", "LandFists": "hand_on"},
 	"grips": {
 		"katana": {
-			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise", "TwistingRise", "LevelCut", "SlantingCutToBackhandRise", "BackhandRiseToTwistingRise", "SlantingCutToGuard1H", "BackhandRiseToGuard1H", "TwistingRiseToGuard1H", "LevelCutToGuard1H", "CrouchingCrownToGuard1H"]},
+			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise", "TwistingRise", "LevelCut", "SlantingCutToBackhandRise", "BackhandRiseToTwistingRise", "SlantingCutToGuard1H", "BackhandRiseToGuard1H", "TwistingRiseToGuard1H", "LevelCutToGuard1H", "CrouchingCrownToGuard1H", "CrescentCoil", "CrescentCoilHold", "IaiStance", "IaiStanceHold", "IaiDrawVertical", "IaiDrawHorizontal", "IaiResheatheVertical", "IaiResheatheHorizontal", "ReturningDraw", "IaiDrawHorizontalToTwistingRise"]},
 			"two_handed": {"idle": "KatanaGuard", "guard": ["KatanaBlockLoop", "KatanaBlockHit"], "carry": "KatanaGuard"},
 			"regrip": {"one_handed": "KatanaRegripTo1H", "two_handed": "KatanaRegripTo2H"}
 		}

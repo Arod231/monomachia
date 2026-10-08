@@ -1,0 +1,113 @@
+{
+	"about": "Rising Heaven (katana.k_h1f), Heaven Splitter's follow-up (KE task 17), Elden Ring's: it rises out of Heaven Splitter's deep crouch (blended in from its frame 71, where the crouch has settled and the branch opens, over 18 frames), the blade drawn back and held low on the left (Attack2H01's second half, from source frame 26, as Left Rise starts; drawn back slowly, as the reference winds for about 0.65 s), then the rising cut from low on the left up through the front to high on the right, snapped through on frames 23-26, held raised, then back to the two-handed guard. From the vertical Iai the game hands off to it by inertial blending. Both hands on the handle; the back foot brought up under the hips, then a pushed-off leap carries the body up into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H01.fbx",
+	"out": "blender/clips/rising_heaven.blend",
+	"blend_from": {
+		"source": "blender/clips/heaven_splitter.blend",
+		"frame": 71,
+		"frames": 18
+	},
+	"remap": [
+		[
+			0,
+			26
+		],
+		[
+			20,
+			30
+		],
+		[
+			23,
+			32
+		],
+		[
+			26,
+			39
+		],
+		[
+			30,
+			44
+		],
+		[
+			46,
+			48
+		]
+	],
+	"two_hands": {
+		"grip": 0.13,
+		"hold": [
+			0.32,
+			0.12
+		],
+		"square": 0,
+		"clearance": 0.08
+	},
+	"step": {
+		"body": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				0
+			],
+			[
+				12,
+				0.45
+			],
+			[
+				18,
+				0.55
+			],
+			[
+				21,
+				0.85
+			],
+			[
+				23,
+				1.05
+			],
+			[
+				25,
+				1.45
+			],
+			[
+				27,
+				1.55
+			],
+			[
+				30,
+				1.6
+			],
+			[
+				46,
+				1.6
+			]
+		],
+		"feet": {
+			"L": [
+				[
+					18,
+					26,
+					1.6,
+					0.2
+				]
+			],
+			"R": [
+				[
+					3,
+					12,
+					0.8,
+					0.16
+				],
+				[
+					21,
+					26,
+					0.8,
+					0.16
+				]
+			]
+		}
+	}
+}
