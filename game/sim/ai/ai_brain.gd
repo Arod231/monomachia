@@ -181,6 +181,17 @@ const DODGE_ATTACK_FROM: float = 1.75
 const BACK_LIGHT_FROM: float = 2.5
 const BACK_HEAVY_FROM: float = 4.0
 const DODGE_IN: float = 4.0
+## An armed computer's clip-led sprint attacks (the Katana's, milestone-1
+## task 75), which keep none of the run's speed and close by their own leap
+## or lunge until the bodies meet: thrown from SPRINT_FROM out (centre to
+## centre; the duelling distance, 3.3 m, which their bands touch from), the
+## press SPRINT_LEAD frames into the sprint (about a metre closed), Leaping Cleave from SPRINT_HEAVY_FROM out (it touches from 5.8 m
+## standing, Running Draw from 4.8 m) or now and then from closer, Running
+## Draw otherwise.
+const SPRINT_FROM: float = 3.2
+const SPRINT_LEAD: int = 10
+const SPRINT_HEAVY_FROM: float = 4.8
+const SPRINT_HEAVY_CLOSER: float = 0.35
 
 var rng: Rng
 var _taps: Array[Tap] = []
@@ -545,6 +556,29 @@ func _parry_tap(window: int, frame: int, impact: int) -> void:
 	_set_plan(&"parry", impact + 4)
 
 
+## Whether weapon `w`'s sprint attacks are led by their clips (re-keyed,
+## milestone-1 task 75: the Katana's), so they're thrown by distance.
+static func sprint_led_by_clip(w: WeaponDef) -> bool:
+	var m: AttackDef = w.moves.get(w.sprint_light)
+	return m != null and m.by_travel
+
+
+## The nearest (m, centre to centre) the computer sprints in from with
+## weapon `w`: a clip-led sprint attack's SPRINT_FROM, else mid range.
+static func sprint_from(w: WeaponDef) -> float:
+	return SPRINT_FROM if sprint_led_by_clip(w) else 4.5
+
+
+## Whether a sprint in from `d` m with weapon `w` ends in its light: a
+## clip-led one's by distance (Leaping Cleave from SPRINT_HEAVY_FROM out, or
+## from closer when `closer` came up, SPRINT_HEAVY_CLOSER of the time),
+## another weapon's when `coin` came up (60% of the time).
+static func sprint_light(w: WeaponDef, d: float, closer: bool, coin: bool) -> bool:
+	if sprint_led_by_clip(w):
+		return not (d > SPRINT_HEAVY_FROM or closer)
+	return coin
+
+
 ## Whether the computer answers an attack `def` started `d` m away (centre to
 ## centre): within its reach (AttackDef.reach(), its swing's once it has one;
 ## task 7.13), a fighter's radius, its lunge (or for a move led by its clip
@@ -759,12 +793,15 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 			_counter_evade = true
 			_attack_cooldown_until = frame + 50
 			return _output(frame)
-		# sprint attack from mid range
-		if d > 4.5 and d < 7.5 and rng.chance(0.03 * P.aggression):
+		# sprint attack from mid range: a clip-led one (the Katana's, task 75)
+		# from nearer in, by distance; another weapon's light or heavy by chance
+		var led: bool = sprint_led_by_clip(me.moveset())
+		if d > sprint_from(me.moveset()) and d < 7.5 and rng.chance(0.03 * P.aggression):
 			_hold_mask |= 1 << Btn.SPRINT
 			_move_x = 0.0
 			_move_y = 1.0
-			_tap(Btn.LIGHT if rng.chance(0.6) else Btn.HEAVY, frame + 16, 2)
+			var light: bool = sprint_light(me.moveset(), d, rng.chance(SPRINT_HEAVY_CLOSER) if led else false, rng.chance(0.6) if not led else false)
+			_tap(Btn.LIGHT if light else Btn.HEAVY, frame + (SPRINT_LEAD if led else 16), 2)
 			_attack_cooldown_until = frame + 50
 			_next_think = frame + 18
 			return _output(frame)

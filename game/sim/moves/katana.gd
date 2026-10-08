@@ -158,12 +158,12 @@ const MOVES: Dictionary = {
 	&"k_sl": {
 		"id": &"k_sl", "name": "Running Draw", "kind": &"light", "type": &"slash", "anim": &"drawCut",
 		"damage": 8, "posture": 9, "knockback": 0.5,
-		"range": 2.3, "arc": 100, "lunge": 1.7, "lunge_end": 15,
+		"range": 2.3, "arc": 100,
 	},
 	&"k_sh": {
 		"id": &"k_sh", "name": "Leaping Cleave", "kind": &"heavy", "type": &"overhead", "anim": &"leapCleave",
 		"damage": 15, "posture": 18, "knockback": 1.2,
-		"range": 2.4, "arc": 70, "lunge": 2.9, "lunge_start": 4, "lunge_end": 22, "hop": 5,
+		"range": 2.4, "arc": 70,
 	},
 	&"k_dl": {
 		"id": &"k_dl", "name": "Wind Cut", "kind": &"light", "type": &"slash", "anim": &"slashRL",

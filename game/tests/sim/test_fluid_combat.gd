@@ -249,8 +249,9 @@ func test_a_jump_attack_keeps_all_its_speed() -> void:
 
 
 func test_a_hop_attack_keeps_all_its_speed() -> void:
-	# Leaping Cleave, the Katana's sprint heavy, hops forward
-	var s: FighterSteps = _record(Moves.KATANA, 10.0, 40, func(i: int) -> RawInput:
+	# Leaping Cleave, the Katana's sprint heavy, hopped forward as a stand-in
+	# (its re-key, task 75, leaps by its clip's travel instead)
+	var s: FighterSteps = _record(SF.stand_ins(&"katana", [&"k_sh"] as Array[StringName]), 10.0, 40, func(i: int) -> RawInput:
 		return H.move(0.0, 1.0, Btn.SPRINT, Btn.HEAVY) if i == 30 else H.move(0.0, 1.0, Btn.SPRINT))
 	var i: int = s.start_of(&"k_sh")
 	assert_eq(i, 30, "Leaping Cleave starts on the press")
@@ -310,6 +311,8 @@ const OWN_HITSTUN: Dictionary[StringName, int] = {
 	&"k_l1": 24, &"k_l2": 24, &"k_l3": 24, &"k_l4": 24, &"k_1l1": 24, &"k_1l2": 24, &"k_1l3": 24, &"k_1l4": 24, &"k_1l5": 24, &"k_2l1": 24, &"k_2l2": 24, &"k_2l3": 24, &"k_2l4": 24, &"k_2l5": 24,
 	# bare hands' re-keyed movement lights take the retuned timings (tasks 93, 94)
 	&"f_sl": 18, &"f_dl": 18, &"f_bl": 18, &"f_jl": 18,
+	# and the Katana's (task 75)
+	&"k_sl": 24,
 }
 
 
