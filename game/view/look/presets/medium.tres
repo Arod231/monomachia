@@ -24,6 +24,7 @@ global_illumination = false
 petal_lights = true
 minor_decals = false
 particle_ratio = 1.0
+floor_petal_ratio = 0.6
 minor_lights = true
 scenery_detail = 2
 spark_light = false

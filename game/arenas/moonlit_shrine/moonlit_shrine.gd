@@ -23,7 +23,10 @@ extends Node3D
 ## Its builders: ShrinePlatform (the courtyard and its props, the wisteria
 ## among them: ShrineWisteria), ShrineUnderside
 ## (the rock under it and the floating rocks), ShrineBackdrop (the world round
-## it) and ShrineParticles (the embers and ash on the wind).
+## it) and ShrineParticles (the embers and ash on the wind); and its fallen
+## petals (ShrineFallenPetals, milestone-1 task 137), which the match view
+## stirs each drawn frame (stir_floor()) and clears at a new match
+## (clear_floor()).
 
 ## The highest camera (m above the floor) that leaves out the rock under the
 ## rim: from there and inside the camera's limit (def.camera_max_radius),
@@ -50,6 +53,7 @@ const DUST_AMOUNT: int = 700
 var _lantern_lights: Array[OmniLight3D] = []
 var _floating_rocks: Node3D
 var _wisteria: Node3D
+var _fallen: ShrineFallenPetals
 ## How far the wisteria have turned blood red for match point (0..1), and
 ## where they're heading.
 var _doom: float = 0.0
@@ -72,6 +76,8 @@ func _process(delta: float) -> void:
 		if _doom != _doom_target:
 			_doom = move_toward(_doom, _doom_target, delta / DOOM_FADE)
 			ShrineWisteria.set_doom(_wisteria, _doom)
+			_fallen.set_doom(_doom)
+	advance_floor(delta)
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera != null:
 		cull_below_deck(camera)
@@ -127,6 +133,8 @@ func _build() -> void:
 	add_child(ShrineParticles.build(layout, ShrinePlatform.fire_points(layout)))
 	add_child(_ground_mist())
 	add_child(_dust())
+	_fallen = ShrineFallenPetals.build(layout, def)
+	add_child(_fallen)
 	quiet_backdrop(self)
 	_add_markers()
 
@@ -312,6 +320,23 @@ func set_match_point(on: bool) -> void:
 		_doom = 0.0
 		if _wisteria != null:
 			ShrineWisteria.set_doom(_wisteria, 0.0)
+		_fallen.set_doom(0.0)
+
+
+## Takes what stirred the floor on a drawn frame (FloorStir, from the match
+## view): the fallen petals take it at their next step.
+func stir_floor(stir: FloorStir) -> void:
+	_fallen.stir(stir)
+
+
+## Steps the fallen petals on by dt seconds (every frame, from _process()).
+func advance_floor(dt: float) -> void:
+	_fallen.advance(dt)
+
+
+## A clean floor for a new match.
+func clear_floor() -> void:
+	_fallen.clear()
 
 
 ## How far the wisteria have turned blood red (0..1).

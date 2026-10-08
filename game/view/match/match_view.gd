@@ -35,6 +35,12 @@ extends Node3D
 ## SwingDebugView draws the hurt capsules, the blades' sweeps and where each
 ## outcome landed over the match (task 7.15).
 ##
+## An arena whose floor reacts (the Shrine's fallen petals, milestone-1
+## task 137) is stirred every drawn frame by what the fighters do to it
+## (FloorStirrer: their steps, rolls, low swings, landings, falls and blows;
+## the arena's stir_floor()) and cleared at a new match (clear_floor());
+## picture only.
+##
 ## Reduce flashes and shaking (task 18.11) follows the player's settings at
 ## match start and whenever they change (apply_reduce_flashes()): the
 ## camera's shake scaled to REDUCED_SHAKE, no field-of-view kicks or
@@ -132,6 +138,9 @@ var blood: BloodEffects
 ## The shot director (milestone-1 task 97): chooses and plays the cinematic
 ## shots.
 var shots: ShotDirector = ShotDirector.new()
+## What the fighters do to the arena's floor each drawn frame (milestone-1
+## task 137).
+var floor_stirrer: FloorStirrer = FloorStirrer.new()
 ## The realistic look's light film grain over the match (milestone-1 task
 ## 43), over both halves of a split screen and under the HUD.
 var grain: FilmGrain
@@ -264,6 +273,7 @@ func render(delta: float) -> void:
 	_update_dropped()
 	_feed_smears()
 	_feed_auras()
+	_stir_floor(delta)
 	effects.update(effects.clock())
 	blood.update(effects.clock())
 	for cam: CameraRig in cameras:
@@ -331,6 +341,19 @@ func _feed_auras() -> void:
 	moon_waves.shed(effects, host.world)
 
 
+## Hands the arena what the fighters did to its floor this frame (an arena
+## whose floor reacts; FloorStirrer).
+func _stir_floor(delta: float) -> void:
+	if arena == null or not arena.has_method(&"stir_floor"):
+		return
+	var sides: Array[Dictionary] = []
+	for i: int in fighters.size():
+		var f: Fighter = host.fighter(i)
+		sides.append({"at": host.display_position(i), "state": f.state, "phase": f.knockdown_phase(),
+			"blades": fighters[i].blade_segments()})
+	arena.call(&"stir_floor", floor_stirrer.frame(delta, sides))
+
+
 ## True when side `side`'s footsteps fall where its clips land its feet
 ## (reported as footfalls) rather than by the stride count: the view is
 ## keeping up with it (drawn within FOOTFALL_LAG rules frames; a match
@@ -351,6 +374,9 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	_load_arena(cfg.arena_id)
 	_round_wins = [0, 0]
 	_tell_arena_match_point(false)
+	floor_stirrer.reset()
+	if arena.has_method(&"clear_floor"):
+		arena.call(&"clear_floor")
 	while fighters.size() < 2:
 		var f: FighterView = FighterView.new()
 		f.name = "Fighter%d" % fighters.size()
@@ -601,6 +627,7 @@ func _on_sim_event(e: Dictionary) -> void:
 	if EffectTable.has(e["t"]):
 		effects.on_event(e, host.world.frame)
 	blood.on_event(e, effects.clock())
+	floor_stirrer.on_event(e, host.display_position)
 	var asked: Dictionary = shots.on_event(e, host.world)
 	if asked.has("push_in"):
 		_push_in(float(asked["push_in"]))
