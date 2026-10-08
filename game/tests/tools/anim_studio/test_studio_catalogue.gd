@@ -135,6 +135,10 @@ func test_state_entries_play_the_tables_clips() -> void:
 	assert_null(cat.find(&"state", &"deflect_k_l1"), "and the frozen table has no deflect pairs")
 	var live: StudioCatalogue = StudioCatalogue.build(_manifest, _table, StateClips.read(), _keyed())
 	assert_eq(live.find(&"state", &"deflect_k_l1").clips, ["RightCutDeflect", "RightCutRecoil"] as Array[String], "a deflect pair: the deflect and the recoil")
+	# milestone-1 task 90
+	assert_eq(live.find(&"state", &"deflect_redirect").clips, ["RedirectDeflect", "RedirectRecoil"] as Array[String], "the redirect's pair")
+	assert_eq(live.find(&"state", &"deflect_foot_low").clips, ["LimbDeflectLow", "FootRecoil"] as Array[String], "a blade's low deflect at a foot")
+	assert_eq(live.find(&"state", &"deflect_fist_high").clips, ["LimbDeflectHigh", "FistRecoil"] as Array[String], "and its high one at a fist")
 	assert_eq(cat.find(&"ult", &"tempest").clips, ["ual/Sword_Aerial_Combo", "AttackDW02"] as Array[String], "the tempest's spin and final")
 	assert_eq(cat.find(&"ult", &"moonsplitter_horizontal").clips, ["MoonsplitterStance", "MoonsplitterDrawHorizontal"] as Array[String], "a moonsplitter variant: the stance, then its draw")
 

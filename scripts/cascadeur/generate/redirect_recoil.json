@@ -1,0 +1,176 @@
+{
+	"about": "The redirect's recoil (milestone-1 task 90), made in Cascadeur: the attacker's half of the redirect's one pair, played from its contact frame (15) for every redirected armed attack, blended in from its own pose. Right Cut up to its contact, where the redirecter's hand meets its right wrist, then pulled through: its follow-through played half as fast again (source 15-24 over 6 frames), the torso twisting on after the blade and pitching forward off balance, as the rules knock the fighter back 0.35 m and the feet shuffle back under it, the lead foot stepping 0.6 m back to catch its balance by 25; the redirect's stun (Stun01) takes over at its end (13 source frames from the contact, the parry recoil's 26 rules frames). The feet re-planted as Right Cut's step plants them up to its contact. Cascadeur's AI inbetweening generates every frame but the key poses. Picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/right_cut.blend",
+	"out": "blender/cascadeur/redirect_recoil_keys.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			14,
+			14
+		],
+		[
+			15,
+			15
+		],
+		[
+			21,
+			24
+		],
+		[
+			28,
+			27
+		]
+	],
+	"step": {
+		"body": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				0
+			],
+			[
+				9,
+				0.2
+			],
+			[
+				10,
+				0.269
+			],
+			[
+				10.5,
+				0.344
+			],
+			[
+				11,
+				0.419
+			],
+			[
+				12,
+				0.568
+			],
+			[
+				13,
+				0.718
+			],
+			[
+				14,
+				0.868
+			],
+			[
+				15,
+				1.018
+			],
+			[
+				17,
+				0.82
+			],
+			[
+				19,
+				0.668
+			],
+			[
+				28,
+				0.668
+			]
+		],
+		"feet": {
+			"L": [
+				[
+					10,
+					15,
+					1.268,
+					0.2
+				],
+				[
+					15.5,
+					20.5,
+					-0.6,
+					0.14
+				]
+			],
+			"R": [
+				[
+					3,
+					9,
+					0.45,
+					0.16
+				],
+				[
+					11,
+					15.5,
+					0.3,
+					0.2
+				],
+				[
+					19,
+					23,
+					-0.082,
+					0.1
+				]
+			]
+		},
+		"hips_keep": 1
+	},
+	"pose": [
+		{
+			"frame": 18,
+			"turn": [
+				[
+					"B-spine",
+					"up",
+					12
+				],
+				[
+					"B-chest",
+					"right",
+					10
+				]
+			]
+		},
+		{
+			"frame": 21,
+			"turn": [
+				[
+					"B-spine",
+					"up",
+					18
+				],
+				[
+					"B-chest",
+					"right",
+					16
+				]
+			]
+		},
+		{
+			"frame": 25,
+			"turn": [
+				[
+					"B-spine",
+					"up",
+					10
+				],
+				[
+					"B-chest",
+					"right",
+					10
+				]
+			]
+		}
+	],
+	"keys": [
+		0,
+		15,
+		18,
+		21,
+		25,
+		28
+	],
+	"clip": "blender/clips/redirect_recoil.blend"
+}

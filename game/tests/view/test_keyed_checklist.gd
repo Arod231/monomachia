@@ -17,10 +17,14 @@ extends GutTest
 ##   all three, milestone-1 task 95);
 ## - 15, the computer uses it and answers it (seeded Hard duels).
 ## Reads committed data and runs the rules, so it runs on CI. Every keyed
-## move must pass, but a keyed move outside the strings (Breaker Palm, task
-## 99) has its reactions (12) and its contacts' sound and effects (13, 14)
+## move must pass, but a keyed bare-hands move outside the movement attacks
+## (Breaker Palm, task 99; the light string, task 89; the heavies, task 133)
+## has its reactions (12) and its contacts' sound and effects (13, 14)
 ## recorded for its family's review, not held: bare hands' reactions and
-## the redirect's deflect pair are tasks 69's and 90's. Bare hands' eight
+## the redirect's deflect pair are tasks 69's and 90's. Bare hands' string
+## starts and ends in its guard and hands on by the inertial blend, with no
+## bridge or return to guard (task 89, the owner's word), and is played
+## across bare hands' duelling distance. Bare hands' eight
 ## movement attacks have their sound and effects held since task 95 (a
 ## parried fist meets no steel, so sounds no deflect pair); a jump attack
 ## is played out of a jump, close, and a dodge attack from where its roll
@@ -114,6 +118,8 @@ static func _jumps(wid: StringName, id: StringName) -> bool:
 
 ## The gap keyed move `id` of weapon `wid` is played across.
 static func _gap(wid: StringName, id: StringName) -> float:
+	if wid == &"fists" and _of_string([wid, id]):
+		return Moves.FISTS.duel_distance
 	if _jumps(wid, id):
 		return JUMP_GAP
 	if String(FrameDataTable.shared().row(wid, id).get("kind", "")).begins_with("dodge_"):
@@ -126,6 +132,14 @@ static func _gap(wid: StringName, id: StringName) -> float:
 ## guard, and whose reactions are held.
 static func _of_string(m: Array) -> bool:
 	return String(FrameDataTable.shared().row(m[0], m[1]).get("kind", "")).begins_with("string_")
+
+
+## Whether keyed move `m` is held to a string's bridge, return to guard,
+## reactions, sound and effects: the Katana's string moves (bare hands'
+## string hands on by the inertial blend, its reactions and impacts tasks
+## 69's, 90's and 91's).
+static func _held(m: Array) -> bool:
+	return _of_string(m) and m[0] == &"katana"
 
 
 static func _first(events: Array[Dictionary], t: StringName, id: StringName) -> Dictionary:
@@ -192,13 +206,21 @@ func test_every_clip_row_plays_at_1x() -> void:
 		ChecklistResults.record_clips(4, row, by_clip)
 		for clip: Variant in by_clip:
 			assert_eq(by_clip[clip], [] as Array[String], str(clip))
-	# the deflect pairs: each half from its contact frame, a rules frame a
-	# 60th of a second on
-	var by_pair: Dictionary = {}
+	# the deflect pairs (the lights', the redirect's and a blade's at a limb:
+	# milestone-1 tasks 34 and 90): each half from its contact frame, a rules
+	# frame a 60th of a second on
 	var W: World = H.make_world()
 	var f: Fighter = W.fighters[0]
-	for move: StringName in sc.deflect_pairs:
-		var pair: Dictionary = sc.deflect_pairs[move]
+	var pair_rows: Dictionary[StringName, Array] = ChecklistResults.pair_rows()
+	for row: StringName in pair_rows:
+		_record_pairs_at_1x(row, pair_rows[row], f)
+
+
+## Item 4 for deflect pair row `row`: each of `pairs`' halves played by `f`
+## from its contact frame at 1.0x, recorded and held.
+func _record_pairs_at_1x(row: StringName, pairs: Array, f: Fighter) -> void:
+	var by_pair: Dictionary = {}
+	for pair: Dictionary in pairs:
 		var ctx: ClipDirector.Context = _ctx([pair[&"deflect"], pair[&"recoil"]])
 		for half: Array in [[&"recoil", &"recoil"], [&"deflect", &"parryAnim"]]:
 			var problems: Array[String] = []
@@ -216,7 +238,7 @@ func test_every_clip_row_plays_at_1x() -> void:
 				prev.since = k
 				prev.pair = pair
 			by_pair[pair[half[0]]] = problems
-	ChecklistResults.record_clips(4, &"clip_deflect_light", by_pair)
+	ChecklistResults.record_clips(4, row, by_pair)
 	for clip: Variant in by_pair:
 		assert_eq(by_pair[clip], [] as Array[String], str(clip))
 
@@ -240,15 +262,18 @@ func test_every_clip_row_s_fit_to_its_protected_frames_is_recorded() -> void:
 			var settle: float = manifest.clips[clip].markers["settle"] * MoveClips.RULES_PER_SOURCE
 			by_clip[clip] = [] if absf(settle - frames[row]) <= 1.0 else ["settles on rules frame %d of its %d" % [settle, frames[row]]]
 		ChecklistResults.record_clips(3, row, by_clip)
-	var by_pair: Dictionary = {}
-	for move: StringName in sc.deflect_pairs:
-		var pair: Dictionary = sc.deflect_pairs[move]
-		var clip: StringName = pair[&"recoil"]
-		var after: float = (manifest.clips[clip].markers["settle"] - float(pair[&"recoil_contact"])) * MoveClips.RULES_PER_SOURCE
-		var want: int = SimConst.PARRY_RECOIL
-		by_pair[clip] = [] if absf(after - want) <= 1.0 else ["settles %d rules frames after its contact, the parry recoil %d" % [after, want]]
-	ChecklistResults.record_clips(3, &"clip_deflect_light", by_pair)
-	assert_eq(by_pair.size(), sc.deflect_pairs.size(), "every pair's recoil measured")
+	# each pair row's recoils (the redirect's, before Stun01 takes over the
+	# rest of its stun, and the limbs' fit the parry recoil too: task 90)
+	var pair_rows: Dictionary[StringName, Array] = ChecklistResults.pair_rows()
+	for row: StringName in pair_rows:
+		var by_pair: Dictionary = {}
+		for pair: Dictionary in pair_rows[row]:
+			var clip: StringName = pair[&"recoil"]
+			var after: float = (manifest.clips[clip].markers["settle"] - float(pair[&"recoil_contact"])) * MoveClips.RULES_PER_SOURCE
+			var want: int = SimConst.PARRY_RECOIL
+			by_pair[clip] = [] if absf(after - want) <= 1.0 else ["settles %d rules frames after its contact, the parry recoil %d" % [after, want]]
+		ChecklistResults.record_clips(3, row, by_pair)
+	assert_eq(pair_rows[&"clip_deflect_light"].size(), sc.deflect_pairs.size(), "every light pair's recoil measured")
 
 
 # ------------------------------------------------------------------ items 11 and 12
@@ -272,12 +297,12 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 			if b.begins_with(String(id) + " ") or b.contains(" " + String(id) + ","):
 				hand_off.append(b)
 		for before: StringName in w.moves:
-			if (w.moves[before] as AttackDef).chain_light == id and ChecklistResults.keyed_moves().has([m[0], before]) \
+			if _held(m) and (w.moves[before] as AttackDef).chain_light == id and ChecklistResults.keyed_moves().has([m[0], before]) \
 					and not (sc.bridges.get(id, {}) as Dictionary).has(before):
 				hand_off.append("no bridge from %s" % before)
 		# a string's moves return to guard on a clip of their own; any other
 		# hands on by the inertial blend
-		if _of_string(m) and not sc.returns.has(id):
+		if _held(m) and not sc.returns.has(id):
 			hand_off.append("no return to guard")
 		ChecklistResults.record_problems(11, id, hand_off)
 		assert_eq(_due(hand_off, id), [] as Array[String], "%s hands off" % id)
@@ -290,7 +315,7 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 			if not (sc.light_hits.get(w.id, {}) as Dictionary).has(StringName(place)):
 				reactions.append("no light hit reaction %s" % place)
 		ChecklistResults.record_problems(12, id, reactions)
-		if _of_string(m):
+		if _held(m):
 			assert_eq(_due(reactions, id), [] as Array[String], "%s's reactions" % id)
 
 
@@ -333,7 +358,7 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 			effects.append("its strike leaves no air smear")
 		ChecklistResults.record_problems(13, id, sound)
 		ChecklistResults.record_problems(14, id, effects)
-		if _of_string(m) or MOVEMENT_ATTACKS.has(id):
+		if _held(m) or MOVEMENT_ATTACKS.has(id):
 			assert_eq(_due(sound, id), [] as Array[String], "%s's sound" % id)
 			assert_eq(effects, [] as Array[String], "%s's effects" % id)
 
@@ -424,7 +449,11 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 		# strings seldom get past hit 3
 		# the pilot's Right Cut and Return Cut are in neither grip's string
 		# since KE task 13, so no computer plays them: recorded, not held
-		if not _late_hit(id) and not OUT_OF_PLAY.has(id):
+		# a move the defender is seldom free and in reach to answer has its
+		# answers recorded, not held, only its use
+		if SELDOM_ANSWERABLE.has(id):
+			assert_gt(used.get(id, 0), 0, "%s: used" % id)
+		elif not _late_hit(id) and not OUT_OF_PLAY.has(id):
 			assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
 	gut.p("used: %s
 answered: %s" % [used, answered])
@@ -448,8 +477,40 @@ static func _duel(W: World, brains: Array[AIBrain], steps: int, used: Dictionary
 		b.dispose()
 
 
+## Whether each of `pairs`' halves hands on (item 11), played by `f`: the
+## recoil once the guard is back up, the deflect once the parrier moves off;
+## problems by clip.
+func _pairs_hand_on(pairs: Array, f: Fighter) -> Dictionary:
+	var hand: Dictionary = {}
+	for pair: Dictionary in pairs:
+		var ctx: ClipDirector.Context = _ctx([pair[&"deflect"], pair[&"recoil"]])
+		f.vel = V3.make()
+		f.set_state(&"recoil", 30)
+		f.blocking = true
+		var recoil_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
+		f.blocking = false
+		f.set_state(&"free", 0)
+		f.vel = V3.make(1.0, 0.0, 0.0)
+		var deflect_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
+		f.vel = V3.make()
+		hand[pair[&"recoil"]] = [] if recoil_ends else ["plays on with the guard back up"]
+		hand[pair[&"deflect"]] = [] if deflect_ends else ["plays on with the parrier moving off"]
+	return hand
+
+
 ## The pilot's lights no grip's string plays since KE task 13.
 const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
+
+
+## Bare hands' moves that seldom meet a defender free to answer them (task
+## 133, measured over 90 bare and 80 disarmed duels): Spinning Heel comes
+## mostly as the Roundhouse's follow-up, after its knockback has carried the
+## defender out of reach (60 of 78 starts) or while they are still in
+## hitstun, mid-dodge or mid-attack (the computer picks its answer on an
+## attack's first frame), and was never parried; Snap Kick counters out of a
+## backstep, the defender dodging or attacking, and was parried 3 times in
+## 68 duels.
+const SELDOM_ANSWERABLE: Array[StringName] = [&"f_h2", &"f_bl"]
 
 
 ## Whether keyed move `id` is hit 4 or 5 of a grip's own string.
@@ -489,26 +550,22 @@ func test_every_clip_row_hands_off_sounds_and_shows_its_contact() -> void:
 		ChecklistResults.record_clips(14, row, shown)
 		for clip: Variant in hand:
 			assert_eq(hand[clip] + sound[clip] + shown[clip], [], "%s" % clip)
-	# the deflect pairs
+	# the deflect pairs: each hands on (11) as the lights' do; the lights'
+	# sound and sparks (13, 14), the redirect's and a parried limb's sound
+	# and effects being task 91's
 	var W: World = H.make_world()
 	var f: Fighter = W.fighters[0]
-	var hand: Dictionary = {}
+	var pair_rows: Dictionary[StringName, Array] = ChecklistResults.pair_rows()
+	for row: StringName in pair_rows:
+		if row != &"clip_deflect_light":
+			var handed: Dictionary = _pairs_hand_on(pair_rows[row], f)
+			ChecklistResults.record_clips(11, row, handed)
+			for clip: Variant in handed:
+				assert_eq(handed[clip], [], "%s" % clip)
+	var hand: Dictionary = _pairs_hand_on(pair_rows[&"clip_deflect_light"], f)
 	var sound: Dictionary = {}
 	var shown: Dictionary = {}
-	for move: StringName in sc.deflect_pairs:
-		var pair: Dictionary = sc.deflect_pairs[move]
-		var ctx: ClipDirector.Context = _ctx([pair[&"deflect"], pair[&"recoil"]])
-		f.vel = V3.make()
-		f.set_state(&"recoil", 30)
-		f.blocking = true
-		var recoil_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
-		f.blocking = false
-		f.set_state(&"free", 0)
-		f.vel = V3.make(1.0, 0.0, 0.0)
-		var deflect_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
-		f.vel = V3.make()
-		hand[pair[&"recoil"]] = [] if recoil_ends else ["plays on with the guard back up"]
-		hand[pair[&"deflect"]] = [] if deflect_ends else ["plays on with the parrier moving off"]
+	for pair: Dictionary in pair_rows[&"clip_deflect_light"]:
 		for half: StringName in [&"deflect", &"recoil"]:
 			var clip: StringName = pair[half]
 			sound[clip] = [] if not SoundBank.deflect_pair_cues(StringName(pair[&"direction"]), half).is_empty() else ["its half sounds nothing"]

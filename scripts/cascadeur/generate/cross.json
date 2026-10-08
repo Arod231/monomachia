@@ -1,0 +1,27 @@
+{
+	"about": "Cross (fists.f_l2, bare hands' second light), milestone-1 task 89, made in Cascadeur. The key poses come from AttackPunch02_R: the guard (frame 0) loads onto the rear foot over a longer wind-up (to 7), the rear hand driving out to full extension on frame 10 (20 rules frames from the press), active to 11, then drawn back into the guard by 20 (18 rules frames of recovery). The rear foot pivots and slides up behind the punch: the lead foot eases forward 0.22 m on 2-6 and the rear follows 0.32 m on 6.5-11, so the rear leg stays bent as the hips lean into the blow as the pack clip leans (the lean is not travel: the frame-data generator counts the hips' shift only with no foot planted), the hips dropping 5 cm through the reach (4-16); the rear foot settles 0.1 m back on 14-19 into the stance. The rear heel rises as the pack clip lifts it, the rear foot pivoting on its ball. Cascadeur's AI inbetweening generates every frame but the key poses. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackPunch02_R.fbx",
+	"out": "blender/cascadeur/cross_keys.blend",
+	"remap": [[0, 0], [7, 2], [10, 4], [11, 5], [13, 8], [20, 14]],
+	"step": {
+		"body": [[0, 0], [3.5, 0], [5.5, 0.051], [7.5, 0.11], [10, 0.176], [12.5, 0.22], [20, 0.22]],
+		"hips_top": 0.82,
+		"hips_home": [14, 20],
+		"feet": {
+			"L": [[2, 6, 0.22, 0.15]],
+			"R": [[6.5, 11, 0.32, 0.1], [14, 19, -0.1, 0.1]]
+		},
+		"hips_keep": 1,
+		"pivot": ["R"]
+	},
+	"lower": {
+		"drop": 0.05,
+		"bend": 0,
+		"from": 4,
+		"peak": 8,
+		"until": 10,
+		"to": 16
+	},
+	"keys": [0, 4, 7, 9, 10, 11, 14, 20],
+	"clip": "blender/clips/cross.blend"
+}

@@ -61,12 +61,14 @@ extends Node3D
 ## striking the fighter standing or guarding with a light then a heavy, and
 ## stun_reaction, the fighter's light into the opponent's Flash; and parry,
 ## task 27: the fighter's light parried by the opponent's block, pressed 3
-## frames before it lands, at the fighter's duelling distance; knockdown,
+## frames before it lands, at the fighter's duelling distance, and redirect,
+## milestone-1 task 90: the same, the opponent bare-handed; knockdown,
 ## task 28: the opponent's Greatsword slams the fighter down with Mountain
 ## Slam; ko_light and ko_heavy: the fighter on 1 HP, knocked out by the
 ## opponent's Right Cut or heavy. A drive may name the opponent's weapon,
-## "defender_weapon", the fighter's HP, "hp", and "disarmed": true for
-## bare hands as the game plays them, disarmed, on the disarmed jump arc),
+## "defender_weapon", the fighter's HP, "hp", "disarmed": true for
+## bare hands as the game plays them, disarmed, on the disarmed jump arc, and
+## "redirect": true for the opponent disarmed),
 ## and lays out a strip of the chosen frames: the first, every --every=th
 ## (default the drive's own, else 4) and the last, each captioned with the
 ## speed, the way the legs travel, Locomotion's blend and the step phase,
@@ -368,6 +370,15 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 		"input": [[14, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [55, 0.0, 0.0, 0]],
 		"parry": 14,
 		"notes": "the fighter's first light (or --move's) after 14 frames, parried by the opponent's block pressed 3 frames before it lands: with the packs the deflect pair (milestone-1 task 34), the parrier's deflect and the attacker's recoil from the contact frame; without them the parrier's Parry Hit and the attacker's Stun01",
+		"views": [&"three_quarter", &"side"],
+		"spacing": 0.0,
+		"every": 2,
+	},
+	&"redirect": {
+		"input": [[14, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [55, 0.0, 0.0, 0]],
+		"parry": 14,
+		"redirect": true,
+		"notes": "the fighter's first light (or --move's) after 14 frames, redirected by the bare-handed opponent's block pressed 3 frames before it lands: with the packs the redirect's pair (milestone-1 task 90), the redirecter's deflect and the attacker's recoil (a bare-hand attack's its limb's) from the contact frame, then the redirect's stun",
 		"views": [&"three_quarter", &"side"],
 		"spacing": 0.0,
 		"every": 2,
@@ -1017,6 +1028,8 @@ func render_drive(drive_id: StringName) -> Image:
 		bench.attacker.hp = float(DRIVES[drive_id]["hp"])
 	if DRIVES[drive_id].get("disarmed", false):
 		bench.attacker.armed = false
+	if DRIVES[drive_id].get("redirect", false):
+		bench.defender.armed = false
 	_show_defender()
 	strip.clear()
 	var loco: Locomotion = bench.view.locomotion
@@ -1070,10 +1083,15 @@ func render_drive(drive_id: StringName) -> Image:
 			# the clip driving (a bridge or a return to guard among them, task 33)
 			lines[1] = "%s %.2f s · %s" % [String(shot.clip.name).get_file(), shot.clip.time, lines[1]]
 		if parried != &"":
-			# how far apart the two blades are (task 34: within 2 cm at contact)
+			# how far apart the two sides of the parry are (task 34: the blades
+			# within 2 cm at contact; task 90: a blade and a fist or a foot, a
+			# hand and a wrist)
 			var dshot: ClipDirector.Shot = defender_view.shot
-			lines[2] = "blades %.1f cm apart · %s %s · %s" % [blade_gap(bench.view, defender_view) * 100.0, dshot.phase if dshot != null else &"",
-				String(dshot.clip.name).get_file() if dshot != null and dshot.clip != null else "", lines[2]]
+			var redirect: bool = DRIVES[drive_id].get("redirect", false)
+			var what: String = "hand and wrist" if redirect else ("blade and %s" % ClipDirector.limb_of(parried) if ClipDirector.limb_of(parried) != &"" else "blades")
+			lines[2] = "%s %s · %s %.1f cm apart · %s" % [dshot.phase if dshot != null else &"",
+				String(dshot.clip.name).get_file() if dshot != null and dshot.clip != null else "", what,
+				contact_gap(bench.view, defender_view, parried, redirect) * 100.0, lines[2]]
 		strip.append(lines)
 		for view: StringName in views:
 			var label: Image = await _text_image(lines, [TEXT_COLOR, TEXT_COLOR, TEXT_COLOR],
@@ -1111,7 +1129,43 @@ static func blade_gap(a: FighterView, b: FighterView) -> float:
 	var sb: Array[PackedVector3Array] = b.blade_segments()
 	if sa.is_empty() or sb.is_empty():
 		return INF
-	var near: PackedVector3Array = Geometry3D.get_closest_points_between_segments(sa[0][0], sa[0][1], sb[0][0], sb[0][1])
+	return _segments_gap(sa[0], sb[0])
+
+
+## The least distance between the two sides of `attacker`'s move `move`
+## parried by `parrier`, as posed, in metres (INF with a side missing): their
+## blades (task 34); the parrier's blade and the attacker's striking fist or
+## foot (milestone-1 task 90, strike_part()); for a redirect, the
+## redirecter's lead (left) hand and the attacker's striking limb, or its
+## sword hand.
+static func contact_gap(attacker: FighterView, parrier: FighterView, move: StringName, redirect: bool) -> float:
+	var limb: StringName = strike_part(move)
+	var a: PackedVector3Array = attacker.limb_span(limb) if limb != &"" else attacker.limb_span(&"right_hand") if redirect else PackedVector3Array()
+	if a.is_empty() and not attacker.blade_segments().is_empty():
+		a = attacker.blade_segments()[0]
+	var b: PackedVector3Array = parrier.limb_span(&"left_hand") if redirect else PackedVector3Array()
+	if not redirect and not parrier.blade_segments().is_empty():
+		b = parrier.blade_segments()[0]
+	if a.size() < 2 or b.size() < 2:
+		return INF
+	return _segments_gap(a, b)
+
+
+## The fist, foot or knee bare-hand move `move` strikes with (its swing's
+## first limb part, a swing part such as &"left_hand"); empty for a weapon's
+## move.
+static func strike_part(move: StringName) -> StringName:
+	var def: AttackDef = Moves.FISTS.moves.get(move)
+	if def == null or def.swing == null:
+		return &""
+	for part: StringName in def.swing.parts():
+		if String(part).ends_with("_hand") or String(part).ends_with("_foot") or String(part).ends_with("_knee"):
+			return part
+	return &""
+
+
+static func _segments_gap(a: PackedVector3Array, b: PackedVector3Array) -> float:
+	var near: PackedVector3Array = Geometry3D.get_closest_points_between_segments(a[0], a[1], b[0], b[1])
 	return near[0].distance_to(near[1])
 
 

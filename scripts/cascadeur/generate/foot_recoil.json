@@ -1,0 +1,26 @@
+{
+	"about": "The foot recoil (milestone-1 task 90), made in Cascadeur: the parried attacker's half when a blade parries a foot or a knee, and when a bare-hand kick is redirected, played for every kick from frame 20, where the leg has been knocked down and out to hip height, a pose it blends into from any kick, high or low. AttackKick01_R's square front kick on the Roundhouse's timing up to its contact (18), where the foot is met, then knocked off line: the kicking leg driven down and out to the right, the hips turned 18 degrees after it, as the kick's retraction plays over the rest (source 9.5-28 over 15 frames), and a hop back to balance, the standing foot springing 0.35 m back as the rules knock the fighter back while the knocked leg comes down behind, both feet in the guard by 33 (13 source frames from the frame it plays from: the parry recoil's 26 rules frames). Cascadeur's AI inbetweening generates every frame but the key poses. Picture only. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_R.fbx",
+	"out": "blender/cascadeur/foot_recoil_keys.blend",
+	"remap": [[0, 0], [4.5, 0.4], [9, 1], [13, 5], [16, 7], [18, 9.5], [33, 28]],
+	"kick": {
+		"side": "R",
+		"turn": [[0, 0], [18, 0], [21, -18], [27, -6], [33, 0]],
+		"foot": [[17, 0.95, 0.0, 0.92], [18, 1.48, 0.0, 1.05], [20, 0.95, 0.45, 0.7], [23, 0.45, 0.42, 0.33], [27, 0.0, 0.3, 0.14]],
+		"knee": [[17, 0.9, -0.05, 1.15], [18, 1.09, -0.03, 1.09], [20, 0.72, 0.35, 0.8], [23, 0.38, 0.3, 0.55], [27, 0.02, 0.27, 0.42]],
+		"blend": [17, 18.5, 27, 31]
+	},
+	"step": {
+		"body": [[0, 0], [18, 0], [23, -0.35], [33, -0.35]],
+		"hips_keep": 1,
+		"hips_home": [27, 33],
+		"feet": {
+			"L": [[22, 26, -0.35, 0.1]],
+			"R": [[9, 32.5, -0.35, 0.12]]
+		},
+		"free": {"R": [[9, 31.5]]},
+		"pivot": {"L": [[9, 22]]}
+	},
+	"keys": [0, 9, 18, 20, 23, 27, 33],
+	"clip": "blender/clips/foot_recoil.blend"
+}

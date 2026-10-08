@@ -1,0 +1,27 @@
+{
+	"about": "Jab (fists.f_l1, bare hands' first light), milestone-1 task 89, made in Cascadeur. The key poses come from AttackPunch02_L: the guard (frame 0) sinks and coils over a longer wind-up (to 6), the lead hand snapping out to full extension on frame 9 (18 rules frames from the press), active to 10, then drawn back into the guard by 18 (16 rules frames of recovery). The lead (left) foot steps in 0.25 m on frames 1-4.5 and the rear follows 0.33 m on 5-10, so the rear leg stays bent as the hips lean into the blow as the pack clip leans (the lean is not travel: the frame-data generator counts the hips' shift only with no foot planted), the hips dropping 4.5 cm through the reach (3-14); the rear foot settles 0.08 m back on 13-17.5 into the stance. The rear heel rises as the pack clip lifts it, the rear foot pivoting on its ball. Cascadeur's AI inbetweening generates every frame but the key poses. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackPunch02_L.fbx",
+	"out": "blender/cascadeur/jab_keys.blend",
+	"remap": [[0, 0], [6, 2], [9, 4], [10, 5], [12, 7.5], [18, 14]],
+	"step": {
+		"body": [[0, 0], [2.5, 0], [4.5, 0.067], [6.5, 0.125], [9, 0.208], [11.5, 0.25], [18, 0.25]],
+		"hips_top": 0.82,
+		"hips_home": [13, 18],
+		"feet": {
+			"L": [[1, 4.5, 0.25, 0.15]],
+			"R": [[5, 10, 0.33, 0.12], [13, 17.5, -0.08, 0.1]]
+		},
+		"hips_keep": 1,
+		"pivot": ["R"]
+	},
+	"lower": {
+		"drop": 0.045,
+		"bend": 0,
+		"from": 3,
+		"peak": 7,
+		"until": 9,
+		"to": 14
+	},
+	"keys": [0, 4, 6, 8, 9, 10, 13, 18],
+	"clip": "blender/clips/jab.blend"
+}

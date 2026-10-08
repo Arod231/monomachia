@@ -81,10 +81,17 @@ extends RefCounted
 ##   the packs their CC0 fallbacks;
 ## - the parry (task 27; milestone-1 task 34): with the packs, each parry
 ##   (a block's, a Flash's or a Redirect) plays a deflect pair
-##   (StateClips.deflect_pairs; pick_pair(), pair_clip()): the parried move's
-##   own, or the pair of the light whose cut sweeps nearest its own
-##   (sweep_of()). Both halves play whole body at 1.0x from their contact
-##   frames, where the blades meet: the parried attacker (recoiling, or
+##   (StateClips.deflect_pairs; pick_pair(), pair_clip()): a redirect's the
+##   redirect's one pair (milestone-1 task 90), its recoil a fist's or a
+##   foot's for a bare-hand attack (limb_of()); a blade parrying a fist or a
+##   foot that limb's recoil and the blade's deflect at the contact's height
+##   (high, or low under StateClips.limb_low_under); otherwise the parried
+##   move's own, or the pair of
+##   the light whose cut sweeps nearest its own (sweep_of()). Both halves
+##   play whole body at 1.0x from their contact frames, where the blades (or
+##   the hand, or the limb) meet, cut in, but for a recoil serving many
+##   attacks (the redirect's and the limbs'), which blends in over the
+##   blends' rebound: the parried attacker (recoiling, or
 ##   stunned by a Flash or a Redirect) its recoil, then Stun01 over the
 ##   rest of a stun, faded over the fades' rebound, or the guard once the
 ##   recoil allows it and it blocks; the parrier its deflect, through its
@@ -472,6 +479,10 @@ static func step(prev: Shot, f: Fighter, ctx: Context) -> Shot:
 			# (the recoil carries on from the attack's own pose there)
 			out.fade = 0
 			out.blend = 0
+			if phase == &"recoil" and out.pair.get(&"shared", false):
+				# but a recoil serving many attacks blends in from wherever
+				# the attack's pose was (task 90)
+				out.blend = sc.blends[&"rebound"]
 		out.since = 0
 		out.clip_before = playing
 	else:
@@ -843,11 +854,32 @@ static func _pair_of(prev: Shot, f: Fighter, ctx: Context) -> Dictionary:
 
 
 ## The deflect pair (a StateClips.deflect_pairs entry) for `f`'s last parry
-## (Fighter.parry_move): the parried move's own, or the pair of the light
-## whose cut sweeps nearest the parried blade's (Fighter.parry_sweep against
-## sweep_of() each paired light); empty with no pairs.
+## (Fighter.parry_move), `f` the parrier in its recovery or the parried
+## attacker: a bare-handed parrier's redirect plays the redirect's pair, with
+## the limb's recoil for a bare-hand attack (milestone-1 task 90); a parried
+## fist or foot plays its limb's recoil and the blade's deflect at the
+## contact's height (Fighter.parry_pos; the low one under
+## StateClips.limb_low_under), both marked &"shared", their recoil serving
+## many attacks; otherwise the parried move's own, or the pair of
+## the light whose cut sweeps nearest the parried blade's
+## (Fighter.parry_sweep against sweep_of() each paired light); empty with no
+## pairs.
 static func pick_pair(f: Fighter) -> Dictionary:
-	var pairs: Dictionary[StringName, Dictionary] = StateClips.shared().deflect_pairs
+	var sc: StateClips = StateClips.shared()
+	var parrier: Fighter = f if f.state == &"parryAnim" else f.opp
+	var limb: Dictionary = sc.limb_recoils.get(limb_of(f.parry_move), {})
+	if parrier != null and not parrier.armed and not sc.deflect_redirect.is_empty():
+		var redirect: Dictionary = sc.deflect_redirect.duplicate()
+		redirect.merge(limb, true)
+		redirect[&"shared"] = true
+		return redirect
+	var height: StringName = &"low" if f.parry_pos.y < sc.limb_low_under else &"high"
+	if not limb.is_empty() and sc.limb_deflects.has(height):
+		var at_limb: Dictionary = limb.duplicate()
+		at_limb.merge(sc.limb_deflects[height])
+		at_limb[&"shared"] = true
+		return at_limb
+	var pairs: Dictionary[StringName, Dictionary] = sc.deflect_pairs
 	if pairs.has(f.parry_move):
 		return pairs[f.parry_move]
 	var best: StringName = &""
@@ -858,6 +890,16 @@ static func pick_pair(f: Fighter) -> Dictionary:
 			nearest = d
 			best = move
 	return pairs.get(best, {})
+
+
+## The limb bare-hand move `move` strikes with (milestone-1 task 90):
+## &"foot" for a kick (a knee strike's too), &"fist" for the rest; empty for
+## a weapon's move.
+static func limb_of(move: StringName) -> StringName:
+	var def: AttackDef = Moves.FISTS.moves.get(move)
+	if def == null:
+		return &""
+	return &"foot" if def.type == &"kick" else &"fist"
 
 
 ## Which way move `move`'s blade sweeps as it lands (milestone-1 task 34):
