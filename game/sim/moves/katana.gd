@@ -66,9 +66,10 @@ const MOVES: Dictionary = {
 		"damage": 9, "posture": 9, "knockback": 0.8,
 		"range": 2.3, "arc": 60, "chain_heavy": &"k_coil",
 	},
-	# the two-handed string's own hits (KE task 13), Elden Ring's, tighter and
-	# quicker than the one-handed string's, about 15% more damage (D3); each
-	# chains to the string's next hit and branches to the grip's heavy
+	# the two-handed string's own hits (KE tasks 13 and 14), Elden Ring's,
+	# tighter and quicker than the one-handed string's, about 15% more damage
+	# (D3); each chains to the string's next hit and branches to the grip's
+	# heavy
 	&"k_2l1": {
 		"id": &"k_2l1", "name": "Heavy Slant", "kind": &"light", "type": &"slash", "anim": &"diagDown",
 		"side_start": &"right", "side_end": &"left", "grip": &"two_handed",
@@ -79,7 +80,27 @@ const MOVES: Dictionary = {
 		"id": &"k_2l2", "name": "Left Rise", "kind": &"light", "type": &"slash", "anim": &"diagUp",
 		"side_start": &"left", "side_end": &"right", "grip": &"two_handed",
 		"damage": 6, "posture": 6, "knockback": 0.35,
-		"range": 2.2, "arc": 110, "chain_light": &"k_l3", "chain_heavy": &"k_h2",
+		"range": 2.2, "arc": 110, "chain_light": &"k_2l3", "chain_heavy": &"k_h2",
+	},
+	&"k_2l3": {
+		"id": &"k_2l3", "name": "Right Rise", "kind": &"light", "type": &"slash", "anim": &"diagUp",
+		"side_start": &"right", "side_end": &"left", "grip": &"two_handed",
+		"damage": 7, "posture": 7, "knockback": 0.4,
+		"range": 2.2, "arc": 110, "chain_light": &"k_2l4", "chain_heavy": &"k_h2",
+	},
+	&"k_2l4": {
+		"id": &"k_2l4", "name": "Second Slant", "kind": &"light", "type": &"slash", "anim": &"diagDown",
+		"side_start": &"left", "side_end": &"right", "grip": &"two_handed",
+		"damage": 8, "posture": 8, "knockback": 0.4,
+		"range": 2.2, "arc": 100, "chain_light": &"k_2l5", "chain_heavy": &"k_h2",
+	},
+	# the last hit commits (D16): no light follow-up, and the grip's heavy only
+	# late in the recovery, as the kneel rises
+	&"k_2l5": {
+		"id": &"k_2l5", "name": "Kneeling Crown", "kind": &"light", "type": &"overhead", "anim": &"overhead",
+		"side_start": &"centre", "side_end": &"centre", "grip": &"two_handed",
+		"damage": 10, "posture": 10, "knockback": 0.8,
+		"range": 2.3, "arc": 60, "chain_heavy": &"k_h2",
 	},
 	# the heavy: sheathe for 9 frames (up to the fighter's charge check,
 	# CHARGE_CHECK_FRAME: held, the stance is the charge, walked in at the
@@ -200,10 +221,8 @@ const MOVES: Dictionary = {
 }
 
 
-## The two-handed string: its own hits 1 and 2 (KE task 13), the stand-ins
-## (today's Kesa Cut and Crown Cut, Crown Cut again as hit 5) for hits 3 to 5
-## until KE task 14.
-const TWO_HANDED_STRING: Array[StringName] = [&"k_2l1", &"k_2l2", &"k_l3", &"k_l4", &"k_l4"]
+## The two-handed string's own five hits (KE tasks 13 and 14).
+const TWO_HANDED_STRING: Array[StringName] = [&"k_2l1", &"k_2l2", &"k_2l3", &"k_2l4", &"k_2l5"]
 ## The one-handed string's own five hits (KE tasks 11 and 12).
 const ONE_HANDED_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"]
 
@@ -242,11 +261,9 @@ static func build() -> WeaponDef:
 		"foot": null,
 		# the left hand below the right on the long handle
 		"off_hand_grip": V3.make(0.0, -0.15, 0.0),
-		# Elden Ring's two grips (KE task 5), each with its five-hit string:
-		# the one-handed string's own five (KE tasks 11 and 12), the
-		# two-handed string's own hits 1 and 2 (KE task 13) and today's Kesa
-		# Cut and Crown Cut standing in for the rest until KE task 14; a
-		# two-handed block takes less posture (D2). Each hit's heavy branch is the grip's heavy, and the
+		# Elden Ring's two grips (KE task 5), each with its own five-hit
+		# string (KE tasks 11-14); a two-handed block takes less posture
+		# (D2). Each hit's heavy branch is the grip's heavy, and the
 		# vertical Iai's heavy follow-up the grip's too (KE task 7, D5)
 		"grips": [
 			WeaponGrip.make(WeaponGrip.ONE_HANDED, ONE_HANDED_STRING, 0.7, &"k_coil", &"k_coil"),

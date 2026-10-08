@@ -1,0 +1,15 @@
+{
+	"about": "Right Rise (katana.k_2l3), the two-handed string's hit 3 (KE task 14): the first half of Attack1H05_R held in both hands, the blade carried back and down behind the right hip, then the rising cut through the front from low on the right to high on the left; its second swing (source frames 14 on) left out, the follow-through held high on the left to the end, where Second Slant goes on from it. In Elden Ring's two-handed rhythm (quicker than the one-handed string's): the wind-up (source frames 0-6.6 over 9), the cocked pose held, the strike snapped through into the active frames. The shoulders half squared (the reference's two-handed rise twists less than the one-handed one), the left hand set on the grip and the blade kept clear of the body. A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H05_R.fbx",
+	"out": "blender/clips/right_rise.blend",
+	"remap": [[0, 0], [9, 6.6], [11, 7.4], [12.5, 9.4], [16, 11.4], [25, 12.2]],
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0.5, "clearance": 0.08, "aim": {"frame": 12, "move": [0, -0.15, 0.1], "turn": [0, 0, 1, 45], "frames": 4}},
+	"step": {
+		"body": [[0, 0], [1, 0], [5, 0.226], [8.5, 0.596], [11, 1.192], [12.5, 1.418], [15, 1.49], [25, 1.49]],
+		"feet": {
+			"L": [[6, 12, 1.49, 0.2]],
+			"R": [[1, 5.5, 0.447, 0.16], [8.5, 14, 1.043, 0.24]]
+		},
+		"hips_top": 0.76
+	}
+}

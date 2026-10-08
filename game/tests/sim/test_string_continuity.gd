@@ -59,7 +59,9 @@ static func _breaks(moves: Dictionary[StringName, AttackDef], w: WeaponDef = nul
 
 
 ## Move m's follow-ups: its own light and heavy, and with weapon `w` its
-## grips' (KE task 7).
+## grips' (KE task 7): a string hit's next hit in every grip, since a switch
+## mid-string makes the next light the other grip's (the mixed hand-offs, KE
+## task 15), and each grip's heavy.
 static func _follow_ups(m: AttackDef, w: WeaponDef) -> Array[StringName]:
 	var out: Array[StringName] = [m.chain_light, m.chain_heavy]
 	if w == null:
@@ -67,7 +69,8 @@ static func _follow_ups(m: AttackDef, w: WeaponDef) -> Array[StringName]:
 	for g: WeaponGrip in w.grips:
 		var at: int = g.string.find(m.id)
 		while at >= 0:
-			out.append(g.hit(at + 2))
+			for any: WeaponGrip in w.grips:
+				out.append(any.hit(at + 2))
 			out.append(g.heavy)
 			at = g.string.find(m.id, at + 1)
 		if m.id == w.heavy_start and m.chain_heavy != &"":
@@ -89,6 +92,24 @@ static func _moves(records: Dictionary) -> Dictionary[StringName, AttackDef]:
 func test_every_follow_up_starts_where_the_move_before_it_ends() -> void:
 	for w: StringName in WEAPONS:
 		assert_eq(_breaks(Moves.WEAPONS[w].moves, Moves.WEAPONS[w]), [] as Array[String], String(w))
+
+
+## KE task 15: a mixed string flows across the grips, one-handed hit n into
+## two-handed hit n+1 and back, each pair starting where the hit before ends.
+func test_every_mixed_pair_starts_where_the_hit_before_ends() -> void:
+	var w: WeaponDef = Moves.KATANA
+	var one: WeaponGrip = w.grip(WeaponGrip.ONE_HANDED)
+	var two: WeaponGrip = w.grip(WeaponGrip.TWO_HANDED)
+	var pairs: int = 0
+	for n: int in range(1, 5):
+		for from_to: Array in [[one, two], [two, one]]:
+			var before: AttackDef = w.moves[(from_to[0] as WeaponGrip).hit(n)]
+			var next: AttackDef = w.moves[(from_to[1] as WeaponGrip).hit(n + 1)]
+			assert_has(_follow_ups(before, w), next.id, "%s is a follow-up of %s" % [next.id, before.id])
+			assert_true(next.side_start == &"centre" or next.side_start == before.side_end,
+				"%s starts on the %s after %s ends on the %s" % [next.id, next.side_start, before.id, before.side_end])
+			pairs += 1
+	assert_eq(pairs, 8, "every mixed pair, each way")
 
 
 func test_the_check_reports_a_follow_up_starting_on_the_wrong_side() -> void:

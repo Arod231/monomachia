@@ -1,0 +1,16 @@
+{
+	"about": "Second Slant (katana.k_2l4), the two-handed string's hit 4 (KE task 14): Attack1H04_R held in both hands from where its blade is raised high behind the left shoulder (source frame 7, about where Right Rise leaves it), then the overhead diagonal cut down through the front from high on the left to low on the right, the follow-through held low on the right to the end. In Elden Ring's two-handed rhythm: the cocked pose held over the wind-up (source frames 7-11.6 over 10.5), the strike snapped through into the active frames. The left hand set on the grip and the blade kept clear of the body. A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H04_R.fbx",
+	"out": "blender/clips/second_slant.blend",
+	"follows": "right_rise",
+	"remap": [[0, 7], [9, 9.5], [10.5, 11.6], [12, 12.6], [14.5, 14], [18, 15.5], [25, 20]],
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0, "clearance": 0.05},
+	"step": {
+		"body": [[0, 0], [1, 0], [5, 0.203], [8.5, 0.54], [11, 1.08], [12.5, 1.283], [15, 1.35], [25, 1.35]],
+		"feet": {
+			"L": [[6, 12, 1.35, 0.2]],
+			"R": [[1, 5.5, 0.405, 0.16], [8.5, 14, 0.945, 0.24]]
+		},
+		"hips_home": [17, 25]
+	}
+}

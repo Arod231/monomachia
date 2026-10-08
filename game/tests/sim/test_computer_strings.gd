@@ -3,8 +3,8 @@ extends GutTest
 ## 40): each follow-up press lands inside the input buffer before the move's
 ## branch point into it (the table's, task 20), so the re-keyed lights, whose
 ## startups are near 30 frames, chain as the old quick ones did, and a combo
-## can run the whole four-hit string to Crown Cut (which the seeded duels of
-## test_keyed_checklist.gd see it use; against a dummy it rarely gets there).
+## can run the string to its fourth hit, or at Hard through its last (KE task
+## 14), which the seeded duels of test_keyed_checklist.gd see it use.
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 ## The string's first three hits, in either grip (it switches grips as it
@@ -58,3 +58,24 @@ func test_its_follow_ups_keep_up_with_its_openers() -> void:
 		if n == 1 or n == 2:
 			hits[n] += swings[id]
 	assert_gt(hits[2], hits[1] / 4, "hit 2 follows often (%s)" % swings)
+
+
+## KE task 14 (the owner's word, Oct 8): Hard presses the whole five-hit
+## string, its last hit among it; Easy and Normal stay at 4 presses.
+func test_hard_presses_whole_strings_and_the_rest_stay_at_4() -> void:
+	assert_eq(AIBrain.DIFFICULTY[&"hard"].string_presses, 5, "Hard: the whole string")
+	assert_eq(AIBrain.DIFFICULTY[&"normal"].string_presses, 4, "Normal: up to 4")
+	assert_eq(AIBrain.DIFFICULTY[&"easy"].string_presses, 4, "Easy: up to 4")
+
+
+func test_a_hard_computer_reaches_a_string_s_last_hit() -> void:
+	var swings: Dictionary[StringName, int] = {}
+	for seed_value: int in 3:
+		var s: Dictionary[StringName, int] = _swings(70 + seed_value, 3600)
+		for id: StringName in s:
+			swings[id] = swings.get(id, 0) + s[id]
+	var last: int = 0
+	for id: StringName in swings:
+		if Moves.KATANA.string_position(id) == 5:
+			last += swings[id]
+	assert_gt(last, 0, "a last hit swung (%s)" % swings)

@@ -64,15 +64,27 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 		"name": "Crouching Crown", "damage": 9, "posture": 9,
 		"light": &"", "heavy": &"k_coil", "sides": [&"centre", &"centre"],
 	},
-	# the two-handed string's hits 1 and 2 (KE task 13): about 15% more than
-	# the one-handed hits' (D3)
+	# the two-handed string's own hits (KE tasks 13 and 14): about 15% more
+	# than the one-handed hits' (D3); the last hit takes no light follow-up
 	&"k_2l1": {
 		"name": "Heavy Slant", "damage": 6, "posture": 6,
 		"light": &"k_2l2", "heavy": &"k_h2", "sides": [&"right", &"left"],
 	},
 	&"k_2l2": {
 		"name": "Left Rise", "damage": 6, "posture": 6,
-		"light": &"k_l3", "heavy": &"k_h2", "sides": [&"left", &"right"],
+		"light": &"k_2l3", "heavy": &"k_h2", "sides": [&"left", &"right"],
+	},
+	&"k_2l3": {
+		"name": "Right Rise", "damage": 7, "posture": 7,
+		"light": &"k_2l4", "heavy": &"k_h2", "sides": [&"right", &"left"],
+	},
+	&"k_2l4": {
+		"name": "Second Slant", "damage": 8, "posture": 8,
+		"light": &"k_2l5", "heavy": &"k_h2", "sides": [&"left", &"right"],
+	},
+	&"k_2l5": {
+		"name": "Kneeling Crown", "damage": 10, "posture": 10,
+		"light": &"", "heavy": &"k_h2", "sides": [&"centre", &"centre"],
 	},
 	# the one-handed heavy (KE task 7): Heaven Splitter's clip until its
 	# re-key, about 85% of its damage (D3)
@@ -108,7 +120,7 @@ func _init() -> void:
 
 # These tests play the pilot's four lights with no grip held
 # (SimHelpers.grip), each light going on by its chain_light; each grip's
-# own string (KE tasks 11 to 13) is played in that grip where a test says
+# own string (KE tasks 11 to 14) is played in that grip where a test says
 # so.
 
 
@@ -140,25 +152,35 @@ func test_the_one_handed_string_plays_its_five_hits_and_ends() -> void:
 ## before. Swung at the air, as the reference measures them (a hit that
 ## connects holds its frames for its hit-stop), the defender far enough
 ## off that the string's steps never reach it.
-## The two-handed string's own hits 1 and 2 (KE task 13), tighter and
-## quicker: the first about 21-23 frames from rest, the next about 37-41
-## after (hits 3 to 5 stand in until KE task 14).
-func test_the_two_handed_string_opens_in_the_reference_s_rhythm() -> void:
+## The two-handed string's own five hits (KE tasks 13 and 14), tighter and
+## quicker: the first about 21-23 frames from rest, each next about 37-41
+## after, but the last hit, whose longer wind-up lands it about 50 frames
+## after hit 4 in the reference (frames 2356 and 2406 of its sheet).
+const TWO_HANDED: Array[StringName] = [&"k_2l1", &"k_2l2", &"k_2l3", &"k_2l4", &"k_2l5"]
+
+
+func test_the_two_handed_string_lands_in_the_reference_s_rhythm() -> void:
 	SimHelpers.grip = WeaponGrip.TWO_HANDED
 	var light: int = Btn.LIGHT
-	var r: PlayedString = PlayedString.play(Moves.KATANA, [light, light, light], 14.0, 0.0, &"", -1, 240)
-	assert_eq(r.ids(&"swing"), [&"k_2l1", &"k_2l2", &"k_l3"] as Array[StringName], "Heavy Slant, Left Rise, then the stand-ins")
+	var r: PlayedString = PlayedString.play(Moves.KATANA, [light, light, light, light, light, light], 14.0, 0.0, &"", -1, 360)
+	assert_eq(r.ids(&"swing"), TWO_HANDED, "Heavy Slant to Kneeling Crown, and nothing after the last hit")
 	var landed: Array[int] = []
-	for id: StringName in [&"k_2l1", &"k_2l2"]:
+	for id: StringName in TWO_HANDED:
 		var startup: int = (Moves.KATANA.moves[id] as AttackDef).startup
 		for i: int in r.attack.size():
 			if r.attack[i] == id and r.frame[i] == startup + 1:
 				landed.append(i)
 				break
-	assert_eq(landed.size(), 2, "both land: %s" % [landed])
-	if landed.size() == 2:
-		assert_between(landed[0], 21, 23, "the first lands %d frames from rest" % landed[0])
-		assert_between(landed[1] - landed[0], 37, 41, "hit 2 lands %d frames after hit 1" % (landed[1] - landed[0]))
+	assert_eq(landed.size(), 5, "five hits: %s" % [landed])
+	if landed.size() != 5:
+		return
+	assert_between(landed[0], 21, 23, "the first lands %d frames from rest" % landed[0])
+	for i: int in range(1, 4):
+		assert_between(landed[i] - landed[i - 1], 37, 41, "hit %d lands %d frames after hit %d" % [i + 1, landed[i] - landed[i - 1], i])
+	assert_between(landed[4] - landed[3], 43, 51, "the last hit lands %d frames after hit 4" % (landed[4] - landed[3]))
+	for i: int in range(1, 5):
+		var started: int = r.attack.find(TWO_HANDED[i])
+		assert_eq(r.attack[started - 1], TWO_HANDED[i - 1], "hit %d starts straight out of hit %d" % [i + 1, i])
 
 
 func test_the_one_handed_string_lands_in_the_reference_s_rhythm() -> void:
@@ -207,15 +229,32 @@ func test_a_heavy_ends_the_one_handed_string_on_crescent_coil() -> void:
 	)
 
 
-func test_crown_cut_again_as_hit_5_ends_the_string() -> void:
-	# the two-handed string's hits 3 to 5 stand in as Kesa Cut and Crown Cut,
-	# Crown Cut repeated as hit 5, and a string ends after hit 5 (KE task 5,
-	# D4; its own hits 1 and 2 from KE task 13)
+func test_kneeling_crown_ends_the_two_handed_string() -> void:
+	# a string ends after hit 5 (KE task 5, D4), the two-handed one on its own
+	# last hit (KE task 14)
 	SimHelpers.grip = WeaponGrip.TWO_HANDED
 	var light: int = Btn.LIGHT
-	_assert_starts_nothing_in([light, light, light, light, light], [&"k_2l1", &"k_2l2", &"k_l3", &"k_l4", &"k_l4"], [light])
-	# its heavy branch is the grip's heavy, as every hit's (KE task 7)
-	assert_eq(_play([light, light, light, light, light, Btn.HEAVY]).ids(&"swing").back(), &"k_h2")
+	# played longer than _play's STEPS, for the kneel's long recovery
+	var r6: PlayedString = PlayedString.play(Moves.KATANA, [light, light, light, light, light, light], _gap(), 0.0, &"", -1, 480)
+	assert_eq(r6.ids(&"swing"), TWO_HANDED, "a light pressed in Kneeling Crown starts nothing")
+	assert_eq(r6.ended_on(&"k_2l5"), _length(&"k_2l5"), "it ends on startup + active + recovery")
+	assert_eq(r6.state_after(&"k_2l5"), &"free", "then the fighter is free")
+	# its heavy branch is the grip's heavy, as every hit's (KE task 7), late in
+	# the kneel's recovery
+	var r: PlayedString = PlayedString.play(Moves.KATANA, [light, light, light, light, light, Btn.HEAVY], 2.2, 0.0, &"", -1, 480)
+	assert_eq(r.ids(&"swing").back(), &"k_h2")
+
+
+## The last hit commits (KE task 14, the owner's answer: as the one-handed
+## one): no light follow-up, and Heaven Splitter and the dodge only in the
+## recovery's last frames, as the kneel rises.
+func test_kneeling_crown_commits_until_the_kneel_rises() -> void:
+	var m: AttackDef = Moves.KATANA.moves[&"k_2l5"]
+	assert_eq(m.chain_light, &"", "no light follow-up")
+	var total: int = m.startup + m.active + m.recovery
+	var from: int = m.dodge_cancel_from
+	assert_gt(from, m.startup + m.active + m.recovery * 3 / 4, "the dodge only from frame %d of %d" % [from, total])
+	assert_eq(m.branches.get(&"k_h2", PackedInt32Array([-1]))[0], from, "Heaven Splitter from the same frame")
 
 
 func test_stopping_after_any_hit_ends_the_string_when_that_move_ends() -> void:
@@ -571,7 +610,7 @@ func test_the_horizontal_iai_goes_on_to_returning_draw_or_return_cut() -> void:
 	assert_eq(_play_sideways([heavy, light]).ids(&"swing"), [&"k_iai_h", &"k_2l2"] as Array[StringName], "light: Left Rise")
 	assert_eq(
 		_play_sideways([heavy, light, light, light]).ids(&"swing"),
-		[&"k_iai_h", &"k_2l2", &"k_l3", &"k_l4"] as Array[StringName],
+		[&"k_iai_h", &"k_2l2", &"k_2l3", &"k_2l4"] as Array[StringName],
 		"Left Rise goes on through the light string",
 	)
 	assert_eq(
