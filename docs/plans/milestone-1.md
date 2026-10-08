@@ -790,15 +790,18 @@ The Hunter (crimson against indigo) with the Katana, and bare hands when disarme
   - Delivers: the four re-keyed, exported and in band.
   - Check: band and distance tests; sheets reviewed; a clean soak.
   - Blocked by: 41 (and the owner's OK) · Stories: 60
+  - Decided with the owner (Oct 8, before building; the side lane `lane/m1-75-76-77`): 75 and 76 stay whole, not re-sliced (Notes, "Re-slicing after the pilot"), each committing after every two moves. The six grounded moves are Blender re-keys of pack clips (`rekey_clip.py` specs, as the pilot's lights and the Elden Ring hits); the two jump attacks are keyed in Cascadeur on task 59's Katana jump flight (`jump_katana`), as Air Kick and Axe Kick were. Modelled on Elden Ring's Uchigatana (its running, rolling, backstep and jump attacks, from the reference video the Elden Ring lanes read). One clip each for both grips (`docs/specs/katana-elden-ring.md` D14), the lights one-handed and the heavies two-handed, the re-grip covering the off hand. Running Draw a one-handed horizontal cut from the hip at a run, the blade already out (the name kept, no sheathing); Leaping Cleave a leap into a two-handed overhead cut down to the ground, ending in a crouch; Wind Cut a quick one-handed flat cut rising out of the roll; Whirl Cut a full 360° two-handed spinning cut. Damage and posture stay as today; hitstun and hit-stop take the frozen protected timings; balance waits on family 5's review (78). If keying puts the eight under the per-move checklist's item 15 and it fails, the computer is taught here, as in tasks 93 and 94.
 - [ ] **76. Rising Cut, Lunging Cut, Aerial Cut and Falling Crown.** The backstep and jump attacks re-keyed, the jump attacks fitting the airtime.
   - Delivers: the four re-keyed, exported and in band.
   - Check: band and distance tests; the airtime rules tests for both jump attacks; sheets reviewed; a clean soak.
   - Blocked by: 59, 75 · Stories: 60, 93
   - (Oct 7, the owner, at task 59) Falling Crown's dive retires in task 59, so its re-key rides the normal arc and shows the dive in its clip.
+  - Decided with the owner (Oct 8, before building; see task 75, whose answers hold here too): Rising Cut a low-to-high one-handed cut off the back foot; Lunging Cut a push-off from the back foot into a long two-handed diagonal; Aerial Cut a one-handed flat cut in the air; Falling Crown a two-handed overhead held into the fall and brought down at the touchdown into a crouch. The jump attacks ride the normal armed arc (29 frames) and land into their own landing recovery, as task 59 makes the rules do.
 - [ ] **77. Family 5's sound and effects.** Swings, impacts and air smears for the eight movement attacks.
   - Delivers: sound-bank entries and effects for the eight.
   - Check: sound-bank entries for each of the eight's swings and impacts; effect tests that each of the eight leaves its air smear; shots reviewed.
   - Blocked by: 76 · Stories: 159, 170
+  - Decided with the owner (Oct 8, before building; the side lane `lane/m1-75-76-77`): the Katana's whooshes and its cut, flesh and bone impacts stay. The eight add the Hunter's cloth whoosh on each swing, Whirl Cut a spinning double whoosh, and Leaping Cleave and Falling Crown a ground thud where they land, picked from the Sonniss bundle as task 136's were. The air smears stay as task 37 made them, tested for each of the eight; Whirl Cut's smear runs the full circle, and Leaping Cleave and Falling Crown throw a burst of ground dust where they land.
 - [ ] **78. Family 5's review.** The Katana's movement attacks go to the owner.
   - Delivers: the review package as in task 40.
   - Check: every CI-checked checklist item passes for the eight.
