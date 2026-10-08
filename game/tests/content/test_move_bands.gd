@@ -18,9 +18,10 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 ## Daggers wait for milestone 2 (the spec's P10).
 const BANDED: Array[StringName] = [&"katana", &"fists"]
 ## The moves keyed into their bands so far, by weapon: the light string
-## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32), and
-## Breaker Palm (task 99).
-const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4"], &"fists": [&"f_breaker"]}
+## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32),
+## Breaker Palm (task 99), and bare hands' light string (Jab, Cross and Hook,
+## task 89).
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4"], &"fists": [&"f_breaker", &"f_l1", &"f_l2", &"f_l3"]}
 
 
 func _bands() -> MoveBands:
@@ -113,7 +114,7 @@ func test_every_katana_and_bare_hands_move_but_the_counter_lunges_and_the_keyed_
 			var kind: StringName = StringName(FrameDataTable.shared().row(wid, id)["kind"])
 			var keyed: bool = KEYED.get(wid, []).has(id)
 			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge" and not keyed, "%s.%s" % [wid, id])
-	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 30, "Crescent Coil waits for its re-key (KE task 16)")
+	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 27, "Crescent Coil waits for its re-key (KE task 16)")
 
 
 func test_every_banded_move_has_a_timing_band_and_every_striking_one_a_distance_band() -> void:
@@ -198,7 +199,7 @@ func test_the_distance_bands_are_the_spec_s_table() -> void:
 			var band: Dictionary = bands.distance_band(wid, kind)
 			assert_eq([band.get("touches"), band.get("misses")], want[wid][kind], "%s %s" % [wid, kind])
 	assert_eq(bands.distance_band(&"katana", &"string_light")["inside"], [0.04, 0.3], "until the string re-keys (KE tasks 2 and 3)")
-	assert_eq(bands.distance_band(&"fists", &"string_light")["inside"], [0.15, 0.21], "until their re-keys (KE task 3)")
+	assert_eq(bands.distance_band(&"fists", &"string_light")["inside"], [0.15, 0.2], "the spec's, since task 89 re-keyed them")
 	assert_eq(bands.distance_band(&"katana", &"ultimate")["wave"], 33.0, "Moonsplitter: the whole stage")
 	assert_eq(bands.distance[&"fists"]["misses_all"], 6.0, "every bare-hands move misses from 6 m")
 

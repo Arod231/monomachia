@@ -382,6 +382,54 @@
 				"states"
 			]
 		},
+		"Jab": {
+			"export": "exports/clips/jab.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 9,
+				"contact_end": 10,
+				"settle": 18
+			},
+			"foot_contacts": {"left": [[0, 1], [4, 18]], "right": [[0, 5], [18, 18]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"Cross": {
+			"export": "exports/clips/cross.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 10,
+				"contact_end": 11,
+				"settle": 20
+			},
+			"foot_contacts": {"left": [[0, 2], [6, 20]], "right": [[0, 6], [19, 20]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"Hook": {
+			"export": "exports/clips/hook.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 11,
+				"contact_end": 13,
+				"settle": 23
+			},
+			"foot_contacts": {"left": [[0, 23]], "right": [[0, 7], [11, 16], [21, 23]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
 		"BreakerPalm": {
 			"export": "exports/clips/breaker_palm.glb",
 			"mirror": false,

@@ -70,19 +70,21 @@ func test_the_markers_give_the_frame_data_at_one_times() -> void:
 	assert_eq(r.tracks[&"right_hand"].size(), 23)
 
 
-func test_travel_comes_from_the_planted_foot_and_the_hips() -> void:
+func test_travel_comes_from_the_planted_foot_and_the_hips_with_none_planted() -> void:
 	var r: FrameDataGenerator.Result = _generate(_stepping, 20.0 / 30.0,
 		{"windup": 0, "active_start": 4, "active_end": 5, "settle": 20}, {"left": [[0, 10]], "right": []})
 	assert_eq(r.forward.size(), r.total() + 1)
 	assert_eq([r.forward[0], r.sideways[0], r.turn[0]], [0.0, 0.0, 0.0], "frame 0 doesn't move")
 	for f: int in range(1, 21):
 		# half a source frame a rules frame: the planted foot slides back 5 mm,
-		# so the root goes forward 5 mm, and the hips 2.5 mm on top
-		assert_almost_eq(r.forward[f], 0.0075, 1e-9, "frame %d forward" % f)
+		# so the root goes forward 5 mm; the hips' 2.5 mm is a lean over the
+		# planted foot (milestone-1 task 89), not travel
+		assert_almost_eq(r.forward[f], 0.005, 1e-9, "frame %d forward" % f)
 		assert_almost_eq(r.sideways[f], 0.0, 1e-9, "frame %d sideways" % f)
 		assert_almost_eq(r.turn[f], 0.5, 1e-6, "frame %d: the foot turns left, the body right" % f)
 	for f: int in range(21, 41):
-		# the foot lifted: the root carries on as it last moved
+		# the foot lifted: the root carries on as it last moved, and the
+		# hips' move rides on top
 		assert_almost_eq(r.forward[f], 0.0075, 1e-9, "frame %d forward, carried" % f)
 		assert_almost_eq(r.turn[f], 0.5, 1e-6, "frame %d turn, carried" % f)
 	var still: FrameDataGenerator.Result = _generate(_stepping, 20.0 / 30.0,
@@ -111,7 +113,9 @@ func test_travel_is_not_counted_twice() -> void:
 		assert_almost_eq(rel.grip.z + travelled, clip.grip.z + root, 1e-9, "frame %d" % f)
 		assert_almost_eq(rel.grip.y, clip.grip.y, 1e-12, "frame %d: heights untouched" % f)
 		var body: Swing.Sample = moving.tracks[&"body"][f]
-		assert_almost_eq(body.pelvis_shift.z, 0.0, 1e-12, "frame %d: the hips stay over the body" % f)
+		# the hips lean over the planted foot (2.5 mm a rules frame), then,
+		# with no foot planted, their move is the travel's
+		assert_almost_eq(body.pelvis_shift.z, 0.0025 * mini(f, 20), 1e-9, "frame %d: the hips' lean stays, the travel's goes" % f)
 		assert_almost_eq(body.pelvis_shift.y, -0.02, 1e-12, "frame %d: their drop stays" % f)
 
 

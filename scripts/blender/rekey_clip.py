@@ -30,7 +30,19 @@
 #   place so the planted feet slide back under it as far as the body goes (the
 #   frame-data generator's travel), the hips no higher than "hips_top" and
 #   back at their guard height over "hips_home" (by the settle, where the game
-#   hands on), both legs on IK, baked; omit for a clip that keeps its feet;
+#   hands on), "hips_keep" (0-1, default 0) of the hips' own lean over the
+#   ground kept (task 89's punches lean into the blow over planted feet; the
+#   frame-data generator counts the hips' shift with the travel), "free":
+#   {"L"|"R": [[from, to], ...]} spans where a foot follows the clip's own
+#   motion instead of its step (a kick's leg; give the span as a step too,
+#   for where the foot lands), eased in and out over two frames, and
+#   "pivot": ["L"|"R"] feet that turn, tilt and lift their heel as the clip
+#   has them, on the ball of the foot where the step puts it (the standing
+#   foot of a kick or a spin), the knees then bent as the clip bends them;
+#   both legs on IK, baked; omit for a clip that keeps its feet;
+# - leg_arc: {"side": "L"|"R", "angles": [[frame, degrees], ...]}: a kick
+#   swung round (leg_arc(); milestone-1 task 133): the thigh turned about the
+#   vertical through its hip by the angles, before any step; omit for none;
 # - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
 #   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
 #   over the ground taken out, then the whole body moved along the path
@@ -53,11 +65,12 @@
 #   about the hips, so a reel back becomes one sideways (-90: away from a hit
 #   on the right) or forward (180: from behind); omit for a clip as it is;
 # - lower: {"drop": metres, "bend": degrees, "peak": frame, "from": frame,
-#   "until": frame, "hold": true}: a reaction taken low (lower()): the hips
-#   dropped and the chest bent forward, rising from nothing at frame "from"
-#   (0) to all of it at "peak", held to "until" (the peak) and back to
-#   nothing at the clip's end, or held to the end with "hold" (a crouched
-#   stance), the feet kept where the clip has them on IK; omit for none;
+#   "until": frame, "to": frame, "hold": true}: a reaction taken low
+#   (lower()): the hips dropped and the chest bent forward (back for a
+#   negative bend), rising from nothing at frame "from" (0) to all of it at
+#   "peak", held to "until" (the peak) and back to nothing at "to" (the
+#   clip's end), or held to the end with "hold" (a crouched stance), the
+#   feet kept where the clip has them on IK; omit for none;
 # - two_hands may add "aim": {"frame": frame, "move": [x, y, z], "turn":
 #   [x, y, z, degrees], "frames": n}: the weapon moved by "move" (m, world,
 #   the clip facing -Y) and turned about the grip by "turn" (an axis and an
@@ -549,6 +562,22 @@ def foot_path(steps, t):
     return forward, high
 
 
+# A free span's foot eases from its step's path onto the clip's own and back
+# over FREE_BLEND frames at each end.
+FREE_BLEND = 2.0
+
+
+def free_weight(spans, t):
+    """How much of a foot's pose at frame `t` is the clip's own (0-1): all of
+    it inside a free span ([from, to] new frames), eased in and out over
+    FREE_BLEND frames at its ends."""
+    w = 0.0
+    for s0, s1 in spans:
+        if s0 < t < s1:
+            w = max(w, _smoother(min((t - s0) / FREE_BLEND, (s1 - t) / FREE_BLEND, 1.0)))
+    return w
+
+
 def step(arm, scene, length, spec):
     """A real step (okuri-ashi): the hips carried along `spec["body"]`
     ([frame, metres forward] pairs, a monotone cubic through them) over the
@@ -568,6 +597,7 @@ def step(arm, scene, length, spec):
     body = monotone([float(p[0]) for p in body_pairs], [float(p[1]) for p in body_pairs])
     top = spec.get("hips_top")
     home = spec.get("hips_home")
+    keep = float(spec.get("hips_keep", 0.0))
     scene.frame_set(1)
     bpy.context.view_layer.update()
     h0 = mw @ hips.head
@@ -577,7 +607,7 @@ def step(arm, scene, length, spec):
         scene.frame_set(1 + n)
         bpy.context.view_layer.update()
         h = mw @ hips.head
-        move = mathutils.Vector((h0.x - h.x, h0.y - h.y, 0.0))
+        move = mathutils.Vector((h0.x - h.x, h0.y - h.y, 0.0)) * (1.0 - keep)
         if top is not None and h.z > float(top):
             move.z = float(top) - h.z
         if home is not None:
@@ -590,14 +620,41 @@ def step(arm, scene, length, spec):
 
     fwd = mathutils.Vector((0.0, -1.0, 0.0))
     up = mathutils.Vector((0.0, 0.0, 1.0))
+    free = spec.get("free", {})
+    pivot = spec.get("pivot", [])
+    # the clip's own feet and knees, under the hips as they now are (a kick's
+    # leg, a foot pivoting through a spin)
+    own, own_knees = {"L": [], "R": []}, {"L": [], "R": []}
+    if free or pivot:
+        for n in range(length + 1):
+            scene.frame_set(1 + n)
+            bpy.context.view_layer.update()
+            for side in ("L", "R"):
+                own[side].append((mw @ pbs["B-foot." + side].matrix).copy())
+                own_knees[side].append((mw @ pbs["B-shin." + side].head).copy())
     feet = {"L": [], "R": []}
     for n in range(length + 1):
         for side in ("L", "R"):
             ahead, high = foot_path(spec["feet"].get(side, []), float(n))
             m = feet0[side]
             at = m.to_translation() + fwd * (ahead - (body(float(n)) - body(0.0))) + up * high
-            feet[side].append((at, m.to_quaternion(), high))
-    over = legs_to(arm, scene, length, feet, feet0)
+            turn = m.to_quaternion()
+            if side in pivot:
+                # on the ball of the foot: its place on the ground the step's,
+                # its turn, tilt and heel's rise the clip's own
+                o = own[side][n]
+                turn = o.to_quaternion()
+                if o.to_translation().z > at.z:
+                    high += o.to_translation().z - at.z
+                    at.z = o.to_translation().z
+            w = free_weight(free.get(side, []), float(n))
+            if w > 0.0:
+                o = own[side][n]
+                at = at.lerp(o.to_translation(), w)
+                turn = turn.slerp(o.to_quaternion(), w)
+                high = max(high, o.to_translation().z - rest[side])
+            feet[side].append((at, turn, high))
+    over = legs_to(arm, scene, length, feet, feet0, own_knees if (free or pivot) else None)
     print(f"rekey_clip: the body steps {body(float(length)) - body(0.0):.2f} m forward", flush=True)
     if over:
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
@@ -756,8 +813,8 @@ def lower(arm, scene, length, spec):
     (40%) and the chest (60%) bent forward spec["bend"] degrees, by a weight
     rising (smootherstep) from 0 at frame spec["from"] (default 0) to 1 at
     spec["peak"], held to spec["until"] (default the peak), and falling back
-    to 0 at the clip's end, or held there to the end with spec["hold"] (a
-    stance the next clip rises from); the feet
+    to 0 at frame spec["to"] (default the clip's end), or held there to the
+    end with spec["hold"] (a stance the next clip rises from); the feet
     kept where the clip has them on IK. The clip faces -Y."""
     mw = arm.matrix_world
     pbs = arm.pose.bones
@@ -779,13 +836,14 @@ def lower(arm, scene, length, spec):
             knees[side].append(knee + (bend.normalized() if bend.length > 1e-4 else mathutils.Vector((0.0, -1.0, 0.0))) * 0.5)
     start = float(spec.get("from", 0.0))
     until = max(float(spec.get("until", peak)), peak)
+    end = max(float(spec.get("to", length)), until)
     for n in range(length + 1):
         if n <= peak:
             w = _smoother((n - start) / max(peak - start, 1e-6))
         elif spec.get("hold") or n <= until:
             w = 1.0
         else:
-            w = 1.0 - _smoother((n - until) / max(length - until, 1e-6))
+            w = 1.0 - _smoother((n - until) / max(end - until, 1e-6))
         scene.frame_set(1 + n)
         bpy.context.view_layer.update()
         hips = pbs["B-hips"]
@@ -805,6 +863,33 @@ def lower(arm, scene, length, spec):
     print(f"rekey_clip: lowered {float(spec['drop']):.2f} m, bent {float(spec['bend']):g} degrees, peaking on frame {peak:g}", flush=True)
     if over:
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
+def leg_arc(arm, scene, length, spec):
+    """A kick swung round (milestone-1 task 133's Roundhouse from a front
+    kick): the thigh of leg spec["side"] (and the leg below it) turned about
+    the vertical through its hip by spec["angles"] ([frame, degrees] pairs, a
+    monotone cubic through them; positive turns it toward the fighter's left
+    seen from above), so the foot comes in from the side. Baked; the clip
+    faces -Y."""
+    mw = arm.matrix_world
+    side = spec["side"]
+    pairs = spec["angles"]
+    angle = monotone([float(p[0]) for p in pairs], [float(p[1]) for p in pairs])
+    thigh = arm.pose.bones["B-thigh." + side]
+    up = mathutils.Vector((0.0, 0.0, 1.0))
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        world = mw @ thigh.matrix
+        head = world.to_translation()
+        turn = mathutils.Matrix.Translation(head) @ mathutils.Matrix.Rotation(math.radians(angle(float(n))), 4, up) \
+            @ mathutils.Matrix.Translation(-head)
+        thigh.matrix = mw.inverted() @ turn @ world
+        bpy.context.view_layer.update()
+        thigh.keyframe_insert("rotation_quaternion", frame=1 + n, group=thigh.name)
+        thigh.keyframe_insert("location", frame=1 + n, group=thigh.name)
+    print(f"rekey_clip: swung the {side} leg round, {min(float(p[1]) for p in pairs):g} to {max(float(p[1]) for p in pairs):g} degrees", flush=True)
 
 
 def carry(arm, scene, length, spec):
@@ -920,6 +1005,8 @@ def main():
     scene.frame_start, scene.frame_end = 1, int(src_action.frame_range[1])
     new, length = retime(arm, scene, src_action, remap)
     scene.frame_start, scene.frame_end = 1, 1 + length
+    if spec.get("leg_arc"):
+        leg_arc(arm, scene, length, spec["leg_arc"])
     if spec.get("step"):
         step(arm, scene, length, spec["step"])
     if spec.get("carry"):

@@ -16,10 +16,13 @@ extends GutTest
 ##   parry, an air smear on its strike);
 ## - 15, the computer uses it and answers it (seeded Hard duels).
 ## Reads committed data and runs the rules, so it runs on CI. Every keyed
-## move must pass, but a keyed move outside the strings (Breaker Palm, task
-## 99) has its reactions (12) and its contacts' sound and effects (13, 14)
-## recorded for its family's review, not held: bare hands' reactions and
-## the redirect's deflect pair are tasks 69's and 90's. A clip row's results
+## move must pass, but a keyed bare-hands move (Breaker Palm, task 99; Jab,
+## Cross and Hook, task 89) has its reactions (12) and its contacts' sound
+## and effects (13, 14) recorded for its family's review, not held: bare
+## hands' reactions, the redirect's deflect pair and their impacts are tasks
+## 69's, 90's and 91's. Bare hands' string starts and ends in its guard and
+## hands on by the inertial blend, with no bridge or return to guard (task
+## 89, the owner's word). A clip row's results
 ## are recorded for the owner whether they pass or not, as task 40 decided
 ## (the new strings re-key them). Each move is played on its own weapon:
 ## a bare-hands one by a disarmed fighter.
@@ -27,8 +30,8 @@ extends GutTest
 const SC := preload("res://tests/sim/test_string_continuity.gd")
 const H := preload("res://tests/sim/sim_helpers.gd")
 
-## The gap a keyed light is played across: the duelling distance, where its
-## blade lands 15-20 cm in.
+## The gap a keyed Katana move is played across: the duelling distance, where
+## its blade lands 15-20 cm in. Bare hands play across theirs (_gap()).
 const GAP: float = 2.5
 ## Far enough apart that nothing lands, so no hit-stop.
 const APART: float = 6.0
@@ -81,6 +84,18 @@ static func _world(wid: StringName, gap: float) -> World:
 ## Whether keyed move `m` ([weapon, id]) is one of a string's (its band
 ## kind string_light or string_heavy): the moves that bridge and return to
 ## guard, and whose reactions are held.
+## The gap weapon `wid`'s keyed moves are played across: bare hands'
+## duelling distance, or GAP.
+static func _gap(wid: StringName) -> float:
+	return Moves.FISTS.duel_distance if wid == &"fists" else GAP
+
+
+## Whether keyed move `m` is held to items 12 to 14 (and its string to a
+## bridge and a return to guard): the Katana's string moves.
+static func _held(m: Array) -> bool:
+	return _of_string(m) and m[0] == &"katana"
+
+
 static func _of_string(m: Array) -> bool:
 	return String(FrameDataTable.shared().row(m[0], m[1]).get("kind", "")).begins_with("string_")
 
@@ -97,10 +112,10 @@ static func _first(events: Array[Dictionary], t: StringName, id: StringName) -> 
 static func _contacts(wid: StringName, id: StringName) -> Dictionary:
 	var def: AttackDef = (Moves.WEAPONS[wid] as WeaponDef).moves[id]
 	return {
-		&"swing": _first(_play(wid, id, GAP), &"swing", id),
-		&"hit": _first(_play(wid, id, GAP), &"hit", id),
-		&"block": _first(_play(wid, id, GAP, Btn.BLOCK, 0), &"block", id),
-		&"parry": _first(_play(wid, id, GAP, Btn.BLOCK, def.startup - 4), &"parry", id),
+		&"swing": _first(_play(wid, id, _gap(wid)), &"swing", id),
+		&"hit": _first(_play(wid, id, _gap(wid)), &"hit", id),
+		&"block": _first(_play(wid, id, _gap(wid), Btn.BLOCK, 0), &"block", id),
+		&"parry": _first(_play(wid, id, _gap(wid), Btn.BLOCK, def.startup - 4), &"parry", id),
 	}
 
 
@@ -228,12 +243,12 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 			if b.begins_with(String(id) + " ") or b.contains(" " + String(id) + ","):
 				hand_off.append(b)
 		for before: StringName in w.moves:
-			if (w.moves[before] as AttackDef).chain_light == id and ChecklistResults.keyed_moves().has([m[0], before]) \
+			if _held(m) and (w.moves[before] as AttackDef).chain_light == id and ChecklistResults.keyed_moves().has([m[0], before]) \
 					and not (sc.bridges.get(id, {}) as Dictionary).has(before):
 				hand_off.append("no bridge from %s" % before)
 		# a string's moves return to guard on a clip of their own; any other
 		# hands on by the inertial blend
-		if _of_string(m) and not sc.returns.has(id):
+		if _held(m) and not sc.returns.has(id):
 			hand_off.append("no return to guard")
 		ChecklistResults.record_problems(11, id, hand_off)
 		assert_eq(hand_off, [] as Array[String], "%s hands off" % id)
@@ -246,7 +261,7 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 			if not (sc.light_hits.get(w.id, {}) as Dictionary).has(StringName(place)):
 				reactions.append("no light hit reaction %s" % place)
 		ChecklistResults.record_problems(12, id, reactions)
-		if _of_string(m):
+		if _held(m):
 			assert_eq(reactions, [] as Array[String], "%s's reactions" % id)
 
 
@@ -261,8 +276,8 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 		var effects: Array[String] = []
 		for t: StringName in c:
 			if (c[t] as Dictionary).is_empty():
-				sound.append("no %s at %.1f m" % [t, GAP])
-				effects.append("no %s at %.1f m" % [t, GAP])
+				sound.append("no %s at %.2f m" % [t, _gap(m[0])])
+				effects.append("no %s at %.2f m" % [t, _gap(m[0])])
 			elif SoundBank.cues_for(c[t]).is_empty():
 				sound.append("its %s sounds nothing" % t)
 		if not (c[&"parry"] as Dictionary).is_empty():
@@ -282,7 +297,7 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 			effects.append("its strike leaves no air smear")
 		ChecklistResults.record_problems(13, id, sound)
 		ChecklistResults.record_problems(14, id, effects)
-		if _of_string(m):
+		if _held(m):
 			assert_eq(sound, [] as Array[String], "%s's sound" % id)
 			assert_eq(effects, [] as Array[String], "%s's effects" % id)
 
@@ -302,11 +317,35 @@ static func _smears(wid: StringName, id: StringName) -> bool:
 
 # ------------------------------------------------------------------ item 15
 
+## Each weapon's keyed moves are played in its own Hard duels, across its
+## duelling distance (bare hands' since milestone-1 task 89: in the Katana's
+## duels they come only after a disarm).
 func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 	var used: Dictionary[StringName, int] = {}
 	var answered: Dictionary[StringName, int] = {}
+	var weapons: Array[StringName] = []
+	for m: Array in ChecklistResults.keyed_moves():
+		if not weapons.has(m[0]):
+			weapons.append(m[0])
+	for wid: StringName in weapons:
+		_duel(Moves.WEAPONS[wid], _gap(wid), used, answered)
+	for m: Array in ChecklistResults.keyed_moves():
+		var id: StringName = m[1]
+		var problems: Array[String] = []
+		if used.get(id, 0) == 0:
+			problems.append("the computer never used it in %d Hard duels" % DUELS)
+		if answered.get(id, 0) == 0:
+			problems.append("the computer never blocked or parried it in %d Hard duels" % DUELS)
+		ChecklistResults.record_problems(15, id, problems)
+		assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
+
+
+## Plays DUELS seeded Hard duels of weapon `w` against itself from `gap` m
+## apart, counting each attack's swings into `used` and the blocks and parries
+## of it into `answered`, by move id.
+static func _duel(w: WeaponDef, gap: float, used: Dictionary[StringName, int], answered: Dictionary[StringName, int]) -> void:
 	for seed_value: int in DUELS:
-		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, GAP)
+		var W: World = H.make_world(w, w, gap)
 		var brains: Array[AIBrain] = [
 			AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"], 4000 + seed_value * 2),
 			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"], 4001 + seed_value * 2),
@@ -323,15 +362,6 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 				break
 		for b: AIBrain in brains:
 			b.dispose()
-	for m: Array in ChecklistResults.keyed_moves():
-		var id: StringName = m[1]
-		var problems: Array[String] = []
-		if used.get(id, 0) == 0:
-			problems.append("the computer never used it in %d Hard duels" % DUELS)
-		if answered.get(id, 0) == 0:
-			problems.append("the computer never blocked or parried it in %d Hard duels" % DUELS)
-		ChecklistResults.record_problems(15, id, problems)
-		assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
 
 
 # ------------------------------------------------------------------ the clip rows' 11, 13 and 14

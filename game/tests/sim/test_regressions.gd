@@ -57,12 +57,14 @@ func test_parrying_a_bare_handed_attacker_at_full_posture_dazes_them_instead_of_
 	var a: Fighter = W.fighters[0]
 	a.armed = false
 	var p0: Callable = func(i: int) -> RawInput:
-		if i <= 6:
+		if i <= 18:
 			a.posture = SimConst.POSTURE_MAX
 			a.last_posture_damage = W.frame
 		return H.btn(Btn.LIGHT) if i == 0 else H.idle()
-	# jab (startup 5) connects on frame 7; block pressed on frame 3
-	H.run(W, 14, p0, func(i: int) -> RawInput: return H.btn(Btn.BLOCK) if i == 2 else H.idle(), r)
+	# the jab (startup 18 since milestone-1 task 89) connects on frame 19,
+	# its posture held full to then; block pressed on frame 15, inside the
+	# parry window
+	H.run(W, 28, p0, func(i: int) -> RawInput: return H.btn(Btn.BLOCK) if i == 14 else H.idle(), r)
 	assert_true(r.has(&"parry"))
 	assert_false(r.has(&"disarm"))
 	assert_true(r.has(&"stagger"))
