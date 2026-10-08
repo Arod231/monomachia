@@ -55,22 +55,22 @@ const MOVES: Dictionary = {
 	},
 	&"f_bl": {
 		"id": &"f_bl", "name": "Snap Kick", "kind": &"light", "type": &"kick", "anim": &"f_snapKick", "hand": &"L", "sound": F,
-		"damage": 3, "posture": 10, "knockback": 1.0,
-		"range": 1.5, "arc": 90, "lunge": 0.5,
+		"damage": 4, "posture": 12, "knockback": 1.0,
+		"range": 1.5, "arc": 90,
 	},
 	&"f_bh": {
 		"id": &"f_bh", "name": "Lunging Palm", "kind": &"heavy", "type": &"punch", "anim": &"f_palm", "hand": &"R", "sound": F,
-		"damage": 5, "posture": 16, "knockback": 1.6,
-		"range": 1.4, "arc": 90, "lunge": 1.9, "lunge_end": 14,
+		"damage": 7, "posture": 21, "knockback": 1.6,
+		"range": 1.4, "arc": 90,
 	},
 	&"f_jl": {
 		"id": &"f_jl", "name": "Air Kick", "kind": &"light", "type": &"kick", "anim": &"f_airKick", "sound": F,
-		"damage": 4, "posture": 10, "knockback": 1.0,
+		"damage": 5, "posture": 12, "knockback": 1.0,
 		"range": 1.4, "arc": 110, "airborne": true,
 	},
 	&"f_jh": {
 		"id": &"f_jh", "name": "Axe Kick", "kind": &"heavy", "type": &"kick", "anim": &"f_axeKick", "hand": &"L", "sound": F,
-		"damage": 6, "posture": 16, "knockback": 1.4,
+		"damage": 8, "posture": 21, "knockback": 1.4,
 		"range": 1.5, "arc": 100, "airborne": true,
 	},
 	&"f_lunge": {

@@ -110,7 +110,8 @@ static func generate(pose: Callable, length: float, markers: Dictionary, contact
 		if float(markers[NEEDED[i]]) <= float(markers[NEEDED[i - 1]]):
 			errors.append("the %s marker must come after the %s marker" % [NEEDED[i], NEEDED[i - 1]])
 	var end: float = length * ClipManifest.SOURCE_FPS
-	if float(markers["settle"]) > end + 1e-6:
+	# a thousandth of a frame's give: a clip's length is a 32-bit float
+	if float(markers["settle"]) > end + 1e-3:
 		errors.append("the settle marker (%s) is past the clip's end (frame %s)" % [
 			ClipTiming.frame_text(float(markers["settle"])), ClipTiming.frame_text(snappedf(end, 0.01))])
 	if errors.size() != before:

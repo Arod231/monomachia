@@ -166,12 +166,11 @@ class Tap:
 const PLANS: Array[StringName] = [&"none", &"parry", &"block", &"dodge", &"counter", &"flash", &"evade"]
 
 ## How far (m, centre to centre) bare hands' movement attacks are thrown
-## from (milestone-1 task 93): inside their distance bands' touch, with a
-## little room. A dodge in carries about DODGE_IN m before its attack may
+## from (milestone-1 tasks 93 and 94): about their distance bands' touch. A dodge in carries about DODGE_IN m before its attack may
 ## come out (MOVE_ROLL_CURVE past MOVE_DODGE_I_FRAMES, disarmed).
 const DODGE_ATTACK_FROM: float = 1.75
-const BACK_LIGHT_FROM: float = 2.2
-const BACK_HEAVY_FROM: float = 3.7
+const BACK_LIGHT_FROM: float = 2.5
+const BACK_HEAVY_FROM: float = 4.0
 const DODGE_IN: float = 4.0
 
 var rng: Rng
@@ -358,9 +357,9 @@ func _think() -> RawInput:
 		_hold_mask &= ~(1 << Btn.BLOCK)
 
 	# Plans (defence) take priority over everything else.
+	if _counter_evade:
+		_follow_up(frame)
 	if _plan != &"none":
-		if _counter_evade:
-			_follow_up(frame)
 		if _plan == &"block":
 			_hold_mask |= 1 << Btn.BLOCK
 			_move_x = 0.0
@@ -632,38 +631,50 @@ func _respond_to(def: AttackDef, frame: int, to_impact: int) -> void:
 		return
 	if rng.chance(P.dodge * (1.0 if armed else 2.5)):
 		var side: int = 1 if rng.chance(0.5) else -1
-		var back: bool = rng.chance(0.4)
+		var back: bool = rng.chance(0.4 if armed else 0.6)
 		_tap(Btn.DODGE, maxi(frame, impact - rng.int(3, 8)), 2, 0 if back else side, -1 if back else 0)
 		_set_plan(&"dodge", impact + 8)
 		# bare hands counter out of the evade (milestone-1 task 93)
 		_counter_evade = not armed and rng.chance(0.5 + P.aggression * 0.4)
 
 
-## A bare-handed evade's counter (milestone-1 task 93): once the dodge or
-## backstep may be followed up (past its invincible frames), the dodge
-## attack from inside its reach, or the backstep attack whose reach the
-## distance left suits: Snap Kick close, Lunging Palm further out; from
-## further, a backstep rolls back in for a dodge attack (a disarmed dodge
-## carries about DODGE_IN m first).
+## A bare-handed evade's counter (milestone-1 tasks 93 and 94): from when the
+## dodge or backstep may be followed up (past its invincible frames) to the
+## end of its follow-up window (MOVE_FOLLOW_WINDOW), the dodge attack once
+## inside its reach, or the backstep attack whose reach the distance suits:
+## Snap Kick close, Lunging Palm further out, which punish an opponent who
+## follows in. A backstep still too far at its window's end rolls back in
+## for a dodge attack (a disarmed dodge carries about DODGE_IN m first).
 func _follow_up(frame: int) -> void:
-	var back: bool = me.state == &"backstep"
-	if not back and me.state != &"dodge":
+	var evading: bool = me.state == &"backstep" or me.state == &"dodge"
+	var back: bool = me.state == &"backstep" if evading else me.dodge_was_back
+	if evading:
+		if me.sf <= (SimConst.MOVE_BACKSTEP_I_FRAMES if back else SimConst.MOVE_DODGE_I_FRAMES):
+			return
+	elif me.state != &"free" or frame - me.dodge_end_frame > SimConst.MOVE_FOLLOW_WINDOW:
+		_counter_evade = false
 		return
-	if me.sf <= (SimConst.MOVE_BACKSTEP_I_FRAMES if back else SimConst.MOVE_DODGE_I_FRAMES):
-		return
-	_counter_evade = false
+	var last: bool = not evading and frame - me.dodge_end_frame >= SimConst.MOVE_FOLLOW_WINDOW - 1
 	var d: float = SimMath.dist2(me.pos, me.opp.pos)
+	var btn: int = -1
 	if back:
 		if d <= BACK_LIGHT_FROM:
-			_tap(Btn.LIGHT, frame, 2)
+			btn = Btn.LIGHT
 		elif d <= BACK_HEAVY_FROM:
-			_tap(Btn.HEAVY, frame, 2)
-		elif d > DODGE_IN + 0.9 and d < DODGE_IN + DODGE_ATTACK_FROM:
+			btn = Btn.HEAVY
+		elif last and d > DODGE_IN + 0.9 and d < DODGE_IN + DODGE_ATTACK_FROM:
 			_tap(Btn.DODGE, frame, 2, 0, 1)
-			_set_plan(&"dodge", frame + SimConst.MOVE_BACKSTEP_FRAMES + SimConst.MOVE_DODGE_FRAMES + 6)
-			_counter_evade = true
+			_set_plan(&"dodge", frame + SimConst.MOVE_DODGE_FRAMES + 6)
+			return
 	elif d <= DODGE_ATTACK_FROM:
-		_tap(Btn.LIGHT if rng.chance(0.55) else Btn.HEAVY, frame, 2)
+		# Spinning Backfist from a little closer in than Slip Jab
+		btn = Btn.LIGHT if d > DODGE_ATTACK_FROM - 0.25 or rng.chance(0.5) else Btn.HEAVY
+	if btn >= 0:
+		_tap(btn, frame, 2)
+		_counter_evade = false
+		_attack_cooldown_until = frame + 30
+	elif last:
+		_counter_evade = false
 
 
 # ------------------------------------------------------------------ neutral game
@@ -895,11 +906,18 @@ func _pick_attack(frame: int, _d: float) -> void:
 		_hold_mask |= 1 << Btn.HEAVY
 		_charge_until = frame + rng.int(30, 160) + me.shoulder_lift()
 		_attack_cooldown_until = frame + 90
-	elif not me.armed:
+	elif not me.armed and r < 0.92:
 		# bare hands jump in close (milestone-1 tasks 93 and 94): a sideways
 		# dodge carries them out of their dodge attacks' reach
-		_tap(Btn.JUMP, frame, 2)
+		_tap(Btn.JUMP, frame, 2, 0, 1)
 		_tap(Btn.LIGHT if rng.chance(0.55) else Btn.HEAVY, frame + 3, 2)
+		_attack_cooldown_until = frame + 50
+	elif not me.armed:
+		# or backstep out, to punish the opponent following in with a
+		# backstep attack (_follow_up(), milestone-1 task 94)
+		_tap(Btn.DODGE, frame, 2, 0, -1)
+		_set_plan(&"dodge", frame + SimConst.MOVE_BACKSTEP_FRAMES + 4)
+		_counter_evade = true
 		_attack_cooldown_until = frame + 50
 	else:
 		# dodge then attack

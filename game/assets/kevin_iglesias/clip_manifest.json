@@ -462,6 +462,70 @@
 				"bare"
 			]
 		},
+		"SnapKick": {
+			"export": "exports/clips/snap_kick.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 10,
+				"contact_end": 12,
+				"settle": 23
+			},
+			"foot_contacts": {"left": [[0, 5], [17, 23]], "right": [[0, 1], [5, 23]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"LungingPalm": {
+			"export": "exports/clips/lunging_palm.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 18,
+				"contact_end": 20,
+				"settle": 35
+			},
+			"foot_contacts": {"left": [[0, 13], [19, 35]], "right": [[0, 12], [24, 35]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"AirKick": {
+			"export": "exports/clips/air_kick.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 7,
+				"contact_end": 9,
+				"settle": 15
+			},
+			"foot_contacts": {"left": [[11, 15]], "right": [[11, 15]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"AxeKick": {
+			"export": "exports/clips/axe_kick.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 11,
+				"contact_end": 14,
+				"settle": 23
+			},
+			"foot_contacts": {"left": [[16, 23]], "right": [[16, 23]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
 		"MoonsplitterStance": {
 			"export": "exports/clips/moonsplitter_stance.glb",
 			"mirror": false,

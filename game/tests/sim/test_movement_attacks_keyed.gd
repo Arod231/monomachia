@@ -16,7 +16,13 @@ const KEYED: Dictionary[StringName, Array] = {
 	&"f_sh": [36, 6, 34, 9, 23, 1.5], # Dragon Kick, a leap
 	&"f_dl": [20, 2, 20, 4, 11, 0.15], # Slip Jab, a short step in
 	&"f_dh": [30, 4, 30, 7, 18, 0.2], # Spinning Backfist, drifting in through the turn
+	&"f_bl": [20, 4, 22, 4, 12, 0.5], # Snap Kick, a skip in off the back foot
+	&"f_bh": [36, 4, 30, 7, 21, 1.5], # Lunging Palm, a long lunge
+	&"f_jl": [14, 4, 12, 5, 12, -1.0], # Air Kick, in place: the jump arc carries it
+	&"f_jh": [22, 6, 18, 8, 21, -1.0], # Axe Kick, in place
 }
+## The jump attacks, which land into their landing recovery (task 59).
+const JUMPS: Array[StringName] = [&"f_jl", &"f_jh"]
 
 
 func test_each_plays_its_keyed_clip_s_markers() -> void:
@@ -41,7 +47,10 @@ func test_each_moves_by_its_clip_s_travel_with_no_lunge_or_hop() -> void:
 		var forward: float = 0.0
 		for f: int in m.startup + m.active + 1:
 			forward += m.travel_at(f)[0]
-		assert_gt(forward, float(KEYED[id][5]), "%s: carried forward by its last active frame (%.2f m)" % [m.name, forward])
+		if JUMPS.has(id):
+			assert_almost_eq(forward, 0.0, 0.05, "%s: in place, the jump arc carries it" % m.name)
+		else:
+			assert_gt(forward, float(KEYED[id][5]), "%s: carried forward by its last active frame (%.2f m)" % [m.name, forward])
 
 
 func test_each_turns_no_more_than_a_few_degrees() -> void:
@@ -80,3 +89,14 @@ func test_a_knee_strike_closes_until_the_bodies_touch() -> void:
 		H.run(W, 1)
 		closest = minf(closest, SimMath.dist2(a.pos, W.fighters[1].pos))
 	assert_almost_eq(closest, SimConst.FIGHTER_RADIUS * 2.0, 0.02, "from the duelling distance the leap carries in until the bodies meet")
+
+
+func test_the_jump_attacks_land_into_their_keyed_landing() -> void:
+	# a keyed jump attack's recovery is its landing: it holds its last active
+	# pose to the touchdown, then plays its recovery (task 59), so its row's
+	# landing is that recovery
+	for id: StringName in JUMPS:
+		var m: AttackDef = Moves.FISTS.moves[id]
+		assert_true(m.airborne and m.fits_airtime(), "%s: a jump attack that fits the airtime" % m.name)
+		assert_eq(m.landing, m.recovery, "%s: lands into its own recovery" % m.name)
+		assert_eq(m.landing_recovery(), KEYED[id][2], m.name)

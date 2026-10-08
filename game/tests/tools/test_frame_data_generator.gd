@@ -176,6 +176,16 @@ func test_mistakes_are_refused() -> void:
 	assert_eq(errors, ["the sampled clip has no left_hand"] as Array[String])
 
 
+func test_a_settle_on_the_clips_last_frame_is_taken_at_its_float_length() -> void:
+	# Godot keeps a clip's length as a 32-bit float: 35 frames read back as
+	# 34.9999988 (Lunging Palm, milestone-1 task 94)
+	var length: float = PackedFloat32Array([35.0 / 30.0])[0]
+	var errors: Array[String] = []
+	var r: FrameDataGenerator.Result = FrameDataGenerator.generate(_stepping, length, {"windup": 0, "active_start": 18, "active_end": 20, "settle": 35}, {}, PARTS, errors)
+	assert_eq(errors, [] as Array[String])
+	assert_not_null(r)
+
+
 func test_a_chains_foot_contacts_follow_its_parts() -> void:
 	var errors: Array[String] = []
 	var parts: Array[ClipChain.Part] = ClipChain.lay_out(["A@4-12", "B@2*5", "B@2"], {&"A": 20.0, &"B": 10.0}, errors)
