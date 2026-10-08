@@ -1,8 +1,11 @@
 // Keeps large files out of the repo, which uses plain Git without LFS: fails
-// when a tracked file is over 10 MB unless it is allow-listed below, or when
+// when a tracked file is over 60 MB unless it is allow-listed below, or when
 // a place goes over its budget in the spec's size budget table (milestone-1
-// task 8): the committed game art under 150 MB and the committed audio under
-// 40 MB. It prints how big the art, the audio and the whole working copy
+// task 8): the committed game art under 600 MB and the committed audio under
+// 40 MB. The owner raised the file limit from 10 MB and the art's budget from
+// 150 MB on Oct 8, 2026, for the Shrine's modelled buildings and their
+// lossless baked maps (milestone-1 task 132); GitHub warns on files past
+// 50 MB and refuses them past 100 MB. It prints how big the art, the audio and the whole working copy
 // are. Sizes are in binary megabytes (1 MB = 1024 × 1024 bytes), as in the
 // Godot asset budget test. The asset repository checks its own budgets
 // (its tools/check-budgets.mjs).
@@ -19,19 +22,12 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MB = 1024 * 1024;
 
-export const LIMIT_BYTES = 10 * MB;
+export const LIMIT_BYTES = 60 * MB;
 
-// Tracked files allowed over the limit, each with its reason.
-export const ALLOWED = new Set([
-  // The shrine's 60 s stereo ambience loop (10,584,112 bytes of 16-bit WAV,
-  // as the spec's sound section asks for); re-encoding it would change the
-  // extractor and the sound bank's checks.
-  'game/assets/audio/sfx/amb_shrine_loop.wav',
-  // Quaternius's full UAL2 clip libraries (Source tier), about 20 MB each,
-  // with and without root motion; the art budget test allows up to 25 MB.
-  'game/assets/quaternius/animations/UAL2_Source.glb',
-  'game/assets/quaternius/animations/UAL2_Source_RM.glb',
-]);
+// Tracked files allowed over the limit, each with its reason. Empty since the
+// limit went to 60 MB (Oct 8, 2026): the shrine's ambience loop (10.1 MB)
+// and Quaternius's UAL2 clip libraries (about 20 MB each) it held fit now.
+export const ALLOWED = new Set([]);
 
 // The folders whose sizes are printed.
 const FOLDERS = ['game/assets', 'game/assets/audio', 'game/fighters', 'game/weapons'];
@@ -42,7 +38,7 @@ const FOLDERS = ['game/assets', 'game/assets/audio', 'game/fighters', 'game/weap
 // which is everything in game/assets but the audio, and the baked binary
 // art beside it in game/fighters and game/weapons (their scenes and scripts
 // aren't art). The audio is everything in game/assets/audio.
-export const ART_BUDGET_BYTES = 150 * MB;
+export const ART_BUDGET_BYTES = 600 * MB;
 export const AUDIO_BUDGET_BYTES = 40 * MB;
 const ASSETS = 'game/assets/';
 const AUDIO = 'game/assets/audio/';

@@ -6,7 +6,8 @@ extends RefCounted
 ## flat pebbles along the foot of the parapet, and on the ledge outside the
 ## stone lanterns with their lights and halos, the roped pillars, the trees
 ## and loose rocks. Everything stands outside the walkable circle except the
-## floor and the pebbles.
+## floor and the pebbles. The lanterns, the torii and the pillars are the
+## modelled ones (ShrineBuildings, milestone-1 task 132), at the same spots.
 ##
 ## Each gate's rope barrier is its own node (GateRope0, GateRope1, by gate
 ## index), so the match intro can drop it while a fighter walks in. A prop
@@ -43,14 +44,15 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> Node3D:
 	_floor(root, layout, def)
 	var mats: Dictionary[StringName, Material] = ShrineProps.materials()
 	var kits := MeshKitSet.new()
+	var buildings := ShrineBuildings.new()
 	var props := Node3D.new()
 	props.name = "Props"
 	root.add_child(props)
 	_parapet(kits, layout, def, layout.random_stream(&"parapet"))
-	_gates(kits, root, props, layout, def, mats)
+	_gates(kits, buildings, root, props, layout, def, mats)
 	_pebbles(kits, layout, def)
-	_lanterns(kits, root, props, layout)
-	_pillars(kits, props, layout)
+	_lanterns(buildings, root, props, layout)
+	_pillars(buildings, props, layout)
 	root.add_child(ShrineWisteria.build(layout, props))
 	_debris(kits, layout, def)
 	kits.finish(props, mats, NO_SHADOW)
@@ -199,8 +201,8 @@ static func _parapet(kits: MeshKitSet, layout: ShrineLayout, def: ArenaDef, rng:
 
 ## Each gate's landing, level with the floor, with two steps down to the
 ## ledge, the torii standing on it, and its rope barrier.
-static func _gates(kits: MeshKitSet, root: Node3D, props: Node3D, layout: ShrineLayout, def: ArenaDef,
-		mats: Dictionary[StringName, Material]) -> void:
+static func _gates(kits: MeshKitSet, buildings: ShrineBuildings, root: Node3D, props: Node3D, layout: ShrineLayout,
+		def: ArenaDef, mats: Dictionary[StringName, Material]) -> void:
 	var span_angle: float = _gate_end_angle(layout, def)
 	var angles: PackedFloat32Array = gate_angles(def)
 	var stone: MeshKit = kits.kit(&"landing")
@@ -218,7 +220,7 @@ static func _gates(kits: MeshKitSet, root: Node3D, props: Node3D, layout: Shrine
 			stone.box(xform * Transform3D(Basis(), Vector3(0, -0.12 - 0.17 * k - 0.35, far_z + 0.3 + 0.45 * k)),
 				Vector3(layout.torii_span + 1.0 - k * 0.4, 0.7, 0.6))
 		if not layout.place_art(props, &"torii", side, xform):
-			ShrineProps.torii(kits, xform, layout.torii_height, layout.torii_span)
+			props.add_child(buildings.torii(side, xform, layout.torii_height, layout.torii_span))
 		# A rope barrier across the parapet opening, tied to the outer faces of
 		# the end posts so its sag stays outside the walkable circle.
 		var rope_r: float = def.wall_radius + def.wall_thickness * 0.3
@@ -277,12 +279,13 @@ static func _scatter_rocks(kit: MeshKit, def: ArenaDef, rng: RandomNumberGenerat
 
 
 ## The stone lanterns on the ledge, and a light and a halo at each fire.
-static func _lanterns(kits: MeshKitSet, root: Node3D, props: Node3D, layout: ShrineLayout) -> void:
+static func _lanterns(buildings: ShrineBuildings, root: Node3D, props: Node3D, layout: ShrineLayout) -> void:
 	var rng: RandomNumberGenerator = layout.random_stream(&"lantern")
 	var spots: Array[Transform3D] = _lantern_spots(layout)
 	for i: int in spots.size():
+		var phase: float = rng.randf()
 		if not layout.place_art(props, &"lantern", i, spots[i]):
-			ShrineProps.lantern(kits, spots[i], rng)
+			props.add_child(buildings.lantern(i, spots[i], phase))
 	var fires: PackedVector3Array = fire_points(layout)
 	var lights := Node3D.new()
 	lights.name = "LanternLights"
@@ -336,10 +339,10 @@ static func _lantern_halos(fires: PackedVector3Array) -> MultiMeshInstance3D:
 
 
 ## The pillars on the ledge, each turned at random.
-static func _pillars(kits: MeshKitSet, props: Node3D, layout: ShrineLayout) -> void:
+static func _pillars(buildings: ShrineBuildings, props: Node3D, layout: ShrineLayout) -> void:
 	var rng: RandomNumberGenerator = layout.random_stream(&"pillar")
 	for i: int in layout.pillars.size():
 		var p: Vector4 = layout.pillars[i]
 		var xform := Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)), ShrineLayout.polar(p.x, p.y, LEDGE_Y))
 		if not layout.place_art(props, &"pillar", i, xform):
-			ShrineProps.pillar(kits, xform, p.z, p.w > 0.5, rng)
+			props.add_child(buildings.pillar(i, xform, p.z, p.w > 0.5))

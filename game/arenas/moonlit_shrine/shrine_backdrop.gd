@@ -207,12 +207,11 @@ static func _cliffs(layout: ShrineLayout) -> Node3D:
 	node.name = "Cliffs"
 	var rock := MeshKit.new()
 	var falls := MeshKit.new()
-	var kits := MeshKitSet.new()
 	var noise := FastNoiseLite.new()
 	noise.seed = layout.random_stream(&"cliffs").randi()
 	noise.frequency = 0.05
 	noise.fractal_octaves = 3
-	var pagodas: RandomNumberGenerator = layout.random_stream(&"pagoda")
+	var buildings := ShrineBuildings.new()
 	for i: int in layout.cliffs.size():
 		var c: Vector4 = layout.cliffs[i]
 		var centre: Vector3 = _cliff_centre(layout, i)
@@ -220,38 +219,38 @@ static func _cliffs(layout: ShrineLayout) -> Node3D:
 		# The buildings face the shrine.
 		var top := Transform3D(Basis(Vector3.UP, deg_to_rad(c.x + 180.0)), centre + Vector3(0, c.z, 0))
 		if c.w >= PAGODA_CLIFF:
-			_pagoda(node, kits, layout, i, top, 5, c.w * 0.42, pagodas)
+			_pagoda(node, buildings, layout, i, top, c.w * 0.42)
 		elif c.w >= TEMPLE_CLIFF:
-			_temple_hall(node, kits, layout, i, top, c.w * 0.9, c.w * 0.6)
-			_pagoda(node, kits, layout, i, top.translated_local(Vector3(c.w * 0.45, 0, c.w * 0.3)), 3, c.w * 0.22, pagodas)
+			_temple_hall(node, buildings, layout, i, top, c.w * 0.9)
+			_pagoda(node, buildings, layout, i, top.translated_local(Vector3(c.w * 0.45, 0, c.w * 0.3)), c.w * 0.22)
 		else:
-			_temple_hall(node, kits, layout, i, top, c.w * 0.8, c.w * 0.55)
+			_temple_hall(node, buildings, layout, i, top, c.w * 0.8)
 		if layout.waterfall_cliffs.has(i):
 			var lip: Vector3 = _waterfall_lip(layout, i)
 			_waterfall(falls, lip, _toward_shrine(layout, i), lip.y - layout.cloud_sea_height + WATERFALL_PLUNGE, c.w * 0.38)
 	var spires := MeshKit.instance(rock.commit(), _cliff_rock(), false)
 	spires.name = "Spires"
 	node.add_child(spires)
-	kits.finish(node, ShrineProps.materials(), kits.keys())
 	var waterfalls := MeshKit.instance(falls.commit(), _material(WATERFALL, {}), false)
 	waterfalls.name = "Waterfalls"
 	node.add_child(waterfalls)
 	return node
 
 
-## A pagoda on xform, width wide, or the bought one scaled to width.
-static func _pagoda(node: Node3D, kits: MeshKitSet, layout: ShrineLayout, index: int, xform: Transform3D, tiers: int,
-		width: float, rng: RandomNumberGenerator) -> void:
+## A pagoda on xform, width wide (the modelled one, milestone-1 task 132,
+## ShrineBuildings), or the bought one scaled to width.
+static func _pagoda(node: Node3D, buildings: ShrineBuildings, layout: ShrineLayout, index: int, xform: Transform3D,
+		width: float) -> void:
 	if not layout.place_art(node, &"pagoda", index, xform.scaled_local(Vector3.ONE * width)):
-		ShrineProps.pagoda(kits, xform, tiers, width, rng)
+		node.add_child(buildings.pagoda(index, xform, width))
 
 
-## A temple hall on xform, width wide and depth deep, or the bought one
+## A temple hall on xform, width wide (the modelled one), or the bought one
 ## scaled to width.
-static func _temple_hall(node: Node3D, kits: MeshKitSet, layout: ShrineLayout, index: int, xform: Transform3D,
-		width: float, depth: float) -> void:
+static func _temple_hall(node: Node3D, buildings: ShrineBuildings, layout: ShrineLayout, index: int, xform: Transform3D,
+		width: float) -> void:
 	if not layout.place_art(node, &"temple_hall", index, xform.scaled_local(Vector3.ONE * width)):
-		ShrineProps.temple_hall(kits, xform, width, depth)
+		node.add_child(buildings.temple_hall(index, xform, width))
 
 
 ## The cliffs' rock: the crag's, darker, with broader strata for its size.

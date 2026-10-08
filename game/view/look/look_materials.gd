@@ -110,6 +110,32 @@ static func weapon_from(source: Material) -> ShaderMaterial:
 	return m
 
 
+## A material's own maps carried onto a look material: its base-colour
+## texture, normal map and roughness map (roughness green, metalness blue,
+## as glTF packs them).
+static func _carry_maps(m: ShaderMaterial, base: BaseMaterial3D) -> void:
+	if base.albedo_texture != null:
+		m.set_shader_parameter(&"albedo_texture", base.albedo_texture)
+	if base.normal_enabled and base.normal_texture != null:
+		m.set_shader_parameter(&"normal_texture", base.normal_texture)
+		m.set_shader_parameter(&"normal_strength", base.normal_scale)
+	if base.roughness_texture != null:
+		m.set_shader_parameter(&"orm_texture", base.roughness_texture)
+		m.set_shader_parameter(&"use_orm_texture", true)
+
+
+## A prop surface from the material a model from the Blender export was made
+## with (the Shrine's banner poles, milestone-1 task 131): its colour and its
+## own maps, keeping its name.
+static func prop_from(source: Material) -> ShaderMaterial:
+	var base := source as BaseMaterial3D
+	var m: ShaderMaterial = make(base.albedo_color, Surface.PROP, PROP_SURFACE,
+		{&"use_vertex_color": base.vertex_color_use_as_albedo})
+	_carry_maps(m, base)
+	m.resource_name = source.resource_name
+	return m
+
+
 ## A prop's stone, wood, lacquer or paper, taking the mesh's vertex colour
 ## (MeshKit's baked shading) as the toon props did.
 static func prop(color: Color, surface: Vector2 = PROP_SURFACE) -> ShaderMaterial:

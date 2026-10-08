@@ -335,8 +335,8 @@ func _vertices_near(mi: MeshInstance3D, point: Vector3, radius: float) -> Packed
 
 
 func test_a_torii_stands_on_each_gate_landing() -> void:
-	var lacquer := arena.get_node("Platform/Props/Lacquer") as MeshInstance3D
 	for side: int in 2:
+		var lacquer := arena.get_node("Platform/Props/Torii%d/Wood" % side) as MeshInstance3D
 		var gate: Transform3D = arena.def.gate_anchor(side)
 		for s: float in [-1.0, 1.0]:
 			var foot: Vector3 = gate * Vector3(s * arena.layout.torii_span * 0.5, 0.0, 0.0)
@@ -429,7 +429,8 @@ func test_a_scene_in_prop_scenes_replaces_the_procedural_lantern_at_the_same_spo
 		var spot: Vector3 = ShrineLayout.polar(layout.lantern_angles[i], layout.lantern_radius)
 		var at: Vector3 = (placed[i] as Node3D).position
 		assert_almost_eq(Vector2(at.x, at.z), Vector2(spot.x, spot.z), Vector2.ONE * 0.01, "bought lantern %d on its spot" % i)
-	assert_null(shrine.get_node_or_null("Platform/Props/Glow"), "no procedural lantern's lit paper")
+	for node: Node in placed:
+		assert_null(node.get_node_or_null("Paper"), "%s is the bought one, not the modelled lantern" % node.name)
 	assert_eq(_lantern_lights(shrine).size(), layout.lantern_angles.size(), "the bought lanterns still light")
 	assert_eq(_lantern_embers(shrine).size(), layout.lantern_angles.size(), "and give off embers")
 	assert_eq(_props_aabb(shrine, "StoneDark"), _props_aabb(arena, "StoneDark"), "the pillars as they were without the bought lanterns")
@@ -464,10 +465,10 @@ func test_every_prop_kind_can_be_swapped_for_bought_art() -> void:
 		assert_eq(placed, expected[kind], "bought %s in every spot" % kind)
 	assert_eq(shrine.get_node("Platform/Wisteria").find_children("Wisteria*", "Node3D", false, false).size(), 0,
 		"no procedural wisteria left")
-	for kit_name: String in ["Stone", "Lacquer", "BlackLacquer", "Glow"]:
-		assert_null(props.get_node_or_null(kit_name), "no procedural %s left" % kit_name)
-	for kit_name: String in ["Wood", "Roof", "Window", "StoneDark"]:
-		assert_null(cliffs.get_node_or_null(kit_name), "no procedural %s left on the cliffs" % kit_name)
+	for parent: Node in [props, cliffs]:
+		for child: Node in parent.get_children():
+			for part: String in ["Stone", "Wood", "Body"]:
+				assert_null(child.get_node_or_null(part), "%s is the bought one, not the modelled one" % child.name)
 	var rocks: Array[Node] = shrine.get_node("Underside/FloatingRocks").get_children()
 	assert_eq(rocks.size(), layout.floating_rocks.size(), "a bought floating rock in every spot")
 	for rock: Node in rocks:
@@ -477,7 +478,7 @@ func test_every_prop_kind_can_be_swapped_for_bought_art() -> void:
 func test_bought_art_under_an_unknown_kind_is_reported() -> void:
 	var shrine: MoonlitShrine = _shrine_with_art([&"lanturn"])
 	assert_push_error("lanturn")
-	assert_not_null(shrine.get_node_or_null("Platform/Props/Glow"), "the lanterns are built as usual")
+	assert_not_null(shrine.get_node_or_null("Platform/Props/Lantern0/Paper"), "the lanterns are built as usual")
 
 
 # ------------------------------------------------------------------ the underside

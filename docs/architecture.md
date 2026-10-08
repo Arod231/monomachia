@@ -771,7 +771,7 @@ flowchart LR
     end
     subgraph ARENA["arenas/moonlit_shrine/"]
         ADEF["moonlit_shrine.tres<br/>ArenaDef: radius 15, spawns,<br/>gates, camera limits, ambience"] --> ASCN["moonlit_shrine.tscn<br/>MoonlitShrine"]
-        ASCN --> PARTS["ShrinePlatform, ShrineProps,<br/>ShrineWisteria, ShrineUnderside,<br/>ShrineBackdrop, ShrineParticles,<br/>ShrineFallenPetals"]
+        ASCN --> PARTS["ShrinePlatform, ShrineProps,<br/>ShrineWisteria, ShrineUnderside,<br/>ShrineBackdrop, ShrineParticles,<br/>ShrineFallenPetals, ShrineBuildings"]
         LAYOUT["moonlit_shrine_layout.tres<br/>ShrineLayout: placement data"] --> ASCN
     end
     ASSETS["assets/quaternius<br/>outfits, hair, base bodies,<br/>UAL animation library"] --> FIGHTER
@@ -780,6 +780,7 @@ flowchart LR
 
 - A **fighter** (Rogue, Hunter) is a `FighterModel` scene plus a `FighterLook` resource. The look says which weapon each fighter holds how (`WeaponHold`: reverse hold, guard stance, wrist tweaks).
 - A **weapon's look** (`WeaponLook`) is separate from its rules (`WeaponDef` in `sim/moves`). They share the id (`katana`, `greatsword`, `daggers`) by convention.
+- The Moonlit Shrine's **buildings** (`ShrineBuildings`, milestone-1 task 132) are the project's own models, built and weathered in Blender by `scripts/blender/build_shrine_buildings.py` (spec `scripts/blender/shrine/buildings.json`) and brought in by the export: Kasuga lanterns, Myojin torii with their shimenawa, whole and broken pillars, baked in Cycles to maps of their own from CC0 scans, and the far pagodas and temple halls in tiled scans; the builders place them at the layout's spots (bought art in `prop_scenes` still stands in), their surfaces through `LookMaterials.prop_from()`.
 - The Moonlit Shrine's **fallen petals** (`ShrineFallenPetals`, milestone-1 task 137) fall from the canopy on the wind, land and stay on the floor through the match, building to drifts at the parapet's foot (up to 1,500, thinned by the preset's `floor_petal_ratio`), dim from a neon glow to a soft one once settled, and are pushed about by the match view's `FloorStir`; a CPU simulation in a multimesh (`fallen_petal.gdshader`), where only falling and stirred petals cost a frame.
 - An **arena** is an `ArenaDef` resource plus a scene that builds itself in code. Every arena must provide a `def` property, `Spawn0/1` and `Gate0/1` markers, its own environment (the night, `LookGrade.environment()`) and lights, and apply the graphics preset to itself. Its `walkable_radius` must equal `SimConst.ARENA_RADIUS`, or `ArenaScenes` falls back to the stand-in.
 - `fighters/preview/` is a dev stage for looking at fighters and weapons; it isn't part of the game or the export.
@@ -950,7 +951,7 @@ flowchart LR
 | `game/tests/view` | 24 | Arenas, camera, fighter rig and view, stick pose, locomotion, the realistic look (materials, grade, look test), presets, MatchHost, main flow, the `--smoke` run, tool scenes. |
 | `game/tests/audio` | 10 | Bus layout and ducking, FadedLoop, footsteps, music director and player, sound bank, sound player, headless playback of a match |
 | `game/tests/input` | 7 | Device state, InputFeed, labels, profiles, rebinding, sampling, seats and pause |
-| `game/tests/content` | 5 | Animation library, asset hygiene (no art file over 25 MB, textures scaled down, every referenced texture there), fighter scenes, palettes, weapon models. The art's 110 MB cap went in milestone-1 task 8: `check:sizes` holds the size budgets per place. |
+| `game/tests/content` | 5 | Animation library, asset hygiene (no art file over 60 MB, textures scaled down, every referenced texture there), fighter scenes, palettes, weapon models. The art's 110 MB cap went in milestone-1 task 8: `check:sizes` holds the size budgets per place. |
 | `game/tests/core` | 3 | GameServices, GameSettings, MatchConfig and MatchSide |
 | `game/tests/fixtures` | data | JSON from the TypeScript (`rng`, `moves`, `math`, `port`) and a hand-made arena scene |
 
@@ -977,7 +978,7 @@ Rule tests build a `World` directly, feed it scripted `RawInput`s and assert on 
 | `npm run audio:sonniss`, `audio:synth`, `audio:music` | Regenerate sound effects and music |
 | `npm run checklist` | Write the last test run's move-by-move results (`build/checklist-results.json`, recorded through `ChecklistResults`) into the per-move checklist, `docs/reviews/milestone-1-checklist.md`; the owner's columns are never touched (milestone-1 task 10) |
 | `npm run export` | The Blender export (`scripts/blender/export.mjs` running `export_blend.py` in Blender headless): each source in the asset repository's `blender/sources.json` to one GLB in its `exports/`, with a record of its source and checksums; a clip's keys start at 0 s whatever Blender frame its source starts on, so its frame k plays at k/30 s; clip and fighter sources must carry the Kevin Iglesias rig's bones; self-made and CC0 models are copied into `game/assets/` inside the art budget (the Shrine's five wisteria and their bark, milestone-1 task 48, grown by the asset repository's `blender/shrine/wisteria_build.py` in Blender headless against the Shrine that `game/tools/export_shrine_reference.gd` writes as glTF). A body part (KE task 3) goes out as a `.gltf` and its `.bin` instead, on the Quaternius rig's bones, and lands in the game beside the original part as `<Part>_Tall.gltf`, keeping the original's materials and textures; the parts are re-proportioned for it by `scripts/blender/reproportion_fighter.py` (Blender headless, one spec per fighter in `scripts/blender/bodies/`: the scale about the floor, the shoulders' spread and the head's size baked into each part's rest pose and meshes), which writes the sources into the asset repository's `blender/bodies/`. Claude's scripted re-keys of pack clips are made for it by `scripts/blender/rekey_clip.py` (Blender headless, one spec per clip in `scripts/blender/rekeys/`: the time warp, a real step with the legs on IK, both hands on the grip clear of the body, and for a transition the pose of another clip carried into this one's motion, the feet kept on IK), which writes the source into the asset repository's `blender/clips/` (milestone-1 task 31; the light string's four, tasks 31 and 32; the Katana's guard idle, the bridges between the string's hits and each light's return to guard, task 33, which `state_clips.json`'s `transitions` and `ClipDirector` play; each light's deflect pair, task 34: its recoil, thrown back from the contact, and the deflect aimed so the two blades meet at the rules' contact point, which `state_clips.json`'s `deflects` and `ClipDirector` play; the light hit reactions, turned for their side and lowered for low, and the light block, task 35, which its `reactions` and `own_speed` and `ClipDirector` play) |
-| `npm run check:sizes` | Fail on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB (the spec's size budget table; the asset repository's own budgets are its `tools/check-budgets.mjs`) |
+| `npm run check:sizes` | Fail on any tracked file over 60 MB, the committed game art over 600 MB or the audio over 40 MB (raised from 10 MB and 150 MB on Oct 8, 2026; the spec's size budget table; the asset repository's own budgets are its `tools/check-budgets.mjs`) |
 | `npm run brain`, `npm run brain:serve`, `npm run board` | The second brain's generated notes and its viewer; the Project Manager (lanes board) |
 
 ### 16.2 The Godot runner (`scripts/godot.mjs`)
@@ -1002,7 +1003,7 @@ flowchart TD
         BRP["reproportion_fighter.py + bodies/*.json<br/>a fighter's Quaternius parts re-proportioned<br/>(KE task 3)"] --> BSRC
         BSRC["asset repository: blender/*.blend<br/>listed in blender/sources.json"] --> BEX["export.mjs + export_blend.py<br/>Blender headless"]
         BEX --> BOUT["asset repository: exports/*.glb<br/>+ a record of each source"]
-        BEX --> BGAME["game/assets/: self-made and CC0 models<br/>inside the 150 MB art budget"]
+        BEX --> BGAME["game/assets/: self-made and CC0 models<br/>inside the 600 MB art budget"]
         BOUT --> BCLIP["godot.mjs clips (tools/import_clips.gd)<br/>exported clips the clip manifest names, beside the packs' FBX:<br/>retargeted, mirrored, into the gitignored clip libraries"]
     end
     subgraph ARTP["Fighters and weapons (game/tools)"]
@@ -1079,6 +1080,6 @@ Major features follow `CLAUDE.md`: a spec in `docs/specs/`, a plan in `docs/plan
 - **Godot's JSON and float literals round differently from V8**, which is why the parity fixtures store floats as hex bit patterns and `JsMath` builds its constants from bits.
 - **GUT skips a test file that doesn't parse**, silently. `godot.mjs test` fails on parse errors for that reason; keep it that way.
 - **Saved settings leak into tests.** Tests and screenshots set `MONOMACHIA_DEFAULT_SETTINGS=1`, so they start from the default settings and one fresh controls profile, and never write the player's files. Do the same in any new runner.
-- **Big files.** `check:sizes` fails CI on any tracked file over 10 MB, the committed game art over 150 MB or the audio over 40 MB. Never commit the raw Sonniss recordings.
+- **Big files.** `check:sizes` fails CI on any tracked file over 60 MB, the committed game art over 600 MB or the audio over 40 MB. Never commit the raw Sonniss recordings.
 - **`docs/adr/` doesn't exist yet**, although `docs/agents/domain.md` mentions it. Create it with the first ADR.
   > **Superseded by [ADR 0001](adr/0001-animation-leads-realistic-look.md) (Oct 4, 2026):** `docs/adr/` now exists, and ADR 0001 is its first record.

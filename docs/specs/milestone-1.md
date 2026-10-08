@@ -609,7 +609,7 @@ When a finisher prompt opens for the computer, it presses heavy on a share of pr
 
 | Place | Budget |
 |---|---|
-| Public repository | no tracked file over 10 MB (today's guard); committed game art (CC0 and self-made models and materials, including the exports copied from the asset repository, and labelled stand-ins) under 150 MB in all, replacing the 110 MB cap; committed audio under 40 MB (today's test) |
+| Public repository | no tracked file over 60 MB; committed game art (CC0 and self-made models and materials, including the exports copied from the asset repository, and labelled stand-ins) under 600 MB in all, replacing the 110 MB cap; committed audio under 40 MB (today's test). Raised by the owner on Oct 8, 2026 from 10 MB a file and 150 MB of art, for the Shrine's buildings and their lossless baked maps (task 132) |
 | Asset repository (Git LFS) | under 8 GiB in all, inside GitHub Free's 10 GiB; per fighter under 400 MB of sources and 120 MB exported; per weapon under 60 MB of sources and 20 MB exported; per exported clip under 5 MB; the arena under 1.5 GB of sources and 600 MB exported; textures at 4K only for fighters, weapons and hero props, 2K elsewhere |
 | Shipped game | milestone 1's build under 2 GB zipped and 3 GB installed |
 
