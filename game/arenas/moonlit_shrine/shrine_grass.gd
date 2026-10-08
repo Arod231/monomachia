@@ -34,6 +34,9 @@ const FLOOR_HEIGHT: float = 0.12
 const SPREAD: Vector2 = Vector2(1.0, 1.8)
 ## How far a tuft's tips lean in a wind of 1 (m).
 const SWAY: float = 0.06
+## How far the fight's pushes bend it (steps, low swings, falls, blows), as a
+## share of a wind as strong (milestone-1 task 115).
+const AIR: float = 0.6
 
 
 ## The grass under a new Node3D named Grass.
@@ -50,7 +53,7 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> Node3D:
 			continue
 		meshes.append(mi.mesh)
 		if material == null:
-			material = LookMaterials.sway(mi.mesh.surface_get_material(0) as BaseMaterial3D, SWAY, 0.0, false)
+			material = LookMaterials.sway(mi.mesh.surface_get_material(0) as BaseMaterial3D, SWAY, 0.0, false, AIR)
 	model.free()
 	if meshes.is_empty():
 		return root

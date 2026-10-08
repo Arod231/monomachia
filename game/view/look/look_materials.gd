@@ -157,8 +157,10 @@ static func prop_from(source: Material) -> ShaderMaterial:
 ## fluttering by `flutter`, its weight in its vertex alpha, or in its
 ## vertex red (`from_red`, the banners' cloth, whose colour is its
 ## texture's); with the weight in the alpha, the vertex colour is its
-## colour (the grass).
-static func sway(source: BaseMaterial3D, sway_amount: float, flutter: float, from_red: bool) -> ShaderMaterial:
+## colour (the grass). The fight's pushes (air_push.gdshaderinc, milestone-1
+## task 115) bend it `air_share` as far as a wind as strong.
+static func sway(source: BaseMaterial3D, sway_amount: float, flutter: float, from_red: bool,
+		air_share: float = 1.0) -> ShaderMaterial:
 	var m: ShaderMaterial = make_with_shader(SWAY_SHADER, Surface.PROP, {
 		&"base_color": source.albedo_color,
 		&"roughness": PROP_SURFACE.x,
@@ -167,6 +169,7 @@ static func sway(source: BaseMaterial3D, sway_amount: float, flutter: float, fro
 		&"sway": sway_amount,
 		&"flutter": flutter,
 		&"sway_from_red": from_red,
+		&"air_share": air_share,
 	})
 	_carry_maps(m, source)
 	m.resource_name = source.resource_name

@@ -26,5 +26,6 @@ light_landscape = false
 minor_decals = true
 particle_ratio = 1.0
 floor_petal_ratio = 1.0
+arena_marks = 96
 minor_lights = true
 scenery_detail = 2

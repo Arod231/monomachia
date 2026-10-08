@@ -14,8 +14,12 @@ extends RefCounted
 ##   (DOWN_BURST) and a stomp (STOMP_BURST) burst once; so do the rules'
 ##   blows (on_event(): a hit, a heavy block, a KO, the recall's and the
 ##   ultimates' bursts), at their target's feet or where they go off.
-## Bursts are (radius, strength). It reads the view and the rules' states and
-## events and writes nothing back: picture only.
+## Bursts are (radius, strength). The big ones reach further through the air
+## (FloorStir.Push.air; milestone-1 task 115, the owner's answer of Oct 8: the
+## banners billow from the ultimates, Moonsplitter's wave and a K.O. fall
+## near the wall): KO_AIR, ULT_AIR. Moonsplitter's waves in flight are the
+## stir's fronts. It reads the view and the rules' states and events and
+## writes nothing back: picture only.
 
 const WALK_RADIUS: float = 0.4
 const WALK_STRENGTH: float = 1.0
@@ -39,6 +43,11 @@ const KO_BURST := Vector2(1.4, 2.5)
 const RECALL_BURST := Vector2(2.5, 3.5)
 const ULT_BURST := Vector2(3.0, 4.0)
 const ULT_WAVE_BURST := Vector2(1.5, 3.0)
+## How far through the air (m) a K.O.'s fall and the ultimates' bursts (the
+## recall's, the Impaler's and Moonsplitter's launch) reach: a fall near the wall reaches the nearest banners, an ultimate all
+## of them.
+const KO_AIR: float = 7.0
+const ULT_AIR: float = 40.0
 
 ## Per side, from the last frame: where it stood, its state and knockdown
 ## phase, and its blades.
@@ -53,9 +62,12 @@ var _waiting: Array[FloorStir.Push] = []
 ## This frame's stir, delta seconds after the last: sides holds one entry per
 ## fighter, {"at": where it's shown (Vector3), "state": its rules state,
 ## "phase": its knockdown phase (Fighter.knockdown_phase()), "blades": its
-## blades as posed (FighterView.blade_segments())}.
-func frame(delta: float, sides: Array[Dictionary]) -> FloorStir:
+## blades as posed (FighterView.blade_segments())}; waves are the rules'
+## Moonsplitter waves, shown `alpha` of the way to their next step.
+func frame(delta: float, sides: Array[Dictionary], waves: Array[SlashWave] = [], alpha: float = 1.0) -> FloorStir:
 	var out := FloorStir.new()
+	for w: SlashWave in waves:
+		out.front(Vector3(w.ox, 0.0, w.oz), Vector3(w.dx, 0.0, w.dz).normalized(), MoonWave.shown_s(w, alpha), w.kind)
 	for b: FloorStir.Push in _waiting:
 		out.bursts.append(b)
 	_waiting.clear()
@@ -106,15 +118,15 @@ func on_event(e: Dictionary, at_of: Callable) -> void:
 				_burst_at(at_of.call(int(e["target"])), HEAVY_BLOCK_BURST)
 		&"ko":
 			if int(e.get("loser", -1)) >= 0:
-				_burst_at(at_of.call(int(e["loser"])), KO_BURST)
+				_burst_at(at_of.call(int(e["loser"])), KO_BURST, KO_AIR)
 		&"recallBurst":
-			_burst_at(_vector(e["pos"]), RECALL_BURST)
+			_burst_at(_vector(e["pos"]), RECALL_BURST, ULT_AIR)
 		&"ultBurst":
 			if e.has("pos"):
-				_burst_at(_vector(e["pos"]), ULT_BURST)
+				_burst_at(_vector(e["pos"]), ULT_BURST, ULT_AIR)
 		&"ultWave":
 			if e.has("pos"):
-				_burst_at(_vector(e["pos"]), ULT_WAVE_BURST)
+				_burst_at(_vector(e["pos"]), ULT_WAVE_BURST, ULT_AIR)
 
 
 ## Forgets the last frame and the waiting bursts (a new match).
@@ -150,8 +162,8 @@ static func _sweep(out: FloorStir, was: PackedVector3Array, now: PackedVector3Ar
 	out.sweep(now[0], now[1], va, vb)
 
 
-func _burst_at(at: Vector3, burst: Vector2) -> void:
-	_waiting.append(FloorStir._push(Vector3(at.x, 0.0, at.z), Vector3.ZERO, burst.x, burst.y))
+func _burst_at(at: Vector3, burst: Vector2, air: float = 0.0) -> void:
+	_waiting.append(FloorStir._push(Vector3(at.x, 0.0, at.z), Vector3.ZERO, burst.x, burst.y, air))
 
 
 static func _vector(d: Variant) -> Vector3:

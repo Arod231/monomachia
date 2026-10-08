@@ -22,7 +22,9 @@ extends Resource
 ## Medium and Low draw the Shrine's sea of clouds as lit mesh layers in place
 ## of the volumetric clouds (volumetric_clouds), and Low draws the distant
 ## landscape's lighter models (light_landscape; milestone-1 task 51, the
-## owner's choice, Oct 8).
+## owner's choice, Oct 8). The arena's marks (ArenaMarks, milestone-1 task
+## 115) last the match up to arena_marks: 96 on Ultra and High, 48 on Medium
+## and 24 on Low (the owner's choice, Oct 8), the oldest fading.
 ##
 ## The first launch picks a preset from the graphics card's name (for_card(),
 ## the rules in CARDS); a card no rule names gets UNKNOWN_CARD_ID.
@@ -46,7 +48,7 @@ const CUTS: Array[StringName] = [
 	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
 	&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
-	&"floor_petal_ratio", &"volumetric_clouds", &"light_landscape",
+	&"floor_petal_ratio", &"volumetric_clouds", &"light_landscape", &"arena_marks",
 ]
 
 @export var id: StringName = &"high"
@@ -115,6 +117,9 @@ const CUTS: Array[StringName] = [
 ## Fraction of the arena's fallen petals drawn (the Shrine's floor cover,
 ## milestone-1 task 137): nodes in group look_floor_petals.
 @export_range(0.0, 1.0) var floor_petal_ratio: float = 1.0
+## The most marks the fight leaves on the arena's stone (cuts, gashes,
+## scorches, cracks, grooves; ArenaMarks), the oldest fading past it.
+@export_range(0, 256) var arena_marks: int = 96
 ## Lantern lights and other small omni lights.
 @export var minor_lights: bool = true
 ## Distant scenery detail: 0 = silhouettes only, 1 = with props, 2 = all.

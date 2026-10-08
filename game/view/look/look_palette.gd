@@ -67,6 +67,11 @@ const BELOW_DECK_LAYER: int = 16
 ## shadows leaves this layer out of its caster mask (SHADOW_CASTERS), so the
 ## trees still cast no shadow on the arena.
 const CANOPY_LAYER: int = 512
+## Render layer bit for the stone an arena's marks may land on beside its
+## floor (layer 11; milestone-1 task 115, ArenaMarks): the Shrine's parapet
+## and pillars. The fighters never carry it, so a cut or scorch on the wall
+## never prints on a fighter standing against it.
+const MARKS_LAYER: int = 1024
 ## Shadow caster mask for every light but the moon shafts: all but the canopy.
 const SHADOW_CASTERS: int = 0xFFFFF & ~CANOPY_LAYER
 

@@ -470,7 +470,7 @@ func test_rematches_and_restarts_leave_no_stray_nodes() -> void:
 	host.start(_cpu())
 	await get_tree().process_frame
 	var baseline: Array[String] = _child_names()
-	assert_eq(baseline.size(), 8, "the arena, the camera, two fighters, the effects, the Moonsplitter waves, the blood and the film grain")
+	assert_eq(baseline.size(), 9, "the arena, the camera, two fighters, the effects, the Moonsplitter waves, the blood, the arena's marks and the film grain")
 	var at: Dictionary = {"x": 0.0, "y": 1.25, "z": 0.0}
 	for k: int in 3:
 		host.step(Match.INTRO_FRAMES + 20)

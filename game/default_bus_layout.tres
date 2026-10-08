@@ -1,9 +1,8 @@
-[gd_resource type="AudioBusLayout" format=3]
+[gd_resource type="AudioBusLayout" format=3 uid="uid://c8qjmfe8xcwr0"]
 
 [sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_master"]
 resource_name = "Compressor"
 threshold = -14.0
-ratio = 4.0
 attack_us = 5000.0
 release_ms = 150.0
 
@@ -35,16 +34,9 @@ room_size = 0.65
 damping = 0.45
 spread = 0.9
 hipass = 0.12
-dry = 1.0
 wet = 0.25
 
 [resource]
-bus/0/name = &"Master"
-bus/0/solo = false
-bus/0/mute = false
-bus/0/bypass_fx = false
-bus/0/volume_db = 0.0
-bus/0/send = &""
 bus/0/effect/0/effect = SubResource("AudioEffectCompressor_master")
 bus/0/effect/0/enabled = true
 bus/0/effect/1/effect = SubResource("AudioEffectHardLimiter_master")

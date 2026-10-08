@@ -28,7 +28,11 @@ extends Node3D
 ## it) and ShrineParticles (the embers and ash on the wind); and its fallen
 ## petals (ShrineFallenPetals, milestone-1 task 137), which the match view
 ## stirs each drawn frame (stir_floor()) and clears at a new match
-## (clear_floor()).
+## (clear_floor()). The same stir bends its grass and billows its banners
+## (`air`, ArenaAir; milestone-1 task 115), and the match's marks
+## (ArenaMarks) take its parapet, gate openings and pillars from
+## reaction_surfaces(); the parapet and pillars carry LookPalette.MARKS_LAYER
+## for them.
 
 ## The highest camera (m above the floor) that leaves out the rock under the
 ## rim: from there and inside the camera's limit (def.camera_max_radius),
@@ -61,6 +65,8 @@ const MIST_BANK_HEIGHT: float = 11.0
 ## The dust motes over the courtyard (the look test's 140 over a corner,
 ## spread over the whole floor at about a third of that density).
 const DUST_AMOUNT: int = 700
+## A pillar's radius (m) when its model can't say (bought art in its place).
+const PILLAR_RADIUS: float = 0.45
 
 @export var def: ArenaDef
 @export var layout: ShrineLayout
@@ -74,6 +80,8 @@ var _fallen: ShrineFallenPetals
 var _doom: float = 0.0
 var _doom_target: float = 0.0
 var _time: float = 0.0
+## What the fight blows across the grass and banners (milestone-1 task 115).
+var air: ArenaAir = ArenaAir.new()
 
 
 func _ready() -> void:
@@ -83,6 +91,7 @@ func _ready() -> void:
 	# springs (Wind.active)
 	layout.wind.apply()
 	Wind.active = layout.wind
+	air.apply()
 
 
 func _exit_tree() -> void:
@@ -162,6 +171,7 @@ func _build() -> void:
 	_fallen = ShrineFallenPetals.build(layout, def)
 	add_child(_fallen)
 	quiet_backdrop(self)
+	_mark_stone()
 	_add_markers()
 
 
@@ -407,9 +417,11 @@ func set_match_point(on: bool) -> void:
 
 
 ## Takes what stirred the floor on a drawn frame (FloorStir, from the match
-## view): the fallen petals take it at their next step.
+## view): the fallen petals take it at their next step, the grass and
+## banners at once (`air`, on the wind's clock).
 func stir_floor(stir: FloorStir) -> void:
 	_fallen.stir(stir)
+	air.take(stir, layout.wind.time)
 
 
 ## Steps the fallen petals on by dt seconds (every frame, from _process()).
@@ -420,6 +432,52 @@ func advance_floor(dt: float) -> void:
 ## A clean floor for a new match.
 func clear_floor() -> void:
 	_fallen.clear()
+	air.clear()
+
+
+## Where the fight's marks may land beside the floor (ArenaMarks.setup(),
+## milestone-1 task 115): the floor's edge and the parapet's inner face (its
+## radius), the parapet's top, its gate openings (angle, half-width, degrees)
+## and the pillars on the ledge (x, z, radius, height), standing at
+## pillar_base.
+func reaction_surfaces() -> Dictionary:
+	var gaps := PackedVector2Array()
+	for a: float in ShrinePlatform.gate_angles(def):
+		gaps.append(Vector2(a, layout.gate_opening_deg))
+	var pillars := PackedVector4Array()
+	for i: int in layout.pillars.size():
+		var p: Vector4 = layout.pillars[i]
+		var at: Vector3 = ShrineLayout.polar(p.x, p.y)
+		pillars.append(Vector4(at.x, at.z, _pillar_radius(i), p.z))
+	return {
+		"floor_radius": def.wall_inner_radius(), "wall_radius": def.wall_inner_radius(), "wall_top": def.wall_height,
+		"gaps": gaps, "pillars": pillars, "pillar_base": ShrinePlatform.LEDGE_Y,
+	}
+
+
+## Pillar i's radius from its stone's model, else PILLAR_RADIUS.
+func _pillar_radius(i: int) -> float:
+	var pillar: Node = find_child("Pillar%d" % i, true, false)
+	var stone: MeshInstance3D = pillar.get_node_or_null(^"Stone") as MeshInstance3D if pillar != null else null
+	if stone == null or stone.mesh == null:
+		return PILLAR_RADIUS
+	var box: AABB = stone.mesh.get_aabb()
+	return maxf(box.size.x, box.size.z) * 0.5
+
+
+## The parapet and the pillars take the fight's marks (MARKS_LAYER).
+func _mark_stone() -> void:
+	var stone: Array[Node] = [get_node_or_null(^"Platform/Props/Parapet")]
+	for i: int in layout.pillars.size():
+		stone.append(find_child("Pillar%d" % i, true, false))
+	for node: Node in stone:
+		if node == null:
+			continue
+		var parts: Array[Node] = node.find_children("*", "VisualInstance3D", true, false)
+		parts.append(node)
+		for part: Node in parts:
+			if part is VisualInstance3D:
+				(part as VisualInstance3D).layers |= LookPalette.MARKS_LAYER
 
 
 ## How far the wisteria have turned blood red (0..1).

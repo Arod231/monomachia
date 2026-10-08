@@ -62,13 +62,14 @@ func test_every_preset_follows_ultra_but_for_its_named_cuts() -> void:
 ## Ultra and High only, the owner's choice, Oct 6), and the fighters' key
 ## light shadows (task 44: off on Low, the owner's choice, Oct 7), and the
 ## Shrine's volumetric clouds and lighter landscape (task 51: the volume on
-## Ultra and High, the lighter models on Low, the owner's choice, Oct 8).
+## Ultra and High, the lighter models on Low, the owner's choice, Oct 8),
+## and the cap on the arena's marks (task 115: 96, 96, 48, 24; Oct 8).
 func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 	assert_eq(GraphicsPreset.CUTS, [
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
 		&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
-		&"floor_petal_ratio", &"volumetric_clouds", &"light_landscape",
+		&"floor_petal_ratio", &"volumetric_clouds", &"light_landscape", &"arena_marks",
 	] as Array[StringName])
 
 
