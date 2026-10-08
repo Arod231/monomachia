@@ -313,3 +313,95 @@ func test_without_the_packs_the_off_hand_holds_the_handle() -> void:
 	var W: World = H.make_world()
 	var shot: ClipDirector.Shot = ClipDirector.step(null, W.fighters[0], ctx)
 	assert_eq(shot.off_hand, 1.0, "the CC0 stand-ins are held as they always were")
+
+
+# ------------------------------------------------------- the mixed hand-offs (KE task 15)
+
+## The made-up table, its one-handed grip playing `moves` in one hand, with
+## the clips of both grips' first two hits, so they play.
+static func _both_strings(moves: Array[StringName]) -> ClipDirector.Context:
+	var ctx: ClipDirector.Context = _one_handed(moves)
+	for g: StringName in [ONE, TWO]:
+		for n: int in [1, 2]:
+			var clip: StringName = (Moves.KATANA.moves[Moves.KATANA.grip(g).hit(n)] as AttackDef).swing.clips[0]
+			for set_name: StringName in ClipLibraries.SETS:
+				ctx.lengths["%s/%s" % [set_name, clip]] = 2.0
+	return ctx
+
+
+## Fighter 0, starting in `grip`, plays its grip's hit 1, then a light with
+## the grip button 4 frames before its branch point, so hit 2 is the other
+## grip's (a mixed hand-off): the director's shots from that hit 2's first
+## frame on, `n` of them.
+static func _mixed_hand_off(ctx: ClipDirector.Context, grip: StringName, n: int) -> Array[ClipDirector.Shot]:
+	H.grip = grip
+	var W: World = H.make_world()
+	var f: Fighter = W.fighters[0]
+	var other: StringName = TWO if grip == ONE else ONE
+	var hit2: StringName = Moves.KATANA.grip(other).hit(2)
+	var shot: ClipDirector.Shot = _next(W, null, ctx)
+	shot = _next(W, shot, ctx, H.btn(Btn.LIGHT))
+	var branch: int = f.atk.def.branch_window(f.atk.def.chain_light)[0]
+	while f.atk != null and f.atk.frame < branch - 4:
+		shot = _next(W, shot, ctx)
+	shot = _next(W, shot, ctx, _with_grip(H.btn(Btn.LIGHT)))
+	var steps: int = 0
+	while (f.atk == null or f.atk.def.id != hit2) and steps < 120:
+		shot = _next(W, shot, ctx)
+		steps += 1
+	var out: Array[ClipDirector.Shot] = [shot]
+	for i: int in n - 1:
+		out.append(_next(W, out.back(), ctx))
+	return out
+
+
+func test_a_mixed_hand_off_into_two_hands_brings_the_off_hand_on_over_the_re_grip() -> void:
+	var ctx: ClipDirector.Context = _both_strings([_light_clip()])
+	var shots: Array[ClipDirector.Shot] = _mixed_hand_off(ctx, ONE, 20)
+	assert_eq(shots[0].drive, ClipDirector.ATTACK, "the two-handed hit 2 plays")
+	assert_eq(shots[0].attack.def.id, Moves.KATANA.grip(TWO).hit(2))
+	assert_gt(shots[0].blend, 0, "handed over by an inertial blend (D15)")
+	assert_lt(shots[0].off_hand, 0.2, "the off hand starts off the handle")
+	var frames: int = roundi(REGRIP_LENGTH * SimConst.FPS)
+	for i: int in range(1, shots.size()):
+		assert_true(shots[i].off_hand >= shots[i - 1].off_hand, "frame %d: it only closes in (%.3f after %.3f)" % [i, shots[i].off_hand, shots[i - 1].off_hand])
+	assert_lt(shots[ClipDirector.OFF_HAND_FRAMES].off_hand, 1.0, "slower than an ordinary change, in the re-grip's time")
+	assert_lt(shots[frames - 2].off_hand, 1.0, "still closing in on frame %d" % (frames - 2))
+	assert_eq(shots[frames].off_hand, 1.0, "on the handle once the re-grip's %d frames have gone" % frames)
+
+
+func test_a_mixed_hand_off_into_one_hand_lets_the_off_hand_go_over_the_re_grip() -> void:
+	var one_hit2: StringName = (Moves.KATANA.moves[Moves.KATANA.grip(ONE).hit(2)] as AttackDef).swing.clips[0]
+	var ctx: ClipDirector.Context = _both_strings([_light_clip(), one_hit2])
+	var shots: Array[ClipDirector.Shot] = _mixed_hand_off(ctx, TWO, 20)
+	assert_eq(shots[0].attack.def.id, Moves.KATANA.grip(ONE).hit(2), "the one-handed hit 2 plays")
+	assert_gt(shots[0].off_hand, 0.8, "the off hand starts on the handle")
+	var frames: int = roundi(REGRIP_LENGTH * SimConst.FPS)
+	for i: int in range(1, shots.size()):
+		assert_true(shots[i].off_hand <= shots[i - 1].off_hand, "frame %d: it only lets go (%.3f after %.3f)" % [i, shots[i].off_hand, shots[i - 1].off_hand])
+	assert_gt(shots[ClipDirector.OFF_HAND_FRAMES].off_hand, 0.0, "slower than an ordinary change, in the re-grip's time")
+	assert_eq(shots[frames].off_hand, 0.0, "off the handle once the re-grip's %d frames have gone" % frames)
+
+
+## A hit's return to guard (KE task 15) goes into its own grip's guard, so it
+## plays only while the fighter still holds that grip; switched as the hit
+## ended, the re-grip plays instead.
+func test_a_hit_returns_to_guard_only_in_its_own_grip() -> void:
+	var ctx: ClipDirector.Context = _one_handed()
+	StateClips.shared().returns[Moves.KATANA.grip(ONE).hit(1)] = &"Back_one"
+	for set_name: StringName in ClipLibraries.SETS:
+		ctx.lengths["%s/Back_one" % set_name] = LENGTH
+	var W: World = H.make_world()
+	var f: Fighter = W.fighters[0]
+	var shot: ClipDirector.Shot = _next(W, null, ctx, H.btn(Btn.LIGHT))
+	var last: ClipDirector.Shot = shot
+	while f.state == &"attack":
+		last = shot
+		shot = _next(W, shot, ctx)
+	assert_eq(last.drive, ClipDirector.ATTACK)
+	var back: Array = ClipDirector.return_clip(last, f, ctx)
+	assert_false(back.is_empty(), "in its own grip: its return")
+	if not back.is_empty():
+		assert_eq((back[0] as ClipDirector.Clip).name, "HumanM/Back_one")
+	f.grip = TWO
+	assert_eq(ClipDirector.return_clip(last, f, ctx), [], "in the other grip: none")

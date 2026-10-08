@@ -38,15 +38,20 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'backhand_rise', 'blasted_fall', 'block_light', 'breaker_palm', 'crescent_coil', 'crescent_coil_hold',
-      'crouching_crown', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
-      'heaven_splitter', 'heaven_splitter_hold', 'heavy_slant', 'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right',
-      'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h',
-      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard', 'left_rise', 'level_cut',
-      'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall',
-      'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
-      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'rising_heaven', 'slanting_cut',
-      'twisting_rise', 'ult_choice',
+      'backhand_rise', 'backhand_rise_to_katana_guard_1h', 'backhand_rise_to_twisting_rise', 'blasted_fall', 'block_light',
+      'breaker_palm', 'crescent_coil', 'crescent_coil_hold', 'crouching_crown', 'crouching_crown_to_katana_guard_1h', 'crown_cut',
+      'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard', 'heaven_splitter', 'heaven_splitter_hold', 'heavy_slant',
+      'heavy_slant_to_guard', 'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front',
+      'hit_low_right', 'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h',
+      'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h', 'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil',
+      'kesa_cut_to_crown_cut', 'kesa_cut_to_guard', 'kneeling_crown', 'kneeling_crown_to_guard', 'left_rise',
+      'left_rise_to_guard', 'left_rise_to_right_rise', 'level_cut', 'level_cut_to_crouching_crown',
+      'level_cut_to_katana_guard_1h', 'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance',
+      'recall', 'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
+      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise',
+      'right_rise_to_guard', 'right_rise_to_second_slant', 'rising_heaven', 'second_slant', 'second_slant_to_guard',
+      'second_slant_to_kneeling_crown', 'slanting_cut', 'slanting_cut_to_backhand_rise', 'slanting_cut_to_katana_guard_1h',
+      'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice',
     ]);
   });
 
@@ -110,6 +115,11 @@ describe('the re-key specs', () => {
           assert.ok(before, `${spec.goes_on_from} is a spec`);
           assert.equal(before.source, spec.source, "the same source");
           assert.deepEqual(spec.remap[0], [0, before.remap.at(-1)[1]], "starting where it ends");
+        } else if (spec.follows) {
+          // one that only plays after another's clip may start partway into
+          // its own source (KE task 14)
+          assert.ok(specs.some((s) => s.id === spec.follows), `${spec.follows} is a spec`);
+          assert.equal(spec.remap[0][0], 0);
         } else assert.deepEqual(spec.remap[0], [0, 0]);
         for (let i = 1; i < spec.remap.length; i++) {
           assert.ok(spec.remap[i][0] > spec.remap[i - 1][0], `new frames rise at ${i}`);

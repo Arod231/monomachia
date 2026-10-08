@@ -1,0 +1,11 @@
+{
+	"about": "Right Rise's return to guard (katana.k_2l3), KE task 15, as milestone-1 task 33's: the two-handed guard idle's first 12 frames, starting in Right Rise's pose at its settle (frame 25), where the attack ends, and carried into its grip's guard, the feet where the guard has them. Played after the recovery when no follow-up is taken and the fighter stands in the grip; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/katana_guard.blend",
+	"out": "blender/clips/right_rise_to_guard.blend",
+	"remap": [[0, 0], [12, 12]],
+	"blend_from": {
+		"source": "blender/clips/right_rise.blend",
+		"frame": 25,
+		"frames": 12
+	}
+}

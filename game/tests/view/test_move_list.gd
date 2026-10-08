@@ -20,10 +20,11 @@ func _names(rows: Array[MoveList.Row], section: MoveList.Section) -> Array[Strin
 	return out
 
 
-## The pilot's Right Cut and Return Cut, in neither grip's string since the
-## two-handed string's own hits 1 and 2 (KE task 13): no light reaches them
-## in a match, so the list leaves them out.
-const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
+## The pilot's four lights, in neither grip's string since the two-handed
+## string's own hits (Right Cut and Return Cut since KE task 13, Kesa Cut and
+## Crown Cut since KE task 14): no light reaches them in a match, so the
+## list leaves them out.
+const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
 
 
 func test_every_move_of_every_weapon_appears_once() -> void:
@@ -56,8 +57,8 @@ func test_a_weapon_with_grips_lists_each_move_once_a_section_but_its_string_hits
 	for k: String in counts:
 		var move_id: StringName = StringName(k.get_slice(" ", 1))
 		var section: int = int(k.get_slice(" ", 0))
-		# a move lists once per hit it plays in its grip's string (Crown Cut, the
-		# two-handed stand-in for hits 4 and 5, twice)
+		# a move lists once per hit it plays in its grip's string (once each
+		# since the two-handed string's own five, KE task 14)
 		var string: Array[StringName] = KatanaMoves.ONE_HANDED_STRING if section == MoveList.Section.ONE_HANDED else KatanaMoves.TWO_HANDED_STRING
 		var hits: int = string.count(move_id)
 		var in_grip: bool = section == MoveList.Section.ONE_HANDED or section == MoveList.Section.TWO_HANDED
@@ -96,14 +97,14 @@ func test_each_grip_lists_its_string_hit_by_hit_then_its_heavy_branches() -> voi
 		]
 		if section == MoveList.Section.TWO_HANDED:
 			want = [
-				"Light: Heavy Slant", "Light → Light: Left Rise", "Light → Light → Light: Kesa Cut",
-				"Light → Light → Light → Light: Crown Cut", "Light → Light → Light → Light → Light: Crown Cut",
+				"Light: Heavy Slant", "Light → Light: Left Rise", "Light → Light → Light: Right Rise",
+				"Light → Light → Light → Light: Second Slant", "Light → Light → Light → Light → Light: Kneeling Crown",
 			]
 		want.append_array(heavies)
 		assert_eq(inputs, want, MoveList.SECTION_NAMES[section])
 	# every hit branches into the grip's heavy (KE task 7)
 	assert_eq(_row(rows, &"k_coil", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Backhand Rise", "Twisting Rise", "Level Cut", "Crouching Crown"]))
-	assert_eq(_row(rows, &"k_h2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Left Rise", "Kesa Cut", "Crown Cut"]))
+	assert_eq(_row(rows, &"k_h2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Left Rise", "Right Rise", "Second Slant", "Kneeling Crown"]))
 	assert_eq(_row(rows, &"k_2l2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Iai Slash (horizontal)"]), "the horizontal Iai's light plays hit 2")
 
 

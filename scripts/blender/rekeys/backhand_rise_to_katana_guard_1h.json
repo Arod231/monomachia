@@ -1,0 +1,11 @@
+{
+	"about": "Backhand Rise's return to guard (katana.k_1l2), KE task 15, as milestone-1 task 33's: the one-handed guard idle's first 12 frames, starting in Backhand Rise's pose at its settle (frame 30), where the attack ends, and carried into its grip's guard, the feet where the guard has them. Played after the recovery when no follow-up is taken and the fighter stands in the grip; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/katana_guard_1h.blend",
+	"out": "blender/clips/backhand_rise_to_katana_guard_1h.blend",
+	"remap": [[0, 0], [12, 12]],
+	"blend_from": {
+		"source": "blender/clips/backhand_rise.blend",
+		"frame": 30,
+		"frames": 12
+	}
+}

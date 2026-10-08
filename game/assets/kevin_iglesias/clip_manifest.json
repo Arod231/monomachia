@@ -734,6 +734,262 @@
 				"katana"
 			]
 		},
+		"SlantingCutToBackhandRise": {
+			"export": "exports/clips/slanting_cut_to_backhand_rise.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 8]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"BackhandRiseToTwistingRise": {
+			"export": "exports/clips/backhand_rise_to_twisting_rise.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 8]], "right": [[0, 2], [8, 8]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"LevelCutToCrouchingCrown": {
+			"export": "exports/clips/level_cut_to_crouching_crown.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 10,
+				"settle": 10
+			},
+			"foot_contacts": {"left": [[0, 10]], "right": [[0, 3], [10, 10]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"LeftRiseToRightRise": {
+			"export": "exports/clips/left_rise_to_right_rise.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 7,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 6]], "right": [[0, 1], [6, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"RightRiseToSecondSlant": {
+			"export": "exports/clips/right_rise_to_second_slant.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 6,
+				"settle": 6
+			},
+			"foot_contacts": {"left": [[0, 6]], "right": [[0, 1], [6, 6]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"SecondSlantToKneelingCrown": {
+			"export": "exports/clips/second_slant_to_kneeling_crown.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 8]], "right": [[0, 3], [8, 8]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"SlantingCutToGuard1H": {
+			"export": "exports/clips/slanting_cut_to_katana_guard_1h.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"BackhandRiseToGuard1H": {
+			"export": "exports/clips/backhand_rise_to_katana_guard_1h.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"TwistingRiseToGuard1H": {
+			"export": "exports/clips/twisting_rise_to_katana_guard_1h.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"LevelCutToGuard1H": {
+			"export": "exports/clips/level_cut_to_katana_guard_1h.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"CrouchingCrownToGuard1H": {
+			"export": "exports/clips/crouching_crown_to_katana_guard_1h.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"HeavySlantToGuard": {
+			"export": "exports/clips/heavy_slant_to_guard.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"LeftRiseToGuard": {
+			"export": "exports/clips/left_rise_to_guard.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"RightRiseToGuard": {
+			"export": "exports/clips/right_rise_to_guard.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"SecondSlantToGuard": {
+			"export": "exports/clips/second_slant_to_guard.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KneelingCrownToGuard": {
+			"export": "exports/clips/kneeling_crown_to_guard.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 12,
+				"settle": 12
+			},
+			"foot_contacts": {"left": [[0, 12]], "right": [[0, 12]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"RightCutRecoil": {
 			"export": "exports/clips/right_cut_recoil.glb",
 			"pack": "Human Melee Animations",
@@ -1964,6 +2220,63 @@
 				"settle": 25
 			},
 			"foot_contacts": {"left": [[0, 6], [12, 25]], "right": [[0, 1], [6, 8], [14, 25]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"RightRise": {
+			"export": "exports/clips/right_rise.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H05_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 11,
+				"contact_end": 13,
+				"settle": 25
+			},
+			"foot_contacts": {"left": [[0, 6], [12, 25]], "right": [[0, 1], [6, 8], [14, 25]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"SecondSlant": {
+			"export": "exports/clips/second_slant.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H04_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 11,
+				"contact_end": 13,
+				"settle": 25
+			},
+			"foot_contacts": {"left": [[0, 6], [12, 25]], "right": [[0, 1], [6, 8], [14, 25]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KneelingCrown": {
+			"export": "exports/clips/kneeling_crown.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/2H",
+			"source": "Attack2H02",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 14,
+				"contact_end": 16,
+				"settle": 39
+			},
+			"foot_contacts": {"left": [[0, 10], [16, 40]], "right": [[0, 3], [8, 11], [17, 40]]},
 			"provisional": false,
 			"groups": [
 				"katana"

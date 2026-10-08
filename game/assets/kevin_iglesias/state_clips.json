@@ -1,5 +1,5 @@
 {
-	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown (and the recall burst's blasted fall) and the KO, the Katana string's transitions (its bridges and returns to guard), the deflect pairs (and the redirect's, the striking limbs' recoils and the blade's deflects at a limb), the light hit and block reactions, the jump's flight and landing by weapon class, each grip's own idle, guard and carry and the re-grips into it (and the clips the one-handed grip plays with the off hand free), the crossfades' lengths, the clips of the states with their own (the disarmed choice's and the recall's, and the hand-keyed ones). Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
+	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown (and the recall burst's blasted fall) and the KO, the Katana strings' transitions (their bridges, the follow-ups whose clips already meet, and each hit's return to its own grip's guard), the deflect pairs (and the redirect's, the striking limbs' recoils and the blade's deflects at a limb), the light hit and block reactions, the jump's flight and landing by weapon class, each grip's own idle, guard and carry and the re-grips into it (and the clips the one-handed grip plays with the off hand free), the crossfades' lengths, the clips of the states with their own (the disarmed choice's and the recall's, and the hand-keyed ones). Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
 	"idle": {
 		"clips": {"katana": "KatanaGuard", "daggers": "CombatIdle1H01", "greatsword": "CombatIdle2H01", "fists": "CombatIdle01"},
 		"fallbacks": {"katana": "Sword_Idle", "daggers": "Sword_Idle", "greatsword": "Sword_Idle", "fists": "Idle"}
@@ -39,8 +39,17 @@
 		"fallback": "Death01"
 	},
 	"transitions": {
-		"bridges": {"k_l2": {"k_l1": "RightCutToReturnCut"}, "k_l3": {"k_l2": "ReturnCutToKesaCut"}, "k_l4": {"k_l3": "KesaCutToCrownCut"}},
-		"returns": {"k_l1": "RightCutToGuard", "k_l2": "ReturnCutToGuard", "k_l3": "KesaCutToGuard", "k_l4": "CrownCutToGuard"}
+		"bridges": {
+			"k_l2": {"k_l1": "RightCutToReturnCut"}, "k_l3": {"k_l2": "ReturnCutToKesaCut"}, "k_l4": {"k_l3": "KesaCutToCrownCut"},
+			"k_1l2": {"k_1l1": "SlantingCutToBackhandRise"}, "k_1l3": {"k_1l2": "BackhandRiseToTwistingRise"}, "k_1l5": {"k_1l4": "LevelCutToCrouchingCrown"},
+			"k_2l3": {"k_2l2": "LeftRiseToRightRise"}, "k_2l4": {"k_2l3": "RightRiseToSecondSlant"}, "k_2l5": {"k_2l4": "SecondSlantToKneelingCrown"}
+		},
+		"returns": {
+			"k_l1": "RightCutToGuard", "k_l2": "ReturnCutToGuard", "k_l3": "KesaCutToGuard", "k_l4": "CrownCutToGuard",
+			"k_1l1": "SlantingCutToGuard1H", "k_1l2": "BackhandRiseToGuard1H", "k_1l3": "TwistingRiseToGuard1H", "k_1l4": "LevelCutToGuard1H", "k_1l5": "CrouchingCrownToGuard1H",
+			"k_2l1": "HeavySlantToGuard", "k_2l2": "LeftRiseToGuard", "k_2l3": "RightRiseToGuard", "k_2l4": "SecondSlantToGuard", "k_2l5": "KneelingCrownToGuard"
+		},
+		"meets": {"k_1l4": "k_1l3", "k_2l2": "k_2l1"}
 	},
 	"deflects": {
 		"pairs": {
@@ -68,7 +77,7 @@
 	"own_speed": {"HitLightHighFront": "hand_on", "HitLightLowFront": "hand_on", "HitLightHighLeft": "hand_on", "HitLightLowLeft": "hand_on", "HitLightHighRight": "hand_on", "HitLightLowRight": "hand_on", "HitLightHighBack": "hand_on", "HitLightLowBack": "hand_on", "BlockLightKatana": "hand_on", "JumpKatana": "hand_on", "JumpFists": "hand_on", "LandKatana": "hand_on", "LandFists": "hand_on"},
 	"grips": {
 		"katana": {
-			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise", "TwistingRise", "LevelCut", "CrescentCoil", "CrescentCoilHold"]},
+			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise", "TwistingRise", "LevelCut", "SlantingCutToBackhandRise", "BackhandRiseToTwistingRise", "SlantingCutToGuard1H", "BackhandRiseToGuard1H", "TwistingRiseToGuard1H", "LevelCutToGuard1H", "CrouchingCrownToGuard1H", "CrescentCoil", "CrescentCoilHold"]},
 			"two_handed": {"idle": "KatanaGuard", "guard": ["KatanaBlockLoop", "KatanaBlockHit"], "carry": "KatanaGuard"},
 			"regrip": {"one_handed": "KatanaRegripTo1H", "two_handed": "KatanaRegripTo2H"}
 		}
