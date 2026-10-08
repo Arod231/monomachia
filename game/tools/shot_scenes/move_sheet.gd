@@ -54,7 +54,9 @@ extends Node3D
 ## (task 18); grip_switch: the Katana switched to two hands standing and back
 ## guarding (KE task 8); string_l to string_llll: the Katana's
 ## light string stopped after one, two, three and four lights, each press
-## made after the move before has passed its startup, so it follows it), with
+## made after the move before has passed its startup, so it follows it;
+## mixed_1h and mixed_2h: a string from each grip switching grip before each
+## next hit, KE task 15), with
 ## the opponent out of the way (but for stomp: the opponent thrusts its
 ## unblockable and the fighter dodges into it, the stomp counter; and the
 ## reactions, task 26: hit_reactions and block_reactions, the opponent
@@ -333,6 +335,24 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 		"views": [&"three_quarter", &"hands"],
 		"spacing": 4.0,
 		"every": 2,
+	},
+	&"mixed_1h": {
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [46, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)], [37, 0.0, 0.0, 0],
+			[1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)], [51, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)], [38, 0.0, 0.0, 0],
+			[1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)], [200, 0.0, 0.0, 0]],
+		"notes": "still for 12 frames in one hand, then a mixed string switching grip before each next hit (KE task 15): Slanting Cut (one hand), Left Rise (two), Twisting Rise (one), Second Slant (two) and Crouching Crown (one), returning to the one-handed guard",
+		"views": [&"three_quarter", &"hands"],
+		"spacing": 4.0,
+		"every": 4,
+	},
+	&"mixed_2h": {
+		"input": [[1, 0.0, 0.0, (1 << Btn.GRIP)], [12, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT], [34, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)],
+			[51, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)], [38, 0.0, 0.0, 0], [1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)], [48, 0.0, 0.0, 0],
+			[1, 0.0, 0.0, LIGHT | (1 << Btn.GRIP)], [150, 0.0, 0.0, 0]],
+		"notes": "switched to two hands, still for 12 frames, then a mixed string switching grip before each next hit (KE task 15): Heavy Slant (two hands), Backhand Rise (one), Right Rise (two), Level Cut (one) and Kneeling Crown (two), returning to the two-handed guard",
+		"views": [&"three_quarter", &"hands"],
+		"spacing": 4.0,
+		"every": 4,
 	},
 	&"stomp": {
 		"input": [[32, 0.0, 0.0, 0], [1, 0.0, 1.0, 1 << Btn.DODGE], [52, 0.0, 0.0, 0]],

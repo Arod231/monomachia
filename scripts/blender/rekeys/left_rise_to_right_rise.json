@@ -1,0 +1,11 @@
+{
+	"about": "The bridge from Left Rise into Right Rise (katana.k_2l2 into katana.k_2l3), KE task 15, as milestone-1 task 33's: Right Rise's first 7 frames, starting in Left Rise's pose at its branch point (frame 19.5) and carried into Right Rise's own wind-up, the feet where Right Rise has them. Played over the follow-up's first frames when it starts at its branch point, handing on to Right Rise's clip at frame 7, before its active frames; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/right_rise.blend",
+	"out": "blender/clips/left_rise_to_right_rise.blend",
+	"remap": [[0, 0], [7, 7]],
+	"blend_from": {
+		"source": "blender/clips/left_rise.blend",
+		"frame": 19.5,
+		"frames": 7
+	}
+}

@@ -36,7 +36,9 @@ extends RefCounted
 ## ({"k_l2": {"k_l1": clip}}), played over the follow-up's first frames
 ## when it follows that move, and "returns" by move ({"k_l1": clip}), each
 ## light's return to guard after its recovery. Both are picture only, and
-## only with the packs.
+## only with the packs. An optional "meets" (KE task 15) names, by follow-up,
+## the move its own clip goes on from ({"k_1l4": "k_1l3"}: a re-key's
+## goes_on_from), so that pair needs no bridge.
 ##
 ## "deflects" (milestone-1 task 34) names each parried move's deflect pair:
 ## {"pairs": {"k_l1": {"deflect": clip, "deflect_contact": frame, "recoil":
@@ -201,6 +203,9 @@ var ko_fallback: StringName = &""
 var bridges: Dictionary[StringName, Dictionary] = {}
 ## Each light's return to guard, by move.
 var returns: Dictionary[StringName, StringName] = {}
+## The follow-ups whose own clips go on from the move before (KE task 15),
+## by follow-up: those pairs need no bridge.
+var meets: Dictionary[StringName, StringName] = {}
 ## The deflect pairs (milestone-1 task 34), by parried move: {&"deflect":
 ## clip id, &"deflect_contact": source frame, &"recoil": clip id,
 ## &"recoil_contact": source frame, &"direction": one of DEFLECT_DIRECTIONS
@@ -333,7 +338,21 @@ static func read(path: String = PATH) -> StateClips:
 				else:
 					t.own_speed[StringName(str(id))] = StringName(str(own[id]))
 	if root.has("transitions"):
-		g = t._object(root["transitions"], "transitions", ["bridges", "returns"])
+		var group: Variant = root["transitions"]
+		if group is Dictionary and (group as Dictionary).has("meets"):
+			group = (group as Dictionary).duplicate()
+			var meets: Variant = group["meets"]
+			(group as Dictionary).erase("meets")
+			if not meets is Dictionary:
+				t.errors.append("transitions.meets: must be an object of the moves each follow-up's clip goes on from")
+			else:
+				for move: Variant in meets:
+					var from: Variant = meets[move]
+					if not from is String or (from as String).is_empty():
+						t.errors.append("transitions.meets.%s: must be a move id (a non-empty string)" % move)
+					else:
+						t.meets[StringName(str(move))] = StringName(from)
+		g = t._object(group, "transitions", ["bridges", "returns"])
 		var bridges: Variant = g.get("bridges", {})
 		if not bridges is Dictionary:
 			t.errors.append("transitions.bridges: must be an object")

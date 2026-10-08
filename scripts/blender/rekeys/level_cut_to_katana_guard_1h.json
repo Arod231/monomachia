@@ -1,0 +1,11 @@
+{
+	"about": "Level Cut's return to guard (katana.k_1l4), KE task 15, as milestone-1 task 33's: the one-handed guard idle's first 12 frames, starting in Level Cut's held follow-through at frame 27, three frames before its settle (from the settle itself, its right foot can't reach the guard's stance as the hips come home), and carried into its grip's guard, the feet where the guard has them. Played after the recovery when no follow-up is taken and the fighter stands in the grip; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/katana_guard_1h.blend",
+	"out": "blender/clips/level_cut_to_katana_guard_1h.blend",
+	"remap": [[0, 0], [12, 12]],
+	"blend_from": {
+		"source": "blender/clips/level_cut.blend",
+		"frame": 27,
+		"frames": 12
+	}
+}

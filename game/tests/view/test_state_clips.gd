@@ -805,19 +805,35 @@ func test_the_knockdown_and_ko_groups_are_checked() -> void:
 
 func test_the_transitions_are_optional_and_checked() -> void:
 	# milestone-1 task 33: the Katana's keyed guard, the light string's
-	# bridges by the move each follows, and each light's return to guard
+	# bridges by the move each follows, and each light's return to guard;
+	# KE task 15: both grips' strings' too, but for the pairs whose clips
+	# already meet, and each hit's return into its own grip's guard
 	var live: StateClips = StateClips.read()
 	assert_eq(live.idle[&"katana"], &"KatanaGuard", "the Katana's keyed guard idle")
 	assert_eq(live.bridges, {&"k_l2": {&"k_l1": &"RightCutToReturnCut"}, &"k_l3": {&"k_l2": &"ReturnCutToKesaCut"},
-		&"k_l4": {&"k_l3": &"KesaCutToCrownCut"}}, "a bridge for each follow-up pair of the light string")
+		&"k_l4": {&"k_l3": &"KesaCutToCrownCut"},
+		&"k_1l2": {&"k_1l1": &"SlantingCutToBackhandRise"}, &"k_1l3": {&"k_1l2": &"BackhandRiseToTwistingRise"},
+		&"k_1l5": {&"k_1l4": &"LevelCutToCrouchingCrown"},
+		&"k_2l3": {&"k_2l2": &"LeftRiseToRightRise"}, &"k_2l4": {&"k_2l3": &"RightRiseToSecondSlant"},
+		&"k_2l5": {&"k_2l4": &"SecondSlantToKneelingCrown"}}, "a bridge for each follow-up pair of the strings whose clips don't meet")
+	assert_eq(live.meets, {&"k_1l4": &"k_1l3", &"k_2l2": &"k_2l1"} as Dictionary[StringName, StringName],
+		"Level Cut and Left Rise go on from the clip before them (their re-keys' goes_on_from)")
 	assert_eq(live.returns, {&"k_l1": &"RightCutToGuard", &"k_l2": &"ReturnCutToGuard", &"k_l3": &"KesaCutToGuard",
-		&"k_l4": &"CrownCutToGuard"} as Dictionary[StringName, StringName], "a return for each light")
+		&"k_l4": &"CrownCutToGuard",
+		&"k_1l1": &"SlantingCutToGuard1H", &"k_1l2": &"BackhandRiseToGuard1H", &"k_1l3": &"TwistingRiseToGuard1H",
+		&"k_1l4": &"LevelCutToGuard1H", &"k_1l5": &"CrouchingCrownToGuard1H",
+		&"k_2l1": &"HeavySlantToGuard", &"k_2l2": &"LeftRiseToGuard", &"k_2l3": &"RightRiseToGuard",
+		&"k_2l4": &"SecondSlantToGuard", &"k_2l5": &"KneelingCrownToGuard"} as Dictionary[StringName, StringName], "a return for each light")
 	var frozen: StateClips = StateClips.read(FrozenStateClips.PATH)
-	assert_eq([frozen.bridges.size(), frozen.returns.size()], [0, 0], "none in a table without the group")
+	assert_eq([frozen.bridges.size(), frozen.returns.size(), frozen.meets.size()], [0, 0, 0], "none in a table without the group")
 	var t: StateClips = _read_text(_edited("\"fades\": {", "\"transitions\": {\"bridges\": {\"k_l2\": {\"k_l1\": \"B\"}}, \"returns\": {\"k_l1\": \"R\"}}, \"fades\": {"))
 	assert_eq(Array(t.errors), [], "read cleanly")
 	assert_eq(t.bridges, {&"k_l2": {&"k_l1": &"B"}})
 	assert_eq(t.returns, {&"k_l1": &"R"} as Dictionary[StringName, StringName])
+	assert_eq(t.meets.size(), 0, "meets is optional")
+	t = _read_text(_edited("\"fades\": {", "\"transitions\": {\"bridges\": {}, \"returns\": {}, \"meets\": {\"k_l2\": \"k_l1\"}}, \"fades\": {"))
+	assert_eq(Array(t.errors), [], "read cleanly with meets")
+	assert_eq(t.meets, {&"k_l2": &"k_l1"} as Dictionary[StringName, StringName])
 	var cases: Dictionary = {
 		"\"transitions\": [], ": "transitions: not an object",
 		"\"transitions\": {\"bridges\": {}, \"returns\": {}, \"spare\": 1}, ": "transitions: unknown field spare",
@@ -825,6 +841,8 @@ func test_the_transitions_are_optional_and_checked() -> void:
 		"\"transitions\": {\"bridges\": {\"k_l2\": \"B\"}, \"returns\": {}}, ": "transitions.bridges.k_l2: must be an object of clip ids by the move it follows",
 		"\"transitions\": {\"bridges\": {\"k_l2\": {\"k_l1\": \"\"}}, \"returns\": {}}, ": "transitions.bridges.k_l2.k_l1: must be a clip id (a non-empty string)",
 		"\"transitions\": {\"bridges\": {}, \"returns\": {\"k_l1\": 3}}, ": "transitions.returns.k_l1: must be a clip id (a non-empty string)",
+		"\"transitions\": {\"bridges\": {}, \"returns\": {}, \"meets\": []}, ": "transitions.meets: must be an object of the moves each follow-up's clip goes on from",
+		"\"transitions\": {\"bridges\": {}, \"returns\": {}, \"meets\": {\"k_l2\": 1}}, ": "transitions.meets.k_l2: must be a move id (a non-empty string)",
 	}
 	for group: String in cases:
 		t = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))
