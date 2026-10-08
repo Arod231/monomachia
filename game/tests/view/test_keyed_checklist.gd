@@ -418,12 +418,13 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 		if answered.get(id, 0) == 0:
 			problems.append("the computer never blocked or parried it in %d Hard duels" % (DUELS + BARE_DUELS + DISARMED_DUELS))
 		ChecklistResults.record_problems(15, id, problems)
-		# a grip's own hits 4 and 5 (KE task 12) are recorded, not held: the
-		# computer's strings run to 4 presses (the owner's choice, KE task 9)
-		# and a Hard defender acts in the one-handed string's long gaps, so its
-		# strings seldom get past hit 3
-		# the pilot's Right Cut and Return Cut are in neither grip's string
-		# since KE task 13, so no computer plays them: recorded, not held
+		# a grip's own hits 4 and 5 (KE tasks 12 and 14) are recorded, not
+		# held: though Hard presses whole strings since KE task 14, most of its
+		# strings in a duel are punishes of 2 or 3 presses, and a defender acts
+		# in the gaps, so its strings seldom get past hit 3
+		# the pilot's four lights are in neither grip's string (Right Cut and
+		# Return Cut since KE task 13, Kesa Cut and Crown Cut since KE task
+		# 14), so no computer plays them: recorded, not held
 		if not _late_hit(id) and not OUT_OF_PLAY.has(id):
 			assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
 	gut.p("used: %s
@@ -448,8 +449,8 @@ static func _duel(W: World, brains: Array[AIBrain], steps: int, used: Dictionary
 		b.dispose()
 
 
-## The pilot's lights no grip's string plays since KE task 13.
-const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
+## The pilot's lights no grip's string plays since KE tasks 13 and 14.
+const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
 
 
 ## Whether keyed move `id` is hit 4 or 5 of a grip's own string.

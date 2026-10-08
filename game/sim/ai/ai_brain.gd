@@ -78,6 +78,15 @@ class AIParams:
 	var grip_switch: bool = false
 	var grip_mix: float = 0.0
 	var branch_charge: float = 0.0
+	## The most lights a string it starts presses (milestone-1 task 40: up
+	## to 4; KE task 14, the owner's word, Oct 8: Hard plays a grip's whole
+	## five, the last hits among them; a weapon without grips keeps 4).
+	var string_presses: int = 4
+
+	## These params pressing strings of up to `presses` lights.
+	func stringing(presses: int) -> AIParams:
+		string_presses = presses
+		return self
 
 	## These params pressing `rate` of finisher prompts on a frame from
 	## `from` to `to` of the window.
@@ -136,7 +145,7 @@ class AIParams:
 static var DIFFICULTY: Dictionary[StringName, AIParams] = {
 	&"easy": AIParams.make(27, 8, 0.08, 0.35, 0.1, 0.15, 0.35, 5, 0.5, 0.3).finishing(0.3, 10, 18),
 	&"normal": AIParams.make(18, 6, 0.3, 0.45, 0.35, 0.2, 0.55, 3, 0.8, 0.55).finishing(0.6, 1, 18).gripping(true, 0.0, 0.3),
-	&"hard": AIParams.make(11, 4, 0.55, 0.35, 0.6, 0.25, 0.72, 2, 1, 0.7).finishing(0.9, 1, 6).gripping(true, 0.35, 0.4),
+	&"hard": AIParams.make(11, 4, 0.55, 0.35, 0.6, 0.25, 0.72, 2, 1, 0.7).finishing(0.9, 1, 6).gripping(true, 0.35, 0.4).stringing(5),
 }
 
 ## The grip choice (KE task 9, D8): posture over this is low, as the
@@ -891,8 +900,10 @@ func _pick_attack(frame: int, _d: float) -> void:
 		_attack_cooldown_until = frame + 30
 		return
 	if r < 0.55:
-		# up to the Katana's whole light string (milestone-1 task 40)
-		var length: int = rng.int(1, 4)
+		# up to 4 lights (milestone-1 task 40), at Hard a grip's whole
+		# five-hit string (KE task 14); the weapons without grips keep 4
+		var most: int = P.string_presses if not w.grips.is_empty() else mini(P.string_presses, 4)
+		var length: int = rng.int(1, most)
 		var finish_heavy: bool = rng.chance(0.25)
 		_start_combo(frame, length, finish_heavy)
 		_attack_cooldown_until = frame + 24 + SimMath.js_round((1.0 - P.aggression) * 40.0)

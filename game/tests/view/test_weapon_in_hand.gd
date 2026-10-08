@@ -293,5 +293,5 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 		else:
 			ChecklistResults.record_problems(10, row, by_clip.values()[0])
 	gut.p("the keyed clips' off hand, worst over every rules frame:\n" + "\n".join(lines))
-	assert_eq(worst.size(), 16, "four lights, four pairs, the block, Crouching Crown and the two-handed hits 1 and 2, their off hand on the grip (KE tasks 12 and 13)")
+	assert_eq(worst.size(), 19, "four lights, four pairs, the block, Crouching Crown and the two-handed string's own five, their off hand on the grip (KE tasks 12-14)")
 	assert_eq(free, 4, "the one-handed grip's own hits 1 to 4 (KE tasks 11 and 12), the off hand free")

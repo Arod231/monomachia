@@ -21,6 +21,11 @@
 #   that another spec's clip holds the start of (KE task 12: Level Cut, the
 #   second half of Twisting Rise's source): its remap starts on the source
 #   frame that clip ends on; the script reads nothing from it;
+# - follows: a spec's id, for a clip cut from partway into its own source
+#   because it only ever plays after that spec's clip (KE task 14: Second
+#   Slant, a string's hit 4, starts where its source's blade is raised behind
+#   the left shoulder, as Right Rise leaves it): its remap may start past
+#   source frame 0; the script reads nothing from it;
 # - two_hands: {"grip": metres, "hold": [forward, down], "square": 0-1}: a
 #   one-handed clip made two-handed (two_hands()): the shoulders squared by
 #   "square" of their turn, the weapon kept turned as the clip turns it but
