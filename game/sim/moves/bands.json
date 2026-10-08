@@ -1,5 +1,5 @@
 {
-	"about": "The band tables (milestone-1 task 18): the spec's timing band table and distance band table (docs/specs/milestone-1.md, P26 and P27, approved by the owner at task 1), one row per move kind per weapon, read by MoveBands (move_bands.gd), held to by test_move_bands.gd and shown by the Studio. Kinds are the frame-data table's (FrameDataRows.kind_of). Timing ranges are rules frames [low, high]: startup to the first active frame; from_stance, an Iai draw's startup from the stance's release (its startup less the charge check); landing, a jump attack's recovery after it lands; to_wave, Moonsplitter's frames to its wave; total, the recall's whole length. Distances are metres centre to centre, played from standing: a move touches from touches (and from the weapon's duel and preferred distances where those are closer), a string light puts inside (m of blade, or of fist past the surface) into the defender at the duelling distance, and nothing touches from misses. waiting lists the moves still waiting for their family's re-key, which the band tests skip; each keying task takes its moves off. Since KE task 2 the Katana's distances sit 0.5 m further out for its 1.3 m blade (a 3.0 m duelling distance), and since KE task 3 another 0.3 m for the taller bodies (3.3 m); its string lights' depth band is 4-30 cm until the strings are re-keyed (KE tasks 11-14). Since KE task 11 each grip's own string hits have their own rows (string_light_1h, string_light_2h, and the last hits' string_last_1h and string_last_2h, D16), from the reference's rhythm, and cut 15-20 cm in at the duelling distance; the stand-ins keep string_light. Bare hands' distances sit 0.25 m further out since KE task 3 (a 1.85 m duelling distance), Breaker Palm's 0.5 m (its re-keyed surge grew with the bodies), their lights' depth band 15-21 cm until their re-keys.",
+	"about": "The band tables (milestone-1 task 18): the spec's timing band table and distance band table (docs/specs/milestone-1.md, P26 and P27, approved by the owner at task 1), one row per move kind per weapon, read by MoveBands (move_bands.gd), held to by test_move_bands.gd and shown by the Studio. Kinds are the frame-data table's (FrameDataRows.kind_of). Timing ranges are rules frames [low, high]: startup to the first active frame; from_stance, an Iai draw's startup from the stance's release (its startup less the charge check); landing, a jump attack's recovery after it lands; to_wave, Moonsplitter's frames to its wave; total, the recall's whole length. Distances are metres centre to centre, played from standing: a move touches from touches (and from the weapon's duel and preferred distances where those are closer), a string light puts inside (m of blade, or of fist past the surface) into the defender at the duelling distance, and nothing touches from misses. waiting lists the moves still waiting for their family's re-key, which the band tests skip; each keying task takes its moves off. Since KE task 2 the Katana's distances sit 0.5 m further out for its 1.3 m blade (a 3.0 m duelling distance), and since KE task 3 another 0.3 m for the taller bodies (3.3 m); its string lights' depth band is 4-30 cm until the strings are re-keyed (KE tasks 11-14). Since KE task 11 each grip's own string hits have their own rows (string_light_1h, string_light_2h, and the last hits' string_last_1h and string_last_2h, D16), from the reference's rhythm, and cut 15-20 cm in at the duelling distance; the stand-ins keep string_light. Since KE task 16 each grip's own heavy, keyed for it, has its own timing row from the reference (grip_heavy_1h: Elden Ring's slow coil inside the startup, the cut held at full extension in the recovery), touching from the string heavies' distance. Bare hands' distances sit 0.25 m further out since KE task 3 (a 1.85 m duelling distance), Breaker Palm's 0.5 m (its re-keyed surge grew with the bodies), their lights' depth band 15-21 cm until their re-keys.",
 	"timing": {
 		"katana": {
 			"string_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
@@ -7,6 +7,7 @@
 			"string_last_1h": {"startup": [27, 39], "active": [3, 8], "recovery": [80, 96]},
 			"string_light_2h": {"startup": [20, 26], "active": [3, 6], "recovery": [20, 32]},
 			"string_heavy": {"startup": [42, 54], "active": [4, 8], "recovery": [36, 48]},
+			"grip_heavy_1h": {"startup": [84, 96], "active": [4, 8], "recovery": [39, 51]},
 			"iai_draw": {"startup": [36, 48], "from_stance": [15, 21], "active": [4, 6], "recovery": [36, 48]},
 			"iai_follow_up": {"startup": [36, 45], "active": [4, 6], "recovery": [30, 42]},
 			"unblockable": {"startup": [48, 60], "active": [4, 6], "recovery": [36, 48]},
@@ -46,6 +47,7 @@
 				"string_last_1h": {"touches": 3.3, "misses": 4.05, "inside": [0.15, 0.2]},
 				"string_light_2h": {"touches": 3.3, "misses": 4.05, "inside": [0.15, 0.2]},
 				"string_heavy": {"touches": 3.8, "misses": 4.55},
+				"grip_heavy_1h": {"touches": 3.8, "misses": 4.55},
 				"iai_follow_up": {"touches": 3.8, "misses": 4.55},
 				"iai_draw": {"touches": 4.4, "misses": 5.0},
 				"sprint_light": {"touches": 4.8, "misses": 5.55},
@@ -81,7 +83,7 @@
 	},
 	"waiting": {
 		"katana": [
-			"k_iai", "k_iai_h", "k_h1f", "k_rdraw", "k_h2", "k_coil",
+			"k_iai", "k_iai_h", "k_h1f", "k_rdraw", "k_h2",
 			"k_sl", "k_sh", "k_dl", "k_dh", "k_bl", "k_bh", "k_jl", "k_jh",
 			"k_flash", "k_thrust", "k_sweep"
 		],

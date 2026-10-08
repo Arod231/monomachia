@@ -74,11 +74,12 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 		"name": "Left Rise", "damage": 6, "posture": 6,
 		"light": &"k_l3", "heavy": &"k_h2", "sides": [&"left", &"right"],
 	},
-	# the one-handed heavy (KE task 7): Heaven Splitter's clip until its
-	# re-key, about 85% of its damage (D3)
+	# the one-handed heavy (KE task 7), about 85% of Heaven Splitter's damage
+	# (D3); Elden Ring's since KE task 16: the coil gathers the blade from
+	# wherever the hit before ends, and the cut is held out on the right
 	&"k_coil": {
 		"name": "Crescent Coil", "damage": 13, "posture": 15,
-		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
+		"light": &"", "heavy": &"", "sides": [&"centre", &"right"],
 	},
 }
 
@@ -196,12 +197,12 @@ func test_a_heavy_ends_the_one_handed_string_on_crescent_coil() -> void:
 		"L-L-H: Backhand Rise, Crescent Coil",
 	)
 	assert_eq(
-		_play([light, light, light, heavy]).ids(&"hit"),
+		PlayedString.play(Moves.KATANA, [light, light, light, heavy], 2.2, 0.0, &"", -1, 300).ids(&"hit"),
 		[&"k_1l1", &"k_1l2", &"k_1l3", &"k_coil"] as Array[StringName],
 		"L-L-L-H: Twisting Rise, Crescent Coil",
 	)
 	assert_eq(
-		PlayedString.play(Moves.KATANA, [light, light, light, light, heavy], 2.2, 0.0, &"", -1, 300).ids(&"hit"),
+		PlayedString.play(Moves.KATANA, [light, light, light, light, heavy], 2.2, 0.0, &"", -1, 360).ids(&"hit"),
 		[&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_coil"] as Array[StringName],
 		"L-L-L-L-H: Level Cut, Crescent Coil",
 	)

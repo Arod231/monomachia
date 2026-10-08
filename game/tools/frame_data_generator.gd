@@ -55,6 +55,9 @@ class Result:
 	## inside the window it starts at once; the window runs to the move's
 	## last frame.
 	var branches: Dictionary[StringName, PackedInt32Array] = {}
+	## The rules frame a chargeable move's charge holds on (its hold marker,
+	## KE task 16), or AttackDef.UNSET.
+	var hold: int = AttackDef.UNSET
 	## The clip's time (s) at each rules frame, 0 to total().
 	var times: PackedFloat64Array = PackedFloat64Array()
 	## Each part's pose at each rules frame (Array[Swing.Sample]), by part,
@@ -125,6 +128,7 @@ static func generate(pose: Callable, length: float, markers: Dictionary, contact
 		out.dodge_cancel = PackedInt32Array([fd["dodge_cancel_from"], fd["dodge_cancel_to"]])
 	for follow: Variant in fd["branch"]:
 		out.branches[StringName(follow)] = PackedInt32Array([fd["branch"][follow], out.total()])
+	out.hold = fd["hold"]
 	if retime != null and retime.total() != out.total():
 		errors.append("today's timing has %d frames, the markers %d" % [retime.total(), out.total()])
 		return null

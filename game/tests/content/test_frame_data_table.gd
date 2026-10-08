@@ -66,7 +66,7 @@ func test_the_stand_ins_give_the_katanas_and_bare_hands_frame_data_today() -> vo
 			for follow: StringName in [m.chain_light, m.chain_heavy]:
 				if follow != &"":
 					assert_eq(int(row["branches"][String(follow)][0]), m.startup + m.active + 2, "%s.%s -> %s: today's branch point" % [wid, id, follow])
-	assert_eq(stand_ins, 22, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94), Crescent Coil among them (KE task 7)")
+	assert_eq(stand_ins, 21, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94; Crescent Coil, KE task 16)")
 
 
 func test_each_move_has_its_band_kind() -> void:
@@ -84,6 +84,9 @@ func test_each_move_has_its_band_kind() -> void:
 		&"k_2l1": &"string_light_2h", &"k_2l2": &"string_light_2h", &"k_l3": &"string_light",
 		# a grip's last hit takes its own kind (KE task 12, D16)
 		&"k_1l5": &"string_last_1h",
+		# a grip's own heavy, keyed for it, takes its own kind (KE task 16);
+		# Heaven Splitter keeps the shared one until its re-key
+		&"k_coil": &"grip_heavy_1h",
 	}
 	for id: StringName in want:
 		assert_eq(FrameDataRows.kind_of(katana, id), want[id], String(id))
@@ -96,6 +99,19 @@ func test_each_move_has_its_band_kind() -> void:
 			var row: Dictionary = t.row(wid, id)
 			if not row.is_empty():
 				assert_eq(StringName(row["kind"]), FrameDataRows.kind_of(Moves.WEAPONS[wid], id), "%s.%s's row" % [wid, id])
+
+
+func test_a_keyed_chargeable_move_s_row_gives_the_frame_its_charge_holds_on() -> void:
+	var t: FrameDataTable = _table()
+	var row: Dictionary = t.row(&"katana", &"k_coil")
+	assert_true(row.has("hold"), "Crescent Coil holds at its coil (KE task 16)")
+	if not row.has("hold"):
+		return
+	var coil: AttackDef = Moves.KATANA.moves[&"k_coil"]
+	assert_eq(coil.charge_hold, int(row["hold"]), "the rules hold its charge there")
+	assert_between(coil.charge_hold, Fighter.CHARGE_CHECK_FRAME + 1, coil.startup - 1, "in its wind-up, past today's frame 9")
+	assert_eq((Moves.KATANA.moves[&"k_iai"] as AttackDef).charge_hold, AttackDef.UNSET, "the Iai keeps frame 9")
+	assert_false(t.row(&"katana", &"k_1l1").has("hold"), "nothing that doesn't charge")
 
 
 func test_every_rules_length_clip_and_gait_has_a_row() -> void:

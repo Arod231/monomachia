@@ -124,15 +124,15 @@ const MOVES: Dictionary = {
 		"range": 2.4, "arc": 60, "lunge": 1.0, "lunge_start": 8, "lunge_end": 24,
 		"chargeable": true, "chain_heavy": &"k_h1f",
 	},
-	# the one-handed heavy (KE task 7, D13), charged by holding heavy (D9):
-	# about 85% of Heaven Splitter (D3), standing in on its clip until its
-	# re-key (KE task 16)
+	# the one-handed heavy (KE task 7, D13), Elden Ring's (KE task 16): the
+	# blade coiled back over the shoulder, a loop low and up, and a wide level
+	# cut from the left held at full extension; charged by holding heavy
+	# through the coil (D9), where it holds; about 85% of Heaven Splitter (D3)
 	&"k_coil": {
-		"id": &"k_coil", "name": "Crescent Coil", "kind": &"heavy", "type": &"slash", "anim": &"overhead",
-		"side_start": &"centre", "side_end": &"centre",
+		"id": &"k_coil", "name": "Crescent Coil", "kind": &"heavy", "type": &"slash", "anim": &"slashLR",
+		"side_start": &"centre", "side_end": &"right", "grip": &"one_handed",
 		"damage": 13, "posture": 15, "knockback": 1.0,
-		"range": 2.4, "arc": 60, "lunge": 1.0, "lunge_start": 8, "lunge_end": 24,
-		"chargeable": true,
+		"range": 2.4, "arc": 120, "chargeable": true,
 	},
 	&"k_sl": {
 		"id": &"k_sl", "name": "Running Draw", "kind": &"light", "type": &"slash", "anim": &"drawCut",

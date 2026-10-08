@@ -313,6 +313,37 @@ func test_whole_attacks_keep_the_weapon_in_the_hands() -> void:
 			assert_lt(straightest, 175.0, "%s: the elbows never lock" % weapon.id)
 
 
+## Only a charge walked in (the Iai's stance) hands the legs to the legs'
+## blend; a grip heavy charging at its own pose (KE task 16: Crescent Coil's
+## coil, mid-lunge) keeps its clip's legs.
+func test_only_a_stance_charge_frees_the_legs() -> void:
+	SimHelpers.grip = &""
+	for presses: Array in [[Btn.HEAVY], [Btn.LIGHT, Btn.HEAVY]]:
+		var W: World = _world()
+		var f: Fighter = W.fighters[0]
+		var v: FighterView = _view(&"hunter", Moves.KATANA)
+		var pressed: int = 0
+		var charged: int = 0
+		var legs: float = -1.0
+		for i: int in 300:
+			var p0: RawInput = SimHelpers.idle()
+			if pressed < presses.size() and (f.state != &"attack" or (f.atk.frame >= 32 and not f.atk.def.chargeable)):
+				p0 = SimHelpers.btn(presses[pressed])
+				pressed += 1
+			elif pressed == presses.size():
+				p0 = SimHelpers.btn(Btn.HEAVY)
+			W.step([p0, SimHelpers.idle()])
+			_update(v, f)
+			if f.state == &"attack" and f.atk.charging:
+				charged += 1
+				if charged == 40:
+					legs = v._legs_free(f)
+					break
+		var stance: bool = presses.size() == 1
+		assert_eq(charged, 40, "%s charged" % ("the Iai" if stance else "Crescent Coil"))
+		assert_eq(legs, 1.0 if stance else 0.0, "the Iai's stance walks on the legs' blend" if stance else "the Coil keeps its clip's legs")
+
+
 ## A slash's edge leads the sweep; a thrust's, with no sideways sweep, faces
 ## down and forward like the guard's.
 func test_the_edge_leads_the_strike() -> void:

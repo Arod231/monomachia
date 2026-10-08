@@ -5,8 +5,10 @@ extends GutTest
 ## (the owner's word); both charge as charged heavies do (D9); heavy from
 ## neutral stays the Iai in both grips, the vertical Iai's heavy follow-up is
 ## the grip's (Crescent Coil one-handed, Rising Heaven two-handed) and the
-## horizontal one keeps Returning Draw and the grip's hit 2 (D5). The heavies
-## stand in on today's heavy clips until their re-keys.
+## horizontal one keeps Returning Draw and the grip's hit 2 (D5). Crescent
+## Coil is Elden Ring's since KE task 16, holding its charge at its coil;
+## Heaven Splitter and Rising Heaven stand in on today's heavy clips until
+## their re-key (KE task 17).
 
 const H := preload("res://tests/sim/sim_helpers.gd")
 const CLOSE: float = 0.005
@@ -133,7 +135,9 @@ func test_both_grip_heavies_charge_to_a_power_attack() -> void:
 	var heavies: Dictionary = {ONE: &"k_coil", TWO: &"k_h2"}
 	for grip: StringName in [ONE, TWO]:
 		var tapped: Array = _play(grip, [Btn.LIGHT, Btn.HEAVY])
-		var held: Array = _play(grip, [Btn.LIGHT, Btn.HEAVY], 0.0, SimConst.CHARGE_MAX + 60)
+		# held from its press, a branch before the heavy starts, through the
+		# wind-up to its hold (KE task 16: Crescent Coil's at its coil) and on
+		var held: Array = _play(grip, [Btn.LIGHT, Btn.HEAVY], 0.0, SimConst.CHARGE_MAX + 140)
 		var tap_hit: Dictionary = {}
 		var held_hit: Dictionary = {}
 		for e: Dictionary in tapped[1]:
@@ -162,6 +166,97 @@ func test_a_charging_grip_heavy_holds_its_frame() -> void:
 			charged = true
 	assert_true(charged, "Crescent Coil holds while heavy is held")
 	assert_eq(a.atk.def.id if a.atk != null else &"", &"k_coil", "still coiled")
+
+
+## Fighter 0 plays Slanting Cut, then Crescent Coil from its branch, heavy
+## held `hold` steps from its press; returns the Coil's attack frame each
+## step it was charging, and the frame it first swung on (its startup, as
+## played).
+static func _coil_charge(hold: int) -> Array:
+	var W: World = H.make_world()
+	var a: Fighter = W.fighters[0]
+	var charging: Array[int] = []
+	var pressed: int = -1
+	for i: int in 400:
+		var p0: RawInput = H.idle()
+		if i == 0:
+			p0 = H.btn(Btn.LIGHT)
+		elif pressed < 0 and a.state == &"attack" and a.atk.def.id == &"k_1l1" and a.atk.frame >= 32:
+			pressed = i
+			p0 = H.btn(Btn.HEAVY)
+		elif pressed >= 0 and i < pressed + hold:
+			p0 = H.btn(Btn.HEAVY)
+		W.step([p0, H.idle()])
+		if a.state == &"attack" and a.atk.def.id == &"k_coil" and a.atk.charging:
+			charging.append(a.atk.frame)
+	return charging
+
+
+# The grip heavies hold their charge at their own pose, Elden Ring's (KE task
+# 16): Crescent Coil at its coil over the shoulder, its row's hold frame,
+# not today's frame 9, which the Iai keeps.
+func test_crescent_coil_holds_its_charge_at_the_coil() -> void:
+	var coil: AttackDef = Moves.KATANA.moves[&"k_coil"]
+	assert_gt(coil.charge_hold, Fighter.CHARGE_CHECK_FRAME, "past today's frame 9")
+	var held: Array[int] = _coil_charge(coil.charge_hold + 60)
+	assert_false(held.is_empty(), "held past the coil, it charges")
+	if not held.is_empty():
+		assert_eq(held[0], coil.charge_hold, "from the coil, on its hold frame")
+		assert_eq(held.max(), coil.charge_hold, "and holds that frame while it charges")
+	assert_eq(_coil_charge(coil.charge_hold - 4), [] as Array[int], "let go before the coil: a tap, no charge")
+
+
+## Fighter 0 plays Slanting Cut, then Crescent Coil from its branch, heavy
+## held `hold` steps from its press, from the duelling distance; returns
+## [whether the Coil hit, how far fighter 0 went from the Coil's first frame
+## to its first active frame].
+static func _coil_from_the_duel(hold: int) -> Array:
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, Moves.KATANA.duel_distance)
+	var a: Fighter = W.fighters[0]
+	var coil: AttackDef = Moves.KATANA.moves[&"k_coil"]
+	var pressed: int = -1
+	var from: V3 = null
+	var went: float = -1.0
+	var hit: bool = false
+	for i: int in 500:
+		var p0: RawInput = H.idle()
+		if i == 0:
+			p0 = H.btn(Btn.LIGHT)
+		elif pressed < 0 and a.state == &"attack" and a.atk.def.id == &"k_1l1" and a.atk.frame >= 32:
+			pressed = i
+			p0 = H.btn(Btn.HEAVY)
+		elif pressed >= 0 and i < pressed + hold:
+			p0 = H.btn(Btn.HEAVY)
+		W.step([p0, H.idle()])
+		if a.state == &"attack" and a.atk.def.id == &"k_coil":
+			if from == null:
+				from = V3.make(a.pos.x, a.pos.y, a.pos.z)
+			elif went < 0.0 and a.atk.frame == coil.startup + 1:
+				went = SimMath.dist2(from, a.pos)
+		for e: Dictionary in W.drain_events():
+			if e["t"] == &"hit" and e.get("attacker", 0) == 0 and e["attack"] == &"k_coil":
+				hit = true
+	return [hit, went]
+
+
+func test_the_tapped_and_the_charged_coil_cut_alike_from_the_duelling_distance() -> void:
+	var tapped: Array = _coil_from_the_duel(1)
+	var charged: Array = _coil_from_the_duel((Moves.KATANA.moves[&"k_coil"] as AttackDef).charge_hold + 90)
+	assert_true(tapped[0], "the tapped Coil lands from the duelling distance")
+	assert_true(charged[0], "and the charged one")
+	assert_gt(float(tapped[1]), 0.5, "stepping in to its cut")
+	assert_almost_eq(float(charged[1]), float(tapped[1]), 0.01, "the charge holds the step, the release takes it as the tap does")
+
+
+func test_a_tapped_crescent_coil_plays_its_whole_coil() -> void:
+	var tapped: Array = _play(ONE, [Btn.LIGHT, Btn.HEAVY])
+	var hit_seen: bool = false
+	for e: Dictionary in tapped[1]:
+		if e["attack"] == &"k_coil":
+			hit_seen = true
+	assert_true(hit_seen, "the tapped Coil lands from the string's spacing")
+	var coil: AttackDef = Moves.KATANA.moves[&"k_coil"]
+	assert_between(coil.startup, 84, 96, "Elden Ring's slow coil, about 1.5 s to the cut (the owner's word, Oct 8)")
 
 
 # ------------------------------------------------------------------ the Iai

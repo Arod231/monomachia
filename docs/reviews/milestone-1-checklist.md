@@ -68,7 +68,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Rising Heaven `k_h1f` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Returning Draw `k_rdraw` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Heaven Splitter `k_h2` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Crescent Coil `k_coil` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Crescent Coil `k_coil` | move (KE task 16) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | The heavy deflect pairs `clip_deflect_heavy` | not built | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | Heavy hit reactions `clip_hit_heavy` | stand-in clips | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
 | Heavy block reactions `clip_block_heavy` | stand-in clips | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
@@ -123,21 +123,21 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Flying Knee `f_sl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Dragon Kick `f_sh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Slip Jab `f_dl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Spinning Backfist `f_dh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Snap Kick `f_bl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Lunging Palm `f_bh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Air Kick `f_jl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Axe Kick `f_jh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
+| Flying Knee `f_sl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Dragon Kick `f_sh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Slip Jab `f_dl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Spinning Backfist `f_dh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Snap Kick `f_bl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Lunging Palm `f_bh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Air Kick `f_jl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Axe Kick `f_jh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
 
 ## 9. The ultimates
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Moonsplitter `moonsplitter` | move | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
-| Breaker Palm `f_breaker` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ☐ |
+| Breaker Palm `f_breaker` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
 | The disarmed choice `clip_ult_choice` | stand-in clip | – | – | – | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
 | The recall's power-up `clip_recall` | stand-in clip | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 

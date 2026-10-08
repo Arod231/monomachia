@@ -167,7 +167,7 @@ This spec changes `docs/specs/milestone-1.md` and its plan inside the milestone:
 | D6 | The grip switch has no rules cost (0 frames, no posture); its only cost is the other grip's trade-offs | 2, 8 |
 | D7 | Each round starts one-handed; the grip survives a parry, a block and a knockdown; disarm clears it and the Katana returns one-handed | 6, 16 |
 | D8 | The computer goes two-handed when the opponent guards a lot or is close, one-handed at range or when low on posture; Hard and above switch mid-string; tuned by soak | 39, 40 |
-| D9 | The grip heavies use the existing charged-heavy rule (released by itself at 2.5 s as a power attack) | 26 |
+| D9 | The grip heavies use the existing charged-heavy rule (released by itself at 2.5 s as a power attack). KE task 16 (Oct 8, the owner's choice): each grip heavy holds its charge at its own pose (the coil over the shoulder, the blade overhead), its clip's hold marker, where the rules check for a held heavy; the Iai keeps frame 9 | 26 |
 | D10 | Both bodies scale by 1.15, then shoulders widen about 8% and the head shrinks about 5% toward heroic proportions (about 7.5 heads tall); final numbers set in Blender with the owner. KE task 3 (Oct 7, approved by the owner from the shots): ×1.15, the shoulders 8% wider, the head 95%; the hurt capsule 0.42 m round and 2.0 m tall, the push-apart radius 0.50 m | 34 |
 | D11 | The camera's heights scale by 1.15 and its distance by the new duelling distance, so the mood board's framing holds. KE tasks 2 and 3: the distances by 3.3/2.5, the heights by 1.15 | 38 |
 | D12 | Fight stick: the grip on its free button (L2 there moves to the stick's spare); player 2's shared keyboard: the grip on a free key of its set, picked in the plan | 13 |

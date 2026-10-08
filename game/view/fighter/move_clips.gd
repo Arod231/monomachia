@@ -29,8 +29,11 @@ extends RefCounted
 ## generated from (tasks 15-17), in source frames from the chain's start
 ## played at 1.0x, each a whole or half frame: the wind-up start, the active
 ## frames' start and end, the settle, the dodge-cancel window (its start, and
-## an end that defaults to the settle) when the move has one, and a branch
-## point for each follow-up ("branch": {move: frame}). On the Katana's and
+## an end that defaults to the settle) when the move has one, a branch
+## point for each follow-up ("branch": {move: frame}), and on a chargeable
+## move the "hold" its charge holds at, in its wind-up (KE task 16: the
+## grip heavies hold at their own pose, the coil or the blade overhead,
+## where the rules check for a held heavy). On the Katana's and
 ## bare hands' moves they are stand-ins ("markers_stand_in"): placed to give
 ## today's frame data exactly, not at the clip's events, until their family
 ## re-keys them; frame_data() reads them. A stand-in's clip still plays by
@@ -56,6 +59,8 @@ const RULES_MARKERS: Array[String] = ["windup", "active_start", "active_end", "s
 ## The dodge-cancel window's markers, for a move with one: the start, and an
 ## end that defaults to the settle.
 const DODGE_CANCEL_MARKERS: Array[String] = ["dodge_cancel", "dodge_cancel_end"]
+## A chargeable move's marker: the frame its charge holds on (KE task 16).
+const HOLD_MARKER: String = "hold"
 ## Rules frames per source frame at 1.0x: 60 a second over 30.
 const RULES_PER_SOURCE: float = ClipTiming.RULES_FPS / ClipManifest.SOURCE_FPS
 
@@ -166,8 +171,9 @@ static func markers(e: Entry, manifest: ClipManifest, lengths: PackedFloat64Arra
 
 ## The frame data markers give (an Entry's markers), the clip played at
 ## 1.0x: startup, active and recovery, "dodge_cancel_from" and
-## "dodge_cancel_to" (AttackDef.UNSET without a window) and "branch" (follow-up
-## -> the frame it starts on), all in rules frames from the wind-up start.
+## "dodge_cancel_to" (AttackDef.UNSET without a window), "branch" (follow-up
+## -> the frame it starts on) and "hold" (the frame a charge holds on, or
+## AttackDef.UNSET), all in rules frames from the wind-up start.
 static func frame_data(m: Dictionary) -> Dictionary:
 	var at: Callable = func(x: float) -> int: return roundi((x - float(m["windup"])) * RULES_PER_SOURCE)
 	var out: Dictionary = {
@@ -177,6 +183,7 @@ static func frame_data(m: Dictionary) -> Dictionary:
 		"dodge_cancel_from": at.call(m["dodge_cancel"]) if m.has("dodge_cancel") else AttackDef.UNSET,
 		"dodge_cancel_to": at.call(m.get("dodge_cancel_end", m["settle"])) if m.has("dodge_cancel") else AttackDef.UNSET,
 		"branch": {},
+		"hold": at.call(m[HOLD_MARKER]) if m.has(HOLD_MARKER) else AttackDef.UNSET,
 	}
 	var branch: Dictionary = m.get("branch", {})
 	for follow: Variant in branch:
@@ -254,7 +261,7 @@ func _entry(wid: StringName, id: StringName, d: Variant, manifest: ClipManifest)
 		e.sheathed = PackedFloat64Array([float(sh[0]), float(sh[1])])
 	if (d as Dictionary).has("markers"):
 		var why: Array[String] = []
-		e.markers = _markers(wid, d["markers"], why)
+		e.markers = _markers(wid, id, d["markers"], why)
 		if not why.is_empty():
 			for w: String in why:
 				errors.append("%s: %s" % [at, w])
@@ -285,7 +292,7 @@ func _entry(wid: StringName, id: StringName, d: Variant, manifest: ClipManifest)
 
 ## A move's markers read from `m` (see Entry.markers), each mistake pushed
 ## into `why`.
-static func _markers(wid: StringName, m: Variant, why: Array[String]) -> Dictionary:
+static func _markers(wid: StringName, id: StringName, m: Variant, why: Array[String]) -> Dictionary:
 	if not m is Dictionary:
 		why.append("markers must be an object")
 		return {}
@@ -296,7 +303,7 @@ static func _markers(wid: StringName, m: Variant, why: Array[String]) -> Diction
 			return false
 		return true
 	for name: Variant in m:
-		if not (RULES_MARKERS.has(str(name)) or DODGE_CANCEL_MARKERS.has(str(name)) or str(name) == "branch"):
+		if not (RULES_MARKERS.has(str(name)) or DODGE_CANCEL_MARKERS.has(str(name)) or str(name) == "branch" or str(name) == HOLD_MARKER):
 			why.append("unknown marker %s" % name)
 	for name: String in RULES_MARKERS + DODGE_CANCEL_MARKERS:
 		if not (m as Dictionary).has(name):
@@ -310,6 +317,13 @@ static func _markers(wid: StringName, m: Variant, why: Array[String]) -> Diction
 	for i: int in range(1, RULES_MARKERS.size()):
 		if out[RULES_MARKERS[i]] <= out[RULES_MARKERS[i - 1]]:
 			why.append("marker %s must come after %s" % [RULES_MARKERS[i], RULES_MARKERS[i - 1]])
+	if (m as Dictionary).has(HOLD_MARKER) and frame.call(HOLD_MARKER, m[HOLD_MARKER]):
+		if not ((Moves.WEAPONS[wid] as WeaponDef).moves.get(id, null) as AttackDef).chargeable:
+			why.append("only a chargeable move has a hold marker")
+		elif float(m[HOLD_MARKER]) <= out["windup"] or float(m[HOLD_MARKER]) >= out["active_start"]:
+			why.append("the hold marker must come after windup and before active_start")
+		else:
+			out[HOLD_MARKER] = float(m[HOLD_MARKER])
 	if out.has("dodge_cancel_end") and not out.has("dodge_cancel"):
 		why.append("dodge_cancel_end needs a dodge_cancel")
 	elif out.has("dodge_cancel"):

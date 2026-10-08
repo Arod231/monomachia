@@ -19,7 +19,8 @@ extends RefCounted
 ## The fewest frames after a move's last active frame its follow-ups may
 ## branch, by the move's kind in the frame-data table (the spec's earliest
 ## branch points): the string lights 1 (each grip's own too, KE task 11); the heavies with follow-ups (the Iai
-## draws, the Iai follow-ups, the string heavies, Roundhouse among them) 18.
+## draws, the Iai follow-ups, the string heavies, Roundhouse among them, and
+## the grips' own heavies, KE task 16) 18.
 const EARLIEST_BRANCH: Dictionary[StringName, int] = {
 	&"string_light": 1,
 	&"string_light_1h": 1,
@@ -27,6 +28,8 @@ const EARLIEST_BRANCH: Dictionary[StringName, int] = {
 	&"string_light_2h": 1,
 	&"string_last_2h": 1,
 	&"string_heavy": 18,
+	&"grip_heavy_1h": 18,
+	&"grip_heavy_2h": 18,
 	&"iai_draw": 18,
 	&"iai_follow_up": 18,
 }

@@ -998,8 +998,9 @@ func _update_attack() -> void:
 
 	# Charging a heavy. A tapped heavy is drawn here, as its sheathe ends, and a
 	# held one as its stance ends, on release or at CHARGE_MAX; the stick then
-	# picks the draw.
-	if def.chargeable and not a.charging and a.charge_frames == 0 and a.frame == CHARGE_CHECK_FRAME:
+	# picks the draw. A keyed grip heavy holds at its own pose (KE task 16).
+	var hold_at: int = def.charge_hold if def.charge_hold != AttackDef.UNSET else CHARGE_CHECK_FRAME
+	if def.chargeable and not a.charging and a.charge_frames == 0 and a.frame == hold_at:
 		if inp.is_held(Btn.HEAVY):
 			a.charging = true
 		else:
