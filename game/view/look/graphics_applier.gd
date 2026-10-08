@@ -18,6 +18,12 @@ extends RefCounted
 ## - CameraRig nodes take whether a push-in brings its depth of field;
 ## - Node3D nodes in group look_scenery_detail with meta look_detail (0..2)
 ##   are shown when the preset's scenery_detail reaches that level;
+## - Node3D nodes in group look_clouds with meta look_volumetric_clouds are
+##   shown when it matches the preset's volumetric_clouds (and their detail
+##   allows), and nodes in group look_landscape with meta
+##   look_light_landscape when it matches the preset's light_landscape
+##   (milestone-1 task 51: the Shrine's cloud volume or mesh layers, and its
+##   landscape's full or lighter models);
 ## - Light3D nodes in group look_petal_light (the petals' lights) and Decal
 ##   nodes in group look_minor_decal are shown or hidden;
 ## - Light3D nodes in group look_fighter_key (each fighter's key light,
@@ -44,6 +50,10 @@ const GROUP_PETAL_LIGHT: StringName = &"look_petal_light"
 const GROUP_MINOR_DECAL: StringName = &"look_minor_decal"
 const GROUP_FIGHTER_KEY: StringName = &"look_fighter_key"
 const GROUP_FLOOR_PETALS: StringName = &"look_floor_petals"
+const GROUP_CLOUDS: StringName = &"look_clouds"
+const GROUP_LANDSCAPE: StringName = &"look_landscape"
+const META_VOLUMETRIC_CLOUDS: StringName = &"look_volumetric_clouds"
+const META_LIGHT_LANDSCAPE: StringName = &"look_light_landscape"
 const META_DETAIL: StringName = &"look_detail"
 ## The environment's own height fog density, kept so a preset that turned it
 ## off can turn it back on.
@@ -128,6 +138,11 @@ static func _walk(preset: GraphicsPreset, node: Node) -> void:
 		(node as CameraRig).dof_allowed = preset.push_in_dof
 	if node is Node3D and node.is_in_group(GROUP_SCENERY):
 		(node as Node3D).visible = int(node.get_meta(META_DETAIL, 0)) <= preset.scenery_detail
+	if node is Node3D and node.is_in_group(GROUP_CLOUDS):
+		var detail_ok: bool = int(node.get_meta(META_DETAIL, 0)) <= preset.scenery_detail
+		(node as Node3D).visible = detail_ok and bool(node.get_meta(META_VOLUMETRIC_CLOUDS, false)) == preset.volumetric_clouds
+	if node is Node3D and node.is_in_group(GROUP_LANDSCAPE):
+		(node as Node3D).visible = bool(node.get_meta(META_LIGHT_LANDSCAPE, false)) == preset.light_landscape
 	if node is WorldEnvironment:
 		_apply_environment(preset, (node as WorldEnvironment).environment)
 	for child: Node in node.get_children():

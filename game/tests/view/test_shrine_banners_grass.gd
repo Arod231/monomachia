@@ -119,7 +119,7 @@ func test_the_banners_cloth_sways_on_the_wind_in_the_look() -> void:
 		var cloth: MeshInstance3D = b.get_node("Cloth")
 		var m: ShaderMaterial = cloth.get_active_material(0)
 		assert_eq(m.shader, LookMaterials.SWAY_SHADER, "%s's cloth sways" % b.name)
-		assert_eq(m.get_shader_parameter(&"wind"), arena.layout.wind, "on the Shrine's wind")
+		assert_true(m.shader.code.contains("wind.gdshaderinc"), "on the Shrine's one wind")
 		assert_true(m.get_shader_parameter(&"sway_from_red"), "its weight in the vertex red")
 		assert_gt(float(m.get_shader_parameter(&"flutter")), 0.0, "and flutters")
 		assert_not_null(m.get_shader_parameter(&"albedo_texture"), "dyed with its mon and kanji")
@@ -175,7 +175,7 @@ func test_the_floor_grass_is_too_short_to_hide_the_feet_and_never_collides() -> 
 		assert_eq(mmi.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "%s casts no shadow" % mmi.name)
 		var m: ShaderMaterial = mmi.material_override
 		assert_eq(m.shader, LookMaterials.SWAY_SHADER, "the grass sways")
-		assert_eq(m.get_shader_parameter(&"wind"), arena.layout.wind)
+		assert_true(m.shader.code.contains("wind.gdshaderinc"), "on the Shrine's one wind")
 		assert_true(m.get_shader_parameter(&"use_vertex_color"), "coloured by its blades' vertex colour")
 	assert_eq(grass.find_children("*", "CollisionObject3D", true, false).size(), 0, "picture only")
 	var tallest: float = 0.0

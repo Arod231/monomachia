@@ -26,6 +26,9 @@ const SURFACE_TWO_SIDED_SHADER: Shader = preload("res://shaders/surface_two_side
 ## The same surface from both sides, swayed by the wind (the Shrine's grass
 ## and banners, milestone-1 task 131; sway()).
 const SWAY_SHADER: Shader = preload("res://shaders/surface_sway.gdshader")
+## The same surface for far scenery, faded into the horizon's mist by the
+## aerial fade the Shrine's landscape takes (milestone-1 task 51; far()).
+const SURFACE_FAR_SHADER: Shader = preload("res://shaders/surface_far.gdshader")
 
 const META_SURFACE: StringName = &"look_surface"
 
@@ -148,22 +151,25 @@ static func prop_from(source: Material) -> ShaderMaterial:
 	return m
 
 
-## A prop surface that sways on `wind` (SWAY_SHADER), from the material its
-## model was made with: the freest vertex leaning `sway` metres in a wind of
-## 1 and fluttering by `flutter`, its weight in its vertex alpha, or in its
+## A prop surface that sways on the arena's one wind (SWAY_SHADER, which
+## reads it from wind.gdshaderinc), from the material its model was made
+## with: the freest vertex leaning `sway` metres for each m/s of wind and
+## fluttering by `flutter`, its weight in its vertex alpha, or in its
 ## vertex red (`from_red`, the banners' cloth, whose colour is its
 ## texture's); with the weight in the alpha, the vertex colour is its
-## colour (the grass).
-static func sway(source: BaseMaterial3D, wind: Vector2, sway_amount: float, flutter: float, from_red: bool) -> ShaderMaterial:
+## colour (the grass). The fight's pushes (air_push.gdshaderinc, milestone-1
+## task 115) bend it `air_share` as far as a wind as strong.
+static func sway(source: BaseMaterial3D, sway_amount: float, flutter: float, from_red: bool,
+		air_share: float = 1.0) -> ShaderMaterial:
 	var m: ShaderMaterial = make_with_shader(SWAY_SHADER, Surface.PROP, {
 		&"base_color": source.albedo_color,
 		&"roughness": PROP_SURFACE.x,
 		&"metallic": PROP_SURFACE.y,
 		&"use_vertex_color": not from_red,
-		&"wind": wind,
 		&"sway": sway_amount,
 		&"flutter": flutter,
 		&"sway_from_red": from_red,
+		&"air_share": air_share,
 	})
 	_carry_maps(m, source)
 	m.resource_name = source.resource_name
@@ -191,4 +197,16 @@ static func surface_of(material: Material) -> Surface:
 ## Whether `shader` is the shared surface, either side (the surfaces a
 ## fighter's blood stains go on).
 static func is_surface_shader(shader: Shader) -> bool:
-	return shader == SURFACE_SHADER or shader == SURFACE_TWO_SIDED_SHADER
+	return shader == SURFACE_SHADER or shader == SURFACE_TWO_SIDED_SHADER or shader == SURFACE_FAR_SHADER
+
+
+## A copy of source (a surface) for far scenery: the same surface on
+## SURFACE_FAR_SHADER, fading into horizon (the depth fog's colour) by the
+## aerial fade. Anything else comes back as it is.
+static func far(source: Material, horizon: Color) -> Material:
+	if not (source is ShaderMaterial and (source as ShaderMaterial).shader == SURFACE_SHADER):
+		return source
+	var m := source.duplicate() as ShaderMaterial
+	m.shader = SURFACE_FAR_SHADER
+	m.set_shader_parameter(&"horizon_color", horizon)
+	return m

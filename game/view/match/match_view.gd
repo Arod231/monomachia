@@ -39,7 +39,10 @@ extends Node3D
 ## task 137) is stirred every drawn frame by what the fighters do to it
 ## (FloorStirrer: their steps, rolls, low swings, landings, falls and blows;
 ## the arena's stir_floor()) and cleared at a new match (clear_floor());
-## picture only.
+## picture only. The fight marks the arena's stone for the match
+## (ArenaMarks, milestone-1 task 115: cuts, gashes, scorches, cracks and
+## Moonsplitter's groove, with their dust and sparks), up to the graphics
+## preset's cap; picture only too.
 ##
 ## Reduce flashes and shaking (task 18.11) follows the player's settings at
 ## match start and whenever they change (apply_reduce_flashes()): the
@@ -141,6 +144,8 @@ var shots: ShotDirector = ShotDirector.new()
 ## What the fighters do to the arena's floor each drawn frame (milestone-1
 ## task 137).
 var floor_stirrer: FloorStirrer = FloorStirrer.new()
+## The marks the fight leaves on the arena (milestone-1 task 115).
+var arena_marks: ArenaMarks
 ## The realistic look's light film grain over the match (milestone-1 task
 ## 43), over both halves of a split screen and under the HUD.
 var grain: FilmGrain
@@ -185,6 +190,9 @@ func _ready() -> void:
 		blood = BloodEffects.new()
 		add_child(blood)
 		blood.host = host
+	if arena_marks == null:
+		arena_marks = ArenaMarks.new()
+		add_child(arena_marks)
 	if grain == null:
 		grain = FilmGrain.new()
 		add_child(grain)
@@ -276,6 +284,7 @@ func render(delta: float) -> void:
 	_stir_floor(delta)
 	effects.update(effects.clock())
 	blood.update(effects.clock())
+	arena_marks.update(effects.clock())
 	for cam: CameraRig in cameras:
 		cam.frozen = host.world.hitstop > 0
 	_show_shot(delta)
@@ -349,16 +358,18 @@ func _feed_auras() -> void:
 
 
 ## Hands the arena what the fighters did to its floor this frame (an arena
-## whose floor reacts; FloorStirrer).
+## whose floor reacts; FloorStirrer), and marks its stone where they cut,
+## slam and burst it (ArenaMarks).
 func _stir_floor(delta: float) -> void:
-	if arena == null or not arena.has_method(&"stir_floor"):
-		return
 	var sides: Array[Dictionary] = []
 	for i: int in fighters.size():
 		var f: Fighter = host.fighter(i)
 		sides.append({"at": host.display_position(i), "state": f.state, "phase": f.knockdown_phase(),
 			"blades": fighters[i].blade_segments()})
-	arena.call(&"stir_floor", floor_stirrer.frame(delta, sides))
+	arena_marks.frame(sides, host.world.waves, host.alpha(), effects, effects.clock())
+	if arena == null or not arena.has_method(&"stir_floor"):
+		return
+	arena.call(&"stir_floor", floor_stirrer.frame(delta, sides, host.world.waves, host.alpha()))
 
 
 ## True when side `side`'s footsteps fall where its clips land its feet
@@ -399,6 +410,9 @@ func _on_match_started(cfg: MatchConfig) -> void:
 	effects.clear()
 	effects.set_preset(GameServices.graphics_preset())
 	blood.new_match(fighters)
+	arena_marks.setup(arena)
+	arena_marks.set_preset(GameServices.graphics_preset())
+	arena_marks.new_match()
 	_use_split(cfg.mode == MatchConfig.VERSUS and not host.attract)
 	apply_reduce_flashes()
 	var camera_mode: CameraRig.Mode = CameraRig.Mode.FOLLOW
@@ -635,6 +649,7 @@ func _on_sim_event(e: Dictionary) -> void:
 		effects.on_event(e, host.world.frame)
 	blood.on_event(e, effects.clock())
 	floor_stirrer.on_event(e, host.display_position)
+	arena_marks.on_event(e, host.display_position, effects, effects.clock())
 	var asked: Dictionary = shots.on_event(e, host.world)
 	if asked.has("push_in"):
 		_push_in(float(asked["push_in"]))

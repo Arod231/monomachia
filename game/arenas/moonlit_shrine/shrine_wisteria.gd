@@ -40,6 +40,13 @@ extends RefCounted
 ## (young()).
 
 const MODELS: String = "res://assets/exports/shrine/wisteria_%d.glb"
+## The bark's surface and the blossoms' glow, both swaying on the arena's one
+## wind (milestone-1 task 52): the outer branches and the racemes hanging
+## from them move, the trunk and thick limbs stay still. Match point's
+## blossoms shine through the mist (BLOSSOM_DOOM_SHADER).
+const BARK_SHADER: Shader = preload("res://shaders/wisteria_bark.gdshader")
+const BLOSSOM_SHADER: Shader = preload("res://shaders/wisteria_blossom.gdshader")
+const BLOSSOM_DOOM_SHADER: Shader = preload("res://shaders/wisteria_blossom_doom.gdshader")
 const BARK: String = "res://assets/exports/shrine/wisteria_bark.glb"
 const VARIANTS: int = 5
 ## What the models keep, grown to it (wisteria_build.py's numbers, which
@@ -118,7 +125,7 @@ static func build(layout: ShrineLayout, props: Node3D) -> Node3D:
 			var spot: Vector3 = xform * marker.position
 			marker.add_child(_canopy_light(spot.y))
 			spots.append(spot)
-		root.add_child(_petals(i, tree, layout.wind))
+		root.add_child(_petals(i, tree, layout.wind.velocity()))
 	var lights := Node3D.new()
 	lights.name = "PetalLights"
 	root.add_child(lights)
@@ -169,44 +176,42 @@ static func tree_of(variant: int, bark_material: Material = null, blossom_materi
 
 
 ## The trees' bark: the bark export's scan (colour and normal map) on the
-## look's physically based surface.
+## look's physically based surface, its outer branches swaying (BARK_SHADER).
 static func bark() -> Material:
 	var model: Node = (load(BARK) as PackedScene).instantiate()
 	var card := model.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
 	var scan := card.mesh.surface_get_material(0) as BaseMaterial3D
 	model.free()
-	var m: ShaderMaterial = LookMaterials.make(Color.WHITE, LookMaterials.Surface.PROP,
-		Vector2(BARK_ROUGHNESS, 0.0), {
-			&"albedo_texture": scan.albedo_texture,
-			&"normal_texture": scan.normal_texture,
-			&"normal_strength": BARK_NORMAL_STRENGTH if scan.normal_texture != null else 0.0,
-		})
+	var m: ShaderMaterial = LookMaterials.make_with_shader(BARK_SHADER, LookMaterials.Surface.PROP, {
+		&"base_color": Color.WHITE,
+		&"roughness": BARK_ROUGHNESS,
+		&"metallic": 0.0,
+		&"albedo_texture": scan.albedo_texture,
+		&"normal_texture": scan.normal_texture,
+		&"normal_strength": BARK_NORMAL_STRENGTH if scan.normal_texture != null else 0.0,
+	})
 	m.resource_name = "WisteriaBark"
 	return m
 
 
 ## The blossoms' glow: the raceme cards (the models' own texture, cut out by
-## its alpha, seen from both sides) glowing BLOSSOM_GLOW.
-static func blossom() -> Material:
+## its alpha, seen from both sides, taking no shadow: a light of their own)
+## glowing BLOSSOM_GLOW, swinging on the wind (BLOSSOM_SHADER).
+static func blossom() -> ShaderMaterial:
 	var model: Node = (load(MODELS % 0) as PackedScene).instantiate()
 	var cards := model.find_children("*_Blossom", "MeshInstance3D", true, false)[0] as MeshInstance3D
 	var raceme := cards.mesh.surface_get_material(0) as BaseMaterial3D
 	model.free()
-	var m := StandardMaterial3D.new()
+	var m := ShaderMaterial.new()
+	m.shader = BLOSSOM_SHADER
 	m.resource_name = "WisteriaBlossom"
-	m.albedo_texture = raceme.albedo_texture
+	m.set_shader_parameter(&"albedo_texture", raceme.albedo_texture)
+	m.set_shader_parameter(&"alpha_scissor", 0.5)
 	# lit by their own glow, not the lights under them, so the colour stays
-	m.albedo_color = BLOSSOM_GLOW.darkened(0.85)
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	m.alpha_scissor_threshold = 0.5
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.roughness = 0.7
-	m.emission_enabled = true
-	m.emission = BLOSSOM_GLOW
-	m.emission_texture = raceme.albedo_texture
-	m.emission_energy_multiplier = BLOSSOM_EMISSION
-	# a light of its own: no shadow falls on it
-	m.disable_receive_shadows = true
+	m.set_shader_parameter(&"albedo_color", BLOSSOM_GLOW.darkened(0.85))
+	m.set_shader_parameter(&"emission_color", BLOSSOM_GLOW)
+	m.set_shader_parameter(&"emission_energy", BLOSSOM_EMISSION)
+	m.set_shader_parameter(&"emission_multiply", false)
 	return m
 
 
@@ -234,17 +239,18 @@ static func glow_markers(tree: Node3D) -> Array[Node3D]:
 ## Turns the grove under root toward match point's blood red: t 0 is the
 ## lavender, 1 the blood red.
 static func set_doom(root: Node3D, t: float) -> void:
-	var m := root.get_meta(&"blossom", null) as StandardMaterial3D
+	var m := root.get_meta(&"blossom", null) as ShaderMaterial
 	if m != null:
-		m.emission = BLOSSOM_GLOW.lerp(DOOM_GLOW, t)
-		m.emission_energy_multiplier = lerpf(BLOSSOM_EMISSION, DOOM_EMISSION, t)
-		m.albedo_color = m.emission.darkened(0.85)
+		var glow: Color = BLOSSOM_GLOW.lerp(DOOM_GLOW, t)
+		m.set_shader_parameter(&"emission_color", glow)
+		m.set_shader_parameter(&"emission_energy", lerpf(BLOSSOM_EMISSION, DOOM_EMISSION, t))
+		m.set_shader_parameter(&"albedo_color", glow.darkened(0.85))
 		# the mist's blue veil would turn the blood red pink: glowing, they shine
 		# through it
-		m.disable_fog = t > 0.0
+		m.shader = BLOSSOM_DOOM_SHADER if t > 0.0 else BLOSSOM_SHADER
 		# the raceme's own lavender multiplies the red, not adds to it (which
 		# turns it pink)
-		m.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY if t > 0.0 else BaseMaterial3D.EMISSION_OP_ADD
+		m.set_shader_parameter(&"emission_multiply", t > 0.0)
 	for node: Node in root.find_children("CanopyLight", "OmniLight3D", true, false):
 		var light := node as OmniLight3D
 		light.light_color = BLOSSOM.lerp(DOOM_LIGHT, t)
@@ -265,9 +271,9 @@ static func _petal_colors(glow: Color) -> PackedColorArray:
 
 
 ## Moves the petal lights under root down their loops at time t: each falls
-## PETAL_FALL metres from its cluster, drifting on the wind and swaying, then
-## starts again from the top.
-static func drift_petal_lights(root: Node3D, t: float, wind: Vector2) -> void:
+## PETAL_FALL metres from its cluster, drifting on the arena's wind (carried
+## further as a gust passes it) and swaying, then starts again from the top.
+static func drift_petal_lights(root: Node3D, t: float, wind: Wind) -> void:
 	var lights: Node = root.get_node_or_null(^"PetalLights")
 	if lights == null:
 		return
@@ -276,7 +282,8 @@ static func drift_petal_lights(root: Node3D, t: float, wind: Vector2) -> void:
 		var from: Vector3 = light.get_meta(&"from")
 		var fall_time: float = PETAL_FALL / ((PETAL_FALL_SPEED.x + PETAL_FALL_SPEED.y) * 0.5)
 		var age: float = fposmod(t + k * fall_time / PETAL_LIGHTS, fall_time)
-		var drift := Vector3(wind.x, 0.0, wind.y) * age * 0.5
+		var w: Vector2 = wind.at(from)
+		var drift := Vector3(w.x, 0.0, w.y) * age * 0.5
 		var sway := Vector3(sin(age * 1.3 + k), 0.0, cos(age * 1.1 + k * 2.0)) * 0.6
 		light.position = from + drift + sway + Vector3.DOWN * (PETAL_FALL * age / fall_time)
 

@@ -36,6 +36,9 @@ const CORD_STIFFNESS: float = 1.2
 const CORD_DRAG: float = 0.4
 const CORD_GRAVITY: float = 3.0
 const CORD_RADIUS: float = 0.005
+## How much the wind catches the sageo (m/s² downwind for each m/s of wind;
+## Wind.blow_springs()): it stirs a little (milestone-1 task 52).
+const CORD_WIND_CATCH: float = 1.0
 
 ## The rig the sageo hangs on, and the springs swinging it.
 var cord_rig: Skeleton3D
@@ -69,6 +72,12 @@ static func build(cord_color: Color) -> Saya:
 		saya.springs = _cord_springs(saya.cord_rig)
 	saya.tint(cord_color)
 	return saya
+
+
+## The arena's wind stirs the sageo (milestone-1 task 52).
+func _process(_delta: float) -> void:
+	if springs != null:
+		Wind.blow_springs(springs, CORD_GRAVITY, CORD_WIND_CATCH, global_position)
 
 
 static func _cord_springs(rig: Skeleton3D) -> SpringBoneSimulator3D:

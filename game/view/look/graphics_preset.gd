@@ -19,6 +19,12 @@ extends Resource
 ## lights (spark_light, milestone-1 task 37; the owner's choice, Oct 6).
 ## Medium and Low thin the Shrine's fallen petals (floor_petal_ratio, 0.6
 ## and 0.3; milestone-1 task 137, which the plan asked to thin per preset).
+## Medium and Low draw the Shrine's sea of clouds as lit mesh layers in place
+## of the volumetric clouds (volumetric_clouds), and Low draws the distant
+## landscape's lighter models (light_landscape; milestone-1 task 51, the
+## owner's choice, Oct 8). The arena's marks (ArenaMarks, milestone-1 task
+## 115) last the match up to arena_marks: 96 on Ultra and High, 48 on Medium
+## and 24 on Low (the owner's choice, Oct 8), the oldest fading.
 ##
 ## The first launch picks a preset from the graphics card's name (for_card(),
 ## the rules in CARDS); a card no rule names gets UNKNOWN_CARD_ID.
@@ -42,7 +48,7 @@ const CUTS: Array[StringName] = [
 	&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 	&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
 	&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
-	&"floor_petal_ratio",
+	&"floor_petal_ratio", &"volumetric_clouds", &"light_landscape", &"arena_marks",
 ]
 
 @export var id: StringName = &"high"
@@ -97,6 +103,13 @@ const CUTS: Array[StringName] = [
 ## The decals that only dress the arena: Decal nodes in group
 ## look_minor_decal.
 @export var minor_decals: bool = true
+## The sea of clouds drawn as a volume the moon lights (raymarched), with fog
+## banks between the ranges; off, as lit mesh layers (milestone-1 task 51).
+## Nodes in group look_clouds.
+@export var volumetric_clouds: bool = true
+## The distant landscape's lighter (decimated) models in place of the full
+## ones (milestone-1 task 51): nodes in group look_landscape.
+@export var light_landscape: bool = false
 
 @export_group("Effects")
 ## Fraction of each ambient particle emitter's amount that is drawn.
@@ -104,6 +117,9 @@ const CUTS: Array[StringName] = [
 ## Fraction of the arena's fallen petals drawn (the Shrine's floor cover,
 ## milestone-1 task 137): nodes in group look_floor_petals.
 @export_range(0.0, 1.0) var floor_petal_ratio: float = 1.0
+## The most marks the fight leaves on the arena's stone (cuts, gashes,
+## scorches, cracks, grooves; ArenaMarks), the oldest fading past it.
+@export_range(0, 256) var arena_marks: int = 96
 ## Lantern lights and other small omni lights.
 @export var minor_lights: bool = true
 ## Distant scenery detail: 0 = silhouettes only, 1 = with props, 2 = all.

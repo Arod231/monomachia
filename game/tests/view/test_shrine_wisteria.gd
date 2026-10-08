@@ -194,8 +194,12 @@ func test_the_trees_cast_no_shadows_and_the_moon_lights_without_a_haze() -> void
 				assert_eq(geo.layers & LookPalette.CANOPY_LAYER, LookPalette.CANOPY_LAYER,
 					"%s's %s casts its shadow only on the canopy layer" % [tree.name, node.name])
 		for node: Node in tree.find_children("*_Blossom", "GeometryInstance3D", false, false):
-			assert_true(((node as GeometryInstance3D).material_override as BaseMaterial3D).disable_receive_shadows,
+			var glow := (node as GeometryInstance3D).material_override as ShaderMaterial
+			assert_true(glow.shader in [ShrineWisteria.BLOSSOM_SHADER, ShrineWisteria.BLOSSOM_DOOM_SHADER],
 				"%s's blossoms take no shadow" % tree.name)
+	# both blossom shaders (the night's and match point's) take no shadow
+	var blossom_code: String = FileAccess.get_file_as_string("res://shaders/wisteria_blossom.gdshaderinc")
+	assert_eq(blossom_code.count("shadows_disabled"), 2, "the blossoms take no shadow, night or match point")
 	var moon := arena.get_node("Lights/MoonLight") as DirectionalLight3D
 	assert_ne(moon.light_cull_mask & LookPalette.GROUND_LAYER, 0, "the moon lights the arena")
 	assert_eq(moon.light_volumetric_fog_energy, 0.0, "no red haze in the mist")
@@ -258,15 +262,14 @@ func test_the_blossoms_light_the_arena_in_pools_under_the_canopy() -> void:
 func test_the_blossoms_glow_softly() -> void:
 	for tree: Node3D in _trees():
 		var blossom := tree.find_children("*_Blossom", "MeshInstance3D", false, false)[0] as MeshInstance3D
-		var m := blossom.material_override as StandardMaterial3D
+		var m := blossom.material_override as ShaderMaterial
 		assert_not_null(m, "%s's blossoms wear the glow" % tree.name)
-		assert_true(m.emission_enabled)
-		assert_not_null(m.emission_texture, "glowing in the raceme's shape")
-		assert_eq(m.emission, ShrineWisteria.BLOSSOM_GLOW)
-		assert_eq(m.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR)
-		assert_eq(m.cull_mode, BaseMaterial3D.CULL_DISABLED)
+		assert_eq(m.shader, ShrineWisteria.BLOSSOM_SHADER)
+		assert_not_null(m.get_shader_parameter(&"albedo_texture"), "glowing in the raceme's shape")
+		assert_eq(m.get_shader_parameter(&"emission_color"), ShrineWisteria.BLOSSOM_GLOW)
+		assert_almost_eq(float(m.get_shader_parameter(&"alpha_scissor")), 0.5, 0.001, "cut out by the raceme")
 		assert_eq(blossom.gi_mode, GeometryInstance3D.GI_MODE_STATIC, "its glow lights what's round it")
-		var glow: Color = ShrineWisteria.BLOSSOM_GLOW * m.emission_energy_multiplier
+		var glow: Color = ShrineWisteria.BLOSSOM_GLOW * float(m.get_shader_parameter(&"emission_energy"))
 		assert_between(maxf(glow.r, maxf(glow.g, glow.b)), 1.5, 4.0, "past the bloom's threshold, short of glare")
 	assert_gt(ShrineWisteria.BLOSSOM_GLOW.b, ShrineWisteria.BLOSSOM_GLOW.g, "lavender")
 	assert_gt(ShrineWisteria.BLOSSOM_GLOW.r, ShrineWisteria.BLOSSOM_GLOW.g, "toward pink")
@@ -295,13 +298,15 @@ func test_petal_lights_drift_down_and_start_again() -> void:
 	assert_true(light.is_in_group(GraphicsApplier.GROUP_PETAL_LIGHT), "Low drops them")
 	assert_false(light.shadow_enabled)
 	var from: Vector3 = light.get_meta(&"from")
-	ShrineWisteria.drift_petal_lights(_grove(), 0.0, Vector2.ZERO)
+	var calm := Wind.new()
+	calm.speed = 0.0
+	ShrineWisteria.drift_petal_lights(_grove(), 0.0, calm)
 	var start: float = light.position.y
-	ShrineWisteria.drift_petal_lights(_grove(), 4.0, Vector2.ZERO)
+	ShrineWisteria.drift_petal_lights(_grove(), 4.0, calm)
 	assert_lt(light.position.y, start - 1.0, "it falls")
 	assert_gt(light.position.y, from.y - ShrineWisteria.PETAL_FALL - 0.01, "no further than its loop")
 	var fall_time: float = ShrineWisteria.PETAL_FALL / ((ShrineWisteria.PETAL_FALL_SPEED.x + ShrineWisteria.PETAL_FALL_SPEED.y) * 0.5)
-	ShrineWisteria.drift_petal_lights(_grove(), fall_time, Vector2.ZERO)
+	ShrineWisteria.drift_petal_lights(_grove(), fall_time, calm)
 	assert_almost_eq(light.position.y, start, 0.01, "and starts again")
 
 
@@ -317,17 +322,20 @@ func test_young_wisteria_grow_on_the_floating_rocks() -> void:
 ## back to lavender.
 func test_at_match_point_the_petals_glow_and_light_blood_red() -> void:
 	ShrineWisteria.set_doom(_grove(), 1.0)
-	var m := _grove().get_meta(&"blossom") as StandardMaterial3D
-	assert_gt(m.emission.r, maxf(m.emission.g, m.emission.b) * 10.0, "a deep red, not pink")
-	assert_lt(m.emission_energy_multiplier, ShrineWisteria.BLOSSOM_EMISSION, "dimmer: doom, not neon")
-	assert_eq(m.emission_operator, BaseMaterial3D.EMISSION_OP_MULTIPLY, "the raceme's lavender never added to the red")
+	var m := _grove().get_meta(&"blossom") as ShaderMaterial
+	var red: Color = m.get_shader_parameter(&"emission_color")
+	assert_gt(red.r, maxf(red.g, red.b) * 10.0, "a deep red, not pink")
+	assert_lt(float(m.get_shader_parameter(&"emission_energy")), ShrineWisteria.BLOSSOM_EMISSION, "dimmer: doom, not neon")
+	assert_true(m.get_shader_parameter(&"emission_multiply"), "the raceme's lavender never added to the red")
+	assert_eq(m.shader, ShrineWisteria.BLOSSOM_DOOM_SHADER, "shining through the mist")
 	for light: OmniLight3D in _canopy_lights():
 		assert_gt(light.light_color.r, maxf(light.light_color.g, light.light_color.b) * 10.0, "the canopy lights blood red")
 	var petals := _grove().get_node("Petals0") as GPUParticles3D
 	var c: Color = ((petals.process_material as ParticleProcessMaterial).color_ramp as GradientTexture1D).gradient.colors[1]
 	assert_gt(c.r, maxf(c.g, c.b) * 10.0, "the falling petals blood red")
 	ShrineWisteria.set_doom(_grove(), 0.0)
-	assert_eq(m.emission, ShrineWisteria.BLOSSOM_GLOW, "lavender again")
+	assert_eq(m.get_shader_parameter(&"emission_color"), ShrineWisteria.BLOSSOM_GLOW, "lavender again")
+	assert_eq(m.shader, ShrineWisteria.BLOSSOM_SHADER)
 	assert_eq(_canopy_lights()[0].light_color, ShrineWisteria.BLOSSOM)
 
 
@@ -339,7 +347,7 @@ func test_the_shrine_eases_into_match_point_and_out_of_it_at_once() -> void:
 	assert_eq(arena.match_point_doom(), 1.0, "blood red")
 	arena.set_match_point(false)
 	assert_eq(arena.match_point_doom(), 0.0, "a new match: lavender at once")
-	assert_eq((_grove().get_meta(&"blossom") as StandardMaterial3D).emission, ShrineWisteria.BLOSSOM_GLOW)
+	assert_eq((_grove().get_meta(&"blossom") as ShaderMaterial).get_shader_parameter(&"emission_color"), ShrineWisteria.BLOSSOM_GLOW)
 
 
 func test_match_point_is_the_round_after_a_side_reaches_two_wins() -> void:

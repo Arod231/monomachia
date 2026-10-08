@@ -18,17 +18,19 @@ const SCENE := "res://arenas/moonlit_shrine/moonlit_shrine.tscn"
 const SKY_SHADER: Shader = preload("res://shaders/sky_moonlit.gdshader")
 ## The backdrop's own shaders, which all take the look's noise.
 const BACKDROP_SHADERS: Array[Shader] = [
-	ShrineBackdrop.CLOUD_SEA, ShrineBackdrop.MOUNTAIN, ShrineBackdrop.WATERFALL, ShrineBackdrop.LAKE, ShrineBackdrop.MIST,
+	ShrineBackdrop.CLOUD_SEA, ShrineBackdrop.CLOUD_VOLUME, ShrineBackdrop.LANDSCAPE, ShrineBackdrop.WATERFALL,
+	ShrineBackdrop.LAKE, ShrineBackdrop.MIST,
 ]
-## What each level of scenery detail draws of the backdrop (World's parts):
-## 0 keeps the sea of clouds, the mountains and the lake; 1 adds the veil of
-## cloud over the sea, the cliffs with their buildings and waterfalls, and the
-## lanterns on the lake; 2 adds the mist, round the crag's tip too. Every
-## preset draws at 2 since milestone-1 task 29 (Low drops only atmosphere).
+## What each level of scenery detail draws of the backdrop (World's parts)
+## on Ultra: 0 keeps the sea of clouds (its volume on Ultra, milestone-1 task
+## 51), the mountains and the lake; 1 adds the cliffs with their buildings
+## and waterfalls, and the lanterns on the lake; 2 adds the mist, round the
+## crag's tip too. Every preset draws at 2 since milestone-1 task 29 (Low
+## drops only atmosphere).
 const SCENERY: Dictionary[int, Array] = {
-	0: ["CloudSea", "Mountains", "Lake"],
-	1: ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns"],
-	2: ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns", "Mist", "CragMist"],
+	0: ["CloudVolume", "Mountains", "Lake"],
+	1: ["CloudVolume", "Mountains", "Lake", "Cliffs", "LakeLanterns"],
+	2: ["CloudVolume", "Mountains", "Lake", "Cliffs", "LakeLanterns", "Mist", "CragMist"],
 }
 ## How far past the moon's disc (radians) nothing may stand.
 const MOON_MARGIN := 0.015
@@ -813,23 +815,23 @@ func test_ash_falls_across_the_courtyard() -> void:
 	# that far further upwind.
 	var middle: Vector3 = _middle_launch(ash)
 	var drift: Vector2 = Vector2(middle.x, middle.z) * (from.get_center().y / -middle.y)
-	var source: Vector2 = -arena.layout.wind.normalized() * floor_radius - drift
+	var source: Vector2 = -arena.layout.wind.velocity().normalized() * floor_radius - drift
 	assert_true(from.has_point(Vector3(source.x, from.get_center().y, source.y)), "the flakes landing on the upwind edge set off over the island")
 	var t: float = ash.lifetime * 0.75
 	var fall: float = -_slowest_climb(m) * t + 0.5 * (-m.gravity.y - m.damping_max) * t * t
 	assert_gt(fall, from.position.y, "the slowest from the lowest reach the floor by three quarters of their life")
 
 
-## One wind, the layout's, carries the embers and ash the way the sea of
-## clouds drifts, and no turbulence takes it away: Godot's turbulence steers
+## One wind, the layout's (milestone-1 task 52), carries the embers and ash
+## at its breeze the way the sea of clouds drifts (on its global uniforms), and no turbulence takes it away: Godot's turbulence steers
 ## every particle toward its noise field each frame, and measured in a window
 ## even 1% held the updraft's embers to a third of their climb and kept the
 ## ash off the floor.
 func test_the_embers_and_ash_drift_with_the_wind_the_clouds_drift_on() -> void:
-	var wind: Vector2 = arena.layout.wind
-	for clouds: String in ["CloudSea", "CloudVeil"]:
+	var wind: Vector2 = arena.layout.wind.velocity()
+	for clouds: String in ["CloudSea", "CloudVeil", "CloudVolume"]:
 		var mat := (arena.get_node("World/" + clouds) as GeometryInstance3D).material_override as ShaderMaterial
-		assert_almost_eq(_param(mat, &"drift_direction") as Vector2, wind.normalized(), Vector2.ONE * 0.001, "%s drifts with the wind" % clouds)
+		assert_true(mat.shader.code.contains("wind.gdshaderinc"), "%s drifts with the wind" % clouds)
 	for emitter: Node in _particles(arena):
 		var m := _process_material(emitter)
 		assert_false(m.turbulence_enabled, "%s keeps to the wind" % emitter.name)
