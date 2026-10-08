@@ -7,7 +7,8 @@ extends Node
 ## - lantern: the first stone lantern, from the courtyard;
 ## - torii: the first gate's torii, from the courtyard;
 ## - pillar: the first whole pillar and its neighbour;
-## - far: the first far pagoda or temple hall, through a long lens;
+## - far: the first far pagoda or temple hall, from the air in front of it;
+## - parapet: the first broken rail and its posts, from the courtyard;
 ## - paving: the floor's slabs, looking down at them.
 ## Shoot one with
 ##   npm run shots -- res://tools/shot_scenes/shrine_closeup.tscn shots/<name>.png 30 --view=<view> [--preset=<id>]
@@ -73,7 +74,7 @@ func _frame(cam: Camera3D) -> void:
 		&"torii":
 			_look_at_piece(cam, arena.get_node("Platform/Props/Torii0") as Node3D, 10.0, -1.3, 55.0)
 		&"pillar":
-			_look_at_piece(cam, arena.get_node("Platform/Props/Pillar0") as Node3D, 6.0, -1.0, 55.0)
+			_look_at_piece(cam, arena.get_node("Platform/Props/Pillar0") as Node3D, 4.5, 0.2, 60.0)
 		&"far":
 			var far: Node3D = null
 			for child: Node in arena.get_node("World/Cliffs").get_children():
@@ -82,11 +83,20 @@ func _frame(cam: Camera3D) -> void:
 					break
 			var c: Vector3 = _centre(far)
 			var flat := Vector3(c.x, 0.0, c.z).normalized()
-			cam.fov = 9.0
-			cam.look_at_from_position(flat * 16.0 + Vector3.UP * 3.0, c, Vector3.UP)
+			# in the open air in front of it, on the line from the courtyard
+			cam.fov = 30.0
+			cam.look_at_from_position(c - flat * 40.0 + Vector3.UP * 4.0, c, Vector3.UP)
+		&"parapet":
+			# the first broken rail, from the courtyard
+			var i: int = layout.broken_rails[0]
+			var a: float = ShrinePlatform.post_angle(layout, i) + 180.0 / layout.post_count
+			var at: Vector3 = ShrineLayout.polar(a, arena.def.wall_radius, 0.55)
+			var inward := -Vector3(at.x, 0.0, at.z).normalized()
+			cam.fov = 55.0
+			cam.look_at_from_position(at + inward * 3.2 + Vector3.UP * 0.6 + inward.cross(Vector3.UP) * 0.8, at, Vector3.UP)
 		&"paving":
 			cam.fov = 60.0
-			cam.look_at_from_position(Vector3(2.0, 1.6, -4.0), Vector3(5.0, 0.0, -1.0), Vector3.UP)
+			cam.look_at_from_position(Vector3(2.0, 1.1, -4.0), Vector3(4.2, 0.0, -2.2), Vector3.UP)
 		_:
 			push_error("shrine_closeup: no view %s" % view)
 

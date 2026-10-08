@@ -38,7 +38,7 @@ uniform sampler2D grime_normal : hint_normal, filter_linear_mipmap_anisotropic, 
 uniform bool use_scans = false;
 uniform float scan_size = 1.6;
 uniform float scan_detail : hint_range(0.0, 1.0) = 0.7;
-uniform float scan_relief : hint_range(0.0, 2.0) = 0.9;
+uniform float scan_relief : hint_range(0.0, 2.0) = 0.12;
 // The scan's mean colour (rock_surface's, linear), so only its detail varies
 // the slab's own tone, round 1.
 uniform vec3 scan_mean = vec3(0.162, 0.117, 0.087);
@@ -47,6 +47,9 @@ uniform vec4 grime_tint : source_color = vec4(0.42, 0.46, 0.36, 1.0);
 // slabs broken.
 uniform float grime_spread = 0.02;
 uniform float broken_amount : hint_range(0.0, 1.0) = 0.14;
+// How much the joints wander (the noise's wobble): 0 lays them straight,
+// where the modelled slabs' joints are (milestone-1 task 50).
+uniform float joint_wobble : hint_range(0.0, 1.0) = 1.0;
 
 varying vec3 world_pos;
 
@@ -134,13 +137,13 @@ void fragment() {
 	float r = length(p);
 	float ang = atan(p.x, p.y);
 	vec2 wob = look_noise(p * 0.7).rg - 0.5;
-	float rw = r + wob.x * 0.07;
+	float rw = r + wob.x * 0.07 * joint_wobble;
 	float edge;
 	vec2 id;
 	if (rw < centre_radius) {
 		// The centre stone, split into four slabs.
 		float q = (ang + PI) / (PI * 0.5);
-		float qf = fract(q + wob.y * 0.03);
+		float qf = fract(q + wob.y * 0.03 * joint_wobble);
 		id = vec2(-1.0, floor(q));
 		edge = min(centre_radius - rw, min(qf, 1.0 - qf) * (PI * 0.5) * r);
 	} else {
@@ -149,8 +152,10 @@ void fragment() {
 		float rf = fract(rr);
 		float rmid = centre_radius + (ri + 0.5) * ring_width;
 		float n = max(8.0, floor(TAU * rmid / tile_length));
-		float a01 = (ang + PI) / TAU + sf_hash(vec2(ri, 4.0));
-		float ta = a01 * n + wob.y * 0.18;
+		// each ring turned by its own share (the golden ratio's, exact in
+		// floats, so the modelled slabs can match it: ShrinePlatform.ring_turn())
+		float a01 = (ang + PI) / TAU + fract(ri * 0.618034);
+		float ta = a01 * n + wob.y * 0.18 * joint_wobble;
 		float ti = floor(ta);
 		float tf = fract(ta);
 		id = vec2(ri, mod(ti, n));

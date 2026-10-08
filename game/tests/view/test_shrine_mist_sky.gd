@@ -35,7 +35,7 @@ func _param(material: ShaderMaterial, param: StringName) -> Variant:
 
 func test_the_paving_wears_the_scanned_stone_with_grime_in_its_joints_and_some_slabs_broken() -> void:
 	var floor_mi := arena.get_node("Platform/Floor") as MeshInstance3D
-	var m := floor_mi.material_override as ShaderMaterial
+	var m := floor_mi.get_surface_override_material(0) as ShaderMaterial
 	assert_true(bool(_param(m, &"use_scans")), "the scans on")
 	for map: StringName in [&"stone_albedo", &"stone_normal", &"stone_rough", &"grime_albedo", &"grime_normal"]:
 		assert_true(_param(m, map) is Texture2D, "%s from the paving export" % map)
@@ -65,7 +65,9 @@ func test_shafts_of_cool_moonlight_break_through_the_canopy_into_the_mist() -> v
 	# a light's cull mask also limits its shadow casters, so it takes in the
 	# canopy, and nothing else
 	assert_eq(shafts.light_cull_mask, LookPalette.CANOPY_LAYER, "lighting the mist and only the canopy")
-	assert_gt(shafts.light_volumetric_fog_energy, key.light_volumetric_fog_energy * 2.0, "the shafts outshine the key in the mist")
+	assert_gt(shafts.light_energy * shafts.light_volumetric_fog_energy, key.light_energy * key.light_volumetric_fog_energy * 2.0,
+		"the shafts outshine the key in the mist")
+	assert_lte(shafts.light_energy, 0.05, "and barely touch the canopy, whose blossoms keep their own glow")
 	assert_gt(shafts.light_color.b, shafts.light_color.r, "cool steel-blue, no red haze")
 	assert_true(shafts.is_in_group(GraphicsApplier.GROUP_SHADOW_LIGHT), "the preset sets its shadows")
 	assert_eq(shafts.shadow_caster_mask, LookPalette.CANOPY_LAYER, "only the canopy breaks its light")

@@ -244,8 +244,9 @@ static func _materials_of(geo: GeometryInstance3D) -> Array[Material]:
 func test_the_floor_lies_at_zero_under_both_spawns_on_the_ground_layer() -> void:
 	var floor_mi := arena.get_node("Platform/Floor") as MeshInstance3D
 	var aabb: AABB = floor_mi.get_aabb()
-	assert_almost_eq(aabb.end.y, 0.0, 0.001, "floor at y = 0")
-	assert_almost_eq(aabb.position.y, 0.0, 0.001, "and flat")
+	# the modelled slabs sink by up to 1.5 cm, never above y = 0
+	# (test_shrine_platform.gd)
+	assert_between(aabb.end.y, -0.016, 0.0005, "floor at y = 0")
 	assert_almost_eq(aabb.end.x, arena.def.floor_radius, 0.01, "out to the floor's edge")
 	for side: int in 2:
 		var p: Vector3 = arena.def.spawn_point(side).origin

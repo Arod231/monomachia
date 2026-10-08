@@ -5,7 +5,7 @@
 #   blender -b --factory-startup --python-exit-code 1 \
 #     --python scripts/blender/build_shrine_buildings.py -- \
 #     --spec scripts/blender/shrine/buildings.json --assets <asset repository> \
-#     [--only lantern,torii,pillar,pagoda,temple_hall] [--preview <folder>]
+#     [--only lantern,torii,pillar,pagoda,temple_hall,paving,platform] [--preview <folder>]
 #
 # Every piece is ancient (the owner's answers, Oct 8): stone chipped and
 # cracked at its edges with moss and lichen in its crevices and on its tops,
@@ -47,6 +47,15 @@
 # - shrine/paving.blend (milestone-1 task 49): the paving's scans for the
 #   floor's shader, a card each: "Paving_Stone" (rock_surface) and
 #   "Paving_Grime" (concrete_moss, for the joints' moss and grime).
+# - shrine/platform.blend (milestone-1 task 50): the courtyard's platform in
+#   arena space, from platform.json (the game's own numbers, written by
+#   game/tools/export_platform_spec.gd): the paving's slabs where the floor's
+#   shader draws them, tilted and sunk by up to 1.5 cm, bevelled and
+#   chipped, a few corners broken off, over a bed of grit
+#   ("Platform_Floor"); the curb stones round the rim ("Platform_Plinth");
+#   today's parapet remodelled ("Platform_Parapet"); and the gates' landings
+#   and steps ("Platform_Landing"), in rock_surface with mossy_rock on their
+#   tops.
 
 import json
 import math
@@ -1153,6 +1162,459 @@ def build_temple_hall(spec, scans, baked):
     return temple_hall(spec, scans), (1.8, 0.7, (0.0, 0.0, 0.25))
 
 
+# ------------------------------------------------------------------ the platform (milestone-1 task 50)
+
+PLATFORM_GAP = 0.008     # the joints between slabs and blocks (m)
+SLAB_DEPTH = 0.12
+SLAB_BEVEL = 0.012
+BED_Y = -0.028           # the grit under the slabs, seen in the joints and the broken corners
+WEAR_STEP = 0.06         # how finely the edges are cut, for their chips (m)
+
+
+def godot_xz(a, r):
+    """The point at angle a (radians, from +Z toward +X, ShrineLayout.polar)
+    and radius r, as Godot (x, z)."""
+    return (math.sin(a) * r, math.cos(a) * r)
+
+
+def densify(outline, step):
+    """outline (a closed loop of (x, z)) with points every step along its
+    edges."""
+    out = []
+    n = len(outline)
+    for i in range(n):
+        x0, z0 = outline[i]
+        x1, z1 = outline[(i + 1) % n]
+        k = max(1, int(math.ceil(math.hypot(x1 - x0, z1 - z0) / step)))
+        for j in range(k):
+            t = j / k
+            out.append((x0 + (x1 - x0) * t, z0 + (z1 - z0) * t))
+    return out
+
+
+def sector(r0, r1, a0, a1, gap, outer_gap=True):
+    """An annular sector's outline (x, z), from radius r0 to r1 and angle a0
+    to a1, inset by half the joint on every side (but its outer edge when
+    outer_gap is off: the floor's rim). r0 = 0 makes a wedge, its tip at the
+    centre pulled back from the joints."""
+    ro = r1 - (gap * 0.5 if outer_gap else 0.0)
+
+    def arc(r, b0, b1):
+        n = max(2, int(math.ceil(abs(b1 - b0) * r / 0.2)) + 1)
+        return [godot_xz(b0 + (b1 - b0) * i / (n - 1), r) for i in range(n)]
+
+    outer = arc(ro, a1 - gap * 0.5 / ro, a0 + gap * 0.5 / ro)
+    if r0 <= 0.0:
+        mid = (a0 + a1) * 0.5
+        return [godot_xz(mid, gap * 0.5 / math.sin((a1 - a0) * 0.5))] + outer
+    ri = r0 + gap * 0.5
+    return arc(ri, a0 + gap * 0.5 / ri, a1 - gap * 0.5 / ri) + outer
+
+
+def notch(outline, rnd):
+    """outline with one corner broken off: the points within a hand's
+    breadth of it gone, a jagged break in their place."""
+    n = len(outline)
+    cx = sum(p[0] for p in outline) / n
+    cz = sum(p[1] for p in outline) / n
+    far = sorted(range(n), key=lambda i: -math.hypot(outline[i][0] - cx, outline[i][1] - cz))
+    corner = outline[far[rnd.randrange(min(3, n))]]
+    radius = rnd.uniform(0.1, 0.24)
+    keep = [math.hypot(p[0] - corner[0], p[1] - corner[1]) >= radius for p in outline]
+    if all(keep) or sum(keep) < 3:
+        return outline
+    # walk from the first kept point after the gone run, round to the last
+    start = next(i for i in range(n) if keep[i] and not keep[i - 1])
+    kept = []
+    i = start
+    while keep[i]:
+        kept.append(outline[i])
+        i = (i + 1) % n
+        if i == start:
+            break
+    a = kept[-1]
+    b = kept[0]
+    jag = []
+    for t in (0.33, 0.66):
+        x = a[0] + (b[0] - a[0]) * t
+        z = a[1] + (b[1] - a[1]) * t
+        pull = rnd.uniform(0.02, 0.06)
+        dx, dz = cx - x, cz - z
+        d = math.hypot(dx, dz) or 1.0
+        jag.append((x + dx / d * pull, z + dz / d * pull))
+    return kept + jag
+
+
+def worn_edges(verts, centre_xz, top, seed, depth):
+    """Chips the top edge of a slab or block: along it, a noise pushes the
+    rim down and in by up to depth."""
+    off = Vector((seed * 3.17, seed * 1.31, seed * 0.71))
+    cx, cz = centre_xz
+    for v in verts:
+        p = v.co
+        if p.z < top - 0.035:
+            continue
+        n = noise.noise(p * 7.0 + off) * 0.7 + noise.noise(p * 19.0 + off) * 0.3
+        if n <= 0.12:
+            continue
+        amt = min(1.0, (n - 0.12) * 2.2) * depth
+        gx, gz = p.x, -p.y
+        dx, dz = cx - gx, cz - gz
+        d = math.hypot(dx, dz) or 1.0
+        p.z -= amt * 0.55
+        p.x += dx / d * amt * 0.6
+        p.y -= dz / d * amt * 0.6
+
+
+def slab(outline, top, depth, rnd, seed, max_drop, chip):
+    """One paving slab as a new bmesh: outline (x, z) extruded depth down,
+    tilted and sunk by up to max_drop below top (never above it), its top
+    edge bevelled and chipped."""
+    outline = densify(outline, WEAR_STEP)
+    n = len(outline)
+    cx = sum(p[0] for p in outline) / n
+    cz = sum(p[1] for p in outline) / n
+    reach = max(math.hypot(p[0] - cx, p[1] - cz) for p in outline) or 1.0
+    sink = rnd.uniform(0.0, max_drop * 0.4)
+    drop = rnd.uniform(0.0, max_drop - sink)
+    a = rnd.uniform(0.0, math.tau)
+    dx, dz = math.sin(a), math.cos(a)
+
+    def h(x, z):
+        return top - sink - drop * (((x - cx) * dx + (z - cz) * dz) / reach + 1.0) * 0.5
+
+    bm = bmesh.new()
+    tops = [bm.verts.new(g(x, h(x, z), z)) for x, z in outline]
+    bots = [bm.verts.new(g(x, top - depth, z)) for x, z in outline]
+    cap = bm.faces.new(tops)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((tops[i], tops[j], bots[j], bots[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.normal_update()
+    if cap.normal.z < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+    bmesh.ops.bevel(bm, geom=list(cap.edges), offset=SLAB_BEVEL, offset_type="OFFSET", segments=2, profile=0.6,
+                    affect="EDGES", clamp_overlap=True)
+    worn_edges(bm.verts, (cx, cz), top, seed, chip)
+    return bm
+
+
+def append(big, bm):
+    me = bpy.data.meshes.new("tmp")
+    bm.to_mesh(me)
+    bm.free()
+    big.from_mesh(me)
+    bpy.data.meshes.remove(me)
+
+
+def ring_turn(ri):
+    """stone_floor.gdshader's turn of ring ri (ShrinePlatform.ring_turn()),
+    to check the spec's."""
+    v = ri * 0.618034
+    return v - math.floor(v)
+
+
+def floor_slabs(p, rnd):
+    """The paving: the centre stone's four quarters and each ring's slabs
+    where stone_floor.gdshader draws them (its joints unwobbled), a few with
+    a corner broken off, and the bed of grit under them."""
+    f = p["floor"]
+    big = bmesh.new()
+    seed = 0
+    cr = f["centre_radius"]
+    for q in range(4):
+        # stone_floor: quarter q spans (ang + PI) / (PI / 2) in [q, q + 1]
+        a0 = -math.pi + q * math.pi * 0.5
+        append(big, slab(sector(0.0, cr, a0, a0 + math.pi * 0.5, PLATFORM_GAP), 0.0, SLAB_DEPTH, rnd, seed,
+                         f["max_drop"], f["chip"]))
+        seed += 1
+    for ring in f["rings"]:
+        r0, r1, n, off = ring["inner"], ring["outer"], ring["tiles"], ring["offset"]
+        rim = r1 >= f["floor_radius"] - 1e-4
+        for k in range(n):
+            # stone_floor: a01 = (ang + PI) / TAU + offset, tile k where a01 * n is in [k, k + 1]
+            a0 = (k / n - off) * math.tau - math.pi
+            a1 = ((k + 1) / n - off) * math.tau - math.pi
+            out = sector(r0, r1, a0, a1, PLATFORM_GAP, outer_gap=not rim)
+            if rnd.random() < f["broken_corners"]:
+                out = notch(densify(out, 0.05), rnd)
+            append(big, slab(out, 0.0, SLAB_DEPTH, rnd, seed, f["max_drop"], f["chip"]))
+            seed += 1
+    slabs = obj_from_bm("Platform_Slabs", big)
+    slabs.data.materials.append(flat_material("Paving", (0.3, 0.3, 0.32), 0.9))
+    bm = bmesh.new()
+    ring = []
+    for k in range(128):
+        x, z = godot_xz(k * math.tau / 128, f["floor_radius"] - 0.002)
+        ring.append(bm.verts.new(g(x, BED_Y, z)))
+    disc = bm.faces.new(ring)
+    bm.normal_update()
+    if disc.normal.z < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+    bed = obj_from_bm("Platform_Bed", bm)
+    bed.data.uv_layers.new(name="UVMap")
+    for loop in bed.data.loops:
+        co = bed.data.vertices[loop.vertex_index].co
+        bed.data.uv_layers[0].data[loop.index].uv = (co.x / 1.6, co.y / 1.6)
+    return slabs, bed
+
+
+def worn_box(bm_out, centre, size, yaw, seed, wear=0.005, chip=0.012, bevel=0.012, step=0.1, panel=None):
+    """A stone block into bm_out: centre and size (x, y, z) in Godot's axes,
+    turned yaw about +y, cut finely, its edges bevelled, worn and chipped;
+    panel, a Godot (x, z) direction, recesses a carved panel in the face
+    looking that way."""
+    bm = bmesh.new()
+    m = Matrix.Translation(g(*centre)) @ Matrix.Rotation(yaw, 4, "Z") @ Matrix.Diagonal((size[0], size[2], size[1], 1.0))
+    bmesh.ops.create_cube(bm, size=1.0, matrix=m)
+    # cut about every step along each of its own axes
+    for axis, length in enumerate((size[0], size[2], size[1])):
+        k = int(length / step)
+        no = (m.to_3x3() @ Vector([1.0 if i == axis else 0.0 for i in range(3)])).normalized()
+        for i in range(1, k + 1):
+            local = Vector([(-0.5 + i / (k + 1)) if j == axis else 0.0 for j in range(3)])
+            bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=m @ local, plane_no=no)
+    bm.normal_update()
+    if panel is not None:
+        face_n = g(panel[0], 0.0, panel[1]).normalized()
+        local = m.inverted()
+        inside = set()
+        for f in bm.faces:
+            if f.normal.dot(face_n) < 0.9:
+                continue
+            for v in f.verts:
+                lp = local @ v.co
+                # inside the face's border: a fifth of its width each side, a
+                # seventh of its height top and bottom
+                if abs(lp.x) < 0.3 and abs(lp.z) < 0.36:
+                    inside.add(v)
+        for v in inside:
+            v.co -= face_n * 0.012
+    sharp = [e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0.0) > math.radians(60)]
+    bmesh.ops.bevel(bm, geom=sharp, offset=bevel, offset_type="OFFSET", segments=2, profile=0.6,
+                    affect="EDGES", clamp_overlap=True)
+    bm.normal_update()
+    off = Vector((seed * 5.3, seed * 2.1, seed * 9.7))
+    moves = []
+    for v in bm.verts:
+        q = v.co * 6.0 + off
+        n = noise.noise(q) * 0.6 + noise.noise(q * 3.3) * 0.4
+        d = n * wear
+        if n > 0.3:
+            d -= (n - 0.3) * chip * 2.0
+        moves.append((v, v.normal * d))
+    for v, mv in moves:
+        v.co += mv
+    append(bm_out, bm)
+
+
+def mossy(ob, scans, seed, cover):
+    """ob in the stone scan, a tile every 1.6 m, with moss (mossy_rock) on
+    some of its tops."""
+    cube_uv(ob, 1.6)
+    ob.data.materials.append(tiled_material(f"{ob.name}_Stone", scans, "rock_surface", (0.78, 0.78, 0.82)))
+    ob.data.materials.append(tiled_material(f"{ob.name}_Moss", scans, "mossy_rock", (0.85, 0.9, 0.85)))
+    off = Vector((seed * 1.7, seed * 0.3, 0.0))
+    for q in ob.data.polygons:
+        if q.normal.z > 0.75 and noise.noise(q.center * 0.9 + off) > 1.0 - 2.0 * cover:
+            q.material_index = 1
+
+
+def platform_rim(p, rnd):
+    """The plinth: curb stones round the floor's rim, their tops a little
+    under the paving, their outer faces sloping down to the ledge; none at
+    the gates, where the landings stand."""
+    fr = p["floor"]["floor_radius"]
+    ledge = p["ledge_y"]
+    bm = bmesh.new()
+    count = int(math.tau * fr / 1.05)
+    gates = [math.radians(gt["angle"]) for gt in p["gates"]]
+    half_gate = (p["gates"][0]["width"] * 0.5 + 0.1) / fr
+    profile = [(fr + 0.002, ledge - 0.26), (fr + 0.002, -0.012), (fr + 0.07, -0.012), (fr + 0.1, -0.04),
+               (fr + 0.26, ledge - 0.26)]
+    for k in range(count):
+        a0 = k * math.tau / count + PLATFORM_GAP * 0.5 / fr
+        a1 = (k + 1) * math.tau / count - PLATFORM_GAP * 0.5 / fr
+        mid = (a0 + a1) * 0.5
+        if any(abs((mid - gt + math.pi) % math.tau - math.pi) < half_gate for gt in gates):
+            continue
+        sb = bmesh.new()
+        steps = max(2, int((a1 - a0) * fr / WEAR_STEP))
+        rings = []
+        sink = rnd.uniform(0.0, 0.008)
+        for i in range(steps + 1):
+            a = a0 + (a1 - a0) * i / steps
+            row = []
+            for r, y in profile:
+                x, z = godot_xz(a, r)
+                row.append(sb.verts.new(g(x, y - sink, z)))
+            rings.append(row)
+        for i in range(steps):
+            for j in range(len(profile) - 1):
+                sb.faces.new((rings[i][j], rings[i + 1][j], rings[i + 1][j + 1], rings[i][j + 1]))
+        sb.faces.new(list(reversed(rings[0])))
+        sb.faces.new(rings[-1])
+        bmesh.ops.recalc_face_normals(sb, faces=sb.faces)
+        worn_edges(sb.verts, (0.0, 0.0), -0.012 - sink, 200 + k, 0.02)
+        append(bm, sb)
+    return obj_from_bm("Platform_Plinth", bm)
+
+
+def platform_parapet(p, rnd):
+    """Today's parapet remodelled at its footprint and height: the curb, the
+    stone posts with their carved panels, caps and finials (the gates' end
+    posts wider and taller, the damaged ones snapped short and capless), the
+    two rails between them, and the broken rails' stubs with their fallen
+    middles outside."""
+    w = p["wall"]
+    radius, half_t, top = w["radius"], w["thickness"] * 0.5, w["height"]
+    curb_h = w["curb_height"]
+    bm = bmesh.new()
+    gates = [math.radians(gt["angle"]) for gt in p["gates"]]
+    opening = math.radians(w["gate_opening"])
+    seed = 300
+    n_curb = int(math.tau * radius / 1.0)
+    for k in range(n_curb):
+        a0 = k * math.tau / n_curb
+        a1 = (k + 1) * math.tau / n_curb
+        mid = (a0 + a1) * 0.5
+        if any(abs((mid - gt + math.pi) % math.tau - math.pi) < opening for gt in gates):
+            continue
+        cx, cz = godot_xz(mid, radius)
+        length = 2.0 * radius * math.sin((a1 - a0) * 0.5) - PLATFORM_GAP
+        worn_box(bm, (cx, curb_h * 0.5 - 0.02, cz), (length, curb_h + 0.04, half_t * 2.0), mid, seed, step=0.12)
+        seed += 1
+    for post in p["posts"]:
+        a = math.radians(post["angle"])
+        cx, cz = godot_xz(a, radius)
+        wd = w["post_half"] * 2.0 * (w["end_post_widen"] if post["end"] else 1.0)
+        h = top - curb_h + (0.25 if post["end"] else 0.0) - (0.38 if post["damaged"] else 0.0)
+        worn_box(bm, (cx, curb_h + h * 0.5, cz), (wd, h, wd), a, seed, chip=0.02 if post["damaged"] else 0.012,
+                 step=0.08, panel=(-math.sin(a), -math.cos(a)))
+        seed += 1
+        if post["damaged"]:
+            # the snapped top: a jagged lump left on the stump
+            worn_box(bm, (cx, curb_h + h + 0.03, cz), (wd * 0.8, 0.08, wd * 0.7), a + 0.3, seed, wear=0.02,
+                     chip=0.03, step=0.04)
+            seed += 1
+            continue
+        worn_box(bm, (cx, curb_h + h + 0.035, cz), (wd + 0.08, 0.07, wd + 0.08), a, seed, step=0.06)
+        seed += 1
+        lathe(bm, [(0.0, 0.0), (wd * 0.38, 0.0), (wd * 0.45, 0.07), (wd * 0.26, 0.17), (0.0, 0.26)], 12,
+              Matrix.Translation(g(cx, curb_h + h + 0.07, cz)) @ Matrix.Rotation(a, 4, "Z"))
+    for rail in p["rails"]:
+        a0 = math.radians(rail["from"])
+        a1 = math.radians(rail["to"])
+        mid = (a0 + a1) * 0.5
+        p0 = godot_xz(a0, radius)
+        p1 = godot_xz(a1, radius)
+        cx, cz = (p0[0] + p1[0]) * 0.5, (p0[1] + p1[1]) * 0.5
+        length = math.hypot(p1[0] - p0[0], p1[1] - p0[1]) - w["post_half"] * 2.0 + 0.04
+        worn_box(bm, (cx, 0.45, cz), (length, 0.09, 0.13), mid, seed, step=0.08)
+        seed += 1
+        # the rail's run: Godot's basis x turned by mid about +y
+        tx, tz = math.cos(mid), -math.sin(mid)
+        if rail["broken"]:
+            stub = length * 0.28
+            worn_box(bm, (cx - tx * (length - stub) * 0.5, top - 0.12, cz - tz * (length - stub) * 0.5),
+                     (stub, 0.12, 0.17), mid, seed, chip=0.025, step=0.05)
+            worn_box(bm, (cx + tx * (length - stub) * 0.5, top - 0.1, cz + tz * (length - stub) * 0.5),
+                     (stub * 0.8, 0.12, 0.17), mid, seed + 1, chip=0.025, step=0.05)
+            ox, oz = math.sin(mid), math.cos(mid)
+            worn_box(bm, (cx + ox * 0.62, 0.05, cz + oz * 0.62), (length * 0.35, 0.12, 0.17), mid + 0.4, seed + 2,
+                     wear=0.01, chip=0.03, step=0.05)
+            seed += 3
+        else:
+            worn_box(bm, (cx, top - 0.1, cz), (length, 0.12, 0.17), mid, seed, step=0.08)
+            seed += 1
+    return obj_from_bm("Platform_Parapet", bm)
+
+
+def platform_landings(p, rnd):
+    """Each gate's landing, level with the floor, paved with six slabs on a
+    stone body, and its two steps down to the ledge, worn hollow in the
+    middle of their treads."""
+    f = p["floor"]
+    bm = bmesh.new()
+    seed = 600
+    for gt in p["gates"]:
+        o = Vector(gt["origin"])
+        ax = Vector(gt["x"])
+        az = Vector(gt["z"])
+
+        def at(x, y, z):
+            q = o + ax * x + az * z
+            return (q.x, y, q.z)
+
+        yaw = math.atan2(ax.z, ax.x) * -1.0
+        near, edge, far, wd = gt["near_z"], gt["floor_edge_z"], gt["far_z"], gt["width"]
+        cx, cy, cz = at(0.0, -0.44, (near + far) * 0.5)
+        worn_box(bm, (cx, cy, cz), (wd, 0.6, far - near), yaw, seed, step=0.15)
+        seed += 1
+        for i in range(3):
+            for j in range(2):
+                x0 = -wd * 0.5 + wd * i / 3.0 + PLATFORM_GAP * 0.5
+                x1 = -wd * 0.5 + wd * (i + 1) / 3.0 - PLATFORM_GAP * 0.5
+                z0 = edge + (far - edge) * j / 2.0 + PLATFORM_GAP * 0.5
+                z1 = edge + (far - edge) * (j + 1) / 2.0 - PLATFORM_GAP * 0.5
+                out = [(c[0], c[2]) for c in (at(x0, 0, z0), at(x1, 0, z0), at(x1, 0, z1), at(x0, 0, z1))]
+                if rnd.random() < 0.25:
+                    out = notch(densify(out, 0.05), rnd)
+                append(bm, slab(out, 0.0, 0.14, rnd, seed, f["max_drop"] * 0.6, f["chip"]))
+                seed += 1
+        for k in range(2):
+            step_top = -0.12 - 0.17 * k
+            sw = wd - 0.4 - 0.4 * k
+            for i in range(3):
+                x = -sw * 0.5 + sw * (i + 0.5) / 3.0
+                cx, cy, cz = at(x, step_top - 0.35, far + 0.3 + 0.45 * k)
+                bl = bmesh.new()
+                worn_box(bl, (cx, cy, cz), (sw / 3.0 - PLATFORM_GAP, 0.7, 0.6), yaw, seed, step=0.06)
+                seed += 1
+                # worn hollow by feet in the middle of the tread
+                for v in bl.verts:
+                    if v.co.z > step_top - 0.03:
+                        gp = Vector((v.co.x, 0.0, -v.co.y))
+                        lx = (gp - Vector((o.x, 0.0, o.z))).dot(ax)
+                        v.co.z -= 0.012 * math.exp(-(lx / (sw * 0.3)) ** 2)
+                append(bm, bl)
+    return obj_from_bm("Platform_Landing", bm)
+
+
+def build_platform(spec, scans, baked):
+    """The Shrine's platform (milestone-1 task 50) in arena space, from
+    platform.json beside the spec (ShrinePlatform.model_spec(), written by
+    game/tools/export_platform_spec.gd): Platform_Floor (the slabs, which the
+    game draws with the floor's shader, and the bed of grit under them),
+    Platform_Plinth, Platform_Parapet and Platform_Landing."""
+    p = spec["platform"]
+    rnd = random.Random(p["seed"])
+    for ring in p["floor"]["rings"]:
+        assert abs(ring_turn(ring["index"]) - ring["offset"]) < 1e-6, "platform.json's ring offsets drifted"
+    slabs, bed = floor_slabs(p, rnd)
+    bed.data.materials.append(tiled_material("Bed", scans, "concrete_moss", (0.7, 0.72, 0.66)))
+    floor = join_keep_materials("Platform_Floor", [slabs, bed])
+    plinth = platform_rim(p, rnd)
+    mossy(plinth, scans, 1, 0.3)
+    parapet = platform_parapet(p, rnd)
+    mossy(parapet, scans, 2, 0.35)
+    landing = platform_landings(p, rnd)
+    mossy(landing, scans, 3, 0.2)
+    out = [floor, plinth, parapet, landing]
+    for ob in out:
+        for q in ob.data.polygons:
+            q.use_smooth = True
+        bpy.ops.object.select_all(action="DESELECT")
+        bpy.context.view_layer.objects.active = ob
+        ob.select_set(True)
+        try:
+            bpy.ops.object.shade_smooth_by_angle(angle=math.radians(35))
+        except Exception as e:  # an older Blender: smooth throughout
+            print(f"build_platform: no smooth by angle ({e})")
+    return out, (40.0, 14.0, (0.0, 12.0, 0.0))
+
+
 # ------------------------------------------------------------------ saving
 
 def save(path, objects):
@@ -1207,9 +1669,13 @@ def main():
     scans = Scans(os.path.join(shrine, "textures"))
     # the bakes are packed into each .blend; their loose files are scratch
     baked = tempfile.mkdtemp(prefix="shrine_bake_")
-    only = set(a["only"].split(",")) if a["only"] else {"lantern", "torii", "pillar", "pagoda", "temple_hall", "paving"}
+    with open(os.path.join(os.path.dirname(a["spec"]), "platform.json"), encoding="utf-8") as f:
+        spec["platform"] = json.load(f)
+    only = set(a["only"].split(",")) if a["only"] else {"lantern", "torii", "pillar", "pagoda", "temple_hall", "paving",
+                                                         "platform"}
     builders = {"lantern": build_lanterns, "torii": build_torii, "pillar": build_pillars,
-                "pagoda": build_pagoda, "temple_hall": build_temple_hall, "paving": build_paving}
+                "pagoda": build_pagoda, "temple_hall": build_temple_hall, "paving": build_paving,
+                "platform": build_platform}
     for key, fn in builders.items():
         if key not in only:
             continue

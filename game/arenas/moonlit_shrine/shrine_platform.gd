@@ -11,6 +11,20 @@ extends RefCounted
 ## the modelled ones (ShrineBuildings, milestone-1 task 132), at the same
 ## spots.
 ##
+## The platform itself is modelled too (milestone-1 task 50): the paving's
+## slabs, the curb stones round its rim (Plinth), the parapet (Props/Parapet)
+## and the gates' landings and steps (Props/Landing) are one export,
+## ShrineBuildings' platform model, built in Blender from model_spec(), the
+## layout's and the arena data's own numbers. The slabs lie where the
+## floor's shader draws its joints (its joints unwobbled), tilted and sunk by
+## up to MAX_DROP under the rules' flat floor at y = 0 and never above it, so
+## feet neither sink into nor float visibly over them; the shader paints them
+## (scan, wear, cracks, grime); a bed of grit shows in the joints and where a
+## corner has broken off. The parapet keeps today's design at its footprint
+## and height (the posts, caps and finials, the two rails, the broken rails
+## and damaged posts at layout.broken_rails and damaged_posts), carved and
+## worn, in the stone scans with moss on its tops.
+##
 ## Each gate's rope barrier is its own node (GateRope0, GateRope1, by gate
 ## index), so the match intro can drop it while a fighter walks in. A prop
 ## kind with a scene in ShrineLayout.prop_scenes is instanced at the same
@@ -23,8 +37,19 @@ const PAVING: String = "res://assets/exports/shrine/paving.glb"
 ## The share of the paving's slabs chipped at their edges and corners, and
 ## how far (m) the moss and grime spread onto the stone from a joint
 ## (milestone-1 task 49).
-const BROKEN_SLABS: float = 0.14
+const BROKEN_SLABS: float = 0.05
 const GRIME_SPREAD: float = 0.02
+## The modelled platform (milestone-1 task 50): how far a slab's top sinks
+## at most under the rules' floor, the share of slabs with a corner broken
+## off, how deep their edges chip, the curb's height and the model's seed.
+const MAX_DROP: float = 0.015
+const BROKEN_CORNERS: float = 0.06
+const SLAB_CHIP: float = 0.014
+const CURB_HEIGHT: float = 0.17
+const MODEL_SEED: int = 50
+## How far the landings reach out from a gate (m, along the gate's outward
+## axis).
+const LANDING_FAR: float = 3.0
 const HALO: Shader = preload("res://shaders/particle_glow.gdshader")
 
 ## Ledge height: the rock shelf around the courtyard (task 17.5), just below
@@ -50,15 +75,14 @@ static func build(layout: ShrineLayout, def: ArenaDef) -> Node3D:
 			push_error("ShrinePlatform: bought art under %s, which isn't a prop kind (ShrineLayout.PROP_KINDS)" % kind)
 	var root := Node3D.new()
 	root.name = "Platform"
-	_floor(root, layout, def)
 	var mats: Dictionary[StringName, Material] = ShrineProps.materials()
 	var kits := MeshKitSet.new()
 	var buildings := ShrineBuildings.new()
 	var props := Node3D.new()
 	props.name = "Props"
 	root.add_child(props)
-	_parapet(kits, layout, def, layout.random_stream(&"parapet"))
-	_gates(kits, buildings, root, props, layout, def, mats)
+	_platform(buildings, root, props, layout, def)
+	_gates(buildings, root, props, layout, def, mats)
 	_pebbles(kits, layout, def)
 	_lanterns(buildings, root, props, layout)
 	_pillars(buildings, props, layout)
@@ -86,30 +110,28 @@ static func fire_points(layout: ShrineLayout) -> PackedVector3Array:
 	return out
 
 
-static func _floor(root: Node3D, layout: ShrineLayout, def: ArenaDef) -> void:
-	var kit := MeshKit.new()
-	kit.disc(Transform3D.IDENTITY, def.floor_radius, 96, 6)
+## The modelled platform: the paving (Floor, on the ground layer: the slabs
+## in the floor's shader, the bed of grit in its scan), the curb stones round
+## its rim (Plinth), the parapet and the gates' landings (Props/Parapet and
+## Props/Landing).
+static func _platform(buildings: ShrineBuildings, root: Node3D, props: Node3D, layout: ShrineLayout, def: ArenaDef) -> void:
 	var params: Dictionary = {
 		&"centre_radius": layout.centre_radius,
 		&"ring_width": layout.ring_width,
 		&"tile_length": layout.tile_length,
 		&"wall_radius": def.wall_inner_radius(),
+		&"joint_wobble": 0.0,
 	}
 	params.merge(paving_maps())
 	var mat: ShaderMaterial = LookMaterials.make_with_shader(STONE_FLOOR, LookMaterials.Surface.PROP, params)
-	var floor_mi := MeshKit.instance(kit.commit(), mat, false)
-	floor_mi.name = "Floor"
+	var floor_mi: MeshInstance3D = buildings.platform("Platform_Floor", "Floor")
+	floor_mi.set_surface_override_material(0, mat)
 	floor_mi.layers = LookPalette.GROUND_LAYER
+	floor_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(floor_mi)
-	# The courtyard's stone edge, down to the rock ledge.
-	var plinth := MeshKit.new()
-	plinth.lathe(Transform3D.IDENTITY, PackedVector2Array([
-		Vector2(def.floor_radius + 0.25, LEDGE_Y - 0.25), Vector2(def.floor_radius + 0.08, -0.08),
-		Vector2(def.floor_radius, 0.0),
-	]), 128, false, false)
-	var plinth_mi := MeshKit.instance(plinth.commit(), LookMaterials.prop(LookPalette.STONE_DARK), false)
-	plinth_mi.name = "Plinth"
-	root.add_child(plinth_mi)
+	root.add_child(buildings.platform("Platform_Plinth", "Plinth"))
+	props.add_child(buildings.platform("Platform_Parapet", "Parapet"))
+	props.add_child(buildings.platform("Platform_Landing", "Landing"))
 
 
 ## The paving's scans for the floor's shader (milestone-1 task 49): the
@@ -133,6 +155,93 @@ static func paving_maps() -> Dictionary:
 		&"broken_amount": BROKEN_SLABS,
 		&"grime_spread": GRIME_SPREAD,
 	}
+
+
+## The numbers the platform's model is built from (milestone-1 task 50):
+## game/tools/export_platform_spec.gd writes them to the build's
+## scripts/blender/shrine/platform.json, and test_shrine_platform.gd holds
+## that file to them. The floor's rings with their slabs and turns as the
+## floor's shader lays them (ring_turn()), the parapet's posts and rails
+## (the gates' end posts, the damaged posts and broken rails), and each
+## gate's landing in the gate's frame (its local +z outward).
+static func model_spec(layout: ShrineLayout, def: ArenaDef) -> Dictionary:
+	var rings: Array = []
+	var ri: int = 0
+	while layout.centre_radius + ri * layout.ring_width < def.floor_radius - 0.01:
+		var inner: float = layout.centre_radius + ri * layout.ring_width
+		var rmid: float = inner + layout.ring_width * 0.5
+		rings.append({
+			"index": ri,
+			"inner": inner,
+			"outer": minf(inner + layout.ring_width, def.floor_radius),
+			"tiles": maxi(8, floori(TAU * rmid / layout.tile_length)),
+			"offset": ring_turn(ri),
+		})
+		ri += 1
+	var n: int = layout.post_count
+	var posts: Array = []
+	var rails: Array = []
+	for i: int in n:
+		if post_in_gate(layout, def, i):
+			continue
+		posts.append({
+			"index": i,
+			"angle": post_angle(layout, i),
+			"end": post_in_gate(layout, def, (i + 1) % n) or post_in_gate(layout, def, (i - 1 + n) % n),
+			"damaged": layout.damaged_posts.has(i),
+		})
+		if not post_in_gate(layout, def, (i + 1) % n):
+			rails.append({
+				"index": i,
+				"from": post_angle(layout, i),
+				"to": post_angle(layout, i) + 360.0 / n,
+				"broken": layout.broken_rails.has(i),
+			})
+	var gates: Array = []
+	var angles: PackedFloat32Array = gate_angles(def)
+	for side: int in def.gate_anchors.size():
+		var xform: Transform3D = def.gate_anchor(side)
+		var gate_r: float = Vector2(xform.origin.x, xform.origin.z).length()
+		gates.append({
+			"angle": angles[side],
+			"origin": [xform.origin.x, xform.origin.y, xform.origin.z],
+			"x": [xform.basis.x.x, xform.basis.x.y, xform.basis.x.z],
+			"z": [xform.basis.z.x, xform.basis.z.y, xform.basis.z.z],
+			"near_z": def.floor_radius - 0.3 - gate_r,
+			"floor_edge_z": def.floor_radius - gate_r,
+			"far_z": LANDING_FAR,
+			"width": layout.torii_span + 1.4,
+		})
+	return {
+		"seed": MODEL_SEED,
+		"ledge_y": LEDGE_Y,
+		"floor": {
+			"floor_radius": def.floor_radius,
+			"centre_radius": layout.centre_radius,
+			"max_drop": MAX_DROP,
+			"broken_corners": BROKEN_CORNERS,
+			"chip": SLAB_CHIP,
+			"rings": rings,
+		},
+		"wall": {
+			"radius": def.wall_radius,
+			"thickness": def.wall_thickness,
+			"height": def.wall_height,
+			"curb_height": CURB_HEIGHT,
+			"post_half": POST_HALF,
+			"end_post_widen": END_POST_WIDEN,
+			"gate_opening": layout.gate_opening_deg,
+		},
+		"posts": posts,
+		"rails": rails,
+		"gates": gates,
+	}
+
+
+## How far ring ri of the paving is turned (a share of a turn), as
+## stone_floor.gdshader turns it.
+static func ring_turn(ri: int) -> float:
+	return fposmod(ri * 0.618034, 1.0)
 
 
 ## Angle of parapet post i, in degrees.
@@ -175,86 +284,17 @@ static func post_positions(layout: ShrineLayout, def: ArenaDef) -> PackedVector3
 	return out
 
 
-static func _parapet(kits: MeshKitSet, layout: ShrineLayout, def: ArenaDef, rng: RandomNumberGenerator) -> void:
-	var stone: MeshKit = kits.kit(&"parapet")
-	var half_t: float = def.wall_thickness * 0.5
-	var curb_h := 0.17
-	stone.color = Color(0.92, 0.92, 0.94)
-	stone.lathe(Transform3D.IDENTITY, PackedVector2Array([
-		Vector2(def.wall_radius + half_t, -0.02), Vector2(def.wall_radius + half_t, curb_h),
-		Vector2(def.wall_radius - half_t, curb_h), Vector2(def.wall_radius - half_t, -0.02),
-	]), 160, false, false)
-	var top: float = def.wall_height
-	var n: int = layout.post_count
-	for i: int in n:
-		if post_in_gate(layout, def, i):
-			continue
-		var a: float = post_angle(layout, i)
-		var basis := Basis(Vector3.UP, deg_to_rad(a))
-		var c: Vector3 = ShrineLayout.polar(a, def.wall_radius)
-		stone.color = Color(1, 1, 1).darkened(rng.randf_range(0.0, 0.18))
-		var end_post: bool = post_in_gate(layout, def, (i + 1) % n) or post_in_gate(layout, def, (i - 1 + n) % n)
-		var damaged: bool = layout.damaged_posts.has(i)
-		var w: float = POST_HALF * 2.0 * (END_POST_WIDEN if end_post else 1.0)
-		var h: float = top - curb_h + (0.25 if end_post else 0.0) - (0.38 if damaged else 0.0)
-		stone.box(Transform3D(basis, c + Vector3(0, curb_h + h * 0.5, 0)), Vector3(w, h, w))
-		if damaged:
-			continue
-		stone.box(Transform3D(basis, c + Vector3(0, curb_h + h + 0.035, 0)), Vector3(w + 0.08, 0.07, w + 0.08))
-		stone.lathe(Transform3D(basis, c + Vector3(0, curb_h + h + 0.07, 0)), PackedVector2Array([
-			Vector2(0.0, 0.0), Vector2(w * 0.38, 0.0), Vector2(w * 0.45, 0.07), Vector2(w * 0.26, 0.17), Vector2(0.0, 0.26),
-		]), 8, false)
-	# Rails between neighbouring posts.
-	for i: int in n:
-		var j: int = (i + 1) % n
-		if post_in_gate(layout, def, i) or post_in_gate(layout, def, j):
-			continue
-		var a0: float = post_angle(layout, i)
-		var a1: float = a0 + 360.0 / n
-		var mid: float = deg_to_rad((a0 + a1) * 0.5)
-		var basis := Basis(Vector3.UP, mid)
-		var p0: Vector3 = ShrineLayout.polar(a0, def.wall_radius)
-		var p1: Vector3 = ShrineLayout.polar(a1, def.wall_radius)
-		var centre: Vector3 = (p0 + p1) * 0.5
-		var length: float = p0.distance_to(p1) - POST_HALF * 2.0 + 0.04
-		stone.color = Color(1, 1, 1).darkened(rng.randf_range(0.0, 0.12))
-		stone.box(Transform3D(basis, centre + Vector3(0, 0.45, 0)), Vector3(length, 0.09, 0.13))
-		if layout.broken_rails.has(i):
-			var stub: float = length * 0.28
-			var tangent: Vector3 = basis.x
-			stone.box(Transform3D(basis.rotated(tangent.cross(Vector3.UP), 0.12), centre - tangent * (length - stub) * 0.5 + Vector3(0, top - 0.11, 0)),
-				Vector3(stub, 0.12, 0.17))
-			stone.box(Transform3D(basis, centre + tangent * (length - stub) * 0.5 + Vector3(0, top - 0.1, 0)),
-				Vector3(stub * 0.8, 0.12, 0.17))
-			# The broken middle lies just outside, on the floor's edge.
-			var outward: Vector3 = basis.z
-			var rubble: MeshKit = kits.kit(&"stone_dark")
-			rubble.box(Transform3D(Basis(Vector3.UP, mid + 0.4).rotated(outward, 0.2), centre + outward * 0.62 + Vector3(0, 0.05, 0)),
-				Vector3(length * 0.35, 0.12, 0.17))
-		else:
-			stone.box(Transform3D(basis, centre + Vector3(0, top - 0.1, 0)), Vector3(length, 0.12, 0.17))
-
-
-## Each gate's landing, level with the floor, with two steps down to the
-## ledge, the torii standing on it, and its rope barrier.
-static func _gates(kits: MeshKitSet, buildings: ShrineBuildings, root: Node3D, props: Node3D, layout: ShrineLayout,
+## The torii standing on each gate's landing (the landing itself is the
+## platform model's), and the gate's rope barrier.
+static func _gates(buildings: ShrineBuildings, root: Node3D, props: Node3D, layout: ShrineLayout,
 		def: ArenaDef, mats: Dictionary[StringName, Material]) -> void:
 	var span_angle: float = _gate_end_angle(layout, def)
 	var angles: PackedFloat32Array = gate_angles(def)
-	var stone: MeshKit = kits.kit(&"landing")
-	stone.color = Color(0.86, 0.86, 0.9)
 	for side: int in def.gate_anchors.size():
 		# The anchor stands at the gate, facing into the arena: its local +z
 		# points outward.
 		var xform: Transform3D = def.gate_anchor(side)
-		var gate_r: float = Vector2(xform.origin.x, xform.origin.z).length()
 		var angle: float = angles[side]
-		var near_z: float = def.floor_radius - 0.3 - gate_r
-		var far_z: float = 3.0
-		stone.box(xform * Transform3D(Basis(), Vector3(0, -0.36, (near_z + far_z) * 0.5)), Vector3(layout.torii_span + 1.4, 0.7, far_z - near_z))
-		for k: int in 2:
-			stone.box(xform * Transform3D(Basis(), Vector3(0, -0.12 - 0.17 * k - 0.35, far_z + 0.3 + 0.45 * k)),
-				Vector3(layout.torii_span + 1.0 - k * 0.4, 0.7, 0.6))
 		if not layout.place_art(props, &"torii", side, xform):
 			props.add_child(buildings.torii(side, xform, layout.torii_height, layout.torii_span))
 		# A rope barrier across the parapet opening, tied to the outer faces of

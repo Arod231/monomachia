@@ -50,6 +50,11 @@ const MOON_LIGHT_ENERGY: float = 0.6
 ## and lighting nothing else; and the banks of mist drifting through them.
 const SHAFT_LIGHT: Color = Color(0.62, 0.72, 0.95)
 const SHAFT_FOG_ENERGY: float = 12.0
+## The shafts' light on the canopy's surfaces: next to nothing, so the
+## blossoms keep task 48's glow (the light must reach the canopy layer only
+## so the canopy casts its shadows); its fog energy makes up the rest, so the
+## mist takes SHAFT_FOG_ENERGY of a full light.
+const SHAFT_SURFACE_ENERGY: float = 0.02
 const MIST_BANK: Shader = preload("res://shaders/mist_bank.gdshader")
 ## How high the mist banks rise (m): through the canopy.
 const MIST_BANK_HEIGHT: float = 11.0
@@ -229,10 +234,10 @@ func _moon_shafts() -> DirectionalLight3D:
 	var shafts := DirectionalLight3D.new()
 	shafts.name = "MoonShafts"
 	shafts.light_color = SHAFT_LIGHT
-	shafts.light_energy = 1.0
+	shafts.light_energy = SHAFT_SURFACE_ENERGY
 	shafts.light_cull_mask = LookPalette.CANOPY_LAYER
 	shafts.light_specular = 0.0
-	shafts.light_volumetric_fog_energy = SHAFT_FOG_ENERGY
+	shafts.light_volumetric_fog_energy = SHAFT_FOG_ENERGY / SHAFT_SURFACE_ENERGY
 	shafts.shadow_enabled = true
 	shafts.shadow_caster_mask = LookPalette.CANOPY_LAYER
 	shafts.shadow_blur = 1.5

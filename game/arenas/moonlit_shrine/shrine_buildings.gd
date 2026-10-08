@@ -28,6 +28,9 @@ extends RefCounted
 ## - Pillars: PillarWhole_Stone (with its rope and shide) modelled
 ##   WHOLE_HEIGHT tall, PillarBroken_Stone (snapped, its drum fallen beside
 ##   it) BROKEN_HEIGHT, each scaled to its layout height.
+## - The platform (milestone-1 task 50): Platform_Floor, Platform_Plinth,
+##   Platform_Parapet and Platform_Landing in arena space, which
+##   ShrinePlatform places (platform()).
 ## - The far buildings: Pagoda and TempleHall with their _Window, modelled
 ##   1 m wide (ShrineLayout's convention for far art), scaled to their cliffs,
 ##   casting no shadow like the rest of the backdrop; their spires' bronze is
@@ -39,6 +42,7 @@ const MODELS: Dictionary[StringName, String] = {
 	&"pillar": "res://assets/exports/shrine/pillar.glb",
 	&"pagoda": "res://assets/exports/shrine/pagoda.glb",
 	&"temple_hall": "res://assets/exports/shrine/temple_hall.glb",
+	&"platform": "res://assets/exports/shrine/platform.glb",
 }
 const LANTERN_VARIANTS: int = 2
 const TORII_HEIGHT: float = 6.6
@@ -101,6 +105,20 @@ func pagoda(index: int, xform: Transform3D, width: float) -> Node3D:
 ## A far temple hall on xform, width wide, named TempleHall<index>.
 func temple_hall(index: int, xform: Transform3D, width: float) -> Node3D:
 	return _far(&"temple_hall", "TempleHall", index, xform, width)
+
+
+## The platform model's mesh node_name (milestone-1 task 50: Platform_Floor,
+## Platform_Plinth, Platform_Parapet, Platform_Landing; ShrinePlatform),
+## arena space, as a MeshInstance3D named child_name in its look materials.
+func platform(node_name: String, child_name: String) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = child_name
+	var part: Array = _part(&"platform", node_name)
+	mi.mesh = part[0]
+	var mats: Array = part[1]
+	for s: int in mats.size():
+		mi.set_surface_override_material(s, mats[s])
+	return mi
 
 
 ## Far scenery stays cheap: it casts no shadow.
