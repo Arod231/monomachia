@@ -11,8 +11,10 @@ extends RefCounted
 ## reads through realistic sparks, steel on steel only. A block throws a small
 ## spray, a heavy block more, a parry a shower with a white-hot point, a Flash
 ## a brighter, longer burst; a redirect, or a bare hand on a blade, throws no
-## sparks but a dull puff of dust and cloth; a hit throws none (blood covers
-## it). A warm light at the contact lights the fighters and the blades for a
+## sparks but a dull puff of dust and cloth; a blade's hit throws none
+## (blood covers it). A bare hand's hit throws its own impact (milestone-1
+## task 95, spec P36): a bigger puff of dust and cloth off the body, more on
+## a heavy, whichever limb struck. A warm light at the contact lights the fighters and the blades for a
 ## few frames where the graphics preset allows (GraphicsPreset.spark_light).
 ## The toon look's contact flashes retired with it but for the counters' and
 ## the disarm's, which their families restyle.
@@ -22,6 +24,8 @@ extends RefCounted
 ## - "steel": true for steel on steel only (neither weapon the fists), false
 ##   for a bare hand's contact only; absent for any. An event naming no
 ##   weapons counts as steel.
+## - "bare": true for a bare hand's strike only (the attacker's weapon, the
+##   event's "weapon", the fists), whatever it meets.
 ## - "kinds": the parry kinds (the event's "kind") it applies to.
 ## - "by_kind": fields that replace the entry's for a parry kind (a Flash's
 ##   brighter burst).
@@ -35,7 +39,10 @@ extends RefCounted
 ##   along the parried blade's sweep, the event's "dir"; &"off_guard": away
 ##   from the defender's guard toward the attacker).
 ## - &"puff": a slow, dull cloud of dust and cloth (CombatEffects.puff()):
-##   "count", "size" (m across), "life".
+##   "count", "size" (m across), "life", and "speed" (m/s; a bare hand's
+##   hit throws its dust faster, so it scatters off the body rather than
+##   hanging as a cloud; CombatEffects.PUFF_SPEED otherwise) and "color"
+##   (darker and thinner off a body; CombatEffects.PUFF_COLOR otherwise).
 ## - &"light": a warm light at the contact (CombatEffects.contact_light()):
 ##   "energy", "range" (m), "life".
 
@@ -50,6 +57,10 @@ const AIM_OFF_GUARD: StringName = &"off_guard"
 
 ## The weapon whose contact is a bare hand's, never steel.
 const BARE: StringName = &"fists"
+
+## The dust and cloth knocked off a body by a bare hand's hit: darker and
+## thinner than a guard's puff.
+const BODY_DUST: Color = Color(0.3, 0.27, 0.24, 0.55)
 
 ## The sparks' white-hot point, and their light's warm colour.
 const WHITE_HOT: Color = Color(1.0, 0.93, 0.78)
@@ -75,6 +86,10 @@ const TABLE: Dictionary[StringName, Array] = {
 		{"kind": PUFF, "steel": false, "count": 7, "size": 0.18, "life": 24},
 		{"kind": PUFF, "steel": true, "kinds": [&"redirect"], "count": 7, "size": 0.18, "life": 24},
 	],
+	&"hit": [
+		{"kind": PUFF, "bare": true, "count": 7, "size": 0.12, "life": 20, "speed": 1.1, "color": BODY_DUST,
+			"heavy": {"count": 11, "size": 0.15, "life": 24, "speed": 1.4}},
+	],
 	&"counter": [
 		{"kind": FLASH, "color": Color(0.6, 0.85, 1.0), "size": 0.9, "life": 16},
 	],
@@ -95,6 +110,12 @@ static func steel(e: Dictionary) -> bool:
 	return StringName(str(e.get("weapon", ""))) != BARE and StringName(str(e.get("defender_weapon", ""))) != BARE
 
 
+## Whether event `e` is a bare hand's strike: its attacker's weapon is the
+## fists.
+static func bare(e: Dictionary) -> bool:
+	return StringName(str(e.get("weapon", ""))) == BARE
+
+
 ## The effects event `e` spawns, each a Dictionary with "kind" and its
 ## concrete fields (the entry's, with a heavy contact's and its parry kind's
 ## in their place). Empty for an event the table doesn't list.
@@ -105,6 +126,8 @@ static func resolve(e: Dictionary) -> Array[Dictionary]:
 	var heavy: bool = bool(e.get("heavy", false))
 	for entry: Dictionary in TABLE.get(e.get("t", &""), []):
 		if entry.has("steel") and bool(entry["steel"]) != is_steel:
+			continue
+		if entry.has("bare") and bool(entry["bare"]) != bare(e):
 			continue
 		if entry.has("kinds") and not (entry["kinds"] as Array).has(kind):
 			continue

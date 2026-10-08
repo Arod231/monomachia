@@ -27,7 +27,7 @@ const NOT_KEYED_YET: Array[String] = [
 ]
 ## The order a row's fields are written in.
 const FIELD_ORDER: Array[String] = [
-	"kind", "chain", "stand_in", "startup", "active", "recovery", "dodge_cancel", "branches",
+	"kind", "chain", "stand_in", "startup", "active", "recovery", "landing", "dodge_cancel", "branches",
 	"frames", "markers", "speed", "heading", "stride", "foot_contacts", "travel", "source_sha256", "digest",
 ]
 ## The rules-length clips the rules move a fighter by (milestone-1 task 99):
@@ -168,7 +168,14 @@ static func chain_record(parts: Array[ClipChain.Part]) -> Array:
 	return out
 
 
-## A move's row from its generated frame data (without its digest).
+## The band kinds of the jump attacks, whose keyed rows carry their landing
+## recovery (milestone-1 tasks 59 and 94).
+const JUMP_KINDS: Array[StringName] = [&"jump_light", &"jump_heavy"]
+
+
+## A move's row from its generated frame data (without its digest). A keyed
+## jump attack's landing is its recovery: it holds its last active pose to
+## the touchdown, then plays its recovery (ClipDirector.attack_frame()).
 static func move_row(kind: StringName, parts: Array[ClipChain.Part], stand_in: bool, r: FrameDataGenerator.Result, sha: String) -> Dictionary:
 	var row: Dictionary = {"kind": String(kind), "chain": chain_record(parts)}
 	if stand_in:
@@ -176,6 +183,8 @@ static func move_row(kind: StringName, parts: Array[ClipChain.Part], stand_in: b
 	row["startup"] = r.startup
 	row["active"] = r.active
 	row["recovery"] = r.recovery
+	if JUMP_KINDS.has(kind) and not stand_in:
+		row["landing"] = r.recovery
 	if not r.dodge_cancel.is_empty():
 		row["dodge_cancel"] = Array(r.dodge_cancel)
 	if not r.branches.is_empty():

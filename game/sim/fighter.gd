@@ -939,6 +939,7 @@ func start_attack(p_id: StringName, started_by: int = -1, chained_from: AttackDe
 	atk.lift_left = lift
 	atk.evaded_emitted = false
 	atk.whiff_emitted = false
+	atk.landed = -1 if not def.fits_airtime() or airborne() else 0
 	if atk.backstab:
 		backstab_until = -99999
 	if def.airborne:
@@ -1031,7 +1032,6 @@ func _update_attack() -> void:
 	var f: int = a.frame
 	var S: int = def.startup
 	var A: int = def.active
-	var R: int = def.recovery + a.extra_recovery
 
 	# Lunge along our facing (or on along the last dodge), easing in and out
 	# over its window.
@@ -1053,9 +1053,9 @@ func _update_attack() -> void:
 		_advance(SimConst.COLOSSAL_SLIDE_DIST * slid)
 	if def.hop != 0.0 and f == ls + 1 and not airborne():
 		vel.y = def.hop
-	if def.airborne and def.type == &"overhead" and f == S + 1 and airborne():
+	if def.airborne and not def.fits_airtime() and def.type == &"overhead" and f == S + 1 and airborne():
 		vel.y = minf(vel.y, -6.0)
-	if not def.airborne and not airborne():
+	if (not def.airborne or a.landed >= 0) and not airborne():
 		_brake()
 
 	if f == S:
@@ -1065,6 +1065,8 @@ func _update_attack() -> void:
 			"attack": def.id,
 			"heavy": def.kind != &"light",
 			"weapon": moveset().id,
+			# the hit sound, by which a leg strike whooshes cloth (task 95)
+			"sound": def.sound,
 		})
 
 	if def.special == &"shadowStep":
@@ -1111,11 +1113,24 @@ func _update_attack() -> void:
 		start_dodge()
 		return
 
-	if f >= S + A + R:
+	if _attack_ends_at(a, f):
 		if def.special == &"shadowStep":
 			backstab_until = W.frame + 30
 		atk = null
 		to_free()
+
+
+## Whether attack `a` ends on its frame `f`: after its recovery, or a
+## jump attack (milestone-1 task 59) only once it has landed, its landing
+## recovery after its touchdown (or after its last active frame, had it
+## landed before then); in the air it holds on, its frames running on.
+func _attack_ends_at(a: AttackState, f: int) -> bool:
+	var def: AttackDef = a.def
+	if def.fits_airtime():
+		if a.landed < 0:
+			return false
+		return f >= maxi(a.landed, def.startup + def.active) + def.landing_recovery() + a.extra_recovery
+	return f >= def.startup + def.active + def.recovery + a.extra_recovery
 
 
 ## Whether the attack takes follow-up `follow` (none for &"") pressed with
@@ -1211,9 +1226,10 @@ func _travel(step: PackedFloat64Array) -> void:
 
 
 ## How far we can still close on the opponent before our bodies are 0.25 m
-## apart.
+## apart (SimConst.CLOSING_GAP), or touch for a knee strike (AttackDef.closing_gap()).
 func _room_to_close() -> float:
-	return maxf(0.0, SimMath.dist2(pos, opp.pos) - (SimConst.FIGHTER_RADIUS * 2.0 + 0.25))
+	var gap: float = atk.def.closing_gap() if atk != null else SimConst.CLOSING_GAP
+	return maxf(0.0, SimMath.dist2(pos, opp.pos) - (SimConst.FIGHTER_RADIUS * 2.0 + gap))
 
 
 ## Advance up to dist along our facing, stopping with our bodies 0.25 m apart.
@@ -1343,14 +1359,18 @@ func _start_jump() -> void:
 func _update_jump() -> void:
 	var inp: InputTracker = input
 	if not air_attack_used:
+		# a press too late for the move to fit the airtime left is ignored
+		# (milestone-1 task 59)
 		if inp.buffered(Btn.LIGHT):
 			inp.consume(Btn.LIGHT)
-			start_attack(moveset().jump_light, Btn.LIGHT)
-			return
+			if _air_move_fits(moveset().jump_light):
+				start_attack(moveset().jump_light, Btn.LIGHT)
+				return
 		if inp.buffered(Btn.HEAVY):
 			inp.consume(Btn.HEAVY)
-			start_attack(moveset().jump_heavy, Btn.HEAVY)
-			return
+			if _air_move_fits(moveset().jump_heavy):
+				start_attack(moveset().jump_heavy, Btn.HEAVY)
+				return
 	# gentle air steering
 	if inp.moving():
 		var d: V2 = world_dir(inp.mx, inp.my)
@@ -1361,6 +1381,40 @@ func _update_jump() -> void:
 		if s > cap:
 			vel.x *= cap / s
 			vel.z *= cap / s
+
+
+## Whether jump attack `def` started now fits the airtime left (milestone-1
+## task 59, spec P53): its last active frame comes no later than the step
+## the fighter touches down on.
+func air_attack_fits(def: AttackDef) -> bool:
+	return def.startup + def.active < steps_to_land()
+
+
+## Whether jump attack `def` may start now: one that keeps the airtime rule
+## while it fits; the Greatsword's and the Daggers' always (fits_airtime()).
+func _air_move_ok(def: AttackDef) -> bool:
+	return not def.fits_airtime() or air_attack_fits(def)
+
+
+func _air_move_fits(move_id: StringName) -> bool:
+	var def: AttackDef = moveset().moves.get(move_id, null)
+	return def != null and _air_move_ok(def)
+
+
+## The steps until the fighter touches down on the rules' arc, this one
+## counted (the touchdown's included): 1 on the step it lands, 0 on the
+## ground. The same steps as _integrate(), so exact.
+func steps_to_land() -> int:
+	if not airborne():
+		return 0
+	var y: float = pos.y
+	var vy: float = vel.y
+	var n: int = 0
+	while n == 0 or y > 0.0 or vy >= 0.0:
+		vy -= SimConst.GRAVITY * SimConst.DT
+		y += vy * SimConst.DT
+		n += 1
+	return n
 
 
 # ------------------------------------------------------------------ physics
@@ -1413,8 +1467,15 @@ func _on_land() -> void:
 		set_state(&"land", SimConst.MOVE_LAND_RECOVERY)
 		vel.x *= 0.4
 		vel.z *= 0.4
-	elif state == &"attack" and atk != null and atk.def.airborne:
-		# landing ends the air attack's active part quickly
+	elif state == &"attack" and atk != null and atk.def.fits_airtime() and atk.landed < 0:
+		# a jump attack lands into its landing recovery, skipping none of its
+		# frames (milestone-1 task 59), slowing as a jump's landing does
+		atk.landed = atk.frame
+		vel.x *= 0.4
+		vel.z *= 0.4
+	elif state == &"attack" and atk != null and atk.def.airborne and not atk.def.fits_airtime():
+		# the Greatsword's and the Daggers' (until milestone 2): landing ends
+		# the air attack's active part quickly
 		var a: AttackState = atk
 		var d: AttackDef = a.def
 		if a.frame < d.startup + d.active:

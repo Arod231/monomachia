@@ -1,0 +1,219 @@
+{
+	"about": "Axe Kick (fists.f_jh, the jump heavy), milestone-1 task 94: out of the bare-hands jump's flight (JumpFists, held high in its tuck), the left leg raised straight (AttackKick01_L's extension, frame 12, turned 40 degrees in to the centre line) past overhead by frame 9 and the heel brought down through frames 11 (22 rules frames from the press) to 14, held until the touchdown; the feet down on frame 16, the landing squat (LandFists' lowered guard) on 18-19 and CombatIdle01 by 23, so its landing recovery is 18 rules frames. In place: the rules' jump arc carries it. Source frames at 30 fps from 0.",
+	"out": "blender/clips/axe_kick.blend",
+	"blockout": {
+		"source": "blender/clips/jump_fists.blend",
+		"remap": [
+			[
+				0,
+				5
+			],
+			[
+				14,
+				8
+			],
+			[
+				16,
+				16
+			],
+			[
+				23,
+				17
+			]
+		],
+		"borrow": [
+			{
+				"frames": [
+					5,
+					14
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 12,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					18,
+					19
+				],
+				"source": "blender/clips/land_fists.blend",
+				"at": 3,
+				"bones": [
+					"B-hips",
+					"B-spine",
+					"B-chest",
+					"B-neck",
+					"B-head",
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R",
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L",
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R"
+				],
+				"fingers": true
+			},
+			{
+				"frames": [
+					21,
+					23
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatIdle01.fbx",
+				"at": 0,
+				"bones": [
+					"B-hips",
+					"B-spine",
+					"B-chest",
+					"B-neck",
+					"B-head",
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R",
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L",
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R"
+				],
+				"fingers": true
+			}
+		],
+		"pose": [
+			{
+				"frame": 5,
+				"turn": [
+					[
+						"B-thigh.L",
+						"up",
+						-40
+					],
+					[
+						"B-thigh.L",
+						"right",
+						30
+					]
+				]
+			},
+			{
+				"frame": 9,
+				"turn": [
+					[
+						"B-thigh.L",
+						"up",
+						-40
+					],
+					[
+						"B-thigh.L",
+						"right",
+						100
+					],
+					[
+						"B-spine",
+						"right",
+						12
+					]
+				]
+			},
+			{
+				"frame": 11,
+				"turn": [
+					[
+						"B-thigh.L",
+						"up",
+						-40
+					],
+					[
+						"B-thigh.L",
+						"right",
+						35
+					],
+					[
+						"B-spine",
+						"right",
+						-8
+					]
+				]
+			},
+			{
+				"frame": 13,
+				"turn": [
+					[
+						"B-thigh.L",
+						"up",
+						-40
+					],
+					[
+						"B-thigh.L",
+						"right",
+						0
+					],
+					[
+						"B-spine",
+						"right",
+						-8
+					]
+				]
+			},
+			{
+				"frame": 14,
+				"turn": [
+					[
+						"B-thigh.L",
+						"up",
+						-40
+					],
+					[
+						"B-thigh.L",
+						"right",
+						-15
+					],
+					[
+						"B-spine",
+						"right",
+						-8
+					]
+				]
+			}
+		]
+	},
+	"keys": [
+		0,
+		5,
+		9,
+		11,
+		13,
+		14,
+		16,
+		17,
+		18,
+		19,
+		20,
+		21,
+		22,
+		23
+	],
+	"ai": "a martial-arts jumping axe kick, the heel driven down, landing balanced"
+}

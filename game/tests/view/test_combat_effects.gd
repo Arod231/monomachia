@@ -211,8 +211,8 @@ func test_the_table_throws_sparks_by_outcome_and_weight() -> void:
 
 
 ## Steel on steel only: a redirect, or a bare hand on a blade, throws a dull
-## puff and no sparks; a hit throws nothing (blood covers it).
-func test_bare_hands_puff_and_hits_throw_nothing() -> void:
+## puff and no sparks; a blade's hit throws nothing (blood covers it).
+func test_bare_hands_puff_and_blade_hits_throw_nothing() -> void:
 	var fist_block: Dictionary = _event(&"block", {"weapon": &"fists", "defender_weapon": &"katana"})
 	var fist_parried: Dictionary = _event(&"parry", {"kind": &"parry", "weapon": &"fists", "defender_weapon": &"katana"})
 	var redirect: Dictionary = _event(&"parry", {"kind": &"redirect", "weapon": &"katana", "defender_weapon": &"fists"})
@@ -220,11 +220,28 @@ func test_bare_hands_puff_and_hits_throw_nothing() -> void:
 		assert_eq(_kinds(e), [EffectTable.PUFF] as Array[StringName], "%s: a puff" % e.get("kind", e["t"]))
 		assert_eq(EffectTable.count_of(e, EffectTable.SPARKS), 0, "no sparks")
 	assert_eq(_kinds(_event(&"parry", {"kind": &"redirect"})), [EffectTable.PUFF] as Array[StringName], "a redirect never sparks")
-	assert_false(EffectTable.has(&"hit"), "a hit throws nothing: blood covers it")
-	assert_eq(EffectTable.resolve(_event(&"hit", {"heavy": true, "sound": &"blade"})).size(), 0)
+	assert_eq(EffectTable.resolve(_event(&"hit", {"heavy": true, "sound": &"blade"})).size(), 0, "a blade's hit: blood covers it")
+	assert_eq(EffectTable.resolve(_event(&"hit", {"sound": &"blade", "defender_weapon": &"fists"})).size(), 0,
+		"a blade on a disarmed fighter cuts too")
 	# the other pairs are steel too until milestone 2 brings their weapons
 	assert_eq(EffectTable.count_of(_event(&"block", {"weapon": &"greatsword"}), EffectTable.SPARKS), 12)
 	assert_eq(EffectTable.count_of({"t": &"block", "pos": AT}, EffectTable.SPARKS), 12, "an event naming no weapons counts as steel")
+
+
+## A bare hand's hit throws its own impact rather than a blade's blood
+## (milestone-1 task 95, spec P36): a puff of dust and cloth off the body,
+## bigger on a heavy, whichever limb struck.
+func test_a_bare_hand_hit_throws_a_dust_and_cloth_puff() -> void:
+	var light: Dictionary = _event(&"hit", {"weapon": &"fists", "sound": &"fist", "heavy": false})
+	var heavy: Dictionary = _event(&"hit", {"weapon": &"fists", "sound": &"kick", "heavy": true})
+	for e: Dictionary in [light, heavy]:
+		assert_eq(_kinds(e), [EffectTable.PUFF] as Array[StringName], "a puff and nothing else")
+		assert_true(BloodEffects.plan(e, GameSettings.BLOOD_ON).is_empty(), "and no blood")
+	assert_gt(EffectTable.count_of(heavy, EffectTable.PUFF), EffectTable.count_of(light, EffectTable.PUFF), "more of it on a heavy")
+	assert_gt(float(_fx(heavy, EffectTable.PUFF)["size"]), float(_fx(light, EffectTable.PUFF)["size"]), "and bigger")
+	assert_gt(EffectTable.count_of(light, EffectTable.PUFF), EffectTable.count_of(_event(&"block", {"weapon": &"fists"}), EffectTable.PUFF),
+		"a hit on the body throws more than a fist on a guard")
+	assert_eq(EffectTable.resolve(_event(&"hit", {"weapon": &"fists", "defender_weapon": &"fists"})).size(), 1, "bare hands on bare hands too")
 
 
 func test_the_counter_and_disarm_keep_their_flashes_for_now() -> void:
@@ -371,6 +388,20 @@ func test_a_puff_drifts_grows_and_thins_out_dull() -> void:
 	assert_lt(dust.s, 0.3, "grey-brown")
 	effects.update(30.0)
 	assert_eq(effects.puff_count(), 0)
+
+
+## A bare hand's hit throws its dust faster and darker (milestone-1 task
+## 95): a puff takes its spec's speed and colour where it names them.
+func test_a_puff_takes_its_speed_and_colour_from_its_spec() -> void:
+	var at: Vector3 = Vector3(0.0, 1.2, 0.0)
+	effects.puff(at, {"count": 1, "size": 0.16, "life": 22}, 0.0, 3)
+	effects.puff(at, {"count": 1, "size": 0.16, "life": 22, "speed": CombatEffects.PUFF_SPEED * 3.0, "color": EffectTable.BODY_DUST}, 0.0, 3)
+	effects.update(10.0)
+	var slow: Dictionary = effects.puff_state(0)
+	var fast: Dictionary = effects.puff_state(1)
+	assert_almost_eq((fast["pos"] as Vector3).distance_to(at), (slow["pos"] as Vector3).distance_to(at) * 3.0, 0.01, "three times as far")
+	assert_lt((fast["color"] as Color).v, (slow["color"] as Color).v, "darker off a body")
+	assert_lt((fast["color"] as Color).a, (slow["color"] as Color).a, "and thinner")
 
 
 func test_the_sparks_pool_draws_streaks_and_the_puffs_soft_clouds() -> void:

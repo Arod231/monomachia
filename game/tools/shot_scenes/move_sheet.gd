@@ -65,7 +65,8 @@ extends Node3D
 ## task 28: the opponent's Greatsword slams the fighter down with Mountain
 ## Slam; ko_light and ko_heavy: the fighter on 1 HP, knocked out by the
 ## opponent's Right Cut or heavy. A drive may name the opponent's weapon,
-## "defender_weapon", and the fighter's HP, "hp"),
+## "defender_weapon", the fighter's HP, "hp", and "disarmed": true for
+## bare hands as the game plays them, disarmed, on the disarmed jump arc),
 ## and lays out a strip of the chosen frames: the first, every --every=th
 ## (default the drive's own, else 4) and the last, each captioned with the
 ## speed, the way the legs travel, Locomotion's blend and the step phase,
@@ -188,9 +189,25 @@ const DRIVES: Dictionary[StringName, Dictionary] = {
 	},
 	&"jump": {
 		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.JUMP], [50, 0.0, 0.0, 0]],
-		"notes": "still for 12 frames, then a jump on the spot: Jump01_Begin, Jump01 in the air, Jump01_Land",
+		"notes": "still for 12 frames, then a jump on the spot: the weapon class's keyed flight and landing (milestone-1 task 59; the pack's Jump01 take-off, air and landing for the Greatsword and Daggers)",
 		"views": [&"side"],
 		"spacing": 8.0,
+		"every": 3,
+	},
+	&"jump_light": {
+		"disarmed": true,
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.JUMP], [2, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.LIGHT], [50, 0.0, 0.0, 0]],
+		"notes": "still for 12 frames, then a jump on the spot and the jump light 3 frames in: held to the touchdown, then its landing recovery (milestone-1 tasks 59 and 94)",
+		"views": [&"side"],
+		"spacing": 1.85,
+		"every": 3,
+	},
+	&"jump_heavy": {
+		"disarmed": true,
+		"input": [[12, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.JUMP], [2, 0.0, 0.0, 0], [1, 0.0, 0.0, 1 << Btn.HEAVY], [50, 0.0, 0.0, 0]],
+		"notes": "still for 12 frames, then a jump on the spot and the jump heavy 3 frames in: held to the touchdown, then its landing recovery (milestone-1 tasks 59 and 94)",
+		"views": [&"side"],
+		"spacing": 1.85,
 		"every": 3,
 	},
 	&"dodge_attack": {
@@ -998,6 +1015,8 @@ func render_drive(drive_id: StringName) -> Image:
 	bench.stand()
 	if DRIVES[drive_id].has("hp"):
 		bench.attacker.hp = float(DRIVES[drive_id]["hp"])
+	if DRIVES[drive_id].get("disarmed", false):
+		bench.attacker.armed = false
 	_show_defender()
 	strip.clear()
 	var loco: Locomotion = bench.view.locomotion

@@ -1,0 +1,67 @@
+{
+	"about": "The Katana's jump (milestone-1 task 59): one flight from take-off to touchdown on the armed arc, 29 rules frames in the air (15 source frames), the legs and body from Jump01's airborne frames (its feet leave on 6 and land on 29), the upper body (spine, chest, head, arms, hands and blade) held in the Katana's two-handed guard (katana_guard's first frame) throughout, so the blade keeps its line in the air, and the legs reaching down into that guard's stance for the touchdown, so the landing starts where the feet come down; key poses at the take-off, rising, the top, falling and the touchdown, Cascadeur inbetweening the rest. Source frames at 30 fps from 0.",
+	"out": "blender/clips/jump_katana.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Basic Motions/Animations/Male/Movement/Jump/HumanM@Jump01.fbx",
+		"remap": [
+			[
+				0,
+				6
+			],
+			[
+				15,
+				29
+			]
+		],
+		"borrow": [
+			{
+				"frames": [
+					0,
+					15
+				],
+				"source": "blender/clips/katana_guard.blend",
+				"at": 0,
+				"fingers": true,
+				"bones": [
+					"B-head",
+					"B-neck",
+					"B-chest",
+					"B-spine",
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-handProp.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R",
+					"B-handProp.R"
+				]
+			},
+			{
+				"frame": 15,
+				"source": "blender/clips/katana_guard.blend",
+				"at": 0,
+				"bones": [
+					"B-hips",
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L",
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R"
+				]
+			}
+		]
+	},
+	"keys": [
+		0,
+		4,
+		8,
+		11,
+		15
+	]
+}
