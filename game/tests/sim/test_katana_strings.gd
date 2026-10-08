@@ -107,10 +107,11 @@ const IAI_SHEATHE: int = 9
 const IAI_DRAW: int = 14
 
 ## The spec's blocking walk, 60% of running speed (m/s), at which a sheathed
-## fighter walks: running speeds kept from the demo, the Katana's unchanged.
-const BLOCK_STRAFE: float = 3.5 * 0.6
-const BLOCK_FORWARD: float = 3.9 * 0.6
-const BLOCK_BACK: float = 3.0 * 0.6
+## fighter walks: the run clips' own measured speeds since milestone-1 task
+## 55 (the frame-data table's), the strafe a right one.
+static var BLOCK_STRAFE: float = Gaits.clip_speed("StrafeRun01_Left_Mirror") * 0.6
+static var BLOCK_FORWARD: float = Gaits.clip_speed("Run01_Forward") * 0.6
+static var BLOCK_BACK: float = Gaits.clip_speed("RunBackward") * 0.6
 
 
 func _init() -> void:

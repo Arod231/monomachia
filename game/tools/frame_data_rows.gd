@@ -116,18 +116,10 @@ static func _collect(v: Variant, manifest: ClipManifest, found: Dictionary[Strin
 		found[StringName(v)] = true
 
 
-## The gait clips the fighters walk, run and sprint on (Locomotion's pack
-## clips), in id order.
+## The gait clips the fighters walk, run and sprint on (the rules' Gaits,
+## which Locomotion's legs play), in id order.
 static func gait_clips() -> Array[StringName]:
-	var found: Dictionary[StringName, bool] = {}
-	for gait: StringName in Locomotion.PACK_CLIPS:
-		for c: Variant in Locomotion.PACK_CLIPS[gait]:
-			if str(c) != "":
-				found[StringName(str(c))] = true
-	var out: Array[StringName] = []
-	out.assign(found.keys())
-	out.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
-	return out
+	return Gaits.clips()
 
 
 ## SHA-256 of the source files of clips `ids` (a manifest clip's FBX for

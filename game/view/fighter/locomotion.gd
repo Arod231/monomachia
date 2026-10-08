@@ -8,26 +8,31 @@ extends RefCounted
 ## changes the rules.
 ##
 ## - **The ways.** Eight ways round the fighter, every 45° (WAYS, positive
-##   to its left): forward and backward and the four diagonals walk on
-##   Walk01 and run on Run01, sideways on StrafeWalk01 and StrafeRun01, and
-##   the forward five sprint on Sprint01 (PACK_CLIPS). The legs travel
-##   between the two ways round the fighter's travel, weighted by how near
-##   each is (way_weights()). Without the packs, the CC0 library's walks in
-##   eight ways, Jog_Fwd and Sprint (FALLBACK_CLIPS).
+##   to its left), on the rules' gait clips (Gaits.CLIPS): forward and the
+##   four diagonals walk on Walk01 and run on Run01 (the backward runs
+##   re-keyed slower, RunBackward*), sideways on StrafeWalk01 and
+##   StrafeRun01 (the right ones the left mirrored), and the forward five
+##   sprint on Sprint01. The legs travel between the two ways round the
+##   fighter's travel, weighted by how near each is (way_weights()). Without
+##   the packs, the CC0 library's walks in eight ways, Jog_Fwd and Sprint
+##   (FALLBACK_CLIPS).
 ## - **The speeds.** The blend is anchored on speeds (gait_weights()): idle
-##   at rest, the walk at its clips' own pace, the run at the rules' running
-##   speed that way (run_speed_at(): 3.9 ahead, 3.5 sideways, 3.0 back, an
-##   ellipse between them) and the sprint at the sprinting speed, both scaled
-##   by the weapon and when disarmed; each blends linearly into the next. A
-##   way with no clip at a gait (no sprint goes backwards) plays the gait
-##   below it.
+##   at rest, the walk at its clips' own pace, the run and the sprint at the
+##   rules' speeds that way, which are the run and sprint clips' own measured
+##   speeds (Gaits.speed(), milestone-1 task 55), both scaled by the weapon
+##   and when disarmed; each blends linearly into the next. A way with no
+##   clip at a gait (no sprint goes backwards) plays the gait below it.
 ## - **One shared step phase.** Every clip plays from it, so the feet stay in
 ##   step whatever the blend: at phase 0 the left foot is at mid-stance in
 ##   every clip, and at about 0.5 the right. The phase moves the blended
 ##   stride per cycle (stride()), so the planted foot keeps pace with the
-##   ground: the playback rate follows each clip's measured stride. Each
-##   fighter's strides, ways, mid-stances and foot contacts are measured from
-##   its own clips by FootPhase, once per fighter and clip.
+##   ground. Since task 55 the rules move a fighter at its clips' own speeds,
+##   so a gait plays its clips at 1.0× (the stride-matched playback rate of
+##   PR #21, which sped clips up or down to the rules' own speeds, is
+##   retired); only a blend between gaits of different cycle lengths runs
+##   between their rates, in step. Each fighter's strides, ways, mid-stances
+##   and foot contacts are measured from its own clips by FootPhase, once per
+##   fighter and clip.
 ## - The phase moves once per rules frame, by the speed after that frame
 ##   (ground_speed(): walking and running on the ground only, so a dodge, an
 ##   attack's lunge or a jump keeps the legs on the idle; the Iai stance
@@ -75,14 +80,9 @@ const WAYS: int = 8
 const WAY_STEP: float = PI / 4.0
 ## The gaits, in blend order after idle.
 const GAITS: Array[StringName] = [&"walk", &"run", &"sprint"]
-## The packs' clip for each gait and way (clip-manifest ids; "" for none).
-const PACK_CLIPS: Dictionary[StringName, Array] = {
-	&"walk": ["Walk01_Forward", "Walk01_ForwardLeft", "StrafeWalk01_Left", "Walk01_BackwardLeft",
-		"Walk01_Backward", "Walk01_BackwardRight", "StrafeWalk01_Right", "Walk01_ForwardRight"],
-	&"run": ["Run01_Forward", "Run01_ForwardLeft", "StrafeRun01_Left", "Run01_BackwardLeft",
-		"Run01_Backward", "Run01_BackwardRight", "StrafeRun01_Right", "Run01_ForwardRight"],
-	&"sprint": ["Sprint01_Forward", "Sprint01_ForwardLeft", "Sprint01_Left", "", "", "", "Sprint01_Right", "Sprint01_ForwardRight"],
-}
+## The packs' clip for each gait and way (clip-manifest ids; "" for none):
+## the rules' (milestone-1 task 55).
+const PACK_CLIPS: Dictionary[StringName, Array] = Gaits.CLIPS
 ## Without the packs: the CC0 library's (UAL2's eight walks, UAL's jog and
 ## sprint ahead).
 const FALLBACK_CLIPS: Dictionary[StringName, Array] = {
@@ -144,8 +144,8 @@ var way: float = 0.0
 var prev_way: float = 0.0
 ## The fighter's running and sprinting speeds that way, the run's and
 ## sprint's anchors.
-var run_speed: float = SimConst.MOVE_RUN_FORWARD
-var sprint_speed: float = SimConst.MOVE_SPRINT
+var run_speed: float = 0.0
+var sprint_speed: float = 0.0
 ## The body turned away from the opponent for a sprint held backwards
 ## (radians, positive to the left), after the last rules frame and the one
 ## before, and how fast it turns (rad/s).
@@ -206,6 +206,8 @@ static func is_leg_bone(bone: String) -> bool:
 func _init(p_model: FighterModel, p_fighter_id: StringName, libraries: bool = ClipLibraries.available()) -> void:
 	model = p_model
 	fighter_id = p_fighter_id
+	run_speed = run_speed_at(0.0)
+	sprint_speed = Gaits.sprint_speed()
 	_build(libraries)
 	for gait: StringName in GAITS:
 		for clip: String in clips[gait]:
@@ -214,11 +216,22 @@ func _init(p_model: FighterModel, p_fighter_id: StringName, libraries: bool = Cl
 
 
 ## The gait of clip `clip` (a name in the model's player) for fighter
-## `p_fighter_id` (measured on `p_model` the first time).
+## `p_fighter_id` (measured on `p_model` the first time). A clip on the
+## Hunter's set (HumanM) that the frame-data table measured takes the table's
+## speed and stride (milestone-1 task 55): the rules move the fighter at that
+## speed, so the clip plays at 1.0x; FootPhase's own measure (the feet's
+## speed at mid-stance) keeps the mid-stances and contacts the shared phase
+## runs on, and the speed and stride of every other clip (the CC0 fallback,
+## the Rogue's HumanF set).
 static func gait_of(p_model: FighterModel, p_fighter_id: StringName, clip: String) -> FootPhase.Gait:
 	var key: String = "%s|%s" % [p_fighter_id, clip]
 	if not _measured.has(key):
-		_measured[key] = FootPhase.measure(p_model, StringName(clip))
+		var g: FootPhase.Gait = FootPhase.measure(p_model, StringName(clip))
+		var row: Variant = FrameDataTable.shared().gaits.get(clip.trim_prefix("HumanM/")) if clip.begins_with("HumanM/") else null
+		if row is Dictionary:
+			g.speed = float(row["speed"])
+			g.stride = float(row["stride"])
+		_measured[key] = g
 	return _measured[key]
 
 
@@ -253,14 +266,10 @@ static func gait_weights(p_speed: float, walk: float, run: float, sprint: float)
 
 
 ## The rules' running speed travelling `p_way` from the way the fighter faces
-## (radians), before the weapon's scaling: MOVE_RUN_FORWARD ahead,
-## MOVE_RUN_STRAFE sideways and MOVE_RUN_BACK back, on an ellipse between them
-## (the rules scale the stick's forward and sideways parts so).
+## (radians, positive to the left), before the weapon's scaling: the run
+## clips' own measured speeds round that way, blended (Gaits.speed()).
 static func run_speed_at(p_way: float) -> float:
-	var c: float = cos(p_way)
-	var s: float = sin(p_way)
-	var ahead: float = SimConst.MOVE_RUN_FORWARD if c >= 0.0 else SimConst.MOVE_RUN_BACK
-	return 1.0 / sqrt(pow(c / ahead, 2.0) + pow(s / SimConst.MOVE_RUN_STRAFE, 2.0))
+	return Gaits.speed(&"run", p_way)
 
 
 ## The blend at legs' way `p_way` and speed `p_speed`, with walk, run and
@@ -451,7 +460,7 @@ func update(f: Fighter, idle_clip: StringName, idle_seconds: float, alpha: float
 		prev_way = way
 		way = legs_way(f, away)
 		run_speed = run_speed_at(wrapf(way + away, -PI, PI)) * mult
-		sprint_speed = SimConst.MOVE_SPRINT * mult
+		sprint_speed = Gaits.sprint_speed() * mult
 		var stepping: bool = f.state == &"step" and not f.airborne()
 		var b: Dictionary = blend_at(way, s, run_speed, sprint_speed)
 		if stepping:

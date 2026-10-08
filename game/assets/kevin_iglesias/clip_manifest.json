@@ -2676,60 +2676,6 @@
 				"daggers"
 			]
 		},
-		"Run01_Backward": {
-			"pack": "Human Melee Animations",
-			"dir": "Movement/Run",
-			"source": "Run01_Backward",
-			"mirror": false,
-			"loop": true,
-			"markers": {
-				"windup": 0,
-				"contact": 0,
-				"contact_end": 18,
-				"settle": 18
-			},
-			"foot_contacts": {"left": [[0, 0], [14, 18]], "right": [[5, 9]]},
-			"provisional": true,
-			"groups": [
-				"states"
-			]
-		},
-		"Run01_BackwardLeft": {
-			"pack": "Human Melee Animations",
-			"dir": "Movement/Run",
-			"source": "Run01_BackwardLeft",
-			"mirror": false,
-			"loop": true,
-			"markers": {
-				"windup": 0,
-				"contact": 0,
-				"contact_end": 18,
-				"settle": 18
-			},
-			"foot_contacts": {"left": [[0, 0], [14, 18]], "right": [[5, 9]]},
-			"provisional": true,
-			"groups": [
-				"states"
-			]
-		},
-		"Run01_BackwardRight": {
-			"pack": "Human Melee Animations",
-			"dir": "Movement/Run",
-			"source": "Run01_BackwardRight",
-			"mirror": false,
-			"loop": true,
-			"markers": {
-				"windup": 0,
-				"contact": 0,
-				"contact_end": 18,
-				"settle": 18
-			},
-			"foot_contacts": {"left": [[0, 0], [14, 18]], "right": [[5, 9]]},
-			"provisional": true,
-			"groups": [
-				"states"
-			]
-		},
 		"Run01_Forward": {
 			"pack": "Human Melee Animations",
 			"dir": "Movement/Run",
@@ -2779,6 +2725,63 @@
 				"settle": 18
 			},
 			"foot_contacts": {"left": [[0, 6], [18, 18]], "right": [[9, 15]]},
+			"provisional": true,
+			"groups": [
+				"states"
+			]
+		},
+		"RunBackward": {
+			"export": "exports/clips/run_backward.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Movement/Run",
+			"source": "Run01_Backward",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 18,
+				"settle": 18
+			},
+			"foot_contacts": {"left": [[0, 0], [13, 18]], "right": [[5, 10]]},
+			"provisional": true,
+			"groups": [
+				"states"
+			]
+		},
+		"RunBackwardLeft": {
+			"export": "exports/clips/run_backward_left.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Movement/Run",
+			"source": "Run01_BackwardLeft",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 18,
+				"settle": 18
+			},
+			"foot_contacts": {"left": [[0, 0], [13, 18]], "right": [[5, 9]]},
+			"provisional": true,
+			"groups": [
+				"states"
+			]
+		},
+		"RunBackwardLeft_Mirror": {
+			"export": "exports/clips/run_backward_left.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Movement/Run",
+			"source": "Run01_BackwardLeft",
+			"mirror": true,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 18,
+				"settle": 18
+			},
+			"foot_contacts": {"left": [[5, 9]], "right": [[0, 0], [13, 18]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -2969,11 +2972,11 @@
 				"states"
 			]
 		},
-		"StrafeRun01_Right": {
+		"StrafeRun01_Left_Mirror": {
 			"pack": "Human Melee Animations",
 			"dir": "Movement/Strafe/StrafeRun",
-			"source": "StrafeRun01_Right",
-			"mirror": false,
+			"source": "StrafeRun01_Left",
+			"mirror": true,
 			"loop": true,
 			"markers": {
 				"windup": 0,
@@ -2981,7 +2984,7 @@
 				"contact_end": 18,
 				"settle": 18
 			},
-			"foot_contacts": {"left": [[3, 7]], "right": [[12, 14]]},
+			"foot_contacts": {"left": [[11, 16]], "right": [[2, 5]]},
 			"provisional": true,
 			"groups": [
 				"states"
@@ -3005,11 +3008,11 @@
 				"states"
 			]
 		},
-		"StrafeWalk01_Right": {
+		"StrafeWalk01_Left_Mirror": {
 			"pack": "Human Melee Animations",
 			"dir": "Movement/Strafe/StrafeWalk",
-			"source": "StrafeWalk01_Right",
-			"mirror": false,
+			"source": "StrafeWalk01_Left",
+			"mirror": true,
 			"loop": true,
 			"markers": {
 				"windup": 0,
@@ -3017,7 +3020,7 @@
 				"contact_end": 24,
 				"settle": 24
 			},
-			"foot_contacts": {"left": [[3, 10]], "right": [[12, 21]]},
+			"foot_contacts": {"left": [[15, 23]], "right": [[1, 10]]},
 			"provisional": true,
 			"groups": [
 				"states"

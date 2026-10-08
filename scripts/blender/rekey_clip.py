@@ -85,6 +85,21 @@
 #   ([frame, "meet", at, distance]: a hand following the limb), the elbow toward its points, on IK, blended in
 #   from the clip's own arm and back out; after any step (where its "shift"
 #   has taken the hips);
+# - stride: {"scale": 0-1, "heading": degrees}: a gait's stride scaled
+#   (stride(); milestone-1 task 55's slower backward runs): each foot's
+#   offset from the hips along the travel ("heading", degrees to the right
+#   of forward, the frame-data table's) scaled about its mean over the
+#   cycle, so the planted foot sweeps, and the gait's measured speed runs,
+#   that much slower, its cadence, lift and upper body kept; both legs on
+#   IK, baked; after any step;
+# - shuffle: {"distance": metres, "heading": degrees, "steps": {"L"|"R":
+#   [from, to]}, "lift": m, "sink": m, "narrow": m, "follow": 0-1}: a guarded shuffle or
+#   strafe loop keyed as its legs and hips (shuffle(); milestone-1 task 56):
+#   the body travels the distance a cycle along the heading, each foot
+#   planted where frame 0 has it and sweeping back at the cycle's even pace
+#   but over its step, when it travels on to its next plant lifted on an
+#   arc, the hips sinking through each step; both legs on IK, baked; the
+#   rest of the clip (a held guard) as it is;
 # - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
 #   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
 #   over the ground taken out, then the whole body moved along the path
@@ -883,6 +898,129 @@ def legs_to(arm, scene, length, feet, rest, knees=None):
     return over
 
 
+def stride(arm, scene, length, spec):
+    """A gait's stride scaled (milestone-1 task 55: the backward runs made
+    slower than the forward one, the owner's answer of Oct 8): on every
+    frame each foot's offset from the hips along the clip's travel (its
+    "heading", degrees to the right of forward, as the frame-data table
+    gives it) scaled by spec["scale"] about that foot's mean offset over the
+    cycle, so a planted foot sweeps back that much slower and the gait's
+    measured speed scales with it, the lift, the turn and the spacing across
+    the travel kept; both legs on IK, the knees bent toward the clip's own,
+    baked. The clip stays in place, its cadence and its upper body as they
+    were. The clip faces -Y."""
+    mw = arm.matrix_world
+    pbs = arm.pose.bones
+    k = float(spec["scale"])
+    h = math.radians(float(spec.get("heading", 0.0)))
+    fwd = mathutils.Vector((0.0, -1.0, 0.0))
+    right = mathutils.Vector((-1.0, 0.0, 0.0))
+    along = fwd * math.cos(h) + right * math.sin(h)
+    own, knees, offsets = {"L": [], "R": []}, {"L": [], "R": []}, {"L": [], "R": []}
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        hips = mw @ pbs["B-hips"].head
+        for side in ("L", "R"):
+            m = (mw @ pbs["B-foot." + side].matrix).copy()
+            own[side].append(m)
+            knees[side].append((mw @ pbs["B-shin." + side].head).copy())
+            offsets[side].append((m.to_translation() - hips).dot(along))
+    feet = {"L": [], "R": []}
+    rest = {}
+    for side in ("L", "R"):
+        mean = sum(offsets[side]) / len(offsets[side])
+        low = min(m.to_translation().z for m in own[side])
+        rest[side] = own[side][0]
+        for n in range(length + 1):
+            m = own[side][n]
+            c = offsets[side][n]
+            at = m.to_translation() + along * ((mean + k * (c - mean)) - c)
+            feet[side].append((at, m.to_quaternion(), at.z - low))
+    over = legs_to(arm, scene, length, feet, rest, knees)
+    print(f"rekey_clip: the stride scaled by {k:.4f} along {math.degrees(h):.1f} degrees", flush=True)
+    if over:
+        print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
+def shuffle(arm, scene, length, spec):
+    """A guarded shuffle or strafe cycle (milestone-1 task 56: okuri-ashi,
+    the lead foot steps and the trail foot follows, never crossing), keyed
+    on the clip as its legs and hips: a loop of `length` frames in which
+    the body travels spec["distance"] m along spec["heading"] (degrees to
+    the right of forward), the clip kept in place. The feet stand
+    spec["narrow"] m (default 0) nearer each other along the travel than
+    on frame 0, each planted there and sweeping back at the cycle's even
+    pace (distance / length a frame), so a body moving at that speed leaves
+    it still, except over its step (spec["steps"]: {"L"|"R": [from, to]},
+    frames), when it travels on to its next plant, lifted spec["lift"] m on
+    an arc. The hips ride spec["follow"] (default 0.5) of the way with the
+    feet's midpoint along the travel (the body carried over the lead foot
+    as it steps, the trail closing under it) and sink up to spec["sink"] m
+    as the feet spread, all of it at the widest stance. The feet keep their frame-0 turn; both legs on IK, baked.
+    The clip faces -Y."""
+    mw = arm.matrix_world
+    to_arm = mw.inverted().to_3x3()
+    pbs = arm.pose.bones
+    hips = pbs["B-hips"]
+    dist = float(spec["distance"])
+    h = math.radians(float(spec.get("heading", 0.0)))
+    along = mathutils.Vector((0.0, -1.0, 0.0)) * math.cos(h) + mathutils.Vector((-1.0, 0.0, 0.0)) * math.sin(h)
+    up = mathutils.Vector((0.0, 0.0, 1.0))
+    per = dist / length
+    lift = float(spec.get("lift", 0.06))
+    sink = float(spec.get("sink", 0.0))
+    narrow = float(spec.get("narrow", 0.0))
+    follow = float(spec.get("follow", 0.5))
+    steps = spec["steps"]
+
+    def stepping(side, n):
+        a, b = (float(x) for x in steps[side])
+        return (n - a) / (b - a) if a <= n <= b else None
+
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    feet0 = {side: (mw @ pbs["B-foot." + side].matrix).copy() for side in ("L", "R")}
+    mid0 = (feet0["L"].to_translation() + feet0["R"].to_translation()) / 2.0
+    base = {}
+    for side in ("L", "R"):
+        c = (feet0[side].to_translation() - mid0).dot(along)
+        base[side] = feet0[side].to_translation() - along * math.copysign(min(abs(c), narrow), c)
+    # each foot's travel along the way in place: (metres, height) by frame
+    path = {"L": [], "R": []}
+    for side in ("L", "R"):
+        b_end = float(steps[side][1])
+        for n in range(length + 1):
+            t = stepping(side, float(n))
+            if t is None:
+                path[side].append((dist if n > b_end else 0.0) - per * n)
+                path[side][-1] = (path[side][-1], 0.0)
+            else:
+                path[side].append((dist * _smoother(t) - per * n, lift * math.sin(math.pi * t)))
+    # the hips sink as the feet spread: not at all at the cycle's narrowest
+    # stance, all of it at its widest
+    spread = [abs(path["L"][n][0] - path["R"][n][0]) for n in range(length + 1)]
+    lo, hi = min(spread), max(spread)
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        down = sink * _smoother((spread[n] - lo) / (hi - lo)) if hi > lo else 0.0
+        ride = follow * (path["L"][n][0] + path["R"][n][0]) / 2.0
+        hips.matrix = mathutils.Matrix.Translation(to_arm @ (along * ride - up * down)) @ hips.matrix
+        bpy.context.view_layer.update()
+        hips.keyframe_insert("location", frame=1 + n, group=hips.name)
+    feet = {"L": [], "R": []}
+    for side in ("L", "R"):
+        for n in range(length + 1):
+            go, high = path[side][n]
+            feet[side].append((base[side] + along * go + up * high, feet0[side].to_quaternion(), high))
+    over = legs_to(arm, scene, length, feet, feet0)
+    print(f"rekey_clip: a shuffle cycle of {dist:.3f} m over {length} frames along {math.degrees(h):.1f} degrees "
+          f"({dist / length * FPS:.3f} m/s)", flush=True)
+    if over:
+        print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
 def knock(arm, scene, length, spec):
     """A recoil thrown back: from frame spec["from"] on, every bone but the
     legs' turned spec["share"] of the way toward its own pose at frame
@@ -1470,6 +1608,10 @@ def main():
         knock(arm, scene, length, spec["knock"])
     if spec.get("step"):
         step(arm, scene, length, spec["step"])
+    if spec.get("stride"):
+        stride(arm, scene, length, spec["stride"])
+    if spec.get("shuffle"):
+        shuffle(arm, scene, length, spec["shuffle"])
     if spec.get("carry"):
         carry(arm, scene, length, spec["carry"])
     if spec.get("reach"):

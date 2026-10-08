@@ -753,41 +753,31 @@ func world_dir(mx: float, my: float) -> V2:
 	return SimMath.norm2(to.x * my + rx * mx, to.z * my + rz * mx)
 
 
-## Walk or run where the stick points. at_block_speed: at the blocking walk's
-## speed and never sprinting, as while blocking (the Iai stance).
+## Walk or run where the stick points, at the gait clips' own speeds
+## (Gaits, milestone-1 task 55): the tilt picks the walk or the run, or a
+## blend of them, and the way between two clips blends their speeds.
+## at_block_speed: at the blocking walk's speed and never sprinting, as while
+## blocking (the Iai stance).
 func _locomotion(at_block_speed: bool = false) -> void:
 	var inp: InputTracker = input
 	var mx: float = inp.mx
 	var my: float = inp.my
-	var mag: float = JsMath.hypot(mx, my)
-	if mag > 1.0:
-		mx /= mag
-		my /= mag
 	var active: bool = inp.dir != -1
 	moving = active
 	var tx: float = 0.0
 	var tz: float = 0.0
 	if active:
-		var to: V2 = SimMath.norm2(opp.pos.x - pos.x, opp.pos.z - pos.z)
-		var rx: float = -to.z
-		var rz: float = to.x
+		var tilt: float = minf(1.0, JsMath.hypot(mx, my))
+		var n: V2 = world_dir(mx, my)
 		var block_pace: bool = blocking or at_block_speed
 		var sprinting: bool = inp.sprinting() and not block_pace
-		var s_f: float = SimConst.MOVE_RUN_FORWARD if my >= 0.0 else SimConst.MOVE_RUN_BACK
-		var s_s: float = SimConst.MOVE_RUN_STRAFE
-		if sprinting:
-			s_f = SimConst.MOVE_SPRINT
-			s_s = SimConst.MOVE_SPRINT
+		# the way from straight ahead (at the opponent), positive to the left
+		var s: float = Gaits.sprint_speed() if sprinting else Gaits.at_tilt(JsMath.atan2(-mx, my), tilt)
 		var mult: float = speed_mult()
 		if block_pace:
 			mult *= SimConst.MOVE_BLOCK_SPEED_MULT
-		tx = (to.x * my * s_f + rx * mx * s_s) * mult
-		tz = (to.z * my * s_f + rz * mx * s_s) * mult
-		if sprinting:
-			# sprint at full speed in the held direction
-			var n: V2 = SimMath.norm2(tx, tz)
-			tx = n.x * SimConst.MOVE_SPRINT * mult
-			tz = n.z * SimConst.MOVE_SPRINT * mult
+		tx = n.x * s * mult
+		tz = n.z * s * mult
 		sprint_frames = sprint_frames + 1 if sprinting else 0
 	else:
 		sprint_frames = 0
@@ -1348,7 +1338,7 @@ func _start_jump() -> void:
 	var inp: InputTracker = input
 	if inp.moving():
 		var d: V2 = world_dir(inp.mx, inp.my)
-		var s: float = (SimConst.MOVE_SPRINT if inp.sprinting() else SimConst.MOVE_RUN_STRAFE) * speed_mult()
+		var s: float = (Gaits.sprint_speed() if inp.sprinting() else SimConst.MOVE_JUMP_SPEED) * speed_mult()
 		vel.x = d.x * s
 		vel.z = d.z * s
 	set_state(&"jump")
@@ -1377,7 +1367,7 @@ func _update_jump() -> void:
 		vel.x += d.x * 6.0 * SimConst.DT
 		vel.z += d.z * 6.0 * SimConst.DT
 		var s: float = JsMath.hypot(vel.x, vel.z)
-		var cap: float = SimConst.MOVE_SPRINT * speed_mult()
+		var cap: float = Gaits.sprint_speed() * speed_mult()
 		if s > cap:
 			vel.x *= cap / s
 			vel.z *= cap / s

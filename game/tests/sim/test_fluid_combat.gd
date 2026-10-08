@@ -22,12 +22,19 @@ const DASH_STEP: float = 0.4
 
 ## The spec's blocking walk: 60% of running speed.
 const BLOCK_WALK: float = 0.6
-## Running speeds (m/s), kept from the demo (story 12), before the weapon's
-## speed: the Greatsword moves 10% slower and the Daggers 12% faster.
-const RUN_FORWARD: float = 3.9
-const RUN_STRAFE: float = 3.5
-const RUN_BACK: float = 3.0
-const SPRINT: float = 7.2
+## Running speeds (m/s), before the weapon's speed (the Greatsword moves 10%
+## slower and the Daggers 12% faster): the gait clips' own measured speeds
+## since milestone-1 task 55, read from the frame-data table (test_gaits.gd
+## holds the rules to them), the strafe a right one and the back the
+## re-keyed backward run.
+static var RUN_FORWARD: float = _gait("Run01_Forward")
+static var RUN_STRAFE: float = _gait("StrafeRun01_Left_Mirror")
+static var RUN_BACK: float = _gait("RunBackward")
+static var SPRINT: float = _gait("Sprint01_Forward")
+
+
+static func _gait(id: String) -> float:
+	return float(FrameDataTable.shared().gaits[id]["speed"])
 
 ## The spec's momentum carry: an attack keeps half the speed it starts at.
 const MOMENTUM_KEEP: float = 0.5

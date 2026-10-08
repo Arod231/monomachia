@@ -233,29 +233,34 @@ static func travel(r: Result, feet: Array[Dictionary], hips: Array[V3], contacts
 ## A looping gait clip's ground speed over one loop at 1.0x, as its planted
 ## feet sweep back under it (the clip plays in place), sampled on every
 ## rules frame: {"speed": m/s, "heading": degrees to the right of forward,
-## "stride": m over one loop}; zeros with no foot ever planted.
+## "stride": m over one loop}; zeros with no foot ever planted. The speed is
+## the median of each planted foot's sweep over a rules frame, the pace a
+## flat foot sweeps at (milestone-1 task 55): a foot's contact holds its
+## heel strike and toe-off too, rocking back far slower, and averaged in they
+## made a walk's pace about a third slower than its feet, so the rules
+## would have skated them. The heading is the summed sweep of the frames
+## between the quartiles.
 static func gait(pose: Callable, length: float, contacts: Dictionary) -> Dictionary:
 	var frames: int = floori(length * ClipTiming.RULES_FPS)
-	var sweep: V3 = V3.make()
-	var planted_frames: int = 0
+	var sweeps: Array[V3] = []
 	var was: Dictionary = pose.call(0.0).duplicate()
 	for f: int in range(1, frames + 1):
 		var now: Dictionary = pose.call(f / ClipTiming.RULES_FPS).duplicate()
-		var slide: V3 = V3.make()
-		var planted: int = 0
 		for side: String in ClipManifest.FEET:
 			if planted_over(contacts.get(side, []), (f - 1) * 0.5, f * 0.5):
 				var part: StringName = StringName(side + "_foot")
-				slide = V3.add(slide, V3.sub(_ground((now[part] as Swing.Sample).grip), _ground((was[part] as Swing.Sample).grip)))
-				planted += 1
-		if planted > 0:
-			sweep = V3.add(sweep, V3.scale(slide, -1.0 / planted))
-			planted_frames += 1
+				sweeps.append(V3.sub(_ground((was[part] as Swing.Sample).grip), _ground((now[part] as Swing.Sample).grip)))
 		was = now
-	if planted_frames == 0:
+	if sweeps.is_empty():
 		return {"speed": 0.0, "heading": 0.0, "stride": 0.0}
-	var speed: float = V3.length(sweep) / (planted_frames / ClipTiming.RULES_FPS)
-	return {"speed": speed, "heading": rad_to_deg(atan2(sweep.x, sweep.z)), "stride": speed * length}
+	sweeps.sort_custom(func(x: V3, y: V3) -> bool: return V3.length(x) < V3.length(y))
+	var n: int = sweeps.size()
+	var mid: float = V3.length(sweeps[n / 2]) if n % 2 == 1 else (V3.length(sweeps[n / 2 - 1]) + V3.length(sweeps[n / 2])) / 2.0
+	var way: V3 = V3.make()
+	for i: int in range(n / 4, n - n / 4):
+		way = V3.add(way, sweeps[i])
+	var speed: float = mid * ClipTiming.RULES_FPS
+	return {"speed": speed, "heading": rad_to_deg(atan2(way.x, way.z)), "stride": speed * length}
 
 
 ## Whether a foot with `spans` ([plant, lift] source frames) is planted from

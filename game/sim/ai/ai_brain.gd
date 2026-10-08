@@ -852,7 +852,7 @@ func _charges_ending() -> bool:
 ## off the shoulder: the reach it attacks from shrinks by this
 ## (authored-animation task 15).
 func _lift_drift() -> float:
-	return SimConst.MOVE_RUN_BACK * me.opp.speed_mult() * float(me.shoulder_lift()) * SimConst.DT
+	return Gaits.speed(&"run", PI) * me.opp.speed_mult() * float(me.shoulder_lift()) * SimConst.DT
 
 
 func _start_combo(frame: int, length: int, finish_heavy: bool) -> void:

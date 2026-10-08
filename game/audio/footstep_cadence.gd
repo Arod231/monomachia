@@ -22,10 +22,11 @@ extends RefCounted
 var walk_stride: float = 0.8
 var run_stride: float = 1.3
 var sprint_stride: float = 2.0
-## Speeds (m/s) that separate the paces. The guard walk is the run slowed by
-## blocking (at most 2.34 m/s, forward); the sprint is 7.2 m/s, the run at
-## most 4.7.
-var walk_below: float = 2.5
+## Speeds (m/s) that separate the paces, around the gait clips' own speeds
+## (milestone-1 task 55, Gaits): the walks run 1.7-2.2 m/s and the guard walk
+## the run slowed by blocking (at most 2.8, forward), the runs 3.9-4.7 and
+## the sprint 7.0.
+var walk_below: float = 3.2
 var sprint_from: float = 5.0
 ## The most a fighter can cover in one step on foot (m); a longer move is a
 ## jump in position, not a stride.

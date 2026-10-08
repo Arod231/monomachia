@@ -129,15 +129,20 @@ func test_the_gaits_are_idle_at_rest_then_walk_run_and_sprint_at_their_anchors()
 		s += 0.05
 
 
-func test_the_run_is_anchored_on_the_rules_running_speed_that_way() -> void:
-	assert_almost_eq(Locomotion.run_speed_at(0.0), SimConst.MOVE_RUN_FORWARD, 1e-5, "ahead")
-	assert_almost_eq(Locomotion.run_speed_at(PI / 2.0), SimConst.MOVE_RUN_STRAFE, 1e-5, "left")
-	assert_almost_eq(Locomotion.run_speed_at(-PI / 2.0), SimConst.MOVE_RUN_STRAFE, 1e-5, "right")
-	assert_almost_eq(Locomotion.run_speed_at(PI), SimConst.MOVE_RUN_BACK, 1e-5, "back")
-	# the rules' diagonal (the stick's forward and sideways halves scaled
-	# apart): its speed is on the ellipse
-	var v: Vector2 = Vector2(SimConst.MOVE_RUN_STRAFE, SimConst.MOVE_RUN_FORWARD) * 0.7071
-	assert_almost_eq(Locomotion.run_speed_at(atan2(v.x, v.y)), v.length(), 1e-4, "on the diagonal")
+func test_the_run_is_anchored_on_the_run_clips_own_speeds_that_way() -> void:
+	# milestone-1 task 55: the rules' run is each way's run clip's measured speed
+	assert_almost_eq(Locomotion.run_speed_at(0.0), _table_speed("Run01_Forward"), 1e-5, "ahead")
+	assert_almost_eq(Locomotion.run_speed_at(PI / 2.0), _table_speed("StrafeRun01_Left"), 1e-5, "left")
+	assert_almost_eq(Locomotion.run_speed_at(-PI / 2.0), _table_speed("StrafeRun01_Left_Mirror"), 1e-5, "right")
+	assert_almost_eq(Locomotion.run_speed_at(PI), _table_speed("RunBackward"), 1e-5, "back")
+	# between two ways, the two clips' speeds blended
+	var half: float = (_table_speed("Run01_Forward") + _table_speed("Run01_ForwardLeft")) / 2.0
+	assert_almost_eq(Locomotion.run_speed_at(PI / 8.0), half, 1e-5, "between ahead and forward-left")
+
+
+## Clip `id`'s measured speed in the frame-data table.
+static func _table_speed(id: String) -> float:
+	return float(FrameDataTable.shared().gaits[id]["speed"])
 
 
 func test_each_way_plays_its_clip_and_between_two_ways_both() -> void:
@@ -146,11 +151,11 @@ func test_each_way_plays_its_clip_and_between_two_ways_both() -> void:
 	_assert_blend(at.call(0.0, 3.9), {"": 0.0, "Run01_Forward": 1.0}, "running ahead")
 	_assert_blend(at.call(90.0, 2.0), {"": 0.0, "StrafeWalk01_Left": 1.0}, "walking left: the strafe walk")
 	_assert_blend(at.call(-90.0, 7.2), {"": 0.0, "Sprint01_Right": 1.0}, "sprinting right")
-	_assert_blend(at.call(135.0, 3.9), {"": 0.0, "Run01_BackwardLeft": 1.0}, "running back and left")
+	_assert_blend(at.call(135.0, 3.9), {"": 0.0, "RunBackwardLeft": 1.0}, "running back and left")
 	var half: Dictionary = at.call(22.5, 3.9)
 	assert_almost_eq(float(half["Run01_Forward"]), 0.5, 1e-5, "between ahead and forward-left")
 	assert_almost_eq(float(half["Run01_ForwardLeft"]), 0.5, 1e-5)
-	_assert_blend(at.call(180.0, 7.2), {"": 0.0, "Run01_Backward": 1.0}, "no sprint goes back: the run")
+	_assert_blend(at.call(180.0, 7.2), {"": 0.0, "RunBackward": 1.0}, "no sprint goes back: the run")
 	var mixed: Dictionary = at.call(0.0, 2.95)
 	assert_almost_eq(float(mixed["Walk01_Forward"]), 0.5, 1e-5, "half way from the walk to the run")
 	assert_almost_eq(float(mixed["Run01_Forward"]), 0.5, 1e-5)
@@ -189,7 +194,12 @@ func test_each_fighters_gaits_are_measured_from_its_own_clips() -> void:
 		var walk: String = loco.clips[&"walk"][0]
 		strides.append(loco.gaits[walk].stride)
 		var again: FootPhase.Gait = FootPhase.measure(v.model, StringName(walk))
-		assert_almost_eq(again.stride, loco.gaits[walk].stride, 1e-4, "%s: the same measure again" % id)
+		if walk.begins_with("HumanM/"):
+			# the Hunter's pack clips take the table's stride (milestone-1 task 55)
+			assert_almost_eq(loco.gaits[walk].stride, float(FrameDataTable.shared().gaits[walk.get_file()]["stride"]), 1e-4,
+				"%s: the table's stride" % id)
+		else:
+			assert_almost_eq(again.stride, loco.gaits[walk].stride, 1e-4, "%s: the same measure again" % id)
 	assert_ne(strides[0], strides[1], "each fighter its own")
 
 
@@ -246,7 +256,7 @@ func test_the_phase_moves_a_stride_per_cycle_on_each_rules_frame() -> void:
 		var b: Dictionary = loco.blend_at(loco.way, s, loco.run_speed, loco.sprint_speed)
 		var moved: float = fposmod(loco.phase - before, 1.0)
 		assert_almost_eq(moved, s / loco.stride(b, loco.way) / 60.0, 1e-5, "at %.2f m/s, frame %d" % [s, W.frame])
-	assert_almost_eq(top, SimConst.MOVE_SPRINT, 1e-3, "it reached the sprint")
+	assert_almost_eq(top, Gaits.sprint_speed(), 1e-3, "it reached the sprint")
 	assert_eq(_top(loco), loco.clips[&"sprint"][0], "sprinting ahead")
 
 
@@ -352,7 +362,7 @@ func test_running_ahead_shows_the_run_at_the_shared_phase() -> void:
 	var at: float = loco.clip_time(run, loco.shown_phase)
 	assert_almost_eq(at, fposmod(loco.shown_phase + loco.gaits[run].left_stance, 1.0) * loco.gaits[run].length, 1e-6)
 	_assert_pose(_pose(v), _clip_pose(v, run, at), "%s at the shared phase" % run)
-	assert_almost_eq(_speed(f), SimConst.MOVE_RUN_FORWARD, 1e-3)
+	assert_almost_eq(_speed(f), _table_speed("Run01_Forward"), 1e-3)
 
 
 func test_strafing_backpedalling_and_the_diagonals_play_their_ways_clips() -> void:
@@ -384,12 +394,12 @@ func test_a_greatsword_runs_and_sprints_at_its_own_speeds() -> void:
 	var loco: Locomotion = v.locomotion
 	for i: int in 25:
 		_step(W, v, SimHelpers.move(0.0, 1.0))
-	assert_almost_eq(_speed(f), SimConst.MOVE_RUN_FORWARD * Moves.GREATSWORD.speed_mult, 1e-4, "its run")
+	assert_almost_eq(_speed(f), _table_speed("Run01_Forward") * Moves.GREATSWORD.speed_mult, 1e-4, "its run")
 	assert_eq(loco.shown_clips.size(), 1)
 	assert_eq(_top(loco), loco.clips[&"run"][0], "a full run at its run")
 	for i: int in 25:
 		_step(W, v, SimHelpers.move(0.0, 1.0, Btn.SPRINT))
-	assert_almost_eq(_speed(f), SimConst.MOVE_SPRINT * Moves.GREATSWORD.speed_mult, 1e-4, "its sprint")
+	assert_almost_eq(_speed(f), Gaits.sprint_speed() * Moves.GREATSWORD.speed_mult, 1e-4, "its sprint")
 	assert_eq(_top(loco), loco.clips[&"sprint"][0], "a full sprint at its sprint")
 	assert_almost_eq(float(loco.shown_clips[0][1]), 1.0, 1e-5)
 
@@ -598,7 +608,7 @@ func test_the_footsteps_fall_where_the_clips_feet_come_down() -> void:
 			assert_lt(Vector2(at.x - f.pos.x, at.z - f.pos.z).length(), 0.8, "under the fighter")
 			assert_almost_eq(at.y, f.pos.y, 1e-4, "on the ground")
 	var run: String = loco.clips[&"run"][0]
-	var per_cycle: float = SimConst.MOVE_RUN_FORWARD / loco.gaits[run].stride
+	var per_cycle: float = _table_speed("Run01_Forward") / loco.gaits[run].stride
 	assert_gt(falls.size(), int(per_cycle * 2.0 * 1.0), "two footsteps a cycle over the last second at least")
 	for k: int in range(1, falls.size()):
 		assert_gt(frames[k] - frames[k - 1], 3, "footsteps apart")
@@ -606,3 +616,30 @@ func test_the_footsteps_fall_where_the_clips_feet_come_down() -> void:
 	var side: Callable = func(at: Vector3) -> float: return signf(at.x - f.pos.x)
 	for k: int in range(maxi(1, falls.size() - 4), falls.size()):
 		assert_ne(side.call(falls[k]), side.call(falls[k - 1]), "left, right, left")
+
+
+func test_local_every_gait_clip_plays_at_1x_at_the_rules_speed() -> void:
+	# milestone-1 task 55 (story 81): the rules move the Hunter at each gait
+	# clip's own measured speed, so its clip plays at 1.0x of the world's time
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	# [stick x, stick y, sprint, the gait, the way's index in Gaits.WAYS]
+	for spec: Array in [[0.0, 0.5, false, &"walk", 0], [0.0, -0.5, false, &"walk", 4], [-0.5, 0.0, false, &"walk", 2],
+			[0.5, 0.0, false, &"walk", 6], [0.0, 1.0, false, &"run", 0], [-0.7071, 0.7071, false, &"run", 1],
+			[-1.0, 0.0, false, &"run", 2], [0.0, -1.0, false, &"run", 4], [0.7071, -0.7071, false, &"run", 5],
+			[1.0, 0.0, false, &"run", 6], [0.0, 1.0, true, &"sprint", 0]]:
+		var W: World = _world(40.0)
+		var v: FighterView = _view(&"hunter")
+		var loco: Locomotion = v.locomotion
+		var input: RawInput = SimHelpers.move(spec[0], spec[1], Btn.SPRINT) if spec[2] else SimHelpers.move(spec[0], spec[1])
+		var clip: String = loco.clips[spec[3]][spec[4]]
+		var rates: Array[float] = []
+		for i: int in 40:
+			var before: float = loco.phase
+			_step(W, v, input)
+			if i >= 30:
+				rates.append(fposmod(loco.phase - before, 1.0) * loco.gaits[clip].length * 60.0)
+		assert_eq(_top(loco), clip, "%s %s: its clip shows" % [spec[3], clip])
+		for r: float in rates:
+			assert_almost_eq(r, 1.0, 0.02, "%s plays at 1.0x (%.4f)" % [clip, r])

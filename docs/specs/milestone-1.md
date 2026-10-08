@@ -133,8 +133,8 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 ### Movement and the body
 
-81. As a player, I want the walk, run, strafe and sprint speeds to be each clip's own measured speed, committed with the frame data, so that the feet never skate.
-82. As a player, I want a blend between gaits or directions kept in step and moving at the blended pace, so that circling the opponent looks natural.
+81. As a player, I want the walk, run, strafe and sprint speeds to be each clip's own measured speed, committed with the frame data, so that the feet never skate. (Task 55 moves the rules at the measured speeds; the packs' walks and strafes still skate, which family 2's review, task 62, takes up, so this stays open.)
+82. [x] As a player, I want a blend between gaits or directions kept in step and moving at the blended pace, so that circling the opponent looks natural. (Ticked with task 55.)
 83. As a player, I want guarded strafe and shuffle cycles for the Katana and for bare hands, so that guarded movement looks like a duel.
 84. As a player, I want to keep walking a little faster while blocking than in the demo, at about 55–65% of the run speed **(P29, confirmed Oct 4)**, so that I can reposition while guarding.
 85. As a player, I want guarded steps to start and stop within about 0.1 s, so that guarded footwork stays responsive.
@@ -143,7 +143,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 88. As a player, I want a tap step to keep its instant start, so that spacing stays precise.
 89. As a player, I want attacks, dodges, backsteps, parries and blocks to start at once out of any movement, with the leftover momentum shown only in the hand-off, so that defence and offence stay responsive.
 90. As the owner, I want an attack started out of a run to keep none of the run's speed in the rules, so that the attack's travel comes only from its clip. **(P14, confirmed Oct 4)**
-91. As a player, I want running fighters to lean forward, so that movement looks real.
+91. [x] As a player, I want running fighters to lean forward, so that movement looks real. (Ticked with task 55: the runs lean 23° and the sprints 46°, measured.)
 92. As a player, I want the roll and the backstep re-keyed to fit their protected frames at the clip's own speed, so that dodges look evasive and real.
 93. [x] As a player, I want the jump, the landing and the jump attacks keyed to the rules' jump arcs, with a jump attack starting only while its startup and active frames fit the airtime left and a landing never skipping an air attack's frames **(P53, confirmed Oct 4)**, so that a jump looks like the arc that decides it. (Ticked with task 94.)
 94. [x] As a player, I want every hand-off between motions to use inertial blending, the new motion starting at once and the old pose fading over a few frames, hit reactions included, so that nothing pops. (Ticked with task 23.)
@@ -561,9 +561,9 @@ Today's values are the build's (Oct 4). The retune happens once, in the pipeline
 | Plant-and-reverse pivot | steering at 14 rad/s | 12–15 frames, up to about 0.5 m (the owner's) |
 | Sprint stop | about 15 frames | about 20 frames and 1 m (the owner's) |
 | Tap step | 0.55 m in 8 frames, instant start | unchanged |
-| Walk | no walk speed in the rules (a partial tilt of the run) | the walk clip's measured speed (the packs measure about 2.2 m/s) |
-| Run forward / sideways / back | 3.9 / 3.5 / 3.0 m/s | each clip's measured speed (the packs' runs measure 4.1–4.6 forward) |
-| Sprint | 7.2 m/s | the sprint clip's measured speed (the packs: 5.3–6.3) |
+| Walk | no walk speed in the rules (a partial tilt of the run) | the walk clip's measured speed (the packs measure about 2.2 m/s); task 55: 2.29 forward, 2.47 back, 2.51 sideways, walked from the dead zone to 0.7 tilt |
+| Run forward / sideways / back | 3.9 / 3.5 / 3.0 m/s | each clip's measured speed (the packs' runs measure 4.1–4.6 forward); task 55: 4.61 forward, 5.14 sideways (the right strafes the left ones mirrored), 3.95 back (re-keyed slower, the owner's), blended from the walk between 0.7 tilt and full |
+| Sprint | 7.2 m/s | the sprint clip's measured speed (the packs: 5.3–6.3); task 55: 7.30 |
 | Blocking | 0.6 × the run | the guarded strafe and shuffle clips' own speeds, chosen or keyed to about 55–65% of the run **(P29, confirmed Oct 4)** |
 | Disarmed speed | × 1.2 | the disarmed gait clips' own speeds, chosen or keyed to about 1.2 × the armed run **(P29, confirmed Oct 4)** |
 | Disarmed dodge | × 1.5 distance | a longer disarmed roll clip in the same protected frames **(P15, confirmed Oct 4)** |

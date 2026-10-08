@@ -47,9 +47,9 @@ const MOVEMENT_CLIPS: Dictionary[StringName, String] = {
 	&"Run01_Forward": "Run",
 	&"Sprint01_Forward": "Sprint",
 	&"StrafeWalk01_Left": "Strafe walk left",
-	&"StrafeWalk01_Right": "Strafe walk right",
+	&"StrafeWalk01_Left_Mirror": "Strafe walk right",
 	&"StrafeRun01_Left": "Strafe run left",
-	&"StrafeRun01_Right": "Strafe run right",
+	&"StrafeRun01_Left_Mirror": "Strafe run right",
 	&"Turn01_Left": "Turn left",
 	&"Turn01_Right": "Turn right",
 }
