@@ -305,15 +305,22 @@ func update_fighters(delta: float) -> void:
 
 
 ## Lays each held blade, as posed this frame, into its air smear, with the
-## smear rules' strength and tint (TrailState) on the frame shown.
+## smear rules' strength and tint (TrailState) on the frame shown; a bare
+## hand's strike lays its striking limb on that side's in the blade's place
+## (milestone-1 task 95).
 func _feed_smears() -> void:
 	var t: float = effects.clock()
 	var a: float = host.alpha()
 	for i: int in fighters.size():
 		var rules: TrailState = TrailState.of(host.fighter(i), a)
 		var blades: Array[PackedVector3Array] = fighters[i].blade_segments()
-		for hand: int in mini(2, blades.size()):
-			var span: PackedVector3Array = AirSmear.span(blades[hand][0], blades[hand][1])
+		for hand: int in 2:
+			var seg: PackedVector3Array = blades[hand] if hand < blades.size() else PackedVector3Array()
+			if rules.limb(hand) != &"":
+				seg = fighters[i].limb_span(rules.limb(hand))
+			if seg.size() < 2:
+				continue
+			var span: PackedVector3Array = AirSmear.span(seg[0], seg[1])
 			effects.feed_smear(i, hand, t, span[0], span[1], rules.intensity(hand), rules.kind)
 
 
@@ -612,7 +619,7 @@ func _on_sim_event(e: Dictionary) -> void:
 			var heavy: bool = e["heavy"]
 			_shake(heavy_hit_shake if heavy else light_hit_shake)
 			_kick_on_contact(e)
-			var color: Color = Color(1.0, 0.94, 0.88) if e["sound"] == &"fist" else Color(1.0, 0.38, 0.25)
+			var color: Color = Color(1.0, 0.94, 0.88) if AttackDef.BARE_SOUNDS.has(e["sound"]) else Color(1.0, 0.38, 0.25)
 			_body_flash(int(e["target"]), color, 0.55 if heavy else 0.4)
 		&"block":
 			_shake(heavy_block_shake if e["heavy"] else light_block_shake)

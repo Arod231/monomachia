@@ -100,3 +100,35 @@ func test_the_jump_attacks_land_into_their_keyed_landing() -> void:
 		assert_true(m.airborne and m.fits_airtime(), "%s: a jump attack that fits the airtime" % m.name)
 		assert_eq(m.landing, m.recovery, "%s: lands into its own recovery" % m.name)
 		assert_eq(m.landing_recovery(), KEYED[id][2], m.name)
+
+
+## Each strikes with its limb's sound (milestone-1 task 95, the owner's
+## choice of Oct 7): the knee's dull thud, a kick's or the heel drop's
+## heavier thump, the open palm's slap, a fist's punch.
+const LIMB_SOUNDS: Dictionary[StringName, StringName] = {
+	&"f_sl": &"knee", &"f_sh": &"kick", &"f_dl": &"fist", &"f_dh": &"fist",
+	&"f_bl": &"kick", &"f_bh": &"palm", &"f_jl": &"kick", &"f_jh": &"kick",
+}
+
+
+func test_each_sounds_its_striking_limb_and_smears() -> void:
+	for id: StringName in KEYED:
+		var m: AttackDef = Moves.FISTS.moves[id]
+		assert_eq(m.sound, LIMB_SOUNDS[id], "%s strikes with its %s" % [m.name, LIMB_SOUNDS[id]])
+		assert_true(m.smear, "%s: its limb smears the air" % m.name)
+	for id: StringName in [&"f_l1", &"f_l2", &"f_h1", &"f_breaker"]:
+		assert_false(Moves.FISTS.moves[id].smear, "%s: switched on for the eight only" % id)
+
+
+func test_the_swing_names_its_sound_so_a_kick_whooshes_cloth() -> void:
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 6.0)
+	var a: Fighter = W.fighters[0]
+	a.armed = false
+	assert_true(a.start_attack(&"f_bl"))
+	var swing: Dictionary = {}
+	for i: int in 40:
+		H.run(W, 1)
+		for e: Dictionary in W.drain_events():
+			if e["t"] == &"swing":
+				swing = e
+	assert_eq(swing.get("sound", &""), &"kick", "Snap Kick's swing names its kick")

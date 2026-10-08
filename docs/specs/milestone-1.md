@@ -225,7 +225,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 156. [x] As a player, I want realistic sparks at the contact point on blocks and blade clashes, so that contact reads. (Ticked with task 37.)
 157. [x] As a player, I want hits to draw blood (a burst on each blade hit, blood on blades and clothes for the whole match, and splatter on the floor that fades), so that the duel has weight. (Ticked with task 38, in today's toon look; the art conversion carries the stains into the realistic materials.)
-158. As a player, I want a bare-hand hit to show its own impact rather than a blade's blood burst, so that fists read apart from blades. **(P36, confirmed Oct 4)**
+158. [x] As a player, I want a bare-hand hit to show its own impact rather than a blade's blood burst, so that fists read apart from blades. **(P36, confirmed Oct 4)** (Ticked with task 95.)
 159. [x] As a player, I want air smears on fast swings in place of the brush trails, so that swings read without ink. (Ticked with task 37.)
 160. As a player, I want dust and smoke where feet, falls and rolls meet the ground, where the clips' feet land, so that movement has weight.
 161. [x] As a player, I want a Blood setting of On, Reduced or Off, shipped in milestone 1 and On by default **(P5, confirmed Oct 4)**, so that I choose. (Ticked with task 38; the finishers' Reduced and Off cut lands with the finisher tasks.)

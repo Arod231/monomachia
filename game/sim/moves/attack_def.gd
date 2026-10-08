@@ -67,7 +67,12 @@ const ATTACK_TYPES: Array[StringName] = [
 const COUNTER_KINDS: Array[StringName] = [&"thrust", &"sweep", &"slam"]
 const HANDS: Array[StringName] = [&"R", &"L", &"both"]
 const ATTACK_KINDS: Array[StringName] = [&"light", &"heavy", &"ability", &"special", &"ultimate"]
-const HIT_SOUNDS: Array[StringName] = [&"blade", &"colossal", &"dagger", &"fist"]
+## The hit sounds: a blade's, the Greatsword's, a dagger's, and bare hands'
+## by the striking limb (a fist, an open palm, a knee, a kick or heel drop;
+## milestone-1 task 95).
+const HIT_SOUNDS: Array[StringName] = [&"blade", &"colossal", &"dagger", &"fist", &"palm", &"knee", &"kick"]
+## The hit sounds of a bare hand's strike.
+const BARE_SOUNDS: Array[StringName] = [&"fist", &"palm", &"knee", &"kick"]
 const SPECIALS: Array[StringName] = [&"flash", &"shadowStep", &"counterLunge", &"breakerPalm"]
 const TRAILS: Array[StringName] = [&"normal", &"danger", &"ult"]
 const SIDES: Array[StringName] = [&"left", &"right", &"centre"]
@@ -136,6 +141,9 @@ var chargeable: bool = false
 var sound: StringName = &""
 ## visual trail colour class
 var trail: StringName = &""
+## a bare-hands move whose striking limb smears the air (milestone-1 task 95:
+## the eight movement attacks); a weapon's blade smears without it
+var smear: bool = false
 ## i-frames during the move (frames from start, inclusive range); empty = none
 var invuln: PackedInt32Array = PackedInt32Array()
 ## vertical hop applied at lungeStart (m/s), for leaping attacks
@@ -194,7 +202,7 @@ const KEYS: Array[String] = [
 	"track_startup", "track_active", "hitstun", "blockstun", "hitstop", "unblockable", "counter",
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
-	"sound", "trail", "invuln", "hop", "side_start", "side_end", "charge_move",
+	"sound", "trail", "smear", "invuln", "hop", "side_start", "side_end", "charge_move",
 	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "landing", "weapon", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
@@ -248,6 +256,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	m.chargeable = bool(d.get("chargeable", false))
 	m.sound = StringName(d.get("sound", &""))
 	m.trail = StringName(d.get("trail", &""))
+	m.smear = bool(d.get("smear", false))
 	m.invuln = PackedInt32Array(d.get("invuln", []))
 	m.hop = float(d.get("hop", 0.0))
 	m.side_start = StringName(d.get("side_start", &""))

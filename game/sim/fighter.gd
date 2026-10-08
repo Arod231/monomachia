@@ -1065,6 +1065,8 @@ func _update_attack() -> void:
 			"attack": def.id,
 			"heavy": def.kind != &"light",
 			"weapon": moveset().id,
+			# the hit sound, by which a leg strike whooshes cloth (task 95)
+			"sound": def.sound,
 		})
 
 	if def.special == &"shadowStep":

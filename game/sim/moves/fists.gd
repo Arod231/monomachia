@@ -6,6 +6,12 @@ extends RefCounted
 ## Low HP damage, high posture damage, extra knockback.
 
 const F: StringName = &"fist"
+## The movement attacks' hit sounds by the striking limb (milestone-1 task
+## 95): an open palm's slap, a knee's dull thud, a kick's or heel drop's
+## heavier thump; the eight also smear the air along that limb.
+const PALM: StringName = &"palm"
+const KNEE: StringName = &"knee"
+const KICK: StringName = &"kick"
 
 const MOVES: Dictionary = {
 	&"f_l1": {
@@ -34,42 +40,42 @@ const MOVES: Dictionary = {
 		"range": 1.5, "arc": 130, "lunge": 0.4,
 	},
 	&"f_sl": {
-		"id": &"f_sl", "name": "Flying Knee", "kind": &"light", "type": &"kick", "anim": &"f_flyingKnee", "sound": F,
+		"id": &"f_sl", "name": "Flying Knee", "kind": &"light", "type": &"kick", "anim": &"f_flyingKnee", "sound": KNEE, "smear": true,
 		"damage": 6, "posture": 14, "knockback": 1.5,
 		"range": 1.3, "arc": 100,
 	},
 	&"f_sh": {
-		"id": &"f_sh", "name": "Dragon Kick", "kind": &"heavy", "type": &"kick", "anim": &"f_dragonKick", "sound": F,
+		"id": &"f_sh", "name": "Dragon Kick", "kind": &"heavy", "type": &"kick", "anim": &"f_dragonKick", "sound": KICK, "smear": true,
 		"damage": 9, "posture": 23, "knockback": 2.2,
 		"range": 1.5, "arc": 100,
 	},
 	&"f_dl": {
-		"id": &"f_dl", "name": "Slip Jab", "kind": &"light", "type": &"punch", "anim": &"f_jab", "hand": &"L", "sound": F,
+		"id": &"f_dl", "name": "Slip Jab", "kind": &"light", "type": &"punch", "anim": &"f_jab", "hand": &"L", "sound": F, "smear": true,
 		"damage": 4, "posture": 11, "knockback": 0.5,
 		"range": 1.3, "arc": 110,
 	},
 	&"f_dh": {
-		"id": &"f_dh", "name": "Spinning Backfist", "kind": &"heavy", "type": &"punch", "anim": &"f_backfist", "hand": &"R", "sound": F,
+		"id": &"f_dh", "name": "Spinning Backfist", "kind": &"heavy", "type": &"punch", "anim": &"f_backfist", "hand": &"R", "sound": F, "smear": true,
 		"damage": 7, "posture": 18, "knockback": 1.4,
 		"range": 1.4, "arc": 150,
 	},
 	&"f_bl": {
-		"id": &"f_bl", "name": "Snap Kick", "kind": &"light", "type": &"kick", "anim": &"f_snapKick", "hand": &"L", "sound": F,
+		"id": &"f_bl", "name": "Snap Kick", "kind": &"light", "type": &"kick", "anim": &"f_snapKick", "hand": &"L", "sound": KICK, "smear": true,
 		"damage": 4, "posture": 12, "knockback": 1.0,
 		"range": 1.5, "arc": 90,
 	},
 	&"f_bh": {
-		"id": &"f_bh", "name": "Lunging Palm", "kind": &"heavy", "type": &"punch", "anim": &"f_palm", "hand": &"R", "sound": F,
+		"id": &"f_bh", "name": "Lunging Palm", "kind": &"heavy", "type": &"punch", "anim": &"f_palm", "hand": &"R", "sound": PALM, "smear": true,
 		"damage": 7, "posture": 21, "knockback": 1.6,
 		"range": 1.4, "arc": 90,
 	},
 	&"f_jl": {
-		"id": &"f_jl", "name": "Air Kick", "kind": &"light", "type": &"kick", "anim": &"f_airKick", "sound": F,
+		"id": &"f_jl", "name": "Air Kick", "kind": &"light", "type": &"kick", "anim": &"f_airKick", "sound": KICK, "smear": true,
 		"damage": 5, "posture": 12, "knockback": 1.0,
 		"range": 1.4, "arc": 110, "airborne": true,
 	},
 	&"f_jh": {
-		"id": &"f_jh", "name": "Axe Kick", "kind": &"heavy", "type": &"kick", "anim": &"f_axeKick", "hand": &"L", "sound": F,
+		"id": &"f_jh", "name": "Axe Kick", "kind": &"heavy", "type": &"kick", "anim": &"f_axeKick", "hand": &"L", "sound": KICK, "smear": true,
 		"damage": 8, "posture": 21, "knockback": 1.4,
 		"range": 1.5, "arc": 100, "airborne": true,
 	},
