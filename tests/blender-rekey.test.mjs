@@ -38,20 +38,24 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'backhand_rise', 'backhand_rise_to_katana_guard_1h', 'backhand_rise_to_twisting_rise', 'blasted_fall', 'block_light',
-      'breaker_palm', 'crescent_coil', 'crescent_coil_hold', 'crouching_crown', 'crouching_crown_to_katana_guard_1h', 'crown_cut',
-      'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard', 'heaven_splitter', 'heaven_splitter_hold', 'heavy_slant',
-      'heavy_slant_to_guard', 'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front',
-      'hit_low_right', 'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h',
-      'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h', 'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil',
-      'kesa_cut_to_crown_cut', 'kesa_cut_to_guard', 'kneeling_crown', 'kneeling_crown_to_guard', 'left_rise',
-      'left_rise_to_guard', 'left_rise_to_right_rise', 'level_cut', 'level_cut_to_crouching_crown',
-      'level_cut_to_katana_guard_1h', 'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance',
-      'recall', 'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
-      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise',
+      'backhand_rise', 'backhand_rise_to_katana_guard_1h', 'backhand_rise_to_twisting_rise', 'blasted_fall',
+      'block_light', 'breaker_palm', 'crescent_coil', 'crescent_coil_hold', 'crouching_crown',
+      'crouching_crown_to_katana_guard_1h', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
+      'heaven_splitter', 'heaven_splitter_hold', 'heavy_slant', 'heavy_slant_to_guard', 'hit_high_back',
+      'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right', 'iai_draw_horizontal',
+      'iai_draw_horizontal_to_right_rise', 'iai_draw_horizontal_to_twisting_rise', 'iai_draw_vertical',
+      'iai_resheathe_horizontal', 'iai_resheathe_horizontal_to_guard', 'iai_resheathe_vertical',
+      'iai_resheathe_vertical_to_guard', 'iai_stance', 'iai_stance_hold', 'katana_block_hit', 'katana_block_loop',
+      'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h',
+      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard', 'kneeling_crown',
+      'kneeling_crown_to_guard', 'left_rise', 'left_rise_to_guard', 'left_rise_to_right_rise', 'level_cut',
+      'level_cut_to_crouching_crown', 'level_cut_to_katana_guard_1h', 'moonsplitter_draw_horizontal',
+      'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall', 'return_cut', 'return_cut_deflect',
+      'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut', 'returning_draw', 'right_cut',
+      'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise',
       'right_rise_to_guard', 'right_rise_to_second_slant', 'rising_heaven', 'second_slant', 'second_slant_to_guard',
-      'second_slant_to_kneeling_crown', 'slanting_cut', 'slanting_cut_to_backhand_rise', 'slanting_cut_to_katana_guard_1h',
-      'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice',
+      'second_slant_to_kneeling_crown', 'slanting_cut', 'slanting_cut_to_backhand_rise',
+      'slanting_cut_to_katana_guard_1h', 'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice',
     ]);
   });
 
@@ -63,8 +67,8 @@ describe('the re-key specs', () => {
       const deflect = id.endsWith('_deflect');
       // a held charge's loop, there and back over its move's own clip (KE task 16)
       const loop = Boolean(spec.loop);
-      // an iai's sheathe and draws hold the sword in one hand (task 98)
-      const oneHanded = id.startsWith('moonsplitter_') || id.endsWith('_1h') || Boolean(spec.one_hand);
+      // an iai's sheathe and draws hold the sword in one hand (task 98; the Iai's own, KE task 18)
+      const oneHanded = id.startsWith('moonsplitter_') || id.startsWith('iai_') || id.endsWith('_1h') || Boolean(spec.one_hand);
       // bare hands' ultimate and the burst's blasted fall hold nothing (task 99)
       const bare = ['ult_choice', 'recall', 'breaker_palm', 'blasted_fall'].includes(id);
 

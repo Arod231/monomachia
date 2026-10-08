@@ -43,12 +43,12 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Slanting Cut `k_1l1` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Backhand Rise `k_1l2` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Twisting Rise `k_1l3` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Level Cut `k_1l4` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Level Cut `k_1l4` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
 | Crouching Crown `k_1l5` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
 | Heavy Slant `k_2l1` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Left Rise `k_2l2` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Right Rise `k_2l3` | move (KE task 14) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Second Slant `k_2l4` | move (KE task 14) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
+| Second Slant `k_2l4` | move (KE task 14) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Kneeling Crown `k_2l5` | move (KE task 14) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
 | The light deflect pairs `clip_deflect_light` | keyed clips (task 34) | – | – | ✗ | ✓ | ✓ | – | ☑ | ✗ | ✗ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
 | Light hit reactions `clip_hit_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | – | – | ✓ | – | ✓ | ✓ | – | – | ☑ |
@@ -66,10 +66,10 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Iai Slash (vertical) `k_iai` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Iai Slash (horizontal) `k_iai_h` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Iai Slash (vertical) `k_iai` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Iai Slash (horizontal) `k_iai_h` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Rising Heaven `k_h1f` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Returning Draw `k_rdraw` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Returning Draw `k_rdraw` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
 | Heaven Splitter `k_h2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | Crescent Coil `k_coil` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | The heavy deflect pairs `clip_deflect_heavy` | not built | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |

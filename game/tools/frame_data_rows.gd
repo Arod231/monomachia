@@ -12,7 +12,7 @@ const ImportClips := preload("res://tools/import_clips.gd")
 ## The timing band table's rows (docs/specs/milestone-1.md), a move's kind.
 const BAND_KINDS: Array[StringName] = [
 	&"string_light", &"string_light_1h", &"string_last_1h", &"string_light_2h", &"string_last_2h",
-	&"string_heavy", &"grip_heavy_1h", &"grip_heavy_2h", &"grip_heavy_follow_up", &"iai_draw", &"iai_follow_up", &"unblockable",
+	&"string_heavy", &"grip_heavy_1h", &"grip_heavy_2h", &"grip_heavy_follow_up", &"iai_draw_vertical", &"iai_draw_horizontal", &"iai_follow_up", &"unblockable",
 	&"sprint_light", &"sprint_heavy", &"dodge_light", &"dodge_heavy", &"backstep_light", &"backstep_heavy",
 	&"jump_light", &"jump_heavy", &"block_ability", &"ultimate", &"counter_lunge",
 ]
@@ -61,7 +61,9 @@ static func kind_of(w: WeaponDef, id: StringName) -> StringName:
 	if m.kind == &"ultimate":
 		return &"ultimate"
 	if is_iai_draw(w, id):
-		return &"iai_draw"
+		# each draw its own row (KE task 18): the stance's own, the vertical,
+		# and the variant it draws as, the horizontal
+		return &"iai_draw_vertical" if m.charge_move else &"iai_draw_horizontal"
 	if m.kind == &"heavy" and m.grip != &"":
 		for g: WeaponGrip in w.grips:
 			if g.id == m.grip and g.heavy == id:

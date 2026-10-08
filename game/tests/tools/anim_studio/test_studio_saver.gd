@@ -157,7 +157,7 @@ func test_without_the_clip_libraries_the_data_are_saved_and_the_report_says_so()
 
 func test_a_chain_and_a_clip_marker_save_together() -> void:
 	var session: EditSession = EditSession.new()
-	var e: MoveClips.Entry = MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_iai"]
+	var e: MoveClips.Entry = MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_flash"]
 	var rows: Array[ChainEdits.Row] = ChainEdits.rows_of(ChainEdits.current(session, MOVES, &"katana", e))
 	rows[0].from = 4.0
 	var chain: MarkerEdits.Result = ChainEdits.set_chain(session, MOVES, &"katana", e, rows, ClipManifest.read(MANIFEST))
@@ -167,8 +167,8 @@ func test_a_chain_and_a_clip_marker_save_together() -> void:
 	session.apply(clip.edits, clip.label)
 	var r: StudioSaver.Result = _saver(_generate).save(session, self)
 	assert_eq(r.written, PackedStringArray([MOVES, MANIFEST]))
-	var read: MoveClips.Entry = MoveClips.read(ClipManifest.read(MANIFEST), MOVES).of(&"katana")[&"k_iai"]
-	assert_eq(String(read.clips[0]), "SheatheHips01_R@4-12")
+	var read: MoveClips.Entry = MoveClips.read(ClipManifest.read(MANIFEST), MOVES).of(&"katana")[&"k_flash"]
+	assert_eq(String(read.clips[0]), "Parry1H01_R_Loop@4-20")
 	assert_eq(ClipManifest.read(MANIFEST).clips[&"Attack1H01_R"].markers["settle"], base["settle"] + 1)
 	assert_eq(r.changed, PackedStringArray(), "no move's markers changed, so no frame data")
 	assert_false(r.soak_due)

@@ -1043,8 +1043,10 @@ func _update_attack() -> void:
 			_advance_along(a.lunge_dir, a.lunge_total * share)
 		else:
 			_advance(a.lunge_total * share)
-	# A move led by its clip moves by its travel instead (milestone-1 task 21).
-	if def.by_travel:
+	# A move led by its clip moves by its travel instead (milestone-1 task 21),
+	# but a stance's sheathe stands still up to its charge check (the Iai's
+	# clip sways as it sheathes; KE task 18).
+	if def.by_travel and not (def.charge_move and f <= hold_at):
 		_travel(def.travel_at(f))
 	# A colossal swing slides on into its first recovery frames, easing out.
 	var into_recovery: int = f - S - A
@@ -1199,8 +1201,9 @@ func follow_up(heavy: bool) -> Array:
 
 ## As a chargeable heavy is drawn, the stick held sideways (as Moonsplitter
 ## picks its wave) swaps its release variant in on the same attack state, so
-## the frames, lunge and charge carry on: the horizontal Iai. Otherwise the
-## move stays. Returns the attack's move.
+## the frames so far, the lunge and the charge carry on and the draw is the
+## variant's own: the horizontal Iai. Otherwise the move stays. Returns the
+## attack's move.
 func _pick_draw() -> AttackDef:
 	var variant: AttackDef = moveset().moves.get(atk.def.release_variant, null)
 	if variant != null and input.sideways():

@@ -163,7 +163,7 @@ This spec changes `docs/specs/milestone-1.md` and its plan inside the milestone:
 | D2 | Posture mitigation on a block: two-handed 0.5, one-handed 0.7 (today's single 0.7) | 9 |
 | D3 | "Less damage one-handed" is set per move: each one-handed hit deals about 85% of its two-handed counterpart; startups and recoveries come from the clips | 8 |
 | D4 | A string ends after hit 5 (no loop back to hit 1); the next light starts hit 1 again | 17–19 |
-| D5 | The vertical Iai's heavy follow-up is the current grip's heavy (one-handed heavy, or Rising Heaven); the horizontal Iai keeps Returning Draw (heavy) and the grip's hit 2 (light) | 24, 25, 31 |
+| D5 | The vertical Iai's heavy follow-up is the current grip's heavy (one-handed heavy, or Rising Heaven); the horizontal Iai keeps Returning Draw (heavy) and the grip's hit 2 (light). KE task 18 (Oct 8, the owner's choice): the horizontal draw is Elden Ring's, from the left hip out to the right, so its light is the grip's hit 3 (which starts on the right), and Returning Draw cuts back from the right to the left | 24, 25, 31 |
 | D6 | The grip switch has no rules cost (0 frames, no posture); its only cost is the other grip's trade-offs | 2, 8 |
 | D7 | Each round starts one-handed; the grip survives a parry, a block and a knockdown; disarm clears it and the Katana returns one-handed | 6, 16 |
 | D8 | The computer goes two-handed when the opponent guards a lot or is close, one-handed at range or when low on posture; Hard and above switch mid-string; tuned by soak | 39, 40 |

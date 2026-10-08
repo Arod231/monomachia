@@ -1396,7 +1396,8 @@ def blend_from(arm, scene, length, start, frames):
         bpy.context.view_layer.update()
         for side in ("L", "R"):
             m = mw @ pbs["B-foot." + side].matrix
-            feet[side].append((m.to_translation(), m.to_quaternion(), 0.0))
+            high = max(0.0, m.to_translation().z - rest[side].to_translation().z)
+            feet[side].append((m.to_translation(), m.to_quaternion(), high))
             hip, knee = mw @ pbs["B-thigh." + side].head, mw @ pbs["B-shin." + side].head
             ankle = m.to_translation()
             bend = knee - (hip + ankle) / 2

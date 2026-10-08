@@ -2187,6 +2187,182 @@
 				"katana"
 			]
 		},
+		"IaiStance": {
+			"export": "exports/clips/iai_stance.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 5,
+				"contact_end": 16,
+				"settle": 16
+			},
+			"foot_contacts": {"left": [[0, 16]], "right": [[0, 16]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiStanceHold": {
+			"export": "exports/clips/iai_stance_hold.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 30,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 30]], "right": [[0, 30]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiDrawVertical": {
+			"export": "exports/clips/iai_draw_vertical.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 11,
+				"contact_end": 13,
+				"settle": 33
+			},
+			"foot_contacts": {"left": [[0, 7], [12, 34]], "right": [[0, 2], [7, 9], [13, 34]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiDrawHorizontal": {
+			"export": "exports/clips/iai_draw_horizontal.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 9,
+				"contact_end": 11,
+				"settle": 31
+			},
+			"foot_contacts": {"left": [[0, 6], [11, 32]], "right": [[0, 1], [5, 7], [11, 32]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiResheatheVertical": {
+			"export": "exports/clips/iai_resheathe_vertical.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 24,
+				"settle": 24
+			},
+			"foot_contacts": {"left": [[0, 24]], "right": [[0, 24]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiResheatheHorizontal": {
+			"export": "exports/clips/iai_resheathe_horizontal.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 24,
+				"settle": 24
+			},
+			"foot_contacts": {"left": [[0, 24]], "right": [[0, 24]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiResheatheVerticalToGuard": {
+			"export": "exports/clips/iai_resheathe_vertical_to_guard.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 10,
+				"settle": 10
+			},
+			"foot_contacts": {"left": [[0, 10]], "right": [[0, 10]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiResheatheHorizontalToGuard": {
+			"export": "exports/clips/iai_resheathe_horizontal_to_guard.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 10,
+				"settle": 10
+			},
+			"foot_contacts": {"left": [[0, 10]], "right": [[0, 10]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiDrawHorizontalToRightRise": {
+			"export": "exports/clips/iai_draw_horizontal_to_right_rise.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 7,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 6]], "right": [[0, 1], [6, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"IaiDrawHorizontalToTwistingRise": {
+			"export": "exports/clips/iai_draw_horizontal_to_twisting_rise.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 8,
+				"settle": 8
+			},
+			"foot_contacts": {"left": [[0, 8]], "right": [[0, 2], [8, 8]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"ReturningDraw": {
+			"export": "exports/clips/returning_draw.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 19,
+				"contact_end": 21,
+				"settle": 39
+			},
+			"foot_contacts": {"left": [[0, 16], [22, 52]], "right": [[0, 3], [12, 17], [24, 52]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"HeavySlant": {
 			"export": "exports/clips/heavy_slant.glb",
 			"pack": "Human Melee Animations",

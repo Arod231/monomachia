@@ -100,8 +100,9 @@ func test_today_s_stand_ins_keep_today_s_values() -> void:
 	# bare hands keep no stand-in on today's values: every attack is keyed
 	# (tasks 89, 93, 94, 99 and 133) but Counter Lunge, on the retuned light
 	# hitstun since task 22
-	# a stand-in heavy: Returning Draw (re-keyed in KE task 18)
-	assert_eq([Moves.KATANA.moves[&"k_rdraw"].hitstun, Moves.KATANA.moves[&"k_rdraw"].hitstop], [26, 7])
+	# a stand-in heavy: Leaping Cleave (Returning Draw until KE task 18
+	# re-keyed it)
+	assert_eq([Moves.KATANA.moves[&"k_sh"].hitstun, Moves.KATANA.moves[&"k_sh"].hitstop], [26, 7])
 	assert_same(ProtectedTimings.for_move(cut), ProtectedTimings.today())
 
 

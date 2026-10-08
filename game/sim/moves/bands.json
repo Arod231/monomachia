@@ -11,7 +11,8 @@
 			"grip_heavy_1h": {"startup": [84, 96], "active": [4, 8], "recovery": [39, 51]},
 			"grip_heavy_2h": {"startup": [105, 120], "active": [4, 8], "recovery": [78, 96]},
 			"grip_heavy_follow_up": {"startup": [42, 54], "active": [4, 8], "recovery": [33, 45]},
-			"iai_draw": {"startup": [36, 48], "from_stance": [15, 21], "active": [4, 6], "recovery": [36, 48]},
+			"iai_draw_vertical": {"startup": [30, 36], "from_stance": [21, 27], "active": [3, 6], "recovery": [96, 120]},
+			"iai_draw_horizontal": {"startup": [26, 30], "from_stance": [17, 21], "active": [3, 6], "recovery": [96, 120]},
 			"iai_follow_up": {"startup": [36, 45], "active": [4, 6], "recovery": [30, 42]},
 			"unblockable": {"startup": [48, 60], "active": [4, 6], "recovery": [36, 48]},
 			"sprint_light": {"startup": [27, 33], "active": [4, 6], "recovery": [30, 42]},
@@ -55,7 +56,8 @@
 				"grip_heavy_2h": {"touches": 4.3, "misses": 5.05},
 				"grip_heavy_follow_up": {"touches": 3.8, "misses": 4.55},
 				"iai_follow_up": {"touches": 3.8, "misses": 4.55},
-				"iai_draw": {"touches": 4.4, "misses": 5.0},
+				"iai_draw_vertical": {"touches": 4.4, "misses": 5.0},
+				"iai_draw_horizontal": {"touches": 4.4, "misses": 5.0},
 				"sprint_light": {"touches": 4.8, "misses": 5.55},
 				"sprint_heavy": {"touches": 5.8, "misses": 6.55},
 				"dodge_light": {"touches": 3.3, "misses": 4.05},
@@ -89,7 +91,6 @@
 	},
 	"waiting": {
 		"katana": [
-			"k_iai", "k_iai_h", "k_rdraw",
 			"k_sl", "k_sh", "k_dl", "k_dh", "k_bl", "k_bh", "k_jl", "k_jh",
 			"k_flash", "k_thrust", "k_sweep"
 		],

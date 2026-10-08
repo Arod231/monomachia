@@ -66,7 +66,7 @@ func test_the_stand_ins_give_the_katanas_and_bare_hands_frame_data_today() -> vo
 			for follow: StringName in [m.chain_light, m.chain_heavy]:
 				if follow != &"":
 					assert_eq(int(row["branches"][String(follow)][0]), m.startup + m.active + 2, "%s.%s -> %s: today's branch point" % [wid, id, follow])
-	assert_eq(stand_ins, 14, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94, light string, task 89, and heavies, task 133; Crescent Coil, KE task 16; Heaven Splitter and Rising Heaven, KE task 17)")
+	assert_eq(stand_ins, 11, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94, light string, task 89, and heavies, task 133; Crescent Coil, KE task 16; Heaven Splitter and Rising Heaven, KE task 17; the Iai's draws and Returning Draw, KE task 18)")
 
 
 func test_each_move_has_its_band_kind() -> void:
@@ -74,7 +74,8 @@ func test_each_move_has_its_band_kind() -> void:
 	var fists: WeaponDef = Moves.WEAPONS[&"fists"]
 	var want: Dictionary = {
 		&"k_l1": &"string_light", &"k_l2": &"string_light", &"k_l4": &"string_light",
-		&"k_iai": &"iai_draw", &"k_iai_h": &"iai_draw", &"k_rdraw": &"iai_follow_up",
+		# each Iai draw its own row (KE task 18)
+		&"k_iai": &"iai_draw_vertical", &"k_iai_h": &"iai_draw_horizontal", &"k_rdraw": &"iai_follow_up",
 		&"k_sl": &"sprint_light", &"k_sh": &"sprint_heavy", &"k_dl": &"dodge_light", &"k_dh": &"dodge_heavy",
 		&"k_bl": &"backstep_light", &"k_bh": &"backstep_heavy", &"k_jl": &"jump_light", &"k_jh": &"jump_heavy",
 		&"k_flash": &"block_ability", &"k_thrust": &"unblockable", &"k_sweep": &"unblockable", &"k_lunge": &"counter_lunge",
@@ -113,7 +114,9 @@ func test_a_keyed_chargeable_move_s_row_gives_the_frame_its_charge_holds_on() ->
 		var m: AttackDef = Moves.KATANA.moves[id]
 		assert_eq(m.charge_hold, int(row["hold"]), "%s: the rules hold its charge there" % id)
 		assert_between(m.charge_hold, Fighter.CHARGE_CHECK_FRAME + 1, m.startup - 1, "%s: in its wind-up, past today's frame 9" % id)
-	assert_eq((Moves.KATANA.moves[&"k_iai"] as AttackDef).charge_hold, AttackDef.UNSET, "the Iai keeps frame 9")
+	# the Iai's stance takes over at its sheathe's hold marker (KE task 18),
+	# which is today's frame 9
+	assert_eq((Moves.KATANA.moves[&"k_iai"] as AttackDef).charge_hold, Fighter.CHARGE_CHECK_FRAME, "the Iai keeps frame 9")
 	assert_false(t.row(&"katana", &"k_1l1").has("hold"), "nothing that doesn't charge")
 
 

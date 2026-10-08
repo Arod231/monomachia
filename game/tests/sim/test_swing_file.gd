@@ -360,6 +360,12 @@ func test_a_baked_swing_carries_its_sheathed_frames_and_hold() -> void:
 	assert_true(cut.is_sheathed(2.5), "in the saya between them")
 	assert_false(cut.is_sheathed(0.0), "not before")
 	assert_false(cut.is_sheathed(3.5), "nor after")
+	# the Iai sheathes again after its cut (KE task 18): a pair a stretch
+	d["swings"]["t_cut"]["sheathed"] = [1, 3, 7, 9]
+	var twice: Swing = SwingFile.parse(JSON.stringify(d), _moves(), "baked.json")[&"t_cut"]
+	assert_eq(twice.sheathed, PackedInt32Array([1, 3, 7, 9]))
+	assert_true(twice.is_sheathed(2.0) and twice.is_sheathed(8.0), "in the saya in either stretch")
+	assert_false(twice.is_sheathed(5.0), "and out between them")
 	var plain: Swing = SwingFile.parse(JSON.stringify(_baked()), _moves(), "baked.json")[&"t_cut"]
 	assert_false(plain.is_sheathed(1.0), "never sheathed by default")
 
@@ -377,10 +383,16 @@ func test_a_baked_swing_carries_its_charges_loop() -> void:
 func test_sheathed_mistakes_are_refused() -> void:
 	var d: Dictionary = _baked()
 	d["swings"]["t_cut"]["sheathed"] = [2, 4]
-	_assert_refused(d, "t_cut: sheathed must be two attack frames, the first no later than the second, both before the active frames", "into the active frames")
+	_assert_refused(d, "t_cut: sheathed must be pairs of attack frames, each first no later than its second, in order, none over the active frames", "into the active frames")
 	d = _baked()
 	d["swings"]["t_cut"]["sheathed"] = [3, 1]
-	_assert_refused(d, "t_cut: sheathed must be two attack frames", "backwards")
+	_assert_refused(d, "t_cut: sheathed must be pairs of attack frames", "backwards")
+	d = _baked()
+	d["swings"]["t_cut"]["sheathed"] = [1, 3, 7]
+	_assert_refused(d, "t_cut: sheathed must be pairs of attack frames", "half a pair")
+	d = _baked()
+	d["swings"]["t_cut"]["sheathed"] = [7, 9, 1, 3]
+	_assert_refused(d, "t_cut: sheathed must be pairs of attack frames", "out of order")
 	d = _baked()
 	d["swings"]["t_cut"]["marks"] = [0, 1, 2]
 	_assert_refused(d, "t_cut: marks must be four numbers, or five with the hold", "three marks")

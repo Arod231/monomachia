@@ -67,6 +67,12 @@ func test_a_chain_of_parts_and_its_sheathed_frames_read() -> void:
 	assert_eq(e.clips, [&"SheatheHips01_R@3-12", &"Attack1H04_R@2"] as Array[StringName])
 	assert_eq(e.sheathed, PackedFloat64Array([8, 9]))
 	assert_eq(e.marks["hold"], 9.0, "the hold kept with the marks")
+	# a pair for each time the blade goes in (KE task 18: the Iai's resheathe)
+	var twice: MoveClips = _read({"katana": {"guard": "CombatIdle1H01", "moves": {
+		"k_iai": {"clips": ["SheatheHips01_R@3-12", "Attack1H04_R@2"], "speed": 1.3, "sheathed": [8, 9, 30, 34.5]},
+	}}})
+	assert_eq(twice.errors, PackedStringArray())
+	assert_eq((twice.of(&"katana")[&"k_iai"] as MoveClips.Entry).sheathed, PackedFloat64Array([8, 9, 30, 34.5]))
 	# without marks of its own: the first part's wind-up, the last's markers
 	# after the parts before it
 	e.marks = {}
@@ -158,7 +164,7 @@ func test_mistakes_are_named() -> void:
 		"katana.k_l3: needs clips, a list of clip ids",
 		"katana.k_l4: marks must give windup, contact, contact_end, settle (and may give a hold), each a frame number",
 		"katana.k_h1f: Attack1H01_R@x: a chain part is \"id\", \"id@from\" or \"id@from-to\" (source frames, from before to)",
-		"katana.k_h2: sheathed must be two source frames, the first before the second",
+		"katana.k_h2: sheathed must be pairs of source frames, each first before its second, in order",
 	]
 	for line: String in want:
 		assert_has(t.errors, line)

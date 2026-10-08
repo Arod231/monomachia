@@ -5,7 +5,8 @@ extends GutTest
 ## (the owner's word); both charge as charged heavies do (D9); heavy from
 ## neutral stays the Iai in both grips, the vertical Iai's heavy follow-up is
 ## the grip's (Crescent Coil one-handed, Rising Heaven two-handed) and the
-## horizontal one keeps Returning Draw and the grip's hit 2 (D5). Crescent
+## horizontal one keeps Returning Draw and the grip's hit 2 (D5; hit 3 since
+## Elden Ring's draw, KE task 18). Crescent
 ## Coil is Elden Ring's since KE task 16, holding its charge at its coil;
 ## Heaven Splitter and Rising Heaven since KE task 17, the Splitter holding
 ## its charge overhead and Rising Heaven rising from its settled crouch, or
@@ -356,8 +357,51 @@ func test_the_vertical_iai_s_heavy_follow_up_is_the_grip_s() -> void:
 	assert_eq((_play(TWO, [Btn.HEAVY, Btn.HEAVY])[0] as Array[StringName]), [&"k_iai", &"k_h1f"] as Array[StringName], "two-handed: Rising Heaven")
 
 
-func test_the_horizontal_iai_keeps_returning_draw_and_the_grip_s_hit_2() -> void:
+## Fighter 0 starts in `grip`, holds heavy into the Iai's stance with the
+## stick at mx, switches grip on step 20 in the stance, lets go on step 30,
+## and presses `follow` the step after the draw swings. Returns the moves
+## that swung, in order, and the grip it ends in.
+static func _switch_in_the_stance(grip: StringName, mx: float, follow: int) -> Array:
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 2.2)
+	var a: Fighter = W.fighters[0]
+	if grip == TWO:
+		W.step([_with_grip(H.idle()), H.idle()])
+		W.drain_events()
+	var swung: Array[StringName] = []
+	var follow_at: int = -1
+	for i: int in 400:
+		var p0: RawInput = H.move(mx, 0.0, Btn.HEAVY) if i < 30 else H.move(mx, 0.0)
+		if i == 20:
+			p0 = _with_grip(p0)
+		if i == follow_at:
+			p0 = H.move(mx, 0.0, follow)
+		W.step([p0, H.idle()])
+		for e: Dictionary in W.drain_events():
+			if e["t"] == &"swing" and e["f"] == 0:
+				swung.append(e["attack"])
+				if swung.size() == 1:
+					follow_at = i + 1
+	return [swung, a.grip]
+
+
+func test_a_grip_switch_in_the_stance_applies_to_what_follows_the_draw() -> void:
+	# the Iai is the same in both grips; a switch while sheathed picks the
+	# follow-ups (KE task 18, story 32)
+	var into: Dictionary = {ONE: TWO, TWO: ONE}
+	for grip: StringName in [ONE, TWO]:
+		var g: WeaponGrip = Moves.KATANA.grip(into[grip])
+		var heavy: Array = _switch_in_the_stance(grip, 0.0, Btn.HEAVY)
+		assert_eq(heavy[1], into[grip], "%s: switched in the stance" % grip)
+		assert_eq(heavy[0], [&"k_iai", g.draw_heavy] as Array[StringName], "%s: the vertical draw, then the new grip's heavy" % grip)
+		var light: Array = _switch_in_the_stance(grip, 1.0, Btn.LIGHT)
+		assert_eq(light[0], [&"k_iai_h", g.hit(3)] as Array[StringName], "%s: the horizontal draw, then the new grip's hit 3" % grip)
+
+
+func test_the_horizontal_iai_keeps_returning_draw_and_goes_on_to_the_grip_s_hit_3() -> void:
+	# Elden Ring's draw ends out on the right, where both grips' hit 3 starts
+	# (the owner, Oct 8, KE task 18; D5's hit 2 becomes hit 3)
 	for grip: StringName in [ONE, TWO]:
 		assert_eq((_play(grip, [Btn.HEAVY, Btn.HEAVY], 1.0)[0] as Array[StringName]), [&"k_iai_h", &"k_rdraw"] as Array[StringName], "%s: Returning Draw" % grip)
 		var g: WeaponGrip = Moves.KATANA.grip(grip)
-		assert_eq((_play(grip, [Btn.HEAVY, Btn.LIGHT, Btn.LIGHT], 1.0)[0] as Array[StringName]), [&"k_iai_h", g.hit(2), g.hit(3)] as Array[StringName], "%s: hit 2, then on to hit 3" % grip)
+		assert_eq((Moves.KATANA.moves[g.hit(3)] as AttackDef).side_start, &"right", "%s: hit 3 starts on the right" % grip)
+		assert_eq((_play(grip, [Btn.HEAVY, Btn.LIGHT, Btn.LIGHT], 1.0)[0] as Array[StringName]), [&"k_iai_h", g.hit(3), g.hit(4)] as Array[StringName], "%s: hit 3, then on to hit 4" % grip)

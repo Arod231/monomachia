@@ -23,7 +23,8 @@ extends RefCounted
 ## entry may be part of a clip ("id@from" or "id@from-to", ClipChain), and a
 ## chargeable move's marks may add the "hold" its charge holds at
 ## (ClipTiming). "sheathed" gives the source frames (from the chain's start)
-## the blade spends in the saya, from going in to coming out (task 11).
+## the blade spends in the saya, from going in to coming out (task 11), a
+## pair for each time it goes in, in order (KE task 18: the Iai's resheathe).
 ##
 ## "markers" (milestone-1 task 14) are the markers the move's frame data are
 ## generated from (tasks 15-17), in source frames from the chain's start
@@ -80,7 +81,7 @@ class Entry:
 	## chain's start) in place of the manifest's; empty for the manifest's.
 	var marks: Dictionary = {}
 	## The source frames from the chain's start the blade is in the saya,
-	## first and last; empty for never.
+	## first and last of each stretch in turn; empty for never.
 	var sheathed: PackedFloat64Array = PackedFloat64Array()
 	## The markers the move's frame data are generated from (RULES_MARKERS,
 	## DODGE_CANCEL_MARKERS and "branch": {follow-up: frame}), in source
@@ -254,11 +255,15 @@ func _entry(wid: StringName, id: StringName, d: Variant, manifest: ClipManifest)
 		return null
 	if (d as Dictionary).has("sheathed"):
 		var sh: Variant = d["sheathed"]
-		if not sh is Array or (sh as Array).size() != 2 or not (sh as Array).all(func(x: Variant) -> bool: return x is float or x is int) \
-				or float(sh[0]) < 0.0 or float(sh[1]) <= float(sh[0]):
-			errors.append("%s: sheathed must be two source frames, the first before the second" % at)
+		var ok: bool = sh is Array and not (sh as Array).is_empty() and (sh as Array).size() % 2 == 0 				and (sh as Array).all(func(x: Variant) -> bool: return x is float or x is int)
+		if ok:
+			for i: int in (sh as Array).size():
+				if float(sh[i]) < 0.0 or (i > 0 and float(sh[i]) <= float(sh[i - 1])):
+					ok = false
+		if not ok:
+			errors.append("%s: sheathed must be pairs of source frames, each first before its second, in order" % at)
 			return null
-		e.sheathed = PackedFloat64Array([float(sh[0]), float(sh[1])])
+		e.sheathed = PackedFloat64Array((sh as Array).map(func(x: Variant) -> float: return float(x)))
 	if (d as Dictionary).has("markers"):
 		var why: Array[String] = []
 		e.markers = _markers(wid, id, d["markers"], why)

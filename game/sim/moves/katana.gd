@@ -102,25 +102,31 @@ const MOVES: Dictionary = {
 		"damage": 10, "posture": 10, "knockback": 0.8,
 		"range": 2.3, "arc": 60, "chain_heavy": &"k_h2",
 	},
-	# the heavy: sheathe for 9 frames (up to the fighter's charge check,
-	# CHARGE_CHECK_FRAME: held, the stance is the charge, walked in at the
-	# blocking walk's speed), then draw in 14, lunging only once the sheathe ends
+	# the heavy, Elden Ring's Iai (KE task 18): sheathe for 9 frames (up to
+	# the fighter's charge check, CHARGE_CHECK_FRAME: held, the stance is the
+	# charge, walked in at the blocking walk's speed), then a deep coil and a
+	# rising draw from the left hip to high on the right, about 24 frames from
+	# the stance's release, held out at full extension, a chiburi, the
+	# resheathe and a quick draw back to the guard, the follow-ups and the
+	# dodge open through the tail; its step comes from its clip
 	&"k_iai": {
 		"id": &"k_iai", "name": "Iai Slash (vertical)", "kind": &"heavy", "type": &"overhead", "anim": &"iaiVertical",
 		"side_start": &"left", "side_end": &"right",
 		"damage": 13, "posture": 16, "knockback": 1.0,
-		"range": 3.6, "arc": 60, "lunge": 2.1, "lunge_start": 9, "lunge_end": 25, "chargeable": true,
+		"range": 3.6, "arc": 60, "chargeable": true,
 		"charge_move": true, "release_variant": &"k_iai_h", "chain_heavy": &"k_h1f",
 	},
-	# the same sheathe, drawn right to left when the stick is held left or
-	# right as the Iai is drawn; it swaps in on the Iai's attack, so it keeps
-	# the Iai's frames and lunge, and is never started on its own
+	# the same sheathe, drawn flat from the left hip out across to the right
+	# when the stick is held left or right as the Iai is drawn (Elden Ring's,
+	# about 19 frames from the release; the owner's choice, Oct 8: its light
+	# follow-up the grip's hit 3); it swaps in on the Iai's attack at the
+	# charge check, so it shares the sheathe, and is never started on its own
 	&"k_iai_h": {
 		"id": &"k_iai_h", "name": "Iai Slash (horizontal)", "kind": &"heavy", "type": &"slash", "anim": &"iaiHorizontal",
-		"side_start": &"right", "side_end": &"left",
+		"side_start": &"left", "side_end": &"right",
 		"damage": 13, "posture": 16, "knockback": 1.0,
-		"range": 3.6, "arc": 110, "lunge": 2.1, "lunge_start": 9, "lunge_end": 25,
-		"chain_light": &"k_2l2", "chain_heavy": &"k_rdraw",
+		"range": 3.6, "arc": 110,
+		"chain_light": &"k_2l3", "chain_heavy": &"k_rdraw",
 	},
 	# Heaven Splitter's follow-up (KE task 7), Elden Ring's (KE task 17): it
 	# rises out of the Splitter's settled crouch, the blade drawn back low on
@@ -132,12 +138,14 @@ const MOVES: Dictionary = {
 		"damage": 12, "posture": 15, "knockback": 0.9,
 		"range": 2.3, "arc": 90,
 	},
-	# the horizontal Iai's heavy follow-up, back the other way
+	# the horizontal Iai's heavy follow-up, back the other way, from its held
+	# extension on the right across to the left, one-handed, its lunge the
+	# clip's (KE task 18)
 	&"k_rdraw": {
-		"id": &"k_rdraw", "name": "Returning Draw", "kind": &"heavy", "type": &"slash", "anim": &"slashLR",
-		"side_start": &"left", "side_end": &"right",
+		"id": &"k_rdraw", "name": "Returning Draw", "kind": &"heavy", "type": &"slash", "anim": &"slashRL",
+		"side_start": &"right", "side_end": &"left",
 		"damage": 12, "posture": 15, "knockback": 0.9,
-		"range": 2.3, "arc": 110, "lunge": 1.1, "lunge_end": 18,
+		"range": 2.3, "arc": 110,
 	},
 	# the two-handed heavy (KE task 7), Elden Ring's (KE task 17): the blade
 	# raised and held overhead, then cut straight down with a long lunge into

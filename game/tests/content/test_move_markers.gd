@@ -13,7 +13,7 @@ const REAL: Array[StringName] = [&"k_lunge", &"f_lunge"]
 ## within half a source frame of their clips' events (the light string: task 31,
 ## Right Cut and Return Cut; task 32, Kesa Cut and Crown Cut; and Breaker Palm,
 ## task 99; the one-handed grip's own five hits and the two-handed grip's own five, KE tasks 11-14; Crescent Coil, KE task 16; Heaven Splitter and Rising Heaven, KE task 17; bare hands' eight movement attacks, tasks 93 and 94; Jab, Cross and Hook, task 89; Roundhouse and Spinning Heel, task 133).
-const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2", &"k_2l3", &"k_2l4", &"k_2l5", &"k_h1f", &"k_h2", &"k_coil", &"f_breaker", &"f_l1", &"f_l2", &"f_l3", &"f_h1", &"f_h2", &"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2", &"k_2l3", &"k_2l4", &"k_2l5", &"k_h1f", &"k_h2", &"k_coil", &"k_iai", &"k_iai_h", &"k_rdraw", &"f_breaker", &"f_l1", &"f_l2", &"f_l3", &"f_h1", &"f_h2", &"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]
 const REAL_WEAPONS: Array[StringName] = [&"greatsword", &"daggers"]
 
 

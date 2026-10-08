@@ -75,7 +75,7 @@ class Result:
 	var clips: Array[StringName] = []
 	var fallback: StringName = &""
 	## The attack frames the blade is in the saya (sheathed_frames()), first
-	## and last; empty for none.
+	## and last of each stretch; empty for none.
 	var sheathed: PackedInt32Array = PackedInt32Array()
 	## The loop a held charge plays (Swing.loop); empty for none.
 	var loop: StringName = &""
@@ -103,7 +103,7 @@ class Result:
 			swing["fallback"] = String(fallback)
 		if loop != &"":
 			swing["loop"] = String(loop)
-		if sheathed.size() == 2:
+		if not sheathed.is_empty():
 			swing["sheathed"] = Array(sheathed)
 		if V3.length(reach_offset) > 0.0:
 			swing["reach"] = SwingBake._round(reach_offset)
@@ -135,19 +135,24 @@ class Reach:
 	var first_touch: int = -1
 
 
-## The attack frames of bake `r` whose clip time falls within source
-## frames `from` to `to` (from the chain's start), first and last: where
-## the blade is in the saya. Empty when none does.
-static func sheathed_frames(r: Result, from: float, to: float) -> PackedInt32Array:
-	var first: int = -1
-	var last: int = -1
-	for f: int in r.times.size():
-		var source: float = r.times[f] * float(ClipManifest.SOURCE_FPS)
-		if source >= from - 1e-6 and source <= to + 1e-6:
-			if first < 0:
-				first = f
-			last = f
-	return PackedInt32Array() if first < 0 else PackedInt32Array([first, last])
+## The attack frames of bake `r` whose clip time falls within each stretch
+## of source frames in `windows` ([from, to, from, to, ...], from the chain's
+## start), first and last of each: where the blade is in the saya. A stretch
+## no frame falls in gives nothing.
+static func sheathed_frames(r: Result, windows: PackedFloat64Array) -> PackedInt32Array:
+	var out: PackedInt32Array = PackedInt32Array()
+	for i: int in range(0, windows.size() - 1, 2):
+		var first: int = -1
+		var last: int = -1
+		for f: int in r.times.size():
+			var source: float = r.times[f] * float(ClipManifest.SOURCE_FPS)
+			if source >= windows[i] - 1e-6 and source <= windows[i + 1] + 1e-6:
+				if first < 0:
+					first = f
+				last = f
+		if first >= 0:
+			out.append_array(PackedInt32Array([first, last]))
+	return out
 
 
 ## The clip retimed at `speed` by `markers` (ClipTiming.make()): null, with
