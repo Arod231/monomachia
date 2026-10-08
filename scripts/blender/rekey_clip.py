@@ -36,7 +36,11 @@
 #   back at their guard height over "hips_home" (by the settle, where the game
 #   hands on), "hips_keep" (0-1, default 0) of the hips' own lean over the
 #   ground kept (task 89's punches lean into the blow over planted feet; the
-#   frame-data generator counts the hips' shift with the travel), "free":
+#   frame-data generator counts the hips' shift with the travel), "shift":
+#   [[frame, ahead, right], ...] the hips moved over the feet that far (m, a
+#   monotone cubic through each; the clip not kept in place: milestone-1
+#   task 90's redirect steps off the line with no travel), a step's fifth
+#   number its metres to the right (off the line), "free":
 #   {"L"|"R": [[from, to], ...]} spans where a foot follows the clip's own
 #   motion instead of its step (a kick's leg; give the span as a step too,
 #   for where the foot lands), eased in and out over two frames, and
@@ -64,6 +68,18 @@
 #   onto it over the out frames, on IK, baked; before any step, which then
 #   re-plants the standing foot (pivot it) and lets the kicking leg follow
 #   (free); omit for none;
+# - reach: {"side": "L"|"R", "hand": [[frame, ahead, right, up] or [frame,
+#   "meet"], ...], "elbow": [[frame, ahead, right, up], ...], "blend":
+#   [in_from, in_to, out_from, out_to], "bend": [[frame, degrees], ...] the
+#   spine bent forward first, "meet": {"source": path, "frame":
+#   source frame, "distance": metres, "bone": bone, "along": 0-1, "move":
+#   [x, y, z]}}: a hand placed by key poses (reach(); milestone-1 task 90's
+#   redirect, its lead hand meeting the attacker's wrist): the wrist carried
+#   through the points, a "meet" key at a point of the attacker's limb read
+#   from that clip (limb_at()), at the meet's frame and distance or its own
+#   ([frame, "meet", at, distance]: a hand following the limb), the elbow toward its points, on IK, blended in
+#   from the clip's own arm and back out; after any step (where its "shift"
+#   has taken the hips);
 # - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
 #   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
 #   over the ground taken out, then the whole body moved along the path
@@ -109,7 +125,9 @@
 #   front facing back, and the deflect's blade turned about its grip to cross
 #   it ("along": at that share of the way from its base to its tip), "move"
 #   then shifting that blade by a correction measured in the game, and
-#   "grip_move" moving the grip first (a low parry, say).
+#   "grip_move" moving the grip first (a low parry, say); "at" with "bone"
+#   aims at an attacker's limb instead (limb_at(): a fist or a foot, task
+#   90), its parent's head to its tail read as the blade.
 # - borrow: [{"frame": n, "source": path, "at": source frame, "bones": [...]},
 #   ...]: key poses taken from other clips (borrow(); milestone-1 task 59, for
 #   the poses Cascadeur inbetweens): at frame n the bones named (every bone
@@ -396,6 +414,25 @@ def blade_at(path, frame, distance):
     return out
 
 
+def limb_at(path, frame, distance, bone):
+    """The limb ending in `bone` (B-hand.L, say, or B-foot.R) of the clip at
+    `path` at source frame `frame`, as blade_at() sees a blade: [the head of
+    the bone's parent (the elbow, the knee), the bone's tail (the knuckles,
+    the toes)] in the frame of a fighter facing it from `distance` m in
+    front (milestone-1 task 90: a blade parrying a fist or a foot, a hand
+    redirecting a wrist)."""
+    arm, _ = import_clip(path)
+    scene = bpy.context.scene
+    f = 1.0 + float(frame)
+    scene.frame_set(int(f), subframe=f - int(f))
+    bpy.context.view_layer.update()
+    pb = arm.pose.bones[bone]
+    out = []
+    for p in (arm.matrix_world @ pb.parent.head, arm.matrix_world @ pb.tail):
+        out.append(mathutils.Vector((-p.x, -p.y - float(distance), p.z)))
+    return out
+
+
 def aim_turn(o, blade, target, report=False, along=None):
     """The turn (axis and degrees, world) that points a blade from its grip
     `o` along `blade` at the attacker's blade `target` ([base, tip]): at the
@@ -590,16 +627,21 @@ TRAVEL_TO = 0.8
 
 
 def foot_path(steps, t):
-    """How far forward (m) and how high (m) a foot's `steps` ([from, to,
-    metres, lift] in new frames) have it at frame `t`: each step lifts the
-    foot before it moves and moves it before it sets it down, so the foot is
-    off the ground (above FootLock.LIFT_HEIGHT) whenever it travels."""
-    forward, high = 0.0, 0.0
-    for s0, s1, metres, lift in steps:
-        forward += metres * _smoother((t - s0 - TRAVEL_FROM) / (s1 - s0 - TRAVEL_FROM - TRAVEL_TO))
+    """How far forward (m), how high (m) and how far to the right (m) a
+    foot's `steps` ([from, to, metres, lift] in new frames, and a fifth,
+    metres to the right, for a step off the line) have it at frame `t`: each
+    step lifts the foot before it moves and moves it before it sets it down,
+    so the foot is off the ground (above FootLock.LIFT_HEIGHT) whenever it
+    travels."""
+    forward, high, aside = 0.0, 0.0, 0.0
+    for st in steps:
+        s0, s1, metres, lift = st[:4]
+        moved = _smoother((t - s0 - TRAVEL_FROM) / (s1 - s0 - TRAVEL_FROM - TRAVEL_TO))
+        forward += metres * moved
+        aside += (float(st[4]) if len(st) > 4 else 0.0) * moved
         if s0 < t < s1:
             high += lift * _smoother(min((t - s0) / RISE, (s1 - t) / RISE, 1.0))
-    return forward, high
+    return forward, high, aside
 
 
 # A free span's foot eases from its step's path onto the clip's own and back
@@ -638,6 +680,10 @@ def step(arm, scene, length, spec):
     top = spec.get("hips_top")
     home = spec.get("hips_home")
     keep = float(spec.get("hips_keep", 0.0))
+    shift = spec.get("shift")
+    if shift:
+        shift_ahead = monotone([float(p[0]) for p in shift], [float(p[1]) for p in shift])
+        shift_right = monotone([float(p[0]) for p in shift], [float(p[2]) for p in shift])
     scene.frame_set(1)
     bpy.context.view_layer.update()
     h0 = mw @ hips.head
@@ -654,12 +700,17 @@ def step(arm, scene, length, spec):
             # back up to the guard's height by the time the move hands on
             back = _smoother((n - float(home[0])) / (float(home[1]) - float(home[0])))
             move.z += back * (h0.z - (h.z + move.z))
+        if shift:
+            # the hips moved over the feet, the clip not kept in place (a
+            # step off the line with no travel: task 90's redirect)
+            move += mathutils.Vector((0.0, -1.0, 0.0)) * shift_ahead(float(n)) + mathutils.Vector((-1.0, 0.0, 0.0)) * shift_right(float(n))
         hips.matrix = mathutils.Matrix.Translation(to_arm @ move) @ hips.matrix
         bpy.context.view_layer.update()
         hips.keyframe_insert("location", frame=1 + n, group=hips.name)
 
     fwd = mathutils.Vector((0.0, -1.0, 0.0))
     up = mathutils.Vector((0.0, 0.0, 1.0))
+    right = mathutils.Vector((-1.0, 0.0, 0.0))
     free = spec.get("free", {})
     pivot = spec.get("pivot", [])
     pivot_hips = bool(spec.get("pivot_hips", False))
@@ -680,9 +731,9 @@ def step(arm, scene, length, spec):
     feet = {"L": [], "R": []}
     for n in range(length + 1):
         for side in ("L", "R"):
-            ahead, high = foot_path(spec["feet"].get(side, []), float(n))
+            ahead, high, aside = foot_path(spec["feet"].get(side, []), float(n))
             m = feet0[side]
-            at = m.to_translation() + fwd * (ahead - (body(float(n)) - body(0.0))) + up * high
+            at = m.to_translation() + fwd * (ahead - (body(float(n)) - body(0.0))) + up * high + right * aside
             turn = m.to_quaternion()
             pw = _pivot_weight(pivot, side, float(n))
             if pw > 0.0:
@@ -1039,6 +1090,113 @@ def kick(arm, scene, length, spec):
     print(f"rekey_clip: authored a kick with the {side} leg, the body turned up to {max(abs(float(p[1])) for p in spec.get('turn', [[0, 0]])):g} degrees", flush=True)
 
 
+def reach(arm, scene, length, spec):
+    """A hand placed by key poses (milestone-1 task 90's redirect: the packs
+    have no bare-hand parry): the arm spec["side"] on IK, its wrist carried
+    through spec["hand"] ([frame, ahead, right, up], metres from frame 0's
+    hips on the ground, the clip facing -Y; a Catmull-Rom curve through
+    them), a key given as [frame, "meet"] at spec["meet"] instead (the
+    point spec["meet"]["along"] of the way along an attacker's limb read by
+    limb_at() from {"source", "frame", "distance", "bone"}, moved by its
+    "move"), and the elbow toward spec["elbow"]'s points, weighted in from
+    the clip's own arm over spec["blend"]'s in frames and back out over its
+    out frames, the hand turned as the clip turns it; first the spine bent
+    forward by spec["bend"] ([frame, degrees], a monotone cubic; the hand
+    reaching low and far). Baked."""
+    mw = arm.matrix_world
+    inv = mw.inverted()
+    pbs = arm.pose.bones
+    side = spec["side"]
+    up = mathutils.Vector((0.0, 0.0, 1.0))
+    fwd = mathutils.Vector((0.0, -1.0, 0.0))
+    right = mathutils.Vector((-1.0, 0.0, 0.0))
+    if spec.get("bend"):
+        bend_at = monotone([float(p[0]) for p in spec["bend"]], [float(p[1]) for p in spec["bend"]])
+        spine = pbs["B-spine"]
+        for n in range(length + 1):
+            scene.frame_set(1 + n)
+            bpy.context.view_layer.update()
+            head = mw @ spine.head
+            tilt = mathutils.Matrix.Translation(head) @ mathutils.Matrix.Rotation(math.radians(bend_at(float(n))), 4, "X") \
+                @ mathutils.Matrix.Translation(-head)
+            spine.matrix = inv @ tilt @ mw @ spine.matrix
+            bpy.context.view_layer.update()
+            spine.keyframe_insert("rotation_quaternion", frame=1 + n, group=spine.name)
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    h0 = mw @ pbs["B-hips"].head
+    ground = mathutils.Vector((h0.x, h0.y, 0.0))
+
+    def place(p):
+        if p[1] == "meet":
+            return spec["meet"]["points"][_meet_key(spec["meet"], p)].copy()
+        return ground + fwd * float(p[1]) + right * float(p[2]) + up * float(p[3])
+    hand_keys = [(float(p[0]), place(p)) for p in spec["hand"]]
+    elbow_keys = [(float(p[0]), place(p)) for p in spec["elbow"]]
+    b = [float(x) for x in spec["blend"]]
+    upper, fore, hand = pbs["B-upperArm." + side], pbs["B-forearm." + side], pbs["B-hand." + side]
+    wrist_t = bpy.data.objects.new("Wrist" + side, None)
+    pole_t = bpy.data.objects.new("Elbow" + side, None)
+    hand_t = bpy.data.objects.new("Hand" + side, None)
+    for t in (wrist_t, pole_t, hand_t):
+        scene.collection.objects.link(t)
+    hand_t.rotation_mode = "QUATERNION"
+    first = None
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        t = float(n)
+        w = _smoother((t - b[0]) / max(b[1] - b[0], 1e-6)) if t < b[2] else 1.0 - _smoother((t - b[2]) / max(b[3] - b[2], 1e-6))
+        wrist = mw @ hand.head
+        el = mw @ fore.head
+        sh = mw @ upper.head
+        bend = el - (sh + wrist) / 2
+        pole = el + (bend.normalized() if bend.length > 1e-4 else fwd) * 0.5
+        if w > 0.0:
+            wrist = wrist.lerp(_catmull(hand_keys, t), w)
+            k = _catmull(elbow_keys, t)
+            aim = k + (k - (sh + wrist) / 2).normalized() * 0.5 if (k - (sh + wrist) / 2).length > 1e-4 else k
+            pole = pole.lerp(aim, w)
+        if first is None:
+            first = (mw @ upper.matrix).to_quaternion()
+        wrist_t.location = wrist
+        pole_t.location = pole
+        hand_t.rotation_quaternion = (mw @ hand.matrix).to_quaternion()
+        for o in (wrist_t, pole_t):
+            o.keyframe_insert("location", frame=1 + n)
+        hand_t.keyframe_insert("rotation_quaternion", frame=1 + n)
+    ik = fore.constraints.new("IK")
+    ik.target = wrist_t
+    ik.pole_target = pole_t
+    ik.chain_count = 2
+    # the pole angle the rig's bones want: the one that keeps frame 0's arm
+    scene.frame_set(1)
+    best = None
+    for angle in range(-180, 180, 2):
+        ik.pole_angle = math.radians(angle)
+        bpy.context.view_layer.update()
+        miss = first.rotation_difference((mw @ upper.matrix).to_quaternion()).angle
+        if best is None or miss < best[0]:
+            best = (miss, float(angle))
+    ik.pole_angle = math.radians(best[1])
+    turn = hand.constraints.new("COPY_ROTATION")
+    turn.target = hand_t
+
+    def cleanup():
+        fore.constraints.remove(ik)
+        hand.constraints.remove(turn)
+        for o in (wrist_t, pole_t, hand_t):
+            bpy.data.objects.remove(o, do_unlink=True)
+    bake_bones(arm, scene, length, [upper.name, fore.name, hand.name], cleanup)
+    print(f"rekey_clip: placed the {side} hand by key poses", flush=True)
+
+
+def _meet_key(meet, p):
+    """The attacker's frame and distance a reach's "meet" key `p` reads:
+    its own [frame, "meet", at, distance], or the meet's."""
+    return (float(p[2]) if len(p) > 2 else float(meet["frame"]), float(p[3]) if len(p) > 3 else float(meet["distance"]))
+
+
 def carry(arm, scene, length, spec):
     """A body carried over the ground off its feet (milestone-1 task 99: the
     recall burst's blasted fall): the hips' own shift over the ground taken
@@ -1269,7 +1427,18 @@ def main():
     if th.get("aim", {}).get("at"):
         at = th["aim"]["at"]
         shift = mathutils.Vector(th["aim"].get("move", [0.0, 0.0, 0.0]))
-        th["aim"]["target"] = [p + shift for p in blade_at(os.path.join(a["assets"], at["source"]), at["frame"], at["distance"])]
+        at_path = os.path.join(a["assets"], at["source"])
+        seen = limb_at(at_path, at["frame"], at["distance"], at["bone"]) if at.get("bone") else blade_at(at_path, at["frame"], at["distance"])
+        th["aim"]["target"] = [p + shift for p in seen]
+    if spec.get("reach", {}).get("meet"):
+        meet = spec["reach"]["meet"]
+        meet["points"] = {}
+        for p in spec["reach"]["hand"]:
+            if p[1] == "meet":
+                at, distance = _meet_key(meet, p)
+                limb = limb_at(os.path.join(a["assets"], meet["source"]), at, distance, meet["bone"])
+                meet["points"][(at, distance)] = limb[0].lerp(limb[1], float(meet.get("along", 1.0))) \
+                    + mathutils.Vector(meet.get("move", [0.0, 0.0, 0.0]))
     start = None
     if spec.get("blend_from"):
         from_path = os.path.join(a["assets"], spec["blend_from"]["source"])
@@ -1290,13 +1459,20 @@ def main():
     scene.frame_start, scene.frame_end = 1, 1 + length
     if spec.get("kick"):
         kick(arm, scene, length, spec["kick"])
+    if spec.get("knock") and spec.get("step"):
+        # a recoil stepping back: knocked first (the hips turn with it), the
+        # step then re-planting the feet (milestone-1 task 90)
+        knock(arm, scene, length, spec["knock"])
     if spec.get("step"):
         step(arm, scene, length, spec["step"])
     if spec.get("carry"):
         carry(arm, scene, length, spec["carry"])
+    if spec.get("reach"):
+        # after the step: the hand placed where the hips have gone
+        reach(arm, scene, length, spec["reach"])
     if start is not None:
         blend_from(arm, scene, length, start, float(spec["blend_from"]["frames"]))
-    if spec.get("knock"):
+    if spec.get("knock") and not spec.get("step"):
         knock(arm, scene, length, spec["knock"])
     if spec.get("turn"):
         turn(arm, scene, length, float(spec["turn"]))

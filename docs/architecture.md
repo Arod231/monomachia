@@ -486,7 +486,7 @@ flowchart TD
 | --- | --- |
 | hit | Damage (×1.8 at full charge, ×1.6 for a backstab), posture ×1.5, hitstun and knockback, or KO. |
 | block | Posture by the weapon's block mitigation (or the move's guard crush), blockstun, knockback. |
-| parry, flash, redirect | The attacker takes posture and recoils (parry) or is stunned (flash, redirect). An attacker whose posture is full is disarmed (or dazed if already bare-handed). |
+| parry, flash, redirect | The attacker takes posture and recoils (parry) or is stunned (flash, redirect). An attacker whose posture is full is disarmed (or dazed if already bare-handed). The view plays a deflect pair from the contact (`ClipDirector.pick_pair()`): a light's own (task 34), the redirect's one pair (task 90, a bare-hand attacker recoiling by its limb), or for a blade parrying a fist or a foot the limb's recoil and the blade's high or low deflect by the contact's height. |
 | stomp, leap, evade counter | The attacker is stunned or loses recovery; the defender gets the counter move or a counter-lunge window. |
 | disarm | The defender's weapon flies off as a `DroppedWeapon`; posture resets. |
 | evade, jumped, miss | Nothing lands. |

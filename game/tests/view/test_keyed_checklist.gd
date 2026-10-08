@@ -206,13 +206,21 @@ func test_every_clip_row_plays_at_1x() -> void:
 		ChecklistResults.record_clips(4, row, by_clip)
 		for clip: Variant in by_clip:
 			assert_eq(by_clip[clip], [] as Array[String], str(clip))
-	# the deflect pairs: each half from its contact frame, a rules frame a
-	# 60th of a second on
-	var by_pair: Dictionary = {}
+	# the deflect pairs (the lights', the redirect's and a blade's at a limb:
+	# milestone-1 tasks 34 and 90): each half from its contact frame, a rules
+	# frame a 60th of a second on
 	var W: World = H.make_world()
 	var f: Fighter = W.fighters[0]
-	for move: StringName in sc.deflect_pairs:
-		var pair: Dictionary = sc.deflect_pairs[move]
+	var pair_rows: Dictionary[StringName, Array] = ChecklistResults.pair_rows()
+	for row: StringName in pair_rows:
+		_record_pairs_at_1x(row, pair_rows[row], f)
+
+
+## Item 4 for deflect pair row `row`: each of `pairs`' halves played by `f`
+## from its contact frame at 1.0x, recorded and held.
+func _record_pairs_at_1x(row: StringName, pairs: Array, f: Fighter) -> void:
+	var by_pair: Dictionary = {}
+	for pair: Dictionary in pairs:
 		var ctx: ClipDirector.Context = _ctx([pair[&"deflect"], pair[&"recoil"]])
 		for half: Array in [[&"recoil", &"recoil"], [&"deflect", &"parryAnim"]]:
 			var problems: Array[String] = []
@@ -230,7 +238,7 @@ func test_every_clip_row_plays_at_1x() -> void:
 				prev.since = k
 				prev.pair = pair
 			by_pair[pair[half[0]]] = problems
-	ChecklistResults.record_clips(4, &"clip_deflect_light", by_pair)
+	ChecklistResults.record_clips(4, row, by_pair)
 	for clip: Variant in by_pair:
 		assert_eq(by_pair[clip], [] as Array[String], str(clip))
 
@@ -254,15 +262,18 @@ func test_every_clip_row_s_fit_to_its_protected_frames_is_recorded() -> void:
 			var settle: float = manifest.clips[clip].markers["settle"] * MoveClips.RULES_PER_SOURCE
 			by_clip[clip] = [] if absf(settle - frames[row]) <= 1.0 else ["settles on rules frame %d of its %d" % [settle, frames[row]]]
 		ChecklistResults.record_clips(3, row, by_clip)
-	var by_pair: Dictionary = {}
-	for move: StringName in sc.deflect_pairs:
-		var pair: Dictionary = sc.deflect_pairs[move]
-		var clip: StringName = pair[&"recoil"]
-		var after: float = (manifest.clips[clip].markers["settle"] - float(pair[&"recoil_contact"])) * MoveClips.RULES_PER_SOURCE
-		var want: int = SimConst.PARRY_RECOIL
-		by_pair[clip] = [] if absf(after - want) <= 1.0 else ["settles %d rules frames after its contact, the parry recoil %d" % [after, want]]
-	ChecklistResults.record_clips(3, &"clip_deflect_light", by_pair)
-	assert_eq(by_pair.size(), sc.deflect_pairs.size(), "every pair's recoil measured")
+	# each pair row's recoils (the redirect's, before Stun01 takes over the
+	# rest of its stun, and the limbs' fit the parry recoil too: task 90)
+	var pair_rows: Dictionary[StringName, Array] = ChecklistResults.pair_rows()
+	for row: StringName in pair_rows:
+		var by_pair: Dictionary = {}
+		for pair: Dictionary in pair_rows[row]:
+			var clip: StringName = pair[&"recoil"]
+			var after: float = (manifest.clips[clip].markers["settle"] - float(pair[&"recoil_contact"])) * MoveClips.RULES_PER_SOURCE
+			var want: int = SimConst.PARRY_RECOIL
+			by_pair[clip] = [] if absf(after - want) <= 1.0 else ["settles %d rules frames after its contact, the parry recoil %d" % [after, want]]
+		ChecklistResults.record_clips(3, row, by_pair)
+	assert_eq(pair_rows[&"clip_deflect_light"].size(), sc.deflect_pairs.size(), "every light pair's recoil measured")
 
 
 # ------------------------------------------------------------------ items 11 and 12
@@ -466,6 +477,27 @@ static func _duel(W: World, brains: Array[AIBrain], steps: int, used: Dictionary
 		b.dispose()
 
 
+## Whether each of `pairs`' halves hands on (item 11), played by `f`: the
+## recoil once the guard is back up, the deflect once the parrier moves off;
+## problems by clip.
+func _pairs_hand_on(pairs: Array, f: Fighter) -> Dictionary:
+	var hand: Dictionary = {}
+	for pair: Dictionary in pairs:
+		var ctx: ClipDirector.Context = _ctx([pair[&"deflect"], pair[&"recoil"]])
+		f.vel = V3.make()
+		f.set_state(&"recoil", 30)
+		f.blocking = true
+		var recoil_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
+		f.blocking = false
+		f.set_state(&"free", 0)
+		f.vel = V3.make(1.0, 0.0, 0.0)
+		var deflect_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
+		f.vel = V3.make()
+		hand[pair[&"recoil"]] = [] if recoil_ends else ["plays on with the guard back up"]
+		hand[pair[&"deflect"]] = [] if deflect_ends else ["plays on with the parrier moving off"]
+	return hand
+
+
 ## The pilot's lights no grip's string plays since KE task 13.
 const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
 
@@ -518,26 +550,22 @@ func test_every_clip_row_hands_off_sounds_and_shows_its_contact() -> void:
 		ChecklistResults.record_clips(14, row, shown)
 		for clip: Variant in hand:
 			assert_eq(hand[clip] + sound[clip] + shown[clip], [], "%s" % clip)
-	# the deflect pairs
+	# the deflect pairs: each hands on (11) as the lights' do; the lights'
+	# sound and sparks (13, 14), the redirect's and a parried limb's sound
+	# and effects being task 91's
 	var W: World = H.make_world()
 	var f: Fighter = W.fighters[0]
-	var hand: Dictionary = {}
+	var pair_rows: Dictionary[StringName, Array] = ChecklistResults.pair_rows()
+	for row: StringName in pair_rows:
+		if row != &"clip_deflect_light":
+			var handed: Dictionary = _pairs_hand_on(pair_rows[row], f)
+			ChecklistResults.record_clips(11, row, handed)
+			for clip: Variant in handed:
+				assert_eq(handed[clip], [], "%s" % clip)
+	var hand: Dictionary = _pairs_hand_on(pair_rows[&"clip_deflect_light"], f)
 	var sound: Dictionary = {}
 	var shown: Dictionary = {}
-	for move: StringName in sc.deflect_pairs:
-		var pair: Dictionary = sc.deflect_pairs[move]
-		var ctx: ClipDirector.Context = _ctx([pair[&"deflect"], pair[&"recoil"]])
-		f.vel = V3.make()
-		f.set_state(&"recoil", 30)
-		f.blocking = true
-		var recoil_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
-		f.blocking = false
-		f.set_state(&"free", 0)
-		f.vel = V3.make(1.0, 0.0, 0.0)
-		var deflect_ends: bool = ClipDirector.pair_clip(null, f, ctx, pair).is_empty()
-		f.vel = V3.make()
-		hand[pair[&"recoil"]] = [] if recoil_ends else ["plays on with the guard back up"]
-		hand[pair[&"deflect"]] = [] if deflect_ends else ["plays on with the parrier moving off"]
+	for pair: Dictionary in pair_rows[&"clip_deflect_light"]:
 		for half: StringName in [&"deflect", &"recoil"]:
 			var clip: StringName = pair[half]
 			sound[clip] = [] if not SoundBank.deflect_pair_cues(StringName(pair[&"direction"]), half).is_empty() else ["its half sounds nothing"]

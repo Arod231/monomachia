@@ -99,9 +99,14 @@ func test_the_keyed_moves_are_the_banded_moves_off_the_waiting_list() -> void:
 
 func test_the_clip_rows_group_the_state_clips_the_families_keyed() -> void:
 	var rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
-	assert_eq(rows.keys(), [&"clip_deflect_light", &"clip_hit_light", &"clip_block_light"])
+	assert_eq(rows.keys(), [&"clip_deflect_light", &"clip_deflect_redirect", &"clip_deflect_limb", &"clip_hit_light", &"clip_block_light"])
 	assert_eq(rows[&"clip_deflect_light"], [&"RightCutDeflect", &"RightCutRecoil", &"ReturnCutDeflect", &"ReturnCutRecoil",
 		&"KesaCutDeflect", &"KesaCutRecoil", &"CrownCutDeflect", &"CrownCutRecoil"], "each light's pair, deflect then recoil")
+	# milestone-1 task 90
+	assert_eq(rows[&"clip_deflect_redirect"], [&"RedirectDeflect", &"RedirectRecoil"], "the redirect's one pair")
+	assert_eq(rows[&"clip_deflect_limb"], [&"LimbDeflectHigh", &"FistRecoil", &"LimbDeflectLow", &"FootRecoil"],
+		"the blade's deflects at a limb and each limb's recoil, each once")
+	assert_eq(ChecklistResults.pair_rows()[&"clip_deflect_limb"].size(), 4, "each limb's recoil with each deflect")
 	assert_eq(rows[&"clip_hit_light"].size(), 8, "the Katana's light hits, every place")
 	assert_true(rows[&"clip_hit_light"].has(&"HitLightHighFront"))
 	assert_eq(rows[&"clip_block_light"], [&"BlockLightKatana"])

@@ -1,15 +1,16 @@
 // Tests for the clips made in Cascadeur by key poses and AI inbetweening
 // (scripts/cascadeur/, milestone-1 task 89 on): every spec in
 // scripts/cascadeur/generate/ is a well-formed block-out (a re-key spec for
-// rekey_clip.py, or a held pose of another Cascadeur clip, as a charge's
-// loop is) with key poses inside it, writes its working files beside
+// rekey_clip.py from a pack clip, or from another re-keyed clip: a held pose
+// of it, as a charge's loop is, or its contact on, as a recoil is) with key
+// poses inside it, writes its working files beside
 // the other Cascadeur files and its clip among the clips, and names a clip
 // the clip manifest imports; the driver's helpers build the script Cascadeur
 // runs and keep its answer readable; the rig template maps our bones.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { cascadeurCode, shownMessages, SPECS, workFiles } from '../scripts/cascadeur/generate.mjs';
 
@@ -26,19 +27,24 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 
 describe('the Cascadeur clip specs', () => {
   it('has the clips made in Cascadeur', () => {
-    assert.deepEqual(specs.map((s) => s.id).sort(), ['cross', 'hook', 'jab', 'roundhouse', 'roundhouse_charge', 'spinning_heel']);
+    assert.deepEqual(specs.map((s) => s.id).sort(), ['cross', 'fist_recoil', 'foot_recoil', 'hook', 'jab', 'limb_deflect_high',
+      'limb_deflect_low', 'redirect_deflect', 'redirect_recoil', 'roundhouse', 'roundhouse_charge', 'spinning_heel']);
   });
 
   for (const { id, spec } of specs) {
     describe(id, () => {
       const length = spec.remap.at(-1)[0];
-      // a held pose (a charge's loop): one frame of another Cascadeur clip
-      const held = spec.source.startsWith('blender/clips/');
+      // from another re-keyed clip: a held pose of it (a charge's loop), or
+      // its contact on (a recoil, milestone-1 task 90)
+      const rekeyed = spec.source.startsWith('blender/clips/');
+      const held = rekeyed && spec.remap.every(([, f]) => f === spec.remap[0][1]);
 
-      it('blocks out from a pack clip, or holds a pose of another Cascadeur clip, into the Cascadeur folder, its clip among the clips', () => {
-        if (held) {
+      it('blocks out from a pack clip or another re-keyed clip into the Cascadeur folder, its clip among the clips', () => {
+        if (rekeyed) {
           const from = spec.source.match(/^blender\/clips\/(.+)\.blend$/)?.[1];
-          assert.ok(specs.some((s) => s.id === from && !s.spec.source.startsWith('blender/clips/')), `holds a pose of the Cascadeur clip ${from}`);
+          const made = specs.some((s) => s.id === from && !s.spec.source.startsWith('blender/clips/'))
+            || existsSync(join(ROOT, 'scripts', 'blender', 'rekeys', `${from}.json`));
+          assert.ok(made, `re-keys ${from}, a clip made in Cascadeur or by a re-key spec`);
         } else {
           assert.match(spec.source, /^kevin_iglesias\/.+\.fbx$/);
         }
@@ -81,19 +87,19 @@ describe('the Cascadeur clip specs', () => {
 
       it('steps as far as the body goes, each foot lifted clear of the ground, and ends in its stance', (t) => {
         if (!spec.step) {
-          assert.ok(held, 'only a held pose keeps its feet');
-          return t.skip('a held pose keeps its feet');
+          assert.ok(held || spec.two_hands, "only a held pose or a blade's deflect keeps its feet");
+          return t.skip(held ? 'a held pose keeps its feet' : "a blade's deflect keeps its pack clip's feet");
         }
         const { body, feet } = spec.step;
         assert.deepEqual(body[0], [0, 0]);
-        for (let i = 1; i < body.length; i++) {
-          assert.ok(body[i][0] > body[i - 1][0] && body[i][1] >= body[i - 1][1], `the body goes forward at ${i}`);
-        }
+        // forward, or (a recoil, milestone-1 task 90) back as the rules knock
+        // the fighter back
+        for (let i = 1; i < body.length; i++) assert.ok(body[i][0] > body[i - 1][0], `the body path runs on in time at ${i}`);
         assert.equal(body.at(-1)[0], length, 'the body path runs the whole clip');
         const went = body.at(-1)[1];
         for (const side of ['L', 'R']) {
           let sum = 0;
-          for (const [from, to, metres, lift] of feet[side]) {
+          for (const [from, to, metres, lift] of feet[side] ?? []) {
             assert.ok(from >= 0 && to > from && to <= length, `${side} steps inside the clip`);
             assert.ok(lift > LIFT_HEIGHT, `${side} lifts clear of the ground`);
             sum += metres;

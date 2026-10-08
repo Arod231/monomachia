@@ -556,3 +556,15 @@ func test_the_string_drives_play_that_many_lights() -> void:
 		assert_eq(played, expected[id] as Array[StringName], "%s plays its lights" % id)
 		assert_eq(f.state, &"free", "%s ends back in the guard" % id)
 	SimHelpers.dispose_all()
+
+
+## The redirect drive (milestone-1 task 90) is the parry drive with the
+## opponent bare-handed; its caption measures the hand against the wrist,
+## or a blade against the parried fist or foot, by the move's striking part.
+func test_the_redirect_drive_parries_bare_handed_and_finds_the_striking_limb() -> void:
+	assert_true(MoveSheet.DRIVES[&"redirect"]["redirect"], "the opponent disarmed")
+	assert_eq(MoveSheet.DRIVES[&"redirect"]["parry"], MoveSheet.DRIVES[&"parry"]["parry"], "timed as the parry drive")
+	assert_false(MoveSheet.DRIVES[&"parry"].get("redirect", false), "the parry drive's opponent keeps its blade")
+	var parts: Dictionary = {&"f_l1": &"left_hand", &"f_l2": &"right_hand", &"f_bl": &"left_foot", &"f_h1": &"right_foot", &"f_sl": &"right_knee", &"k_l1": &""}
+	for move: StringName in parts:
+		assert_eq(MoveSheet.strike_part(move), parts[move], String(move))
