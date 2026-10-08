@@ -26,6 +26,9 @@ const SURFACE_TWO_SIDED_SHADER: Shader = preload("res://shaders/surface_two_side
 ## The same surface from both sides, swayed by the wind (the Shrine's grass
 ## and banners, milestone-1 task 131; sway()).
 const SWAY_SHADER: Shader = preload("res://shaders/surface_sway.gdshader")
+## The same surface for far scenery, faded into the horizon's mist by the
+## aerial fade the Shrine's landscape takes (milestone-1 task 51; far()).
+const SURFACE_FAR_SHADER: Shader = preload("res://shaders/surface_far.gdshader")
 
 const META_SURFACE: StringName = &"look_surface"
 
@@ -191,4 +194,16 @@ static func surface_of(material: Material) -> Surface:
 ## Whether `shader` is the shared surface, either side (the surfaces a
 ## fighter's blood stains go on).
 static func is_surface_shader(shader: Shader) -> bool:
-	return shader == SURFACE_SHADER or shader == SURFACE_TWO_SIDED_SHADER
+	return shader == SURFACE_SHADER or shader == SURFACE_TWO_SIDED_SHADER or shader == SURFACE_FAR_SHADER
+
+
+## A copy of source (a surface) for far scenery: the same surface on
+## SURFACE_FAR_SHADER, fading into horizon (the depth fog's colour) by the
+## aerial fade. Anything else comes back as it is.
+static func far(source: Material, horizon: Color) -> Material:
+	if not (source is ShaderMaterial and (source as ShaderMaterial).shader == SURFACE_SHADER):
+		return source
+	var m := source.duplicate() as ShaderMaterial
+	m.shader = SURFACE_FAR_SHADER
+	m.set_shader_parameter(&"horizon_color", horizon)
+	return m

@@ -4,20 +4,29 @@ extends RefCounted
 ## - CloudSea, the dense sea of clouds, and CloudVeil, a softer layer over
 ##   it, both with a clearing where the lake shows through;
 ## - Mountains, rings of ranges (Range0 nearest) with a valley toward the
-##   moon, down under the water in front of the lake;
+##   moon, down under the water in front of the lake: the landscape's model
+##   (milestone-1 task 51), sculpted in Blender from landscape_spec() by
+##   scripts/blender/build_shrine_landscape.py, each range beside its lighter
+##   twin (Range<i>Low), which Low draws in its place
+##   (GraphicsPreset.light_landscape);
 ## - Lake, far off under the moon, and LakeLanterns drifting on it. The fight
 ##   cameras look over the parapet, which hides the water; it shows from
 ##   outside the walls;
-## - Cliffs: spires rising out of the clouds (Spires) with pagodas and temple
-##   halls on top, facing the shrine, and Waterfalls falling into the clouds;
+## - Cliffs: spires rising out of the clouds (Spire<i>, the landscape
+##   model's, with its Spire<i>Low) with pagodas and temple halls on top,
+##   facing the shrine, and Waterfalls falling into the clouds;
 ## - Mist, puffs on the clouds and at the waterfalls' feet, and CragMist round
 ##   the crag's tip, on the below-deck layer with the crag.
-## All of it is far away and cheap: unshaded shaders on the look's noise (the
-## cliffs' rock and buildings are lit), and no shadows. The
-## presets trim it by scenery detail (DETAIL).
+## All of it is far away and casts no shadows: the ranges and spires are lit
+## rock (LANDSCAPE: the paving's scans laid on by world position), the rest
+## unshaded shaders on the look's noise. The presets trim it by scenery
+## detail (DETAIL).
 
 const CLOUD_SEA: Shader = preload("res://shaders/cloud_sea.gdshader")
-const MOUNTAIN: Shader = preload("res://shaders/mountain_layer.gdshader")
+const CLOUD_VOLUME: Shader = preload("res://shaders/cloud_volume.gdshader")
+const LANDSCAPE: Shader = preload("res://shaders/landscape_rock.gdshader")
+## The landscape's model: Range<i> and Cliff<i>, each with its _Low twin.
+const MODEL: String = "res://assets/exports/shrine/landscape.glb"
 const WATERFALL: Shader = preload("res://shaders/waterfall.gdshader")
 const LAKE: Shader = preload("res://shaders/lake_water.gdshader")
 const MIST: Shader = preload("res://shaders/mist_puff.gdshader")
@@ -28,10 +37,6 @@ const DETAIL: Dictionary[StringName, int] = {&"CloudVeil": 1, &"Cliffs": 1, &"La
 ## How far the clouds reach, and how far under the veil the sea lies.
 const CLOUD_RADIUS := 2600.0
 const CLOUD_SEA_DEPTH := 12.0
-## The mountains' strokes round the nearest ring, and how many more each ring
-## further out has (rounded to the noise's period, so they meet round it).
-const STROKES := 600.0
-const STROKES_PER_RING := 300.0
 ## How far under the lake's water the valley toward the moon drops at its
 ## deepest.
 const VALLEY_FLOOR := 10.0
@@ -39,7 +44,7 @@ const VALLEY_FLOOR := 10.0
 ## temple hall and a small pagoda; narrower ones a hall.
 const PAGODA_CLIFF := 15.0
 const TEMPLE_CLIFF := 12.0
-## How far below the veil the cliffs' bases and the waterfalls end.
+## How far below the veil the cliffs' feet and the waterfalls end.
 const SPIRE_FOOT := 40.0
 const WATERFALL_PLUNGE := 5.5
 ## Lanterns on the lake, and mist puffs: at each waterfall's foot, on the
@@ -48,6 +53,20 @@ const LAKE_LANTERNS := 16
 const MIST_PER_FALL := 5
 const CLOUD_BILLOWS := 40
 const CRAG_MIST := 22
+## The cloud volume (Ultra and High): how high its billows rise over the
+## sea's top, how deep it reaches under it, how high its fog banks rise
+## between the ranges (nearest first) and how wide they spread, and where
+## its disc starts (a point's width from the centre, where the crag stands
+## in it).
+const BILLOW := 13.0
+const VOLUME_DEPTH := 30.0
+const BANK_HEIGHTS: PackedFloat32Array = [14.0, 20.0, 24.0]
+const BANK_WIDTH := 55.0
+const VOLUME_INNER := 0.5
+## Points round each ring's crest (ridge()).
+const RIDGE_SAMPLES := 720
+## How far under the veil the ranges' feet lie.
+const RANGE_FOOT := 60.0
 
 
 ## The world round the shrine. horizon is the colour the depth fog fades to,
@@ -63,17 +82,66 @@ static func build(layout: ShrineLayout, horizon: Color) -> Node3D:
 	root.add_child(_clouds(&"CloudSea", layout.cloud_sea_height - CLOUD_SEA_DEPTH, shared.merged({
 		&"coverage": 0.3, &"scale": 0.006, &"lit_color": Color(0.28, 0.3, 0.38), &"opacity": 1.0})))
 	root.add_child(_clouds(&"CloudVeil", layout.cloud_sea_height, shared.merged({&"opacity": 0.8})))
-	root.add_child(_mountains(layout, moon, horizon))
+	root.add_child(_cloud_volume(layout, shared))
+	var model: Node = (load(MODEL) as PackedScene).instantiate()
+	var rock: ShaderMaterial = rock_material()
+	rock.set_shader_parameter(&"horizon_color", horizon)
+	root.add_child(_mountains(layout, model, rock))
 	root.add_child(_lake(layout, lake_centre, moon, horizon))
 	root.add_child(_lake_lanterns(layout, lake_centre))
-	root.add_child(_cliffs(layout))
+	root.add_child(_cliffs(layout, model, rock, horizon))
+	model.free()
 	root.add_child(_mist(layout))
 	root.add_child(_crag_mist(layout))
 	for part: Node in root.get_children():
 		if DETAIL.has(part.name):
 			part.set_meta(GraphicsApplier.META_DETAIL, DETAIL[part.name])
 			part.add_to_group(GraphicsApplier.GROUP_SCENERY)
+	# the mesh layers on Medium and Low, the volume on Ultra and High
+	for part: StringName in [&"CloudSea", &"CloudVeil", &"CloudVolume"]:
+		var clouds: Node = root.get_node(NodePath(part))
+		clouds.set_meta(GraphicsApplier.META_VOLUMETRIC_CLOUDS, part == &"CloudVolume")
+		clouds.add_to_group(GraphicsApplier.GROUP_CLOUDS)
 	return root
+
+
+## The numbers the modelled landscape is sculpted from (milestone-1 task 51):
+## game/tools/export_landscape_spec.gd writes them to
+## scripts/blender/shrine/landscape.json, which
+## scripts/blender/build_shrine_landscape.py reads, and
+## test_shrine_landscape.gd holds that file to them. Each range's crest
+## (ridge(), which keeps the valley toward the moon) and each cliff's place,
+## top, radius and foot, with the side its waterfall falls from; the sea of
+## clouds' height, the ranges' feet under it, the moon and the lake.
+static func landscape_spec(layout: ShrineLayout) -> Dictionary:
+	var rng: RandomNumberGenerator = layout.random_stream(&"mountains")
+	var ranges: Array = []
+	for i: int in layout.mountain_layers.size():
+		var m: Vector4 = layout.mountain_layers[i]
+		var crest: Array = []
+		for p: Vector3 in ridge(layout, i, rng.randi()):
+			crest.append([snappedf(p.x, 0.001), snappedf(p.y, 0.001), snappedf(p.z, 0.001)])
+		ranges.append({"index": i, "distance": m.x, "lowest": m.y, "highest": m.z, "crest": crest,
+			"seed": i * 101 + layout.seed})
+	var cliffs: Array = []
+	for i: int in layout.cliffs.size():
+		var c: Vector4 = layout.cliffs[i]
+		var centre: Vector3 = _cliff_centre(layout, i)
+		var toward: Vector3 = _toward_shrine(layout, i)
+		cliffs.append({"index": i, "centre": [snappedf(centre.x, 0.001), snappedf(centre.z, 0.001)], "top": c.z,
+			"radius": c.w, "foot": layout.cloud_sea_height - SPIRE_FOOT,
+			"toward": [snappedf(toward.x, 0.0001), snappedf(toward.z, 0.0001)],
+			"waterfall": layout.waterfall_cliffs.has(i), "seed": i * 37 + layout.seed})
+	var moon: Vector3 = layout.moon_direction.normalized()
+	var lake: Vector3 = ShrineLayout.polar(layout.lake.x, layout.lake.y, layout.lake.z)
+	return {
+		"cloud_sea_height": layout.cloud_sea_height,
+		"range_foot": layout.cloud_sea_height - RANGE_FOOT,
+		"moon": [snappedf(moon.x, 0.0001), snappedf(moon.y, 0.0001), snappedf(moon.z, 0.0001)],
+		"lake": {"centre": [snappedf(lake.x, 0.001), snappedf(lake.z, 0.001)], "height": lake.y, "radius": layout.lake.w},
+		"ranges": ranges,
+		"cliffs": cliffs,
+	}
 
 
 ## A material of shader with params set, and the look's noise.
@@ -95,33 +163,90 @@ static func _clouds(part: StringName, height: float, params: Dictionary) -> Mesh
 	return mi
 
 
-## The rings of mountains, nearest darkest, the farther ones fading toward
-## the horizon's mist.
-static func _mountains(layout: ShrineLayout, moon: Vector3, horizon: Color) -> Node3D:
+## The sea of clouds as a volume the moon lights (cloud_volume.gdshader): a
+## shallow cone over the island out to CLOUD_RADIUS, at each distance just
+## over the highest top the cloud reaches there, its fog banks rising midway
+## between the ranges.
+static func _cloud_volume(layout: ShrineLayout, shared: Dictionary) -> MeshInstance3D:
+	var radii := Vector4.ZERO
+	var heights := Vector4.ZERO
+	var rings: PackedVector4Array = layout.mountain_layers
+	for i: int in mini(rings.size() - 1, BANK_HEIGHTS.size()):
+		radii[i] = (rings[i].x + rings[i + 1].x) * 0.5
+		heights[i] = BANK_HEIGHTS[i]
+	var top: float = layout.cloud_sea_height
+	var steps: PackedFloat32Array = []
+	var r: float = VOLUME_INNER
+	while r < CLOUD_RADIUS:
+		steps.append(r)
+		r = r * 1.12 + 2.0
+	steps.append(CLOUD_RADIUS)
+	var segments: int = 128
+	var grid: Array[PackedVector3Array] = []
+	for ring_r: float in steps:
+		var h: float = top + BILLOW * 1.15 + 1.0
+		for i: int in 4:
+			var d: float = (ring_r - radii[i]) / BANK_WIDTH
+			h += heights[i] * 1.5 * exp(-d * d)
+		var row := PackedVector3Array()
+		for k: int in segments + 1:
+			var a: float = -TAU * k / segments
+			row.append(Vector3(sin(a) * ring_r, h, cos(a) * ring_r))
+		grid.append(row)
+	var kit := MeshKit.new()
+	kit.grid_surface(Transform3D.IDENTITY, grid, true)
+	var mat := _material(CLOUD_VOLUME, shared.merged({
+		&"cloud_top": top, &"billow": BILLOW, &"cloud_floor": top - VOLUME_DEPTH,
+		&"bank_radii": radii, &"bank_heights": heights, &"bank_width": BANK_WIDTH,
+		&"key_direction": layout.key_light_direction.normalized()}))
+	var mi := MeshKit.instance(kit.commit(), mat, false)
+	mi.name = "CloudVolume"
+	return mi
+
+
+## The rings of mountains, each the landscape model's range and its lighter
+## twin for Low.
+static func _mountains(layout: ShrineLayout, model: Node, rock: ShaderMaterial) -> Node3D:
 	var node := Node3D.new()
 	node.name = "Mountains"
-	var rng: RandomNumberGenerator = layout.random_stream(&"mountains")
-	var count: int = layout.mountain_layers.size()
-	for i: int in count:
-		var f: float = float(i) / maxf(count - 1, 1)
-		var mat := _material(MOUNTAIN, {
-			&"layer_fade": f * 0.35,
-			&"body_color": Color(0.035, 0.04, 0.06).lerp(Color(0.12, 0.13, 0.17), f),
-			&"ridge_color": Color(0.012, 0.014, 0.024).lerp(Color(0.07, 0.08, 0.11), f),
-			&"horizon_color": horizon,
-			&"moon_direction": moon,
-			&"stroke_frequency": snappedf(STROKES + i * STROKES_PER_RING, LookNoise.CELLS),
-		})
-		var mi := MeshKit.instance(_mountain_ring(layout, i, rng.randi()), mat, false)
-		mi.name = "Range%d" % i
-		node.add_child(mi)
+	for i: int in layout.mountain_layers.size():
+		_landscape_pair(node, model, "Range%d" % i, "Range%d" % i, rock)
 	return node
 
 
-## Ring index of the mountains as a strip from far below the clouds up to a
-## noisy ridge. UV.x runs once round the ring; UV.y is 0 at the clouds and 1
-## at the ridge.
-static func _mountain_ring(layout: ShrineLayout, index: int, noise_seed: int) -> ArrayMesh:
+## The model's mesh model_name and its _Low twin under parent, named
+## child_name and child_name + "Low", in rock, casting no shadow, each shown
+## on the presets that ask for it (GraphicsApplier.GROUP_LANDSCAPE).
+static func _landscape_pair(parent: Node3D, model: Node, model_name: String, child_name: String, rock: ShaderMaterial) -> void:
+	for light: bool in [false, true]:
+		var source := model.find_child(model_name + ("_Low" if light else ""), true, false) as MeshInstance3D
+		var mi := MeshInstance3D.new()
+		mi.name = child_name + ("Low" if light else "")
+		mi.mesh = source.mesh
+		mi.material_override = rock
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.set_meta(GraphicsApplier.META_LIGHT_LANDSCAPE, light)
+		mi.add_to_group(GraphicsApplier.GROUP_LANDSCAPE)
+		mi.visible = not light
+		parent.add_child(mi)
+
+
+## The ranges' and spires' rock: the paving's scans (ShrinePlatform.paving_maps())
+## laid on by world position.
+static func rock_material() -> ShaderMaterial:
+	var maps: Dictionary = ShrinePlatform.paving_maps()
+	var params: Dictionary = {}
+	for key: StringName in [&"stone_albedo", &"stone_normal", &"stone_rough", &"grime_albedo", &"grime_normal"]:
+		params[key] = maps[key]
+	return _material(LANDSCAPE, params)
+
+
+## The crest of ring index, RIDGE_SAMPLES points round it from angle 0 (+z)
+## toward +x: a noisy ridge between the ring's lowest and highest, its
+## distance wandering a little, with a valley toward the moon down under the
+## lake's water, so the moon and the lake stay in view. Rounded to the
+## millimetre, as landscape_spec() hands it to Blender.
+static func ridge(layout: ShrineLayout, index: int, noise_seed: int) -> PackedVector3Array:
 	# (distance, lowest ridge, highest peak, valley depth toward the moon)
 	var m: Vector4 = layout.mountain_layers[index]
 	var valley_floor: float = layout.lake.z - VALLEY_FLOOR
@@ -131,47 +256,21 @@ static func _mountain_ring(layout: ShrineLayout, index: int, noise_seed: int) ->
 	noise.frequency = 1.0
 	noise.fractal_octaves = 4
 	noise.fractal_gain = 0.55
-	var segments: int = 720
-	var cloud: float = layout.cloud_sea_height
-	var bottom: float = cloud - 60.0
 	var moon_angle: float = atan2(layout.moon_direction.x, layout.moon_direction.z)
 	# Each ring samples the noise on a circle of its own size.
 	var sample_radius: float = 1.5 + index * 0.35
 	var tops := PackedVector3Array()
-	var bases := PackedVector3Array()
-	for i: int in segments + 1:
-		var a: float = TAU * (i % segments) / segments
+	for i: int in RIDGE_SAMPLES:
+		var a: float = TAU * i / RIDGE_SAMPLES
 		var c := Vector2(sin(a), cos(a)) * sample_radius
 		var n: float = noise.get_noise_2d(c.x, c.y) * 0.5 + 0.5
 		var ridged: float = 1.0 - absf(noise.get_noise_2d(c.x * 2.7 + 9.0, c.y * 2.7))
 		var h: float = clampf(pow(n, 1.6) * 1.25 + ridged * 0.1, 0.0, 1.0)
-		# A valley toward the moon, down under the lake's water at its
-		# deepest, keeps the moon and the lake in view.
 		var valley: float = m.w * smoothstep(0.82, 0.99, cos(angle_difference(a, moon_angle)))
 		var r: float = m.x * (1.0 + 0.07 * noise.get_noise_2d(c.x * 0.5 + 40.0, c.y * 0.5))
-		tops.append(Vector3(sin(a) * r, lerpf(lerpf(m.y, m.z, h), valley_floor, valley), cos(a) * r))
-		bases.append(Vector3(sin(a) * r * 1.02, bottom, cos(a) * r * 1.02))
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i: int in segments:
-		var u0: float = float(i) / segments
-		var u1: float = float(i + 1) / segments
-		var v_bot0: float = (bottom - cloud) / maxf(tops[i].y - cloud, 1.0)
-		var v_bot1: float = (bottom - cloud) / maxf(tops[i + 1].y - cloud, 1.0)
-		_ring_vertex(st, bases[i], Vector2(u0, v_bot0))
-		_ring_vertex(st, tops[i], Vector2(u0, 1.0))
-		_ring_vertex(st, tops[i + 1], Vector2(u1, 1.0))
-		_ring_vertex(st, bases[i], Vector2(u0, v_bot0))
-		_ring_vertex(st, tops[i + 1], Vector2(u1, 1.0))
-		_ring_vertex(st, bases[i + 1], Vector2(u1, v_bot1))
-	return st.commit()
-
-
-## A ring vertex, its normal facing the centre.
-static func _ring_vertex(st: SurfaceTool, p: Vector3, uv: Vector2) -> void:
-	st.set_normal(-Vector3(p.x, 0, p.z).normalized())
-	st.set_uv(uv)
-	st.add_vertex(p)
+		var top := Vector3(sin(a) * r, lerpf(lerpf(m.y, m.z, h), valley_floor, valley), cos(a) * r)
+		tops.append(Vector3(snappedf(top.x, 0.001), snappedf(top.y, 0.001), snappedf(top.z, 0.001)))
+	return tops
 
 
 ## The lake, mirroring the horizon's mist and the moon.
@@ -202,20 +301,15 @@ static func _lake_lanterns(layout: ShrineLayout, centre: Vector3) -> MultiMeshIn
 
 
 ## The cliff spires with their buildings and waterfalls.
-static func _cliffs(layout: ShrineLayout) -> Node3D:
+static func _cliffs(layout: ShrineLayout, model: Node, rock: ShaderMaterial, horizon: Color) -> Node3D:
 	var node := Node3D.new()
 	node.name = "Cliffs"
-	var rock := MeshKit.new()
 	var falls := MeshKit.new()
-	var noise := FastNoiseLite.new()
-	noise.seed = layout.random_stream(&"cliffs").randi()
-	noise.frequency = 0.05
-	noise.fractal_octaves = 3
 	var buildings := ShrineBuildings.new()
 	for i: int in layout.cliffs.size():
 		var c: Vector4 = layout.cliffs[i]
 		var centre: Vector3 = _cliff_centre(layout, i)
-		_spire(rock, centre, c.z, c.w, layout.cloud_sea_height - SPIRE_FOOT, noise)
+		_landscape_pair(node, model, "Cliff%d" % i, "Spire%d" % i, rock)
 		# The buildings face the shrine.
 		var top := Transform3D(Basis(Vector3.UP, deg_to_rad(c.x + 180.0)), centre + Vector3(0, c.z, 0))
 		if c.w >= PAGODA_CLIFF:
@@ -228,9 +322,12 @@ static func _cliffs(layout: ShrineLayout) -> Node3D:
 		if layout.waterfall_cliffs.has(i):
 			var lip: Vector3 = _waterfall_lip(layout, i)
 			_waterfall(falls, lip, _toward_shrine(layout, i), lip.y - layout.cloud_sea_height + WATERFALL_PLUNGE, c.w * 0.38)
-	var spires := MeshKit.instance(rock.commit(), _cliff_rock(), false)
-	spires.name = "Spires"
-	node.add_child(spires)
+	# the modelled buildings step back with their rock (LookMaterials.far())
+	for building: Node in node.get_children():
+		var body := building.get_node_or_null(^"Body") as MeshInstance3D
+		if body != null:
+			for s: int in body.get_surface_override_material_count():
+				body.set_surface_override_material(s, LookMaterials.far(body.get_surface_override_material(s), horizon))
 	var waterfalls := MeshKit.instance(falls.commit(), _material(WATERFALL, {}), false)
 	waterfalls.name = "Waterfalls"
 	node.add_child(waterfalls)
@@ -251,46 +348,6 @@ static func _temple_hall(node: Node3D, buildings: ShrineBuildings, layout: Shrin
 		width: float) -> void:
 	if not layout.place_art(node, &"temple_hall", index, xform.scaled_local(Vector3.ONE * width)):
 		node.add_child(buildings.temple_hall(index, xform, width))
-
-
-## The cliffs' rock: the crag's, darker, with broader strata for its size.
-static func _cliff_rock() -> ShaderMaterial:
-	var mat: ShaderMaterial = ShrineUnderside.rock_material()
-	mat.set_shader_parameter(&"rock_light", Color(0.2, 0.2, 0.23))
-	mat.set_shader_parameter(&"rock_dark", Color(0.07, 0.07, 0.09))
-	mat.set_shader_parameter(&"top_color", Color(0.24, 0.25, 0.28))
-	mat.set_shader_parameter(&"strata_scale", 0.12)
-	mat.set_shader_parameter(&"noise_scale", 0.08)
-	return mat
-
-
-## A cliff spire: a flat top at top_y, flaring a little toward its base far
-## below the clouds, darker toward the base.
-static func _spire(kit: MeshKit, centre: Vector3, top_y: float, radius: float, base_y: float, noise: FastNoiseLite) -> void:
-	var segments: int = 20
-	var levels: int = 16
-	var rows: Array[PackedVector3Array] = []
-	var colors: Array[PackedColorArray] = []
-	for j: int in levels + 2:
-		var row := PackedVector3Array()
-		var shades := PackedColorArray()
-		var shade: float = 1.0 - clampf(float(j) / levels, 0.0, 1.0) * 0.5
-		for i: int in segments + 1:
-			var a: float = -TAU * (i % segments) / segments
-			var dir := Vector3(sin(a), 0, cos(a))
-			var p := Vector3(0, top_y, 0)
-			if j > 0:
-				var t: float = float(j - 1) / levels
-				var y: float = lerpf(top_y, base_y, t)
-				var r: float = radius * (1.0 + 0.6 * t * t)
-				r *= 1.0 + 0.3 * noise.get_noise_3d(centre.x + dir.x * 22.0, y * 0.5, centre.z + dir.z * 22.0) \
-					+ 0.12 * noise.get_noise_3d(centre.x + dir.x * 70.0, y * 2.0, centre.z + dir.z * 70.0)
-				p = dir * r + Vector3(0, y, 0)
-			row.append(centre + p)
-			shades.append(Color(shade, shade, shade))
-		rows.append(row)
-		colors.append(shades)
-	kit.grid_surface(Transform3D.IDENTITY, rows, true, colors)
 
 
 ## Cliff index's centre, at the courtyard floor's height.

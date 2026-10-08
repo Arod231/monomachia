@@ -7,9 +7,14 @@
 // with use_orm_texture a map's green and blue (glTF's packing; the Hunter's
 // dyed outfit, milestone-1 task 45). A fighter's blood stains (blood_stain.gdshaderinc,
 // milestone-1 task 38) go over the colour. Build it through LookMaterials,
-// which sets the roughness and metalness by the surface's kind.
+// which sets the roughness and metalness by the surface's kind. With
+// AERIAL_FADE defined (surface_far.gdshader) it fades by aerial_fade() in
+// place of the environment's fog.
 
 #include "res://shaders/blood_stain.gdshaderinc"
+#ifdef AERIAL_FADE
+#include "res://shaders/aerial_fade.gdshaderinc"
+#endif
 
 uniform vec4 base_color : source_color = vec4(0.72, 0.70, 0.66, 1.0);
 uniform sampler2D albedo_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable, hint_default_white;
@@ -45,4 +50,7 @@ void fragment() {
 		NORMAL_MAP_DEPTH = normal_strength;
 	}
 	EMISSION = emission_color.rgb * emission_energy;
+#ifdef AERIAL_FADE
+	FOG = aerial_fade((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz, CAMERA_POSITION_WORLD);
+#endif
 }

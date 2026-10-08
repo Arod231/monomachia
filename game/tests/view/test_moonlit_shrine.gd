@@ -18,17 +18,19 @@ const SCENE := "res://arenas/moonlit_shrine/moonlit_shrine.tscn"
 const SKY_SHADER: Shader = preload("res://shaders/sky_moonlit.gdshader")
 ## The backdrop's own shaders, which all take the look's noise.
 const BACKDROP_SHADERS: Array[Shader] = [
-	ShrineBackdrop.CLOUD_SEA, ShrineBackdrop.MOUNTAIN, ShrineBackdrop.WATERFALL, ShrineBackdrop.LAKE, ShrineBackdrop.MIST,
+	ShrineBackdrop.CLOUD_SEA, ShrineBackdrop.CLOUD_VOLUME, ShrineBackdrop.LANDSCAPE, ShrineBackdrop.WATERFALL,
+	ShrineBackdrop.LAKE, ShrineBackdrop.MIST,
 ]
-## What each level of scenery detail draws of the backdrop (World's parts):
-## 0 keeps the sea of clouds, the mountains and the lake; 1 adds the veil of
-## cloud over the sea, the cliffs with their buildings and waterfalls, and the
-## lanterns on the lake; 2 adds the mist, round the crag's tip too. Every
-## preset draws at 2 since milestone-1 task 29 (Low drops only atmosphere).
+## What each level of scenery detail draws of the backdrop (World's parts)
+## on Ultra: 0 keeps the sea of clouds (its volume on Ultra, milestone-1 task
+## 51), the mountains and the lake; 1 adds the cliffs with their buildings
+## and waterfalls, and the lanterns on the lake; 2 adds the mist, round the
+## crag's tip too. Every preset draws at 2 since milestone-1 task 29 (Low
+## drops only atmosphere).
 const SCENERY: Dictionary[int, Array] = {
-	0: ["CloudSea", "Mountains", "Lake"],
-	1: ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns"],
-	2: ["CloudSea", "CloudVeil", "Mountains", "Lake", "Cliffs", "LakeLanterns", "Mist", "CragMist"],
+	0: ["CloudVolume", "Mountains", "Lake"],
+	1: ["CloudVolume", "Mountains", "Lake", "Cliffs", "LakeLanterns"],
+	2: ["CloudVolume", "Mountains", "Lake", "Cliffs", "LakeLanterns", "Mist", "CragMist"],
 }
 ## How far past the moon's disc (radians) nothing may stand.
 const MOON_MARGIN := 0.015
@@ -827,7 +829,7 @@ func test_ash_falls_across_the_courtyard() -> void:
 ## ash off the floor.
 func test_the_embers_and_ash_drift_with_the_wind_the_clouds_drift_on() -> void:
 	var wind: Vector2 = arena.layout.wind
-	for clouds: String in ["CloudSea", "CloudVeil"]:
+	for clouds: String in ["CloudSea", "CloudVeil", "CloudVolume"]:
 		var mat := (arena.get_node("World/" + clouds) as GeometryInstance3D).material_override as ShaderMaterial
 		assert_almost_eq(_param(mat, &"drift_direction") as Vector2, wind.normalized(), Vector2.ONE * 0.001, "%s drifts with the wind" % clouds)
 	for emitter: Node in _particles(arena):

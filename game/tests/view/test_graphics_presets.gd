@@ -60,14 +60,45 @@ func test_every_preset_follows_ultra_but_for_its_named_cuts() -> void:
 ## The parry push-in's depth of field joins them (milestone-1 task 39: off on
 ## Low, the owner's choice, Oct 6), and the sparks' contact lights (task 37:
 ## Ultra and High only, the owner's choice, Oct 6), and the fighters' key
-## light shadows (task 44: off on Low, the owner's choice, Oct 7).
+## light shadows (task 44: off on Low, the owner's choice, Oct 7), and the
+## Shrine's volumetric clouds and lighter landscape (task 51: the volume on
+## Ultra and High, the lighter models on Low, the owner's choice, Oct 8).
 func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 	assert_eq(GraphicsPreset.CUTS, [
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
 		&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
-		&"floor_petal_ratio",
+		&"floor_petal_ratio", &"volumetric_clouds", &"light_landscape",
 	] as Array[StringName])
+
+
+func test_the_clouds_are_volumetric_on_ultra_and_high_and_low_draws_the_lighter_landscape() -> void:
+	for id: StringName in GraphicsPreset.IDS:
+		var p: GraphicsPreset = GraphicsPreset.load_id(id)
+		assert_eq(p.volumetric_clouds, id == &"ultra" or id == &"high", "%s's clouds" % id)
+		assert_eq(p.light_landscape, id == &"low", "%s's landscape" % id)
+
+
+func test_the_presets_switch_the_cloud_volume_and_the_landscape_models() -> void:
+	var root := Node3D.new()
+	var parts: Dictionary[String, Node3D] = {}
+	for part: Array in [["Volume", GraphicsApplier.GROUP_CLOUDS, GraphicsApplier.META_VOLUMETRIC_CLOUDS, true],
+			["Layer", GraphicsApplier.GROUP_CLOUDS, GraphicsApplier.META_VOLUMETRIC_CLOUDS, false],
+			["Full", GraphicsApplier.GROUP_LANDSCAPE, GraphicsApplier.META_LIGHT_LANDSCAPE, false],
+			["Light", GraphicsApplier.GROUP_LANDSCAPE, GraphicsApplier.META_LIGHT_LANDSCAPE, true]]:
+		var n := Node3D.new()
+		n.add_to_group(part[1])
+		n.set_meta(part[2], part[3])
+		root.add_child(n)
+		parts[part[0]] = n
+	var shown: Dictionary[StringName, Array] = {
+		&"ultra": ["Volume", "Full"], &"high": ["Volume", "Full"], &"medium": ["Layer", "Full"], &"low": ["Layer", "Light"],
+	}
+	for id: StringName in shown:
+		GraphicsApplier.apply_to_tree(GraphicsPreset.load_id(id), root)
+		for name: String in parts:
+			assert_eq(parts[name].visible, shown[id].has(name), "%s shows %s: %s" % [id, name, shown[id].has(name)])
+	root.free()
 
 
 func test_every_viewport_has_room_for_the_lanterns_and_canopy_lights_shadows() -> void:
