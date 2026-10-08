@@ -102,7 +102,7 @@ static func _play(def: AttackDef, weapon: WeaponDef, distance: float, bearing: f
 		# Fighter._update_attack(): the lunge, as _advance() takes it
 		var share: float = def.lunge_share(f)
 		if moves and lunge > 0.0 and share > 0.0:
-			var room: float = maxf(0.0, SimMath.dist2(pos, target) - (SimConst.FIGHTER_RADIUS * 2.0 + 0.25))
+			var room: float = maxf(0.0, SimMath.dist2(pos, target) - (SimConst.FIGHTER_RADIUS * 2.0 + def.closing_gap()))
 			var step: float = minf(lunge * share, room)
 			var dir: V2 = SimMath.fwd(yaw)
 			pos = V3.make(pos.x + dir.x * step, pos.y, pos.z + dir.z * step)
@@ -113,7 +113,7 @@ static func _play(def: AttackDef, weapon: WeaponDef, distance: float, bearing: f
 			var move: V3 = SimMath.local_to_world(V3.make(), yaw, V3.make(travel[1], 0.0, travel[0]))
 			var dist: float = JsMath.hypot(move.x, move.z)
 			if dist > 0.0:
-				pos = _along(pos, target, V2.make(move.x / dist, move.z / dist), dist)
+				pos = _along(pos, target, V2.make(move.x / dist, move.z / dist), dist, def.closing_gap())
 			yaw = SimMath.wrap_angle(yaw - travel[2] * SimMath.DEG)
 		# Fighter._update_facing(): the startup's and the active frames' tracking
 		var rate: float = def.track_startup if f <= def.startup else def.track_active
@@ -147,14 +147,14 @@ static func _play(def: AttackDef, weapon: WeaponDef, distance: float, bearing: f
 
 ## `pos` moved `dist` along `dir` (a unit vector) as Fighter._advance_along()
 ## moves it toward a defender at `target`: the part that closes on them
-## stops with the bodies 0.25 m apart, the part across goes on.
-static func _along(pos: V3, target: V3, dir: V2, dist: float) -> V3:
+## stops with the bodies `gap` m apart, the part across goes on.
+static func _along(pos: V3, target: V3, dir: V2, dist: float, gap: float) -> V3:
 	var to: V2 = SimMath.norm2(target.x - pos.x, target.z - pos.z)
 	var closing: float = (dir.x * to.x + dir.z * to.z) * dist
 	var across_x: float = dir.x * dist - to.x * closing
 	var across_z: float = dir.z * dist - to.z * closing
 	if closing > 0.0:
-		closing = minf(closing, maxf(0.0, SimMath.dist2(pos, target) - (SimConst.FIGHTER_RADIUS * 2.0 + 0.25)))
+		closing = minf(closing, maxf(0.0, SimMath.dist2(pos, target) - (SimConst.FIGHTER_RADIUS * 2.0 + gap)))
 	return V3.make(pos.x + across_x + to.x * closing, pos.y, pos.z + across_z + to.z * closing)
 
 

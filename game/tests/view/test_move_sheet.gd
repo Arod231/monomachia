@@ -320,6 +320,17 @@ func test_the_strafe_and_backpedal_drives_move_the_way_they_say() -> void:
 		assert_true(MoveSheet.VIEW_NAMES.has(MoveSheet.DRIVES[id]["views"][0]), "%s: its own view" % id)
 
 
+## The jump attack drives (milestone-1 task 94) jump on the spot and press
+## the attack 3 frames in, disarmed, so bare hands jump the disarmed arc the
+## game gives them.
+func test_the_jump_attack_drives_jump_then_attack_disarmed() -> void:
+	for id: StringName in [&"jump_light", &"jump_heavy"]:
+		var inputs: Array[RawInput] = MoveSheet.drive_inputs(id)
+		assert_eq(inputs[12].buttons, 1 << Btn.JUMP, "%s: the jump after 12 still frames" % id)
+		assert_eq(inputs[15].buttons, 1 << (Btn.LIGHT if id == &"jump_light" else Btn.HEAVY), "%s: the attack 3 frames in" % id)
+		assert_true(MoveSheet.DRIVES[id]["disarmed"], "%s: disarmed" % id)
+
+
 ## The guard drives walk the same ways blocking, seen
 ## from above too, every other frame.
 func test_the_guard_drives_walk_blocking() -> void:

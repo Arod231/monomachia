@@ -186,7 +186,9 @@ static func bake(pose: Callable, length: float, markers: Dictionary, speed: floa
 	if t == null:
 		return null
 	var end: float = length * float(ClipManifest.SOURCE_FPS)
-	if t.marks[3] > end + 1e-6:
+	# a thousandth of a frame's give: a clip's length is a 32-bit float
+	# (FrameDataGenerator.generate(), milestone-1 task 94)
+	if t.marks[3] > end + 1e-3:
 		errors.append("the settle marker (%s) is past the clip's end (frame %s)" % [ClipTiming.frame_text(t.marks[3]), ClipTiming.frame_text(snappedf(end, 0.01))])
 		return null
 	var out: Result = Result.new()

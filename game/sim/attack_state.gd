@@ -62,6 +62,11 @@ var lift: int = 0
 var lift_left: int = 0
 var evaded_emitted: bool = false
 var whiff_emitted: bool = false
+## a jump attack's frame at its touchdown, -1 while it is in the air or for
+## a move on the ground (milestone-1 task 59): it then plays its landing
+## recovery (AttackDef.landing_recovery()) from there, or from its last
+## active frame if it landed before that
+var landed: int = -1
 # shadow step path
 var path_from: PathPoint = null
 var path_to: PathPoint = null

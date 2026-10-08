@@ -28,7 +28,11 @@ extends RefCounted
 ## stays put in the world, so the fighter's root moves against the way the
 ## planted foot slides in the clip (both feet planted: their average), and
 ## turns against the way it turns; with no foot planted the root carries on
-## as it last moved (none at the start). The hips' own shift in the clip
+## straight ahead at the speed it last went forward (none at the start),
+## holding its heading: a planted foot's last sideways slide and twist aren't
+## carried, since retargeting onto the game's bodies bends a push-off's last
+## slide a little, and a leap would drift and turn on it all through the
+## flight (milestone-1 task 93). The hips' own shift in the clip
 ## rides on top: a frame's travel is the root's move plus the hips' move
 ## across the ground. A swing sampled relative to the moving body has the
 ## hips' shift across the ground taken out, so the clip's path is the swing's
@@ -106,7 +110,8 @@ static func generate(pose: Callable, length: float, markers: Dictionary, contact
 		if float(markers[NEEDED[i]]) <= float(markers[NEEDED[i - 1]]):
 			errors.append("the %s marker must come after the %s marker" % [NEEDED[i], NEEDED[i - 1]])
 	var end: float = length * ClipManifest.SOURCE_FPS
-	if float(markers["settle"]) > end + 1e-6:
+	# a thousandth of a frame's give: a clip's length is a 32-bit float
+	if float(markers["settle"]) > end + 1e-3:
 		errors.append("the settle marker (%s) is past the clip's end (frame %s)" % [
 			ClipTiming.frame_text(float(markers["settle"])), ClipTiming.frame_text(snappedf(end, 0.01))])
 	if errors.size() != before:
@@ -179,6 +184,9 @@ static func travel(r: Result, feet: Array[Dictionary], hips: Array[V3], contacts
 		if planted > 0:
 			root = V3.scale(slide, -1.0 / planted)
 			root_turn = -twist / planted
+		else:
+			root = V3.make(0.0, 0.0, root.z)
+			root_turn = 0.0
 		var move: V3 = V3.add(root, V3.sub(_ground(hips[f]), _ground(hips[f - 1])))
 		r.forward.append(move.z)
 		r.sideways.append(move.x)

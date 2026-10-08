@@ -13,13 +13,18 @@ extends GutTest
 ##   reaction for every place;
 ## - 13, its swing, hit, block and parry sound, and its deflect pair's;
 ## - 14, its effects at the contact (blood on a hit, sparks on a block and a
-##   parry, an air smear on its strike);
+##   parry, an air smear on its strike; a bare hand's dust-and-cloth puff on
+##   all three, milestone-1 task 95);
 ## - 15, the computer uses it and answers it (seeded Hard duels).
 ## Reads committed data and runs the rules, so it runs on CI. Every keyed
 ## move must pass, but a keyed move outside the strings (Breaker Palm, task
 ## 99) has its reactions (12) and its contacts' sound and effects (13, 14)
 ## recorded for its family's review, not held: bare hands' reactions and
-## the redirect's deflect pair are tasks 69's and 90's. A clip row's results
+## the redirect's deflect pair are tasks 69's and 90's. Bare hands' eight
+## movement attacks have their sound and effects held since task 95 (a
+## parried fist meets no steel, so sounds no deflect pair); a jump attack
+## is played out of a jump, close, and a dodge attack from where its roll
+## leaves it. A clip row's results
 ## are recorded for the owner whether they pass or not, as task 40 decided
 ## (the new strings re-key them). Each move is played on its own weapon:
 ## a bare-hands one by a disarmed fighter.
@@ -30,6 +35,18 @@ const H := preload("res://tests/sim/sim_helpers.gd")
 ## The gap a keyed light is played across: the duelling distance, where its
 ## blade lands 15-20 cm in.
 const GAP: float = 2.5
+## The gap a jump attack is played across, from a jump in place: inside its
+## reach (Air Kick and Axe Kick touch from 1.35 m), and the frames from the
+## jump to the attack, as the move sheet's drives.
+const JUMP_GAP: float = 1.2
+const JUMP_LEAD: int = 3
+## The gap a dodge attack is played across: where the roll in leaves it, as
+## the computer throws one (AIBrain.DODGE_ATTACK_FROM; Slip Jab and Spinning
+## Backfist step in only a little).
+const DODGE_GAP: float = AIBrain.DODGE_ATTACK_FROM
+## Bare hands' eight movement attacks (family 8), whose sound and effects
+## are held (milestone-1 task 95).
+const MOVEMENT_ATTACKS: Array[StringName] = [&"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]
 ## Far enough apart that nothing lands, so no hit-stop.
 const APART: float = 6.0
 ## The seeded duels for item 15, each this many steps at most: 22 since KE
@@ -41,6 +58,9 @@ const DUEL_STEPS: int = 3600
 ## which the duels seldom give (since KE task 13 once in 60, never
 ## answered): these short duels start one fighter there, at this health.
 const DISARMED_DUELS: int = 12
+## Bare hands' movement attacks need both fighters bare-handed for a whole
+## duel (milestone-1 task 93): each seed fought again so.
+const BARE_DUELS: int = DUELS
 const DISARMED_STEPS: int = 600
 const DISARMED_HP: float = 20.0
 
@@ -63,6 +83,10 @@ static func _ctx(clips: Array) -> ClipDirector.Context:
 static func _play(wid: StringName, id: StringName, gap: float, defend: int = -1, from: int = 0) -> Array[Dictionary]:
 	var W: World = _world(wid, gap)
 	var a: Fighter = W.fighters[0]
+	if _jumps(wid, id):
+		W.step([H.btn(Btn.JUMP), H.idle()])
+		H.run(W, JUMP_LEAD - 1)
+		W.drain_events()
 	a.start_attack(id)
 	var events: Array[Dictionary] = []
 	for i: int in 200:
@@ -80,6 +104,21 @@ static func _world(wid: StringName, gap: float) -> World:
 	if wid == &"fists":
 		W.fighters[0].armed = false
 	return W
+
+
+## Whether keyed move `id` of weapon `wid` is a jump attack, struck in the
+## air.
+static func _jumps(wid: StringName, id: StringName) -> bool:
+	return ((Moves.WEAPONS[wid] as WeaponDef).moves[id] as AttackDef).airborne
+
+
+## The gap keyed move `id` of weapon `wid` is played across.
+static func _gap(wid: StringName, id: StringName) -> float:
+	if _jumps(wid, id):
+		return JUMP_GAP
+	if String(FrameDataTable.shared().row(wid, id).get("kind", "")).begins_with("dodge_"):
+		return DODGE_GAP
+	return GAP
 
 
 ## Whether keyed move `m` ([weapon, id]) is one of a string's (its band
@@ -100,11 +139,12 @@ static func _first(events: Array[Dictionary], t: StringName, id: StringName) -> 
 ## distance (the parry: the guard pressed 4 frames before it lands).
 static func _contacts(wid: StringName, id: StringName) -> Dictionary:
 	var def: AttackDef = (Moves.WEAPONS[wid] as WeaponDef).moves[id]
+	var gap: float = _gap(wid, id)
 	return {
-		&"swing": _first(_play(wid, id, GAP), &"swing", id),
-		&"hit": _first(_play(wid, id, GAP), &"hit", id),
-		&"block": _first(_play(wid, id, GAP, Btn.BLOCK, 0), &"block", id),
-		&"parry": _first(_play(wid, id, GAP, Btn.BLOCK, def.startup - 4), &"parry", id),
+		&"swing": _first(_play(wid, id, gap), &"swing", id),
+		&"hit": _first(_play(wid, id, gap), &"hit", id),
+		&"block": _first(_play(wid, id, gap, Btn.BLOCK, 0), &"block", id),
+		&"parry": _first(_play(wid, id, gap, Btn.BLOCK, def.startup - 4), &"parry", id),
 	}
 
 
@@ -261,15 +301,17 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 	for m: Array in ChecklistResults.keyed_moves():
 		var id: StringName = m[1]
 		var c: Dictionary = _contacts(m[0], id)
+		var bare: bool = m[0] == EffectTable.BARE
 		var sound: Array[String] = []
 		var effects: Array[String] = []
 		for t: StringName in c:
 			if (c[t] as Dictionary).is_empty():
-				sound.append("no %s at %.1f m" % [t, GAP])
-				effects.append("no %s at %.1f m" % [t, GAP])
+				sound.append("no %s at %.1f m" % [t, _gap(m[0], id)])
+				effects.append("no %s at %.1f m" % [t, _gap(m[0], id)])
 			elif SoundBank.cues_for(c[t]).is_empty():
 				sound.append("its %s sounds nothing" % t)
-		if not (c[&"parry"] as Dictionary).is_empty():
+		# a parried fist meets no steel: no deflect pair (task 95)
+		if not (c[&"parry"] as Dictionary).is_empty() and not bare:
 			if not SoundBank.sounds_deflect_pair(c[&"parry"]) or not sc.deflect_pairs.has(id):
 				sound.append("its parry sounds no deflect pair")
 			else:
@@ -277,16 +319,21 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 				for half: StringName in [&"deflect", &"recoil"]:
 					if SoundBank.deflect_pair_cues(direction, half).is_empty():
 						sound.append("its %s half sounds nothing" % half)
-		if not (c[&"hit"] as Dictionary).is_empty() and BloodEffects.plan(c[&"hit"], GameSettings.BLOOD_ON).is_empty():
-			effects.append("its hit draws no blood")
-		for t: StringName in [&"block", &"parry"]:
-			if not (c[t] as Dictionary).is_empty() and EffectTable.count_of(c[t], EffectTable.SPARKS) <= 0:
-				effects.append("its %s throws no sparks" % t)
+		if bare:
+			for t: StringName in [&"hit", &"block", &"parry"]:
+				if not (c[t] as Dictionary).is_empty() and EffectTable.count_of(c[t], EffectTable.PUFF) <= 0:
+					effects.append("its %s throws no dust and cloth" % t)
+		else:
+			if not (c[&"hit"] as Dictionary).is_empty() and BloodEffects.plan(c[&"hit"], GameSettings.BLOOD_ON).is_empty():
+				effects.append("its hit draws no blood")
+			for t: StringName in [&"block", &"parry"]:
+				if not (c[t] as Dictionary).is_empty() and EffectTable.count_of(c[t], EffectTable.SPARKS) <= 0:
+					effects.append("its %s throws no sparks" % t)
 		if not _smears(m[0], id):
 			effects.append("its strike leaves no air smear")
 		ChecklistResults.record_problems(13, id, sound)
 		ChecklistResults.record_problems(14, id, effects)
-		if _of_string(m):
+		if _of_string(m) or MOVEMENT_ATTACKS.has(id):
 			assert_eq(_due(sound, id), [] as Array[String], "%s's sound" % id)
 			assert_eq(effects, [] as Array[String], "%s's effects" % id)
 
@@ -308,14 +355,16 @@ static func _due(problems: Array[String], id: StringName = &"") -> Array[String]
 	return out
 
 
-## Whether keyed move `id` smears through its active frames (TrailState).
+## Whether keyed move `id` smears through its active frames (TrailState),
+## with either hand or limb (a bare hand's left strikes smear the left).
 static func _smears(wid: StringName, id: StringName) -> bool:
 	var W: World = _world(wid, APART)
 	var f: Fighter = W.fighters[0]
 	f.start_attack(id)
 	var def: AttackDef = f.atk.def
 	while f.state == &"attack":
-		if f.atk.frame > def.startup and f.atk.frame <= def.startup + def.active and not TrailState.of(f, 1.0).on(TrailState.RIGHT):
+		var t: TrailState = TrailState.of(f, 1.0)
+		if f.atk.frame > def.startup and f.atk.frame <= def.startup + def.active and not (t.on(TrailState.RIGHT) or t.on(TrailState.LEFT)):
 			return false
 		W.step([H.idle(), H.idle()])
 	return true
@@ -336,6 +385,20 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"], 4001 + seed_value * 2),
 		]
 		_duel(W, brains, DUEL_STEPS, used, answered)
+	# each seed again with both fighters bare-handed, since bare hands fight
+	# only disarmed (4% of an armed duel; milestone-1 task 93), so the
+	# movement attacks come up
+	for seed_value: int in BARE_DUELS:
+		H.grip = &""
+		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, GAP)
+		W.fighters[0].armed = false
+		W.fighters[1].armed = false
+		var brains: Array[AIBrain] = [
+			AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"], 4000 + seed_value * 2),
+			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"], 4001 + seed_value * 2),
+		]
+		_duel(W, brains, DUEL_STEPS, used, answered)
+		H.dispose_all()
 	for seed_value: int in DISARMED_DUELS:
 		H.grip = &""
 		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, GAP)
@@ -351,9 +414,9 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 		var id: StringName = m[1]
 		var problems: Array[String] = []
 		if used.get(id, 0) == 0:
-			problems.append("the computer never used it in %d Hard duels" % (DUELS + DISARMED_DUELS))
+			problems.append("the computer never used it in %d Hard duels" % (DUELS + BARE_DUELS + DISARMED_DUELS))
 		if answered.get(id, 0) == 0:
-			problems.append("the computer never blocked or parried it in %d Hard duels" % (DUELS + DISARMED_DUELS))
+			problems.append("the computer never blocked or parried it in %d Hard duels" % (DUELS + BARE_DUELS + DISARMED_DUELS))
 		ChecklistResults.record_problems(15, id, problems)
 		# a grip's own hits 4 and 5 (KE task 12) are recorded, not held: the
 		# computer's strings run to 4 presses (the owner's choice, KE task 9)

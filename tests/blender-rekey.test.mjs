@@ -178,6 +178,28 @@ print(json.dumps([f(i / 10.0) for i in range(431)]))`);
     }
   });
 
+  it('moves a hand-shaped bone that many metres in the world, on the pack\'s armature scaled 0.01', { timeout: 300000 }, () => {
+    const out = inBlender(`import bpy
+arm = bpy.data.objects.new("a", bpy.data.armatures.new("a"))
+bpy.context.scene.collection.objects.link(arm)
+arm.scale = (0.01, 0.01, 0.01)
+arm.rotation_euler = (1.5707963, 0, 0)
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode="EDIT")
+b = arm.data.edit_bones.new("B-hips")
+b.head, b.tail = (0, 0, 0), (0, 10, 0)
+bpy.ops.object.mode_set(mode="POSE")
+bpy.context.view_layer.update()
+before = arm.matrix_world @ arm.pose.bones["B-hips"].head
+rk.pose(arm, bpy.context.scene, [{"frame": 0, "move": {"B-hips": [0.1, 0.35, 0.2]}}])
+bpy.context.scene.frame_set(1)
+bpy.context.view_layer.update()
+after = arm.matrix_world @ arm.pose.bones["B-hips"].head
+print(json.dumps(list(after - before)))`);
+    // the fighter faces -Y: right is -X, forward -Y
+    assert.deepEqual(out.map((v) => +v.toFixed(4)), [-0.1, -0.2, 0.35]);
+  });
+
   const assets = existsSync(join(ROOT, '.assets-src-path')) ? readFileSync(join(ROOT, '.assets-src-path'), 'utf8').trim() : '';
   it('re-keys each spec from the asset repository to its length', { skip: assets && existsSync(assets) ? false : 'local-only: no asset repository (.assets-src-path)', timeout: 900000 }, () => {
     for (const { id, spec } of specs) {

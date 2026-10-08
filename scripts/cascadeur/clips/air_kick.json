@@ -1,0 +1,163 @@
+{
+	"about": "Air Kick (fists.f_jl, the jump light), milestone-1 task 94: out of the bare-hands jump's flight (JumpFists, held high in its tuck), the right leg chambered (AttackKick01_R's frame 6) on frame 4 and driven down and forward (its extension, frame 12, the thigh turned 40 degrees in to the centre line and 5 down) from frame 7 (14 rules frames from the press) to 9, held until the touchdown; the feet down on frame 11, the landing squat (LandFists' lowered guard) on 12-13 and CombatIdle01 by 15, so its landing recovery is 12 rules frames. In place: the rules' jump arc carries it. Source frames at 30 fps from 0.",
+	"out": "blender/clips/air_kick.blend",
+	"blockout": {
+		"source": "blender/clips/jump_fists.blend",
+		"remap": [
+			[
+				0,
+				6
+			],
+			[
+				9,
+				8
+			],
+			[
+				11,
+				16
+			],
+			[
+				15,
+				17
+			]
+		],
+		"borrow": [
+			{
+				"frames": [
+					4,
+					4
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_R.fbx",
+				"at": 6,
+				"bones": [
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R"
+				]
+			},
+			{
+				"frames": [
+					7,
+					9
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_R.fbx",
+				"at": 12,
+				"bones": [
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R"
+				]
+			},
+			{
+				"frames": [
+					12,
+					13
+				],
+				"source": "blender/clips/land_fists.blend",
+				"at": 3,
+				"bones": [
+					"B-hips",
+					"B-spine",
+					"B-chest",
+					"B-neck",
+					"B-head",
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R",
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L",
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R"
+				],
+				"fingers": true
+			},
+			{
+				"frames": [
+					14,
+					15
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatIdle01.fbx",
+				"at": 0,
+				"bones": [
+					"B-hips",
+					"B-spine",
+					"B-chest",
+					"B-neck",
+					"B-head",
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R",
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L",
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R"
+				],
+				"fingers": true
+			}
+		],
+		"pose": [
+			{
+				"frame": 7,
+				"turn": [
+					[
+						"B-thigh.R",
+						"up",
+						40
+					],
+					[
+						"B-thigh.R",
+						"right",
+						-5
+					]
+				]
+			},
+			{
+				"frame": 9,
+				"turn": [
+					[
+						"B-thigh.R",
+						"up",
+						40
+					],
+					[
+						"B-thigh.R",
+						"right",
+						-5
+					]
+				]
+			}
+		]
+	},
+	"keys": [
+		0,
+		4,
+		7,
+		9,
+		11,
+		12,
+		13,
+		14,
+		15
+	],
+	"ai": "a fast martial-arts jumping front kick, landing balanced"
+}

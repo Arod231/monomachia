@@ -29,6 +29,10 @@ const STUCK_WEAPON_MARGIN: float = 0.95
 ## The first bodies' 0.42 m, grown with KE task 3's bodies (20% round the
 ## torso, as FighterBody's hurt capsule).
 const FIGHTER_RADIUS: float = 0.5
+## How far apart a lunge or a clip's travel stops the bodies (m between
+## them); a knee strike closes until they touch (AttackDef.closing_gap(),
+## milestone-1 task 93, the owner's answer of Oct 7).
+const CLOSING_GAP: float = 0.25
 const GRAVITY: float = 30.0 # m/s^2 (snappy, game-like)
 const JUMP_CLEAR: float = 0.3 # feet height above which low attacks miss
 ## An unblockable's sweep is this much thicker than its blade on every side

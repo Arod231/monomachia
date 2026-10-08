@@ -782,7 +782,7 @@ func test_the_clips_at_their_own_speed_are_optional_and_checked() -> void:
 	# milestone-1 task 19: the families list each clip they re-key to play at
 	# 1.0x, looping or handing on past its end; none yet
 	var live: Dictionary[StringName, StringName] = StateClips.read().own_speed
-	assert_eq(live.size(), 9, "the Katana's light reactions (task 35): %s" % live)
+	assert_eq(live.size(), 13, "the Katana's light reactions (task 35) and the jump's flights and landings (task 59): %s" % live)
 	assert_true(live.values().all(func(v: StringName) -> bool: return v == &"hand_on"), "each handing on")
 	var t: StateClips = _read_text(_edited("\"fades\": {", "\"own_speed\": {\"Stun01\": \"loop\", \"CombatDamage01\": \"hand_on\"}, \"fades\": {"))
 	assert_eq(Array(t.errors), [], "read cleanly")
@@ -825,6 +825,31 @@ func test_the_transitions_are_optional_and_checked() -> void:
 		"\"transitions\": {\"bridges\": {\"k_l2\": \"B\"}, \"returns\": {}}, ": "transitions.bridges.k_l2: must be an object of clip ids by the move it follows",
 		"\"transitions\": {\"bridges\": {\"k_l2\": {\"k_l1\": \"\"}}, \"returns\": {}}, ": "transitions.bridges.k_l2.k_l1: must be a clip id (a non-empty string)",
 		"\"transitions\": {\"bridges\": {}, \"returns\": {\"k_l1\": 3}}, ": "transitions.returns.k_l1: must be a clip id (a non-empty string)",
+	}
+	for group: String in cases:
+		t = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))
+		assert_eq(Array(t.errors), [cases[group]], group)
+
+
+func test_the_jumps_are_optional_and_checked() -> void:
+	# milestone-1 task 59: a flight and a landing clip per weapon class, the
+	# Katana's and bare hands'
+	var live: StateClips = StateClips.read()
+	assert_eq(live.jump_flights, {&"katana": &"JumpKatana", &"fists": &"JumpFists"} as Dictionary[StringName, StringName])
+	assert_eq(live.jump_lands, {&"katana": &"LandKatana", &"fists": &"LandFists"} as Dictionary[StringName, StringName])
+	assert_eq(live.jump_clip(&"flight", &"katana"), &"JumpKatana")
+	assert_eq(live.jump_clip(&"land", &"fists"), &"LandFists")
+	assert_eq(live.jump_clip(&"flight", &"greatsword"), &"", "none for a weapon without its own")
+	var frozen: StateClips = StateClips.read(FrozenStateClips.PATH)
+	assert_eq([frozen.jump_flights.size(), frozen.jump_lands.size()], [0, 0], "none in a table without the group")
+	var t: StateClips = _read_text(_edited("\"fades\": {", "\"jump\": {\"flight\": {\"katana\": \"F\"}, \"land\": {\"katana\": \"L\"}}, \"fades\": {"))
+	assert_eq(Array(t.errors), [], "read cleanly")
+	assert_eq(t.jump_clip(&"flight", &"katana"), &"F")
+	assert_eq(t.jump_clip(&"land", &"katana"), &"L")
+	var cases: Dictionary = {
+		"\"jump\": [], ": "jump: not an object",
+		"\"jump\": {\"flight\": {}}, ": "jump: missing land",
+		"\"jump\": {\"flight\": {\"katana\": 3}, \"land\": {}}, ": "jump.flight.katana: must be a clip id (a non-empty string)",
 	}
 	for group: String in cases:
 		t = _read_text(_edited("\"fades\": {", group + "\"fades\": {"))

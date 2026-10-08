@@ -4,7 +4,8 @@ extends GutTest
 ## which tint, read from the rules' state. The tests drive a rules World
 ## through a Katana light, a Greatsword unblockable, a charged heavy and an
 ## ultimate, and check the owner's choices: only the striking hands, Flash
-## off but Shadow Step on, never bare hands, a plain swing's pale sheen, an
+## off but Shadow Step on, bare hands only on the moves switched on (along
+## the striking limb, milestone-1 task 95), a plain swing's pale sheen, an
 ## unblockable's red and an ultimate's gold. How fast the tip must move to
 ## smear is the smear's own (test_air_smear.gd).
 
@@ -190,7 +191,9 @@ func test_flash_leaves_no_smear_but_shadow_step_does() -> void:
 	assert_gt(shadow_on, 0, "Shadow Step trails in its active frames")
 
 
-func test_bare_hands_never_smear() -> void:
+func test_bare_hands_smear_only_the_moves_switched_on() -> void:
+	# a string's punch keeps no smear (milestone-1 task 95 switches on the
+	# eight movement attacks only; tasks 89 and 133 can switch theirs on)
 	var W: World = H.make_world(Moves.FISTS, Moves.KATANA, 6.0)
 	var f: Fighter = W.fighters[0]
 	f.start_attack(&"f_l2")
@@ -204,6 +207,43 @@ func test_bare_hands_never_smear() -> void:
 	for row: Dictionary in _drive(W, 30):
 		var t: TrailState = row["trail"]
 		assert_false(t.on(R) or t.on(L), "a disarmed fighter")
+
+
+## Bare hands' eight movement attacks smear along the striking fist, knee or
+## foot (task 95), on its side's smear, fainter on the lights.
+const LIMBS: Dictionary[StringName, Array] = {
+	&"f_sl": [R, &"right_knee"], &"f_sh": [R, &"right_foot"], &"f_dl": [L, &"left_hand"], &"f_dh": [R, &"right_hand"],
+	&"f_bl": [L, &"left_foot"], &"f_bh": [R, &"right_hand"], &"f_jl": [R, &"right_foot"], &"f_jh": [L, &"left_foot"],
+}
+
+
+func test_the_eight_smear_their_striking_limb_fainter_on_the_lights() -> void:
+	for id: StringName in LIMBS:
+		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 6.0)
+		var f: Fighter = W.fighters[0]
+		f.armed = false
+		assert_true(f.start_attack(id), String(id))
+		var def: AttackDef = f.atk.def
+		var side: int = LIMBS[id][0]
+		var most: float = 0.0
+		for row: Dictionary in _drive(W, def.startup + def.active + 4):
+			var t: TrailState = row["trail"]
+			assert_false(t.on(1 - side), "%s: only the striking side" % id)
+			if t.on(side):
+				assert_eq(t.limb(side), LIMBS[id][1], "%s: along its %s" % [id, LIMBS[id][1]])
+			most = maxf(most, t.intensity(side))
+		var want: float = TrailState.BARE_LIGHT if def.kind == &"light" else 1.0
+		assert_almost_eq(most, want, 0.001, "%s at full strength %.2f" % [id, want])
+	assert_lt(TrailState.BARE_LIGHT, 1.0, "a light's smear is fainter")
+	assert_gt(TrailState.BARE_LIGHT, 0.0)
+
+
+func test_a_blade_names_no_limb() -> void:
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 6.0)
+	var f: Fighter = W.fighters[0]
+	f.start_attack(&"k_l1")
+	for row: Dictionary in _drive(W, 20):
+		assert_eq((row["trail"] as TrailState).limb(R), &"", "the blade smears, not a limb")
 
 
 func test_nothing_smears_outside_an_attack_or_ultimate() -> void:

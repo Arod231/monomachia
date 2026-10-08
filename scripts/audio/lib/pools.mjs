@@ -21,6 +21,11 @@ export const POOLS = {
   hit_dagger: { files: /^hit_dagger_\d+\.wav$/, loudnessDb: -15.5, ceilingDb: -1 },
   // the heavy blow also plays hit_fist_01 and _03, pitched down
   hit_fist: { files: /^hit_fist_(heavy_)?\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
+  // bare hands' strikes by limb (milestone-1 task 95), light and heavy
+  // matched, the cue's level setting the heavy above
+  hit_palm: { files: /^hit_palm_(heavy_)?\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
+  hit_knee: { files: /^hit_knee_(heavy_)?\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
+  hit_kick: { files: /^hit_kick_(heavy_)?\d+\.wav$/, loudnessDb: -14.5, ceilingDb: -1 },
   hit_colossal: { files: /^hit_colossal_\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
   crunch: { files: /^(crunch|gen_bone_crunch)_\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
   // the flesh layer under every blade hit (milestone-1 task 36)
@@ -61,6 +66,8 @@ export const POOLS = {
   footstep: { files: /^gen_footstep_stone_\d+\.wav$/, loudnessDb: -21.5, ceilingDb: -3 },
   land: { files: /^gen_land_\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
   body_fall: { files: /^(gen_body_fall|body_drop_\d+)\.wav$/, loudnessDb: -15.5, ceilingDb: -1 },
+  // a leg strike's trouser cloth whoosh (milestone-1 task 95)
+  kick_cloth: { files: /^kick_cloth_\d+\.wav$/, loudnessDb: -21, ceilingDb: -3 },
   // the Hunter's own cloth and gear (milestone-1 task 36)
   hunter_cloth_step: { files: /^hunter_cloth_step_\d+\.wav$/, loudnessDb: -33, ceilingDb: -3 },
   hunter_cloth_swing: { files: /^hunter_cloth_swing_\d+\.wav$/, loudnessDb: -22, ceilingDb: -3 },

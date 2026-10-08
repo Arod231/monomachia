@@ -19,9 +19,9 @@ const SF := preload("res://tests/sim/swing_fixtures.gd")
 const BANDED: Array[StringName] = [&"katana", &"fists"]
 ## The moves keyed into their bands so far, by weapon: the light string
 ## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32),
-## Breaker Palm (task 99), and the one-handed string's own hits 1 and 2 (KE
-## task 11).
-const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2"], &"fists": [&"f_breaker"]}
+## Breaker Palm (task 99), the one-handed string's own hits 1 and 2 (KE
+## task 11), and bare hands' eight movement attacks (tasks 93 and 94).
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2"], &"fists": [&"f_breaker", &"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]}
 
 
 func _bands() -> MoveBands:
@@ -114,7 +114,7 @@ func test_every_katana_and_bare_hands_move_but_the_counter_lunges_and_the_keyed_
 			var kind: StringName = StringName(FrameDataTable.shared().row(wid, id)["kind"])
 			var keyed: bool = KEYED.get(wid, []).has(id)
 			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge" and not keyed, "%s.%s" % [wid, id])
-	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 30, "Crescent Coil waits for its re-key (KE task 16)")
+	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 22, "Crescent Coil waits for its re-key (KE task 16)")
 
 
 func test_every_banded_move_has_a_timing_band_and_every_striking_one_a_distance_band() -> void:
