@@ -1,5 +1,5 @@
 {
-	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown (and the recall burst's blasted fall) and the KO, the Katana string's transitions (its bridges and returns to guard), the deflect pairs, the light hit and block reactions, the crossfades' lengths, the clips of the states with their own (the disarmed choice's and the recall's, and the hand-keyed ones). Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
+	"about": "Which clips the fighter plays for what it is doing besides a swing: the idle, hits, guards, stuns, the shoulder carry, the three ultimates (Moonsplitter, Impaler, Lightning Tempest), the knockdown (and the recall burst's blasted fall) and the KO, the Katana string's transitions (its bridges and returns to guard), the deflect pairs, the light hit and block reactions, each grip's own idle, guard and carry and the re-grips into it (and the clips the one-handed grip plays with the off hand free), the crossfades' lengths, the clips of the states with their own (the disarmed choice's and the recall's, and the hand-keyed ones). Clip ids are the clip manifest's (a fallback is a clip of the committed CC0 library, played without the packs); frames are rules frames at 60 per second, the ultimates' hold and source frames are the clips' own 30 fps. Read by StateClips (view/fighter/state_clips.gd) for ClipDirector.",
 	"idle": {
 		"clips": {"katana": "KatanaGuard", "daggers": "CombatIdle1H01", "greatsword": "CombatIdle2H01", "fists": "CombatIdle01"},
 		"fallbacks": {"katana": "Sword_Idle", "daggers": "Sword_Idle", "greatsword": "Sword_Idle", "fists": "Idle"}
@@ -57,8 +57,9 @@
 	"own_speed": {"HitLightHighFront": "hand_on", "HitLightLowFront": "hand_on", "HitLightHighLeft": "hand_on", "HitLightLowLeft": "hand_on", "HitLightHighRight": "hand_on", "HitLightLowRight": "hand_on", "HitLightHighBack": "hand_on", "HitLightLowBack": "hand_on", "BlockLightKatana": "hand_on"},
 	"grips": {
 		"katana": {
-			"one_handed": {"idle": "KatanaGuard", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"]},
-			"two_handed": {"idle": "KatanaGuard", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"]}
+			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise", "TwistingRise", "LevelCut"]},
+			"two_handed": {"idle": "KatanaGuard", "guard": ["KatanaBlockLoop", "KatanaBlockHit"], "carry": "KatanaGuard"},
+			"regrip": {"one_handed": "KatanaRegripTo1H", "two_handed": "KatanaRegripTo2H"}
 		}
 	}
 }

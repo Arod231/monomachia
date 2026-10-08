@@ -1,0 +1,7 @@
+{
+	"about": "The Katana's one-handed guard idle (KE task 10): CombatIdle1H01 at its own speed and one-handed as the pack keys it, the blade re-aimed low at the right side, pointing forward and a little down, as Elden Ring's one-handed idle carries it (the pack holds it 30 degrees up, which put the 1.3 m blade's tip over the head); the off hand stays on the clip. It loops, as the pack clip does. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@CombatIdle1H01.fbx",
+	"out": "blender/clips/katana_guard_1h.blend",
+	"remap": [[0, 0], [40, 40]],
+	"one_hand": {"lower": 45, "out": 0}
+}

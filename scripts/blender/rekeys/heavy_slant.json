@@ -1,0 +1,15 @@
+{
+	"about": "Heavy Slant (katana.k_2l1), the two-handed string's hit 1 (KE task 13): Attack2H01's overhead diagonal, the blade raised over the head and swung round behind it to the right shoulder, then cut down across to the left hip, in Elden Ring's two-handed rhythm (quicker than the one-handed string's): the wind-up (source frames 0-11.5 over 7), the top held, the strike snapped through into the active frames, the follow-through held low on the left to the end, where Left Rise goes on from it. The clip is two-handed already: the left hand is set on the grip and the blade kept clear of the body. A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H01.fbx",
+	"out": "blender/clips/heavy_slant.blend",
+	"remap": [[0, 0], [7, 11.5], [8.5, 12.5], [11, 16], [12.5, 17.7], [15, 20], [19, 24], [25, 26]],
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0, "clearance": 0.08},
+	"step": {
+		"body": [[0, 0], [1, 0], [5, 0.12], [8.5, 0.3], [11, 0.55], [12.5, 0.66], [15, 0.7], [25, 0.7]],
+		"feet": {
+			"L": [[6, 12, 0.7, 0.2]],
+			"R": [[1, 5.5, 0.25, 0.16], [8.5, 14, 0.45, 0.24]]
+		},
+		"hips_home": [17, 25]
+	}
+}

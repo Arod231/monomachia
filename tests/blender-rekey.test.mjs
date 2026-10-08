@@ -36,13 +36,14 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'blasted_fall', 'block_light', 'breaker_palm', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
-      'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right', 'katana_guard',
-      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
+      'backhand_rise', 'blasted_fall', 'block_light', 'breaker_palm', 'crouching_crown', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
+      'heavy_slant', 'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right',
+      'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h',
+      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard', 'left_rise', 'level_cut',
       'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall',
       'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
-      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut',
-      'ult_choice',
+      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'slanting_cut',
+      'twisting_rise', 'ult_choice',
     ]);
   });
 
@@ -53,7 +54,7 @@ describe('the re-key specs', () => {
       const recoil = id.endsWith('_recoil');
       const deflect = id.endsWith('_deflect');
       // an iai's sheathe and draws hold the sword in one hand (task 98)
-      const oneHanded = id.startsWith('moonsplitter_');
+      const oneHanded = id.startsWith('moonsplitter_') || id.endsWith('_1h') || Boolean(spec.one_hand);
       // bare hands' ultimate and the burst's blasted fall hold nothing (task 99)
       const bare = ['ult_choice', 'recall', 'breaker_palm', 'blasted_fall'].includes(id);
 
@@ -84,16 +85,22 @@ describe('the re-key specs', () => {
       });
 
       it('warps time from frame 0, rising in new frames and never falling in source frames', () => {
-        // a clip blended in from another may start partway into its source
+        // a clip blended in from another may start partway into its source,
+        // and one that goes on from another's clip where that one ends in it
         if (spec.blend_from && !transition) assert.equal(spec.remap[0][0], 0);
-        else assert.deepEqual(spec.remap[0], [0, 0]);
+        else if (spec.goes_on_from) {
+          const before = specs.find((s) => s.id === spec.goes_on_from)?.spec;
+          assert.ok(before, `${spec.goes_on_from} is a spec`);
+          assert.equal(before.source, spec.source, "the same source");
+          assert.deepEqual(spec.remap[0], [0, before.remap.at(-1)[1]], "starting where it ends");
+        } else assert.deepEqual(spec.remap[0], [0, 0]);
         for (let i = 1; i < spec.remap.length; i++) {
           assert.ok(spec.remap[i][0] > spec.remap[i - 1][0], `new frames rise at ${i}`);
           assert.ok(spec.remap[i][1] >= spec.remap[i - 1][1], `source frames don't fall at ${i}`);
         }
       });
 
-      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai') || (bare && 'bare hands') }, () => {
+      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai or the one-handed grip') || (bare && 'bare hands') }, () => {
         assert.ok(spec.two_hands.grip > 0 && spec.two_hands.grip < 0.3);
         assert.equal(spec.two_hands.hold.length, 2);
         assert.ok(spec.two_hands.clearance >= 0.05, 'at least PoseCheck.BLADE_CLEARANCE');

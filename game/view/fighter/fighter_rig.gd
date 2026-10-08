@@ -80,6 +80,17 @@ var hand_grip: HandGrip
 ## How far the arms of gripping hands follow the IK (1) rather than the
 ## clip (0).
 var arm_weight: float = 1.0
+## How far the off hand of a fixed two-handed weapon holds its OffHandGrip
+## (KE task 10; ClipDirector.Shot.off_hand): 1 on it by IK, 0 left on the
+## clip, open, the main hand holding the weapon alone (the Katana's
+## one-handed grip), between part of the way. The hand closes round the
+## handle while any of it holds, and opens once it lets go.
+var off_hand: float = 1.0:
+	set(v):
+		var held: bool = off_hand > 0.001
+		off_hand = v
+		if (v > 0.001) != held and hand_grip != null:
+			_update_hands()
 ## How far the legs follow the IK to the foot targets (1) rather than the
 ## clip (0).
 var leg_weight: float = 0.0
@@ -337,7 +348,7 @@ func drives(side: String) -> bool:
 	if grip.is_empty():
 		return false
 	if _fixed:
-		return (side == "Left" and not _look.paired) or (side == "Right" and _drawn_in)
+		return (side == "Left" and not _look.paired and off_hand > 0.001) or (side == "Right" and _drawn_in)
 	return _posed[grip[0]]
 
 
@@ -451,7 +462,7 @@ func _pre(sk: Skeleton3D, _delta: float) -> void:
 	for side: String in SIDES:
 		var ik: TwoBoneIK3D = _arm_ik[side]
 		ik.active = arm_weight > 0.001 and drives(side)
-		ik.influence = clampf(arm_weight, 0.0, 1.0)
+		ik.influence = clampf(arm_weight * (_off_hand_share() if side == "Left" else 1.0), 0.0, 1.0)
 		if not ik.active:
 			continue
 		var shoulder: Vector3 = _origin(sk, side + "UpperArm")
@@ -545,7 +556,8 @@ func _draw_in(sk: Skeleton3D) -> void:
 	# the wrist further out on some turns of the handle
 	for attempt: int in 3:
 		var wrist: Vector3 = seat("Left", _poses[0], off.position, shoulder, chest).origin
-		var short: float = shoulder.distance_to(wrist) - reach
+		# an off hand only part of the way on draws the weapon in as far
+		var short: float = (shoulder.distance_to(wrist) - reach) * clampf(off_hand, 0.0, 1.0)
 		if short <= 0.001:
 			return
 		_poses[0].origin += (shoulder - wrist).normalized() * short
@@ -572,6 +584,12 @@ func _carry(sk: Skeleton3D, _delta: float) -> void:
 			continue
 		var hand: Transform3D = sk.get_bone_global_pose(_id(side + "Hand"))
 		_weapons[index].transform = hand * fixed_grip(side) if _fixed else hand * hand_grip.fist(side) * grip
+
+
+## How much of the off arm's IK applies: off_hand on a fixed two-handed
+## weapon, all of it otherwise (a pair's, or a posed weapon's).
+func _off_hand_share() -> float:
+	return clampf(off_hand, 0.0, 1.0) if _fixed and _look != null and not _look.paired else 1.0
 
 
 ## Sets every elbow's pole tweak back to none.
