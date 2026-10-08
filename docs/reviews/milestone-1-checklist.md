@@ -42,6 +42,9 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
 | Slanting Cut `k_1l1` | move (KE task 11) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
 | Backhand Rise `k_1l2` | move (KE task 11) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
+| Twisting Rise `k_1l3` | move (KE task 12) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
+| Level Cut `k_1l4` | move (KE task 12) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
+| Crouching Crown `k_1l5` | move (KE task 12) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
 | The light deflect pairs `clip_deflect_light` | keyed clips (task 34) | – | – | ✗ | ✓ | ✓ | – | ☑ | ✗ | ✗ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
 | Light hit reactions `clip_hit_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | – | – | ✓ | – | ✓ | ✓ | – | – | ☑ |
 | Light block reactions `clip_block_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | ✓ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |

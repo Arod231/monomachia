@@ -4,6 +4,7 @@
 		"katana": {
 			"string_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
 			"string_light_1h": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
+			"string_last_1h": {"startup": [27, 39], "active": [3, 8], "recovery": [80, 96]},
 			"string_heavy": {"startup": [42, 54], "active": [4, 8], "recovery": [36, 48]},
 			"iai_draw": {"startup": [36, 48], "from_stance": [15, 21], "active": [4, 6], "recovery": [36, 48]},
 			"iai_follow_up": {"startup": [36, 45], "active": [4, 6], "recovery": [30, 42]},
@@ -41,6 +42,7 @@
 			"kinds": {
 				"string_light": {"touches": 3.3, "misses": 4.05, "inside": [0.04, 0.3]},
 				"string_light_1h": {"touches": 3.3, "misses": 4.05, "inside": [0.15, 0.2]},
+				"string_last_1h": {"touches": 3.3, "misses": 4.05, "inside": [0.15, 0.2]},
 				"string_heavy": {"touches": 3.8, "misses": 4.55},
 				"iai_follow_up": {"touches": 3.8, "misses": 4.55},
 				"iai_draw": {"touches": 4.4, "misses": 5.0},

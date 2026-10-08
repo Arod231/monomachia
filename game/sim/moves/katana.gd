@@ -43,7 +43,28 @@ const MOVES: Dictionary = {
 		"id": &"k_1l2", "name": "Backhand Rise", "kind": &"light", "type": &"slash", "anim": &"diagUp",
 		"side_start": &"left", "side_end": &"right", "grip": &"one_handed",
 		"damage": 5, "posture": 5, "knockback": 0.35,
-		"range": 2.2, "arc": 110, "chain_light": &"k_l3", "chain_heavy": &"k_coil",
+		"range": 2.2, "arc": 110, "chain_light": &"k_1l3", "chain_heavy": &"k_coil",
+	},
+	&"k_1l3": {
+		"id": &"k_1l3", "name": "Twisting Rise", "kind": &"light", "type": &"slash", "anim": &"diagUp",
+		"side_start": &"right", "side_end": &"left", "grip": &"one_handed",
+		"damage": 6, "posture": 6, "knockback": 0.4,
+		"range": 2.2, "arc": 110, "chain_light": &"k_1l4", "chain_heavy": &"k_coil",
+	},
+	&"k_1l4": {
+		"id": &"k_1l4", "name": "Level Cut", "kind": &"light", "type": &"slash", "anim": &"slashLR",
+		"side_start": &"left", "side_end": &"right", "grip": &"one_handed",
+		"damage": 7, "posture": 7, "knockback": 0.4,
+		"range": 2.2, "arc": 120, "chain_light": &"k_1l5", "chain_heavy": &"k_coil",
+	},
+	# the last hit commits (D16): no light follow-up, and the grip's heavy only
+	# late in the long recovery out of its crouch; the off hand joins the grip
+	# for the cut
+	&"k_1l5": {
+		"id": &"k_1l5", "name": "Crouching Crown", "kind": &"light", "type": &"overhead", "anim": &"overhead",
+		"side_start": &"centre", "side_end": &"centre", "grip": &"one_handed",
+		"damage": 9, "posture": 9, "knockback": 0.8,
+		"range": 2.3, "arc": 60, "chain_heavy": &"k_coil",
 	},
 	# the heavy: sheathe for 9 frames (up to the fighter's charge check,
 	# CHARGE_CHECK_FRAME: held, the stance is the charge, walked in at the
@@ -167,9 +188,8 @@ const MOVES: Dictionary = {
 ## Both grips' strings until their hits are re-keyed: today's four lights,
 ## Crown Cut again as hit 5.
 const STAND_IN_STRING: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"]
-## The one-handed string: its own hits 1 and 2 (KE task 11), the stand-ins
-## for hits 3 to 5 until KE task 12.
-const ONE_HANDED_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_l3", &"k_l4", &"k_l4"]
+## The one-handed string's own five hits (KE tasks 11 and 12).
+const ONE_HANDED_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"]
 
 
 ## KATANA

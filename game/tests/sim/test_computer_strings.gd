@@ -7,7 +7,9 @@ extends GutTest
 ## test_keyed_checklist.gd see it use; against a dummy it rarely gets there).
 
 const H := preload("res://tests/sim/sim_helpers.gd")
-const STRING: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3"]
+## The string's first three hits, in either grip (it switches grips as it
+## plays, KE task 8; each grip has its own hits since KE tasks 11-14).
+const HITS: int = 3
 
 
 func after_each() -> void:
@@ -37,8 +39,13 @@ func test_a_hard_computer_plays_the_string_on_past_its_opener() -> void:
 		var s: Dictionary[StringName, int] = _swings(70 + seed_value, 1800)
 		for id: StringName in s:
 			swings[id] = swings.get(id, 0) + s[id]
-	for id: StringName in STRING:
-		assert_gt(swings.get(id, 0), 0, "%s swung (%s)" % [id, swings])
+	var by_hit: Array[int] = [0, 0, 0, 0]
+	for id: StringName in swings:
+		var n: int = Moves.KATANA.string_position(id)
+		if n >= 1 and n <= HITS:
+			by_hit[n] += swings[id]
+	for n: int in range(1, HITS + 1):
+		assert_gt(by_hit[n], 0, "hit %d swung (%s)" % [n, swings])
 
 
 func test_its_follow_ups_keep_up_with_its_openers() -> void:

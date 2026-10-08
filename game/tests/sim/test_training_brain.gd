@@ -29,9 +29,9 @@ const UNBLOCKABLE_KINDS: Dictionary[StringName, Array] = {
 }
 
 ## Each weapon's whole light string, from its light starter: the Katana's
-## one-handed, as a round starts, its own hits 1 and 2 since KE task 11.
+## one-handed, as a round starts, its own hits since KE tasks 11 and 12.
 const LIGHT_STRINGS: Dictionary[StringName, Array] = {
-	&"katana": [&"k_1l1", &"k_1l2", &"k_l3", &"k_l4"],
+	&"katana": [&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"],
 	&"greatsword": [&"g_l1", &"g_l2"],
 	&"daggers": [&"d_l1", &"d_l2", &"d_l3", &"d_l4"],
 }
@@ -173,8 +173,9 @@ func test_the_lights_dummy_throws_its_weapons_whole_light_string_110_frames_apar
 		var string: Array = LIGHT_STRINGS[weapon_id]
 		# the Katana's string outlasts 110 frames since task 31, so its next
 		# starts once it is free; its one-handed string's slower first hits
-		# (KE task 11) take it past 900 steps for five
-		var run: DummyRun = _play(Moves.WEAPONS[weapon_id], &"lights", 1200)
+		# (KE task 11) and its committing last hit (KE task 12) take it past 900
+		# steps for five
+		var run: DummyRun = _play(Moves.WEAPONS[weapon_id], &"lights", 2000)
 		var expected: Array[StringName] = []
 		for _s: int in 5:
 			expected.append_array(string)
@@ -266,7 +267,8 @@ func test_an_unblockable_drill_the_weapon_lacks_leaves_the_default_abilities() -
 func test_the_random_dummy_drills_lights_heavies_and_every_unblockable_its_weapon_has() -> void:
 	for weapon_id: StringName in UNBLOCKABLE_KINDS:
 		var weapon: WeaponDef = Moves.WEAPONS[weapon_id]
-		var run: DummyRun = _play(weapon, &"random", 1800)
+		# the Katana's whole one-handed string takes about 370 steps (KE task 12)
+		var run: DummyRun = _play(weapon, &"random", 2700)
 		var swung: Array[StringName] = run.swung()
 		assert_has(swung, StringName(LIGHT_STRINGS[weapon_id][0]), "%s: lights" % weapon_id)
 		var kinds: Array[StringName] = _kinds(run.by_dummy(&"telegraph"))

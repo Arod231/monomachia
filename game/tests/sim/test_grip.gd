@@ -16,9 +16,8 @@ const TWO: StringName = WeaponGrip.TWO_HANDED
 ## Today's four lights, Crown Cut repeated as hit 5: the two-handed grip's
 ## stand-in string (the plan's Notes) until KE task 13 keys its own.
 const STAND_IN: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"]
-## The one-handed string: its own hits 1 and 2 (KE task 11), the stand-ins
-## after until KE task 12.
-const ONE_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_l3", &"k_l4", &"k_l4"]
+## The one-handed string: its own five hits (KE tasks 11 and 12).
+const ONE_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"]
 ## A two-handed string unlike the one-handed one, to tell the grips apart.
 const TEST_TWO: Array[StringName] = [&"k_l4", &"k_l3", &"k_l1", &"k_l2", &"k_l3"]
 
@@ -92,7 +91,7 @@ func test_the_katana_declares_two_grips_with_their_strings() -> void:
 	var w: WeaponDef = Moves.KATANA
 	assert_eq(w.grips.size(), 2)
 	assert_eq([w.grips[0].id, w.grips[1].id], [ONE, TWO], "one-handed first: rounds start in it")
-	assert_eq(w.grips[0].string, ONE_STRING, "one-handed: Slanting Cut and Backhand Rise, then today's lights, Crown Cut again as hit 5")
+	assert_eq(w.grips[0].string, ONE_STRING, "one-handed: its own five hits, Slanting Cut to Crouching Crown")
 	assert_eq(w.grips[1].string, STAND_IN, "two-handed: today's lights, Crown Cut again as hit 5")
 	assert_almost_eq(w.grips[0].block_mitigation, 0.7, CLOSE, "D2: one-handed")
 	assert_almost_eq(w.grips[1].block_mitigation, 0.5, CLOSE, "D2: two-handed")
@@ -255,7 +254,8 @@ func test_both_grips_play_five_lights_and_the_string_ends_after_hit_5() -> void:
 
 
 func test_hit_5_ends_on_its_own_length() -> void:
-	var crown: AttackDef = Moves.KATANA.moves[&"k_l4"]
+	# the one-handed grip's, as a round starts: Crouching Crown (KE task 12)
+	var crown: AttackDef = Moves.KATANA.moves[Moves.KATANA.grip(ONE).hit(5)]
 	var V: World = H.make_world()
 	var b: Fighter = V.fighters[0]
 	var seen: int = 0

@@ -41,15 +41,28 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 		"name": "Heaven Splitter", "damage": 15, "posture": 18,
 		"light": &"", "heavy": &"k_h1f", "sides": [&"centre", &"centre"],
 	},
-	# the one-handed string's hits 1 and 2 (KE task 11): today's lights'
-	# damage and posture (the two-handed about 15% more, D3)
+	# the one-handed string's own hits (KE tasks 11 and 12): today's lights'
+	# damage and posture, the last hit 9 (the two-handed about 15% more, D3);
+	# the last hit takes no light follow-up
 	&"k_1l1": {
 		"name": "Slanting Cut", "damage": 5, "posture": 5,
 		"light": &"k_1l2", "heavy": &"k_coil", "sides": [&"right", &"left"],
 	},
 	&"k_1l2": {
 		"name": "Backhand Rise", "damage": 5, "posture": 5,
-		"light": &"k_l3", "heavy": &"k_coil", "sides": [&"left", &"right"],
+		"light": &"k_1l3", "heavy": &"k_coil", "sides": [&"left", &"right"],
+	},
+	&"k_1l3": {
+		"name": "Twisting Rise", "damage": 6, "posture": 6,
+		"light": &"k_1l4", "heavy": &"k_coil", "sides": [&"right", &"left"],
+	},
+	&"k_1l4": {
+		"name": "Level Cut", "damage": 7, "posture": 7,
+		"light": &"k_1l5", "heavy": &"k_coil", "sides": [&"left", &"right"],
+	},
+	&"k_1l5": {
+		"name": "Crouching Crown", "damage": 9, "posture": 9,
+		"light": &"", "heavy": &"k_coil", "sides": [&"centre", &"centre"],
 	},
 	# the one-handed heavy (KE task 7): Heaven Splitter's clip until its
 	# re-key, about 85% of its damage (D3)
@@ -96,13 +109,47 @@ func test_four_lights_hit_with_right_cut_return_cut_kesa_cut_and_crown_cut() -> 
 	assert_eq(r.ids(&"hit"), [&"k_l1", &"k_l2", &"k_l3", &"k_l4"] as Array[StringName])
 
 
-## KE task 11: a fighter starts one-handed, and the one-handed string opens
-## with Slanting Cut and Backhand Rise, then the stand-ins (Kesa Cut, Crown
-## Cut) until task 12.
-func test_the_one_handed_string_opens_with_slanting_cut_and_backhand_rise() -> void:
+## KE tasks 11 and 12: a fighter starts one-handed, and the one-handed
+## string is its own five hits, Slanting Cut to Crouching Crown; a sixth
+## light starts nothing (D4).
+const ONE_HANDED: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"]
+
+
+func test_the_one_handed_string_plays_its_five_hits_and_ends() -> void:
 	SimHelpers.grip = WeaponGrip.ONE_HANDED
 	var light: int = Btn.LIGHT
-	assert_eq(_play([light, light, light]).ids(&"hit"), [&"k_1l1", &"k_1l2", &"k_l3"] as Array[StringName])
+	var r: PlayedString = PlayedString.play(Moves.KATANA, [light, light, light, light, light, light], 2.2, 0.0, &"", -1, 420)
+	assert_eq(r.ids(&"hit"), ONE_HANDED)
+	assert_eq(r.ids(&"swing"), ONE_HANDED, "and nothing after the last hit")
+
+
+## The string's continuity (KE task 12): each light pressed as early as it
+## counts, the five hits land in the reference's rhythm (the spec's table:
+## the first about 24-27 frames from rest, each next about 49-57 after;
+## a hit lands on its first active frame), each straight out of the one
+## before. Swung at the air, as the reference measures them (a hit that
+## connects holds its frames for its hit-stop), the defender far enough
+## off that the string's steps never reach it.
+func test_the_one_handed_string_lands_in_the_reference_s_rhythm() -> void:
+	SimHelpers.grip = WeaponGrip.ONE_HANDED
+	var light: int = Btn.LIGHT
+	var r: PlayedString = PlayedString.play(Moves.KATANA, [light, light, light, light, light], 14.0, 0.0, &"", -1, 420)
+	var landed: Array[int] = []
+	for id: StringName in ONE_HANDED:
+		var startup: int = (Moves.KATANA.moves[id] as AttackDef).startup
+		for i: int in r.attack.size():
+			if r.attack[i] == id and r.frame[i] == startup + 1:
+				landed.append(i)
+				break
+	assert_eq(landed.size(), 5, "five hits: %s" % [landed])
+	if landed.size() != 5:
+		return
+	assert_between(landed[0], 24, 27, "the first lands %d frames from rest" % landed[0])
+	for i: int in range(1, 5):
+		assert_between(landed[i] - landed[i - 1], 49, 57, "hit %d lands %d frames after hit %d" % [i + 1, landed[i] - landed[i - 1], i])
+	for i: int in range(1, 5):
+		var started: int = r.attack.find(ONE_HANDED[i])
+		assert_eq(r.attack[started - 1], ONE_HANDED[i - 1], "hit %d starts straight out of hit %d" % [i + 1, i])
 
 
 func test_a_heavy_ends_the_one_handed_string_on_crescent_coil() -> void:
@@ -119,8 +166,13 @@ func test_a_heavy_ends_the_one_handed_string_on_crescent_coil() -> void:
 	)
 	assert_eq(
 		_play([light, light, light, heavy]).ids(&"hit"),
-		[&"k_1l1", &"k_1l2", &"k_l3", &"k_coil"] as Array[StringName],
-		"L-L-L-H: Kesa Cut, Crescent Coil",
+		[&"k_1l1", &"k_1l2", &"k_1l3", &"k_coil"] as Array[StringName],
+		"L-L-L-H: Twisting Rise, Crescent Coil",
+	)
+	assert_eq(
+		PlayedString.play(Moves.KATANA, [light, light, light, light, heavy], 2.2, 0.0, &"", -1, 300).ids(&"hit"),
+		[&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_coil"] as Array[StringName],
+		"L-L-L-L-H: Level Cut, Crescent Coil",
 	)
 
 
@@ -496,7 +548,7 @@ func test_the_horizontal_iai_goes_on_to_returning_draw_or_return_cut() -> void:
 	SimHelpers.grip = WeaponGrip.ONE_HANDED
 	assert_eq(
 		_play_sideways([heavy, light, light]).ids(&"swing"),
-		[&"k_iai_h", &"k_1l2", &"k_l3"] as Array[StringName],
+		[&"k_iai_h", &"k_1l2", &"k_1l3"] as Array[StringName],
 		"one-handed: Backhand Rise, then on through the string",
 	)
 	assert_eq(

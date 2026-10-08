@@ -21,7 +21,7 @@ const BANDED: Array[StringName] = [&"katana", &"fists"]
 ## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32),
 ## Breaker Palm (task 99), and the one-handed string's own hits 1 and 2 (KE
 ## task 11).
-const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2"], &"fists": [&"f_breaker"]}
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"], &"fists": [&"f_breaker"]}
 
 
 func _bands() -> MoveBands:
@@ -138,6 +138,8 @@ func test_the_timing_bands_are_the_spec_s_table() -> void:
 			&"string_light": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
 			# the one-handed string's own hits, from the reference's rhythm (KE task 11)
 			&"string_light_1h": {"startup": [24, 30], "active": [3, 6], "recovery": [24, 36]},
+			# its last hit, a kind of its own for its long recovery (KE task 12, D16)
+			&"string_last_1h": {"startup": [27, 39], "active": [3, 8], "recovery": [80, 96]},
 			&"string_heavy": {"startup": [42, 54], "active": [4, 8], "recovery": [36, 48]},
 			&"iai_draw": {"startup": [36, 48], "from_stance": [15, 21], "active": [4, 6], "recovery": [36, 48]},
 			&"iai_follow_up": {"startup": [36, 45], "active": [4, 6], "recovery": [30, 42]},
@@ -181,7 +183,7 @@ func test_the_distance_bands_are_the_spec_s_table() -> void:
 		&"katana": {
 			# the spec's table 0.5 m further out for the 1.3 m blade (KE task 2),
 			# another 0.3 m for the taller bodies (KE task 3)
-			&"string_light": [3.3, 4.05], &"string_light_1h": [3.3, 4.05], &"string_heavy": [3.8, 4.55], &"iai_follow_up": [3.8, 4.55],
+			&"string_light": [3.3, 4.05], &"string_light_1h": [3.3, 4.05], &"string_last_1h": [3.3, 4.05], &"string_heavy": [3.8, 4.55], &"iai_follow_up": [3.8, 4.55],
 			&"iai_draw": [4.4, 5.0], &"sprint_light": [4.8, 5.55], &"sprint_heavy": [5.8, 6.55],
 			&"dodge_light": [3.3, 4.05], &"dodge_heavy": [3.3, 4.05], &"backstep_light": [3.8, 4.55],
 			&"backstep_heavy": [5.3, 6.05], &"jump_light": [2.8, 3.55], &"jump_heavy": [2.8, 3.55],
@@ -202,6 +204,7 @@ func test_the_distance_bands_are_the_spec_s_table() -> void:
 			assert_eq([band.get("touches"), band.get("misses")], want[wid][kind], "%s %s" % [wid, kind])
 	assert_eq(bands.distance_band(&"katana", &"string_light")["inside"], [0.04, 0.3], "the stand-ins, until the string re-keys (KE tasks 2 and 3)")
 	assert_eq(bands.distance_band(&"katana", &"string_light_1h")["inside"], [0.15, 0.2], "the re-keyed hits cut 15-20 cm in (KE task 11)")
+	assert_eq(bands.distance_band(&"katana", &"string_last_1h")["inside"], [0.15, 0.2], "the last hit too (KE task 12)")
 	assert_eq(bands.distance_band(&"fists", &"string_light")["inside"], [0.15, 0.21], "until their re-keys (KE task 3)")
 	assert_eq(bands.distance_band(&"katana", &"ultimate")["wave"], 33.0, "Moonsplitter: the whole stage")
 	assert_eq(bands.distance[&"fists"]["misses_all"], 6.0, "every bare-hands move misses from 6 m")

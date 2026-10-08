@@ -1455,6 +1455,63 @@
 				"katana"
 			]
 		},
+		"TwistingRise": {
+			"export": "exports/clips/twisting_rise.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H05_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 13,
+				"contact_end": 15,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 9], [18, 30]], "right": [[0, 2], [8, 10], [17, 30]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"LevelCut": {
+			"export": "exports/clips/level_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H05_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 13,
+				"contact_end": 15,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 10], [16, 34]], "right": []},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"CrouchingCrown": {
+			"export": "exports/clips/crouching_crown.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/2H",
+			"source": "Attack2H02",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 17,
+				"contact_end": 19,
+				"settle": 63
+			},
+			"foot_contacts": {"left": [[0, 12], [19, 70]], "right": [[0, 3], [10, 13], [20, 70]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"KatanaGuard1H": {
 			"export": "exports/clips/katana_guard_1h.glb",
 			"pack": "Human Melee Animations",

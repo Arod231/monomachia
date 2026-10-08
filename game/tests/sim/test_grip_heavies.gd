@@ -180,5 +180,5 @@ func test_the_vertical_iai_s_heavy_follow_up_is_the_grip_s() -> void:
 func test_the_horizontal_iai_keeps_returning_draw_and_the_grip_s_hit_2() -> void:
 	for grip: StringName in [ONE, TWO]:
 		assert_eq((_play(grip, [Btn.HEAVY, Btn.HEAVY], 1.0)[0] as Array[StringName]), [&"k_iai_h", &"k_rdraw"] as Array[StringName], "%s: Returning Draw" % grip)
-		var hit_2: StringName = Moves.KATANA.grip(grip).hit(2)
-		assert_eq((_play(grip, [Btn.HEAVY, Btn.LIGHT, Btn.LIGHT], 1.0)[0] as Array[StringName]), [&"k_iai_h", hit_2, &"k_l3"] as Array[StringName], "%s: hit 2, then on to hit 3" % grip)
+		var g: WeaponGrip = Moves.KATANA.grip(grip)
+		assert_eq((_play(grip, [Btn.HEAVY, Btn.LIGHT, Btn.LIGHT], 1.0)[0] as Array[StringName]), [&"k_iai_h", g.hit(2), g.hit(3)] as Array[StringName], "%s: hit 2, then on to hit 3" % grip)

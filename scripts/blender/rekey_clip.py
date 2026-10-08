@@ -17,6 +17,10 @@
 #   cubic through the pairs gives, so the motion keeps its speed where the
 #   pairs keep it and nothing jumps where they change it. A planted foot stays
 #   planted: a warp moves nothing, only when;
+# - goes_on_from: a spec's id, for a clip cut from further into a source
+#   that another spec's clip holds the start of (KE task 12: Level Cut, the
+#   second half of Twisting Rise's source): its remap starts on the source
+#   frame that clip ends on; the script reads nothing from it;
 # - two_hands: {"grip": metres, "hold": [forward, down], "square": 0-1}: a
 #   one-handed clip made two-handed (two_hands()): the shoulders squared by
 #   "square" of their turn, the weapon kept turned as the clip turns it but

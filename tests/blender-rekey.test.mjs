@@ -36,14 +36,14 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'backhand_rise', 'blasted_fall', 'block_light', 'breaker_palm', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
+      'backhand_rise', 'blasted_fall', 'block_light', 'breaker_palm', 'crouching_crown', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
       'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right',
       'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h',
-      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
+      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard', 'level_cut',
       'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall',
       'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
       'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'slanting_cut',
-      'ult_choice',
+      'twisting_rise', 'ult_choice',
     ]);
   });
 
@@ -85,9 +85,15 @@ describe('the re-key specs', () => {
       });
 
       it('warps time from frame 0, rising in new frames and never falling in source frames', () => {
-        // a clip blended in from another may start partway into its source
+        // a clip blended in from another may start partway into its source,
+        // and one that goes on from another's clip where that one ends in it
         if (spec.blend_from && !transition) assert.equal(spec.remap[0][0], 0);
-        else assert.deepEqual(spec.remap[0], [0, 0]);
+        else if (spec.goes_on_from) {
+          const before = specs.find((s) => s.id === spec.goes_on_from)?.spec;
+          assert.ok(before, `${spec.goes_on_from} is a spec`);
+          assert.equal(before.source, spec.source, "the same source");
+          assert.deepEqual(spec.remap[0], [0, before.remap.at(-1)[1]], "starting where it ends");
+        } else assert.deepEqual(spec.remap[0], [0, 0]);
         for (let i = 1; i < spec.remap.length; i++) {
           assert.ok(spec.remap[i][0] > spec.remap[i - 1][0], `new frames rise at ${i}`);
           assert.ok(spec.remap[i][1] >= spec.remap[i - 1][1], `source frames don't fall at ${i}`);
