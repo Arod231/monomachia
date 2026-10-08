@@ -77,9 +77,10 @@ func test_the_body_capsules_are_measured_from_each_fighter() -> void:
 	# the hat rides the head bone, as the frame has it
 	var on_head: Transform3D = _bone(hunter, frame, "Head") * hat.transform
 	var worst: float = 0.0
-	for v: Vector3 in hat.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
-		var p: Vector3 = on_head * v
-		worst = maxf(worst, p.distance_to(Geometry3D.get_closest_point_to_segment(p, ends[0], ends[1])))
+	for s: int in hat.mesh.get_surface_count():
+		for v: Vector3 in hat.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+			var p: Vector3 = on_head * v
+			worst = maxf(worst, p.distance_to(Geometry3D.get_closest_point_to_segment(p, ends[0], ends[1])))
 	assert_lt(worst, head.radius + 0.002, "the hat is inside the head capsule")
 
 

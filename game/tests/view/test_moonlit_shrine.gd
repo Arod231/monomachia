@@ -6,7 +6,8 @@ extends GutTest
 ## moon to show the lake, and trimmed per preset; the markers the match
 ## reads, a floor at y = 0 under the spawns, a parapet, gate ropes and props
 ## outside the walkable circle with only flat pebbles inside it (and the
-## wisteria's canopies high over it), the torii on
+## wisteria's canopies high over it, and short grass in the paving's joints,
+## which test_shrine_banners_grass.gd covers with the banners), the torii on
 ## the gate landings, the lanterns' lights, halos and flicker, bought art in
 ## place of a procedural prop, the ledge under the props, the rock under the
 ## rim left out per camera by the cameras above the courtyard, the floating

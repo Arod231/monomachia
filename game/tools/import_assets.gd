@@ -58,7 +58,7 @@ const BODY_FILES: Array[String] = ["Superhero_Female_FullBody", "Superhero_Male_
 const HAIR: Array[String] = ["Hair_Long", "Hair_Buzzed", "Hair_Beard"]
 const OUTFIT_FILES: Array[String] = [
 	# The Rogue goes without the pauldrons and the Hunter without the hood
-	# (he wears a tricorn, built by tools/build_headwear.gd).
+	# (he wears a tricorn, modelled by scripts/blender/build_headwear.py).
 	"Female_Ranger_Arms", "Female_Ranger_Body", "Female_Ranger_Feet", "Female_Ranger_Head_Hood", "Female_Ranger_Legs",
 	"Male_Ranger_Acc_Pauldron", "Male_Ranger_Arms", "Male_Ranger_Body", "Male_Ranger_Feet_Boots", "Male_Ranger_Legs",
 ]

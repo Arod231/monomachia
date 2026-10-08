@@ -34,7 +34,8 @@ func test_every_fighter_scene_loads_and_assembles() -> void:
 		assert_gt(meshes.size(), f.look.outfit_parts.size() + f.look.hair.size() + 2, "%s has all its parts" % id)
 		for node: Node in meshes:
 			var mi: MeshInstance3D = node
-			if mi.get_parent() is BoneAttachment3D:
+			# (headwear on a bone: the hat, and the scarf on its own rig)
+			if _on_attachment(mi):
 				continue
 			assert_eq(mi.get_node(mi.skeleton), f.skeleton, "%s: %s is skinned to the fighter's skeleton" % [id, mi.name])
 
@@ -134,13 +135,14 @@ func test_every_fighter_has_two_different_palettes() -> void:
 		assert_eq(f.look.palettes.size(), 2, id)
 		var a: FighterPalette = f.look.palettes[0]
 		var b: FighterPalette = f.look.palettes[1]
-		assert_not_null(a.outfit_albedo, "%s palette A is baked" % id)
-		assert_not_null(b.outfit_albedo, "%s palette B is baked" % id)
-		assert_ne(a.outfit_albedo, b.outfit_albedo)
+		var body: String = _outfit_mesh(f)
+		assert_not_null(_texture_of(a, body), "%s palette A is baked or dyed" % id)
+		assert_not_null(_texture_of(b, body), "%s palette B is baked or dyed" % id)
+		assert_ne(_texture_of(a, body), _texture_of(b, body))
 		f.apply_palette(0)
-		assert_eq(_outfit_texture(f), a.outfit_albedo, "%s wears palette A" % id)
+		assert_eq(_outfit_texture(f), _texture_of(a, body), "%s wears palette A" % id)
 		f.apply_palette(1)
-		assert_eq(_outfit_texture(f), b.outfit_albedo, "%s wears palette B" % id)
+		assert_eq(_outfit_texture(f), _texture_of(b, body), "%s wears palette B" % id)
 
 
 func test_a_palette_change_is_remembered_across_a_rebuild() -> void:
@@ -172,6 +174,23 @@ func test_detaching_from_an_unbuilt_fighter_is_harmless() -> void:
 	autofree(f)
 	f.detach_weapons()
 	assert_eq(f.weapons.size(), 0)
+
+
+## A palette's outfit texture on `mesh`: its dyed maps' (the Hunter's,
+## milestone-1 task 45) or its baked one.
+func _texture_of(p: FighterPalette, mesh: String) -> Texture2D:
+	return p.dyed_material(mesh).albedo_texture if p.outfit_maps != null else p.outfit_albedo
+
+
+## The first mesh wearing the outfit (the one _outfit_texture() reads).
+func _outfit_mesh(f: FighterModel) -> String:
+	for node: Node in f.skeleton.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = node
+		for s: int in mi.mesh.get_surface_count():
+			var override: Material = mi.get_surface_override_material(s)
+			if override is ShaderMaterial and StringName(override.resource_name) == f.look.outfit_material:
+				return mi.name
+	return ""
 
 
 func _outfit_texture(f: FighterModel) -> Texture2D:
@@ -265,8 +284,9 @@ func _mesh_names(f: FighterModel) -> PackedStringArray:
 	return names
 
 
-## A mesh instance's vertices in fighter space, rest pose.
-static func _rest_points(f: FighterModel, mi: MeshInstance3D) -> PackedVector3Array:
+## A mesh instance's vertices in fighter space, rest pose; of one surface
+## only, given `surface`.
+static func _rest_points(f: FighterModel, mi: MeshInstance3D, surface: int = -1) -> PackedVector3Array:
 	var sk: Skeleton3D = f.skeleton
 	var xf: Transform3D = sk.transform * mi.transform
 	var attachment: BoneAttachment3D = mi.get_parent() as BoneAttachment3D
@@ -274,9 +294,21 @@ static func _rest_points(f: FighterModel, mi: MeshInstance3D) -> PackedVector3Ar
 		xf = sk.transform * sk.get_bone_global_rest(sk.find_bone(attachment.bone_name)) * mi.transform
 	var out: PackedVector3Array = PackedVector3Array()
 	for s: int in mi.mesh.get_surface_count():
+		if surface >= 0 and s != surface:
+			continue
 		for v: Vector3 in mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
 			out.append(xf * v)
 	return out
+
+
+## Whether a node is worn on a bone attachment, however deep.
+static func _on_attachment(node: Node) -> bool:
+	var p: Node = node.get_parent()
+	while p != null and not (p is FighterModel):
+		if p is BoneAttachment3D:
+			return true
+		p = p.get_parent()
+	return false
 
 
 static func _bounds(points: PackedVector3Array) -> AABB:
@@ -305,7 +337,7 @@ func test_the_rogue_wears_a_face_mask_and_no_pauldron() -> void:
 func test_the_hunter_wears_a_tricorn_and_a_scarf_and_no_hood() -> void:
 	var f: FighterModel = _fighter(&"hunter")
 	assert_false(Array(_mesh_names(f)).any(func(n: String) -> bool: return n.contains("Hood")), "the Hunter wears no hood")
-	assert_not_null(f.skeleton.get_node_or_null(^"HeadWrap"), "the Hunter wears a scarf")
+	assert_not_null(f.skeleton.get_node_or_null(^"NeckAttachment"), "the Hunter wears a scarf")
 	var hat: MeshInstance3D = f.skeleton.get_node_or_null(^"HeadAttachment/Hat")
 	assert_not_null(hat, "the Hunter wears a hat")
 	if hat == null:
@@ -314,7 +346,9 @@ func test_the_hunter_wears_a_tricorn_and_a_scarf_and_no_hood() -> void:
 	var head: AABB = _bounds(_rest_points(f, f.skeleton.get_node(^"Head")))
 	var eyes: AABB = _bounds(_rest_points(f, f.skeleton.get_node(^"Eyes")))
 	var box: AABB = _bounds(_rest_points(f, hat))
-	assert_gt(box.position.y, eyes.get_center().y, "the hat sits above the eyes")
+	# (its first surface, the crown and brim: the cords tie under the chin)
+	var shell: AABB = _bounds(_rest_points(f, hat, 0))
+	assert_gt(shell.position.y, eyes.get_center().y, "the hat sits above the eyes")
 	assert_gt(box.end.y, head.end.y + 0.01, "the crown clears the top of the head")
 	# (half as wide again as the head: 10 cm past it on the first bodies, and
 	# as far for its size on KE task 3's taller ones)
@@ -324,7 +358,9 @@ func test_the_hunter_wears_a_tricorn_and_a_scarf_and_no_hood() -> void:
 func test_headwear_takes_the_palette_colour() -> void:
 	for id: StringName in FighterLook.IDS:
 		var f: FighterModel = _fighter(id)
-		var wrap: MeshInstance3D = f.skeleton.get_node(^"HeadWrap")
+		# the Rogue's face mask, the Hunter's scarf
+		var wrap: MeshInstance3D = f.skeleton.find_children("*", "MeshInstance3D", true, false).filter(
+			func(mi: MeshInstance3D) -> bool: return mi.name in [&"HeadWrap", &"Scarf"])[0]
 		for pal: int in 2:
 			f.apply_palette(pal)
 			var mat: ShaderMaterial = wrap.get_active_material(0) as ShaderMaterial
