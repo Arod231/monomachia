@@ -1,10 +1,10 @@
 extends GutTest
 ## Import hygiene for the art: no file in game/assets or the baked textures
-## and meshes in game/fighters and game/weapons over 25 MB, textures are
+## and meshes in game/fighters and game/weapons over 60 MB, textures are
 ## scaled down, every texture a model references exists, and every skinned
 ## model is retargeted through the humanoid bone map (an exported Iglesias
 ## clip through the Iglesias one). The art's and the audio's totals are the
-## public repository's budgets in the spec's size budget table (150 MB and
+## public repository's budgets in the spec's size budget table (600 MB and
 ## 40 MB, milestone-1 task 8), checked by scripts/check-sizes.mjs (npm run
 ## check:sizes) in place of the 110 MB cap this test had.
 
@@ -15,8 +15,10 @@ const BAKED: Array[String] = ["res://fighters", "res://weapons"]
 ## Binary art in the baked folders; their scenes and scripts aren't counted.
 const BAKED_EXTENSIONS: Array[String] = ["png", "res", "exr"]
 ## Raised from 10 MB to take the UAL2 Source tier's two ~20 MB clip
-## libraries (UAL2_Source.glb and UAL2_Source_RM.glb).
-const MAX_FILE_BYTES: int = 25 * 1024 * 1024
+## libraries (UAL2_Source.glb and UAL2_Source_RM.glb), and to 60 MB with
+## check:sizes' limit for the Shrine's buildings (milestone-1 task 132, the
+## owner's word, Oct 8).
+const MAX_FILE_BYTES: int = 60 * 1024 * 1024
 const MAX_BASE_COLOR: int = 2048
 const MAX_DATA_MAP: int = 1024
 const BONE_MAP: String = "res://assets/quaternius/ual_bone_map.tres"
@@ -76,7 +78,7 @@ static func _png_size(path: String) -> Vector2i:
 	return size
 
 
-func test_no_art_file_is_over_25_mb() -> void:
+func test_no_art_file_is_over_60_mb() -> void:
 	for path: String in _art_files():
 		assert_lt(FileAccess.get_size(path), MAX_FILE_BYTES, path)
 

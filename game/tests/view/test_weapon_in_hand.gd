@@ -265,6 +265,10 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 	var clip_rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
 	rows[&"clip_deflect_light"] = clip_rows[&"clip_deflect_light"]
 	rows[&"clip_block_light"] = clip_rows[&"clip_block_light"]
+	# the clips of task 90's pairs that hold the Katana: the redirected
+	# attacker's recoil and the blade's deflects at a limb
+	rows[&"clip_deflect_redirect"] = [&"RedirectRecoil"]
+	rows[&"clip_deflect_limb"] = [&"LimbDeflectHigh", &"LimbDeflectLow"]
 	## the worst gap by clip: [gap (m), where]
 	var worst: Dictionary[StringName, Array] = {}
 	for pair: Array in [[&"hunter", &"HumanM"], [&"rogue", &"HumanF"]]:
@@ -293,5 +297,5 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 		else:
 			ChecklistResults.record_problems(10, row, by_clip.values()[0])
 	gut.p("the keyed clips' off hand, worst over every rules frame:\n" + "\n".join(lines))
-	assert_eq(worst.size(), 16, "four lights, four pairs, the block, Crouching Crown and the two-handed hits 1 and 2, their off hand on the grip (KE tasks 12 and 13)")
+	assert_eq(worst.size(), 19, "four lights, four pairs, the block, Crouching Crown and the two-handed hits 1 and 2 (KE tasks 12 and 13), the redirected attacker's recoil and the blade's two deflects at a limb (milestone-1 task 90), their off hand on the grip")
 	assert_eq(free, 5, "the one-handed grip's own hits 1 to 4 (KE tasks 11 and 12) and Crescent Coil (KE task 16), the off hand free")

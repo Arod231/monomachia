@@ -61,6 +61,14 @@ const SMALL_LIGHT_MASK: int = 0xFFFFF & ~GROUND_LAYER
 ## above the courtyard can't see it, so the arena leaves this layer out of
 ## their cull masks, camera by camera.
 const BELOW_DECK_LAYER: int = 16
+## Render layer bit for an arena's canopy (layer 10; milestone-1 task 49):
+## the Shrine's wisteria cast their shadows only in the moon shafts' light,
+## which breaks through them into the mist. Every other light that casts
+## shadows leaves this layer out of its caster mask (SHADOW_CASTERS), so the
+## trees still cast no shadow on the arena.
+const CANOPY_LAYER: int = 512
+## Shadow caster mask for every light but the moon shafts: all but the canopy.
+const SHADOW_CASTERS: int = 0xFFFFF & ~CANOPY_LAYER
 
 
 ## The render layer bit of the fighter on `side` (SIDE_LAYERS).

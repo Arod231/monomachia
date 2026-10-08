@@ -1,0 +1,18 @@
+{
+	"about": "Hook (fists.f_l3, bare hands' third light), milestone-1 task 89, made in Cascadeur. The key poses come from AttackPunch01_L: the guard (frame 0) winds the lead side back over a longer wind-up (to 9), the lead hand looping round to land on frame 11 (22 rules frames from the press), active to 12.5, then back into the guard by 22.5 (20 rules frames of recovery). Turned from the hips in place: the pack's switch step is taken out, the lead foot planted where it stands and the hips leaning into the blow as the pack clip leans, the rear foot pivoting 0.3 m up behind the turn on frames 7-11, so the rear leg stays bent, and back on 16-21 (the lean is not travel: the frame-data generator counts the hips' shift only with no foot planted, so the planted lead foot stays put). Cascadeur's AI inbetweening generates every frame but the key poses. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackPunch01_L.fbx",
+	"out": "blender/cascadeur/hook_keys.blend",
+	"remap": [[0, 0], [5, 2], [9, 6.5], [11, 9], [12.5, 10.5], [16, 17], [23, 33]],
+	"step": {
+		"body": [[0, 0], [23, 0]],
+		"hips_top": 0.8,
+		"hips_home": [16, 23],
+		"feet": {
+			"L": [],
+			"R": [[7, 11, 0.3, 0.1], [16, 21, -0.3, 0.1]]
+		},
+		"hips_keep": 1.25
+	},
+	"keys": [0, 5, 8, 10, 11, 13, 17, 23],
+	"clip": "blender/clips/hook.blend"
+}

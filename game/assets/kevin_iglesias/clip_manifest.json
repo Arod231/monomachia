@@ -382,6 +382,102 @@
 				"states"
 			]
 		},
+		"Jab": {
+			"export": "exports/clips/jab.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 9,
+				"contact_end": 10,
+				"settle": 18
+			},
+			"foot_contacts": {"left": [[0, 1], [4, 18]], "right": [[0, 5], [18, 18]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"Cross": {
+			"export": "exports/clips/cross.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 10,
+				"contact_end": 11,
+				"settle": 20
+			},
+			"foot_contacts": {"left": [[0, 2], [6, 20]], "right": [[0, 6], [19, 20]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"Hook": {
+			"export": "exports/clips/hook.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 11,
+				"contact_end": 13,
+				"settle": 23
+			},
+			"foot_contacts": {"left": [[0, 23]], "right": [[0, 7], [11, 16], [21, 23]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"Roundhouse": {
+			"export": "exports/clips/roundhouse.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 18,
+				"contact_end": 20,
+				"settle": 37
+			},
+			"foot_contacts": {"left": [[0, 5], [10, 37]], "right": [[0, 8], [34, 37]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"RoundhouseCharge": {
+			"export": "exports/clips/roundhouse_charge.glb",
+			"mirror": false,
+			"loop": true,
+			"markers": {
+				"windup": 0,
+				"contact": 0,
+				"contact_end": 30,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 30]], "right": [[0, 30]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"SpinningHeel": {
+			"export": "exports/clips/spinning_heel.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 20,
+				"contact_end": 22,
+				"settle": 41
+			},
+			"foot_contacts": {"left": [[0, 17], [30, 41]], "right": [[0, 12], [33, 41]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
 		"BreakerPalm": {
 			"export": "exports/clips/breaker_palm.glb",
 			"mirror": false,
@@ -776,6 +872,102 @@
 			"pack": "Human Melee Animations",
 			"dir": "Combat/1H",
 			"source": "Parry1H01_R - Hit",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 2,
+				"contact_end": 3,
+				"settle": 24
+			},
+			"foot_contacts": {"left": [[0, 26]], "right": [[0, 26]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"RedirectDeflect": {
+			"export": "exports/clips/redirect_deflect.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 3,
+				"contact_end": 5,
+				"settle": 24
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 15], [20, 24]], "right": [[0, 1], [6, 16], [22, 24]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"RedirectRecoil": {
+			"export": "exports/clips/redirect_recoil.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 15,
+				"contact_end": 15,
+				"settle": 28
+			},
+			"foot_contacts": {"left": [[0, 10], [15, 16], [20, 28]], "right": [[0, 3], [9, 11], [16, 19], [23, 28]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"FistRecoil": {
+			"export": "exports/clips/fist_recoil.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 9,
+				"contact_end": 9,
+				"settle": 22
+			},
+			"foot_contacts": {"left": [[0, 11], [15, 22]], "right": [[0, 10], [13, 22]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FootRecoil": {
+			"export": "exports/clips/foot_recoil.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 20,
+				"contact_end": 20,
+				"settle": 33
+			},
+			"foot_contacts": {"left": [[0, 22], [26, 33]], "right": [[0, 9], [27, 29], [33, 33]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"LimbDeflectHigh": {
+			"export": "exports/clips/limb_deflect_high.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 2,
+				"contact_end": 3,
+				"settle": 24
+			},
+			"foot_contacts": {"left": [[0, 26]], "right": [[0, 26]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"LimbDeflectLow": {
+			"export": "exports/clips/limb_deflect_low.glb",
 			"mirror": false,
 			"loop": false,
 			"markers": {

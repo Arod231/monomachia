@@ -66,6 +66,7 @@ func test_the_cuts_are_resolution_and_atmosphere_only() -> void:
 		&"render_scale", &"scaling_3d_mode", &"screen_space_aa",
 		&"volumetric_fog", &"petal_lights", &"ambient_occlusion", &"minor_decals",
 		&"push_in_dof", &"spark_light", &"fighter_shadows", &"global_illumination",
+		&"floor_petal_ratio",
 	] as Array[StringName])
 
 

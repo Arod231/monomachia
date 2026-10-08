@@ -1,0 +1,22 @@
+{
+	"about": "Spinning Heel (fists.f_h2, bare hands' second string heavy, Roundhouse's follow-up), milestone-1 task 133, made in Cascadeur. The key poses come from AttackKick02_R, a full spinning back heel: the body turns a whole turn on the ball of the lead foot, its back shown for a moment, the rear heel arcing round at head height to land on frame 20 (40 rules frames from the press), active to 22, back into the guard by 41 (38 rules frames of recovery). The lead foot pivots under the spin turning exactly as far as the hips (so the frame-data generator reads the turn as the clip's, not the body's), then hops 0.45 m forward as the body leaves the ground (18-30); the kicking foot lands that far ahead by 33, the spin carrying the body 0.45 m forward. Cascadeur's AI inbetweening generates every frame but the key poses. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick02_R.fbx",
+	"out": "blender/cascadeur/spinning_heel_keys.blend",
+	"remap": [[0, 0], [6, 1], [12, 3], [17, 7], [20, 10.5], [22, 11.5], [28, 15], [41, 24]],
+	"step": {
+		"body": [[0, 0], [6, 0], [14, 0.15], [20, 0.33], [24, 0.45], [41, 0.45]],
+		"hips_keep": 1,
+		"hips_home": [36, 41],
+		"feet": {
+			"L": [[18, 30, 0.45, 0.12]],
+			"R": [[4, 33, 0.45, 0.12]]
+		},
+		"free": {
+			"R": [[4, 33]]
+		},
+		"pivot": ["L"],
+		"pivot_hips": true
+	},
+	"keys": [0, 6, 12, 17, 20, 22, 33, 41],
+	"clip": "blender/clips/spinning_heel.blend"
+}

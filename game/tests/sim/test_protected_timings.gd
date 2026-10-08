@@ -97,7 +97,9 @@ func test_today_s_stand_ins_keep_today_s_values() -> void:
 	var cut: AttackDef = Moves.KATANA.moves[&"k_dl"]
 	assert_false(cut.real_markers, "Wind Cut is a stand-in today")
 	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [14, 10, 4])
-	assert_eq(Moves.FISTS.moves[&"f_l1"].hitstun, 16, "Jab keeps its own 16 until it is re-keyed")
+	# bare hands keep no stand-in on today's values: every attack is keyed
+	# (tasks 89, 93, 94, 99 and 133) but Counter Lunge, on the retuned light
+	# hitstun since task 22
 	assert_eq([Moves.KATANA.moves[&"k_h2"].hitstun, Moves.KATANA.moves[&"k_h2"].hitstop], [26, 7])
 	assert_same(ProtectedTimings.for_move(cut), ProtectedTimings.today())
 
@@ -109,6 +111,13 @@ func test_the_re_keyed_lights_take_the_retuned_values() -> void:
 		assert_true(cut.real_markers, "%s is on real markers" % id)
 		assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [24, 15, 5], id)
 		assert_same(ProtectedTimings.for_move(cut), ProtectedTimings.for_weapon(&"katana"), id)
+	# bare hands' light string, re-keyed (task 89): Jab and Cross no longer
+	# keep their own 16, so no hit of the string is guaranteed
+	for id: StringName in [&"f_l1", &"f_l2", &"f_l3"]:
+		var punch: AttackDef = Moves.FISTS.moves[id]
+		assert_true(punch.real_markers, "%s is on real markers" % id)
+		assert_eq([punch.hitstun, punch.blockstun, punch.hitstop], [18, 15, 5], id)
+		assert_same(ProtectedTimings.for_move(punch), ProtectedTimings.for_weapon(&"fists"), id)
 
 
 func test_the_counter_lunges_already_take_their_weapon_s_light_hitstun() -> void:
@@ -364,7 +373,9 @@ func test_a_held_pair_breaking_the_rule_fails() -> void:
 	assert_eq(FollowUpCheck.problems(w, held, kind), [] as Array[String])
 
 
-## A light string run: fighter 0 with `w` plays `first`, its follow-up
+## A light string run: fighter 0 with `w` plays `first` (pressed if it opens
+## the string, else started as it is: a later pair measured from its own
+## first move, not the string's opener), its follow-up
 ## `second` pressed as soon as it can be, at an idle defender of the same
 ## weapon 1.8 m away, which presses block only on step `press` (-1 for
 ## never). Gives the steps the hits landed on, the first step the defender
@@ -376,12 +387,15 @@ static func _string_run(w: WeaponDef, first: StringName, second: StringName, pre
 	var def: AttackDef = w.moves[first]
 	var follow_btn: int = Btn.LIGHT if def.chain_light == second else Btn.HEAVY
 	var first_btn: int = Btn.HEAVY if def.kind == &"heavy" else Btn.LIGHT
+	var direct: bool = first != (w.heavy_start if def.kind == &"heavy" else w.light_start)
+	if direct:
+		a.start_attack(first)
 	var rec: H.Rec = H.Rec.new()
 	var hits: Array[int] = []
 	var free_step: int = -1
 	var was_hit: bool = false
 	for i: int in 160:
-		var p0: RawInput = H.btn(first_btn) if i == 0 else (H.btn(follow_btn) if i == def.startup + 1 else H.idle())
+		var p0: RawInput = (H.idle() if direct else H.btn(first_btn)) if i == 0 else (H.btn(follow_btn) if i == def.startup + 1 else H.idle())
 		W.step([p0, H.btn(Btn.BLOCK) if i == press else H.idle()])
 		var before: int = rec.count(&"hit")
 		rec.collect(W)

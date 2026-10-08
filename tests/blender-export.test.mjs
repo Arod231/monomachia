@@ -24,6 +24,7 @@ import {
   run,
   sha256,
 } from '../scripts/blender/export.mjs';
+import { ART_BUDGET_BYTES } from '../scripts/check-sizes.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const MB = 1024 * 1024;
@@ -198,13 +199,13 @@ describe('the export', () => {
 
   it("copies into the game only inside task 8's budgets", () => {
     const files = [
-      { path: 'game/assets/big.glb', bytes: 145 * MB },
+      { path: 'game/assets/big.glb', bytes: 595 * MB },
       { path: 'game/assets/audio/music/a.wav', bytes: 39 * MB },
     ];
     assert.equal(copyRefusal(files, 'game/assets/exports/weapons/katana.glb', 2 * MB), null, 'fits');
-    assert.match(copyRefusal(files, 'game/assets/exports/weapons/katana.glb', 6 * MB), /committed game art to 151\.0 MB, over its budget/);
-    assert.match(copyRefusal([], 'game/assets/exports/shrine/hall.glb', 11 * MB), /over the 10 MB a file/);
-    assert.equal(copyRefusal([{ path: 'game/assets/exports/a.glb', bytes: 149 * MB }], 'game/assets/exports/a.glb', 3 * MB), null, 'a copy replaces its old file');
+    assert.match(copyRefusal(files, 'game/assets/exports/weapons/katana.glb', 6 * MB), /committed game art to 601\.0 MB, over its budget/);
+    assert.match(copyRefusal([], 'game/assets/exports/shrine/hall.glb', 61 * MB), /over the 60 MB a file/);
+    assert.equal(copyRefusal([{ path: 'game/assets/exports/a.glb', bytes: 45 * MB }, { path: 'game/assets/big.glb', bytes: 550 * MB }], 'game/assets/exports/a.glb', 48 * MB), null, 'a copy replaces its old file');
   });
 
   it('finds Blender from BLENDER first', () => {
@@ -300,7 +301,7 @@ describe('the export in Blender (local-only)', { skip: blender ? false : 'local-
       assert.equal(existsSync(join(game, 'game/assets/exports/clips')), false, 'the clip stays in the asset repository');
       const check = run({ blender, assets, root: game, check: true, files: [] });
       assert.equal(check.code, 0, check.lines.join('\n'));
-      const full = run({ blender, assets, root: join(dir, 'other-game'), files: [{ path: 'game/assets/big.glb', bytes: 150 * MB }] });
+      const full = run({ blender, assets, root: join(dir, 'other-game'), files: [{ path: 'game/assets/big.glb', bytes: ART_BUDGET_BYTES }] });
       assert.equal(full.code, 1);
       assert.match(full.lines.join('\n'), /box: not copied into the game: .*over its budget/);
     } finally {

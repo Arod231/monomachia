@@ -21,8 +21,9 @@ const BANDED: Array[StringName] = [&"katana", &"fists"]
 ## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32),
 ## Breaker Palm (task 99), the one-handed string's own hits 1 and 2 (KE
 ## task 11), Crescent Coil (KE task 16), and bare hands' eight movement
-## attacks (tasks 93 and 94).
-const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2", &"k_coil"], &"fists": [&"f_breaker", &"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]}
+## attacks (tasks 93 and 94), light string (Jab, Cross and Hook, task 89) and
+## heavies (task 133).
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2", &"k_coil"], &"fists": [&"f_breaker", &"f_l1", &"f_l2", &"f_l3", &"f_h1", &"f_h2", &"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]}
 
 
 func _bands() -> MoveBands:
@@ -115,7 +116,7 @@ func test_every_katana_and_bare_hands_move_but_the_counter_lunges_and_the_keyed_
 			var kind: StringName = StringName(FrameDataTable.shared().row(wid, id)["kind"])
 			var keyed: bool = KEYED.get(wid, []).has(id)
 			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge" and not keyed, "%s.%s" % [wid, id])
-	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 21, "Heaven Splitter and Rising Heaven wait for theirs (KE task 17), the Iai for its (KE task 18)")
+	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 16, "Heaven Splitter and Rising Heaven wait for theirs (KE task 17), the Iai for its (KE task 18)")
 
 
 func test_every_banded_move_has_a_timing_band_and_every_striking_one_a_distance_band() -> void:
@@ -214,7 +215,7 @@ func test_the_distance_bands_are_the_spec_s_table() -> void:
 	assert_eq(bands.distance_band(&"katana", &"string_light_1h")["inside"], [0.15, 0.2], "the re-keyed hits cut 15-20 cm in (KE task 11)")
 	assert_eq(bands.distance_band(&"katana", &"string_last_1h")["inside"], [0.15, 0.2], "the last hit too (KE task 12)")
 	assert_eq(bands.distance_band(&"katana", &"string_light_2h")["inside"], [0.15, 0.2], "and the two-handed hits (KE task 13)")
-	assert_eq(bands.distance_band(&"fists", &"string_light")["inside"], [0.15, 0.21], "until their re-keys (KE task 3)")
+	assert_eq(bands.distance_band(&"fists", &"string_light")["inside"], [0.15, 0.2], "the spec's, since task 89 re-keyed them")
 	assert_eq(bands.distance_band(&"katana", &"ultimate")["wave"], 33.0, "Moonsplitter: the whole stage")
 	assert_eq(bands.distance[&"fists"]["misses_all"], 6.0, "every bare-hands move misses from 6 m")
 

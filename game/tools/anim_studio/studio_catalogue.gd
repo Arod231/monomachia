@@ -202,6 +202,17 @@ func _add_states(sc: StateClips) -> void:
 		_add(KIND_STATE, GROUP_STATES, StringName("deflect_%s" % move), "Deflect pair (%s)" % _move_name(move),
 			_clips([pair[&"deflect"], pair[&"recoil"]]), _fallbacks([]), 1.0, STATES_FILE,
 			[["deflects", "pairs", String(move), "deflect"], ["deflects", "pairs", String(move), "recoil"]])
+	if not sc.deflect_redirect.is_empty():
+		# the redirect's one pair (milestone-1 task 90)
+		_add(KIND_STATE, GROUP_STATES, &"deflect_redirect", "Deflect pair (the redirect)",
+			_clips([sc.deflect_redirect[&"deflect"], sc.deflect_redirect[&"recoil"]]), _fallbacks([]), 1.0, STATES_FILE,
+			[["deflects", "redirect", "deflect"], ["deflects", "redirect", "recoil"]])
+	for limb: StringName in sc.limb_recoils:
+		for height: StringName in sc.limb_deflects:
+			# a blade's deflect at a fist or a foot and the limb's recoil (task 90)
+			_add(KIND_STATE, GROUP_STATES, StringName("deflect_%s_%s" % [limb, height]), "Deflect pair (a %s, %s)" % [limb, height],
+				_clips([sc.limb_deflects[height][&"deflect"], sc.limb_recoils[limb][&"recoil"]]), _fallbacks([]), 1.0, STATES_FILE,
+				[["deflects", "blade_at_limb", String(height), "deflect"], ["deflects", "limbs", String(limb), "recoil"]])
 	_add(KIND_STATE, GROUP_STATES, &"carry", STATE_NAMES[&"carry"], _clips([sc.carry_pose]), _fallbacks([]), 1.0, STATES_FILE, [["carry", "pose"]])
 	var phases: Array = []
 	var phase_fallbacks: Array = []

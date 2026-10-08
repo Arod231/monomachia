@@ -17,12 +17,12 @@ const MOVES: Dictionary = {
 	&"f_l1": {
 		"id": &"f_l1", "name": "Jab", "kind": &"light", "type": &"punch", "anim": &"f_jab", "hand": &"L", "sound": F,
 		"damage": 3, "posture": 8, "knockback": 0.5,
-		"range": 1.3, "arc": 90, "lunge": 0.3, "lunge_end": 6, "chain_light": &"f_l2", "chain_heavy": &"f_h1", "hitstun": 16,
+		"range": 1.3, "arc": 90, "lunge": 0.3, "lunge_end": 6, "chain_light": &"f_l2", "chain_heavy": &"f_h1",
 	},
 	&"f_l2": {
 		"id": &"f_l2", "name": "Cross", "kind": &"light", "type": &"punch", "anim": &"f_cross", "hand": &"R", "sound": F,
 		"damage": 3, "posture": 8, "knockback": 0.5,
-		"range": 1.3, "arc": 90, "lunge": 0.27, "lunge_end": 7, "chain_light": &"f_l3", "chain_heavy": &"f_h1", "hitstun": 16,
+		"range": 1.3, "arc": 90, "lunge": 0.27, "lunge_end": 7, "chain_light": &"f_l3", "chain_heavy": &"f_h1",
 	},
 	&"f_l3": {
 		"id": &"f_l3", "name": "Hook", "kind": &"light", "type": &"punch", "anim": &"f_hook", "hand": &"L", "sound": F,

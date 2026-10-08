@@ -174,7 +174,7 @@ export function recordText(id, source, sourceBytes, exportBytes, blenderVersion)
  * null when it does, else why not.
  */
 export function copyRefusal(files, path, bytes) {
-  if (bytes > LIMIT_BYTES) return `${path} would be ${(bytes / 1048576).toFixed(1)} MB, over the 10 MB a file`;
+  if (bytes > LIMIT_BYTES) return `${path} would be ${(bytes / 1048576).toFixed(1)} MB, over the ${LIMIT_BYTES / 1048576} MB a file`;
   if (!isArt(path)) return `${path} is not under game/assets/`;
   const after = files.filter((f) => f.path !== path).concat([{ path, bytes }]);
   const over = findOverBudget(after);

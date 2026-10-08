@@ -36,6 +36,7 @@ func _init() -> void:
 	name = "FighterLights"
 	key = _spot(&"Key", KEY_AT, LookPalette.MOON_STEEL.lightened(0.3), KEY_ENERGY, KEY_RANGE, KEY_ANGLE)
 	key.shadow_enabled = true
+	key.shadow_caster_mask = LookPalette.SHADOW_CASTERS
 	key.add_to_group(GraphicsApplier.GROUP_FIGHTER_KEY)
 	rim = _spot(&"Rim", RIM_AT, RIM_COLOR, RIM_ENERGY, RIM_RANGE, RIM_ANGLE)
 	set_side(0)

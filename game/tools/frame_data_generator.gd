@@ -27,16 +27,23 @@ extends RefCounted
 ## Travel is what the body does over the ground. While a foot is planted it
 ## stays put in the world, so the fighter's root moves against the way the
 ## planted foot slides in the clip (both feet planted: their average), and
-## turns against the way it turns; with no foot planted the root carries on
+## turns against the way it turns, less what the hips turn with it the same
+## way since the foot came down (a pivot on the foot, milestone-1 task 133:
+## the Spinning Heel's whole turn is the clip's, not the body's; the foot may
+## lead the hips and they catch up); with no foot planted the root carries on
 ## straight ahead at the speed it last went forward (none at the start),
 ## holding its heading: a planted foot's last sideways slide and twist aren't
 ## carried, since retargeting onto the game's bodies bends a push-off's last
 ## slide a little, and a leap would drift and turn on it all through the
-## flight (milestone-1 task 93). The hips' own shift in the clip
-## rides on top: a frame's travel is the root's move plus the hips' move
-## across the ground. A swing sampled relative to the moving body has the
-## hips' shift across the ground taken out, so the clip's path is the swing's
-## plus the travel: nothing counted twice.
+## flight (milestone-1 task 93), and any turn in the air is the clip's. With
+## no foot planted the hips' own shift in the clip rides on top: that frame's
+## travel is the root's move plus the hips' move across the ground (a body
+## carried off its feet, the recall burst's blasted fall). With a foot planted
+## the hips' shift is a lean over it, not travel (milestone-1 task 89: the
+## bare-hands punches lean into the blow), and the clip shows it as it is. A
+## swing sampled relative to the moving body has the hips' carried shift
+## taken out (Result.carried), so the clip's path is the swing's plus the
+## travel: nothing counted twice.
 
 ## Decimal places travel is written to: metres, degrees.
 const PLACES: int = 4
@@ -71,6 +78,10 @@ class Result:
 	var forward: PackedFloat64Array = PackedFloat64Array()
 	var sideways: PackedFloat64Array = PackedFloat64Array()
 	var turn: PackedFloat64Array = PackedFloat64Array()
+	## How far the travel has carried the hips' own shift by each rules frame
+	## (V3 across the ground, from frame 0): their move over the frames with
+	## no foot planted.
+	var carried: Array[V3] = []
 
 	func total() -> int:
 		return startup + active + recovery
@@ -140,6 +151,7 @@ static func generate(pose: Callable, length: float, markers: Dictionary, contact
 			out.tracks[part] = []
 	var feet: Array[Dictionary] = []
 	var hips: Array[V3] = []
+	var pelvis: PackedFloat64Array = PackedFloat64Array()
 	for f: int in out.total() + 1:
 		var time: float = retime.clip_time(float(f)) if retime != null else (windup + f / ClipTiming.RULES_FPS * ClipManifest.SOURCE_FPS) / ClipManifest.SOURCE_FPS
 		out.times.append(time)
@@ -152,34 +164,46 @@ static func generate(pose: Callable, length: float, markers: Dictionary, contact
 			out.tracks[part].append(poses[part])
 		feet.append({"left": poses[&"left_foot"], "right": poses[&"right_foot"]})
 		hips.append((poses[&"body"] as Swing.Sample).pelvis_shift)
-	travel(out, feet, hips, contacts)
+		pelvis.append((poses[&"body"] as Swing.Sample).pelvis)
+	travel(out, feet, hips, contacts, pelvis)
 	if relative:
 		out.relative = true
 		for part: StringName in out.tracks:
 			var samples: Array = out.tracks[part]
 			for f: int in samples.size():
-				samples[f] = _without_ground_shift(part, samples[f], V3.sub(_ground(hips[f]), _ground(hips[0])))
+				samples[f] = _without_ground_shift(part, samples[f], out.carried[f])
 	return out
 
 
-## Fills r's travel from each rules frame's feet ({"left", "right"}:
-## Swing.Sample, the ankle and the way to the toes) and hips' shift, over
-## r.times, by the foot contacts.
-static func travel(r: Result, feet: Array[Dictionary], hips: Array[V3], contacts: Dictionary) -> void:
+## Fills r's travel (and r.carried) from each rules frame's feet ({"left",
+## "right"}: Swing.Sample, the ankle and the way to the toes), hips' shift
+## and pelvis's turn (degrees toward the fighter's right; none given, none
+## counted), over r.times, by the foot contacts.
+static func travel(r: Result, feet: Array[Dictionary], hips: Array[V3], contacts: Dictionary,
+		pelvis: PackedFloat64Array = PackedFloat64Array()) -> void:
 	r.forward = PackedFloat64Array([0.0])
 	r.sideways = PackedFloat64Array([0.0])
 	r.turn = PackedFloat64Array([0.0])
+	r.carried = [V3.make()] as Array[V3]
 	var root: V3 = V3.make()
 	var root_turn: float = 0.0
+	# since the planted feet came down: the foot's turn, the hips', and how
+	# much of the foot's the hips don't explain
+	var sides: Array[String] = []
+	var foot_turned: float = 0.0
+	var hips_turned: float = 0.0
+	var unexplained: float = 0.0
 	for f: int in range(1, r.times.size()):
 		var a: float = r.times[f - 1] * ClipManifest.SOURCE_FPS
 		var b: float = r.times[f] * ClipManifest.SOURCE_FPS
 		var slide: V3 = V3.make()
 		var twist: float = 0.0
 		var planted: int = 0
+		var now_sides: Array[String] = []
 		for side: String in ClipManifest.FEET:
 			if not planted_over(contacts.get(side, []), a, b):
 				continue
+			now_sides.append(side)
 			var was: Swing.Sample = feet[f - 1][side]
 			var now: Swing.Sample = feet[f][side]
 			slide = V3.add(slide, V3.sub(_ground(now.grip), _ground(was.grip)))
@@ -187,11 +211,24 @@ static func travel(r: Result, feet: Array[Dictionary], hips: Array[V3], contacts
 			planted += 1
 		if planted > 0:
 			root = V3.scale(slide, -1.0 / planted)
-			root_turn = -twist / planted
+			if now_sides != sides:
+				foot_turned = 0.0
+				hips_turned = 0.0
+				unexplained = 0.0
+			foot_turned += twist / planted
+			hips_turned += wrapf(pelvis[f] - pelvis[f - 1], -180.0, 180.0) if pelvis.size() > f else 0.0
+			# the part of the foot's turn the hips turn with it is a pivot
+			var with_hips: float = signf(foot_turned) * minf(absf(foot_turned), absf(hips_turned)) \
+				if signf(foot_turned) == signf(hips_turned) else 0.0
+			root_turn = -(foot_turned - with_hips - unexplained)
+			unexplained = foot_turned - with_hips
 		else:
 			root = V3.make(0.0, 0.0, root.z)
 			root_turn = 0.0
-		var move: V3 = V3.add(root, V3.sub(_ground(hips[f]), _ground(hips[f - 1])))
+		sides = now_sides
+		var carry: V3 = V3.sub(_ground(hips[f]), _ground(hips[f - 1])) if planted == 0 else V3.make()
+		r.carried.append(V3.add(r.carried[f - 1], carry))
+		var move: V3 = V3.add(root, carry)
 		r.forward.append(move.z)
 		r.sideways.append(move.x)
 		r.turn.append(root_turn)
@@ -258,7 +295,7 @@ static func chain_contacts(parts: Array[ClipChain.Part], contacts_of: Dictionary
 	return out
 
 
-## A sample with the hips' shift across the ground (`shift`) taken out: a
+## A sample with the hips' carried shift across the ground (`shift`) taken out: a
 ## limb's grip, or the body's pelvis shift.
 static func _without_ground_shift(part: StringName, s: Swing.Sample, shift: V3) -> Swing.Sample:
 	var out: Swing.Sample = Swing.Sample.new()

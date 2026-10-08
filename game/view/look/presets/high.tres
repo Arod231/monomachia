@@ -23,5 +23,6 @@ ambient_occlusion = true
 petal_lights = true
 minor_decals = true
 particle_ratio = 1.0
+floor_petal_ratio = 1.0
 minor_lights = true
 scenery_detail = 2

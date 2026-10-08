@@ -93,15 +93,20 @@ func test_a_clip_row_records_once_failing_on_any_of_its_clips() -> void:
 
 func test_the_keyed_moves_are_the_banded_moves_off_the_waiting_list() -> void:
 	var keyed: Array[Array] = ChecklistResults.keyed_moves()
-	assert_eq(keyed, [[&"katana", &"k_l1"], [&"katana", &"k_l2"], [&"katana", &"k_l3"], [&"katana", &"k_l4"], [&"katana", &"k_1l1"], [&"katana", &"k_1l2"], [&"katana", &"k_1l3"], [&"katana", &"k_1l4"], [&"katana", &"k_1l5"], [&"katana", &"k_2l1"], [&"katana", &"k_2l2"], [&"katana", &"k_coil"], [&"fists", &"f_sl"], [&"fists", &"f_sh"], [&"fists", &"f_dl"], [&"fists", &"f_dh"], [&"fists", &"f_bl"], [&"fists", &"f_bh"], [&"fists", &"f_jl"], [&"fists", &"f_jh"], [&"fists", &"f_breaker"]] as Array[Array],
-		"the light string, the one-handed grip's own five hits (KE tasks 11 and 12), the two-handed grip's hits 1 and 2 (KE task 13), Crescent Coil (KE task 16), family 8's eight (tasks 93 and 94) and Breaker Palm (task 99)")
+	assert_eq(keyed, [[&"katana", &"k_l1"], [&"katana", &"k_l2"], [&"katana", &"k_l3"], [&"katana", &"k_l4"], [&"katana", &"k_1l1"], [&"katana", &"k_1l2"], [&"katana", &"k_1l3"], [&"katana", &"k_1l4"], [&"katana", &"k_1l5"], [&"katana", &"k_2l1"], [&"katana", &"k_2l2"], [&"katana", &"k_coil"], [&"fists", &"f_l1"], [&"fists", &"f_l2"], [&"fists", &"f_l3"], [&"fists", &"f_h1"], [&"fists", &"f_h2"], [&"fists", &"f_sl"], [&"fists", &"f_sh"], [&"fists", &"f_dl"], [&"fists", &"f_dh"], [&"fists", &"f_bl"], [&"fists", &"f_bh"], [&"fists", &"f_jl"], [&"fists", &"f_jh"], [&"fists", &"f_breaker"]] as Array[Array],
+		"the light string, the one-handed grip's own five hits (KE tasks 11 and 12), the two-handed grip's hits 1 and 2 (KE task 13), Crescent Coil (KE task 16), family 8's eight (tasks 93 and 94), bare hands' light string and heavies (tasks 89 and 133) and Breaker Palm (task 99)")
 
 
 func test_the_clip_rows_group_the_state_clips_the_families_keyed() -> void:
 	var rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
-	assert_eq(rows.keys(), [&"clip_deflect_light", &"clip_hit_light", &"clip_block_light"])
+	assert_eq(rows.keys(), [&"clip_deflect_light", &"clip_deflect_redirect", &"clip_deflect_limb", &"clip_hit_light", &"clip_block_light"])
 	assert_eq(rows[&"clip_deflect_light"], [&"RightCutDeflect", &"RightCutRecoil", &"ReturnCutDeflect", &"ReturnCutRecoil",
 		&"KesaCutDeflect", &"KesaCutRecoil", &"CrownCutDeflect", &"CrownCutRecoil"], "each light's pair, deflect then recoil")
+	# milestone-1 task 90
+	assert_eq(rows[&"clip_deflect_redirect"], [&"RedirectDeflect", &"RedirectRecoil"], "the redirect's one pair")
+	assert_eq(rows[&"clip_deflect_limb"], [&"LimbDeflectHigh", &"FistRecoil", &"LimbDeflectLow", &"FootRecoil"],
+		"the blade's deflects at a limb and each limb's recoil, each once")
+	assert_eq(ChecklistResults.pair_rows()[&"clip_deflect_limb"].size(), 4, "each limb's recoil with each deflect")
 	assert_eq(rows[&"clip_hit_light"].size(), 8, "the Katana's light hits, every place")
 	assert_true(rows[&"clip_hit_light"].has(&"HitLightHighFront"))
 	assert_eq(rows[&"clip_block_light"], [&"BlockLightKatana"])

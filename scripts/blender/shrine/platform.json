@@ -1,0 +1,720 @@
+{
+  "seed": 50,
+  "ledge_y": -0.3,
+  "floor": {
+    "floor_radius": 15.9,
+    "centre_radius": 2.7,
+    "max_drop": 0.015,
+    "broken_corners": 0.06,
+    "chip": 0.014,
+    "rings": [
+      {
+        "index": 0,
+        "inner": 2.7,
+        "outer": 3.88,
+        "tiles": 13,
+        "offset": 0.0
+      },
+      {
+        "index": 1,
+        "inner": 3.88,
+        "outer": 5.06,
+        "tiles": 18,
+        "offset": 0.618034
+      },
+      {
+        "index": 2,
+        "inner": 5.06,
+        "outer": 6.24,
+        "tiles": 23,
+        "offset": 0.236068
+      },
+      {
+        "index": 3,
+        "inner": 6.24,
+        "outer": 7.42,
+        "tiles": 28,
+        "offset": 0.854102
+      },
+      {
+        "index": 4,
+        "inner": 7.42,
+        "outer": 8.6,
+        "tiles": 33,
+        "offset": 0.472136
+      },
+      {
+        "index": 5,
+        "inner": 8.6,
+        "outer": 9.78,
+        "tiles": 38,
+        "offset": 0.0901699999999996
+      },
+      {
+        "index": 6,
+        "inner": 9.78,
+        "outer": 10.96,
+        "tiles": 43,
+        "offset": 0.708204
+      },
+      {
+        "index": 7,
+        "inner": 10.96,
+        "outer": 12.14,
+        "tiles": 48,
+        "offset": 0.326238
+      },
+      {
+        "index": 8,
+        "inner": 12.14,
+        "outer": 13.32,
+        "tiles": 53,
+        "offset": 0.944272
+      },
+      {
+        "index": 9,
+        "inner": 13.32,
+        "outer": 14.5,
+        "tiles": 58,
+        "offset": 0.562306
+      },
+      {
+        "index": 10,
+        "inner": 14.5,
+        "outer": 15.68,
+        "tiles": 63,
+        "offset": 0.180339999999999
+      },
+      {
+        "index": 11,
+        "inner": 15.68,
+        "outer": 15.9,
+        "tiles": 68,
+        "offset": 0.798374
+      }
+    ]
+  },
+  "wall": {
+    "radius": 15.3,
+    "thickness": 0.45,
+    "height": 1.05,
+    "curb_height": 0.17,
+    "post_half": 0.16,
+    "end_post_widen": 1.3,
+    "gate_opening": 7.5
+  },
+  "posts": [
+    {
+      "index": 1,
+      "angle": 10.3846153846154,
+      "end": true,
+      "damaged": false
+    },
+    {
+      "index": 2,
+      "angle": 17.3076923076923,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 3,
+      "angle": 24.2307692307692,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 4,
+      "angle": 31.1538461538462,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 5,
+      "angle": 38.0769230769231,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 6,
+      "angle": 45.0,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 7,
+      "angle": 51.9230769230769,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 8,
+      "angle": 58.8461538461538,
+      "end": false,
+      "damaged": true
+    },
+    {
+      "index": 9,
+      "angle": 65.7692307692308,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 10,
+      "angle": 72.6923076923077,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 11,
+      "angle": 79.6153846153846,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 12,
+      "angle": 86.5384615384615,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 13,
+      "angle": 93.4615384615385,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 14,
+      "angle": 100.384615384615,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 15,
+      "angle": 107.307692307692,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 16,
+      "angle": 114.230769230769,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 17,
+      "angle": 121.153846153846,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 18,
+      "angle": 128.076923076923,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 19,
+      "angle": 135.0,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 20,
+      "angle": 141.923076923077,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 21,
+      "angle": 148.846153846154,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 22,
+      "angle": 155.769230769231,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 23,
+      "angle": 162.692307692308,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 24,
+      "angle": 169.615384615385,
+      "end": true,
+      "damaged": false
+    },
+    {
+      "index": 27,
+      "angle": 190.384615384615,
+      "end": true,
+      "damaged": false
+    },
+    {
+      "index": 28,
+      "angle": 197.307692307692,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 29,
+      "angle": 204.230769230769,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 30,
+      "angle": 211.153846153846,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 31,
+      "angle": 218.076923076923,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 32,
+      "angle": 225.0,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 33,
+      "angle": 231.923076923077,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 34,
+      "angle": 238.846153846154,
+      "end": false,
+      "damaged": true
+    },
+    {
+      "index": 35,
+      "angle": 245.769230769231,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 36,
+      "angle": 252.692307692308,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 37,
+      "angle": 259.615384615385,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 38,
+      "angle": 266.538461538462,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 39,
+      "angle": 273.461538461538,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 40,
+      "angle": 280.384615384615,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 41,
+      "angle": 287.307692307692,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 42,
+      "angle": 294.230769230769,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 43,
+      "angle": 301.153846153846,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 44,
+      "angle": 308.076923076923,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 45,
+      "angle": 315.0,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 46,
+      "angle": 321.923076923077,
+      "end": false,
+      "damaged": true
+    },
+    {
+      "index": 47,
+      "angle": 328.846153846154,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 48,
+      "angle": 335.769230769231,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 49,
+      "angle": 342.692307692308,
+      "end": false,
+      "damaged": false
+    },
+    {
+      "index": 50,
+      "angle": 349.615384615385,
+      "end": true,
+      "damaged": false
+    }
+  ],
+  "rails": [
+    {
+      "index": 1,
+      "from": 10.3846153846154,
+      "to": 17.3076923076923,
+      "broken": false
+    },
+    {
+      "index": 2,
+      "from": 17.3076923076923,
+      "to": 24.2307692307692,
+      "broken": false
+    },
+    {
+      "index": 3,
+      "from": 24.2307692307692,
+      "to": 31.1538461538462,
+      "broken": false
+    },
+    {
+      "index": 4,
+      "from": 31.1538461538462,
+      "to": 38.0769230769231,
+      "broken": false
+    },
+    {
+      "index": 5,
+      "from": 38.0769230769231,
+      "to": 45.0,
+      "broken": false
+    },
+    {
+      "index": 6,
+      "from": 45.0,
+      "to": 51.9230769230769,
+      "broken": false
+    },
+    {
+      "index": 7,
+      "from": 51.9230769230769,
+      "to": 58.8461538461538,
+      "broken": true
+    },
+    {
+      "index": 8,
+      "from": 58.8461538461538,
+      "to": 65.7692307692308,
+      "broken": false
+    },
+    {
+      "index": 9,
+      "from": 65.7692307692308,
+      "to": 72.6923076923077,
+      "broken": false
+    },
+    {
+      "index": 10,
+      "from": 72.6923076923077,
+      "to": 79.6153846153846,
+      "broken": false
+    },
+    {
+      "index": 11,
+      "from": 79.6153846153846,
+      "to": 86.5384615384615,
+      "broken": false
+    },
+    {
+      "index": 12,
+      "from": 86.5384615384615,
+      "to": 93.4615384615385,
+      "broken": false
+    },
+    {
+      "index": 13,
+      "from": 93.4615384615385,
+      "to": 100.384615384615,
+      "broken": false
+    },
+    {
+      "index": 14,
+      "from": 100.384615384615,
+      "to": 107.307692307692,
+      "broken": false
+    },
+    {
+      "index": 15,
+      "from": 107.307692307692,
+      "to": 114.230769230769,
+      "broken": false
+    },
+    {
+      "index": 16,
+      "from": 114.230769230769,
+      "to": 121.153846153846,
+      "broken": false
+    },
+    {
+      "index": 17,
+      "from": 121.153846153846,
+      "to": 128.076923076923,
+      "broken": false
+    },
+    {
+      "index": 18,
+      "from": 128.076923076923,
+      "to": 135.0,
+      "broken": true
+    },
+    {
+      "index": 19,
+      "from": 135.0,
+      "to": 141.923076923077,
+      "broken": false
+    },
+    {
+      "index": 20,
+      "from": 141.923076923077,
+      "to": 148.846153846154,
+      "broken": false
+    },
+    {
+      "index": 21,
+      "from": 148.846153846154,
+      "to": 155.769230769231,
+      "broken": false
+    },
+    {
+      "index": 22,
+      "from": 155.769230769231,
+      "to": 162.692307692308,
+      "broken": false
+    },
+    {
+      "index": 23,
+      "from": 162.692307692308,
+      "to": 169.615384615385,
+      "broken": false
+    },
+    {
+      "index": 27,
+      "from": 190.384615384615,
+      "to": 197.307692307692,
+      "broken": false
+    },
+    {
+      "index": 28,
+      "from": 197.307692307692,
+      "to": 204.230769230769,
+      "broken": false
+    },
+    {
+      "index": 29,
+      "from": 204.230769230769,
+      "to": 211.153846153846,
+      "broken": false
+    },
+    {
+      "index": 30,
+      "from": 211.153846153846,
+      "to": 218.076923076923,
+      "broken": false
+    },
+    {
+      "index": 31,
+      "from": 218.076923076923,
+      "to": 225.0,
+      "broken": false
+    },
+    {
+      "index": 32,
+      "from": 225.0,
+      "to": 231.923076923077,
+      "broken": false
+    },
+    {
+      "index": 33,
+      "from": 231.923076923077,
+      "to": 238.846153846154,
+      "broken": true
+    },
+    {
+      "index": 34,
+      "from": 238.846153846154,
+      "to": 245.769230769231,
+      "broken": false
+    },
+    {
+      "index": 35,
+      "from": 245.769230769231,
+      "to": 252.692307692308,
+      "broken": false
+    },
+    {
+      "index": 36,
+      "from": 252.692307692308,
+      "to": 259.615384615385,
+      "broken": false
+    },
+    {
+      "index": 37,
+      "from": 259.615384615385,
+      "to": 266.538461538462,
+      "broken": false
+    },
+    {
+      "index": 38,
+      "from": 266.538461538462,
+      "to": 273.461538461538,
+      "broken": false
+    },
+    {
+      "index": 39,
+      "from": 273.461538461538,
+      "to": 280.384615384615,
+      "broken": false
+    },
+    {
+      "index": 40,
+      "from": 280.384615384615,
+      "to": 287.307692307692,
+      "broken": false
+    },
+    {
+      "index": 41,
+      "from": 287.307692307692,
+      "to": 294.230769230769,
+      "broken": false
+    },
+    {
+      "index": 42,
+      "from": 294.230769230769,
+      "to": 301.153846153846,
+      "broken": false
+    },
+    {
+      "index": 43,
+      "from": 301.153846153846,
+      "to": 308.076923076923,
+      "broken": false
+    },
+    {
+      "index": 44,
+      "from": 308.076923076923,
+      "to": 315.0,
+      "broken": false
+    },
+    {
+      "index": 45,
+      "from": 315.0,
+      "to": 321.923076923077,
+      "broken": true
+    },
+    {
+      "index": 46,
+      "from": 321.923076923077,
+      "to": 328.846153846154,
+      "broken": false
+    },
+    {
+      "index": 47,
+      "from": 328.846153846154,
+      "to": 335.769230769231,
+      "broken": false
+    },
+    {
+      "index": 48,
+      "from": 335.769230769231,
+      "to": 342.692307692308,
+      "broken": false
+    },
+    {
+      "index": 49,
+      "from": 342.692307692308,
+      "to": 349.615384615385,
+      "broken": false
+    }
+  ],
+  "gates": [
+    {
+      "angle": 180.0,
+      "origin": [
+        0.0,
+        0.0,
+        -16.8999996185303
+      ],
+      "x": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "z": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "near_z": -1.29999961853027,
+      "floor_edge_z": -0.999999618530273,
+      "far_z": 3.0,
+      "width": 6.8
+    },
+    {
+      "angle": 0.0,
+      "origin": [
+        0.0,
+        0.0,
+        16.8999996185303
+      ],
+      "x": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "z": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "near_z": -1.29999961853027,
+      "floor_edge_z": -0.999999618530273,
+      "far_z": 3.0,
+      "width": 6.8
+    }
+  ]
+}
