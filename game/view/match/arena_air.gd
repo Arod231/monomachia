@@ -17,7 +17,9 @@ extends RefCounted
 ##   after it has flown its range, the shader sweeping its front across the
 ##   grass.
 ## A push's reach through the air (FloorStir.Push.air) is what lets the big
-## ones reach the banners. Picture only.
+## ones reach the banners. The texture lists the live pushes first and how
+## many there are (row 3, texel WAVES), so the grass's shader stops at the
+## last, and it's rewritten only when something changed. Picture only.
 
 const GLOBAL: StringName = &"air_pushes"
 ## Slots (AIR_SLOTS and AIR_WAVES in air_push.gdshaderinc).
@@ -46,6 +48,9 @@ var _waves: Array[PackedFloat32Array] = []
 var _wave_keys: Array[String] = []
 var _image: Image
 var texture: ImageTexture
+## Whether the texture still shows something live (a push or a wave), so a
+## quiet frame after it needs one more write to clear it.
+var _shown: bool = false
 
 
 func _init() -> void:
@@ -66,17 +71,19 @@ func apply() -> void:
 
 ## Takes a frame's stir at `now` (the wind's clock, s).
 func take(stir: FloorStir, now: float) -> void:
+	var changed: bool = not stir.fronts.is_empty()
 	for b: FloorStir.Push in stir.bursts:
-		_add(b.at, b.radius, b.strength, now, Vector3.ZERO, b.air, true)
+		changed = _add(b.at, b.radius, b.strength, now, Vector3.ZERO, b.air, true) or changed
 	for p: FloorStir.Push in stir.pushes:
 		var speed: float = Vector2(p.velocity.x, p.velocity.z).length()
 		if speed >= STILL:
-			_add(p.at, p.radius, p.strength * minf(1.0, speed / 3.0), now, p.velocity, p.air, false)
+			changed = _add(p.at, p.radius, p.strength * minf(1.0, speed / 3.0), now, p.velocity, p.air, false) or changed
 	for s: FloorStir.Sweep in stir.sweeps:
-		_add(Vector3(s.b.x, 0.0, s.b.z), SWEEP_RADIUS, SWEEP_STRENGTH, now, s.vb, SWEEP_RADIUS, false)
+		changed = _add(Vector3(s.b.x, 0.0, s.b.z), SWEEP_RADIUS, SWEEP_STRENGTH, now, s.vb, SWEEP_RADIUS, false) or changed
 	for f: FloorStir.Front in stir.fronts:
 		_follow(f, now)
-	_write(now)
+	if changed or _shown:
+		_write(now)
 
 
 ## Every slot empty (a new match).
@@ -109,11 +116,12 @@ func waves(now: float) -> Array[Dictionary]:
 	return out
 
 
-func _add(at: Vector3, radius: float, strength: float, now: float, velocity: Vector3, air: float, always: bool) -> void:
+## Whether it took the push.
+func _add(at: Vector3, radius: float, strength: float, now: float, velocity: Vector3, air: float, always: bool) -> bool:
 	if not always:
 		for s: PackedFloat32Array in _slots:
 			if s[3] > 0.0 and now - s[4] < GAP and Vector2(s[0] - at.x, s[1] - at.z).length() < SPACING * maxf(radius, s[2]):
-				return
+				return false
 	var slot: PackedFloat32Array = _slots[_free(now)]
 	slot[0] = at.x
 	slot[1] = at.z
@@ -123,6 +131,7 @@ func _add(at: Vector3, radius: float, strength: float, now: float, velocity: Vec
 	slot[5] = velocity.x
 	slot[6] = velocity.z
 	slot[7] = maxf(air, radius)
+	return true
 
 
 ## An empty or spent slot, else the oldest.
@@ -164,13 +173,21 @@ func _follow(f: FloorStir.Front, now: float) -> void:
 
 
 func _write(now: float) -> void:
-	for i: int in SLOTS:
-		var s: PackedFloat32Array = _slots[i]
-		_image.set_pixel(i, 0, Color(s[0], s[1], s[2], s[3]))
-		_image.set_pixel(i, 1, Color(s[4], s[5], s[6], s[7]))
+	var live: int = 0
+	for s: PackedFloat32Array in _slots:
+		if s[3] > 0.0 and now - s[4] <= LIFE:
+			_image.set_pixel(live, 0, Color(s[0], s[1], s[2], s[3]))
+			_image.set_pixel(live, 1, Color(s[4], s[5], s[6], s[7]))
+			live += 1
+	for i: int in range(live, SLOTS):
+		_image.set_pixel(i, 0, Color(0, 0, 0, 0))
+	var waving: bool = false
 	for k: int in WAVES:
 		var w: PackedFloat32Array = _waves[k]
 		var on: float = w[7] if now <= w[8] else 0.0
+		waving = waving or on > 0.0
 		_image.set_pixel(k, 2, Color(w[0], w[1], w[2], w[3]))
 		_image.set_pixel(k, 3, Color(w[4], w[5], w[6], on))
+	_image.set_pixel(WAVES, 3, Color(live, 0, 0, 0))
 	texture.update(_image)
+	_shown = live > 0 or waving

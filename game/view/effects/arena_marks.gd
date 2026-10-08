@@ -129,6 +129,8 @@ class Mark:
 	var born: float = 0.0
 	## When it began to fade (INF while it stays).
 	var fade_from: float = INF
+	## Whether its glow (a groove's or a scorch's) is still dying down.
+	var glowing: bool = true
 	## A cut: where it starts, and the surface's normal.
 	var start: Vector3 = Vector3.ZERO
 	var normal: Vector3 = Vector3.UP
@@ -262,10 +264,12 @@ func frame(sides: Array[Dictionary], waves: Array[SlashWave], alpha: float, effe
 func update(t: float) -> void:
 	var gone: Array[Mark] = []
 	for m: Mark in _marks:
-		if m.kind == Kind.GROOVE or m.kind == Kind.SCORCH:
+		if m.glowing and (m.kind == Kind.GROOVE or m.kind == Kind.SCORCH):
 			var glow: float = glow_at(m.kind, t - m.born)
 			for d: Decal in m.nodes:
 				d.emission_energy = glow
+			# a groove still being cut keeps glowing with its new pieces
+			m.glowing = glow > 0.0 or t < m.born
 		if m.fade_from < INF:
 			var a: float = clampf(1.0 - (t - m.fade_from) / FADE_FRAMES, 0.0, 1.0)
 			for d: Decal in m.nodes:

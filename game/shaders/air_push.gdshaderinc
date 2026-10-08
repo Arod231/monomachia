@@ -10,7 +10,8 @@
 //   velocity x and z; radius through the air);
 // - rows 2 and 3, AIR_WAVES waves: (origin x, z; direction x, z) and (when
 //   its front left the origin, on the wind's clock; its speed m/s; 1 for the
-//   horizontal wave, 0 for the vertical; strength, 0 for none).
+//   horizontal wave, 0 for the vertical; strength, 0 for none);
+// - row 3, texel AIR_WAVES: how many pushes are live, listed first.
 
 #ifndef AIR_PUSH_INC
 #define AIR_PUSH_INC
@@ -40,11 +41,12 @@ float air_spring(float age) {
 // (aloft false: the grass) or the air (aloft true: the banners).
 vec2 air_push(vec3 world, bool aloft) {
 	vec2 total = vec2(0.0);
+	int live = int(texelFetch(air_pushes, ivec2(AIR_WAVES, 3), 0).x);
 	for (int i = 0; i < AIR_SLOTS; i++) {
-		vec4 a = texelFetch(air_pushes, ivec2(i, 0), 0);
-		if (a.w <= 0.0) {
-			continue;
+		if (i >= live) {
+			break;
 		}
+		vec4 a = texelFetch(air_pushes, ivec2(i, 0), 0);
 		vec4 b = texelFetch(air_pushes, ivec2(i, 1), 0);
 		float age = wind_time - b.x;
 		if (age < 0.0 || age > AIR_LIFE) {
