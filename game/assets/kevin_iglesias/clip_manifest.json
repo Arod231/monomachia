@@ -2225,6 +2225,44 @@
 				"katana"
 			]
 		},
+		"WindCut": {
+			"export": "exports/clips/wind_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/1H",
+			"source": "Attack1H03_R",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 13,
+				"contact_end": 15,
+				"settle": 30
+			},
+			"foot_contacts": {"left": [[0, 6], [12, 31]], "right": [[0, 2], [6, 7], [12, 31]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"WhirlCut": {
+			"export": "exports/clips/whirl_cut.glb",
+			"pack": "Human Melee Animations",
+			"dir": "Combat/2H",
+			"source": "Attack2H03",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 20,
+				"contact_end": 24,
+				"settle": 44
+			},
+			"foot_contacts": {"left": [[0, 1], [22, 25], [30, 46]], "right": [[0, 1], [22, 24], [29, 46]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
 		"KatanaGuard1H": {
 			"export": "exports/clips/katana_guard_1h.glb",
 			"pack": "Human Melee Animations",

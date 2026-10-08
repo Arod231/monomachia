@@ -94,9 +94,10 @@ func test_the_kept_timings_are_unchanged() -> void:
 # ------------------------------------------------------------------ a move's own values
 
 func test_today_s_stand_ins_keep_today_s_values() -> void:
-	var cut: AttackDef = Moves.KATANA.moves[&"k_dl"]
-	assert_false(cut.real_markers, "Wind Cut is a stand-in today")
-	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [14, 10, 4])
+	# the string's heavy (Wind Cut, the example until task 75 re-keyed it)
+	var cut: AttackDef = Moves.KATANA.moves[&"k_h2"]
+	assert_false(cut.real_markers, "the string's heavy is a stand-in today")
+	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [26, 16, 7])
 	# bare hands keep no stand-in on today's values: every attack is keyed
 	# (tasks 89, 93, 94, 99 and 133) but Counter Lunge, on the retuned light
 	# hitstun since task 22
@@ -275,11 +276,12 @@ func test_a_greatsword_knockdown_keeps_today_s_phases() -> void:
 
 func test_a_stand_in_hit_and_block_keep_today_s() -> void:
 	var W: World = _world()
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_dl"], &"hit", false)
-	assert_eq([W.fighters[1].state_dur, W.hitstop], [14, 4])
+	# the string's heavy (Wind Cut until task 75 re-keyed it)
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_h2"], &"hit", false)
+	assert_eq([W.fighters[1].state_dur, W.hitstop], [26, 7])
 	W = _world()
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_dl"], &"block", false)
-	assert_eq([W.fighters[1].state_dur, W.hitstop], [10, 3])
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_h2"], &"block", false)
+	assert_eq([W.fighters[1].state_dur, W.hitstop], [16, 5])
 
 
 func test_the_re_keyed_right_cut_hits_and_is_blocked_on_the_retuned_values() -> void:

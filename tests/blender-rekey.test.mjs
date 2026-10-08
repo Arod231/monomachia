@@ -46,7 +46,7 @@ describe('the re-key specs', () => {
       'moonsplitter_stance', 'recall', 'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
       'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise', 'right_rise_to_guard',
       'right_rise_to_second_slant', 'running_draw', 'second_slant', 'second_slant_to_guard', 'second_slant_to_kneeling_crown', 'slanting_cut',
-      'slanting_cut_to_backhand_rise', 'slanting_cut_to_katana_guard_1h', 'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice',
+      'slanting_cut_to_backhand_rise', 'slanting_cut_to_katana_guard_1h', 'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice', 'whirl_cut', 'wind_cut',
     ]);
   });
 
@@ -131,6 +131,15 @@ describe('the re-key specs', () => {
           }
           assert.ok(Math.abs(sum - went) < 1e-9, `${side} foot steps as far as the body goes (${sum} vs ${went})`);
         }
+      });
+
+      it('spins the body round from where it faces, never turning back (milestone-1 task 75)', { skip: !spec.spin && 'no spin' }, () => {
+        assert.deepEqual(spec.spin[0], [0, 0], 'from where it faces at frame 0');
+        for (let i = 1; i < spec.spin.length; i++) {
+          assert.ok(spec.spin[i][0] > spec.spin[i - 1][0] && spec.spin[i][1] >= spec.spin[i - 1][1], `round one way at ${i}`);
+        }
+        assert.equal(spec.spin.at(-1)[0], length, 'the spin runs the whole clip');
+        assert.equal(spec.spin.at(-1)[1] % 360, 0, 'facing as it started');
       });
 
       it('is a clip the manifest imports, its markers inside it', () => {
@@ -218,6 +227,39 @@ print(json.dumps(list(after - before)))`);
     assert.deepEqual(out.map((v) => +v.toFixed(4)), [-0.1, -0.2, 0.35]);
   });
 
+  it('spins the hips about their own head, by its pairs on each frame (milestone-1 task 75)', { timeout: 300000 }, () => {
+    const out = inBlender(`import bpy
+arm = bpy.data.objects.new("a", bpy.data.armatures.new("a"))
+bpy.context.scene.collection.objects.link(arm)
+arm.scale = (0.01, 0.01, 0.01)
+arm.rotation_euler = (1.5707963, 0, 0)
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode="EDIT")
+b = arm.data.edit_bones.new("B-hips")
+b.head, b.tail = (0, 90, 0), (0, 90, 20)
+bpy.ops.object.mode_set(mode="POSE")
+bpy.context.view_layer.update()
+# keyed on every frame, as the time warp leaves a clip
+for n in range(5):
+    arm.pose.bones["B-hips"].keyframe_insert("rotation_quaternion", frame=1 + n)
+    arm.pose.bones["B-hips"].keyframe_insert("location", frame=1 + n)
+rk.spin(arm, bpy.context.scene, 4, [[0, 0], [2, 90], [4, 180]])
+out = []
+for n in range(5):
+    bpy.context.scene.frame_set(1 + n)
+    bpy.context.view_layer.update()
+    pb = arm.pose.bones["B-hips"]
+    h, t = arm.matrix_world @ pb.head, arm.matrix_world @ pb.tail
+    out.append([list(h), list(t - h)])
+print(json.dumps(out))`);
+    const at = (v) => v.map((x) => +x.toFixed(4) + 0);
+    for (const [h] of out) assert.deepEqual(at(h), at(out[0][0]), 'the hips stay where they stand');
+    // the angle the hips have turned through from frame 0, about the vertical (world Z)
+    const turned = (d) => Math.round(Math.acos((d[0] * out[0][1][0] + d[1] * out[0][1][1]) / Math.hypot(d[0], d[1]) / Math.hypot(out[0][1][0], out[0][1][1])) * 180 / Math.PI);
+    assert.deepEqual(out.map(([, d]) => turned(d)).filter((_, n) => n % 2 === 0), [0, 90, 180], 'a quarter turn by frame 2, a half by frame 4');
+    for (const [, d] of out) assert.ok(Math.abs(d[2] - out[0][1][2]) < 1e-6, 'about the vertical');
+  });
+
   const assets = existsSync(join(ROOT, '.assets-src-path')) ? readFileSync(join(ROOT, '.assets-src-path'), 'utf8').trim() : '';
   it('re-keys each spec from the asset repository to its length', { skip: assets && existsSync(assets) ? false : 'local-only: no asset repository (.assets-src-path)', timeout: 900000 }, () => {
     for (const { id, spec } of specs) {
@@ -232,6 +274,7 @@ print(json.dumps(list(after - before)))`);
       if (spec.blend_from) assert.match(r.stdout, /blended in from the start pose over \d+ frames/, id);
       if (spec.knock) assert.match(r.stdout, /knocked back from frame/, id);
       if (spec.turn) assert.match(r.stdout, new RegExp(`turned the motion ${spec.turn} degrees`), id);
+      if (spec.spin) assert.match(r.stdout, new RegExp(`spun the body ${spec.spin.at(-1)[1]} degrees`), id);
       if (spec.lower) assert.match(r.stdout, /lowered \d\.\d\d m/, id);
       if (spec.carry) assert.match(r.stdout, /carried the body -?\d\.\d\d m forward/, id);
       if (spec.two_hands?.aim?.at) assert.match(r.stdout, /aimed at \d+% of the attacker's blade/, id);

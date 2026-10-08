@@ -312,7 +312,7 @@ const OWN_HITSTUN: Dictionary[StringName, int] = {
 	# bare hands' re-keyed movement lights take the retuned timings (tasks 93, 94)
 	&"f_sl": 18, &"f_dl": 18, &"f_bl": 18, &"f_jl": 18,
 	# and the Katana's (task 75)
-	&"k_sl": 24,
+	&"k_sl": 24, &"k_dl": 24,
 }
 
 

@@ -168,12 +168,12 @@ const MOVES: Dictionary = {
 	&"k_dl": {
 		"id": &"k_dl", "name": "Wind Cut", "kind": &"light", "type": &"slash", "anim": &"slashRL",
 		"damage": 6, "posture": 7, "knockback": 0.4,
-		"range": 2.2, "arc": 120, "lunge": 0.5,
+		"range": 2.2, "arc": 120,
 	},
 	&"k_dh": {
 		"id": &"k_dh", "name": "Whirl Cut", "kind": &"heavy", "type": &"spin", "anim": &"spin",
 		"damage": 12, "posture": 14, "knockback": 1.0,
-		"range": 2.3, "arc": 360, "lunge": 0.5,
+		"range": 2.3, "arc": 360,
 	},
 	&"k_bl": {
 		"id": &"k_bl", "name": "Rising Cut", "kind": &"light", "type": &"slash", "anim": &"diagUp",

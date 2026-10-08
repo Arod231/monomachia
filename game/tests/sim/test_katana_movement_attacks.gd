@@ -14,9 +14,11 @@ extends GutTest
 const KEYED: Dictionary[StringName, Array] = {
 	&"k_sl": [27, 4, 35, 8, 9, 2.0, &"RunningDraw", true], # Running Draw, a cut at a run
 	&"k_sh": [47, 4, 42, 15, 18, 3.0, &"LeapingCleave", false], # Leaping Cleave, a long leap
+	&"k_dl": [26, 3, 31, 6, 7, 0.8, &"WindCut", true], # Wind Cut, a step into a lunge
+	&"k_dh": [41, 6, 42, 12, 14, 0.8, &"WhirlCut", false], # Whirl Cut, drifting in through a full turn
 }
 ## The heavies, which keep a dodge cancel in the second half of their recovery.
-const HEAVIES: Array[StringName] = [&"k_sh"]
+const HEAVIES: Array[StringName] = [&"k_sh", &"k_dh"]
 
 
 func test_each_plays_its_keyed_clip_s_markers() -> void:
