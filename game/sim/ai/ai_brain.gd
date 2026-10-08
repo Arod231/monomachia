@@ -165,6 +165,15 @@ class Tap:
 ## Plan: &"none" | &"parry" | &"block" | &"dodge" | &"counter" | &"flash" | &"evade"
 const PLANS: Array[StringName] = [&"none", &"parry", &"block", &"dodge", &"counter", &"flash", &"evade"]
 
+## How far (m, centre to centre) bare hands' movement attacks are thrown
+## from (milestone-1 task 93): inside their distance bands' touch, with a
+## little room. A dodge in carries about DODGE_IN m before its attack may
+## come out (MOVE_ROLL_CURVE past MOVE_DODGE_I_FRAMES, disarmed).
+const DODGE_ATTACK_FROM: float = 1.75
+const BACK_LIGHT_FROM: float = 2.2
+const BACK_HEAVY_FROM: float = 3.7
+const DODGE_IN: float = 4.0
+
 var rng: Rng
 var _taps: Array[Tap] = []
 var _hold_mask: int = 0
@@ -187,6 +196,9 @@ var _combo_finish_heavy: bool = false
 ## The move whose follow-up the string last pressed for (one press a move).
 var _combo_pressed: StringName = &""
 var _charge_until: int = -1
+## A bare-handed evade that may counter with a dodge or backstep attack
+## once its invincible frames end (milestone-1 task 93): _follow_up().
+var _counter_evade: bool = false
 ## The first frame a situational grip switch may be pressed (KE task 9).
 var _next_grip_at: int = 0
 var _strafe: int = 1
@@ -347,6 +359,8 @@ func _think() -> RawInput:
 
 	# Plans (defence) take priority over everything else.
 	if _plan != &"none":
+		if _counter_evade:
+			_follow_up(frame)
 		if _plan == &"block":
 			_hold_mask |= 1 << Btn.BLOCK
 			_move_x = 0.0
@@ -437,6 +451,7 @@ func _reset() -> void:
 	_plan = &"none"
 	_combo_left = 0
 	_charge_until = -1
+	_counter_evade = false
 	_seen_atk = null
 	_seen_ult = false
 
@@ -620,6 +635,35 @@ func _respond_to(def: AttackDef, frame: int, to_impact: int) -> void:
 		var back: bool = rng.chance(0.4)
 		_tap(Btn.DODGE, maxi(frame, impact - rng.int(3, 8)), 2, 0 if back else side, -1 if back else 0)
 		_set_plan(&"dodge", impact + 8)
+		# bare hands counter out of the evade (milestone-1 task 93)
+		_counter_evade = not armed and rng.chance(0.5 + P.aggression * 0.4)
+
+
+## A bare-handed evade's counter (milestone-1 task 93): once the dodge or
+## backstep may be followed up (past its invincible frames), the dodge
+## attack from inside its reach, or the backstep attack whose reach the
+## distance left suits: Snap Kick close, Lunging Palm further out; from
+## further, a backstep rolls back in for a dodge attack (a disarmed dodge
+## carries about DODGE_IN m first).
+func _follow_up(frame: int) -> void:
+	var back: bool = me.state == &"backstep"
+	if not back and me.state != &"dodge":
+		return
+	if me.sf <= (SimConst.MOVE_BACKSTEP_I_FRAMES if back else SimConst.MOVE_DODGE_I_FRAMES):
+		return
+	_counter_evade = false
+	var d: float = SimMath.dist2(me.pos, me.opp.pos)
+	if back:
+		if d <= BACK_LIGHT_FROM:
+			_tap(Btn.LIGHT, frame, 2)
+		elif d <= BACK_HEAVY_FROM:
+			_tap(Btn.HEAVY, frame, 2)
+		elif d > DODGE_IN + 0.9 and d < DODGE_IN + DODGE_ATTACK_FROM:
+			_tap(Btn.DODGE, frame, 2, 0, 1)
+			_set_plan(&"dodge", frame + SimConst.MOVE_BACKSTEP_FRAMES + SimConst.MOVE_DODGE_FRAMES + 6)
+			_counter_evade = true
+	elif d <= DODGE_ATTACK_FROM:
+		_tap(Btn.LIGHT if rng.chance(0.55) else Btn.HEAVY, frame, 2)
 
 
 # ------------------------------------------------------------------ neutral game
@@ -688,6 +732,13 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 		if d < reach - _lift_drift() + 0.25 and rng.chance(0.08 + P.aggression * 0.25):
 			_pick_attack(frame, d)
 			return _output(frame)
+		# bare hands dodge in from mid range into a dodge attack (milestone-1 task 93)
+		if not me.armed and d > DODGE_IN + 0.9 and d < DODGE_IN + DODGE_ATTACK_FROM and rng.chance(0.5 * P.aggression):
+			_tap(Btn.DODGE, frame, 2, 0, 1)
+			_set_plan(&"dodge", frame + SimConst.MOVE_DODGE_FRAMES + 6)
+			_counter_evade = true
+			_attack_cooldown_until = frame + 50
+			return _output(frame)
 		# sprint attack from mid range
 		if d > 4.5 and d < 7.5 and rng.chance(0.03 * P.aggression):
 			_hold_mask |= 1 << Btn.SPRINT
@@ -719,6 +770,10 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 			_strafe = 0
 		_strafe_until = frame + rng.int(40, 110)
 		_spacing_bias = rng.range(-0.4, 0.6)
+		if not me.armed and rng.chance(0.3):
+			# bare hands sometimes give ground to roll back in with a dodge
+			# attack (milestone-1 task 93)
+			_spacing_bias = DODGE_IN + 1.3 - (reach - 0.1 - P.aggression * 0.5)
 	var want: float = reach - 0.1 + _spacing_bias - P.aggression * 0.5
 	var my: float = 0.0
 	if d > want + 0.4:
@@ -840,6 +895,12 @@ func _pick_attack(frame: int, _d: float) -> void:
 		_hold_mask |= 1 << Btn.HEAVY
 		_charge_until = frame + rng.int(30, 160) + me.shoulder_lift()
 		_attack_cooldown_until = frame + 90
+	elif not me.armed:
+		# bare hands jump in close (milestone-1 tasks 93 and 94): a sideways
+		# dodge carries them out of their dodge attacks' reach
+		_tap(Btn.JUMP, frame, 2)
+		_tap(Btn.LIGHT if rng.chance(0.55) else Btn.HEAVY, frame + 3, 2)
+		_attack_cooldown_until = frame + 50
 	else:
 		# dodge then attack
 		var side: int = 1 if rng.chance(0.5) else -1

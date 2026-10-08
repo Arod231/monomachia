@@ -14,7 +14,7 @@ const CUT: StringName = &"k_l1"
 const EPS: float = 1e-9
 ## The moves re-keyed so far: the light string (task 31: Right Cut and Return
 ## Cut; task 32: Kesa Cut and Crown Cut) and Breaker Palm (task 99).
-const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"f_breaker"]
+const KEYED: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"f_breaker", &"f_sl", &"f_sh", &"f_dl", &"f_dh"]
 
 
 func after_each() -> void:

@@ -393,6 +393,16 @@ func forward_reach() -> float:
 
 
 ## totalFrames(m)
+## How far apart this move's lunge or travel stops the bodies (m): none for
+## a knee strike, whose knee reaches only about 0.6 m ahead of the hips and
+## lands where the bodies meet (milestone-1 task 93, the owner's answer of
+## Oct 7), else SimConst.CLOSING_GAP.
+func closing_gap() -> float:
+	if swing != null and (swing.parts().has(&"right_knee") or swing.parts().has(&"left_knee")):
+		return 0.0
+	return SimConst.CLOSING_GAP
+
+
 func total_frames() -> int:
 	return startup + active + recovery
 

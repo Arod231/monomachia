@@ -35,22 +35,22 @@ const MOVES: Dictionary = {
 	},
 	&"f_sl": {
 		"id": &"f_sl", "name": "Flying Knee", "kind": &"light", "type": &"kick", "anim": &"f_flyingKnee", "sound": F,
-		"damage": 5, "posture": 12, "knockback": 1.5,
-		"range": 1.3, "arc": 100, "lunge": 2.2, "lunge_end": 12, "hop": 3.5,
+		"damage": 6, "posture": 14, "knockback": 1.5,
+		"range": 1.3, "arc": 100,
 	},
 	&"f_sh": {
 		"id": &"f_sh", "name": "Dragon Kick", "kind": &"heavy", "type": &"kick", "anim": &"f_dragonKick", "sound": F,
-		"damage": 7, "posture": 18, "knockback": 2.2,
-		"range": 1.5, "arc": 100, "lunge": 2.4, "lunge_end": 18,
+		"damage": 9, "posture": 23, "knockback": 2.2,
+		"range": 1.5, "arc": 100,
 	},
 	&"f_dl": {
 		"id": &"f_dl", "name": "Slip Jab", "kind": &"light", "type": &"punch", "anim": &"f_jab", "hand": &"L", "sound": F,
-		"damage": 3, "posture": 9, "knockback": 0.5,
-		"range": 1.3, "arc": 110, "lunge": 0.4,
+		"damage": 4, "posture": 11, "knockback": 0.5,
+		"range": 1.3, "arc": 110,
 	},
 	&"f_dh": {
 		"id": &"f_dh", "name": "Spinning Backfist", "kind": &"heavy", "type": &"punch", "anim": &"f_backfist", "hand": &"R", "sound": F,
-		"damage": 5, "posture": 14, "knockback": 1.4,
+		"damage": 7, "posture": 18, "knockback": 1.4,
 		"range": 1.4, "arc": 150,
 	},
 	&"f_bl": {

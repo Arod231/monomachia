@@ -305,8 +305,14 @@ static func _smears(wid: StringName, id: StringName) -> bool:
 func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 	var used: Dictionary[StringName, int] = {}
 	var answered: Dictionary[StringName, int] = {}
-	for seed_value: int in DUELS:
+	# each seed fought armed, and again from disarmed, since bare hands fight
+	# only disarmed (4% of an armed duel; milestone-1 task 93)
+	for run: int in DUELS * 2:
+		var seed_value: int = run % DUELS
 		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, GAP)
+		if run >= DUELS:
+			W.fighters[0].armed = false
+			W.fighters[1].armed = false
 		var brains: Array[AIBrain] = [
 			AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"], 4000 + seed_value * 2),
 			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"], 4001 + seed_value * 2),
@@ -327,9 +333,9 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 		var id: StringName = m[1]
 		var problems: Array[String] = []
 		if used.get(id, 0) == 0:
-			problems.append("the computer never used it in %d Hard duels" % DUELS)
+			problems.append("the computer never used it in %d Hard duels, armed and disarmed" % DUELS)
 		if answered.get(id, 0) == 0:
-			problems.append("the computer never blocked or parried it in %d Hard duels" % DUELS)
+			problems.append("the computer never blocked or parried it in %d Hard duels, armed and disarmed" % DUELS)
 		ChecklistResults.record_problems(15, id, problems)
 		assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
 

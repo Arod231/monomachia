@@ -307,6 +307,8 @@ const OWN_HITSTUN: Dictionary[StringName, int] = {
 	&"f_l1": 16, &"f_l2": 16, &"d_l1": 10, &"d_l2": 10, &"d_l3": 10, &"d_l4": 10,
 	&"k_lunge": 24, &"f_lunge": 18,
 	&"k_l1": 24, &"k_l2": 24, &"k_l3": 24, &"k_l4": 24,
+	# bare hands' re-keyed movement lights take the retuned timings (tasks 93, 94)
+	&"f_sl": 18, &"f_dl": 18,
 }
 
 

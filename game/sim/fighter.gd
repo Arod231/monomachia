@@ -1224,9 +1224,10 @@ func _travel(step: PackedFloat64Array) -> void:
 
 
 ## How far we can still close on the opponent before our bodies are 0.25 m
-## apart.
+## apart (SimConst.CLOSING_GAP), or touch for a knee strike (AttackDef.closing_gap()).
 func _room_to_close() -> float:
-	return maxf(0.0, SimMath.dist2(pos, opp.pos) - (SimConst.FIGHTER_RADIUS * 2.0 + 0.25))
+	var gap: float = atk.def.closing_gap() if atk != null else SimConst.CLOSING_GAP
+	return maxf(0.0, SimMath.dist2(pos, opp.pos) - (SimConst.FIGHTER_RADIUS * 2.0 + gap))
 
 
 ## Advance up to dist along our facing, stopping with our bodies 0.25 m apart.
