@@ -114,12 +114,12 @@ func test_a_switch_before_the_heavy_picks_the_new_grip_s_heavy() -> void:
 
 func test_heaven_splitter_s_follow_up_is_rising_heaven_and_the_pair_ends() -> void:
 	var swung: Array[StringName] = (_play(TWO, [Btn.LIGHT, Btn.HEAVY, Btn.HEAVY, Btn.HEAVY])[0] as Array[StringName])
-	assert_eq(swung, [&"k_l1", &"k_h2", &"k_h1f"] as Array[StringName], "Rising Heaven, then nothing")
+	assert_eq(swung, [&"k_2l1", &"k_h2", &"k_h1f"] as Array[StringName], "Rising Heaven, then nothing")
 
 
 func test_rising_heaven_is_optional() -> void:
 	var swung: Array[StringName] = (_play(TWO, [Btn.LIGHT, Btn.HEAVY])[0] as Array[StringName])
-	assert_eq(swung, [&"k_l1", &"k_h2"] as Array[StringName])
+	assert_eq(swung, [&"k_2l1", &"k_h2"] as Array[StringName])
 
 
 func test_crescent_coil_takes_no_follow_up() -> void:

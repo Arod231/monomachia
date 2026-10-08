@@ -36,15 +36,17 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Right Cut `k_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
-| Return Cut `k_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
-| Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
-| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
-| Slanting Cut `k_1l1` | move (KE task 11) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
-| Backhand Rise `k_1l2` | move (KE task 11) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
-| Twisting Rise `k_1l3` | move (KE task 12) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
-| Level Cut `k_1l4` | move (KE task 12) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
-| Crouching Crown `k_1l5` | move (KE task 12) | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
+| Right Cut `k_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
+| Return Cut `k_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
+| Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
+| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
+| Slanting Cut `k_1l1` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Backhand Rise `k_1l2` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Twisting Rise `k_1l3` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Level Cut `k_1l4` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Crouching Crown `k_1l5` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
+| Heavy Slant `k_2l1` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Left Rise `k_2l2` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 | The light deflect pairs `clip_deflect_light` | keyed clips (task 34) | – | – | ✗ | ✓ | ✓ | – | ☑ | ✗ | ✗ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
 | Light hit reactions `clip_hit_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | – | – | ✓ | – | ✓ | ✓ | – | – | ☑ |
 | Light block reactions `clip_block_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | ✓ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
@@ -98,7 +100,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Flash `k_flash` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Flash `k_flash` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✓ | · | · | · | · | · | · | · | ☐ |
 | Piercing Thrust `k_thrust` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
 | Swallow Sweep `k_sweep` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✓ | · | · | · | · | · | · | · | ☐ |
 | The stomp's paired clip `clip_stomp` | stand-in clip | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
@@ -135,7 +137,7 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Moonsplitter `moonsplitter` | move | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
-| Breaker Palm `f_breaker` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
+| Breaker Palm `f_breaker` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ☐ |
 | The disarmed choice `clip_ult_choice` | stand-in clip | – | – | – | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
 | The recall's power-up `clip_recall` | stand-in clip | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 

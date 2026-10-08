@@ -34,11 +34,15 @@ const GAP: float = 2.5
 const APART: float = 6.0
 ## The seeded duels for item 15, each this many steps at most: 22 since KE
 ## task 3's spacing (12 held every move before), where few four-hit strings
-## get past their first light, so Crown Cut comes up only in the 13th, and
-## Breaker Palm, which needs a disarmed fighter's ultimate, is swung and
-## answered only in the 22nd.
+## get past their first light, so Crown Cut comes up only in the 13th.
 const DUELS: int = 22
 const DUEL_STEPS: int = 3600
+## Breaker Palm needs a fighter disarmed and low enough for its ultimate,
+## which the duels seldom give (since KE task 13 once in 60, never
+## answered): these short duels start one fighter there, at this health.
+const DISARMED_DUELS: int = 12
+const DISARMED_STEPS: int = 600
+const DISARMED_HP: float = 20.0
 
 
 func after_each() -> void:
@@ -323,42 +327,66 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 	var used: Dictionary[StringName, int] = {}
 	var answered: Dictionary[StringName, int] = {}
 	for seed_value: int in DUELS:
-		# every other duel from a round's start, one-handed, so each grip's
-		# own string comes up (KE task 12)
-		H.grip = &"" if seed_value % 2 == 1 else H.DEFAULT_GRIP
+		# every other duel from a round's start, one-handed, the rest
+		# two-handed, so each grip's own string comes up (KE tasks 12 and 13)
+		H.grip = WeaponGrip.ONE_HANDED if seed_value % 2 == 1 else WeaponGrip.TWO_HANDED
 		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, GAP)
 		var brains: Array[AIBrain] = [
 			AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"], 4000 + seed_value * 2),
 			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"], 4001 + seed_value * 2),
 		]
-		for i: int in DUEL_STEPS:
-			W.step([brains[0].think(), brains[1].think()])
-			for e: Dictionary in W.drain_events():
-				var id: StringName = StringName(str(e.get("attack", "")))
-				if e["t"] == &"swing":
-					used[id] = used.get(id, 0) + 1
-				elif e["t"] == &"block" or e["t"] == &"parry":
-					answered[id] = answered.get(id, 0) + 1
-			if W.fighters[0].hp <= 0.0 or W.fighters[1].hp <= 0.0:
-				break
-		for b: AIBrain in brains:
-			b.dispose()
+		_duel(W, brains, DUEL_STEPS, used, answered)
+	for seed_value: int in DISARMED_DUELS:
+		H.grip = &""
+		var W: World = H.make_world(Moves.KATANA, Moves.KATANA, GAP)
+		W.fighters[0].hp = DISARMED_HP
+		W.fighters[0].armed = false
+		var brains: Array[AIBrain] = [
+			AIBrain.new(W.fighters[0], AIBrain.DIFFICULTY[&"hard"], 5000 + seed_value * 2),
+			AIBrain.new(W.fighters[1], AIBrain.DIFFICULTY[&"hard"], 5001 + seed_value * 2),
+		]
+		_duel(W, brains, DISARMED_STEPS, used, answered)
+		H.dispose_all()
 	for m: Array in ChecklistResults.keyed_moves():
 		var id: StringName = m[1]
 		var problems: Array[String] = []
 		if used.get(id, 0) == 0:
-			problems.append("the computer never used it in %d Hard duels" % DUELS)
+			problems.append("the computer never used it in %d Hard duels" % (DUELS + DISARMED_DUELS))
 		if answered.get(id, 0) == 0:
-			problems.append("the computer never blocked or parried it in %d Hard duels" % DUELS)
+			problems.append("the computer never blocked or parried it in %d Hard duels" % (DUELS + DISARMED_DUELS))
 		ChecklistResults.record_problems(15, id, problems)
 		# a grip's own hits 4 and 5 (KE task 12) are recorded, not held: the
 		# computer's strings run to 4 presses (the owner's choice, KE task 9)
 		# and a Hard defender acts in the one-handed string's long gaps, so its
 		# strings seldom get past hit 3
-		if not _late_hit(id):
+		# the pilot's Right Cut and Return Cut are in neither grip's string
+		# since KE task 13, so no computer plays them: recorded, not held
+		if not _late_hit(id) and not OUT_OF_PLAY.has(id):
 			assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
 	gut.p("used: %s
 answered: %s" % [used, answered])
+
+
+## Plays `W`'s two Hard `brains` for up to `steps`, or to a knockout,
+## counting each attack swung in `used` and blocked or parried in
+## `answered`, then disposes of the brains.
+static func _duel(W: World, brains: Array[AIBrain], steps: int, used: Dictionary[StringName, int], answered: Dictionary[StringName, int]) -> void:
+	for i: int in steps:
+		W.step([brains[0].think(), brains[1].think()])
+		for e: Dictionary in W.drain_events():
+			var id: StringName = StringName(str(e.get("attack", "")))
+			if e["t"] == &"swing":
+				used[id] = used.get(id, 0) + 1
+			elif e["t"] == &"block" or e["t"] == &"parry":
+				answered[id] = answered.get(id, 0) + 1
+		if W.fighters[0].hp <= 0.0 or W.fighters[1].hp <= 0.0:
+			break
+	for b: AIBrain in brains:
+		b.dispose()
+
+
+## The pilot's lights no grip's string plays since KE task 13.
+const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
 
 
 ## Whether keyed move `id` is hit 4 or 5 of a grip's own string.

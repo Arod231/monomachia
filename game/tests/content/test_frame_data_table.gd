@@ -81,7 +81,7 @@ func test_each_move_has_its_band_kind() -> void:
 		# a grip's own string hits take its rows (KE task 11); the stand-ins
 		# every grip plays keep the shared one
 		&"k_1l1": &"string_light_1h", &"k_1l2": &"string_light_1h", &"k_1l3": &"string_light_1h", &"k_1l4": &"string_light_1h",
-		&"k_l3": &"string_light",
+		&"k_2l1": &"string_light_2h", &"k_2l2": &"string_light_2h", &"k_l3": &"string_light",
 		# a grip's last hit takes its own kind (KE task 12, D16)
 		&"k_1l5": &"string_last_1h",
 	}

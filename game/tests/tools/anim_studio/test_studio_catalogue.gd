@@ -78,8 +78,8 @@ func test_every_move_appears_once_in_its_weapons_group_in_table_order() -> void:
 		for e: StudioCatalogue.Entry in listed:
 			assert_eq(e.kind, &"move", "%s is a move" % e.id)
 			assert_eq(cat.find(&"move", e.id), e, "%s is found" % e.id)
-	assert_eq(total, 76, "76 moves in all (Crescent Coil the 71st, KE task 7; the one-handed string's own five, KE tasks 11 and 12)")
-	assert_eq(_of_kind(cat, &"move").size(), 76, "and none outside a weapon's group")
+	assert_eq(total, 78, "78 moves in all (Crescent Coil the 71st, KE task 7; the one-handed string's own five, KE tasks 11 and 12; the two-handed hits 1 and 2, KE task 13)")
+	assert_eq(_of_kind(cat, &"move").size(), 78, "and none outside a weapon's group")
 
 
 func test_a_move_entry_carries_the_tables_clips_speed_and_the_rules_name() -> void:

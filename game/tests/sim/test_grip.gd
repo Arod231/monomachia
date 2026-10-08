@@ -13,9 +13,12 @@ const CLOSE: float = 0.005
 const ONE: StringName = WeaponGrip.ONE_HANDED
 const TWO: StringName = WeaponGrip.TWO_HANDED
 
-## Today's four lights, Crown Cut repeated as hit 5: the two-handed grip's
-## stand-in string (the plan's Notes) until KE task 13 keys its own.
+## Today's four lights, Crown Cut repeated as hit 5: the one-handed string
+## of the test Katana (_test_katana).
 const STAND_IN: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"]
+## The two-handed string: its own hits 1 and 2 (KE task 13), Kesa Cut and
+## Crown Cut standing in for hits 3 to 5 until KE task 14.
+const TWO_STRING: Array[StringName] = [&"k_2l1", &"k_2l2", &"k_l3", &"k_l4", &"k_l4"]
 ## The one-handed string: its own five hits (KE tasks 11 and 12).
 const ONE_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"]
 ## A two-handed string unlike the one-handed one, to tell the grips apart.
@@ -92,7 +95,7 @@ func test_the_katana_declares_two_grips_with_their_strings() -> void:
 	assert_eq(w.grips.size(), 2)
 	assert_eq([w.grips[0].id, w.grips[1].id], [ONE, TWO], "one-handed first: rounds start in it")
 	assert_eq(w.grips[0].string, ONE_STRING, "one-handed: its own five hits, Slanting Cut to Crouching Crown")
-	assert_eq(w.grips[1].string, STAND_IN, "two-handed: today's lights, Crown Cut again as hit 5")
+	assert_eq(w.grips[1].string, TWO_STRING, "two-handed: Heavy Slant and Left Rise, then Kesa Cut and Crown Cut standing in")
 	assert_almost_eq(w.grips[0].block_mitigation, 0.7, CLOSE, "D2: one-handed")
 	assert_almost_eq(w.grips[1].block_mitigation, 0.5, CLOSE, "D2: two-handed")
 
@@ -249,7 +252,7 @@ func test_both_grips_play_five_lights_and_the_string_ends_after_hit_5() -> void:
 		var W: World = H.make_world()
 		if grip == TWO:
 			W.step([_with_grip(H.idle()), H.idle()])
-		assert_eq(_string(W, 6), ONE_STRING if grip == ONE else STAND_IN, "%s: five hits, and a sixth light starts nothing (D4)" % grip)
+		assert_eq(_string(W, 6), ONE_STRING if grip == ONE else TWO_STRING, "%s: five hits, and a sixth light starts nothing (D4)" % grip)
 		assert_eq(W.fighters[0].state, &"free", "%s: free after the last hit" % grip)
 
 

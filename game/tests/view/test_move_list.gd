@@ -20,6 +20,12 @@ func _names(rows: Array[MoveList.Row], section: MoveList.Section) -> Array[Strin
 	return out
 
 
+## The pilot's Right Cut and Return Cut, in neither grip's string since the
+## two-handed string's own hits 1 and 2 (KE task 13): no light reaches them
+## in a match, so the list leaves them out.
+const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
+
+
 func test_every_move_of_every_weapon_appears_once() -> void:
 	for id: StringName in WeaponDef.WEAPON_IDS:
 		var w: WeaponDef = Moves.WEAPONS[id]
@@ -30,6 +36,8 @@ func test_every_move_of_every_weapon_appears_once() -> void:
 		for move_id: StringName in w.moves:
 			if w.grips.is_empty():
 				assert_eq(counts.get(move_id, 0), 1, "%s: %s listed once" % [id, move_id])
+			elif OUT_OF_PLAY.has(move_id):
+				assert_eq(counts.get(move_id, 0), 0, "%s: %s left out" % [id, move_id])
 			else:
 				assert_gt(counts.get(move_id, 0), 0, "%s: %s listed" % [id, move_id])
 
@@ -47,8 +55,11 @@ func test_a_weapon_with_grips_lists_each_move_once_a_section_but_its_string_hits
 		counts[k] = int(counts.get(k, 0)) + 1
 	for k: String in counts:
 		var move_id: StringName = StringName(k.get_slice(" ", 1))
-		var hits: int = KatanaMoves.STAND_IN_STRING.count(move_id)
 		var section: int = int(k.get_slice(" ", 0))
+		# a move lists once per hit it plays in its grip's string (Crown Cut, the
+		# two-handed stand-in for hits 4 and 5, twice)
+		var string: Array[StringName] = KatanaMoves.ONE_HANDED_STRING if section == MoveList.Section.ONE_HANDED else KatanaMoves.TWO_HANDED_STRING
+		var hits: int = string.count(move_id)
 		var in_grip: bool = section == MoveList.Section.ONE_HANDED or section == MoveList.Section.TWO_HANDED
 		assert_eq(counts[k], hits if in_grip and hits > 0 else 1, k)
 
@@ -85,15 +96,15 @@ func test_each_grip_lists_its_string_hit_by_hit_then_its_heavy_branches() -> voi
 		]
 		if section == MoveList.Section.TWO_HANDED:
 			want = [
-				"Light: Right Cut", "Light → Light: Return Cut", "Light → Light → Light: Kesa Cut",
+				"Light: Heavy Slant", "Light → Light: Left Rise", "Light → Light → Light: Kesa Cut",
 				"Light → Light → Light → Light: Crown Cut", "Light → Light → Light → Light → Light: Crown Cut",
 			]
 		want.append_array(heavies)
 		assert_eq(inputs, want, MoveList.SECTION_NAMES[section])
 	# every hit branches into the grip's heavy (KE task 7)
 	assert_eq(_row(rows, &"k_coil", MoveList.Section.ONE_HANDED).also_after, PackedStringArray(["Backhand Rise", "Twisting Rise", "Level Cut", "Crouching Crown"]))
-	assert_eq(_row(rows, &"k_h2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Return Cut", "Kesa Cut", "Crown Cut"]))
-	assert_eq(_row(rows, &"k_l2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Iai Slash (horizontal)"]), "the horizontal Iai's light plays hit 2")
+	assert_eq(_row(rows, &"k_h2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Left Rise", "Kesa Cut", "Crown Cut"]))
+	assert_eq(_row(rows, &"k_2l2", MoveList.Section.TWO_HANDED).also_after, PackedStringArray(["Iai Slash (horizontal)"]), "the horizontal Iai's light plays hit 2")
 
 
 func test_the_first_grip_s_section_names_the_grip_button() -> void:
@@ -121,7 +132,7 @@ func test_katana_string_inputs_take_the_shortest_way_in() -> void:
 		assert_not_null(r, String(move_id))
 		if r != null:
 			assert_eq(r.input, expect[move_id], String(move_id))
-	assert_null(_row(rows, &"k_l2", MoveList.Section.STRING), "the lights are in the grips' sections")
+	assert_null(_row(rows, &"k_2l2", MoveList.Section.STRING), "the lights are in the grips' sections")
 
 
 func test_other_ways_into_a_follow_up_are_listed() -> void:
@@ -144,7 +155,7 @@ func test_strings_read_light_first_then_each_heavy_branch() -> void:
 func test_a_chargeable_heavy_says_so() -> void:
 	var rows: Array[MoveList.Row] = MoveList.rows(Moves.KATANA)
 	assert_string_contains(_row(rows, &"k_iai").note, "hold to charge")
-	assert_eq(_row(rows, &"k_l1").note, "")
+	assert_eq(_row(rows, &"k_2l1").note, "")
 
 
 func test_movement_attacks_abilities_and_the_counter_lunge() -> void:

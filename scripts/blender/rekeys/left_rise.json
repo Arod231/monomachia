@@ -1,0 +1,15 @@
+{
+	"about": "Left Rise (katana.k_2l2), the two-handed string's hit 2 (KE task 13): the second half of Attack2H01, going on from where Heavy Slant holds its follow-through low on the left (source frame 26): the blade dipped and held low on the left, then the rising cut from low on the left up through the front to high on the right, snapped through into the active frames, finishing raised in the two-handed guard as the reference's does, in Elden Ring's two-handed rhythm. The clip is two-handed already: the left hand is set on the grip and the blade kept clear of the body. A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H01.fbx",
+	"out": "blender/clips/left_rise.blend",
+	"goes_on_from": "heavy_slant",
+	"remap": [[0, 26], [8.5, 30], [10, 32], [12.5, 39], [16, 44], [25, 48]],
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0, "clearance": 0.08},
+	"step": {
+		"body": [[0, 0], [1, 0], [5, 0.15], [8.5, 0.45], [11, 1.04], [12.5, 1.185], [15, 1.235], [25, 1.235]],
+		"feet": {
+			"L": [[6, 12, 1.235, 0.2]],
+			"R": [[1, 5.5, 0.33, 0.16], [8.5, 14, 0.905, 0.24]]
+		}
+	}
+}

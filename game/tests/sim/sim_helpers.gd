@@ -19,13 +19,16 @@ extends RefCounted
 const LIGHT_LANDS: int = 29
 
 static var _worlds: Array[World] = []
-## The grip make_world() puts a gripped weapon's fighters in: two hands,
-## whose string is still today's four lights (Right Cut first), which the
-## rule tests are written round, since KE task 11 keyed the one-handed
-## grip's own hits 1 and 2. A test of the other grip sets it on the
-## fighter, or this before building its world (&"" leaves each weapon's
-## first grip, the one rounds start in); dispose_all() puts it back.
-const DEFAULT_GRIP: StringName = WeaponGrip.TWO_HANDED
+## The grip make_world() puts a gripped weapon's fighters in. By default
+## none (NO_GRIP): with no grip held, a light from neutral is the weapon's
+## light starter and each move's own follow-up comes next, so the Katana
+## plays today's four lights (Right Cut first), which the rule tests are
+## written round, now that each grip's string has its own hits (KE tasks 11
+## and 13). A test of a grip sets it on the fighter, or this before building
+## its world (&"" leaves each weapon's first grip, the one rounds start in);
+## dispose_all() puts it back.
+const NO_GRIP: StringName = &"(none)"
+const DEFAULT_GRIP: StringName = NO_GRIP
 static var grip: StringName = DEFAULT_GRIP
 
 
@@ -53,7 +56,9 @@ static func make_world(
 	a.shouldered = false
 	b.shouldered = false
 	for f: Fighter in [a, b]:
-		if grip != &"" and f.weapon != null and f.weapon.grip(grip) != null:
+		if grip == NO_GRIP and f.weapon != null and not f.weapon.grips.is_empty():
+			f.grip = &""
+		elif grip != &"" and f.weapon != null and f.weapon.grip(grip) != null:
 			f.grip = grip
 	return track(W)
 
