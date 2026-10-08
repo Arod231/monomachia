@@ -1,0 +1,11 @@
+{
+	"about": "The bridge from Level Cut into Crouching Crown (katana.k_1l4 into katana.k_1l5), KE task 15, as milestone-1 task 33's: Crouching Crown's first 10 frames, starting in Level Cut's pose at its branch point (frame 24.5) and carried into Crouching Crown's own wind-up, the feet where Crouching Crown has them. Played over the follow-up's first frames when it starts at its branch point, handing on to Crouching Crown's clip at frame 10, before its active frames; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/crouching_crown.blend",
+	"out": "blender/clips/level_cut_to_crouching_crown.blend",
+	"remap": [[0, 0], [10, 10]],
+	"blend_from": {
+		"source": "blender/clips/level_cut.blend",
+		"frame": 24.5,
+		"frames": 10
+	}
+}

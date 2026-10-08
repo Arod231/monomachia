@@ -373,6 +373,27 @@ func test_a_held_pair_breaking_the_rule_fails() -> void:
 	assert_eq(FollowUpCheck.problems(w, held, kind), [] as Array[String])
 
 
+## KE task 15: a mixed hand-off (a string hit into the other grip's next
+## hit) starts at the branch point of the hit it leaves, so the rule holds it
+## too: Slanting Cut's hitstun raised to 47 leaves the defender 3 free frames
+## before Backhand Rise (startup 26) but none before Left Rise (startup 22),
+## taken at the same branch point (nor before Crescent Coil, its heavy).
+func test_a_mixed_hand_off_breaking_the_rule_fails() -> void:
+	var w: WeaponDef = SF.without_swings(&"katana")
+	var held: Callable = func(_id: StringName) -> bool: return true
+	var kind: Callable = func(_id: StringName) -> StringName: return &"string_light_1h"
+	var cut: AttackDef = w.moves[&"k_1l1"]
+	cut.hitstun = 47
+	var problems: Array[String] = []
+	for p: String in FollowUpCheck.problems(w, held, kind):
+		if p.begins_with("katana.k_1l1 ") and p.contains("(switching grip)"):
+			problems.append(p)
+	assert_eq(problems.size(), 1, str(problems))
+	if problems.size() == 1:
+		assert_string_contains(problems[0], "katana.k_1l1 -> k_2l2 (switching grip): the defender is free -1 frames")
+	assert_eq(FollowUpCheck.free_frames(cut, w.moves[&"k_1l2"]), 3, "its own grip's hit 2 still leaves 3")
+
+
 ## A light string run: fighter 0 with `w` plays `first` (pressed if it opens
 ## the string, else started as it is: a later pair measured from its own
 ## first move, not the string's opener), its follow-up

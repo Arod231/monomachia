@@ -36,14 +36,17 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'backhand_rise', 'blasted_fall', 'block_light', 'breaker_palm', 'crouching_crown', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil',
-      'crown_cut_to_guard', 'heavy_slant', 'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right',
+      'backhand_rise', 'backhand_rise_to_katana_guard_1h', 'backhand_rise_to_twisting_rise', 'blasted_fall', 'block_light', 'breaker_palm',
+      'crouching_crown', 'crouching_crown_to_katana_guard_1h', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
+      'heavy_slant', 'heavy_slant_to_guard', 'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right',
       'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard',
       'katana_guard_to_katana_guard_1h', 'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
-      'kneeling_crown', 'left_rise', 'level_cut', 'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall',
-      'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut', 'right_cut', 'right_cut_deflect',
-      'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise', 'second_slant', 'slanting_cut', 'twisting_rise',
-      'ult_choice',
+      'kneeling_crown', 'kneeling_crown_to_guard', 'left_rise', 'left_rise_to_guard', 'left_rise_to_right_rise', 'level_cut',
+      'level_cut_to_crouching_crown', 'level_cut_to_katana_guard_1h', 'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical',
+      'moonsplitter_stance', 'recall', 'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
+      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise', 'right_rise_to_guard',
+      'right_rise_to_second_slant', 'second_slant', 'second_slant_to_guard', 'second_slant_to_kneeling_crown', 'slanting_cut',
+      'slanting_cut_to_backhand_rise', 'slanting_cut_to_katana_guard_1h', 'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice',
     ]);
   });
 

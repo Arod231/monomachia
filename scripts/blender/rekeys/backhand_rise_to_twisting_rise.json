@@ -1,0 +1,11 @@
+{
+	"about": "The bridge from Backhand Rise into Twisting Rise (katana.k_1l2 into katana.k_1l3), KE task 15, as milestone-1 task 33's: Twisting Rise's first 8 frames, starting in Backhand Rise's pose at its branch point (frame 26.5) and carried into Twisting Rise's own wind-up, the feet where Twisting Rise has them. Played over the follow-up's first frames when it starts at its branch point, handing on to Twisting Rise's clip at frame 8, before its active frames; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/twisting_rise.blend",
+	"out": "blender/clips/backhand_rise_to_twisting_rise.blend",
+	"remap": [[0, 0], [8, 8]],
+	"blend_from": {
+		"source": "blender/clips/backhand_rise.blend",
+		"frame": 26.5,
+		"frames": 8
+	}
+}

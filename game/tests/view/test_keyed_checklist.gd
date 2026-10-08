@@ -296,9 +296,11 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 		for b: String in breaks:
 			if b.begins_with(String(id) + " ") or b.contains(" " + String(id) + ","):
 				hand_off.append(b)
+		# a follow-up whose own clip goes on from the move before (StateClips
+		# meets, KE task 15) needs no bridge
 		for before: StringName in w.moves:
 			if _held(m) and (w.moves[before] as AttackDef).chain_light == id and ChecklistResults.keyed_moves().has([m[0], before]) \
-					and not (sc.bridges.get(id, {}) as Dictionary).has(before):
+					and not (sc.bridges.get(id, {}) as Dictionary).has(before) and sc.meets.get(id, &"") != before:
 				hand_off.append("no bridge from %s" % before)
 		# a string's moves return to guard on a clip of their own; any other
 		# hands on by the inertial blend
@@ -364,17 +366,15 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 
 
 ## `problems` less those a later KE task answers for a grip's own string hit
-## (KE task 11): the bridges into and out of it and its return to guard
-## (KE task 15), and its deflect pair and the pair's sound (KE task 19).
-## They are still recorded in the checklist, for the owner.
+## (KE task 11): its deflect pair and the pair's sound (KE task 19). Its
+## bridges and return to guard are held since KE task 15. They are still
+## recorded in the checklist, for the owner.
 static func _due(problems: Array[String], id: StringName = &"") -> Array[String]:
 	var own: Callable = func(move: StringName) -> bool:
 		return Moves.KATANA.moves.has(move) and (Moves.KATANA.moves[move] as AttackDef).grip != &""
 	var out: Array[String] = []
 	for p: String in problems:
-		if p.begins_with("no bridge from ") and own.call(StringName(p.trim_prefix("no bridge from "))):
-			continue
-		if own.call(id) and p in ["no return to guard", "no deflect pair", "its parry sounds no deflect pair"]:
+		if own.call(id) and p in ["no deflect pair", "its parry sounds no deflect pair"]:
 			continue
 		out.append(p)
 	return out

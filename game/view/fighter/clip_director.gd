@@ -1017,8 +1017,11 @@ static func running_ahead(f: Fighter) -> bool:
 ## `idle` under the legs): none for a clip the one-handed grip plays
 ## (StateClips.one_handed()), all of it for any other. The re-grip into two
 ## hands brings it on with the clip (its share played, smoothed); every other
-## change goes over OFF_HAND_FRAMES. All of it without the packs (the CC0
-## stand-ins are held as they always were) or without a weapon.
+## change goes over OFF_HAND_FRAMES, but a mixed hand-off's (a string hit
+## into the other grip's next hit, KE task 15), which takes the re-grip's
+## time into its grip, smoothed, from the hit's start. All of it without the
+## packs (the CC0 stand-ins are held as they always were) or without a
+## weapon.
 static func off_hand(prev: Shot, f: Fighter, ctx: Context, drive: StringName, playing: Clip, phase: StringName, idle: String) -> float:
 	if not ctx.libraries or not f.armed or f.weapon == null:
 		return 1.0
@@ -1030,6 +1033,12 @@ static func off_hand(prev: Shot, f: Fighter, ctx: Context, drive: StringName, pl
 		var length: float = ctx.lengths.get(playing.name, 0.0)
 		var along: float = smoothstep(0.0, 1.0, playing.time / length) if length > 0.0 else 1.0
 		return maxf(along, prev.off_hand) if prev.phase == &"regrip" else along
+	if drive == ATTACK and f.atk != null and f.atk.chained_from != null and f.atk.chained_from.grip != &"" 			and f.atk.def.grip != &"" and f.atk.chained_from.grip != f.atk.def.grip:
+		var regrip: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), StateClips.shared().regrip_for(f.weapon.id, f.atk.def.grip))
+		var frames: float = ctx.lengths.get(regrip, 0.0) * float(SimConst.FPS)
+		if frames > 0.0:
+			var along: float = smoothstep(0.0, 1.0, float(f.atk.frame) / frames)
+			return maxf(along, prev.off_hand) if want == 1.0 else minf(1.0 - along, prev.off_hand)
 	return move_toward(prev.off_hand, want, 1.0 / float(OFF_HAND_FRAMES))
 
 
@@ -1128,6 +1137,8 @@ static func bridge_clip(f: Fighter, ctx: Context, t: float) -> Clip:
 ## its recovery (`prev` the attack's last shot) hands on to it in the free
 ## state, at 1.0x from its start, while the fighter stands (RETURN_STILL)
 ## and doesn't block; it ends, for good, at its end or once either changes.
+## A grip's hit returns into its own grip's guard (KE task 15), so only while
+## the fighter still holds that grip.
 static func return_clip(prev: Shot, f: Fighter, ctx: Context) -> Array:
 	if prev == null or not ctx.libraries or f.state != &"free" or f.blocking \
 			or Vector2(f.vel.x, f.vel.z).length() > RETURN_STILL:
@@ -1141,6 +1152,9 @@ static func return_clip(prev: Shot, f: Fighter, ctx: Context) -> Array:
 		move = prev.attack.def.id
 	var id: StringName = StateClips.shared().returns.get(move, &"")
 	if id == &"":
+		return []
+	var def: AttackDef = f.moveset().moves.get(move, null)
+	if def != null and def.grip != &"" and def.grip != f.grip:
 		return []
 	var anim_name: String = ClipChain.anim_name(ClipLibraries.set_for(ctx.fighter_id), id)
 	var at: float = float(since) / float(SimConst.FPS)
