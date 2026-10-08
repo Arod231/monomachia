@@ -103,7 +103,8 @@ func test_the_features_the_milestone_needs_are_there() -> void:
 	assert_true(taa.stage.get_viewport().use_taa, "Godot's TAA with --aa=taa")
 	assert_eq(taa.stage.get_viewport().scaling_3d_scale, 1.0, "at full resolution")
 	assert_true(t.cord_sim is SpringBoneSimulator3D, "spring bones")
-	assert_eq(t.cord.get_bone_count(), LookTest.CORD_SEGMENTS)
+	# the modelled saya's own sageo (milestone-1 task 47): its root and six cord bones
+	assert_eq(t.cord.get_bone_count(), Saya.CORD_BONES + 1)
 	var mods: Array[StringName] = []
 	for c: Node in t.fighter.model.skeleton.get_children():
 		if c is SkeletonModifier3D:
@@ -148,7 +149,12 @@ func test_the_fighter_plays_the_light_string_in_its_corner() -> void:
 		var f: Fighter = t.world.fighters[0]
 		if f.state == &"attack" and f.atk != null and not seen.has(f.atk.def.id):
 			seen.append(f.atk.def.id)
-	assert_eq(seen, [&"k_l1", &"k_l2", &"k_l3", &"k_l4"] as Array[StringName], "the four lights in turn")
+	# the held grip's string (KE task 5), its first hits in turn: the
+	# one-handed grip's own since KE task 11
+	var f0: Fighter = t.world.fighters[0]
+	var string: Array[StringName] = f0.weapon.grip(f0.grip).string if f0.weapon.grip(f0.grip) != null else [] as Array[StringName]
+	assert_gte(seen.size(), 3, "the string's lights: %s" % [seen])
+	assert_eq(seen, string.slice(0, seen.size()), "the held grip's lights in turn")
 	var from_centre: float = Vector2(t.world.fighters[0].pos.x, t.world.fighters[0].pos.z).length()
 	assert_gt(from_centre, 6.0, "in a corner, near the wall")
 

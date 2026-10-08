@@ -152,6 +152,8 @@ static func _variations() -> Array[Dictionary]:
 		out.append({"t": &"block", "heavy": heavy})
 		for pair: Array in SoundBank.PAIR_IMPACTS.keys().map(func(k: StringName) -> PackedStringArray: return String(k).split("+")):
 			out.append({"t": &"block", "heavy": heavy, "weapon": StringName(pair[0]), "defender_weapon": StringName(pair[1])})
+	# a leg strike's swing adds its trouser cloth (milestone-1 task 95)
+	out.append({"t": &"swing", "weapon": &"fists", "heavy": true, "sound": &"kick"})
 	for kind: StringName in AttackDef.COUNTER_KINDS:
 		out.append({"t": &"telegraph", "kind": kind})
 	for kind: StringName in [&"parry", &"flash", &"redirect"]:

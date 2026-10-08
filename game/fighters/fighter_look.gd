@@ -11,8 +11,11 @@ extends Resource
 ## base body only supplies the head (cut at import by tools/cut_heads.gd),
 ## the eyes and the eyebrows, which ride on the Head and Neck bones.
 ##
-## Headwear the packs lack is built in code by tools/build_headwear.gd: a
-## cloth wrap made from the head (skinned like it) and a hat on the Head bone.
+## Headwear the packs lack is built in code by tools/build_headwear.gd (a
+## cloth wrap made from the head, skinned like it, and a hat on the Head bone)
+## or modelled in Blender by scripts/blender/build_headwear.py and exported (a
+## hat scene for the Head bone, a scarf scene with its own rig for the Neck
+## bone, its tails swung by spring bones).
 ## The skin is roughed up by tools/bake_skins.gd from the skin settings.
 
 ## The fighters that have a look, in character-select order. Fighter `id`'s
@@ -38,6 +41,14 @@ const IDS: Array[StringName] = [&"rogue", &"hunter"]
 ## A hat, a rigid mesh in Head-bone space (made by tools/build_headwear.gd),
 ## or null.
 @export var hat: ArrayMesh
+## A hat modelled in Blender (exports/headwear/), its mesh "Hat" in Head-bone
+## space; used instead of `hat`. Or null.
+@export var hat_scene: PackedScene
+## A scarf modelled in Blender (exports/headwear/): its own rig, posed in
+## Neck-bone space, whose bones TailL0-3 and TailR0-3 hang its tails for
+## spring bones, and an empty "BackCapsule" for the back they rest on. Or
+## null.
+@export var scarf_scene: PackedScene
 ## The outfit material the palettes recolour (by its imported name).
 @export var outfit_material: StringName = &"MI_Ranger"
 ## Exactly two: the first is the default, the second dresses the second

@@ -300,6 +300,48 @@ func test_daggers_smear_the_striking_hands() -> void:
 	assert_true(both, "a smear from each dagger")
 
 
+## Bare hands' eight movement attacks smear along the striking limb
+## (milestone-1 task 95): the span runs from the joint behind the limb's end
+## to past it, the fist past the wrist, the foot past the ankle, the knee
+## past its joint.
+const LIMB_ENDS: Dictionary[StringName, String] = {
+	&"right_hand": "RightHand", &"left_hand": "LeftHand", &"right_foot": "RightFoot", &"left_foot": "LeftFoot",
+	&"right_knee": "RightLowerLeg", &"left_knee": "LeftLowerLeg",
+}
+
+
+func test_a_limb_span_runs_along_the_striking_limb() -> void:
+	_start()
+	var fv: FighterView = view.fighters[0]
+	var sk: Skeleton3D = fv.model.skeleton
+	for part: StringName in LIMB_ENDS:
+		var span: PackedVector3Array = fv.limb_span(part)
+		assert_eq(span.size(), 2, String(part))
+		var end: Vector3 = sk.global_transform * sk.get_bone_global_pose(sk.find_bone(LIMB_ENDS[part])).origin
+		assert_lt(span[1].distance_to(end), 0.25, "%s: its tip at the %s" % [part, LIMB_ENDS[part]])
+		assert_between(span[0].distance_to(span[1]), 0.15, 0.8, "%s: a limb's length back from the tip" % part)
+	assert_eq(fv.limb_span(&"body").size(), 0, "no span for a part that isn't a limb")
+
+
+func test_a_bare_hand_strike_smears_its_striking_side_only() -> void:
+	for pair: Array in [[&"f_sh", TrailState.RIGHT], [&"f_dl", TrailState.LEFT]]:
+		_start()
+		var f: Fighter = host.fighter(0)
+		f.armed = false
+		assert_true(f.start_attack(pair[0]), String(pair[0]))
+		var laid: Array[int] = [0, 0]
+		for k: int in f.atk.def.startup + f.atk.def.active + 1:
+			host.step(1)
+			view.render(DT)
+			for hand: int in 2:
+				laid[hand] = maxi(laid[hand], view.effects.smear(0, hand).sample_count())
+		var side: int = pair[1]
+		assert_gt(laid[side], 0, "%s smears its striking limb" % pair[0])
+		assert_eq(laid[1 - side], 0, "%s: and nothing on the other side" % pair[0])
+		host.queue_free()
+		await get_tree().process_frame
+
+
 func test_round_start_clears_the_smears() -> void:
 	_start()
 	var f: Fighter = host.fighter(0)

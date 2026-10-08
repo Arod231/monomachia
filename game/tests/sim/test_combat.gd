@@ -72,7 +72,8 @@ func test_blocking_stops_hp_damage_but_takes_reduced_posture_damage() -> void:
 	var b: Fighter = W.fighters[1]
 	assert_true(r.has(&"block"))
 	assert_eq(b.hp, 100.0)
-	assert_almost_eq(b.posture, 5.0 * Moves.KATANA.block_mitigation, CLOSE)
+	# the held grip's block, or with none the weapon's (SimHelpers.grip; KE task 5)
+	assert_almost_eq(b.posture, 5.0 * b.block_mitigation(), CLOSE)
 
 
 func test_a_well_timed_block_press_parries_attacker_recoils_and_takes_parry_posture() -> void:

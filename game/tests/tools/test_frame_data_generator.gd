@@ -28,8 +28,9 @@ func _sample(grip: V3, blade: V3 = V3.make(0.0, 0.0, 1.0)) -> Swing.Sample:
 
 
 ## A made-up clip, 20 source frames long: the left foot planted for the
-## first 10 and sliding back 1 cm a source frame (as a clip with its root's
-## travel taken out does), turning 1 degree left a source frame; the right
+## first 10 and sliding back 1 cm and 4 mm to its right a source frame (as a
+## clip with its root's travel taken out does), turning 1 degree left a
+## source frame; the right
 ## foot in the air; the hips moving forward 5 mm a source frame and the hand
 ## with them.
 func _stepping(time: float) -> Dictionary:
@@ -39,7 +40,7 @@ func _stepping(time: float) -> Dictionary:
 	var body: Swing.Sample = Swing.Sample.new()
 	body.pelvis_shift = V3.make(0.0, -0.02, 0.005 * s)
 	return {
-		&"left_foot": _sample(V3.make(0.1, 0.09, 0.2 - 0.01 * planted), V3.make(sin(heading), 0.0, cos(heading))),
+		&"left_foot": _sample(V3.make(0.1 + 0.004 * planted, 0.09, 0.2 - 0.01 * planted), V3.make(sin(heading), 0.0, cos(heading))),
 		&"right_foot": _sample(V3.make(-0.1, 0.2, 0.3)),
 		&"right_hand": _sample(V3.make(-0.3, 1.2, 0.4 + 0.005 * s)),
 		&"body": body,
@@ -76,15 +77,21 @@ func test_travel_comes_from_the_planted_foot_and_the_hips() -> void:
 	assert_eq(r.forward.size(), r.total() + 1)
 	assert_eq([r.forward[0], r.sideways[0], r.turn[0]], [0.0, 0.0, 0.0], "frame 0 doesn't move")
 	for f: int in range(1, 21):
-		# half a source frame a rules frame: the planted foot slides back 5 mm,
-		# so the root goes forward 5 mm, and the hips 2.5 mm on top
+		# half a source frame a rules frame: the planted foot slides back 5 mm
+		# and 2 mm right, so the root goes forward 5 mm and 2 mm left, and the
+		# hips 2.5 mm forward on top
 		assert_almost_eq(r.forward[f], 0.0075, 1e-9, "frame %d forward" % f)
-		assert_almost_eq(r.sideways[f], 0.0, 1e-9, "frame %d sideways" % f)
+		assert_almost_eq(r.sideways[f], -0.002, 1e-9, "frame %d sideways" % f)
 		assert_almost_eq(r.turn[f], 0.5, 1e-6, "frame %d: the foot turns left, the body right" % f)
 	for f: int in range(21, 41):
-		# the foot lifted: the root carries on as it last moved
+		# the foot lifted: the root carries on straight ahead at the speed it
+		# last went forward, holding its heading; the planted foot's last
+		# sideways slide and twist aren't carried (task 93: on the game's
+		# bodies retargeting bends a push-off's last slide, and a leap would
+		# drift and turn on it all through the flight)
 		assert_almost_eq(r.forward[f], 0.0075, 1e-9, "frame %d forward, carried" % f)
-		assert_almost_eq(r.turn[f], 0.5, 1e-6, "frame %d turn, carried" % f)
+		assert_almost_eq(r.sideways[f], 0.0, 1e-9, "frame %d no sideways drift" % f)
+		assert_almost_eq(r.turn[f], 0.0, 1e-9, "frame %d no turn" % f)
 	var still: FrameDataGenerator.Result = _generate(_stepping, 20.0 / 30.0,
 		{"windup": 0, "active_start": 4, "active_end": 5, "settle": 20}, {})
 	for f: int in range(1, 41):
@@ -167,6 +174,16 @@ func test_mistakes_are_refused() -> void:
 	assert_null(FrameDataGenerator.generate(_stepping, 20.0 / 30.0, {"windup": 0, "active_start": 4, "active_end": 5, "settle": 10}, {},
 		[&"left_hand"] as Array[StringName], errors))
 	assert_eq(errors, ["the sampled clip has no left_hand"] as Array[String])
+
+
+func test_a_settle_on_the_clips_last_frame_is_taken_at_its_float_length() -> void:
+	# Godot keeps a clip's length as a 32-bit float: 35 frames read back as
+	# 34.9999988 (Lunging Palm, milestone-1 task 94)
+	var length: float = PackedFloat32Array([35.0 / 30.0])[0]
+	var errors: Array[String] = []
+	var r: FrameDataGenerator.Result = FrameDataGenerator.generate(_stepping, length, {"windup": 0, "active_start": 18, "active_end": 20, "settle": 35}, {}, PARTS, errors)
+	assert_eq(errors, [] as Array[String])
+	assert_not_null(r)
 
 
 func test_a_chains_foot_contacts_follow_its_parts() -> void:

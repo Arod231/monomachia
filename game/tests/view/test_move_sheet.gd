@@ -320,6 +320,17 @@ func test_the_strafe_and_backpedal_drives_move_the_way_they_say() -> void:
 		assert_true(MoveSheet.VIEW_NAMES.has(MoveSheet.DRIVES[id]["views"][0]), "%s: its own view" % id)
 
 
+## The jump attack drives (milestone-1 task 94) jump on the spot and press
+## the attack 3 frames in, disarmed, so bare hands jump the disarmed arc the
+## game gives them.
+func test_the_jump_attack_drives_jump_then_attack_disarmed() -> void:
+	for id: StringName in [&"jump_light", &"jump_heavy"]:
+		var inputs: Array[RawInput] = MoveSheet.drive_inputs(id)
+		assert_eq(inputs[12].buttons, 1 << Btn.JUMP, "%s: the jump after 12 still frames" % id)
+		assert_eq(inputs[15].buttons, 1 << (Btn.LIGHT if id == &"jump_light" else Btn.HEAVY), "%s: the attack 3 frames in" % id)
+		assert_true(MoveSheet.DRIVES[id]["disarmed"], "%s: disarmed" % id)
+
+
 ## The guard drives walk the same ways blocking, seen
 ## from above too, every other frame.
 func test_the_guard_drives_walk_blocking() -> void:
@@ -412,7 +423,9 @@ func test_a_drive_strip_has_a_captioned_cell_per_chosen_frame() -> void:
 	assert_gt(sheet.bench.spacing, 20.0, "the opponent far off, out of the way")
 	var first: PackedStringArray = sheet.strip[0]
 	assert_true(first[0].begins_with("frame 1 · 0.00 m/s · legs "), first[0])
-	assert_true(first[1].begins_with("idle 1.00 · phase "), "the Katana standing in its combat idle: %s" % first[1])
+	# the one-handed grip's carry, its guard idle, over the legs' idle (KE task 10)
+	assert_true(first[1].begins_with("KatanaGuard1H ") if ClipLibraries.available() else first[1].begins_with("idle 1.00 · phase "), "the Katana standing in its combat idle: %s" % first[1])
+	assert_string_contains(first[1], "idle 1.00 · phase ")
 	var last: PackedStringArray = sheet.strip[-1]
 	assert_true(last[0].begins_with("frame %d · 7.20 m/s · legs +0°" % inputs.size()), last[0])
 	var loco: Locomotion = sheet.bench.view.locomotion
@@ -439,7 +452,10 @@ func test_a_strafe_strip_gives_the_legs_way_with_a_block_of_rows_per_view() -> v
 	assert_gt(strafing, 0)
 	assert_true(sheet.strip[strafing][0].begins_with("frame 72 · 3.50 m/s · legs +9"), "strafing left: %s" % sheet.strip[strafing][0])
 	var loco: Locomotion = sheet.bench.view.locomotion
-	assert_true(sheet.strip[strafing][1].begins_with(String(loco.clips[&"run"][2]).get_file() if loco.clips[&"run"][2] != "" else String(loco.clips[&"walk"][2]).get_file()), sheet.strip[strafing][1])
+	# strafing keeps the grip's carry over the legs' strafe (KE task 10)
+	assert_string_contains(sheet.strip[strafing][1], String(loco.clips[&"run"][2]).get_file() if loco.clips[&"run"][2] != "" else String(loco.clips[&"walk"][2]).get_file())
+	if ClipLibraries.available():
+		assert_true(sheet.strip[strafing][1].begins_with("KatanaGuard1H "), sheet.strip[strafing][1])
 	loco.shown_away = deg_to_rad(-170.0)
 	assert_string_contains(MoveSheet.drive_caption(9, loco)[0], " · turned away -170°", "a sprint held backwards")
 	loco.shown_away = 0.0

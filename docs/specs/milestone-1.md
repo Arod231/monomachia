@@ -91,7 +91,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 45. As the owner, I want follow-ups and dodge cancels to open at markers on each clip, where the body can plausibly break off, so that a follow-up starts from its branch point rather than waiting for the move to end.
 46. [x] As a player, I want every follow-up to stay optional, so that I can stop after any hit and recover normally. (Ticked with task 20.)
 47. As a player, I want strings to flow, each swing continuing from where the last one ended, and two lights to flow into a heavy as the third hit, so that a string reads as one motion.
-48. As a player, I want the jump arcs to stay rules numbers and the jump clips made to match them, so that clearing a sweep always works the same way.
+48. [x] As a player, I want the jump arcs to stay rules numbers and the jump clips made to match them, so that clearing a sweep always works the same way. (Ticked with task 59.)
 49. [x] As a player, I want the rules to keep running at a fixed 60 steps a second, with faster displays showing frames blended between steps, so that the fight is the same on every screen. (Ticked with task 19.)
 50. As the owner, I want the Katana and bare hands rebalanced around their clips as each family lands, with the old "within 5 points of the baseline" rule retired, so that balance follows the new pace.
 
@@ -122,7 +122,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 70. As a disarmed player, I want to move faster, dodge farther and jump higher than when armed, so that bare hands keep their agility.
 71. As a disarmed player, I want a longer roll clip covering the disarmed dodge's 1.5× distance inside the same protected frames, so that the longer dodge doesn't slide. **(P15, confirmed Oct 4)**
 72. As a disarmed player, I want the light string (Jab, Cross, Hook) and the heavies (Roundhouse, Spinning Heel) re-keyed in the bare-hands bands, so that disarmed fighting looks like fighting.
-73. As a disarmed player, I want the eight bare-hands movement attacks re-keyed (Flying Knee and Dragon Kick out of a sprint, Slip Jab and Spinning Backfist out of a dodge, Snap Kick and Lunging Palm out of a backstep, Air Kick and Axe Kick out of a jump), so that every way in has a real motion.
+73. [x] As a disarmed player, I want the eight bare-hands movement attacks re-keyed (Flying Knee and Dragon Kick out of a sprint, Slip Jab and Spinning Backfist out of a dodge, Snap Kick and Lunging Palm out of a backstep, Air Kick and Axe Kick out of a jump), so that every way in has a real motion. (Ticked with task 94.)
 74. As a disarmed player, I want the redirect to play its own deflect pair, turning the attack aside by hand, so that it reads apart from a parry.
 75. As a player whose fist or foot is parried by a blade, I want my fighter to recoil without being cut, so that the moment reads right. **(P9, confirmed Oct 4)**
 76. [x] As a disarmed player at 25% HP or less, I want the ultimate to open its choice of the recall or Breaker Palm, so that I can re-arm or hit back hard. (Ticked with task 99.)
@@ -145,7 +145,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 90. As the owner, I want an attack started out of a run to keep none of the run's speed in the rules, so that the attack's travel comes only from its clip. **(P14, confirmed Oct 4)**
 91. As a player, I want running fighters to lean forward, so that movement looks real.
 92. As a player, I want the roll and the backstep re-keyed to fit their protected frames at the clip's own speed, so that dodges look evasive and real.
-93. As a player, I want the jump, the landing and the jump attacks keyed to the rules' jump arcs, with a jump attack starting only while its startup and active frames fit the airtime left and a landing never skipping an air attack's frames **(P53, confirmed Oct 4)**, so that a jump looks like the arc that decides it.
+93. [x] As a player, I want the jump, the landing and the jump attacks keyed to the rules' jump arcs, with a jump attack starting only while its startup and active frames fit the airtime left and a landing never skipping an air attack's frames **(P53, confirmed Oct 4)**, so that a jump looks like the arc that decides it. (Ticked with task 94.)
 94. [x] As a player, I want every hand-off between motions to use inertial blending, the new motion starting at once and the old pose fading over a few frames, hit reactions included, so that nothing pops. (Ticked with task 23.)
 95. As a player, I want authored transition clips (returns to guard, bridges between the hits of a string, run stops and pivots) on top of the blending, so that hand-offs look keyed, not computed.
 96. [x] As a developer, I want inertial blending and the physical reaction layer built as custom skeleton modifiers that change only the picture, so that the rules never depend on them. **(P11, confirmed Oct 4)** (Ticked with task 70.)
@@ -205,18 +205,18 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 138. [x] As the owner, I want a look test scene (one fighter with the Katana in a corner of the Moonlit Shrine at Ultra on the RTX 3090) approved before the art converts, settling the lighting and the camera effects, so that the realistic look is proven in Godot first. (Ticked with task 30.)
 139. As the owner, I want clip work to start at once and only the art conversion (materials, models, the arena, how effects look and the UI style) to wait for the mood board and the look test, so that animation isn't blocked by the look. **(P2, confirmed Oct 4)**
 140. [x] As a player, I want the realistic look (physically based materials, dark lighting and volumetric fog under a painterly grade, after Ghost of Tsushima's darker side), with no toon shading, outlines or ink-wash, so that the game looks like the dark fantasy it means to be. (Ticked with task 43.)
-141. As a player, I want the Hunter's two palettes re-dyed crimson and indigo in realistic materials with wear and oriental patterns, so that the sides read apart and match the HUD's red and blue.
+141. [x] As a player, I want the Hunter's two palettes re-dyed crimson and indigo in realistic materials with wear and oriental patterns, so that the sides read apart and match the HUD's red and blue. (Ticked with task 45.)
 142. [x] As a player, I want key and rim lights that touch only the fighters, so that the fighters stand out of the dark without outlines. (Ticked with task 44.)
-143. As the owner, I want a test that the crimson and indigo palettes read apart in grey, so that the black-and-white mode can come after this milestone without re-dyeing.
-144. As a player, I want the Hunter's tricorn and scarf remodelled in Blender with oriental touches, the scarf's ends swinging on spring bones, so that the silhouette reads and moves.
+143. [x] As the owner, I want a test that the crimson and indigo palettes read apart in grey, so that the black-and-white mode can come after this milestone without re-dyeing. (Ticked with task 45.)
+144. [x] As a player, I want the Hunter's tricorn and scarf remodelled in Blender with oriental touches, the scarf's ends swinging on spring bones, so that the silhouette reads and moves.
 145. As the owner, I want the Hunter's body re-textured, not remodelled, with a neutral face and no cloth simulation in milestone 1, so that new models, cloth and faces wait for milestone 2. **(Oct 6) Superseded by ADR 0002:** both bodies are re-proportioned about 15% taller in milestone 1 (`docs/specs/katana-elden-ring.md`).
-146. As a player, I want the Katana and its saya modelled in Blender to fit the look, keeping today's 0.72 m blade within 2 cm **(P44, confirmed Oct 4)**, so that the weapon I watch most is real. **(Oct 6) Superseded by ADR 0002:** the blade becomes 1.3 m (`docs/specs/katana-elden-ring.md`).
+146. [x] As a player, I want the Katana and its saya modelled in Blender to fit the look, keeping today's 0.72 m blade within 2 cm **(P44, confirmed Oct 4)**, so that the weapon I watch most is real. **(Oct 6) Superseded by ADR 0002:** the blade becomes 1.3 m (`docs/specs/katana-elden-ring.md`).
 147. As the owner, I want the art made from CC0 scanned materials and models (Poly Haven, ambientCG) and models built in Blender, partly by script, with generative AI used only for the mood board, so that every asset can be sold.
 148. As a player, I want the Moonlit Shrine upgraded in place, keeping its layout: its props first, then its materials, and last its platform, so that the arena I know becomes the arena of the design.
 149. [x] As a player, I want huge, ancient wisteria with dark bark around the arena, their blossoms glowing purple and lighting the fight, a canopy that never hides the moon or the fighters, and glowing petals falling, so that the Shrine looks like the design's. (Ticked with task 48.)
 150. As a player, I want worn, weathered, uneven and broken paving, mist drifting through the moon shafts, a blood moon and a starry sky, so that the arena feels ancient.
 151. As a player, I want the distant landscape in real 3D (sculpted mountains and cliffs, pagodas and temples, volumetric fog and clouds), simpler on Low, so that the arena floats in a real world.
-152. As a player, I want banners, and grass in the broken paving, so that the wind and the fight have something to move. **(P21, confirmed Oct 4)**
+152. [x] As a player, I want banners, and grass in the broken paving, so that the wind and the fight have something to move. **(P21, confirmed Oct 4)**
 153. As a player, I want one wind moving the clouds, the branches, the petals, the grass, the banners and the cloth, so that the night feels alive and consistent. In milestone 1 the cloth is the scarf's spring bones and the banners **(P46, confirmed Oct 4)**.
 154. As the owner, I want only the clear night in milestone 1, with both performance gates measured on it, so that the weather system and its other four states come after sign-off.
 155. As a player, I want the arena to react in the picture only, with the marks lasting the whole match, so that the fight leaves its trace without changing the rules. The reactions milestone 1 shows are cut marks and scorch on stone, sparks off pillars, dust and cracks where blows hit the ground, and banners and grass pushed by swings and falls **(P42, confirmed Oct 4)**.
@@ -225,7 +225,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 156. [x] As a player, I want realistic sparks at the contact point on blocks and blade clashes, so that contact reads. (Ticked with task 37.)
 157. [x] As a player, I want hits to draw blood (a burst on each blade hit, blood on blades and clothes for the whole match, and splatter on the floor that fades), so that the duel has weight. (Ticked with task 38, in today's toon look; the art conversion carries the stains into the realistic materials.)
-158. As a player, I want a bare-hand hit to show its own impact rather than a blade's blood burst, so that fists read apart from blades. **(P36, confirmed Oct 4)**
+158. [x] As a player, I want a bare-hand hit to show its own impact rather than a blade's blood burst, so that fists read apart from blades. **(P36, confirmed Oct 4)** (Ticked with task 95.)
 159. [x] As a player, I want air smears on fast swings in place of the brush trails, so that swings read without ink. (Ticked with task 37.)
 160. As a player, I want dust and smoke where feet, falls and rolls meet the ground, where the clips' feet land, so that movement has weight.
 161. [x] As a player, I want a Blood setting of On, Reduced or Off, shipped in milestone 1 and On by default **(P5, confirmed Oct 4)**, so that I choose. (Ticked with task 38; the finishers' Reduced and Off cut lands with the finisher tasks.)

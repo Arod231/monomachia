@@ -4,7 +4,9 @@ extends RefCounted
 ## match every performance bench plays, recorded as an input log and
 ## committed at PATH, so each bench measures the same match. Its last STEPS
 ## steps (90 s), the window the harness times, show everything REQUIRED:
-## both ultimates (Moonsplitter and Breaker Palm) and a stretch at the wall.
+## both ultimates (Moonsplitter and Breaker Palm). A stretch at the wall is
+## counted and reported, not required: the owner (Oct 7, at milestone-1 task
+## 59) moved it there when no seed's fight reached the wall any more.
 ## The steps before the window are its lead-in, which the harness plays
 ## untimed. Blood and the petals come with it once the effects and the arena
 ## have them, since every worst case has hits on the Shrine; the finisher is
@@ -35,10 +37,11 @@ const WALL_STEPS: int = 60
 const REQUIRED: Array[Array] = [
 	[&"moonsplitter", "Moonsplitter"],
 	[&"breaker", "Breaker Palm"],
-	[&"wall", "a stretch at the wall"],
 ]
-## Counted and reported, not required yet: the finisher (task 103).
+## Counted and reported, not required: a stretch at the wall (required
+## until Oct 7, see above) and the finisher (task 103).
 const REPORTED: Array[Array] = [
+	[&"wall", "a stretch at the wall"],
 	[&"finisher", "a finisher"],
 ]
 
@@ -163,6 +166,8 @@ class Timeline:
 					break
 			if not seen:
 				return false
+		if not at.has(&"wall"):
+			return true
 		for r: Vector2i in runs:
 			if mini(r.y, to) - maxi(r.x, from) >= WorstCase.WALL_STEPS:
 				return true

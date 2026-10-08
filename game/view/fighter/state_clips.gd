@@ -54,10 +54,14 @@ extends RefCounted
 ##
 ## "grips" (KE task 8) gives a weapon with grips each grip's own clips, by
 ## weapon then grip ({"katana": {"one_handed": {"idle": clip, "guard": [loop,
-## hit], "carry": clip}}}; the carry may be left out, for none), and its
-## re-grip transitions by the grip switched to ({"regrip": {"two_handed":
-## clip}}; D15), each optional. A weapon or a grip without an entry plays the
-## weapon's idle and guard, with no carry or re-grip.
+## hit], "carry": clip, "moves": [clip, ...]}}}; the carry may be left out,
+## for none), and its re-grip transitions by the grip switched to
+## ({"regrip": {"two_handed": clip}}; D15), each optional. A weapon or a grip
+## without an entry plays the weapon's idle and guard, with no carry or
+## re-grip. The one-handed grip's clips (its idle, guard, carry and re-grip,
+## and the attack clips its "moves" lists; KE task 10) are played with a
+## two-handed weapon's off hand left on the clip, off the handle
+## (one_handed()); every other clip holds it on the handle.
 ##
 ## "states" (milestone-1 task 99) names the rules states that play a
 ## manifest clip of their own with the packs ({"ultChoice": clip}), fitted
@@ -67,10 +71,10 @@ extends RefCounted
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips", "states"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips", "states", "jump"]
 ## The grips a "grips" entry names (WeaponGrip's), and each one's clips.
 const GRIP_IDS: Array[String] = ["one_handed", "two_handed"]
-const GRIP_FIELDS: Array[String] = ["idle", "guard", "carry"]
+const GRIP_FIELDS: Array[String] = ["idle", "guard", "carry", "moves"]
 ## Where a hit can land, for its light reaction ("reactions").
 const HIT_PLACES: Array[String] = ["front_high", "front_low", "left_high", "left_low", "right_high", "right_low", "back_high", "back_low"]
 ## A deflect pair's fields (deflect_pairs).
@@ -192,8 +196,14 @@ var deflect_pairs: Dictionary[StringName, Dictionary] = {}
 ## of clip ids by HIT_PLACES; and the light block reaction by weapon.
 var light_hits: Dictionary[StringName, Dictionary] = {}
 var light_blocks: Dictionary[StringName, StringName] = {}
+## The jump's own clips (milestone-1 task 59), by weapon class: the flight
+## from take-off to touchdown and the landing; a class without them plays
+## the pack's take-off, air and landing.
+var jump_flights: Dictionary[StringName, StringName] = {}
+var jump_lands: Dictionary[StringName, StringName] = {}
 ## Each grip's own clips (KE task 8), by weapon then grip: {&"idle": clip,
-## &"guard": [loop, hit], &"carry": clip, or &"" for none}.
+## &"guard": [loop, hit], &"carry": clip, or &"" for none, &"moves": the
+## attack clips played in the grip's hands (KE task 10)}.
 var grip_clips: Dictionary[StringName, Dictionary] = {}
 ## The re-grip transitions (D15), by weapon then the grip switched to.
 var regrips: Dictionary[StringName, Dictionary] = {}
@@ -361,11 +371,28 @@ static func read(path: String = PATH) -> StateClips:
 				var id: StringName = t._id(blocks, "reactions.block_light", str(w))
 				if id != &"":
 					t.light_blocks[StringName(str(w))] = id
+	if root.has("jump"):
+		g = t._object(root["jump"], "jump", ["flight", "land"])
+		for part: String in ["flight", "land"]:
+			var by: Variant = g.get(part, {})
+			if not by is Dictionary:
+				t.errors.append("jump.%s: must be an object" % part)
+				continue
+			for w: Variant in by:
+				var id: StringName = t._id(by, "jump.%s" % part, str(w))
+				if id != &"":
+					(t.jump_flights if part == "flight" else t.jump_lands)[StringName(str(w))] = id
 	if root.has("grips"):
 		t._grips(root["grips"])
 	if root.has("states"):
 		t.own_clips = t._id_map({"states": root["states"]}, "state_clips", "states", [])
 	return t
+
+
+## The jump clip `part` (&"flight" or &"land") of weapon class `weapon`
+## (a weapon's id, &"fists" disarmed), or &"" for none.
+func jump_clip(part: StringName, weapon: StringName) -> StringName:
+	return (jump_flights if part == &"flight" else jump_lands).get(weapon, &"")
 
 
 ## Reads the "grips" group into grip_clips and regrips.
@@ -391,6 +418,7 @@ func _grips(g: Variant) -> void:
 				&"idle": _id(c, ga, "idle"),
 				&"guard": _ids(c, ga, "guard", 2),
 				&"carry": _id(c, ga, "carry") if c.has("carry") else &"",
+				&"moves": _id_list(c, ga, "moves"),
 			}
 		grip_clips[StringName(str(w))] = by
 		if e.has("regrip"):
@@ -431,6 +459,20 @@ func carry_for(weapon: StringName, grip: StringName) -> StringName:
 ## The re-grip transition into `grip` on `weapon` (D15), or &"" for none.
 func regrip_for(weapon: StringName, grip: StringName) -> StringName:
 	return (regrips.get(weapon, {}) as Dictionary).get(grip, &"")
+
+
+## True when `weapon` plays `clip` in the one-handed grip (KE task 10): its
+## idle, guard, carry, re-grip or one of its moves, with the off hand left on
+## the clip, off the handle. False for every clip of a weapon without grips.
+func one_handed(weapon: StringName, clip: StringName) -> bool:
+	if clip == &"":
+		return false
+	var own: Dictionary = (grip_clips.get(weapon, {}) as Dictionary).get(StringName(WeaponGrip.ONE_HANDED), {})
+	if own.is_empty():
+		return false
+	if clip == own[&"idle"] or clip == own[&"carry"] or (own[&"guard"] as Array).has(clip) or (own[&"moves"] as Array).has(clip):
+		return true
+	return clip == regrip_for(weapon, StringName(WeaponGrip.ONE_HANDED))
 
 
 ## The table the game plays by: read from PATH once and kept, so a test or the
@@ -534,6 +576,20 @@ func _ids(g: Dictionary, at: String, key: String, count: int) -> Array[StringNam
 	var v: Variant = g[key]
 	if not v is Array or (v as Array).size() != count or not (v as Array).all(func(x: Variant) -> bool: return x is String and not (x as String).is_empty()):
 		errors.append("%s.%s: must be a list of %d clip ids" % [at, key, count])
+		return out
+	for x: String in v:
+		out.append(StringName(x))
+	return out
+
+
+## A list of clip ids, any number; empty if `key` isn't there or isn't one.
+func _id_list(g: Dictionary, at: String, key: String) -> Array[StringName]:
+	var out: Array[StringName] = []
+	if not g.has(key):
+		return out
+	var v: Variant = g[key]
+	if not v is Array or not (v as Array).all(func(x: Variant) -> bool: return x is String and not (x as String).is_empty()):
+		errors.append("%s.%s: must be a list of clip ids" % [at, key])
 		return out
 	for x: String in v:
 		out.append(StringName(x))

@@ -66,6 +66,16 @@ const PROP_KINDS: Array[StringName] = [&"lantern", &"torii", &"pillar", &"wister
 ])
 ## Loose rocks scattered on the ledge, clear of the gates.
 @export var debris_count: int = 48
+## The nobori (milestone-1 task 131, ShrineBanners): (angle, radius), every
+## 30 degrees from 15 round the ledge, clear of the gates; each radius is
+## where the wisteria's roots and trunks leave its pole room (out past the
+## lanterns by the gates, in toward the wall by the trunks), and 135 is
+## turned to 136 for a root it would stand in.
+@export var banners: PackedVector2Array = PackedVector2Array([
+	Vector2(15, 18.6), Vector2(45, 17.2), Vector2(75, 17.7), Vector2(105, 17.8),
+	Vector2(136, 17.1), Vector2(165, 18.6), Vector2(195, 18.4), Vector2(225, 18.3),
+	Vector2(255, 17.5), Vector2(285, 18.8), Vector2(315, 17.9), Vector2(345, 18.4),
+])
 
 @export_group("Underside")
 ## The crag under the courtyard: the least reach of its top, the ledge, all

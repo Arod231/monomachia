@@ -8,8 +8,8 @@
 [ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Arms_Tall.gltf" id="6_d5ncl"]
 [ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Legs_Tall.gltf" id="7_x3qbg"]
 [ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Feet_Boots_Tall.gltf" id="8_x473v"]
-[ext_resource type="ArrayMesh" path="res://fighters/hunter/tricorn.res" id="9_hat"]
-[ext_resource type="ArrayMesh" path="res://fighters/hunter/neck_scarf.res" id="18_scarf"]
+[ext_resource type="PackedScene" uid="uid://ceov0w8bxj2od" path="res://assets/exports/headwear/hunter_tricorn.glb" id="9_hat"]
+[ext_resource type="PackedScene" uid="uid://j6rtedxpcxjb" path="res://assets/exports/headwear/hunter_scarf.glb" id="18_scarf"]
 [ext_resource type="PackedScene" path="res://assets/quaternius/outfits/Male_Ranger_Acc_Pauldron_Tall.gltf" id="10_whdco"]
 [ext_resource type="Script" path="res://fighters/fighter_palette.gd" id="11_pccrn"]
 [ext_resource type="Resource" path="res://fighters/hunter/hunter_palette_a.tres" id="12_1eyxl"]
@@ -48,8 +48,8 @@ body_scene = ExtResource("1_uqj6e")
 head_mesh = ExtResource("4_jc2gd")
 outfit_parts = Array[PackedScene]([ExtResource("5_mkq3h"), ExtResource("6_d5ncl"), ExtResource("7_x3qbg"), ExtResource("8_x473v"), ExtResource("10_whdco")])
 hair = Array[PackedScene]([ExtResource("2_7yf3b"), ExtResource("3_uf8wu")])
-head_wrap = ExtResource("18_scarf")
-hat = ExtResource("9_hat")
+hat_scene = ExtResource("9_hat")
+scarf_scene = ExtResource("18_scarf")
 palettes = Array[ExtResource("11_pccrn")]([ExtResource("12_1eyxl"), ExtResource("13_3u6ed")])
 signature_weapon = &"greatsword"
 idle_clip = &"Idle_Shield"

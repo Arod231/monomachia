@@ -64,6 +64,32 @@ const CUES: Dictionary = {
 		"files": ["hit_fist_heavy_01.wav", "hit_fist_01.wav", "hit_fist_03.wav"],
 		"volume_db": -1.0, "pitch": Vector2(0.85, 0.95), "bus": BUS_COMBAT, "spatial": true,
 	},
+	# bare hands' strikes by the striking limb (milestone-1 task 95): an open
+	# palm's slap, a knee's dull thud, a kick's or heel drop's heavier thump
+	&"hit_palm": {
+		"files": ["hit_palm_01.wav", "hit_palm_02.wav", "hit_palm_03.wav"],
+		"volume_db": -3.0, "pitch": Vector2(0.94, 1.08), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"hit_palm_heavy": {
+		"files": ["hit_palm_heavy_01.wav", "hit_palm_heavy_02.wav"],
+		"volume_db": -1.0, "pitch": Vector2(0.9, 1.0), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"hit_knee": {
+		"files": ["hit_knee_01.wav", "hit_knee_02.wav", "hit_knee_03.wav"],
+		"volume_db": -2.0, "pitch": Vector2(0.93, 1.05), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"hit_knee_heavy": {
+		"files": ["hit_knee_heavy_01.wav", "hit_knee_heavy_02.wav"],
+		"volume_db": -1.0, "pitch": Vector2(0.88, 0.98), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"hit_kick": {
+		"files": ["hit_kick_01.wav", "hit_kick_02.wav", "hit_kick_03.wav"],
+		"volume_db": -2.0, "pitch": Vector2(0.93, 1.05), "bus": BUS_COMBAT, "spatial": true,
+	},
+	&"hit_kick_heavy": {
+		"files": ["hit_kick_heavy_01.wav", "hit_kick_heavy_02.wav"],
+		"volume_db": 0.0, "pitch": Vector2(0.86, 0.96), "bus": BUS_COMBAT, "spatial": true,
+	},
 	&"hit_colossal": {
 		"files": ["hit_colossal_01.wav", "hit_colossal_02.wav", "hit_colossal_03.wav", "hit_colossal_04.wav"],
 		"volume_db": 0.0, "pitch": Vector2(0.94, 1.04), "bus": BUS_COMBAT, "spatial": true,
@@ -235,6 +261,11 @@ const CUES: Dictionary = {
 	&"dodge_cloth": {
 		"files": ["dodge_cloth_01.wav", "dodge_cloth_02.wav", "dodge_cloth_03.wav"],
 		"volume_db": -12.0, "pitch": Vector2(0.94, 1.08), "bus": BUS_FOLEY, "spatial": true,
+	},
+	# a leg strike: the trouser leg whooshing with the kick or knee (task 95)
+	&"kick_cloth": {
+		"files": ["kick_cloth_01.wav", "kick_cloth_02.wav", "kick_cloth_03.wav"],
+		"volume_db": -8.0, "pitch": Vector2(0.92, 1.06), "bus": BUS_FOLEY, "spatial": true,
 	},
 	# a roll: a cloth tumble and a thump on the stone (authored-animation task 30)
 	&"roll": {
@@ -419,6 +450,19 @@ const DELAYS: Dictionary = {
 	&"roundStart": {&"gong": 1.34},
 }
 
+## Bare hands' hits by the striking limb, the event's [code]sound[/code]
+## (AttackDef.BARE_SOUNDS, milestone-1 task 95): the light's cue, then the
+## heavy's. No flesh or bone layer: a bare hand doesn't cut.
+const LIMB_HITS: Dictionary = {
+	&"fist": [&"hit_fist", &"hit_fist_heavy"],
+	&"palm": [&"hit_palm", &"hit_palm_heavy"],
+	&"knee": [&"hit_knee", &"hit_knee_heavy"],
+	&"kick": [&"hit_kick", &"hit_kick_heavy"],
+}
+## The cloth whoosh a leg strike's swing adds (task 95), by its sound.
+const LEG_CLOTH: StringName = &"kick_cloth"
+const LEG_SOUNDS: Array[StringName] = [&"knee", &"kick"]
+
 ## The impacts chosen by the pair of weapons that meet (milestone-1 task 36),
 ## keyed by [method pair_key] of the attacker's and the defender's weapon,
 ## then by outcome: a block light and heavy, and a parry's contact (played
@@ -508,10 +552,12 @@ const SIDE_PITCH: Array[float] = [1.0, 0.8909]
 ## the cue's own level, pitch_scale multiplies its random pitch and chance is
 ## how likely it is to sound (1 for always). Applies the demo's sub-selection
 ## rules: the hit sound by the event's [code]sound[/code] field (blade,
-## colossal, dagger, fist) and weight, every blade hit adding the flesh layer
-## and a heavy the bone; clangs and parries by the pair of weapons that meet
-## ([constant PAIR_IMPACTS]) and by weight; whooshes by weight and weapon;
-## parries and counters by kind.
+## colossal, dagger, or a bare hand's limb, [constant LIMB_HITS]) and
+## weight, every blade hit adding the flesh layer and a heavy the bone;
+## clangs and parries by the pair of weapons that meet
+## ([constant PAIR_IMPACTS]) and by weight; whooshes by weight and weapon,
+## a leg strike adding its cloth ([constant LEG_CLOTH]); parries and
+## counters by kind.
 ## [param cast] names the fighter on each side, by side (fighter ids, as
 ## [member MatchSide.fighter_id]); with it, a fighter's own cloth and gear
 ## ([constant FOLEY]) and voice ([constant VOCALS]) join the event's cues.
@@ -530,6 +576,8 @@ static func cues_for(event: Dictionary, cast: Array = []) -> Array[Dictionary]:
 				names = [&"whoosh_light" if heavy else &"whoosh_small"]
 			else:
 				names = [&"whoosh_heavy" if heavy else &"whoosh_light"]
+			if LEG_SOUNDS.has(StringName(str(_field(event, "sound", "")))):
+				names.append(LEG_CLOTH)
 			names.append_array(own.get(&"swing", []))
 		&"telegraph":
 			# The ultimate's warning is heard through its own start sound.
@@ -538,12 +586,13 @@ static func cues_for(event: Dictionary, cast: Array = []) -> Array[Dictionary]:
 		&"hit":
 			# the cut, then the flesh under every blade, then the bone under
 			# a heavy (the colossal always crunches)
-			match str(_field(event, "sound", "blade")):
-				"fist":
-					names = [&"hit_fist_heavy" if heavy else &"hit_fist"]
-				"colossal":
+			var sound := StringName(str(_field(event, "sound", "blade")))
+			match sound:
+				&"fist", &"palm", &"knee", &"kick":
+					names = [LIMB_HITS[sound][1 if heavy else 0]]
+				&"colossal":
 					names = [&"hit_colossal", &"hit_flesh", &"crunch"]
-				"dagger":
+				&"dagger":
 					names = [&"hit_dagger", &"hit_flesh"]
 				_:
 					names = [&"hit_blade_heavy" if heavy else &"hit_blade", &"hit_flesh"]
