@@ -296,9 +296,11 @@ func test_every_keyed_move_hands_off_cleanly_and_has_its_reactions() -> void:
 		for b: String in breaks:
 			if b.begins_with(String(id) + " ") or b.contains(" " + String(id) + ","):
 				hand_off.append(b)
+		# a follow-up whose own clip goes on from the move before (StateClips
+		# meets, KE task 15) needs no bridge
 		for before: StringName in w.moves:
 			if _held(m) and (w.moves[before] as AttackDef).chain_light == id and ChecklistResults.keyed_moves().has([m[0], before]) \
-					and not (sc.bridges.get(id, {}) as Dictionary).has(before):
+					and not (sc.bridges.get(id, {}) as Dictionary).has(before) and sc.meets.get(id, &"") != before:
 				hand_off.append("no bridge from %s" % before)
 		# a string's moves return to guard on a clip of their own; any other
 		# hands on by the inertial blend
@@ -364,17 +366,15 @@ func test_every_keyed_move_sounds_and_shows_its_contacts() -> void:
 
 
 ## `problems` less those a later KE task answers for a grip's own string hit
-## (KE task 11): the bridges into and out of it and its return to guard
-## (KE task 15), and its deflect pair and the pair's sound (KE task 19).
-## They are still recorded in the checklist, for the owner.
+## (KE task 11): its deflect pair and the pair's sound (KE task 19). Its
+## bridges and return to guard are held since KE task 15. They are still
+## recorded in the checklist, for the owner.
 static func _due(problems: Array[String], id: StringName = &"") -> Array[String]:
 	var own: Callable = func(move: StringName) -> bool:
 		return Moves.KATANA.moves.has(move) and (Moves.KATANA.moves[move] as AttackDef).grip != &""
 	var out: Array[String] = []
 	for p: String in problems:
-		if p.begins_with("no bridge from ") and own.call(StringName(p.trim_prefix("no bridge from "))):
-			continue
-		if own.call(id) and p in ["no return to guard", "no deflect pair", "its parry sounds no deflect pair"]:
+		if own.call(id) and p in ["no deflect pair", "its parry sounds no deflect pair"]:
 			continue
 		out.append(p)
 	return out
@@ -443,12 +443,13 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 		if answered.get(id, 0) == 0:
 			problems.append("the computer never blocked or parried it in %d Hard duels" % (DUELS + BARE_DUELS + DISARMED_DUELS))
 		ChecklistResults.record_problems(15, id, problems)
-		# a grip's own hits 4 and 5 (KE task 12) are recorded, not held: the
-		# computer's strings run to 4 presses (the owner's choice, KE task 9)
-		# and a Hard defender acts in the one-handed string's long gaps, so its
-		# strings seldom get past hit 3
-		# the pilot's Right Cut and Return Cut are in neither grip's string
-		# since KE task 13, so no computer plays them: recorded, not held
+		# a grip's own hits 4 and 5 (KE tasks 12 and 14) are recorded, not
+		# held: though Hard presses whole strings since KE task 14, most of its
+		# strings in a duel are punishes of 2 or 3 presses, and a defender acts
+		# in the gaps, so its strings seldom get past hit 3
+		# the pilot's four lights are in neither grip's string (Right Cut and
+		# Return Cut since KE task 13, Kesa Cut and Crown Cut since KE task
+		# 14), so no computer plays them: recorded, not held
 		# a move the defender is seldom free and in reach to answer has its
 		# answers recorded, not held, only its use
 		if SELDOM_ANSWERABLE.has(id):
@@ -498,8 +499,8 @@ func _pairs_hand_on(pairs: Array, f: Fighter) -> Dictionary:
 	return hand
 
 
-## The pilot's lights no grip's string plays since KE task 13.
-const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2"]
+## The pilot's lights no grip's string plays since KE tasks 13 and 14.
+const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
 
 
 ## Bare hands' moves that seldom meet a defender free to answer them (task

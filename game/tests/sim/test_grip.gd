@@ -2,8 +2,9 @@ extends GutTest
 ## The grip (KE task 5): a fighter holds its weapon one-handed or two-handed,
 ## switches at once with the grip button in the states that act, and its
 ## string advances by count in whichever grip it holds, so strings mix. The
-## Katana's two strings stand in as today's four lights, Crown Cut repeated as
-## hit 5, until the re-keys; a test Katana with a different two-handed string
+## Katana's two strings are their own five hits each (KE tasks 11-14); a
+## test Katana, its one-handed string today's four lights with Crown Cut
+## repeated as hit 5, with a different two-handed string
 ## shows the count carrying across a switch. Expected numbers are the spec's
 ## (D2, D4, D7) and the plan's.
 
@@ -16,9 +17,8 @@ const TWO: StringName = WeaponGrip.TWO_HANDED
 ## Today's four lights, Crown Cut repeated as hit 5: the one-handed string
 ## of the test Katana (_test_katana).
 const STAND_IN: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_l4"]
-## The two-handed string: its own hits 1 and 2 (KE task 13), Kesa Cut and
-## Crown Cut standing in for hits 3 to 5 until KE task 14.
-const TWO_STRING: Array[StringName] = [&"k_2l1", &"k_2l2", &"k_l3", &"k_l4", &"k_l4"]
+## The two-handed string: its own five hits (KE tasks 13 and 14).
+const TWO_STRING: Array[StringName] = [&"k_2l1", &"k_2l2", &"k_2l3", &"k_2l4", &"k_2l5"]
 ## The one-handed string: its own five hits (KE tasks 11 and 12).
 const ONE_STRING: Array[StringName] = [&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5"]
 ## A two-handed string unlike the one-handed one, to tell the grips apart.
@@ -95,7 +95,7 @@ func test_the_katana_declares_two_grips_with_their_strings() -> void:
 	assert_eq(w.grips.size(), 2)
 	assert_eq([w.grips[0].id, w.grips[1].id], [ONE, TWO], "one-handed first: rounds start in it")
 	assert_eq(w.grips[0].string, ONE_STRING, "one-handed: its own five hits, Slanting Cut to Crouching Crown")
-	assert_eq(w.grips[1].string, TWO_STRING, "two-handed: Heavy Slant and Left Rise, then Kesa Cut and Crown Cut standing in")
+	assert_eq(w.grips[1].string, TWO_STRING, "two-handed: Heavy Slant to Kneeling Crown")
 	assert_almost_eq(w.grips[0].block_mitigation, 0.7, CLOSE, "D2: one-handed")
 	assert_almost_eq(w.grips[1].block_mitigation, 0.5, CLOSE, "D2: two-handed")
 

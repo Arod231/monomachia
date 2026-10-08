@@ -47,7 +47,9 @@ static func branch_gap(def: AttackDef, follow: StringName) -> int:
 ## Every problem of weapon `w`'s follow-up pairs with both moves held, as
 ## `held(id) -> bool` says, with each move's kind from `kind(id) ->
 ## StringName`: a pair that leaves the defender no free frame, and a branch
-## point earlier than its kind allows.
+## point earlier than its kind allows. A grip's string hit pairs with the
+## other grips' next hits too (the mixed hand-offs, KE task 15), taken at its
+## own next hit's branch point, where a switch hands it on.
 static func problems(w: WeaponDef, held: Callable, kind: Callable) -> Array[String]:
 	var out: Array[String] = []
 	for id: StringName in w.moves:
@@ -65,6 +67,19 @@ static func problems(w: WeaponDef, held: Callable, kind: Callable) -> Array[Stri
 			var gap: int = branch_gap(def, follow)
 			if EARLIEST_BRANCH.has(k) and gap < EARLIEST_BRANCH[k]:
 				out.append("%s.%s -> %s: branches %d frames after its active frames (a %s's earliest is %d)" % [w.id, id, follow, gap, k, EARLIEST_BRANCH[k]])
+		if def.chain_light == &"":
+			continue
+		for g: WeaponGrip in w.grips:
+			var at: int = g.string.find(id)
+			if at < 0:
+				continue
+			for other: WeaponGrip in w.grips:
+				var mixed: StringName = other.hit(at + 2)
+				if other == g or mixed == &"" or not w.moves.has(mixed) or not held.call(mixed):
+					continue
+				var free: int = branch_gap(def, def.chain_light) + (w.moves[mixed] as AttackDef).startup + 1 - def.hitstun
+				if free < 1:
+					out.append("%s.%s -> %s (switching grip): the defender is free %d frames before it lands (at least 1)" % [w.id, id, mixed, free])
 	return out
 
 

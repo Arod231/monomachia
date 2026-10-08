@@ -302,12 +302,12 @@ func test_a_lunge_into_a_defender_still_stops_0_25_m_clear_of_their_body() -> vo
 ## Lunges, on real markers, take their weapon's retuned light hitstun
 ## (milestone-1 task 22), as do the Katana string's four lights once re-keyed
 ## (tasks 31 and 32), bare hands' Jab, Cross and Hook (task 89; Jab and
-## Cross kept 16 until then) and the grips' own hits (KE tasks 11-13).
+## Cross kept 16 until then) and the grips' own hits (KE tasks 11-14).
 const LIGHT_HITSTUN: int = 14
 const OWN_HITSTUN: Dictionary[StringName, int] = {
 	&"f_l1": 18, &"f_l2": 18, &"f_l3": 18, &"d_l1": 10, &"d_l2": 10, &"d_l3": 10, &"d_l4": 10,
 	&"k_lunge": 24, &"f_lunge": 18,
-	&"k_l1": 24, &"k_l2": 24, &"k_l3": 24, &"k_l4": 24, &"k_1l1": 24, &"k_1l2": 24, &"k_1l3": 24, &"k_1l4": 24, &"k_1l5": 24, &"k_2l1": 24, &"k_2l2": 24,
+	&"k_l1": 24, &"k_l2": 24, &"k_l3": 24, &"k_l4": 24, &"k_1l1": 24, &"k_1l2": 24, &"k_1l3": 24, &"k_1l4": 24, &"k_1l5": 24, &"k_2l1": 24, &"k_2l2": 24, &"k_2l3": 24, &"k_2l4": 24, &"k_2l5": 24,
 	# bare hands' re-keyed movement lights take the retuned timings (tasks 93, 94)
 	&"f_sl": 18, &"f_dl": 18, &"f_bl": 18, &"f_jl": 18,
 }

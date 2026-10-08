@@ -1,0 +1,15 @@
+{
+	"about": "Kneeling Crown (katana.k_2l5), the two-handed string's last hit (KE task 14): Attack2H02's overhead, its circling wind-up quickened (source frames 0-19.5 over 12) to the blade raised high behind the head, held at the top, then cut straight down to the ground, the hips dropped 30 cm into a kneel and held (Elden Ring's two-handed last hit kneels about 42 frames at 60 fps), then risen back to the guard. The clip is two-handed already: the left hand is set on the grip and the blade kept clear of the body. A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H02.fbx",
+	"out": "blender/clips/kneeling_crown.blend",
+	"remap": [[0, 0], [12, 19.5], [14, 20.4], [16, 23], [30, 33], [37, 42], [40, 47]],
+	"lower": {"drop": 0.24, "bend": -35, "from": 15, "peak": 19, "until": 31},
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0, "clearance": 0.05},
+	"step": {
+		"body": [[0, 0], [3, 0], [8, 0.19], [12, 0.456], [14, 0.608], [16, 0.722], [19, 0.76], [40, 0.76]],
+		"feet": {
+			"L": [[10, 16, 0.76, 0.2]],
+			"R": [[3, 8, 0.42, 0.16], [11, 17, 0.34, 0.24]]
+		}
+	}
+}

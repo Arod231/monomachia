@@ -38,15 +38,18 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Right Cut `k_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
 | Return Cut `k_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
-| Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
-| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ☑ |
-| Slanting Cut `k_1l1` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Backhand Rise `k_1l2` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Twisting Rise `k_1l3` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Level Cut `k_1l4` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Crouching Crown `k_1l5` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
-| Heavy Slant `k_2l1` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
-| Left Rise `k_2l2` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Kesa Cut `k_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
+| Crown Cut `k_l4` | move | ✓ | ✓ | – | ✓ | ✓ | ☑ | ☑ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ☑ |
+| Slanting Cut `k_1l1` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Backhand Rise `k_1l2` | move (KE task 11) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Twisting Rise `k_1l3` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Level Cut `k_1l4` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
+| Crouching Crown `k_1l5` | move (KE task 12) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Heavy Slant `k_2l1` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Left Rise `k_2l2` | move (KE task 13) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Right Rise `k_2l3` | move (KE task 14) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Second Slant `k_2l4` | move (KE task 14) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
+| Kneeling Crown `k_2l5` | move (KE task 14) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ☐ |
 | The light deflect pairs `clip_deflect_light` | keyed clips (task 34) | – | – | ✗ | ✓ | ✓ | – | ☑ | ✗ | ✗ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
 | Light hit reactions `clip_hit_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | – | – | ✓ | – | ✓ | ✓ | – | – | ☑ |
 | Light block reactions `clip_block_light` | keyed clips (task 35) | – | – | ✓ | ✓ | ✓ | – | ☑ | ✗ | ✓ | ✓ | ✓ | – | ✓ | ✓ | – | – | ☑ |
@@ -110,35 +113,35 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Jab `f_l1` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Cross `f_l2` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Hook `f_l3` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Roundhouse `f_h1` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Spinning Heel `f_h2` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
+| Jab `f_l1` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Cross `f_l2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Hook `f_l3` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Roundhouse `f_h1` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
+| Spinning Heel `f_h2` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✗ | ✓ | ☐ |
 | The pull-out pick-up `clip_pull_out` | not built | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 | The disarmed roll `clip_roll_disarmed` | not built | – | – | · | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
-| The redirect's deflect pair `clip_deflect_redirect` | keyed clips (task 90) | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
-| A blade parrying a fist or a foot (the Katana's high and low deflects, the fist and foot recoils) `clip_deflect_limb` | keyed clips (task 90) | – | – | · | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
+| The redirect's deflect pair `clip_deflect_redirect` | keyed clips (task 90) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | ✗ | ✓ | ✓ | – | · | · | – | – | ☐ |
+| A blade parrying a fist or a foot (the Katana's high and low deflects, the fist and foot recoils) `clip_deflect_limb` | keyed clips (task 90) | – | – | ✓ | ✓ | ✓ | – | ☐ | ✗ | ✗ | ✓ | ✓ | – | · | · | – | – | ☐ |
 
 ## 8. Bare hands' movement attacks
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Flying Knee `f_sl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Dragon Kick `f_sh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Slip Jab `f_dl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Spinning Backfist `f_dh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Snap Kick `f_bl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Lunging Palm `f_bh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Air Kick `f_jl` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
-| Axe Kick `f_jh` | move | · | · | – | · | · | ☐ | ☐ | · | – | – | · | · | · | · | · | · | ☐ |
+| Flying Knee `f_sl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Dragon Kick `f_sh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Slip Jab `f_dl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Spinning Backfist `f_dh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Snap Kick `f_bl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | ☐ |
+| Lunging Palm `f_bh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Air Kick `f_jl` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
+| Axe Kick `f_jh` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ☐ |
 
 ## 9. The ultimates
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Moonsplitter `moonsplitter` | move | · | · | – | · | · | ☐ | ☐ | · | · | · | · | · | · | · | · | · | ☐ |
-| Breaker Palm `f_breaker` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ☐ |
+| Breaker Palm `f_breaker` | move | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | · | – | – | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | ☐ |
 | The disarmed choice `clip_ult_choice` | stand-in clip | – | – | – | · | · | – | ☐ | · | – | – | · | – | · | · | – | – | ☐ |
 | The recall's power-up `clip_recall` | stand-in clip | – | – | – | · | · | – | ☐ | · | · | · | · | – | · | · | – | – | ☐ |
 
