@@ -400,6 +400,8 @@ static func make_steps() -> Array[Dictionary]:
 	]:
 		out.append(_event_step(c, "swing: %s" % swing[2],
 			{"t": &"swing", "f": 1, "attack": &"swing", "heavy": swing[1], "weapon": StringName(swing[0])}))
+	out.append(_event_step(c, "swing: a kick (bare hands' trouser cloth)",
+		{"t": &"swing", "f": 1, "attack": &"swing", "heavy": true, "weapon": &"fists", "sound": &"kick"}))
 	out.append(_event_step(c, "swing: Katana, light (yours: the Hunter's sleeves and harness)",
 		{"t": &"swing", "f": 0, "attack": &"swing", "heavy": false, "weapon": &"katana"}))
 	out.append(_event_step(c, "telegraph: an unblockable winds up",
@@ -407,6 +409,8 @@ static func make_steps() -> Array[Dictionary]:
 	for hit: Array in [
 		["blade", false, "blade, light"], ["blade", true, "blade, heavy"], ["dagger", false, "Daggers"],
 		["dagger", true, "Daggers, heavy"], ["fist", false, "fist, light"], ["fist", true, "fist, heavy"],
+		["palm", false, "open palm, light"], ["palm", true, "open palm, heavy"], ["knee", false, "knee, light"],
+		["knee", true, "knee, heavy"], ["kick", false, "kick, light"], ["kick", true, "kick or heel drop, heavy"],
 		["colossal", true, "Greatsword"],
 	]:
 		out.append(_event_step(c, "hit: %s" % hit[2], {"t": &"hit", "attacker": 1, "target": 0, "attack": &"swing",

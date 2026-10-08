@@ -91,7 +91,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 45. As the owner, I want follow-ups and dodge cancels to open at markers on each clip, where the body can plausibly break off, so that a follow-up starts from its branch point rather than waiting for the move to end.
 46. [x] As a player, I want every follow-up to stay optional, so that I can stop after any hit and recover normally. (Ticked with task 20.)
 47. As a player, I want strings to flow, each swing continuing from where the last one ended, and two lights to flow into a heavy as the third hit, so that a string reads as one motion.
-48. As a player, I want the jump arcs to stay rules numbers and the jump clips made to match them, so that clearing a sweep always works the same way.
+48. [x] As a player, I want the jump arcs to stay rules numbers and the jump clips made to match them, so that clearing a sweep always works the same way. (Ticked with task 59.)
 49. [x] As a player, I want the rules to keep running at a fixed 60 steps a second, with faster displays showing frames blended between steps, so that the fight is the same on every screen. (Ticked with task 19.)
 50. As the owner, I want the Katana and bare hands rebalanced around their clips as each family lands, with the old "within 5 points of the baseline" rule retired, so that balance follows the new pace.
 
@@ -122,7 +122,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 70. As a disarmed player, I want to move faster, dodge farther and jump higher than when armed, so that bare hands keep their agility.
 71. As a disarmed player, I want a longer roll clip covering the disarmed dodge's 1.5× distance inside the same protected frames, so that the longer dodge doesn't slide. **(P15, confirmed Oct 4)**
 72. [x] As a disarmed player, I want the light string (Jab, Cross, Hook) and the heavies (Roundhouse, Spinning Heel) re-keyed in the bare-hands bands, so that disarmed fighting looks like fighting. (Ticked with tasks 89 and 133.)
-73. As a disarmed player, I want the eight bare-hands movement attacks re-keyed (Flying Knee and Dragon Kick out of a sprint, Slip Jab and Spinning Backfist out of a dodge, Snap Kick and Lunging Palm out of a backstep, Air Kick and Axe Kick out of a jump), so that every way in has a real motion.
+73. [x] As a disarmed player, I want the eight bare-hands movement attacks re-keyed (Flying Knee and Dragon Kick out of a sprint, Slip Jab and Spinning Backfist out of a dodge, Snap Kick and Lunging Palm out of a backstep, Air Kick and Axe Kick out of a jump), so that every way in has a real motion. (Ticked with task 94.)
 74. As a disarmed player, I want the redirect to play its own deflect pair, turning the attack aside by hand, so that it reads apart from a parry.
 75. As a player whose fist or foot is parried by a blade, I want my fighter to recoil without being cut, so that the moment reads right. **(P9, confirmed Oct 4)**
 76. [x] As a disarmed player at 25% HP or less, I want the ultimate to open its choice of the recall or Breaker Palm, so that I can re-arm or hit back hard. (Ticked with task 99.)
@@ -145,7 +145,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 90. As the owner, I want an attack started out of a run to keep none of the run's speed in the rules, so that the attack's travel comes only from its clip. **(P14, confirmed Oct 4)**
 91. As a player, I want running fighters to lean forward, so that movement looks real.
 92. As a player, I want the roll and the backstep re-keyed to fit their protected frames at the clip's own speed, so that dodges look evasive and real.
-93. As a player, I want the jump, the landing and the jump attacks keyed to the rules' jump arcs, with a jump attack starting only while its startup and active frames fit the airtime left and a landing never skipping an air attack's frames **(P53, confirmed Oct 4)**, so that a jump looks like the arc that decides it.
+93. [x] As a player, I want the jump, the landing and the jump attacks keyed to the rules' jump arcs, with a jump attack starting only while its startup and active frames fit the airtime left and a landing never skipping an air attack's frames **(P53, confirmed Oct 4)**, so that a jump looks like the arc that decides it. (Ticked with task 94.)
 94. [x] As a player, I want every hand-off between motions to use inertial blending, the new motion starting at once and the old pose fading over a few frames, hit reactions included, so that nothing pops. (Ticked with task 23.)
 95. As a player, I want authored transition clips (returns to guard, bridges between the hits of a string, run stops and pivots) on top of the blending, so that hand-offs look keyed, not computed.
 96. [x] As a developer, I want inertial blending and the physical reaction layer built as custom skeleton modifiers that change only the picture, so that the rules never depend on them. **(P11, confirmed Oct 4)** (Ticked with task 70.)
@@ -225,7 +225,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 
 156. [x] As a player, I want realistic sparks at the contact point on blocks and blade clashes, so that contact reads. (Ticked with task 37.)
 157. [x] As a player, I want hits to draw blood (a burst on each blade hit, blood on blades and clothes for the whole match, and splatter on the floor that fades), so that the duel has weight. (Ticked with task 38, in today's toon look; the art conversion carries the stains into the realistic materials.)
-158. As a player, I want a bare-hand hit to show its own impact rather than a blade's blood burst, so that fists read apart from blades. **(P36, confirmed Oct 4)**
+158. [x] As a player, I want a bare-hand hit to show its own impact rather than a blade's blood burst, so that fists read apart from blades. **(P36, confirmed Oct 4)** (Ticked with task 95.)
 159. [x] As a player, I want air smears on fast swings in place of the brush trails, so that swings read without ink. (Ticked with task 37.)
 160. As a player, I want dust and smoke where feet, falls and rolls meet the ground, where the clips' feet land, so that movement has weight.
 161. [x] As a player, I want a Blood setting of On, Reduced or Off, shipped in milestone 1 and On by default **(P5, confirmed Oct 4)**, so that I choose. (Ticked with task 38; the finishers' Reduced and Off cut lands with the finisher tasks.)

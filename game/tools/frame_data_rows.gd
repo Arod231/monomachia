@@ -11,7 +11,8 @@ const ImportClips := preload("res://tools/import_clips.gd")
 
 ## The timing band table's rows (docs/specs/milestone-1.md), a move's kind.
 const BAND_KINDS: Array[StringName] = [
-	&"string_light", &"string_heavy", &"iai_draw", &"iai_follow_up", &"unblockable",
+	&"string_light", &"string_light_1h", &"string_last_1h", &"string_light_2h", &"string_last_2h",
+	&"string_heavy", &"iai_draw", &"iai_follow_up", &"unblockable",
 	&"sprint_light", &"sprint_heavy", &"dodge_light", &"dodge_heavy", &"backstep_light", &"backstep_heavy",
 	&"jump_light", &"jump_heavy", &"block_ability", &"ultimate", &"counter_lunge",
 ]
@@ -26,7 +27,7 @@ const NOT_KEYED_YET: Array[String] = [
 ]
 ## The order a row's fields are written in.
 const FIELD_ORDER: Array[String] = [
-	"kind", "chain", "stand_in", "startup", "active", "recovery", "dodge_cancel", "branches",
+	"kind", "chain", "stand_in", "startup", "active", "recovery", "landing", "dodge_cancel", "branches",
 	"frames", "markers", "speed", "heading", "stride", "foot_contacts", "travel", "source_sha256", "digest",
 ]
 ## The rules-length clips the rules move a fighter by (milestone-1 task 99):
@@ -63,7 +64,21 @@ static func kind_of(w: WeaponDef, id: StringName) -> StringName:
 		for other: StringName in w.moves:
 			if is_iai_draw(w, other) and (w.moves[other] as AttackDef).chain_heavy == id:
 				return &"iai_follow_up"
+	if m.kind == &"light" and m.grip != &"":
+		return grip_kind(w, id)
 	return &"string_light" if m.kind == &"light" else &"string_heavy"
+
+
+## A grip's own string hit's kind (KE task 11): its grip's light row
+## (string_light_1h, string_light_2h), or its grip's last-hit row
+## (string_last_1h, string_last_2h; D16) for the string's last hit.
+static func grip_kind(w: WeaponDef, id: StringName) -> StringName:
+	var m: AttackDef = w.moves[id]
+	var suffix: String = "1h" if m.grip == WeaponGrip.ONE_HANDED else "2h"
+	for g: WeaponGrip in w.grips:
+		if g.id == m.grip and g.hit(WeaponGrip.STRING_HITS) == id:
+			return StringName("string_last_" + suffix)
+	return StringName("string_light_" + suffix)
 
 
 ## Whether move `id` is drawn from a stance: a charge walked in (the Iai),
@@ -153,7 +168,14 @@ static func chain_record(parts: Array[ClipChain.Part]) -> Array:
 	return out
 
 
-## A move's row from its generated frame data (without its digest).
+## The band kinds of the jump attacks, whose keyed rows carry their landing
+## recovery (milestone-1 tasks 59 and 94).
+const JUMP_KINDS: Array[StringName] = [&"jump_light", &"jump_heavy"]
+
+
+## A move's row from its generated frame data (without its digest). A keyed
+## jump attack's landing is its recovery: it holds its last active pose to
+## the touchdown, then plays its recovery (ClipDirector.attack_frame()).
 static func move_row(kind: StringName, parts: Array[ClipChain.Part], stand_in: bool, r: FrameDataGenerator.Result, sha: String) -> Dictionary:
 	var row: Dictionary = {"kind": String(kind), "chain": chain_record(parts)}
 	if stand_in:
@@ -161,6 +183,8 @@ static func move_row(kind: StringName, parts: Array[ClipChain.Part], stand_in: b
 	row["startup"] = r.startup
 	row["active"] = r.active
 	row["recovery"] = r.recovery
+	if JUMP_KINDS.has(kind) and not stand_in:
+		row["landing"] = r.recovery
 	if not r.dodge_cancel.is_empty():
 		row["dodge_cancel"] = Array(r.dodge_cancel)
 	if not r.branches.is_empty():

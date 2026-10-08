@@ -17,6 +17,10 @@
 #   cubic through the pairs gives, so the motion keeps its speed where the
 #   pairs keep it and nothing jumps where they change it. A planted foot stays
 #   planted: a warp moves nothing, only when;
+# - goes_on_from: a spec's id, for a clip cut from further into a source
+#   that another spec's clip holds the start of (KE task 12: Level Cut, the
+#   second half of Twisting Rise's source): its remap starts on the source
+#   frame that clip ends on; the script reads nothing from it;
 # - two_hands: {"grip": metres, "hold": [forward, down], "square": 0-1}: a
 #   one-handed clip made two-handed (two_hands()): the shoulders squared by
 #   "square" of their turn, the weapon kept turned as the clip turns it but
@@ -88,6 +92,13 @@
 #   "peak", held to "until" (the peak) and back to nothing at "to" (the
 #   clip's end), or held to the end with "hold" (a crouched stance), the
 #   feet kept where the clip has them on IK; omit for none;
+# - one_hand: {"lower": degrees, "out": degrees}: a one-handed clip's weapon
+#   re-aimed (one_hand(); KE task 10): the right hand turned about the wrist
+#   on every frame, the blade lowered and swung out to the right that far,
+#   the clip's motion kept; either may instead be [[frame, degrees], ...]
+#   pairs (a monotone cubic through them), a turn that changes over the clip
+#   (KE task 11: a backhand made to rise, its tip low on the wind-up and
+#   raised on the follow-through); omit for a weapon as the clip holds it;
 # - two_hands may add "aim": {"frame": frame, "move": [x, y, z], "turn":
 #   [x, y, z, degrees], "frames": n}: the weapon moved by "move" (m, world,
 #   the clip facing -Y) and turned about the grip by "turn" (an axis and an
@@ -99,6 +110,18 @@
 #   it ("along": at that share of the way from its base to its tip), "move"
 #   then shifting that blade by a correction measured in the game, and
 #   "grip_move" moving the grip first (a low parry, say).
+# - borrow: [{"frame": n, "source": path, "at": source frame, "bones": [...]},
+#   ...]: key poses taken from other clips (borrow(); milestone-1 task 59, for
+#   the poses Cascadeur inbetweens): at frame n the bones named (every bone
+#   when "bones" is left out) take that clip's local pose at its frame "at";
+#   "frames": [from, to] in place of "frame" holds it over those frames (a
+#   grip's fingers, say), and "fingers": true names every finger bone;
+# - pose: [{"frame": n, "turn": [[bone, axis, degrees], ...], "move": {bone:
+#   [right, up, forward]}}, ...]: key poses shaped by hand (pose()): at frame
+#   n each bone turned about its head by the degrees about the fighter's own
+#   axis ("right", "up" or "forward", the fighter facing forward, a turn
+#   following the right hand), in the order given, its children going with
+#   it, and moved by metres along those axes; applied last.
 #
 # The source keeps the armature and the new action only (the export takes
 # every action, the import the first). Re-running gives the same file's
@@ -1044,6 +1067,74 @@ def carry(arm, scene, length, spec):
     print(f"rekey_clip: carried the body {body(float(length)) - body(0.0):.2f} m forward", flush=True)
 
 
+def one_hand(arm, scene, length, spec):
+    """A one-handed weapon re-aimed (KE task 10: the one-handed guard's blade
+    carried low, as Elden Ring's): on every frame the right hand turned about
+    the wrist, the blade (the prop bone's +Y) lowered spec["lower"] degrees
+    (about the level line across it) and swung spec["out"] degrees out to the
+    right (about the vertical; the clip faces -Y, its right toward -X), the
+    clip's own motion kept around it (either a number, or [frame, degrees]
+    pairs, a monotone cubic through them). With spec["clearance"] (m), a
+    blade that then comes nearer the body (BODY and the free left arm) is
+    turned on about the wrist, a degree at a time, straight away from it
+    until it clears (KE task 11: the backhand's wind-up past the head, the
+    return to the low guard past the thigh). The arm and the off hand are as
+    the clip has them. Keyed."""
+    mw = arm.matrix_world
+    pbs = arm.pose.bones
+    hand = pbs["B-hand.R"]
+    def off_arm():
+        # the free left arm, which the blade must clear too: its upper arm
+        # and forearm, 7 cm round (as arm_capsules())
+        sh, el, wr = (mw @ pbs[b].head for b in ("B-upperArm.L", "B-forearm.L", "B-hand.L"))
+        return [(sh, el, 0.07), (el, wr, 0.07)]
+    up = mathutils.Vector((0.0, 0.0, 1.0))
+    def over_time(v):
+        if isinstance(v, list):
+            f = monotone([float(p[0]) for p in v], [float(p[1]) for p in v])
+            return lambda n: math.radians(f(float(n)))
+        return lambda n: math.radians(float(v))
+    lower_at, out_at = over_time(spec.get("lower", 0.0)), over_time(spec.get("out", 0.0))
+    clearance = float(spec.get("clearance", 0.0))
+    pushed = {}
+    for n in range(length + 1):
+        lower, out = lower_at(n), out_at(n)
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        prop = mw @ pbs["B-handProp.R"].matrix
+        blade = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+        across = blade.cross(up)
+        turn = mathutils.Matrix.Rotation(-out, 4, up)
+        if across.length > 1e-6:
+            turn = turn @ mathutils.Matrix.Rotation(-lower, 4, across.normalized())
+        m = mw @ hand.matrix
+        wrist = m.to_translation()
+        hand.matrix = mw.inverted() @ (mathutils.Matrix.Translation(wrist) @ turn @ mathutils.Matrix.Translation(-wrist) @ m)
+        bpy.context.view_layer.update()
+        for step in range(60 if clearance > 0 else 0):
+            prop = mw @ pbs["B-handProp.R"].matrix
+            blade = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+            clear, away = blade_clearance(body_capsules(arm) + off_arm(), prop.to_translation(), blade)
+            axis = blade.cross(away) if away is not None else mathutils.Vector()
+            if clear >= clearance or axis.length < 1e-6:
+                break
+            m = mw @ hand.matrix
+            nudge = mathutils.Matrix.Rotation(math.radians(1.0), 4, axis.normalized())
+            hand.matrix = mw.inverted() @ (mathutils.Matrix.Translation(wrist) @ nudge @ mathutils.Matrix.Translation(-wrist) @ m)
+            bpy.context.view_layer.update()
+            pushed[n] = step + 1
+        hand.keyframe_insert("rotation_quaternion", frame=1 + n, group=hand.name)
+        hand.keyframe_insert("location", frame=1 + n, group=hand.name)
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    prop = mw @ pbs["B-handProp.R"].matrix
+    blade = (prop.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+    print(f"rekey_clip: the blade re-aimed, {math.degrees(math.asin(max(-1.0, min(1.0, blade.z)))):.0f} degrees from level on frame 0", flush=True)
+    if clearance > 0:
+        turned = ", ".join(f"{n}: {d}" for n, d in sorted(pushed.items())) or "none"
+        print(f"rekey_clip: turned on to clear the body by {clearance * 100:.0f} cm (frame: degrees): {turned}", flush=True)
+
+
 # The bones a transition (blend_from()) leaves to the leg IK.
 LEGS = ("B-thigh.", "B-shin.", "B-foot.", "B-toe.")
 
@@ -1103,6 +1194,68 @@ def blend_from(arm, scene, length, start, frames):
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
 
 
+FINGERS = ("Finger", "thumb", "pinky")
+# The fighter's own axes in Blender's world: the clips face -Y, Z up.
+AXES = {"right": mathutils.Vector((-1.0, 0.0, 0.0)), "up": mathutils.Vector((0.0, 0.0, 1.0)),
+        "forward": mathutils.Vector((0.0, -1.0, 0.0))}
+
+
+def key_bone(pb, frame):
+    for path in ("location", "rotation_quaternion", "scale"):
+        pb.keyframe_insert(path, frame=frame, group=pb.name)
+
+
+def borrow(arm, scene, borrowed):
+    """Each borrowed pose (read by main() before the clip) keyed at its frame."""
+    for b in borrowed:
+        first, last = b["frames"] if "frames" in b else (b["frame"], b["frame"])
+        names = set(b.get("bones", []))
+        if b.get("fingers"):
+            names |= {pb.name for pb in arm.pose.bones if any(k in pb.name for k in FINGERS)}
+        for n in range(int(first), int(last) + 1):
+            scene.frame_set(1 + n)
+            for name, (loc, rot, scl) in b["pose"].items():
+                if names and name not in names:
+                    continue
+                pb = arm.pose.bones.get(name)
+                if pb is None:
+                    continue
+                pb.rotation_mode = "QUATERNION"
+                pb.location, pb.rotation_quaternion, pb.scale = loc, rot, scl
+                key_bone(pb, 1 + n)
+        print(f"rekey_clip: frames {first}-{last} borrowed from {b['source']} at {b['at']}", flush=True)
+
+
+def pose(arm, scene, poses):
+    """Each hand-shaped key pose (see the header's pose) keyed at its frame."""
+    to_arm = arm.matrix_world.to_3x3().normalized().inverted()
+    # metres into the armature's space, its scale included (the pack's is 0.01)
+    metres = arm.matrix_world.to_3x3().inverted()
+    for p in poses:
+        frame = 1 + int(p["frame"])
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        touched = []
+        for name, axis, degrees in p.get("turn", []):
+            pb = arm.pose.bones[name]
+            pb.rotation_mode = "QUATERNION"
+            r = (to_arm @ mathutils.Matrix.Rotation(math.radians(float(degrees)), 3, AXES[axis]) @ to_arm.inverted()).to_4x4()
+            head = pb.matrix.to_translation()
+            pb.matrix = mathutils.Matrix.Translation(head) @ r @ mathutils.Matrix.Translation(-head) @ pb.matrix
+            bpy.context.view_layer.update()
+            touched.append(pb)
+        for name, (x, y, z) in p.get("move", {}).items():
+            pb = arm.pose.bones[name]
+            shift = metres @ (AXES["right"] * x + AXES["up"] * y + AXES["forward"] * z)
+            pb.matrix = mathutils.Matrix.Translation(shift) @ pb.matrix
+            bpy.context.view_layer.update()
+            touched.append(pb)
+        for pb in touched:
+            key_bone(pb, frame)
+    if poses:
+        print(f"rekey_clip: shaped {len(poses)} key poses by hand", flush=True)
+
+
 def main():
     a = args()
     with open(a["spec"], encoding="utf-8") as f:
@@ -1123,6 +1276,12 @@ def main():
         if not os.path.isfile(from_path):
             raise SystemExit(f"rekey_clip: no clip to blend from at {from_path}")
         start = pose_at(from_path, float(spec["blend_from"]["frame"]))
+    borrowed = []
+    for b in spec.get("borrow", []):
+        path = os.path.join(a["assets"], b["source"])
+        if not os.path.isfile(path):
+            raise SystemExit(f"rekey_clip: no clip to borrow from at {path}")
+        borrowed.append({**b, "pose": pose_at(path, float(b["at"]))})
     arm, src_action = import_clip(src)
     scene = bpy.context.scene
     scene.render.fps = FPS
@@ -1143,10 +1302,16 @@ def main():
         turn(arm, scene, length, float(spec["turn"]))
     if spec.get("lower"):
         lower(arm, scene, length, spec["lower"])
+    if spec.get("one_hand"):
+        one_hand(arm, scene, length, spec["one_hand"])
     if spec.get("two_hands"):
         th = spec["two_hands"]
         two_hands(arm, scene, length, float(th["grip"]), th.get("hold", [0.3, 0.1]), float(th.get("square", 0.0)),
                   float(th.get("clearance", 0.0)), th.get("to_guard"), th.get("aim"))
+    if borrowed:
+        borrow(arm, scene, borrowed)
+    if spec.get("pose"):
+        pose(arm, scene, spec["pose"])
     bpy.data.actions.remove(src_action)
     print(f"rekey_clip: {spec['source']} -> {length + 1} frames ({length} long) at {FPS} fps", flush=True)
     if a["check"]:

@@ -31,15 +31,19 @@ extends RefCounted
 ## way since the foot came down (a pivot on the foot, milestone-1 task 133:
 ## the Spinning Heel's whole turn is the clip's, not the body's; the foot may
 ## lead the hips and they catch up); with no foot planted the root carries on
-## as it last moved (none at the start) but doesn't turn, the clip showing
-## any turn in the air. With no foot planted the hips' own
-## shift in the clip rides on top: that frame's travel is the root's move
-## plus the hips' move across the ground (a body carried off its feet, the
-## recall burst's blasted fall). With a foot planted the hips' shift is a
-## lean over it, not travel (milestone-1 task 89: the bare-hands punches lean
-## into the blow), and the clip shows it as it is. A swing sampled relative
-## to the moving body has the hips' carried shift taken out (Result.carried),
-## so the clip's path is the swing's plus the travel: nothing counted twice.
+## straight ahead at the speed it last went forward (none at the start),
+## holding its heading: a planted foot's last sideways slide and twist aren't
+## carried, since retargeting onto the game's bodies bends a push-off's last
+## slide a little, and a leap would drift and turn on it all through the
+## flight (milestone-1 task 93), and any turn in the air is the clip's. With
+## no foot planted the hips' own shift in the clip rides on top: that frame's
+## travel is the root's move plus the hips' move across the ground (a body
+## carried off its feet, the recall burst's blasted fall). With a foot planted
+## the hips' shift is a lean over it, not travel (milestone-1 task 89: the
+## bare-hands punches lean into the blow), and the clip shows it as it is. A
+## swing sampled relative to the moving body has the hips' carried shift
+## taken out (Result.carried), so the clip's path is the swing's plus the
+## travel: nothing counted twice.
 
 ## Decimal places travel is written to: metres, degrees.
 const PLACES: int = 4
@@ -117,7 +121,8 @@ static func generate(pose: Callable, length: float, markers: Dictionary, contact
 		if float(markers[NEEDED[i]]) <= float(markers[NEEDED[i - 1]]):
 			errors.append("the %s marker must come after the %s marker" % [NEEDED[i], NEEDED[i - 1]])
 	var end: float = length * ClipManifest.SOURCE_FPS
-	if float(markers["settle"]) > end + 1e-6:
+	# a thousandth of a frame's give: a clip's length is a 32-bit float
+	if float(markers["settle"]) > end + 1e-3:
 		errors.append("the settle marker (%s) is past the clip's end (frame %s)" % [
 			ClipTiming.frame_text(float(markers["settle"])), ClipTiming.frame_text(snappedf(end, 0.01))])
 	if errors.size() != before:
@@ -214,6 +219,7 @@ static func travel(r: Result, feet: Array[Dictionary], hips: Array[V3], contacts
 			root_turn = -(foot_turned - with_hips - unexplained)
 			unexplained = foot_turned - with_hips
 		else:
+			root = V3.make(0.0, 0.0, root.z)
 			root_turn = 0.0
 		sides = now_sides
 		var carry: V3 = V3.sub(_ground(hips[f]), _ground(hips[f - 1])) if planted == 0 else V3.make()

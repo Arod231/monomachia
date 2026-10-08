@@ -1589,6 +1589,60 @@ func test_a_jump_takes_off_flies_and_lands() -> void:
 	assert_eq(shot.drive, ClipDirector.LEGS, "then the legs")
 
 
+func test_the_katana_and_bare_hands_jump_and_land_in_their_keyed_clips() -> void:
+	# milestone-1 task 59: the Katana's and bare hands' own flight, played at
+	# 1.0 from the take-off, and their own landing from the touchdown; the
+	# other weapons keep the pack's take-off, air and landing
+	StateClips.use(StateClips.read())
+	var ctx: ClipDirector.Context = _move_ctx()
+	for set_name: StringName in ClipLibraries.SETS:
+		for c: Array in [["JumpKatana", 16.0], ["LandKatana", 4.0], ["JumpFists", 18.0], ["LandFists", 4.0]]:
+			ctx.lengths["%s/%s" % [set_name, c[0]]] = c[1] / 30.0
+	for c: Array in [[true, "JumpKatana", "LandKatana"], [false, "JumpFists", "LandFists"]]:
+		var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 10.0)
+		var f: Fighter = W.fighters[0]
+		f.armed = c[0]
+		var shot: ClipDirector.Shot = _next(W, null, ctx, [SimHelpers.btn(Btn.JUMP), SimHelpers.idle()])
+		while f.state == &"jump":
+			assert_eq([shot.clip.name, shot.phase], ["HumanM/" + c[1], &"jump"], "in the air, frame %d" % f.sf)
+			assert_almost_eq(shot.clip.time, float(f.sf) / 60.0, 1e-9, "at 1.0 from the take-off")
+			shot = _next(W, shot, ctx)
+		assert_eq(f.state, &"land")
+		while f.state == &"land":
+			assert_eq([shot.clip.name, shot.phase], ["HumanM/" + c[2], &"land"], "landing, frame %d" % f.sf)
+			assert_almost_eq(shot.clip.time, float(f.sf) / 60.0, 1e-9, "at 1.0 from the touchdown")
+			shot = _next(W, shot, ctx)
+	var G: World = SimHelpers.make_world(Moves.GREATSWORD, Moves.KATANA, 10.0)
+	var g: ClipDirector.Shot = _next(G, null, ctx, [SimHelpers.btn(Btn.JUMP), SimHelpers.idle()])
+	assert_eq(g.clip.name, "HumanM/Jump01_Begin", "the Greatsword keeps the pack's jump")
+
+
+func test_a_jump_attack_holds_its_strike_in_the_air_and_recovers_from_the_touchdown() -> void:
+	# milestone-1 task 59: a stand-in jump attack holds its last active
+	# frame's pose while the rules keep it in the air, then plays its
+	# recovery from the touchdown, a frame a step
+	var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 10.0)
+	var f: Fighter = W.fighters[0]
+	var aerial: AttackDef = Moves.KATANA.moves[&"k_jl"]
+	var held: int = aerial.startup + aerial.active
+	W.step([SimHelpers.btn(Btn.JUMP), SimHelpers.idle()])
+	W.step([SimHelpers.btn(Btn.LIGHT), SimHelpers.idle()])
+	assert_eq(f.atk.def.id, &"k_jl")
+	while f.atk.landed < 0:
+		assert_almost_eq(ClipDirector.attack_frame(f), float(mini(f.atk.frame, held)), 1e-9, "in the air on its frame %d" % f.atk.frame)
+		W.step([SimHelpers.idle(), SimHelpers.idle()])
+	var landed: int = f.atk.landed
+	assert_gt(landed, held, "the fixture: it lands after its active frames")
+	while f.state == &"attack":
+		assert_almost_eq(ClipDirector.attack_frame(f), float(held + f.atk.frame - landed), 1e-9, "recovering on its frame %d" % f.atk.frame)
+		W.step([SimHelpers.idle(), SimHelpers.idle()])
+	f.set_state(&"attack")
+	f.atk = AttackState.new()
+	f.atk.def = Moves.KATANA.moves[&"k_l1"]
+	f.atk.frame = 40
+	assert_eq(ClipDirector.attack_frame(f), 40.0, "a move on the ground plays its own frame")
+
+
 func test_the_leap_springs_then_falls_and_the_pick_up_reaches_then_rises() -> void:
 	var ctx: ClipDirector.Context = _move_ctx()
 	var W: World = SimHelpers.make_world(Moves.KATANA, Moves.KATANA, 2.0)

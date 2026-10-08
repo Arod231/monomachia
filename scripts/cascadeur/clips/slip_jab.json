@@ -1,0 +1,149 @@
+{
+	"about": "Slip Jab (fists.f_dl, the dodge light), milestone-1 task 93: the head slipped off line to the right out of CombatIdle01 (the hips dropped 6 cm and the spine and chest bent 26 degrees right, by frame 5; the hips stay over the feet, since the rules would read a sideways shift as travel), then AttackPunch02_L's jab thrown from the slip with a step-slide in of 0.4 m (the back foot stepping up from frame 6 to 10 while the body slides over the planted front foot, which follows from 12 to 15), the fist landing on frame 10 (20 rules frames from the press), active to 11, settling back into the guard by 21. Keyed on every frame a foot is planted (Cascadeur's inbetweening otherwise twists a planted foot, which the frame-data generator reads as a turn), its AI inbetweening filling the rest. Source frames at 30 fps from 0.",
+	"out": "blender/clips/slip_jab.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackPunch02_L.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				5,
+				1
+			],
+			[
+				10,
+				4
+			],
+			[
+				11,
+				5
+			],
+			[
+				21,
+				20
+			]
+		],
+		"step": {
+			"body": [
+				[
+					0,
+					0
+				],
+				[
+					6,
+					0
+				],
+				[
+					8,
+					0.12
+				],
+				[
+					10,
+					0.32
+				],
+				[
+					11,
+					0.4
+				],
+				[
+					21,
+					0.4
+				]
+			],
+			"feet": {
+				"R": [
+					[
+						6,
+						10,
+						0.4,
+						0.15
+					]
+				],
+				"L": [
+					[
+						12,
+						15,
+						0.4,
+						0.15
+					]
+				]
+			}
+		},
+		"pose": [
+			{
+				"frame": 5,
+				"turn": [
+					[
+						"B-spine",
+						"forward",
+						14
+					],
+					[
+						"B-chest",
+						"forward",
+						12
+					],
+					[
+						"B-neck",
+						"forward",
+						-6
+					]
+				],
+				"move": {
+					"B-hips": [
+						0,
+						-0.06,
+						0
+					]
+				}
+			},
+			{
+				"frame": 10,
+				"turn": [
+					[
+						"B-spine",
+						"forward",
+						6
+					],
+					[
+						"B-chest",
+						"forward",
+						4
+					]
+				],
+				"move": {
+					"B-hips": [
+						0,
+						-0.03,
+						0
+					]
+				}
+			}
+		]
+	},
+	"keys": [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		8,
+		10,
+		11,
+		12,
+		13,
+		14,
+		15,
+		16,
+		17,
+		18,
+		19,
+		20,
+		21
+	],
+	"ai": "a quick boxing slip off line, then a fast left jab"
+}

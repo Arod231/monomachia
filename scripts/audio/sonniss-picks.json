@@ -500,6 +500,180 @@
       "process": { "highpass": 40 }
     },
     {
+      "file": "hit_palm_01.wav",
+      "use": "Bare-hand open palm strike: a slap on cloth (milestone-1 task 95)",
+      "layers": [
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.28, "decay": 0.12, "fadeOut": 0.1, "pitch": 3 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": 2, "gainDb": -3 }
+      ],
+      "process": { "highpass": 160 }
+    },
+    {
+      "file": "hit_palm_02.wav",
+      "use": "Bare-hand open palm strike",
+      "layers": [
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.28, "decay": 0.1, "fadeOut": 0.1, "pitch": 4.5 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": 0, "gainDb": -4 }
+      ],
+      "process": { "highpass": 160 }
+    },
+    {
+      "file": "hit_palm_03.wav",
+      "use": "Bare-hand open palm strike",
+      "layers": [
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.28, "decay": 0.12, "fadeOut": 0.1, "pitch": 2 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": 3, "gainDb": -3 },
+        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.008, "length": 0.25, "fadeOut": 0.15, "pitch": 3, "gainDb": -12 }
+      ],
+      "process": { "highpass": 140 }
+    },
+    {
+      "file": "hit_palm_heavy_01.wav",
+      "use": "Heavy open palm strike: the slap with the body behind it",
+      "layers": [
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.38, "decay": 0.2, "fadeOut": 0.1, "pitch": 1 },
+        { "source": "cf_punch", "take": 3, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "gainDb": -6 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": 1, "gainDb": -2 }
+      ],
+      "process": { "highpass": 80 }
+    },
+    {
+      "file": "hit_palm_heavy_02.wav",
+      "use": "Heavy open palm strike",
+      "layers": [
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.38, "decay": 0.2, "fadeOut": 0.1, "pitch": 2 },
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "pitch": -1, "gainDb": -6 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": -1, "gainDb": -3 }
+      ],
+      "process": { "highpass": 80 }
+    },
+    {
+      "file": "hit_knee_01.wav",
+      "use": "Knee strike to the body: a dull thud (milestone-1 task 95)",
+      "layers": [
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "pitch": -4, "lowpass": 1500, "decay": 0.25 },
+        { "source": "dd_swing_thud", "peakIn": [3, 4.04], "from": -0.004, "length": 0.4, "lowpass": 600, "fadeOut": 0.2, "gainDb": -9 }
+      ],
+      "process": { "highpass": 45 }
+    },
+    {
+      "file": "hit_knee_02.wav",
+      "use": "Knee strike to the body",
+      "layers": [
+        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "pitch": -3, "lowpass": 1400, "decay": 0.25 },
+        { "source": "dd_swing_thud", "peakIn": [6.05, 6.79], "from": -0.004, "length": 0.4, "lowpass": 600, "fadeOut": 0.2, "gainDb": -9 }
+      ],
+      "process": { "highpass": 45 }
+    },
+    {
+      "file": "hit_knee_03.wav",
+      "use": "Knee strike to the body",
+      "layers": [
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "pitch": -5, "lowpass": 1600, "decay": 0.25 },
+        { "source": "dd_swing_thud", "peakIn": [9.05, 9.96], "from": -0.004, "length": 0.4, "lowpass": 600, "fadeOut": 0.2, "gainDb": -9 }
+      ],
+      "process": { "highpass": 45 }
+    },
+    {
+      "file": "hit_knee_heavy_01.wav",
+      "use": "Heavy knee strike to the body",
+      "layers": [
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.008, "length": 0.45, "fadeOut": 0.15, "pitch": -5, "lowpass": 1300, "decay": 0.3 },
+        { "source": "dd_swing_thud", "peakIn": [3, 4.04], "from": -0.004, "length": 0.4, "lowpass": 500, "fadeOut": 0.2, "gainDb": -5 },
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.28, "decay": 0.12, "fadeOut": 0.1, "pitch": -4, "gainDb": -12 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "hit_knee_heavy_02.wav",
+      "use": "Heavy knee strike to the body",
+      "layers": [
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.008, "length": 0.45, "fadeOut": 0.15, "pitch": -6, "lowpass": 1300, "decay": 0.3 },
+        { "source": "dd_swing_thud", "peakIn": [15.05, 15.85], "from": -0.004, "length": 0.4, "lowpass": 500, "fadeOut": 0.2, "gainDb": -5 },
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.28, "decay": 0.12, "fadeOut": 0.1, "pitch": -5, "gainDb": -12 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "hit_kick_01.wav",
+      "use": "Kick to the body: a heavy thump with the cloth slap (milestone-1 task 95)",
+      "layers": [
+        { "source": "cf_punch", "take": 2, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "pitch": -2, "lowpass": 2500, "decay": 0.3 },
+        { "source": "dd_swing_thud", "peakIn": [18.05, 18.71], "from": -0.004, "length": 0.4, "lowpass": 800, "fadeOut": 0.2, "gainDb": -6 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": -2, "gainDb": -7 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "hit_kick_02.wav",
+      "use": "Kick to the body",
+      "layers": [
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "pitch": -3, "lowpass": 2500, "decay": 0.3 },
+        { "source": "dd_swing_thud", "peakIn": [15.05, 15.85], "from": -0.004, "length": 0.4, "lowpass": 800, "fadeOut": 0.2, "gainDb": -9 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": 0, "gainDb": -8 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "hit_kick_03.wav",
+      "use": "Kick to the body",
+      "layers": [
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.008, "length": 0.4, "fadeOut": 0.15, "pitch": -1, "lowpass": 2500, "decay": 0.3 },
+        { "source": "dd_swing_thud", "peakIn": [24.01, 24.91], "from": -0.004, "length": 0.4, "lowpass": 800, "fadeOut": 0.2, "gainDb": -6 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": -3, "gainDb": -7 }
+      ],
+      "process": { "highpass": 40 }
+    },
+    {
+      "file": "hit_kick_heavy_01.wav",
+      "use": "Heavy kick or heel drop: the heaviest bare-hand thump",
+      "layers": [
+        { "source": "cf_punch", "take": 1, "anchor": "peak", "from": -0.008, "length": 0.5, "fadeOut": 0.15, "pitch": -4, "lowpass": 1800, "decay": 0.35 },
+        { "source": "dd_swing_thud", "peakIn": [26.98, 28.07], "from": -0.004, "length": 0.5, "lowpass": 600, "fadeOut": 0.2, "gainDb": -3 },
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.28, "decay": 0.12, "fadeOut": 0.1, "pitch": -3, "gainDb": -10 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": -3, "gainDb": -8 }
+      ],
+      "process": { "highpass": 35 }
+    },
+    {
+      "file": "hit_kick_heavy_02.wav",
+      "use": "Heavy kick or heel drop",
+      "layers": [
+        { "source": "cf_punch", "take": 4, "anchor": "peak", "from": -0.008, "length": 0.5, "fadeOut": 0.15, "pitch": -4.5, "lowpass": 1800, "decay": 0.35 },
+        { "source": "dd_swing_thud", "peakIn": [9.05, 9.96], "from": -0.004, "length": 0.5, "lowpass": 600, "fadeOut": 0.2, "gainDb": -7 },
+        { "source": "esm_punch", "peakIn": [0.03, 0.2], "from": -0.004, "length": 0.28, "decay": 0.12, "fadeOut": 0.1, "pitch": -4, "gainDb": -10 },
+        { "source": "ima_pats", "peakIn": [0.08, 0.2], "from": -0.004, "length": 0.16, "fadeOut": 0.09, "pitch": -1, "gainDb": -8 }
+      ],
+      "process": { "highpass": 35 }
+    },
+    {
+      "file": "kick_cloth_01.wav",
+      "use": "A kick or knee: the trouser leg whooshing with the strike (milestone-1 task 95)",
+      "layers": [
+        { "source": "ima_cloth", "peakIn": [0.9, 1.15], "from": -0.06, "length": 0.34, "pitch": -2, "fadeIn": 0.03, "fadeOut": 0.18 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.3, "pitch": -3, "gainDb": -10, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "kick_cloth_02.wav",
+      "use": "A kick or knee: the trouser leg whooshing with the strike",
+      "layers": [
+        { "source": "esm_cloth_flip", "peakIn": [0.1, 0.2], "from": -0.05, "length": 0.32, "pitch": -1, "fadeIn": 0.03, "fadeOut": 0.18 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.3, "pitch": -2, "gainDb": -10, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
+      "file": "kick_cloth_03.wav",
+      "use": "A kick or knee: the trouser leg whooshing with the strike",
+      "layers": [
+        { "source": "ima_cloth_24", "peakIn": [0, 3], "from": -0.06, "length": 0.34, "pitch": -1, "fadeIn": 0.03, "fadeOut": 0.18 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.3, "pitch": -4, "gainDb": -10, "fadeOut": 0.12 }
+      ],
+      "process": { "highpass": 120 }
+    },
+    {
       "file": "hit_colossal_01.wav",
       "use": "Greatsword hit: heavy thud, pitched-down ice crunch for bone and rock, and a sub boom",
       "layers": [

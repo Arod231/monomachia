@@ -391,6 +391,40 @@ func blade_segments() -> Array[PackedVector3Array]:
 	return out
 
 
+## The bones each striking limb runs between, and how far past the second
+## its end reaches (m): a fist past the wrist, a foot past the toes' joint
+## (or the ankle, on a rig without toes), a knee past its joint.
+const LIMB_BONES: Dictionary[String, Array] = {
+	"hand": ["LowerArm", "Hand", 0.1],
+	"foot": ["LowerLeg", "Toes", 0.06],
+	"knee": ["UpperLeg", "LowerLeg", 0.08],
+}
+
+
+## Striking limb `part` (a swing part, such as &"right_knee") in world space,
+## as posed this frame, from the joint behind it to its end: [inner, tip],
+## as blade_segments() gives a blade (milestone-1 task 95's bare-hand air
+## smears). Empty for a part that isn't a limb, or with no model.
+func limb_span(part: StringName) -> PackedVector3Array:
+	var bits: PackedStringArray = String(part).split("_")
+	if model == null or model.skeleton == null or bits.size() != 2 or not LIMB_BONES.has(bits[1]):
+		return PackedVector3Array()
+	var sk: Skeleton3D = model.skeleton
+	var side: String = bits[0].capitalize()
+	var spec: Array = LIMB_BONES[bits[1]]
+	var inner: int = sk.find_bone(side + str(spec[0]))
+	var end: int = sk.find_bone(side + str(spec[1]))
+	var past: float = spec[2]
+	if end < 0 and bits[1] == "foot":
+		end = sk.find_bone(side + "Foot")
+		past = 0.12
+	if inner < 0 or end < 0:
+		return PackedVector3Array()
+	var a: Vector3 = sk.global_transform * sk.get_bone_global_pose(inner).origin
+	var b: Vector3 = sk.global_transform * sk.get_bone_global_pose(end).origin
+	return PackedVector3Array([a, b + (b - a).normalized() * past])
+
+
 
 
 ## The way a blade's edge faces: the way the strike sweeps the blade's tip
@@ -555,6 +589,8 @@ func _pose(f: Fighter, p: StickPose.Pose, _seconds: float, alpha: float) -> void
 		# a pair of daggers flips between the idle's reverse hold and the
 		# attack's forward one (task 21)
 		rig.set_reverse_turn(shot.reverse_hold if model.weapon_look.paired else 0.0)
+		# the off hand on the handle or off it, by the clip's grip (KE task 10)
+		rig.off_hand = lerpf(shot.off_hand_before, shot.off_hand, alpha)
 		var held: Dictionary[int, Transform3D] = {}
 		for i: int in model.weapons.size():
 			held[i] = model.weapons[i].transform

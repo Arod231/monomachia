@@ -66,7 +66,7 @@ func test_the_stand_ins_give_the_katanas_and_bare_hands_frame_data_today() -> vo
 			for follow: StringName in [m.chain_light, m.chain_heavy]:
 				if follow != &"":
 					assert_eq(int(row["branches"][String(follow)][0]), m.startup + m.active + 2, "%s.%s -> %s: today's branch point" % [wid, id, follow])
-	assert_eq(stand_ins, 25, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' light string, task 89, and heavies, task 133), Crescent Coil among them (KE task 7)")
+	assert_eq(stand_ins, 17, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94, light string, task 89, and heavies, task 133), Crescent Coil among them (KE task 7)")
 
 
 func test_each_move_has_its_band_kind() -> void:
@@ -78,6 +78,12 @@ func test_each_move_has_its_band_kind() -> void:
 		&"k_sl": &"sprint_light", &"k_sh": &"sprint_heavy", &"k_dl": &"dodge_light", &"k_dh": &"dodge_heavy",
 		&"k_bl": &"backstep_light", &"k_bh": &"backstep_heavy", &"k_jl": &"jump_light", &"k_jh": &"jump_heavy",
 		&"k_flash": &"block_ability", &"k_thrust": &"unblockable", &"k_sweep": &"unblockable", &"k_lunge": &"counter_lunge",
+		# a grip's own string hits take its rows (KE task 11); the stand-ins
+		# every grip plays keep the shared one
+		&"k_1l1": &"string_light_1h", &"k_1l2": &"string_light_1h", &"k_1l3": &"string_light_1h", &"k_1l4": &"string_light_1h",
+		&"k_2l1": &"string_light_2h", &"k_2l2": &"string_light_2h", &"k_l3": &"string_light",
+		# a grip's last hit takes its own kind (KE task 12, D16)
+		&"k_1l5": &"string_last_1h",
 	}
 	for id: StringName in want:
 		assert_eq(FrameDataRows.kind_of(katana, id), want[id], String(id))

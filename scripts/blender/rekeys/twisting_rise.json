@@ -1,0 +1,18 @@
+{
+	"about": "Twisting Rise (katana.k_1l3), the one-handed string's hit 3 (KE task 12): the first half of Attack1H05_R, the blade carried up and over behind the right shoulder and down behind the right hip with the body twisted round, then the rising cut through the front from low on the right to high on the left; its second swing (source frames 14 on) left out, the follow-through held high on the left to the end. In Elden Ring's rhythm: the wide wind-up (source frames 0-7 over 11), the cocked pose held, the strike snapped through into the active frames. The blade starts 45 degrees lower, as the one-handed guard carries it, and rides the clip's own aim from the wind-up, turned on where it would pass within 9 cm of the body (the game's bodies are fuller than the rig's capsules). A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H05_R.fbx",
+	"out": "blender/clips/twisting_rise.blend",
+	"remap": [[0, 0], [11, 7], [12.5, 7.3], [14.5, 9.6], [20, 12], [30, 13]],
+	"one_hand": {
+		"lower": [[0, 45], [8, 0], [30, 0]],
+		"clearance": 0.09
+	},
+	"step": {
+		"body": [[0, 0], [3, 0], [9, 0.21], [12.5, 0.8], [14, 1.045], [17, 1.24], [20, 1.3], [30, 1.3]],
+		"feet": {
+			"L": [[9, 18, 1.3, 0.2]],
+			"R": [[2, 8, 0.45, 0.16], [10, 17, 0.85, 0.24]]
+		},
+		"hips_top": 0.76
+	}
+}

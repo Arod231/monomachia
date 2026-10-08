@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Clips made in Cascadeur by key poses and AI inbetweening (milestone-1 task 89
-// on, the owner's call on Oct 7, 2026). For each spec in scripts/cascadeur/clips/
+// on, the owner's call on Oct 7, 2026). For each spec in scripts/cascadeur/generate/
 // (all of them, or the ids given):
 //
 //   1. Blender: rekey_clip.py makes the key poses' block-out from a pack clip
@@ -32,7 +32,7 @@ import { findAssets, findBlender } from '../blender/export.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
-export const SPECS = join(HERE, 'clips');
+export const SPECS = join(HERE, 'generate');
 const TEMPLATE = join(HERE, 'iglesias.qrigcasc');
 const GENERATE = join(HERE, 'generate_clip.py');
 const REKEY = join(ROOT, 'scripts', 'blender', 'rekey_clip.py');
@@ -189,7 +189,7 @@ async function main() {
   const all = readdirSync(SPECS).filter((n) => n.endsWith('.json')).map((n) => n.replace(/\.json$/, ''));
   const ids = args.filter((a) => !a.startsWith('--'));
   const unknown = ids.filter((id) => !all.includes(id));
-  if (unknown.length) throw new Error(`no spec for ${unknown.join(', ')} in scripts/cascadeur/clips/`);
+  if (unknown.length) throw new Error(`no spec for ${unknown.join(', ')} in scripts/cascadeur/generate/`);
   const assets = findAssets();
   if (!assets || !existsSync(assets)) throw new Error('no asset repository (MONOMACHIA_ASSETS_SRC or .assets-src-path)');
   for (const id of ids.length ? ids : all) {

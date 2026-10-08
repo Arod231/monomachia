@@ -71,6 +71,10 @@ func test_every_cue_is_used_by_an_event_or_documented_as_direct() -> void:
 			used.append_array(SoundBank.FOLEY[fighter][moment])
 	for voice: StringName in SoundBank.VOCALS:
 		used.append_array(SoundBank.VOCALS[voice].values())
+	# bare hands' strikes by limb (milestone-1 task 95)
+	for sound: StringName in SoundBank.LIMB_HITS:
+		used.append_array(SoundBank.LIMB_HITS[sound])
+	used.append(SoundBank.LEG_CLOTH)
 	# the deflect pairs' halves (task 136)
 	for direction: StringName in SoundBank.DEFLECT_SOUNDS:
 		for half: StringName in [&"deflect", &"recoil"]:
@@ -87,6 +91,38 @@ func test_hit_sound_follows_the_event_sound_field() -> void:
 	assert_eq(_cue_names({"t": "hit", "sound": "fist", "heavy": false}), [&"hit_fist"] as Array[StringName])
 	assert_eq(_cue_names({"t": "hit", "sound": "fist", "heavy": true}), [&"hit_fist_heavy"] as Array[StringName])
 	assert_eq(_cue_names({"t": "hit", "sound": "colossal", "heavy": true}), [&"hit_colossal", &"hit_flesh", &"crunch"] as Array[StringName])
+
+
+## Bare hands' impacts by the striking limb (milestone-1 task 95, the
+## owner's choice of Oct 7): a fist, an open palm's slap, a knee's dull
+## thud and a kick's or heel drop's heavier thump, each light and heavy.
+func test_a_bare_hand_hit_sounds_its_striking_limb_by_weight() -> void:
+	var want: Dictionary = {
+		&"fist": [&"hit_fist", &"hit_fist_heavy"],
+		&"palm": [&"hit_palm", &"hit_palm_heavy"],
+		&"knee": [&"hit_knee", &"hit_knee_heavy"],
+		&"kick": [&"hit_kick", &"hit_kick_heavy"],
+	}
+	for sound: StringName in want:
+		assert_true(AttackDef.HIT_SOUNDS.has(sound), "%s is a hit sound" % sound)
+		assert_eq(_cue_names({"t": "hit", "sound": sound, "heavy": false}), [want[sound][0]] as Array[StringName], "%s, light" % sound)
+		assert_eq(_cue_names({"t": "hit", "sound": sound, "heavy": true}), [want[sound][1]] as Array[StringName], "%s, heavy" % sound)
+	for cue: StringName in [&"hit_palm", &"hit_knee", &"hit_kick"]:
+		var heavy: StringName = StringName(String(cue) + "_heavy")
+		for file: String in SoundBank.CUES[cue]["files"]:
+			assert_false((SoundBank.CUES[&"hit_fist"]["files"] as Array).has(file), "%s is its own recording, not a fist's" % cue)
+		assert_gt(float(SoundBank.CUES[heavy]["volume_db"]), float(SoundBank.CUES[cue]["volume_db"]) - 0.01, "%s lands at least as loud" % heavy)
+
+
+## A leg strike's swing adds the trouser leg's cloth whoosh (task 95); a
+## hand's doesn't.
+func test_a_leg_strike_swings_with_a_cloth_whoosh() -> void:
+	for sound: StringName in [&"knee", &"kick"]:
+		for heavy: bool in [false, true]:
+			var names: Array[StringName] = _cue_names({"t": "swing", "weapon": "fists", "heavy": heavy, "sound": sound})
+			assert_eq(names, [&"whoosh_light" if heavy else &"whoosh_small", SoundBank.LEG_CLOTH] as Array[StringName], "%s, %s" % [sound, heavy])
+	for sound: StringName in [&"fist", &"palm"]:
+		assert_false(_cue_names({"t": "swing", "weapon": "fists", "heavy": true, "sound": sound}).has(SoundBank.LEG_CLOTH), String(sound))
 
 
 func test_block_clang_follows_weight() -> void:

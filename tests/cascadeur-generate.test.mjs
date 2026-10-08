@@ -1,6 +1,6 @@
 // Tests for the clips made in Cascadeur by key poses and AI inbetweening
 // (scripts/cascadeur/, milestone-1 task 89 on): every spec in
-// scripts/cascadeur/clips/ is a well-formed block-out (a re-key spec for
+// scripts/cascadeur/generate/ is a well-formed block-out (a re-key spec for
 // rekey_clip.py, or a held pose of another Cascadeur clip, as a charge's
 // loop is) with key poses inside it, writes its working files beside
 // the other Cascadeur files and its clip among the clips, and names a clip

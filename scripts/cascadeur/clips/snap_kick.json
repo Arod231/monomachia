@@ -1,0 +1,271 @@
+{
+	"about": "Snap Kick (fists.f_bl, the backstep light), milestone-1 task 94: a rebound off the back foot, the right foot skipping 0.73 m up behind the front (frames 1-5), under the body through the kick and in its stance at the end while the body slides over the planted front foot, then AttackKick01_L's lead-leg front snap kick (its chamber, frame 5, on 6; its extension, frames 10 and 12, on 10-12) carrying the body 0.75 m in all, the foot landing on frame 10 (20 rules frames from the press), active to 12, the kicking foot down by 16 and CombatIdle01 by 23. The kicking leg is borrowed from the kick frame by frame after the step, so the step's foot IK doesn't flatten it, and the hips are held at 0.83 m so the support foot stays down. The support foot is planted throughout, so every frame is keyed (Cascadeur's inbetweening would twist it). Source frames at 30 fps from 0.",
+	"out": "blender/clips/snap_kick.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				1
+			],
+			[
+				6,
+				5
+			],
+			[
+				10,
+				9
+			],
+			[
+				12,
+				12
+			],
+			[
+				23,
+				30
+			]
+		],
+		"step": {
+			"body": [
+				[
+					0,
+					0
+				],
+				[
+					1,
+					0
+				],
+				[
+					3,
+					0.2
+				],
+				[
+					5,
+					0.5
+				],
+				[
+					8,
+					0.65
+				],
+				[
+					11,
+					0.73
+				],
+				[
+					12,
+					0.75
+				],
+				[
+					23,
+					0.75
+				]
+			],
+			"feet": {
+				"R": [
+					[
+						1,
+						5,
+						0.73,
+						0.15
+					]
+				],
+				"L": [
+					[
+						6,
+						16,
+						0.75,
+						0.3
+					]
+				]
+			},
+			"hips_top": 0.83
+		},
+		"borrow": [
+			{
+				"frames": [
+					6,
+					6
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 5,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					7,
+					7
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 6,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					8,
+					8
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 7,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					9,
+					9
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 8,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					10,
+					10
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 9,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					11,
+					11
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 10.5,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					12,
+					12
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 12,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					13,
+					13
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 13.64,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					14,
+					14
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 15.27,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					15,
+					15
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 16.91,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			},
+			{
+				"frames": [
+					16,
+					16
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick01_L.fbx",
+				"at": 18.55,
+				"bones": [
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L"
+				]
+			}
+		]
+	},
+	"keys": [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7,
+		8,
+		9,
+		10,
+		11,
+		12,
+		13,
+		14,
+		15,
+		16,
+		17,
+		18,
+		19,
+		20,
+		21,
+		22,
+		23
+	],
+	"ai": "a fast martial-arts front snap kick off a skip step"
+}

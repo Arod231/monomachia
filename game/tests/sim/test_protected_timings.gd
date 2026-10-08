@@ -97,7 +97,9 @@ func test_today_s_stand_ins_keep_today_s_values() -> void:
 	var cut: AttackDef = Moves.KATANA.moves[&"k_dl"]
 	assert_false(cut.real_markers, "Wind Cut is a stand-in today")
 	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [14, 10, 4])
-	assert_eq(Moves.FISTS.moves[&"f_dl"].hitstun, 14, "Slip Jab keeps today's 14 until it is re-keyed")
+	# bare hands keep no stand-in on today's values: every attack is keyed
+	# (tasks 89, 93, 94, 99 and 133) but Counter Lunge, on the retuned light
+	# hitstun since task 22
 	assert_eq([Moves.KATANA.moves[&"k_h2"].hitstun, Moves.KATANA.moves[&"k_h2"].hitstop], [26, 7])
 	assert_same(ProtectedTimings.for_move(cut), ProtectedTimings.today())
 

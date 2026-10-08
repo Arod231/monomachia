@@ -20,7 +20,11 @@ extends RefCounted
 ## - the ultimates trail in the phases the demo's did: the Moonsplitter for the
 ##   first ULT_RELEASE_FRAMES of its release, the Impaler in its dash, the
 ##   Tempest in its spin and the second half of its finisher;
-## - bare hands never trail: neither the fists weapon nor a disarmed fighter.
+## - bare hands (the fists weapon, or a disarmed fighter) trail only in the
+##   moves switched on (AttackDef.smear: the eight movement attacks,
+##   milestone-1 task 95, the owner's choice of Oct 7), along the striking
+##   fist, knee or foot (its swing's limb, limb()) on that side's smear, a
+##   light at BARE_LIGHT's strength; never in an ultimate.
 ##
 ## Frames are read on the frame shown, `alpha` of the way from the step
 ## before to the last (MatchHost.alpha()), as the poses are, so a trail
@@ -41,9 +45,18 @@ const ULT_RELEASE_FRAMES: float = 6.0
 const TEMPEST_FINAL_FROM: float = 5.0
 ## Weapons held one in each hand.
 const PAIRED: Array[StringName] = [&"daggers"]
+## The weapon whose strikes are a bare hand's.
+const BARE: StringName = &"fists"
+## How strongly a bare-hand light smears, of a heavy's full strength: fainter
+## (task 95).
+const BARE_LIGHT: float = 0.6
+## The swing parts a bare hand smears along (Swing.PARTS less the body and
+## the shoulders).
+const LIMBS: Array[StringName] = [&"right_hand", &"left_hand", &"right_foot", &"left_foot", &"right_knee", &"left_knee"]
 
 var kind: StringName = NORMAL
 var _intensity: Array[float] = [0.0, 0.0]
+var _limb: Array[StringName] = [&"", &""]
 
 
 ## How strongly hand `hand` (RIGHT or LEFT) trails, 0 to 1.
@@ -55,25 +68,38 @@ func on(hand: int) -> bool:
 	return _intensity[hand] > 0.0
 
 
+## The limb (a swing part, such as &"right_knee") smearing on side `hand`
+## in a bare hand's strike, or &"" where a blade smears or nothing does.
+func limb(hand: int) -> StringName:
+	return _limb[hand]
+
+
 ## The trail of fighter `f` on the frame shown, `alpha` of the way from the
 ## step before to the last.
 static func of(f: Fighter, alpha: float) -> TrailState:
 	var t: TrailState = TrailState.new()
-	if f == null or not f.armed or f.moveset().id == &"fists":
+	if f == null:
 		return t
+	var bare: bool = not f.armed or f.moveset().id == BARE
 	var paired: bool = PAIRED.has(f.moveset().id)
 	if f.state == &"attack" and f.atk != null:
 		var at: AttackState = f.atk
 		var def: AttackDef = at.def
-		if at.charging or def.special == &"flash":
+		if at.charging or def.special == &"flash" or (bare and not def.smear):
 			return t
 		var shown: float = float(at.frame) - 1.0 + alpha
 		var k: float = window(shown, float(def.startup), float(def.startup + def.active))
 		t.kind = _kind(def)
+		if bare:
+			var part: StringName = limb_of(def)
+			var h: int = LEFT if String(part).begins_with("left") else RIGHT
+			t._limb[h] = part
+			t._intensity[h] = k * (BARE_LIGHT if def.kind == &"light" else 1.0)
+			return t
 		var hands: Array[bool] = striking_hands(def.hand, paired)
 		for h: int in 2:
 			t._intensity[h] = k if hands[h] else 0.0
-	elif f.state == &"ult" and f.ult != null:
+	elif f.state == &"ult" and f.ult != null and not bare:
 		var k: float = _ult_on(f.ult, alpha)
 		t.kind = ULT
 		t._intensity[RIGHT] = k
@@ -101,6 +127,18 @@ static func striking_hands(hand: StringName, paired: bool) -> Array[bool]:
 		&"both":
 			return [true, true]
 	return [true, false]
+
+
+## The limb bare-hands move `def` strikes with: its swing's first limb part
+## (the striking fist, knee or foot), or, without a swing, a kick's foot or
+## a punch's fist on its hand's side.
+static func limb_of(def: AttackDef) -> StringName:
+	if def.swing != null:
+		for part: StringName in def.swing.parts():
+			if LIMBS.has(part):
+				return part
+	var side: String = "left" if def.hand == &"L" else "right"
+	return StringName(side + ("_foot" if def.type == &"kick" else "_hand"))
 
 
 static func _kind(def: AttackDef) -> StringName:

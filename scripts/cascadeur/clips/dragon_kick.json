@@ -1,0 +1,275 @@
+{
+	"about": "Dragon Kick (fists.f_sh, the sprint heavy), milestone-1 task 93: AttackPunch03_R's crouch and take-off (source frames 0-8 over new 0-11) as a leap of 2.53 m at an even 0.135 m a frame from frame 7 to the touchdown, the right foot leaving on frame 8 and the left pushing off planted until frame 9; in the air, AttackKick02_R's side-kick chamber (its frame 8) on frame 15 and its extension (its frame 12) from 18 to 21, the whole body turned 45 degrees so the right foot drives straight at the opponent and lifted 0.3-0.4 m off the ground; the foot landing on frame 18 (36 rules frames from the press), active to 21; landing at 25, settling into CombatIdle01 by 38. The arms keep the bare-hands guard (CombatIdle01) but in the kick. Keyed on every frame a foot is planted (Cascadeur's inbetweening otherwise twists a planted foot, which the frame-data generator reads as a turn), its AI inbetweening filling the rest. Source frames at 30 fps from 0.",
+	"out": "blender/clips/dragon_kick.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackPunch03_R.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				8,
+				6
+			],
+			[
+				11,
+				8
+			],
+			[
+				15,
+				14
+			],
+			[
+				21,
+				16
+			],
+			[
+				25,
+				21
+			],
+			[
+				38,
+				30
+			]
+		],
+		"step": {
+			"body": [
+				[
+					0,
+					0
+				],
+				[
+					7,
+					0
+				],
+				[
+					8,
+					0.135
+				],
+				[
+					13,
+					0.81
+				],
+				[
+					18,
+					1.485
+				],
+				[
+					23,
+					2.16
+				],
+				[
+					25,
+					2.43
+				],
+				[
+					26,
+					2.49
+				],
+				[
+					27,
+					2.53
+				],
+				[
+					38,
+					2.53
+				]
+			],
+			"hips_home": [
+				28,
+				38
+			],
+			"feet": {
+				"R": [
+					[
+						8,
+						25,
+						2.53,
+						0.4
+					]
+				],
+				"L": [
+					[
+						10,
+						25,
+						2.53,
+						0.3
+					]
+				]
+			}
+		},
+		"borrow": [
+			{
+				"frames": [
+					0,
+					38
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatIdle01.fbx",
+				"at": 0,
+				"bones": [
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R"
+				],
+				"fingers": true
+			},
+			{
+				"frames": [
+					15,
+					15
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick02_R.fbx",
+				"at": 8,
+				"bones": [
+					"B-hips",
+					"B-spine",
+					"B-chest",
+					"B-neck",
+					"B-head",
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L",
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R",
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R"
+				],
+				"fingers": true
+			},
+			{
+				"frames": [
+					18,
+					21
+				],
+				"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/Unarmed/HumanM@AttackKick02_R.fbx",
+				"at": 12,
+				"bones": [
+					"B-hips",
+					"B-spine",
+					"B-chest",
+					"B-neck",
+					"B-head",
+					"B-thigh.L",
+					"B-shin.L",
+					"B-foot.L",
+					"B-toe.L",
+					"B-thigh.R",
+					"B-shin.R",
+					"B-foot.R",
+					"B-toe.R",
+					"B-shoulder.L",
+					"B-upperArm.L",
+					"B-forearm.L",
+					"B-hand.L",
+					"B-shoulder.R",
+					"B-upperArm.R",
+					"B-forearm.R",
+					"B-hand.R"
+				],
+				"fingers": true
+			}
+		],
+		"pose": [
+			{
+				"frame": 15,
+				"turn": [
+					[
+						"B-hips",
+						"up",
+						45
+					]
+				],
+				"move": {
+					"B-hips": [
+						0,
+						0.3,
+						0
+					]
+				}
+			},
+			{
+				"frame": 18,
+				"turn": [
+					[
+						"B-hips",
+						"up",
+						45
+					]
+				],
+				"move": {
+					"B-hips": [
+						0,
+						0.4,
+						0
+					]
+				}
+			},
+			{
+				"frame": 21,
+				"turn": [
+					[
+						"B-hips",
+						"up",
+						45
+					]
+				],
+				"move": {
+					"B-hips": [
+						0,
+						0.35,
+						0
+					]
+				}
+			}
+		]
+	},
+	"keys": [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7,
+		8,
+		9,
+		11,
+		13,
+		15,
+		18,
+		21,
+		23,
+		24,
+		25,
+		26,
+		27,
+		28,
+		29,
+		30,
+		31,
+		32,
+		33,
+		34,
+		35,
+		36,
+		37,
+		38
+	],
+	"ai": "a leaping martial-arts flying side kick, landing balanced"
+}

@@ -1,0 +1,15 @@
+{
+	"about": "Crouching Crown (katana.k_1l5), the one-handed string's last hit (KE task 12): Attack2H02's overhead, its whole circling wind-up (the blade raised high, swung down behind and up again: source frames 0-20 over 16), held at the top, then cut straight down to the ground in a deep bow, the hips dropped 18 cm into a deep crouch and held long (Elden Ring's last hit commits), then risen back to the guard. The clip is two-handed, as the pack keys it: the off hand joins the grip for the cut, set on the grip with the blade kept clear of the body. A step forward carries the body into the cut. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H02.fbx",
+	"out": "blender/clips/crouching_crown.blend",
+	"remap": [[0, 0], [16, 20], [17.5, 20.3], [19, 22.5], [50, 34], [66, 46], [70, 48]],
+	"lower": {"drop": 0.18, "bend": 0, "from": 18, "peak": 23, "until": 50},
+	"two_hands": {"grip": 0.13, "hold": [0.32, 0.12], "square": 0, "clearance": 0.05},
+	"step": {
+		"body": [[0, 0], [3, 0], [10, 0.25], [16, 0.565], [17.5, 0.74], [19, 0.91], [22, 1.0], [70, 1.0]],
+		"feet": {
+			"L": [[12, 19, 1.0, 0.2]],
+			"R": [[3, 10, 0.4, 0.16], [13, 20, 0.6, 0.24]]
+		}
+	}
+}

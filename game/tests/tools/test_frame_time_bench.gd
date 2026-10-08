@@ -93,7 +93,7 @@ func test_the_coverage_counts_the_ultimates_and_the_finisher() -> void:
 	assert_eq(c.counts[&"moonsplitter"], 1)
 	assert_eq(c.counts[&"breaker"], 1, "only Breaker Palm's swing")
 	assert_eq(c.counts[&"finisher"], 1)
-	assert_eq(c.missing(), ["a stretch at the wall"] as Array[String])
+	assert_eq(c.missing(), [] as Array[String], "the wall is reported, not required (the owner, Oct 7)")
 
 
 func test_a_stretch_at_the_wall_is_a_second_in_a_row_during_the_fight() -> void:
@@ -121,14 +121,21 @@ func test_at_the_wall_is_within_half_a_metre_of_where_fighters_stop() -> void:
 	assert_false(WorstCase.near_wall(V3.make(0.0, 0.0, 0.0)))
 
 
-func test_the_required_items_are_both_ultimates_and_the_wall() -> void:
+func test_the_required_items_are_both_ultimates_and_the_wall_is_reported() -> void:
+	# the owner (Oct 7, at milestone-1 task 59): fights no longer reach the
+	# wall, so the wall is reported, not required, until they do again
 	var keys: Array[StringName] = []
 	for item: Array in WorstCase.REQUIRED:
 		keys.append(item[0])
-	assert_eq(keys, [&"moonsplitter", &"breaker", &"wall"] as Array[StringName],
+	assert_eq(keys, [&"moonsplitter", &"breaker"] as Array[StringName],
 		"the finisher joins once task 103 adds it; blood and petals come with every hit and the arena")
+	var reported: Array[StringName] = []
+	for item: Array in WorstCase.REPORTED:
+		reported.append(item[0])
+	assert_eq(reported, [&"wall", &"finisher"] as Array[StringName])
 	var c := WorstCase.Coverage.new()
-	assert_eq(c.missing().size(), 3)
+	assert_eq(c.missing().size(), 2)
+	assert_string_contains(c.line(), "a stretch at the wall 0")
 	assert_string_contains(c.line(), "Moonsplitter 0")
 
 
@@ -150,16 +157,18 @@ func test_the_search_finds_the_earliest_window_that_shows_everything() -> void:
 	var t: WorstCase.Timeline = _timeline(300, {5: hit, 150: moon, 170: palm}, 10, 80)
 	assert_eq(t.size(), 300)
 	assert_eq(t.events.size(), 2, "only the events that count are kept")
-	# a 100-step window can't hold WALL_STEPS wall steps (they end at 80) and Breaker Palm (170)
-	assert_eq(t.earliest_end(100), -1)
-	# with a 160-step window it can: it must start by step 20 to keep 60 wall steps, and end after 170
+	# the wall isn't required: a 100-step window needs only Moonsplitter (150)
+	# and Breaker Palm (170), so it ends after 170
+	assert_eq(t.earliest_end(100), 171)
 	assert_eq(t.earliest_end(160), 171)
 	assert_eq(_timeline(300, {5: moon, 170: palm}, 10, 80).earliest_end(160), -1, "Moonsplitter at 5 and Breaker Palm at 170 don't fit in 160 steps")
 	assert_eq(_timeline(50, {}, 0, 50).earliest_end(100), -1, "shorter than the window")
 	var c: WorstCase.Coverage = t.coverage(11, 171)
 	assert_eq(c.missing(), [] as Array[String])
 	assert_eq(c.longest_wall, 69)
-	assert_eq(t.coverage(21, 171).missing(), ["a stretch at the wall"] as Array[String], "59 wall steps")
+	assert_eq(c.counts[&"wall"], 1, "the wall stretch is still counted")
+	assert_eq(t.coverage(21, 171).counts[&"wall"], 0, "59 wall steps aren't a stretch")
+	assert_eq(t.coverage(21, 171).missing(), [] as Array[String], "and it isn't required")
 
 
 func test_a_recorded_worst_case_is_a_duel_that_replays_to_its_end() -> void:

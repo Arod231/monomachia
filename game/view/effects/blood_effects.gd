@@ -38,7 +38,7 @@ const PROFILES: Dictionary = {
 		"splat": 0.25, "splat_heavy": 0.4, "splats": 10, "blade": 0.12, "blade_max": 0.5,
 	},
 }
-## The hit sounds that cut (AttackDef.HIT_SOUNDS less the fists').
+## The hit sounds that cut (AttackDef.HIT_SOUNDS less bare hands', BARE_SOUNDS).
 const CUTTING: Array[StringName] = [&"blade", &"dagger", &"colossal"]
 ## How long the floor's splatter takes to fade at a round's start (frames).
 const SPLAT_FADE_FRAMES: int = 45

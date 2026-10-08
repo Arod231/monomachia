@@ -301,13 +301,15 @@ func test_a_lunge_into_a_defender_still_stops_0_25_m_clear_of_their_body() -> vo
 ## (11.1: Off-hand Slice lands 11 frames after Quick Slice). Both Counter
 ## Lunges, on real markers, take their weapon's retuned light hitstun
 ## (milestone-1 task 22), as do the Katana string's four lights once re-keyed
-## (tasks 31 and 32) and bare hands' Jab, Cross and Hook (task 89; Jab and
-## Cross kept 16 until then).
+## (tasks 31 and 32), bare hands' Jab, Cross and Hook (task 89; Jab and
+## Cross kept 16 until then) and the grips' own hits (KE tasks 11-13).
 const LIGHT_HITSTUN: int = 14
 const OWN_HITSTUN: Dictionary[StringName, int] = {
 	&"f_l1": 18, &"f_l2": 18, &"f_l3": 18, &"d_l1": 10, &"d_l2": 10, &"d_l3": 10, &"d_l4": 10,
 	&"k_lunge": 24, &"f_lunge": 18,
-	&"k_l1": 24, &"k_l2": 24, &"k_l3": 24, &"k_l4": 24,
+	&"k_l1": 24, &"k_l2": 24, &"k_l3": 24, &"k_l4": 24, &"k_1l1": 24, &"k_1l2": 24, &"k_1l3": 24, &"k_1l4": 24, &"k_1l5": 24, &"k_2l1": 24, &"k_2l2": 24,
+	# bare hands' re-keyed movement lights take the retuned timings (tasks 93, 94)
+	&"f_sl": 18, &"f_dl": 18, &"f_bl": 18, &"f_jl": 18,
 }
 
 
@@ -497,16 +499,17 @@ func test_mountain_slam_cannot_be_dodge_cancelled() -> void:
 
 
 func test_a_jump_heavy_cannot_dodge_cancel_in_the_air() -> void:
-	# bare hands' Axe Kick opens its cancel while a disarmed jump is still in
-	# the air (the Daggers' Dive Stab did, until its frames came from its clip
-	# at 1.0x, milestone-1 task 17)
+	# bare hands' Axe Kick, keyed (milestone-1 task 94), holds its strike to the
+	# touchdown and opens its cancel in its landing recovery (task 59), so a
+	# dodge at the cancel frame comes on the ground (the stand-in opened it in
+	# the air, as the Daggers' Dive Stab did until task 17)
 	var kick: AttackDef = Moves.FISTS.moves[&"f_jh"]
 	var W: World = H.make_world(Moves.FISTS, Moves.KATANA, 10.0)
 	W.step([H.btn(Btn.JUMP), H.idle()])
 	var r: CancelRun = _cancel_run(W, H.btn(Btn.HEAVY), 1, kick.dodge_cancel_from, H.idle())
 	assert_eq(r.attack, &"f_jh")
-	assert_true(r.pressed_in_the_air, "thrown straight after the jump, it is still in the air there")
-	assert_gt(r.dodge_frame, kick.dodge_cancel_from, "the dodge comes after the cancel frame")
+	assert_false(r.pressed_in_the_air, "thrown straight after the jump, it has landed by its cancel frame")
+	assert_eq(r.dodge_frame, kick.dodge_cancel_from, "the dodge comes at the cancel frame")
 	assert_false(r.dodged_in_the_air, "once the fighter has landed")
 
 

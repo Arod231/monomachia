@@ -563,6 +563,8 @@ func test_planted_feet_move_under_a_centimetre_running_on_a_diagonal() -> void:
 
 func test_the_arms_keep_their_grip_while_strafing() -> void:
 	var W: World = _world(3.0)
+	# two-handed, so the off hand grips by IK (KE task 10)
+	W.fighters[0].grip = WeaponGrip.TWO_HANDED
 	var v: FighterView = _view()
 	var rig: FighterRig = v.model.rig
 	var sk: Skeleton3D = v.model.skeleton
