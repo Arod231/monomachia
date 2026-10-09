@@ -14,7 +14,10 @@ extends RefCounted
 ## sparks but a dull puff of dust and cloth; a blade's hit throws none
 ## (blood covers it). A bare hand's hit throws its own impact (milestone-1
 ## task 95, spec P36): a bigger puff of dust and cloth off the body, more on
-## a heavy, whichever limb struck. A warm light at the contact lights the fighters and the blades for a
+## a heavy, whichever limb struck. A movement attack coming down on the
+## ground (milestone-1 task 77: Leaping Cleave and Falling Crown) throws a
+## burst of ground dust where it lands, bigger and faster than any blow's,
+## spreading over the floor. A warm light at the contact lights the fighters and the blades for a
 ## few frames where the graphics preset allows (GraphicsPreset.spark_light).
 ## The toon look's contact flashes retired with it but for the counters' and
 ## the disarm's, which their families restyle.
@@ -42,7 +45,9 @@ extends RefCounted
 ##   "count", "size" (m across), "life", and "speed" (m/s; a bare hand's
 ##   hit throws its dust faster, so it scatters off the body rather than
 ##   hanging as a cloud; CombatEffects.PUFF_SPEED otherwise) and "color"
-##   (darker and thinner off a body; CombatEffects.PUFF_COLOR otherwise).
+##   (darker and thinner off a body; CombatEffects.PUFF_COLOR otherwise), and
+##   "ground": true for dust off the floor, thrown out over it and up, never
+##   down into it.
 ## - &"light": a warm light at the contact (CombatEffects.contact_light()):
 ##   "energy", "range" (m), "life".
 
@@ -61,6 +66,9 @@ const BARE: StringName = &"fists"
 ## The dust and cloth knocked off a body by a bare hand's hit: darker and
 ## thinner than a guard's puff.
 const BODY_DUST: Color = Color(0.3, 0.27, 0.24, 0.55)
+## The stone floor's dust, kicked up where a movement attack comes down:
+## thicker than a guard's puff, as dull.
+const GROUND_DUST: Color = Color(0.46, 0.43, 0.39, 0.8)
 
 ## The sparks' white-hot point, and their light's warm colour.
 const WHITE_HOT: Color = Color(1.0, 0.93, 0.78)
@@ -89,6 +97,9 @@ const TABLE: Dictionary[StringName, Array] = {
 	&"hit": [
 		{"kind": PUFF, "bare": true, "count": 7, "size": 0.12, "life": 20, "speed": 1.1, "color": BODY_DUST,
 			"heavy": {"count": 11, "size": 0.15, "life": 24, "speed": 1.4}},
+	],
+	&"touchdown": [
+		{"kind": PUFF, "count": 30, "size": 0.3, "life": 44, "speed": 3.6, "color": GROUND_DUST, "ground": true},
 	],
 	&"counter": [
 		{"kind": FLASH, "color": Color(0.6, 0.85, 1.0), "size": 0.9, "life": 16},

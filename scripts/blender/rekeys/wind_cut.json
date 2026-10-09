@@ -1,0 +1,27 @@
+{
+	"about": "Wind Cut (katana.k_dl, the dodge light), milestone-1 task 75: Attack1H03_R's flat backhand across at the waist, from the left to the right, one-handed, out of a dodge: the body coming up out of the roll's crouch (lowered 18 cm at frame 0, risen by 6) as the blade is carried back over the left shoulder (source frames 0-8.4 over 11), the cut snapped through at its own speed into the active frames (13-14.5) with a step forward onto the left foot into the clip's deep lunge, then back up to the guard by the settle at 30. One-handed, as the owner chose for the lights (Oct 8); the blade starts and ends 45 degrees lower, as the one-handed guard carries it. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H03_R.fbx",
+	"out": "blender/clips/wind_cut.blend",
+	"remap": [[0, 0], [6, 5], [11, 8.4], [13, 9.6], [14.5, 10.6], [18, 13], [29, 30], [31, 39]],
+	"lower": {
+		"drop": 0.18,
+		"bend": 15,
+		"from": -1,
+		"peak": 0,
+		"until": 1,
+		"to": 6
+	},
+	"one_hand": {
+		"lower": [[0, 45], [6, 0], [24, 0], [31, 45]],
+		"clearance": 0.12
+	},
+	"step": {
+		"body": [[0, 0], [4, 0.1], [8, 0.45], [11, 0.85], [13, 1], [15, 1.08], [18, 1.1], [31, 1.1]],
+		"feet": {
+			"L": [[6, 12, 1.1, 0.2]],
+			"R": [[1.5, 6, 0.4, 0.16], [6.5, 12, 0.7, 0.14]]
+		},
+		"hips_home": [20, 30],
+		"hips_top": 0.86
+	}
+}

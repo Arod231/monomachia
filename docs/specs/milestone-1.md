@@ -106,7 +106,7 @@ One global numbering; the plan cites these as "Stories: N". Stories 220 and late
 57. As a Katana player, I want the Iai's long reach to come from its clip's step and draw, re-keyed to its distance band in place of today's 2.1 m slide, so that the long draw is a real lunge.
 58. As a Katana player, I want Heaven Splitter re-keyed into the string-heavy band, so that heavies are slow and committal.
 59. [x] As a Katana player, I want the vertical cuts to step forward into the cut, so that attacks move the body. (Ticked with task 32.)
-60. As a Katana player, I want the eight movement attacks re-keyed, each in its own band (Running Draw and Leaping Cleave out of a sprint, Wind Cut and Whirl Cut out of a dodge, Rising Cut and Lunging Cut out of a backstep, Aerial Cut and Falling Crown out of a jump), so that every way into an attack looks deliberate.
+60. [x] As a Katana player, I want the eight movement attacks re-keyed, each in its own band (Running Draw and Leaping Cleave out of a sprint, Wind Cut and Whirl Cut out of a dodge, Rising Cut and Lunging Cut out of a backstep, Aerial Cut and Falling Crown out of a jump), so that every way into an attack looks deliberate. (Ticked with task 76.)
 61. As a Katana player, I want Flash re-keyed as a two-handed parry stance with its wide window, stunning the attacker, so that the Katana's signature block ability reads at a glance.
 62. As a Katana player, I want Piercing Thrust and Swallow Sweep re-keyed in the unblockable band with long, readable wind-ups, so that they're feared but answerable.
 63. [x] As a Katana player, I want Moonsplitter re-keyed: the fighter sheathes, the stick picks vertical or horizontal, and a wave crosses the stage, so that the ultimate looks like a finale. (Ticked with task 98.)

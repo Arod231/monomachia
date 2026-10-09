@@ -170,32 +170,38 @@ const MOVES: Dictionary = {
 	&"k_sl": {
 		"id": &"k_sl", "name": "Running Draw", "kind": &"light", "type": &"slash", "anim": &"drawCut",
 		"damage": 8, "posture": 9, "knockback": 0.5,
-		"range": 2.3, "arc": 100, "lunge": 1.7, "lunge_end": 15,
+		"range": 2.3, "arc": 100,
 	},
 	&"k_sh": {
 		"id": &"k_sh", "name": "Leaping Cleave", "kind": &"heavy", "type": &"overhead", "anim": &"leapCleave",
 		"damage": 15, "posture": 18, "knockback": 1.2,
-		"range": 2.4, "arc": 70, "lunge": 2.9, "lunge_start": 4, "lunge_end": 22, "hop": 5,
+		"range": 2.4, "arc": 70,
+		# down on the ground as its leap lands, its clip's travel stopping with
+		# the feet planted (milestone-1 task 77)
+		"touchdown": 51,
 	},
 	&"k_dl": {
 		"id": &"k_dl", "name": "Wind Cut", "kind": &"light", "type": &"slash", "anim": &"slashRL",
 		"damage": 6, "posture": 7, "knockback": 0.4,
-		"range": 2.2, "arc": 120, "lunge": 0.5,
+		"range": 2.2, "arc": 120,
 	},
 	&"k_dh": {
 		"id": &"k_dh", "name": "Whirl Cut", "kind": &"heavy", "type": &"spin", "anim": &"spin",
 		"damage": 12, "posture": 14, "knockback": 1.0,
-		"range": 2.3, "arc": 360, "lunge": 0.5,
+		"range": 2.3, "arc": 360,
+		# smearing its whole circle, from where the blade passes the front to
+		# come round once more (milestone-1 task 77)
+		"smear_from": 24,
 	},
 	&"k_bl": {
 		"id": &"k_bl", "name": "Rising Cut", "kind": &"light", "type": &"slash", "anim": &"diagUp",
 		"damage": 6, "posture": 8, "knockback": 0.4,
-		"range": 2.2, "arc": 100, "lunge": 1.3,
+		"range": 2.2, "arc": 100,
 	},
 	&"k_bh": {
 		"id": &"k_bh", "name": "Lunging Cut", "kind": &"heavy", "type": &"slash", "anim": &"diagDown",
 		"damage": 12, "posture": 14, "knockback": 1.0,
-		"range": 2.4, "arc": 80, "lunge": 2.3, "lunge_start": 4, "lunge_end": 20,
+		"range": 2.4, "arc": 80,
 	},
 	&"k_jl": {
 		"id": &"k_jl", "name": "Aerial Cut", "kind": &"light", "type": &"slash", "anim": &"airSlash",
@@ -206,6 +212,8 @@ const MOVES: Dictionary = {
 		"id": &"k_jh", "name": "Falling Crown", "kind": &"heavy", "type": &"overhead", "anim": &"plunge",
 		"damage": 13, "posture": 16, "knockback": 1.0,
 		"range": 2.3, "arc": 80, "airborne": true,
+		# down on the ground as it lands (milestone-1 task 77)
+		"touchdown": AttackDef.TOUCHDOWN_ON_LANDING,
 	},
 	# --- block abilities ---
 	&"k_flash": {

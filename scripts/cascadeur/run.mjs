@@ -9,6 +9,7 @@
 // Cascadeur's warnings (a rig refit logs one per bone per frame). Exits 1
 // when the script fails, or when Cascadeur isn't listening.
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -17,7 +18,17 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const SERVER = process.env.CASCADEUR_SERVER ?? 'http://127.0.0.1:8765';
 const LIB = join(here, 'mono_csc.py').replaceAll('\\', '/');
 
-/** The preamble every run gets: mono_csc (re)loaded as `m`. */
+/** The lane calling: this checkout's git branch, which mono_csc takes the lock
+ * and keeps its tab under (several lanes share the owner's one Cascadeur). */
+export function lane() {
+  try {
+    return execFileSync('git', ['branch', '--show-current'], { cwd: here, encoding: 'utf8' }).trim() || 'detached';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/** The preamble every run gets: mono_csc (re)loaded as `m`, told the lane. */
 export function preamble() {
   return [
     'import importlib.util, sys',
@@ -25,6 +36,7 @@ export function preamble() {
     'm = importlib.util.module_from_spec(_spec)',
     '_spec.loader.exec_module(m)',
     "sys.modules['mono_csc'] = m",
+    `m.LANE = ${JSON.stringify(lane())}`,
     '',
   ].join('\n');
 }

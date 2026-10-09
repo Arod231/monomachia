@@ -1,0 +1,24 @@
+{
+	"about": "Leaping Cleave (katana.k_sh, the sprint heavy), milestone-1 task 75: Attack2H04's leap with the blade raised over and behind the head, out of a sprint: a dip and a push-off (source frames 0-1 over 3), a long flight at the run's speed with the legs tucked and the blade held back (1-12.5 over 19.5, the hips no higher than 0.53 m over their stance), the two-handed cut straight down to the ground as the feet land (the active frames 23.5-25.5), the crouch held, then risen back to the guard by the settle at 46.5. Two-handed, as the owner chose for the heavies (Oct 8): the left hand set on the grip and the blade kept clear of the body. The leap carries the body 2.9 m forward to the landing and skids 0.15 m on (in this rig's metres; about 3.5 m on the game's bodies). Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H04.fbx",
+	"out": "blender/clips/leaping_cleave.blend",
+	"remap": [[0, 0], [3, 1], [22.5, 12.5], [23.5, 14], [25.5, 15.2], [31, 20], [46.5, 40], [48, 43]],
+	"two_hands": {
+		"grip": 0.13,
+		"hold": [0.32, 0.12],
+		"square": 0,
+		"clearance": 0.05
+	},
+	"step": {
+		"body": [[0, 0], [1, 0.1223], [2, 0.2446], [3, 0.3669], [12, 1.4676], [23.5, 2.874], [25.5, 2.96], [30, 3.02], [48, 3.02]],
+		"feet": {
+			"L": [[1.5, 24.5, 3.02, 0.3]],
+			"R": [[0.5, 24.5, 3.02, 0.3]]
+		},
+		"free": {
+			"L": [[1.5, 24]],
+			"R": [[0.5, 24]]
+		},
+		"hips_top": 1.35
+	}
+}

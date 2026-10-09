@@ -84,6 +84,8 @@ const CLIP_LED_WEAPONS: Array[StringName] = [&"katana", &"fists"]
 
 ## An int field the TS leaves undefined (no move can hold it). Unset floats are NAN.
 const UNSET: int = -0x7FFFFFFFFFFFFFFF - 1
+## A jump attack's touchdown: as it lands, whichever frame that is.
+const TOUCHDOWN_ON_LANDING: int = 0
 
 var id: StringName = &""
 var name: String = ""
@@ -144,6 +146,16 @@ var trail: StringName = &""
 ## a bare-hands move whose striking limb smears the air (milestone-1 task 95:
 ## the eight movement attacks); a weapon's blade smears without it
 var smear: bool = false
+## the frame a move's smear starts from where it starts before the strike
+## (milestone-1 task 77: Whirl Cut's runs its whole circle, from where its
+## blade passes the front to come round once more); UNSET for the strike's
+## own, from the startup
+var smear_from: int = UNSET
+## the frame a movement attack comes down on the ground, a thud and a burst
+## of dust where it lands (milestone-1 task 77): Leaping Cleave's as its leap
+## lands, TOUCHDOWN_ON_LANDING for a jump attack's landing (Falling Crown's);
+## UNSET for a move that never does
+var touchdown: int = UNSET
 ## i-frames during the move (frames from start, inclusive range); empty = none
 var invuln: PackedInt32Array = PackedInt32Array()
 ## vertical hop applied at lungeStart (m/s), for leaping attacks
@@ -212,7 +224,7 @@ const KEYS: Array[String] = [
 	"track_startup", "track_active", "hitstun", "blockstun", "hitstop", "unblockable", "counter",
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
-	"sound", "trail", "smear", "invuln", "hop", "side_start", "side_end", "charge_move",
+	"sound", "trail", "smear", "smear_from", "touchdown", "invuln", "hop", "side_start", "side_end", "charge_move",
 	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "landing", "charge_hold", "weapon", "grip", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
@@ -267,6 +279,8 @@ static func from_dict(d: Dictionary) -> AttackDef:
 	m.sound = StringName(d.get("sound", &""))
 	m.trail = StringName(d.get("trail", &""))
 	m.smear = bool(d.get("smear", false))
+	m.smear_from = int(d.get("smear_from", UNSET))
+	m.touchdown = int(d.get("touchdown", UNSET))
 	m.invuln = PackedInt32Array(d.get("invuln", []))
 	m.hop = float(d.get("hop", 0.0))
 	m.side_start = StringName(d.get("side_start", &""))

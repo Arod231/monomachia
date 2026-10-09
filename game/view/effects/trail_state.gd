@@ -9,7 +9,9 @@ extends RefCounted
 ## The rules, settled with the owner on Oct 3, 2026:
 ## - an attack trails in its active frames, then fades over FADE_FRAMES; never
 ##   while charging, and never for Flash (Shadow Step, the other zero-damage
-##   move, does trail);
+##   move, does trail); a move whose blade goes round before it strikes
+##   trails from its own frame (AttackDef.smear_from: Whirl Cut's whole
+##   circle, milestone-1 task 77);
 ## - only the hands the move strikes with: its `hand` (R, L or both) for a
 ##   paired weapon (the daggers), the one blade for any other;
 ## - red (DANGER) for unblockables, gold (ULT) for moves marked so (the
@@ -88,7 +90,8 @@ static func of(f: Fighter, alpha: float) -> TrailState:
 		if at.charging or def.special == &"flash" or (bare and not def.smear):
 			return t
 		var shown: float = float(at.frame) - 1.0 + alpha
-		var k: float = window(shown, float(def.startup), float(def.startup + def.active))
+		var from: int = def.smear_from if def.smear_from != AttackDef.UNSET else def.startup
+		var k: float = window(shown, float(from), float(def.startup + def.active))
 		t.kind = _kind(def)
 		if bare:
 			var part: StringName = limb_of(def)

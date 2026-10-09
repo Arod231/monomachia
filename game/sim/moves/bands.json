@@ -91,7 +91,6 @@
 	},
 	"waiting": {
 		"katana": [
-			"k_sl", "k_sh", "k_dl", "k_dh", "k_bl", "k_bh", "k_jl", "k_jh",
 			"k_flash", "k_thrust", "k_sweep"
 		],
 		"fists": []

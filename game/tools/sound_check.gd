@@ -404,6 +404,21 @@ static func make_steps() -> Array[Dictionary]:
 		{"t": &"swing", "f": 1, "attack": &"swing", "heavy": true, "weapon": &"fists", "sound": &"kick"}))
 	out.append(_event_step(c, "swing: Katana, light (yours: the Hunter's sleeves and harness)",
 		{"t": &"swing", "f": 0, "attack": &"swing", "heavy": false, "weapon": &"katana"}))
+	# the Katana's movement attacks (milestone-1 task 77): the Hunter's coat
+	# sweeps round with each; Whirl Cut's blade whooshes twice round its spin
+	# before the strike's own whoosh; Leaping Cleave and Falling Crown thud
+	# down on the stone
+	out.append(_event_step(c, "swing: a movement attack, Rising Cut (yours: the Hunter's coat sweeping round)",
+		{"t": &"swing", "f": 0, "attack": &"k_bl", "heavy": false, "weapon": &"katana", "movement": true}))
+	var whirl: AttackDef = Moves.KATANA.moves[&"k_dh"]
+	var spin: Array = []
+	for cue: Dictionary in SoundBank.move_cues(&"k_dh"):
+		spin.append({"time": 0.0, "cue": cue["cue"], "pos": FOE + Vector3(0.0, CHEST, 0.0)})
+		spin.append({"time": float(whirl.startup - int(cue["frame"])) / 60.0, "event": {"t": &"swing", "f": 1, "attack": &"k_dh",
+			"heavy": true, "weapon": &"katana", "movement": true}})
+	out.append(_step(c, "Whirl Cut: the spin's double whoosh, then the strike's", spin))
+	out.append(_event_step(c, "touchdown: Leaping Cleave coming down on the stone",
+		{"t": &"touchdown", "f": 1, "attack": &"k_sh", "heavy": true, "weapon": &"katana", "pos": _dict(FOE)}))
 	out.append(_event_step(c, "telegraph: an unblockable winds up",
 		{"t": &"telegraph", "f": 1, "kind": &"thrust", "attack": &"thrust"}))
 	for hit: Array in [

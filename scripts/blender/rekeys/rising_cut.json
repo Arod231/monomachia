@@ -1,0 +1,19 @@
+{
+	"about": "Rising Cut (katana.k_bl, the backstep light), milestone-1 task 76: Attack1H05_R's cut from low behind the right hip up across to above the left shoulder, one-handed, off the back foot after a backstep: the back (right) foot pushing up level with the front as the body sinks into the clip's dip and the blade drops low behind (source frames 0-6.8 over 11), the front (left) foot lunging forward as the cut rises through the active frames (13-14.5) and the body comes up out of the dip, the back foot closing up behind into the guard's stance; the clip's second, level cut compressed into the recovery, back in the guard by the settle at 30. One-handed, as the owner chose for the lights (Oct 8); the blade starts and ends 45 degrees lower, as the one-handed guard carries it. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H05_R.fbx",
+	"out": "blender/clips/rising_cut.blend",
+	"remap": [[0, 0], [6, 4], [11, 6.8], [13, 8.3], [14.5, 9.3], [17, 11.2], [30, 33], [32, 36]],
+	"one_hand": {
+		"lower": [[0, 45], [6, 0], [24, 0], [32, 45]],
+		"clearance": 0.12
+	},
+	"step": {
+		"body": [[0, 0], [2, 0.05], [6, 0.45], [10, 1.05], [13, 1.35], [15, 1.42], [18, 1.45], [32, 1.45]],
+		"feet": {
+			"L": [[5.5, 12, 1.45, 0.2]],
+			"R": [[1, 6, 0.7, 0.16], [9, 17, 0.75, 0.14]]
+		},
+		"hips_home": [21, 31],
+		"hips_top": 0.775
+	}
+}

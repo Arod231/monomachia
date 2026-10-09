@@ -78,17 +78,19 @@ func test_the_table_gives_each_kind_of_move_its_distance() -> void:
 	assert_false(RT.strikes(Moves.KATANA.moves[&"k_flash"]), "Flash strikes nothing, so it isn't tested")
 
 
-## A Katana whose Running Draw holds its point straight ahead, the grip `out`
-## m in front at 1.2 m up.
+## A Katana whose Running Draw, played as the stand-in it was before its
+## re-key (task 75) with its 1.7 m lunge, holds its point straight ahead, the
+## grip `out` m in front at 1.2 m up.
 static func _running_draw(out: float) -> WeaponDef:
 	var key: Swing.KeyPose = SF.key(0, [0.0, 1.2, out], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0])
 	return SF.weapon(&"katana", {&"k_sl": SF.held(Moves.KATANA.moves[&"k_sl"], {SF.RIGHT: key} as Dictionary[StringName, Swing.KeyPose])})
 
 
 func test_the_check_passes_a_move_that_reaches_its_distance_and_fails_one_that_falls_short() -> void:
-	# Running Draw from 4.8 m lunges 1.6 m, leaving the defender's 0.42 m
+	# the check itself (_problems(): Running Draw is off the waiting list since
+	# task 75, so the weapon's run skips it): Running Draw from 4.8 m lunges 1.6 m, leaving the defender's 0.42 m
 	# capsule, grown by half the blade, 3.2 - 0.4275 = 2.7725 m away: a point
 	# 0.45 + 1.39 m out falls short, one 1.5 + 1.39 m out reaches it
-	assert_eq(_weapon_problems(_running_draw(1.5)), [] as Array[String], "reaching")
-	assert_eq(_weapon_problems(_running_draw(0.45)), ["katana.k_sl (sprint_light): no touch from 4.8 m"] as Array[String],
+	assert_eq(_problems(_running_draw(1.5), &"k_sl"), [] as Array[String], "reaching")
+	assert_eq(_problems(_running_draw(0.45), &"k_sl"), ["katana.k_sl (sprint_light): no touch from 4.8 m"] as Array[String],
 			"falling short")

@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PARENTS, TEMPLATE, pathOf, template } from '../scripts/cascadeur/make-template.mjs';
 import { gaps, poses } from '../scripts/cascadeur/glb-pose.mjs';
+import { lane, preamble } from '../scripts/cascadeur/run.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const CLIPS = join(ROOT, 'scripts', 'cascadeur', 'clips');
@@ -106,5 +107,16 @@ describe('the GLB pose reader', () => {
     assert.ok(Math.abs(g.tip.gap - Math.SQRT2) < 1e-6);
     assert.equal(g.tip.frame, 1);
     assert.equal(g.root.gap, 0);
+  });
+});
+
+describe('the script server preamble', () => {
+  it('tells mono_csc the calling lane, which it takes the lock and keeps its tab under (milestone-1 task 76)', () => {
+    const name = lane();
+    assert.ok(name && name !== 'unknown', 'the checkout names its branch');
+    assert.ok(preamble().includes(`m.LANE = ${JSON.stringify(name)}`), 'the lane set after the module loads');
+    const lib = readFileSync(resolve(import.meta.dirname, '..', 'scripts', 'cascadeur', 'mono_csc.py'), 'utf8');
+    assert.match(lib, /setdefault\(LANE, \{\}\)/, "each lane's own state");
+    assert.doesNotMatch(lib, /STATE\['tab'\]/, 'no tab shared by every lane');
   });
 });

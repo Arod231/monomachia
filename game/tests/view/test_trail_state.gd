@@ -251,3 +251,85 @@ func test_nothing_smears_outside_an_attack_or_ultimate() -> void:
 	for row: Dictionary in _drive(W, 20, func(_i: int) -> RawInput: return H.move(0.0, 1.0)):
 		var t: TrailState = row["trail"]
 		assert_false(t.on(R) or t.on(L), "walking")
+
+
+# ------------------------------------------------------------------ the Katana's movement attacks (task 77)
+
+## The Katana's eight movement attacks, re-keyed (milestone-1 tasks 75 and
+## 76).
+const MOVEMENT: Array[StringName] = [&"k_sl", &"k_sh", &"k_dl", &"k_dh", &"k_bl", &"k_bh", &"k_jl", &"k_jh"]
+
+
+## Fighter 0 of a Katana world plays movement attack `id` (a jump attack out
+## of a jump, pressed on its third step) through its last active frame and
+## the fade, out of the other's reach (Leaping Cleave touches from 5.8 m);
+## the rows as _drive()'s.
+func _movement(id: StringName) -> Array[Dictionary]:
+	var W: World = H.make_world(Moves.KATANA, Moves.KATANA, 12.0)
+	var def: AttackDef = Moves.KATANA.moves[id]
+	var jump: bool = def.airborne
+	if not jump:
+		assert_true(W.fighters[0].start_attack(id), String(id))
+	var press: Callable = func(i: int) -> RawInput:
+		if jump and i == 0:
+			return H.move(0.0, 0.0, Btn.JUMP)
+		if jump and i == 3:
+			return H.move(0.0, 0.0, Btn.LIGHT if def.kind == &"light" else Btn.HEAVY)
+		return H.idle()
+	return _drive(W, def.startup + def.active + 8, press)
+
+
+## Each of the eight smears its blade, pale, in its strike (task 77, the
+## owner's answer of Oct 8: the air smears stay as task 37 made them), the
+## one blade only, and from its circle's start for Whirl Cut.
+func test_the_katana_s_eight_movement_attacks_each_smear_their_blade() -> void:
+	for id: StringName in MOVEMENT:
+		var def: AttackDef = Moves.KATANA.moves[id]
+		var from: int = def.smear_from if def.smear_from != AttackDef.UNSET else def.startup
+		var on: int = 0
+		var thrown: bool = false
+		for row: Dictionary in _movement(id):
+			if row["state"] != &"attack" or (row["frame"] as int) < 1:
+				continue
+			thrown = true
+			var t: TrailState = row["trail"]
+			var frame: int = row["frame"]
+			assert_false(t.on(L), "%s: one blade" % id)
+			assert_eq(t.kind, TrailState.NORMAL, "%s: a pale sheen" % id)
+			assert_eq(t.limb(R), &"", "%s: the blade, not a limb" % id)
+			if frame > from and frame <= def.startup + def.active:
+				assert_eq(t.intensity(R), 1.0, "%s frame %d: smears" % [id, frame])
+				on += 1
+			elif frame <= from:
+				assert_false(t.on(R), "%s frame %d: not yet" % [id, frame])
+		assert_true(thrown, "%s was thrown" % id)
+		assert_eq(on, def.startup + def.active - from, "%s smears through its strike" % id)
+
+
+## The blade tip's heading round the fighter on swing frame `f` (degrees).
+static func _heading(def: AttackDef, f: int) -> float:
+	var tip: V3 = def.swing.tick(&"right_hand", f).place(Swing.strike_segment(&"right_hand", Moves.KATANA).tip)
+	return rad_to_deg(atan2(tip.x, tip.z))
+
+
+## Whirl Cut's smear runs the full circle (task 77): from the frame its
+## blade passes the front to come round once more, through the strike, the
+## blade sweeps at least a whole turn, every frame of it smearing; a smear
+## from the strike alone would show a sliver of it.
+func test_whirl_cut_s_smear_runs_the_full_circle() -> void:
+	var def: AttackDef = Moves.KATANA.moves[&"k_dh"]
+	assert_ne(def.smear_from, AttackDef.UNSET, "Whirl Cut smears from its own frame")
+	assert_lt(def.smear_from, def.startup, "before its strike")
+	var swept: float = 0.0
+	var strike: float = 0.0
+	for f: int in range(def.smear_from + 1, def.startup + def.active + 1):
+		var turn: float = absf(wrapf(_heading(def, f) - _heading(def, f - 1), -180.0, 180.0))
+		swept += turn
+		if f > def.startup:
+			strike += turn
+	assert_gte(swept, 360.0, "the smear sweeps the whole circle (%.0f degrees)" % swept)
+	assert_lt(strike, 180.0, "where its strike alone sweeps %.0f degrees" % strike)
+	# no other move smears before its strike
+	for id: StringName in Moves.KATANA.moves:
+		if id != &"k_dh":
+			assert_eq(Moves.KATANA.moves[id].smear_from, AttackDef.UNSET, String(id))

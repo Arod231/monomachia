@@ -215,6 +215,29 @@ func test_a_katana_light_smears_only_in_its_strike() -> void:
 	assert_eq(view.effects.smear(1, TrailState.RIGHT).vertices().size(), 0, "the dummy never swung")
 
 
+## The Katana's eight movement attacks each leave their air smear (milestone-1
+## task 77, the plan's check): drawn in a match, the blade lays a ribbon in
+## its strike, the one blade only; the jump attacks out of a jump.
+func test_the_katana_s_eight_movement_attacks_each_leave_an_air_smear() -> void:
+	for id: StringName in [&"k_sl", &"k_sh", &"k_dl", &"k_dh", &"k_bl", &"k_bh", &"k_jl", &"k_jh"]:
+		_start()
+		var f: Fighter = host.fighter(0)
+		var def: AttackDef = Moves.KATANA.moves[id]
+		if def.airborne:
+			f._start_jump()
+			host.step(3)
+		assert_true(f.start_attack(id), String(id))
+		var laid: int = 0
+		for k: int in def.startup + def.active + 2:
+			host.step(1)
+			view.render(DT)
+			laid = maxi(laid, view.effects.smear(0, TrailState.RIGHT).sample_count())
+			assert_eq(view.effects.smear(0, TrailState.LEFT).vertices().size(), 0, "%s: one blade, one smear" % id)
+		assert_gt(laid, 0, "%s smears the air" % def.name)
+		host.queue_free()
+		await get_tree().process_frame
+
+
 ## Runs each fighter's modifier stack now, as the frame's skeleton update
 ## would: a weapon riding the clip's hands (the Katana, milestone-1 task
 ## 135) is placed there, and the next draw's smear reads it.

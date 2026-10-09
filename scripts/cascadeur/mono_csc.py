@@ -9,8 +9,9 @@
 # a GLB of the animation alone, in metres, for scripts/blender/import_casc.py.
 #
 # Each step works on this module's own scene tab (never the owner's): `tab()`
-# makes it once and keeps it across calls in builtins._mono_state, since the
-# scene manager doesn't list tabs in the order they were opened.
+# makes it once and keeps it across calls in builtins._mono_state, under the
+# calling lane's name (several lanes share the owner's one Cascadeur), since
+# the scene manager doesn't list tabs in the order they were opened.
 
 import builtins
 import json
@@ -18,7 +19,6 @@ import json
 import csc
 
 APP = csc.app.get_application()
-STATE = builtins.__dict__.setdefault('_mono_state', {})
 # Cascadeur works in centimetres: at the clips' metres the rig build fails its
 # hinge check (the hands-on test, Oct 6).
 IMPORT_SCALE = 100.0
@@ -26,7 +26,15 @@ EXPORT_SCALE = 0.01
 FPS = 30.0
 
 
+# The calling lane: run.mjs sets it from the git branch (milestone-1 task 76:
+# a name fixed here made every lane take the lock as one, and swap the others'
+# tabs mid-run).
 LANE = 'lane/m1-59-93-94-95'
+
+
+def _state():
+	"""This lane's own state, its tab, kept across calls."""
+	return builtins.__dict__.setdefault('_mono_lanes', {}).setdefault(LANE, {})
 
 
 def lock():
@@ -48,10 +56,10 @@ def unlock():
 def tab(fresh=False):
 	"""This module's scene tab, made current; a new one when `fresh`."""
 	sm = APP.get_scene_manager()
-	t = STATE.get('tab')
+	t = _state().get('tab')
 	if fresh or t is None or not any(s is t for s in sm.scenes()):
 		t = sm.create_application_scene()
-		STATE['tab'] = t
+		_state()['tab'] = t
 	sm.set_current_scene(t)
 	return t
 
@@ -60,7 +68,7 @@ def close():
 	"""Closes this module's tab, if it is open: only the very tab object
 	tab() made (tab names are reused, so never by name or position)."""
 	sm = APP.get_scene_manager()
-	t = STATE.pop('tab', None)
+	t = _state().pop('tab', None)
 	if t is not None and any(s is t for s in sm.scenes()):
 		sm.remove_application_scene(t)
 
