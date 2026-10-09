@@ -88,8 +88,10 @@
 # - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
 #   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
 #   over the ground taken out, then the whole body moved along the path
-#   (back negative), which the frame-data generator reads as travel; omit
-#   for a clip that keeps its hips;
+#   (back negative), which the frame-data generator reads as travel, after
+#   any borrowed poses (milestone-1 task 76: a jump attack carried forward
+#   through its flight, its landing borrowed); omit for a clip that keeps
+#   its hips;
 # - blend_from: {"source": path, "frame": source frame, "frames": n}: a
 #   transition (blend_from(); milestone-1 task 33's bridges and returns to
 #   guard): the clip starts in that clip's pose at that frame and carries it
@@ -1514,7 +1516,7 @@ def main():
         spin(arm, scene, length, spec["spin"])
     if spec.get("step"):
         step(arm, scene, length, spec["step"], spec.get("spin"))
-    if spec.get("carry"):
+    if spec.get("carry") and not borrowed:
         carry(arm, scene, length, spec["carry"])
     if spec.get("reach"):
         # after the step: the hand placed where the hips have gone
@@ -1535,6 +1537,10 @@ def main():
                   float(th.get("clearance", 0.0)), th.get("to_guard"), th.get("aim"))
     if borrowed:
         borrow(arm, scene, borrowed)
+        if spec.get("carry"):
+            # after the borrowed poses, whose hips would otherwise put the
+            # body back where they stood (milestone-1 task 76's jump attacks)
+            carry(arm, scene, length, spec["carry"])
     if spec.get("pose"):
         pose(arm, scene, spec["pose"])
     bpy.data.actions.remove(src_action)

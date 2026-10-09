@@ -16,9 +16,15 @@ const KEYED: Dictionary[StringName, Array] = {
 	&"k_sh": [47, 4, 42, 15, 18, 3.0, &"LeapingCleave", false], # Leaping Cleave, a long leap
 	&"k_dl": [26, 3, 31, 6, 7, 0.8, &"WindCut", true], # Wind Cut, a step into a lunge
 	&"k_dh": [41, 6, 42, 12, 14, 0.8, &"WhirlCut", false], # Whirl Cut, drifting in through a full turn
+	&"k_bl": [26, 3, 31, 6, 8, 1.5, &"RisingCut", true], # Rising Cut, a bound in off the back foot
+	&"k_bh": [43, 4, 41, 12, 14, 2.0, &"LungingCut", false], # Lunging Cut, a long lunge
+	&"k_jl": [14, 4, 12, 6, 7, 0.4, &"AerialCut", true], # Aerial Cut, carried forward through the flight
+	&"k_jh": [20, 5, 19, 13, 16, 0.4, &"FallingCrown", false], # Falling Crown, diving forward
 }
 ## The heavies, which keep a dodge cancel in the second half of their recovery.
-const HEAVIES: Array[StringName] = [&"k_sh", &"k_dh"]
+const HEAVIES: Array[StringName] = [&"k_sh", &"k_dh", &"k_bh", &"k_jh"]
+## The jump attacks, which land into their landing recovery (task 59).
+const JUMPS: Array[StringName] = [&"k_jl", &"k_jh"]
 
 
 func test_each_plays_its_keyed_clip_s_markers() -> void:
@@ -68,6 +74,18 @@ func test_the_heavies_keep_a_dodge_cancel_late_in_their_recovery() -> void:
 		var m: AttackDef = Moves.KATANA.moves[id]
 		var recovery_from: int = m.startup + m.active
 		assert_between(m.dodge_cancel_from, recovery_from + m.recovery / 2 - 2, m.startup + m.active + m.recovery, "%s: from the second half of its recovery" % m.name)
+
+
+func test_the_jump_attacks_fit_the_airtime_and_land_into_their_keyed_landing() -> void:
+	# a keyed jump attack's recovery is its landing: it holds its last active
+	# pose to the touchdown, then plays its recovery (task 59), so its row's
+	# landing is that recovery; each is carried forward through its flight
+	# (its clip's travel), the jump arc under it
+	for id: StringName in JUMPS:
+		var m: AttackDef = Moves.KATANA.moves[id]
+		assert_true(m.airborne and m.fits_airtime(), "%s: a jump attack that fits the airtime" % m.name)
+		assert_eq(m.landing, m.recovery, "%s: lands into its own recovery" % m.name)
+		assert_eq(m.landing_recovery(), KEYED[id][2], m.name)
 
 
 func test_each_plays_one_clip_for_both_grips_the_lights_one_handed() -> void:

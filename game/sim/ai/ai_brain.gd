@@ -192,6 +192,21 @@ const SPRINT_FROM: float = 3.2
 const SPRINT_LEAD: int = 10
 const SPRINT_HEAVY_FROM: float = 4.8
 const SPRINT_HEAVY_CLOSER: float = 0.35
+## An armed computer's clip-led backstep, dodge and jump attacks (the
+## Katana's, milestone-1 tasks 75 and 76), thrown as bare hands' are (tasks 93
+## and 94) from about their own bands' touch: a dodge attack from
+## LED_DODGE_ATTACK_FROM in (Wind Cut and Whirl Cut touch from 3.3 m), Rising
+## Cut from LED_BACK_LIGHT_FROM in, Lunging Cut from LED_BACK_HEAVY_FROM in (they
+## touch from 3.8 m and 5.3 m; Lunging Cut LED_BACK_HEAVY_CLOSER of the time
+## from closer too); a jump in (Aerial Cut, Falling Crown) or a
+## backstep out to counter from it LED_JUMP_IN and LED_BACK_OUT of the attacks
+## picked (out of the plain heavies' share).
+const LED_DODGE_ATTACK_FROM: float = 3.3
+const LED_BACK_LIGHT_FROM: float = 3.8
+const LED_BACK_HEAVY_FROM: float = 5.3
+const LED_JUMP_IN: float = 0.05
+const LED_BACK_OUT: float = 0.05
+const LED_BACK_HEAVY_CLOSER: float = 0.5
 
 var rng: Rng
 var _taps: Array[Tap] = []
@@ -563,6 +578,17 @@ static func sprint_led_by_clip(w: WeaponDef) -> bool:
 	return m != null and m.by_travel
 
 
+## Whether weapon `w`'s backstep and jump attacks are led by their clips
+## (re-keyed, milestone-1 task 76: the Katana's), so an armed computer
+## counters out of an evade with them and jumps in, as bare hands do.
+static func movement_led_by_clip(w: WeaponDef) -> bool:
+	for id: StringName in [w.back_light, w.back_heavy, w.jump_light, w.jump_heavy]:
+		var m: AttackDef = w.moves.get(id)
+		if m == null or not m.by_travel:
+			return false
+	return true
+
+
 ## The nearest (m, centre to centre) the computer sprints in from with
 ## weapon `w`: a clip-led sprint attack's SPRINT_FROM, else mid range.
 static func sprint_from(w: WeaponDef) -> float:
@@ -602,17 +628,23 @@ static func frames_to_impact(atk: AttackState) -> int:
 ## travel still to come and the turn toward them included), and the rest of
 ## any lift off the shoulder; -1 when it can't touch them, unblockables
 ## included. A move without a swing (a scripted hit) is timed as before: its
-## first active frame, within threatens()' reach.
+## first active frame, within threatens()' reach. A jump attack in the air is
+## judged from as near as its flight carries it by its first active frame
+## (milestone-1 task 76: the swing is played on the ground).
 static func frames_to_touch(attacker: Fighter, defender: Fighter) -> int:
 	var atk: AttackState = attacker.atk
 	var def: AttackDef = atk.def
 	var d: float = SimMath.dist2(attacker.pos, defender.pos)
+	var dx: float = defender.pos.x - attacker.pos.x
+	var dz: float = defender.pos.z - attacker.pos.z
+	if def.airborne and attacker.airborne() and d > 0.0:
+		var closing: float = (attacker.vel.x * dx + attacker.vel.z * dz) / d
+		var left: int = maxi(0, def.startup + 1 - atk.frame)
+		d = maxf(0.0, d - maxf(0.0, closing) * SimConst.DT * float(left))
 	if def.swing == null:
 		return frames_to_impact(atk) if threatens(def, d) else -1
 	var r: V2 = SimMath.right(attacker.yaw)
 	var ahead: V2 = SimMath.fwd(attacker.yaw)
-	var dx: float = defender.pos.x - attacker.pos.x
-	var dz: float = defender.pos.z - attacker.pos.z
 	var bearing: float = JsMath.atan2(dx * r.x + dz * r.z, dx * ahead.x + dz * ahead.z) / SimMath.DEG
 	var touch: SwingReach.Contact = SwingReach.first_contact_from(def, attacker.moveset(), d, bearing, defender.body,
 		atk.frame, atk.lunge_total)
@@ -677,8 +709,9 @@ func _respond_to(def: AttackDef, frame: int, to_impact: int) -> void:
 		var back: bool = rng.chance(0.4 if armed else 0.6)
 		_tap(Btn.DODGE, maxi(frame, impact - rng.int(3, 8)), 2, 0 if back else side, -1 if back else 0)
 		_set_plan(&"dodge", impact + 8)
-		# bare hands counter out of the evade (milestone-1 task 93)
-		_counter_evade = not armed and rng.chance(0.5 + P.aggression * 0.4)
+		# bare hands counter out of the evade (milestone-1 task 93), and a
+		# weapon whose movement attacks its clips lead (task 76)
+		_counter_evade = (not armed or movement_led_by_clip(me.moveset())) and rng.chance(0.5 + P.aggression * 0.4)
 
 
 ## A bare-handed evade's counter (milestone-1 tasks 93 and 94): from when the
@@ -700,18 +733,23 @@ func _follow_up(frame: int) -> void:
 	var last: bool = not evading and frame - me.dodge_end_frame >= SimConst.MOVE_FOLLOW_WINDOW - 1
 	var d: float = SimMath.dist2(me.pos, me.opp.pos)
 	var btn: int = -1
+	# an armed computer's clip-led attacks reach further (task 76)
+	var led: bool = me.armed and movement_led_by_clip(me.moveset())
 	if back:
-		if d <= BACK_LIGHT_FROM:
+		# the Katana's Lunging Cut now and then from closer too: it touches
+		# from the duelling distance (task 76)
+		if d <= (LED_BACK_LIGHT_FROM if led else BACK_LIGHT_FROM) and not (led and rng.chance(LED_BACK_HEAVY_CLOSER)):
 			btn = Btn.LIGHT
-		elif d <= BACK_HEAVY_FROM:
+		elif d <= (LED_BACK_HEAVY_FROM if led else BACK_HEAVY_FROM):
 			btn = Btn.HEAVY
-		elif last and d > DODGE_IN + 0.9 and d < DODGE_IN + DODGE_ATTACK_FROM:
+		elif not led and last and d > DODGE_IN + 0.9 and d < DODGE_IN + DODGE_ATTACK_FROM:
 			_tap(Btn.DODGE, frame, 2, 0, 1)
 			_set_plan(&"dodge", frame + SimConst.MOVE_DODGE_FRAMES + 6)
 			return
-	elif d <= DODGE_ATTACK_FROM:
-		# Spinning Backfist from a little closer in than Slip Jab
-		btn = Btn.LIGHT if d > DODGE_ATTACK_FROM - 0.25 or rng.chance(0.5) else Btn.HEAVY
+	elif d <= (LED_DODGE_ATTACK_FROM if led else DODGE_ATTACK_FROM):
+		# Spinning Backfist from a little closer in than Slip Jab; the
+		# Katana's Wind Cut or Whirl Cut either
+		btn = Btn.LIGHT if (not led and d > DODGE_ATTACK_FROM - 0.25) or rng.chance(0.5) else Btn.HEAVY
 	if btn >= 0:
 		_tap(btn, frame, 2)
 		_counter_evade = false
@@ -919,6 +957,8 @@ func _pick_attack(frame: int, _d: float) -> void:
 			unblock_slot = i
 			break
 	var r: float = rng.next()
+	# a weapon whose movement attacks its clips lead (the Katana's, task 76)
+	var led: bool = me.armed and movement_led_by_clip(w)
 	_move_x = 0.0
 	_move_y = 0.0
 	_hold_mask &= ~(1 << Btn.BLOCK)
@@ -944,6 +984,10 @@ func _pick_attack(frame: int, _d: float) -> void:
 		var finish_heavy: bool = rng.chance(0.25)
 		_start_combo(frame, length, finish_heavy)
 		_attack_cooldown_until = frame + 24 + SimMath.js_round((1.0 - P.aggression) * 40.0)
+	elif led and r < 0.55 + LED_JUMP_IN:
+		_jump_in(frame)
+	elif led and r < 0.55 + LED_JUMP_IN + LED_BACK_OUT:
+		_back_out(frame)
 	elif r < 0.8:
 		_tap(Btn.HEAVY, frame, 2)
 		if rng.chance(0.3):
@@ -955,18 +999,9 @@ func _pick_attack(frame: int, _d: float) -> void:
 		_charge_until = frame + rng.int(30, 160) + me.shoulder_lift()
 		_attack_cooldown_until = frame + 90
 	elif not me.armed and r < 0.92:
-		# bare hands jump in close (milestone-1 tasks 93 and 94): a sideways
-		# dodge carries them out of their dodge attacks' reach
-		_tap(Btn.JUMP, frame, 2, 0, 1)
-		_tap(Btn.LIGHT if rng.chance(0.55) else Btn.HEAVY, frame + 3, 2)
-		_attack_cooldown_until = frame + 50
+		_jump_in(frame)
 	elif not me.armed:
-		# or backstep out, to punish the opponent following in with a
-		# backstep attack (_follow_up(), milestone-1 task 94)
-		_tap(Btn.DODGE, frame, 2, 0, -1)
-		_set_plan(&"dodge", frame + SimConst.MOVE_BACKSTEP_FRAMES + 4)
-		_counter_evade = true
-		_attack_cooldown_until = frame + 50
+		_back_out(frame)
 	else:
 		# dodge then attack
 		var side: int = 1 if rng.chance(0.5) else -1
@@ -974,6 +1009,25 @@ func _pick_attack(frame: int, _d: float) -> void:
 		_tap(Btn.LIGHT if rng.chance(0.6) else Btn.HEAVY, frame + 14, 2)
 		_attack_cooldown_until = frame + 45
 	# void d (the parameter is _d)
+
+
+## Jumps in close and presses a jump attack 3 frames into the flight: bare
+## hands (milestone-1 tasks 93 and 94; a sideways dodge carries them out of
+## their dodge attacks' reach), the Katana into Aerial Cut or Falling Crown
+## (task 76).
+func _jump_in(frame: int) -> void:
+	_tap(Btn.JUMP, frame, 2, 0, 1)
+	_tap(Btn.LIGHT if rng.chance(0.55) else Btn.HEAVY, frame + 3, 2)
+	_attack_cooldown_until = frame + 50
+
+
+## Backsteps out to punish the opponent following in with a backstep attack
+## (_follow_up(), milestone-1 tasks 94 and 76).
+func _back_out(frame: int) -> void:
+	_tap(Btn.DODGE, frame, 2, 0, -1)
+	_set_plan(&"dodge", frame + SimConst.MOVE_BACKSTEP_FRAMES + 4)
+	_counter_evade = true
+	_attack_cooldown_until = frame + 50
 
 
 # ------------------------------------------------------------------ disarm situations

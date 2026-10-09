@@ -133,10 +133,11 @@ func test_a_landing_skips_none_of_the_attacks_frames() -> void:
 
 
 func test_a_jump_attack_holds_in_the_air_until_it_lands() -> void:
-	# Aerial Cut's stand-in frames end long before the touchdown: it stays in
-	# its attack, not back in the jump
+	# Aerial Cut's active frames end long before the touchdown (its stand-in's
+	# whole frames did; since its re-key, task 76, its recovery is its
+	# landing): it stays in its attack, not back in the jump
 	var aerial: AttackDef = Moves.KATANA.moves[&"k_jl"]
-	assert_lt(aerial.total_frames() + 1, ARMED_TOUCHDOWN, "the fixture: its frames end in the air")
+	assert_lt(aerial.startup + aerial.active + 1, ARMED_TOUCHDOWN, "the fixture: its active frames end in the air")
 	var r: Dictionary = _jump(Moves.KATANA, 1, Btn.LIGHT, ARMED_TOUCHDOWN + 1)
 	assert_false(r["states"].has(&"jump") and r["states"].rfind(&"jump") > 1, "never back in the jump after it starts")
 	assert_eq(r["states"][ARMED_TOUCHDOWN], &"attack", "attacking as it lands")

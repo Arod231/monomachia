@@ -178,12 +178,12 @@ const MOVES: Dictionary = {
 	&"k_bl": {
 		"id": &"k_bl", "name": "Rising Cut", "kind": &"light", "type": &"slash", "anim": &"diagUp",
 		"damage": 6, "posture": 8, "knockback": 0.4,
-		"range": 2.2, "arc": 100, "lunge": 1.3,
+		"range": 2.2, "arc": 100,
 	},
 	&"k_bh": {
 		"id": &"k_bh", "name": "Lunging Cut", "kind": &"heavy", "type": &"slash", "anim": &"diagDown",
 		"damage": 12, "posture": 14, "knockback": 1.0,
-		"range": 2.4, "arc": 80, "lunge": 2.3, "lunge_start": 4, "lunge_end": 20,
+		"range": 2.4, "arc": 80,
 	},
 	&"k_jl": {
 		"id": &"k_jl", "name": "Aerial Cut", "kind": &"light", "type": &"slash", "anim": &"airSlash",

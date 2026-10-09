@@ -129,7 +129,8 @@ static func without_swings(id: StringName) -> WeaponDef:
 ## stand-ins, from the frame-data table before their re-key: [startup, active,
 ## recovery, dodge cancel [from, to] (empty for none), branches]. Right Cut
 ## and Return Cut, task 31; Kesa Cut and Crown Cut, task 32; Running Draw,
-## Leaping Cleave, Wind Cut and Whirl Cut, task 75.
+## Leaping Cleave, Wind Cut and Whirl Cut, task 75; the backstep and jump
+## attacks, task 76.
 const STAND_IN_FRAMES: Dictionary = {
 	&"k_l1": [11, 3, 16, [20, 30], {&"k_l2": [16, 30], &"k_h2": [16, 30]}],
 	&"k_l2": [10, 3, 16, [19, 29], {&"k_l3": [15, 29], &"k_h1f": [15, 29]}],
@@ -139,17 +140,23 @@ const STAND_IN_FRAMES: Dictionary = {
 	&"k_sh": [20, 5, 26, [38, 51], {}],
 	&"k_dl": [9, 3, 16, [18, 28], {}],
 	&"k_dh": [18, 6, 24, [36, 48], {}],
+	&"k_bl": [10, 3, 18, [], {}],
+	&"k_bh": [18, 4, 24, [34, 46], {}],
+	&"k_jl": [7, 4, 12, [], {}],
+	&"k_jh": [12, 5, 18, [26, 35], {}],
 }
 
 
 ## The lunges and hops of the moves whose re-key retired them (their records
 ## no longer have them; the clip's travel leads them): Running Draw and
-## Leaping Cleave, Wind Cut and Whirl Cut, task 75.
+## Leaping Cleave, Wind Cut and Whirl Cut, task 75; Rising Cut and Lunging Cut, task 76.
 const STAND_IN_LUNGES: Dictionary = {
 	&"k_sl": {"lunge": 1.7, "lunge_end": 15},
 	&"k_sh": {"lunge": 2.9, "lunge_start": 4, "lunge_end": 22, "hop": 5.0},
 	&"k_dl": {"lunge": 0.5},
 	&"k_dh": {"lunge": 0.5},
+	&"k_bl": {"lunge": 1.3},
+	&"k_bh": {"lunge": 2.3, "lunge_start": 4, "lunge_end": 20},
 }
 
 

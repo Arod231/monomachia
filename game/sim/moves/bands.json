@@ -84,7 +84,6 @@
 	"waiting": {
 		"katana": [
 			"k_iai", "k_iai_h", "k_h1f", "k_rdraw", "k_h2", "k_coil",
-			"k_bl", "k_bh", "k_jl", "k_jh",
 			"k_flash", "k_thrust", "k_sweep"
 		],
 		"fists": []
