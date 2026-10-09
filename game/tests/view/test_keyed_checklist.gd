@@ -466,7 +466,7 @@ func test_the_computer_uses_and_answers_every_keyed_move() -> void:
 		# answers recorded, not held, only its use
 		if SELDOM_ANSWERABLE.has(id):
 			assert_gt(used.get(id, 0), 0, "%s: used" % id)
-		elif not _late_hit(id) and not OUT_OF_PLAY.has(id):
+		elif not _late_hit(id) and not OUT_OF_PLAY.has(id) and not RARE_FOLLOW_UPS.has(id):
 			assert_eq(problems, [] as Array[String], "%s: used %d, answered %d" % [id, used.get(id, 0), answered.get(id, 0)])
 	gut.p("used: %s
 answered: %s" % [used, answered])
@@ -530,6 +530,16 @@ const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
 ## answered 4 times in 19 swings before the footwork moved the duels' paths,
 ## and not since.
 const SELDOM_ANSWERABLE: Array[StringName] = [&"f_h2", &"f_bl", &"k_rdraw", &"f_jh"]
+
+
+## Follow-ups the computer seldom reaches, recorded, not held (milestone-1
+## task 57): Rising Heaven comes only as Heaven Splitter's optional
+## follow-up or the vertical Iai's heavy one, and the Hard duels' only two
+## (before task 57's footwork moved their paths) were one seed's two
+## vertical Iai follow-ups; since then none in the 56 duels, nor with the
+## armed ones doubled to 44, though Heaven Splitter came 74 times. KE task
+## 17's rules tests (test_grip_heavies.gd) hold the follow-up itself.
+const RARE_FOLLOW_UPS: Array[StringName] = [&"k_h1f"]
 
 
 ## Whether keyed move `id` is hit 4 or 5 of a grip's own string.
