@@ -170,12 +170,14 @@ func test_normal_never_mixes_a_string_and_hard_does() -> void:
 func test_normal_and_hard_charge_grip_heavies_off_the_branches_and_easy_never() -> void:
 	var grip_heavies: Array[StringName] = [&"k_coil", &"k_h2"]
 	var charged: Dictionary[StringName, int] = {&"easy": 0, &"normal": 0, &"hard": 0}
-	# a charge off a branch is rare: Normal and Hard play on through more seeds
-	# until one charges (any change to the computer's other moves reshuffles
-	# the seeded matches; task 75's dodge attacks did), Easy all of SEEDS
+	# a charge off a branch is rare: longer runs, as the Iai's long tail (KE
+	# task 18) leaves fewer string heavies in a run; Easy plays twice SEEDS,
+	# Normal and Hard on through more until one charges (any change to the
+	# computer's other moves reshuffles the seeded matches; task 75's dodge
+	# attacks did)
 	for difficulty: StringName in charged:
-		for seed_value: int in SEEDS if difficulty == &"easy" else SEEDS * 3:
-			var run: Array = _play(difficulty, 200 + seed_value, 1.8, true, 1500)
+		for seed_value: int in SEEDS * 2 if difficulty == &"easy" else SEEDS * 3:
+			var run: Array = _play(difficulty, 200 + seed_value, 1.8, true, 2700)
 			for id: StringName in run[2]:
 				if grip_heavies.has(id):
 					charged[difficulty] += 1

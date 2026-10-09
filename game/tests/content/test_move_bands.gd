@@ -20,9 +20,12 @@ const BANDED: Array[StringName] = [&"katana", &"fists"]
 ## The moves keyed into their bands so far, by weapon: the light string
 ## (Right Cut and Return Cut, task 31; Kesa Cut and Crown Cut, task 32),
 ## Breaker Palm (task 99), the one-handed string's own hits 1 and 2 (KE
-## task 11), and bare hands' eight movement attacks (tasks 93 and 94), light
-## string (Jab, Cross and Hook, task 89) and heavies (task 133).
-const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2", &"k_2l3", &"k_2l4", &"k_2l5", &"k_sl", &"k_sh", &"k_dl", &"k_dh", &"k_bl", &"k_bh", &"k_jl", &"k_jh"], &"fists": [&"f_breaker", &"f_l1", &"f_l2", &"f_l3", &"f_h1", &"f_h2", &"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]}
+## task 11), the two-handed grip's own five (KE tasks 13 and 14), Crescent
+## Coil (KE task 16), Heaven Splitter and Rising Heaven (KE task 17), the Katana's eight
+## movement attacks (tasks 75 and 76), and bare
+## hands' eight movement attacks (tasks 93 and 94), light string (Jab, Cross
+## and Hook, task 89) and heavies (task 133).
+const KEYED: Dictionary = {&"katana": [&"k_l1", &"k_l2", &"k_l3", &"k_l4", &"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_1l5", &"k_2l1", &"k_2l2", &"k_2l3", &"k_2l4", &"k_2l5", &"k_h1f", &"k_h2", &"k_coil", &"k_iai", &"k_iai_h", &"k_rdraw", &"k_sl", &"k_sh", &"k_dl", &"k_dh", &"k_bl", &"k_bh", &"k_jl", &"k_jh"], &"fists": [&"f_breaker", &"f_l1", &"f_l2", &"f_l3", &"f_h1", &"f_h2", &"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]}
 
 
 func _bands() -> MoveBands:
@@ -116,7 +119,7 @@ func test_every_katana_and_bare_hands_move_but_the_counter_lunges_and_the_keyed_
 			var kind: StringName = StringName(FrameDataTable.shared().row(wid, id)["kind"])
 			var keyed: bool = KEYED.get(wid, []).has(id)
 			assert_eq(bands.is_waiting(wid, id), kind != &"counter_lunge" and not keyed, "%s.%s" % [wid, id])
-	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 9, "Crescent Coil waits for its re-key (KE task 16); the movement attacks keyed (tasks 75 and 76)")
+	assert_eq(bands.waiting[&"katana"].size() + bands.waiting[&"fists"].size(), 3, "the abilities wait for theirs (family 6); the movement attacks keyed (tasks 75 and 76)")
 
 
 func test_every_banded_move_has_a_timing_band_and_every_striking_one_a_distance_band() -> void:
@@ -147,7 +150,20 @@ func test_the_timing_bands_are_the_spec_s_table() -> void:
 			# its last hit, into a kneel (KE task 14, D16)
 			&"string_last_2h": {"startup": [23, 35], "active": [3, 8], "recovery": [36, 50]},
 			&"string_heavy": {"startup": [42, 54], "active": [4, 8], "recovery": [36, 48]},
-			&"iai_draw": {"startup": [36, 48], "from_stance": [15, 21], "active": [4, 6], "recovery": [36, 48]},
+			# the one-handed grip's heavy, Elden Ring's (KE task 16): its coil
+			# held inside the startup, the cut held at full extension in the
+			# recovery
+			&"grip_heavy_1h": {"startup": [84, 96], "active": [4, 8], "recovery": [39, 51]},
+			# the two-handed grip's, Elden Ring's (KE task 17): held overhead,
+			# a long lunge into a deep crouch it rises from slowly, unless
+			# Rising Heaven rises from it (its own row) once the crouch settles
+			&"grip_heavy_2h": {"startup": [105, 120], "active": [4, 8], "recovery": [78, 96]},
+			&"grip_heavy_follow_up": {"startup": [42, 54], "active": [4, 8], "recovery": [33, 45]},
+			# each Iai draw Elden Ring's (KE task 18): the horizontal lands about
+			# 18-20 frames from the stance's release, the vertical about 24; the
+			# held extension, chiburi and resheathe their recovery
+			&"iai_draw_vertical": {"startup": [30, 36], "from_stance": [21, 27], "active": [3, 6], "recovery": [96, 120]},
+			&"iai_draw_horizontal": {"startup": [26, 30], "from_stance": [17, 21], "active": [3, 6], "recovery": [96, 120]},
 			&"iai_follow_up": {"startup": [36, 45], "active": [4, 6], "recovery": [30, 42]},
 			&"unblockable": {"startup": [48, 60], "active": [4, 6], "recovery": [36, 48]},
 			&"sprint_light": {"startup": [27, 33], "active": [4, 6], "recovery": [30, 42]},
@@ -190,7 +206,10 @@ func test_the_distance_bands_are_the_spec_s_table() -> void:
 			# the spec's table 0.5 m further out for the 1.3 m blade (KE task 2),
 			# another 0.3 m for the taller bodies (KE task 3)
 			&"string_light": [3.3, 4.05], &"string_light_1h": [3.3, 4.05], &"string_last_1h": [3.3, 4.05], &"string_light_2h": [3.3, 4.05], &"string_last_2h": [3.3, 4.05], &"string_heavy": [3.8, 4.55], &"iai_follow_up": [3.8, 4.55],
-			&"iai_draw": [4.4, 5.0], &"sprint_light": [4.8, 5.55], &"sprint_heavy": [5.8, 6.55],
+			&"grip_heavy_1h": [3.8, 4.55], &"grip_heavy_follow_up": [3.8, 4.55],
+			# Heaven Splitter's long lunge reaches as far as the unblockables (KE task 17)
+			&"grip_heavy_2h": [4.3, 5.05],
+			&"iai_draw_vertical": [4.4, 5.0], &"iai_draw_horizontal": [4.4, 5.0], &"sprint_light": [4.8, 5.55], &"sprint_heavy": [5.8, 6.55],
 			&"dodge_light": [3.3, 4.05], &"dodge_heavy": [3.3, 4.05], &"backstep_light": [3.8, 4.55],
 			&"backstep_heavy": [5.3, 6.05], &"jump_light": [2.8, 3.55], &"jump_heavy": [2.8, 3.55],
 			&"unblockable": [4.3, 5.05],
@@ -242,16 +261,20 @@ func test_the_timing_check_names_each_number_out_of_its_band() -> void:
 
 func test_the_iai_is_timed_tapped_and_from_the_stance() -> void:
 	# held, the stance holds at the charge check (frame 9) and the draw goes
-	# on from there: 45 frames tapped is 36 from the stance, out of 15-21
+	# on from there: 45 frames tapped is 36 from the stance, out of 21-27
 	var bands: MoveBands = _bands()
-	var row: Dictionary = {"kind": "iai_draw", "startup": 45, "active": 5, "recovery": 40}
+	var row: Dictionary = {"kind": "iai_draw_vertical", "startup": 45, "active": 5, "recovery": 100}
 	assert_eq(bands.timing_problems(&"katana", &"k_iai", row), [
-		"katana.k_iai (iai_draw): from the stance 36, not 15-21",
+		"katana.k_iai (iai_draw_vertical): startup 45, not 30-36",
+		"katana.k_iai (iai_draw_vertical): from the stance 36, not 21-27",
 	] as Array[String])
 	row["startup"] = 9 + 18
 	assert_eq(bands.timing_problems(&"katana", &"k_iai", row), [
-		"katana.k_iai (iai_draw): startup 27, not 36-48",
+		"katana.k_iai (iai_draw_vertical): startup 27, not 30-36",
+		"katana.k_iai (iai_draw_vertical): from the stance 18, not 21-27",
 	] as Array[String])
+	row["startup"] = 9 + 24
+	assert_eq(bands.timing_problems(&"katana", &"k_iai", row), [] as Array[String])
 
 
 func test_a_jump_attack_needs_its_landing_recovery() -> void:

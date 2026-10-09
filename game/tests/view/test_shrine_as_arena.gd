@@ -37,10 +37,11 @@ func test_a_default_match_is_fought_on_the_shrine() -> void:
 func test_computer_matches_back_fighters_against_the_wall_but_never_through_it() -> void:
 	# Whether a match reaches the wall depends on how it plays, which every
 	# rule change shifts, so seeds run until one has (at least three matches,
-	# at most fifty: since task 31's Right Cut and Return Cut, fewer matches
-	# reach it, and since task 75's sprint attacks the first thirty none),
-	# and every match run is checked. The cost: losing the wall shows only
-	# once all fifty seeds miss it.
+	# at most fifty: since task 31's Right Cut and Return Cut, and again since
+	# KE task 17's charged grip heavies and task 75's sprint attacks, fewer
+	# matches reach it; seed 49 first
+	# did then), and every match run is checked. The cost: losing the wall
+	# shows only once all fifty seeds miss it.
 	var furthest_body: float = 0.0
 	var highest_feet: float = 0.0
 	var played: int = 0

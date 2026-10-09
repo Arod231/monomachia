@@ -1,0 +1,112 @@
+{
+	"about": "Returning Draw (katana.k_rdraw), the horizontal Iai's heavy follow-up (KE task 18): from the draw's held extension out on the right (iai_draw_horizontal frame 16, blended in over 10 frames) Attack1H01_R's one-handed lunging cut back across from the right to the left, its draw-back to the right shoulder slowed (source frames 0-9 over 15, the cocked pose held 3), the strike at its own speed into the active frames 19-21 as a pushed-off lunge carries the body in, then its recovery to the settle at 39; one-handed as the pack keys it, the blade turned clear of the body. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H01_R.fbx",
+	"out": "blender/clips/returning_draw.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			15,
+			9
+		],
+		[
+			18,
+			9.5
+		],
+		[
+			19,
+			10.5
+		],
+		[
+			21,
+			14
+		],
+		[
+			23,
+			16
+		],
+		[
+			39,
+			30
+		],
+		[
+			52,
+			43
+		]
+	],
+	"blend_from": {
+		"source": "blender/clips/iai_draw_horizontal.blend",
+		"frame": 16,
+		"frames": 10
+	},
+	"one_hand": {
+		"lower": 0,
+		"clearance": 0.09
+	},
+	"step": {
+		"body": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				0
+			],
+			[
+				15,
+				0.2
+			],
+			[
+				17,
+				0.5
+			],
+			[
+				19,
+				1.0
+			],
+			[
+				21,
+				1.5
+			],
+			[
+				23,
+				1.8
+			],
+			[
+				28,
+				1.8
+			],
+			[
+				52,
+				1.8
+			]
+		],
+		"feet": {
+			"L": [
+				[
+					16,
+					22,
+					1.8,
+					0.2
+				]
+			],
+			"R": [
+				[
+					3,
+					12,
+					0.5,
+					0.16
+				],
+				[
+					17,
+					24,
+					1.3,
+					0.2
+				]
+			]
+		}
+	}
+}

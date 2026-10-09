@@ -94,14 +94,16 @@ func test_the_kept_timings_are_unchanged() -> void:
 # ------------------------------------------------------------------ a move's own values
 
 func test_today_s_stand_ins_keep_today_s_values() -> void:
-	# the string's heavy (Wind Cut, the example until task 75 re-keyed it)
-	var cut: AttackDef = Moves.KATANA.moves[&"k_h2"]
-	assert_false(cut.real_markers, "the string's heavy is a stand-in today")
-	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [26, 16, 7])
+	# Piercing Thrust (Wind Cut the example until task 75 re-keyed it, Heaven
+	# Splitter until KE task 17 did)
+	var cut: AttackDef = Moves.KATANA.moves[&"k_thrust"]
+	assert_false(cut.real_markers, "Piercing Thrust is a stand-in today")
+	assert_eq([cut.hitstun, cut.blockstun, cut.hitstop], [24, 14, 6])
 	# bare hands keep no stand-in on today's values: every attack is keyed
 	# (tasks 89, 93, 94, 99 and 133) but Counter Lunge, on the retuned light
 	# hitstun since task 22
-	assert_eq([Moves.KATANA.moves[&"k_h2"].hitstun, Moves.KATANA.moves[&"k_h2"].hitstop], [26, 7])
+	# no stand-in heavy is left: Leaping Cleave, the last, re-keyed with task
+	# 75 (Returning Draw the example until KE task 18 re-keyed it)
 	assert_same(ProtectedTimings.for_move(cut), ProtectedTimings.today())
 
 
@@ -276,12 +278,13 @@ func test_a_greatsword_knockdown_keeps_today_s_phases() -> void:
 
 func test_a_stand_in_hit_and_block_keep_today_s() -> void:
 	var W: World = _world()
-	# the string's heavy (Wind Cut until task 75 re-keyed it)
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_h2"], &"hit", false)
-	assert_eq([W.fighters[1].state_dur, W.hitstop], [26, 7])
+	# Swallow Sweep (Wind Cut until task 75 re-keyed it, Heaven Splitter
+	# until KE task 17 did): its hit knocks down, on today's hit-stop
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_sweep"], &"hit", false)
+	assert_eq([W.fighters[1].state, W.hitstop], [&"knockdown", 6])
 	W = _world()
-	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_h2"], &"block", false)
-	assert_eq([W.fighters[1].state_dur, W.hitstop], [16, 5])
+	W.apply(W.fighters[0], W.fighters[1], Moves.KATANA.moves[&"k_sweep"], &"block", false)
+	assert_eq([W.fighters[1].state_dur, W.hitstop], [14, 4])
 
 
 func test_the_re_keyed_right_cut_hits_and_is_blocked_on_the_retuned_values() -> void:

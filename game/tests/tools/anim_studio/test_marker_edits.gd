@@ -98,8 +98,8 @@ func test_a_branch_point_is_edited_in_place() -> void:
 
 func test_a_stand_in_asks_first_and_then_becomes_real_markers() -> void:
 	var s: EditSession = EditSession.new()
-	# Heaven Splitter, still a stand-in (windup 0, active 11-13, settle 27)
-	var e: MoveClips.Entry = _entry(&"katana", &"k_h2")
+	# Piercing Thrust, still a stand-in (windup 0, active 13-15, settle 27)
+	var e: MoveClips.Entry = _entry(&"katana", &"k_thrust")
 	assert_true(e.markers_stand_in)
 	var asked: MarkerEdits.Result = MarkerEdits.set_move_marker(s, MOVES_FILE, &"katana", e, "active_start", 12)
 	assert_eq(asked.question, MarkerEdits.STAND_IN_QUESTION)
@@ -111,9 +111,9 @@ func test_a_stand_in_asks_first_and_then_becomes_real_markers() -> void:
 	_write(MOVES_FILE, text)
 	var read: MoveClips = MoveClips.read(ClipManifest.read(), MOVES_FILE)
 	assert_eq(read.errors, PackedStringArray())
-	assert_false(read.of(&"katana")[&"k_h2"].markers_stand_in, "the flag goes")
-	assert_true(is_nan(read.of(&"katana")[&"k_h2"].speed), "and its retime's speed: it plays at 1.0x (task 19)")
-	assert_eq(read.of(&"katana")[&"k_h2"].markers["active_start"], 12.0)
+	assert_false(read.of(&"katana")[&"k_thrust"].markers_stand_in, "the flag goes")
+	assert_true(is_nan(read.of(&"katana")[&"k_thrust"].speed), "and its retime's speed: it plays at 1.0x (task 19)")
+	assert_eq(read.of(&"katana")[&"k_thrust"].markers["active_start"], 12.0)
 	var next: MarkerEdits.Result = MarkerEdits.set_move_marker(s, MOVES_FILE, &"katana", e, "active_end", 14)
 	assert_eq(next.question, "", "real now, so the next edit asks nothing")
 	s.undo()

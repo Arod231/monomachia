@@ -80,45 +80,45 @@ func _no_libraries(_parent: Node) -> Dictionary:
 	return {"code": 2, "errors": PackedStringArray(["no clip libraries"])}
 
 
-## Heaven Splitter's (a stand-in) active frames moved to source frames 12-13: real
-## markers, 24/2/28.
-static func _edit_heaven_splitter(session: EditSession) -> void:
-	var e: MoveClips.Entry = MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_h2"]
-	var r: MarkerEdits.Result = MarkerEdits.set_move_marker(session, MOVES, &"katana", e, "active_start", 12, true)
+## Piercing Thrust's (a stand-in) active frames moved to source frames
+## 14-15: real markers, 28/2/24.
+static func _edit_piercing_thrust(session: EditSession) -> void:
+	var e: MoveClips.Entry = MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_thrust"]
+	var r: MarkerEdits.Result = MarkerEdits.set_move_marker(session, MOVES, &"katana", e, "active_start", 14, true)
 	session.apply(r.edits, r.label)
 
 
 func test_markers_in_the_regenerated_table_and_the_out_of_band_report_out() -> void:
 	var session: EditSession = EditSession.new()
-	_edit_heaven_splitter(session)
+	_edit_piercing_thrust(session)
 	var r: StudioSaver.Result = _saver(_generate).save(session, self)
 	assert_eq(r.written, PackedStringArray([MOVES]))
 	assert_true(r.regenerated)
 	assert_eq(_calls, 1)
-	assert_eq(FrameDataTable.read(TABLE).row(&"katana", &"k_h2")["startup"], 24.0, "the table regenerated")
-	assert_eq(r.changed, PackedStringArray(["katana.k_h2: 22/4/28 -> 24/2/28"]))
-	assert_has(r.out_of_band, "katana.k_h2 (string_heavy): startup 24, not 42-54 (waiting for its family)")
-	assert_has(r.out_of_band, "katana.k_h2 (string_heavy): active 2, not 4-8 (waiting for its family)")
+	assert_eq(FrameDataTable.read(TABLE).row(&"katana", &"k_thrust")["startup"], 28.0, "the table regenerated")
+	assert_eq(r.changed, PackedStringArray(["katana.k_thrust: 26/4/24 -> 28/2/24"]))
+	assert_has(r.out_of_band, "katana.k_thrust (unblockable): startup 28, not 48-60 (waiting for its family)")
+	assert_has(r.out_of_band, "katana.k_thrust (unblockable): active 2, not 4-6 (waiting for its family)")
 	assert_true(r.soak_due)
 	assert_has(r.report(), StudioSaver.SOAK_DUE)
 	assert_eq(session.dirty_files(), PackedStringArray(), "saved edits aren't pending")
-	assert_false(MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_h2"].markers_stand_in, "the file says so")
+	assert_false(MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_thrust"].markers_stand_in, "the file says so")
 	assert_false(FileAccess.file_exists(MOVES + StudioSaver.TMP_SUFFIX), "the temporary file is gone")
 
 
 func test_a_move_off_the_waiting_list_is_reported_as_failing_ci() -> void:
 	var session: EditSession = EditSession.new()
-	_edit_heaven_splitter(session)
+	_edit_piercing_thrust(session)
 	var saver: StudioSaver = _saver(_generate)
 	saver.bands = MoveBands.read()
-	saver.bands.waiting[&"katana"].erase(&"k_h2")
+	saver.bands.waiting[&"katana"].erase(&"k_thrust")
 	var r: StudioSaver.Result = saver.save(session, self)
-	assert_has(r.out_of_band, "katana.k_h2 (string_heavy): startup 24, not 42-54 (CI will fail)")
+	assert_has(r.out_of_band, "katana.k_thrust (unblockable): startup 28, not 48-60 (CI will fail)")
 
 
 func test_a_file_changed_on_disk_is_refused_and_its_edits_kept() -> void:
 	var session: EditSession = EditSession.new()
-	_edit_heaven_splitter(session)
+	_edit_piercing_thrust(session)
 	var before: String = session.original(MOVES)
 	_write(MOVES, before + " ")
 	var r: StudioSaver.Result = _saver(_generate).save(session, self)
@@ -131,7 +131,7 @@ func test_a_file_changed_on_disk_is_refused_and_its_edits_kept() -> void:
 
 func test_a_refusing_generator_undoes_the_save_byte_for_byte() -> void:
 	var session: EditSession = EditSession.new()
-	_edit_heaven_splitter(session)
+	_edit_piercing_thrust(session)
 	var moves_text: String = FileAccess.get_file_as_string(MOVES)
 	var table_text: String = FileAccess.get_file_as_string(TABLE)
 	var r: StudioSaver.Result = _saver(_refuse).save(session, self)
@@ -145,7 +145,7 @@ func test_a_refusing_generator_undoes_the_save_byte_for_byte() -> void:
 
 func test_without_the_clip_libraries_the_data_are_saved_and_the_report_says_so() -> void:
 	var session: EditSession = EditSession.new()
-	_edit_heaven_splitter(session)
+	_edit_piercing_thrust(session)
 	var table_text: String = FileAccess.get_file_as_string(TABLE)
 	var r: StudioSaver.Result = _saver(_no_libraries).save(session, self)
 	assert_eq(r.written, PackedStringArray([MOVES]))
@@ -157,7 +157,7 @@ func test_without_the_clip_libraries_the_data_are_saved_and_the_report_says_so()
 
 func test_a_chain_and_a_clip_marker_save_together() -> void:
 	var session: EditSession = EditSession.new()
-	var e: MoveClips.Entry = MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_iai"]
+	var e: MoveClips.Entry = MoveClips.read(ClipManifest.read(), MOVES).of(&"katana")[&"k_flash"]
 	var rows: Array[ChainEdits.Row] = ChainEdits.rows_of(ChainEdits.current(session, MOVES, &"katana", e))
 	rows[0].from = 4.0
 	var chain: MarkerEdits.Result = ChainEdits.set_chain(session, MOVES, &"katana", e, rows, ClipManifest.read(MANIFEST))
@@ -167,8 +167,8 @@ func test_a_chain_and_a_clip_marker_save_together() -> void:
 	session.apply(clip.edits, clip.label)
 	var r: StudioSaver.Result = _saver(_generate).save(session, self)
 	assert_eq(r.written, PackedStringArray([MOVES, MANIFEST]))
-	var read: MoveClips.Entry = MoveClips.read(ClipManifest.read(MANIFEST), MOVES).of(&"katana")[&"k_iai"]
-	assert_eq(String(read.clips[0]), "SheatheHips01_R@4-12")
+	var read: MoveClips.Entry = MoveClips.read(ClipManifest.read(MANIFEST), MOVES).of(&"katana")[&"k_flash"]
+	assert_eq(String(read.clips[0]), "Parry1H01_R_Loop@4-20")
 	assert_eq(ClipManifest.read(MANIFEST).clips[&"Attack1H01_R"].markers["settle"], base["settle"] + 1)
 	assert_eq(r.changed, PackedStringArray(), "no move's markers changed, so no frame data")
 	assert_false(r.soak_due)

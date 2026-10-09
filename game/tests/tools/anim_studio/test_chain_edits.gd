@@ -57,10 +57,10 @@ func test_a_held_part_is_kept_and_none_is_added() -> void:
 
 
 func test_a_saved_chain_has_no_speed_or_hold() -> void:
-	# a chain built in the panel: parts and ranges, nothing else (on Heaven
-	# Splitter, a stand-in with a retime's speed)
+	# a chain built in the panel: parts and ranges, nothing else (on Piercing
+	# Thrust, a stand-in with a retime's speed)
 	var s: EditSession = EditSession.new()
-	var e: MoveClips.Entry = _entry(&"katana", &"k_h2")
+	var e: MoveClips.Entry = _entry(&"katana", &"k_thrust")
 	var a: ChainEdits.Row = ChainEdits.Row.new()
 	a.clip = "Attack1H01_R"
 	a.to = 20.0
@@ -74,7 +74,7 @@ func test_a_saved_chain_has_no_speed_or_hold() -> void:
 			assert_false(str(part).contains("*"), "no hold: %s" % part)
 	s.apply(r.edits, r.label)
 	var text: String = s.text_for(MoveClips.PATH, s.original(MoveClips.PATH))
-	assert_true(text.contains("\"k_h2\": {\"clips\": [\"Attack1H01_R@0-20\", \"ual/Sword_Light_A\"], \"speed\": 1.25"), "the speed left as it was, for task 19")
+	assert_true(text.contains("\"k_thrust\": {\"clips\": [\"Attack1H01_R@0-20\", \"ual/Sword_Light_A\"], \"speed\": 1.15"), "the speed left as it was, for task 19")
 
 
 func test_a_bad_part_is_refused() -> void:

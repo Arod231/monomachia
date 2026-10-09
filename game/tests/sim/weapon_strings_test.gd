@@ -17,6 +17,8 @@ const LIGHT_OR_HEAVY: Array[int] = [Btn.LIGHT, Btn.HEAVY]
 ## when nearer, _gap()), and how many steps a string plays for.
 const GAP: float = 2.2
 const STEPS: int = 240
+## How many steps a string plays for when it is played to its end.
+const STOP_STEPS: int = 480
 ## How far apart the fighters start for a string to whiff (m).
 const WHIFF_GAP: float = 10.0
 
@@ -114,7 +116,9 @@ func _assert_starts_nothing_in(presses: Array[int], swings: Array[StringName], b
 ## string then stops: its last move, one of the spec's rows, ends on startup
 ## + active + recovery, leaving the fighter free.
 func _assert_stops_after(presses: Array[int], mx: float = 0.0) -> void:
-	var r: PlayedString = _play(presses, _gap(), mx)
+	# long enough for a string ending on a long heavy (Heaven Splitter's 200
+	# frames, KE task 17) to play out
+	var r: PlayedString = PlayedString.play(weapon, presses, _gap(), mx, &"", -1, STOP_STEPS)
 	var what: String = "%s%s" % [_named(presses), " sideways" if mx != 0.0 else ""]
 	var hits: Array[StringName] = r.ids(&"hit")
 	assert_eq(hits.size(), presses.size(), "every press of %s hits" % what)

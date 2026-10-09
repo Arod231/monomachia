@@ -84,10 +84,10 @@ func test_every_move_appears_once_in_its_weapons_group_in_table_order() -> void:
 
 func test_a_move_entry_carries_the_tables_clips_speed_and_the_rules_name() -> void:
 	var cat: StudioCatalogue = _build()
-	var e: StudioCatalogue.Entry = cat.find(&"move", &"k_iai")
-	var m: MoveClips.Entry = _table.moves[&"katana"][&"k_iai"]
+	var e: StudioCatalogue.Entry = cat.find(&"move", &"k_flash")
+	var m: MoveClips.Entry = _table.moves[&"katana"][&"k_flash"]
 	assert_eq(e.group, &"katana", "the katana's group")
-	assert_eq(e.name, (Moves.WEAPONS[&"katana"] as WeaponDef).moves[&"k_iai"].name, "the rules' display name")
+	assert_eq(e.name, (Moves.WEAPONS[&"katana"] as WeaponDef).moves[&"k_flash"].name, "the rules' display name")
 	var clips: Array[String] = []
 	clips.assign(m.clips)
 	assert_eq(e.clips, clips, "a chain keeps its parts")

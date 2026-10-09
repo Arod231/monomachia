@@ -256,12 +256,13 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 	var rows: Dictionary[StringName, Array] = {}
 	var free: int = 0
 	for m: Array in ChecklistResults.keyed_moves():
-		var clip: StringName = (Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0] if m[0] != &"fists" else &""
+		# a chain's first part's clip (the Iai's, KE task 18)
+		var clip: StringName = ClipChain.parse(String((Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0]), [] as Array[String]).id if m[0] != &"fists" else &""
 		if clip != &"" and sc.one_handed(m[0], clip):
 			ChecklistResults.record_problems(10, m[1], [] as Array[String])
 			free += 1
 		elif m[0] != &"fists":
-			rows[m[1]] = [(Moves.WEAPONS[m[0]] as WeaponDef).moves[m[1]].swing.clips[0]]
+			rows[m[1]] = [clip]
 	var clip_rows: Dictionary[StringName, Array] = ChecklistResults.clip_rows()
 	rows[&"clip_deflect_light"] = clip_rows[&"clip_deflect_light"]
 	rows[&"clip_block_light"] = clip_rows[&"clip_block_light"]
@@ -297,5 +298,5 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 		else:
 			ChecklistResults.record_problems(10, row, by_clip.values()[0])
 	gut.p("the keyed clips' off hand, worst over every rules frame:\n" + "\n".join(lines))
-	assert_eq(worst.size(), 26, "four lights, four pairs, the block, Crouching Crown and the two-handed string's own five (KE tasks 12-14), Leaping Cleave and Whirl Cut (task 75), Lunging Cut and Falling Crown (task 76), the redirected attacker's recoil and the blade's two deflects at a limb (milestone-1 task 90), their off hand on the grip")
-	assert_eq(free, 8, "the one-handed grip's own hits 1 to 4 (KE tasks 11 and 12), Running Draw and Wind Cut (task 75), Rising Cut and Aerial Cut (task 76), the off hand free")
+	assert_eq(worst.size(), 28, "four lights, four pairs, the block, Crouching Crown and the two-handed string's own five (KE tasks 12-14), the redirected attacker's recoil and the blade's two deflects at a limb (milestone-1 task 90), Heaven Splitter and Rising Heaven (KE task 17), Leaping Cleave, Whirl Cut, Lunging Cut and Falling Crown (tasks 75 and 76), their off hand on the grip")
+	assert_eq(free, 12, "the one-handed grip's own hits 1 to 4 (KE tasks 11 and 12), Crescent Coil (KE task 16), and the Iai's draws and Returning Draw (KE task 18), Running Draw, Wind Cut, Rising Cut and Aerial Cut (tasks 75 and 76), the off hand free")

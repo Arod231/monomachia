@@ -185,6 +185,11 @@ var by_travel: bool = false
 ## its touchdown to free, its row's `landing` once its clip is keyed; UNSET
 ## for a stand-in, which lands into its recovery (landing_recovery())
 var landing: int = UNSET
+## the attack frame a chargeable move's charge holds on (KE task 16: a grip
+## heavy at its own pose, the coil or the blade overhead), its row's `hold`
+## once its clip is keyed; UNSET for today's frame (Fighter.CHARGE_CHECK_FRAME,
+## the Iai's sheathe end)
+var charge_hold: int = UNSET
 ## the weapon the move belongs to (finalize_moves() sets it from its weapon,
 ## or a record names it, as the scripted ultimate hits do): it picks the
 ## move's protected timings (ProtectedTimings, milestone-1 task 22)
@@ -208,10 +213,10 @@ const KEYS: Array[String] = [
 	"jumpable", "undodgeable", "power", "chain_light", "chain_heavy", "dodge_cancel_from",
 	"dodge_cancel_to", "multi_hit", "multi_interval", "airborne", "guard_crush", "special", "chargeable",
 	"sound", "trail", "smear", "invuln", "hop", "side_start", "side_end", "charge_move",
-	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "landing", "weapon", "grip", "swing",
+	"release_variant", "lunge_along_dodge", "travel", "real_markers", "branches", "by_travel", "landing", "charge_hold", "weapon", "grip", "swing",
 ]
 ## The fields a weapon's move takes from its row of the frame-data table.
-const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches", "by_travel", "landing"]
+const TABLE_FIELDS: Array[String] = ["startup", "active", "recovery", "dodge_cancel_from", "dodge_cancel_to", "travel", "real_markers", "branches", "by_travel", "landing", "charge_hold"]
 
 
 ## Builds an AttackDef from a move record (snake_case keys). Missing keys keep
@@ -276,6 +281,7 @@ static func from_dict(d: Dictionary) -> AttackDef:
 		m.branches[StringName(follow)] = PackedInt32Array(windows[follow])
 	m.by_travel = bool(d.get("by_travel", false))
 	m.landing = int(d.get("landing", UNSET))
+	m.charge_hold = int(d.get("charge_hold", UNSET))
 	m.weapon = StringName(d.get("weapon", &""))
 	m.grip = StringName(d.get("grip", &""))
 	m.swing = d.get("swing", null)
@@ -377,6 +383,10 @@ static func _take_row(m: Dictionary, row: Dictionary, move_id: StringName, weapo
 		m["landing"] = int(row["landing"])
 	else:
 		m.erase("landing")
+	if row.has("hold"):
+		m["charge_hold"] = int(row["hold"])
+	else:
+		m.erase("charge_hold")
 	m["by_travel"] = led_by_clip(weapon, bool(row.get("stand_in", false)), StringName(m.get("special", &"")))
 
 

@@ -807,14 +807,15 @@ func test_the_transitions_are_optional_and_checked() -> void:
 	# milestone-1 task 33: the Katana's keyed guard, the light string's
 	# bridges by the move each follows, and each light's return to guard;
 	# KE task 15: both grips' strings' too, but for the pairs whose clips
-	# already meet, and each hit's return into its own grip's guard
+	# already meet, and each hit's return into its own grip's guard; KE task
+	# 18: the horizontal Iai's into each grip's hit 3
 	var live: StateClips = StateClips.read()
 	assert_eq(live.idle[&"katana"], &"KatanaGuard", "the Katana's keyed guard idle")
 	assert_eq(live.bridges, {&"k_l2": {&"k_l1": &"RightCutToReturnCut"}, &"k_l3": {&"k_l2": &"ReturnCutToKesaCut"},
 		&"k_l4": {&"k_l3": &"KesaCutToCrownCut"},
-		&"k_1l2": {&"k_1l1": &"SlantingCutToBackhandRise"}, &"k_1l3": {&"k_1l2": &"BackhandRiseToTwistingRise"},
+		&"k_1l2": {&"k_1l1": &"SlantingCutToBackhandRise"}, &"k_1l3": {&"k_1l2": &"BackhandRiseToTwistingRise", &"k_iai_h": &"IaiDrawHorizontalToTwistingRise"},
 		&"k_1l5": {&"k_1l4": &"LevelCutToCrouchingCrown"},
-		&"k_2l3": {&"k_2l2": &"LeftRiseToRightRise"}, &"k_2l4": {&"k_2l3": &"RightRiseToSecondSlant"},
+		&"k_2l3": {&"k_2l2": &"LeftRiseToRightRise", &"k_iai_h": &"IaiDrawHorizontalToRightRise"}, &"k_2l4": {&"k_2l3": &"RightRiseToSecondSlant"},
 		&"k_2l5": {&"k_2l4": &"SecondSlantToKneelingCrown"}}, "a bridge for each follow-up pair of the strings whose clips don't meet")
 	assert_eq(live.meets, {&"k_1l4": &"k_1l3", &"k_2l2": &"k_2l1"} as Dictionary[StringName, StringName],
 		"Level Cut and Left Rise go on from the clip before them (their re-keys' goes_on_from)")

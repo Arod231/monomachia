@@ -492,10 +492,11 @@ func _carry_of(anim_name: String, time: float) -> Vector3:
 ## as the director says (Shot.legs_free(), task 18), and under a charging
 ## attack's held clip (the Iai's stance, stood and walked in at the blocking
 ## walk's speed; task 11) all of them through the charge, handed over
-## LEGS_RAMP frames each way, as it starts and once it is let go.
+## LEGS_RAMP frames each way, as it starts and once it is let go. A grip
+## heavy charging at its own pose keeps its clip's legs (KE task 16).
 func _legs_free(f: Fighter) -> float:
 	var carried: float = shot.legs_free() if shot != null else 0.0
-	if f.state != &"attack" or f.atk == null or f.atk.charge_frames <= 0:
+	if f.state != &"attack" or f.atk == null or f.atk.charge_frames <= 0 or not f.atk.def.charge_move:
 		return carried
 	if f.atk.charging:
 		return clampf(float(f.atk.charge_frames) / LEGS_RAMP, 0.0, 1.0)

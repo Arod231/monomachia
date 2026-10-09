@@ -1,0 +1,7 @@
+{
+	"about": "Heaven Splitter's held charge (KE task 17): its own clip there and back from frame 30, where the charge holds, the blade drifting a little further back over the head to frame 31.5 and back over a second, looped while heavy is held (D9).",
+	"source": "blender/clips/heaven_splitter.blend",
+	"out": "blender/clips/heaven_splitter_hold.blend",
+	"loop": true,
+	"remap": [[0, 30], [15, 31.5], [30, 30]]
+}

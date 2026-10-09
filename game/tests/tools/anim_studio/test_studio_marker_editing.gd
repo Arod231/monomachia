@@ -80,8 +80,8 @@ func test_an_out_of_order_marker_is_refused_and_says_why() -> void:
 
 
 func test_a_stand_in_move_asks_before_its_markers_become_real() -> void:
-	# Heaven Splitter, still a stand-in (active 11-13)
-	var studio: AnimStudio = await _open(StudioCatalogue.KIND_MOVE, &"k_h2")
+	# Piercing Thrust, still a stand-in (active 13-15)
+	var studio: AnimStudio = await _open(StudioCatalogue.KIND_MOVE, &"k_thrust")
 	var editor: StudioEditor = studio.editor
 	editor.set_marker("active_start", 12.0)
 	var question: ConfirmationDialog = editor.get_node("StandInQuestion")
@@ -90,12 +90,12 @@ func test_a_stand_in_move_asks_before_its_markers_become_real() -> void:
 	assert_eq(editor.session.dirty_files(), PackedStringArray(), "nothing yet")
 	question.confirmed.emit()
 	assert_eq(editor.timeline.markers["active_start"], 12.0)
-	assert_false(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_h2", true), "real markers now")
+	assert_false(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_thrust", true), "real markers now")
 	editor.undo()
-	assert_true(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_h2", true), "undo puts the stand-ins back")
+	assert_true(MarkerEdits.is_stand_in(editor.session, editor.moves_file, &"katana", &"k_thrust", true), "undo puts the stand-ins back")
 	editor.set_marker("active_start", 12.0)
 	question.canceled.emit()
-	assert_eq(editor.timeline.markers["active_start"], 11.0, "no keeps them")
+	assert_eq(editor.timeline.markers["active_start"], 13.0, "no keeps them")
 
 
 func test_a_clip_s_own_markers_are_edited_in_whole_frames() -> void:

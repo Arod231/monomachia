@@ -1,0 +1,20 @@
+{
+	"about": "The Iai's held stance (KE task 18): iai_stance's frames 6 to 12 there and back, the crouch settling and breathing while heavy is held. Source frames of iai_stance.",
+	"source": "blender/clips/iai_stance.blend",
+	"out": "blender/clips/iai_stance_hold.blend",
+	"loop": true,
+	"remap": [
+		[
+			0,
+			6
+		],
+		[
+			15,
+			12
+		],
+		[
+			30,
+			6
+		]
+	]
+}

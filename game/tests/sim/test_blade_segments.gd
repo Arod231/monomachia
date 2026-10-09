@@ -147,7 +147,8 @@ func test_the_segment_holds_in_a_charge_and_through_extra_recovery() -> void:
 	var charged: int = 0
 	var past_the_end: int = 0
 	var last: BladeSegment = null
-	for i: int in 120:
+	# long enough for Elden Ring's draw's long tail (KE task 18)
+	for i: int in 260:
 		W.step([H.btn(Btn.HEAVY) if i < 50 else H.idle(), H.idle()])
 		if f.state != &"attack":
 			break
