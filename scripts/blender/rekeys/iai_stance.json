@@ -1,0 +1,39 @@
+{
+	"about": "The Iai Slash's sheathe and stance (katana.k_iai, KE task 18), Elden Ring's: Moonsplitter's sheathe (SheatheHips01_R from the two-handed guard, blended in over 2 frames) at the Iai's pace, the blade in the saya at the left hip by frame 4.5 (the rules' charge check, frame 9), then the hand held on the hilt in a crouched stance (the hips dropped and the chest bent by frame 5, held) to frame 16, which the held stance loops over (iai_stance_hold); a draw (iai_draw_vertical, iai_draw_horizontal) takes over from frame 5. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Misc/Unsheathe/HumanM@SheatheHips01_R.fbx",
+	"out": "blender/clips/iai_stance.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			1.5,
+			2
+		],
+		[
+			4.5,
+			10
+		],
+		[
+			6,
+			12
+		],
+		[
+			16,
+			13
+		]
+	],
+	"blend_from": {
+		"source": "blender/clips/katana_guard.blend",
+		"frame": 0,
+		"frames": 2
+	},
+	"lower": {
+		"drop": 0.2,
+		"bend": 14,
+		"from": 2,
+		"peak": 5,
+		"hold": true
+	}
+}

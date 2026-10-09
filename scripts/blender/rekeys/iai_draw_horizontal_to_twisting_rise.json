@@ -1,0 +1,20 @@
+{
+	"about": "The bridge from the horizontal Iai into Twisting Rise (katana.k_iai_h into katana.k_1l3, its grip's hit 3), KE task 18, as KE task 15's: Twisting Rise's first 8 frames, starting in the horizontal draw's pose at the light follow-up's branch point (iai_draw_horizontal frame 20, the blade held out on the right) and carried into Twisting Rise's own wind-up, the feet where Twisting Rise has them. Played over the follow-up's first frames when it starts at its branch point, handing on to Twisting Rise's clip at frame 8, before its active frames; picture only. Source frames at 30 fps from 0.",
+	"source": "blender/clips/twisting_rise.blend",
+	"out": "blender/clips/iai_draw_horizontal_to_twisting_rise.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			8,
+			8
+		]
+	],
+	"blend_from": {
+		"source": "blender/clips/iai_draw_horizontal.blend",
+		"frame": 20,
+		"frames": 8
+	}
+}

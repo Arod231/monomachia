@@ -35,8 +35,9 @@ extends RefCounted
 ## (task 7), and what it was baked from for the view to play (task 8):
 ## "clips" (clip-manifest ids), "speed", "marks" (the four markers, source
 ## frames, a fifth for a held clip's hold) and "fallback" (a CC0 clip; see
-## Swing.clips), and "sheathed" (the first and last attack frames the blade
-## is in the saya, before the active frames; Swing.sheathed), and "loop"
+## Swing.clips), and "sheathed" (the first and last attack frames of each
+## stretch the blade is in the saya, in order, none over the active frames;
+## Swing.sheathed), and "loop"
 ## (the clip a held charge loops; Swing.loop, milestone-1 task 19). The bake
 ## writes these files with a stable key order and fixed decimals.
 
@@ -183,11 +184,10 @@ static func _swing(record: Variant, move: AttackDef, where: String, guard: Dicti
 			swing.fallback = StringName(d["fallback"])
 	if d.has("sheathed"):
 		var sh: Variant = d["sheathed"]
-		if not sh is Array or (sh as Array).size() != 2 or not (sh as Array).all(func(x: Variant) -> bool: return _is_number(x)) \
-				or int(sh[0]) < 0 or int(sh[1]) < int(sh[0]) or int(sh[1]) >= move.startup:
-			errors.append("%s: sheathed must be two attack frames, the first no later than the second, both before the active frames" % where)
+		if not _sheathed_ok(sh, move):
+			errors.append("%s: sheathed must be pairs of attack frames, each first no later than its second, in order, none over the active frames" % where)
 		else:
-			swing.sheathed = PackedInt32Array([int(sh[0]), int(sh[1])])
+			swing.sheathed = PackedInt32Array((sh as Array).map(func(x: Variant) -> int: return int(x)))
 	if d.has("loop"):
 		if not d["loop"] is String:
 			errors.append("%s: loop must be a clip name" % where)
@@ -346,3 +346,20 @@ static func _vector(d: Dictionary, field: String, where: String, errors: Array[S
 		errors.append("%s: %s must be three numbers [right, up, forward]" % [where, field])
 		return V3.make()
 	return V3.make(float(v[0]), float(v[1]), float(v[2]))
+
+
+## Whether `sh` is a swing's "sheathed": pairs of attack frames [in, out, ...],
+## each in no later than its out and after the pair before, none over
+## `move`'s active frames.
+static func _sheathed_ok(sh: Variant, move: AttackDef) -> bool:
+	if not sh is Array or (sh as Array).is_empty() or (sh as Array).size() % 2 != 0 			or not (sh as Array).all(func(x: Variant) -> bool: return _is_number(x)):
+		return false
+	var a: Array = sh
+	for i: int in range(0, a.size(), 2):
+		var from: int = int(a[i])
+		var to: int = int(a[i + 1])
+		if from < 0 or to < from or (i > 0 and from <= int(a[i - 1])):
+			return false
+		if from < move.startup + move.active and to >= move.startup:
+			return false
+	return true

@@ -51,12 +51,12 @@ const ATTACK_BRAKE: float = 0.8
 
 ## Kept from the demo: a lunge stops with the two bodies this far apart.
 const LUNGE_GAP: float = 0.25
-## The Iai Slash (the Katana's heavy), tapped, from the spec's Katana notes:
-## it lunges over its frames 10 to 25, and its cut lands on frame 24, after
-## 23 frames of startup. The lunge is 2.1 m since its clip (authored-animation
-## task 11), from 0.4, so its blade reaches as the old 3.6 m cone did.
-const IAI_LUNGE: float = 2.1
-const IAI_STARTUP: int = 23
+## Twin Fang (the Daggers' heavy), tapped, as the demo has it: it lunges
+## 1.4 m over its frames 1 to 24, and its cut lands on frame 23, after 22
+## frames of startup. (The Iai Slash showed the lunge until Elden Ring's
+## draws, KE task 18, made its step its clip's.)
+const FANG_LUNGE: float = 1.4
+const FANG_STARTUP: int = 22
 
 
 func after_each() -> void:
@@ -283,33 +283,35 @@ func test_a_hop_attack_keeps_all_its_speed() -> void:
 func test_a_lunge_eases_in_and_out_over_the_same_window_and_distance() -> void:
 	# thrown at a standstill 10 m from the opponent, so all its movement is the
 	# lunge
-	var s: FighterSteps = _record(Moves.KATANA, 10.0, 60, func(i: int) -> RawInput:
+	var s: FighterSteps = _record(Moves.DAGGERS, 10.0, 60, func(i: int) -> RawInput:
 		return H.btn(Btn.HEAVY) if i == 0 else H.idle())
 	var steps: PackedFloat64Array = []
 	var frames: PackedInt32Array = []
 	for i: int in s.moved.size():
-		if s.attack[i] == &"k_iai" and s.moved[i] > 0.0:
+		if s.attack[i] == &"d_h1" and s.moved[i] > 0.0:
 			steps.append(s.moved[i])
 			frames.append(s.frame[i])
-	assert_eq(frames, PackedInt32Array(range(10, 26)), "it moves on frames 10 to 25 and no others")
-	assert_almost_eq(_total(steps), IAI_LUNGE, 1e-9, "2.1 m in all")
-	for k: int in 7:
+	assert_eq(frames, PackedInt32Array(range(1, 25)), "it moves on frames 1 to 24 and no others")
+	if steps.size() != 24:
+		return
+	assert_almost_eq(_total(steps), FANG_LUNGE, 1e-9, "1.4 m in all")
+	for k: int in 11:
 		assert_lt(steps[k], steps[k + 1], "the steps rise to the middle (frame %d)" % frames[k + 1])
-		assert_gt(steps[8 + k], steps[9 + k], "then fall (frame %d)" % frames[9 + k])
-	var even_step: float = IAI_LUNGE / 16.0
+		assert_gt(steps[12 + k], steps[13 + k], "then fall (frame %d)" % frames[13 + k])
+	var even_step: float = FANG_LUNGE / 24.0
 	assert_lt(steps[0], even_step / 4.0, "it starts slower than a quarter of an even step")
-	assert_lt(steps[15], even_step / 4.0, "and settles as slowly")
+	assert_lt(steps[23], even_step / 4.0, "and settles as slowly")
 
 
 func test_a_lunge_into_a_defender_still_stops_0_25_m_clear_of_their_body() -> void:
-	# 1.3 m apart, so the Iai's lunge would carry the attacker into the
+	# 1.3 m apart, so Twin Fang's lunge would carry the attacker into the
 	# defender. The gap is measured until the cut lands, which knocks the
 	# defender back.
-	var s: FighterSteps = _record(Moves.KATANA, 1.3, 30, func(i: int) -> RawInput:
+	var s: FighterSteps = _record(Moves.DAGGERS, 1.3, 30, func(i: int) -> RawInput:
 		return H.btn(Btn.HEAVY) if i == 0 else H.idle())
 	var closest: float = 1.3
 	for i: int in s.apart.size():
-		if s.attack[i] == &"k_iai" and s.frame[i] <= IAI_STARTUP:
+		if s.attack[i] == &"d_h1" and s.frame[i] <= FANG_STARTUP:
 			closest = minf(closest, s.apart[i])
 	assert_almost_eq(closest, 2.0 * FIGHTER_RADIUS + LUNGE_GAP, 1e-9, "stopped with the bodies 0.25 m apart")
 
@@ -401,12 +403,14 @@ func test_every_light_without_its_own_hitstun_has_14() -> void:
 
 # ------------------------------------------------------------------ heavy dodge cancel
 
-## The Iai Slash, tapped: 23 frames of startup (IAI_STARTUP), 4 active and
-## 24 of recovery. The spec's heavy cancel opens at startup + active + half
-## the recovery, rounded up: frame 39 of 51.
-const IAI_ACTIVE: int = 4
-const IAI_RECOVERY: int = 24
-const IAI_CANCEL: int = IAI_STARTUP + IAI_ACTIVE + 12
+## The Iai Slash, tapped, Elden Ring's vertical draw (KE task 18): 33 frames
+## of startup, 3 active and 108 of recovery (the held extension, the chiburi,
+## the resheathe and the draw back to the guard); its dodge cancel opens at
+## its marker, as the held extension starts, on frame 44 of 144.
+const IAI_STARTUP: int = 33
+const IAI_ACTIVE: int = 3
+const IAI_RECOVERY: int = 108
+const IAI_CANCEL: int = 44
 const IAI_LAST_FRAME: int = IAI_STARTUP + IAI_ACTIVE + IAI_RECOVERY - 1
 ## Kept from the demo: a press waits 8 frames in the input buffer.
 const INPUT_BUFFER: int = 8
@@ -460,7 +464,7 @@ static func _iai(press_on: int, blocked: bool) -> CancelRun:
 	return _cancel_run(W, H.btn(Btn.HEAVY), 1, press_on, H.btn(Btn.BLOCK) if blocked else H.idle())
 
 
-func test_a_whiffed_heavy_dodge_cancels_in_the_second_half_of_its_recovery() -> void:
+func test_a_whiffed_heavy_dodge_cancels_as_its_cancel_marker_opens() -> void:
 	var early: CancelRun = _iai(IAI_CANCEL - INPUT_BUFFER - 1, false)
 	assert_eq(early.attack, &"k_iai")
 	assert_true(early.pressed)
@@ -474,7 +478,7 @@ func test_a_blocked_heavy_dodge_cancels_the_same_way() -> void:
 	var early: CancelRun = _iai(IAI_CANCEL - INPUT_BUFFER - 1, true)
 	assert_true(early.has(&"block"), "the cut is blocked")
 	assert_true(early.pressed)
-	assert_eq(early.dodge_frame, -1, "no cancel before the second half")
+	assert_eq(early.dodge_frame, -1, "no cancel before its marker")
 	assert_eq(early.last_frame, IAI_LAST_FRAME)
 	var late: CancelRun = _iai(IAI_CANCEL - INPUT_BUFFER, true)
 	assert_true(late.has(&"block"))

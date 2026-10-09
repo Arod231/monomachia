@@ -20,22 +20,24 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 		"name": "Crown Cut", "damage": 7, "posture": 7,
 		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
 	},
-	# the data counts the sheathe in the startup: 9 + 14 = 23
+	# the data counts the sheathe in the startup: 9 + 24 = 33
 	&"k_iai": {
 		"name": "Iai Slash (vertical)", "damage": 13, "posture": 16,
 		"light": &"", "heavy": &"k_h1f", "sides": [&"left", &"right"],
 	},
 	&"k_iai_h": {
 		"name": "Iai Slash (horizontal)", "damage": 13, "posture": 16,
-		"light": &"k_2l2", "heavy": &"k_rdraw", "sides": [&"right", &"left"],
+		# Elden Ring's draw, from the left hip out to the right (the owner, Oct
+		# 8): its light the held grip's hit 3, here the two-handed (KE task 18)
+		"light": &"k_2l3", "heavy": &"k_rdraw", "sides": [&"left", &"right"],
 	},
 	&"k_h1f": {
 		"name": "Rising Heaven", "damage": 12, "posture": 15,
-		"light": &"", "heavy": &"", "sides": [&"centre", &"left"],
+		"light": &"", "heavy": &"", "sides": [&"centre", &"right"],
 	},
 	&"k_rdraw": {
 		"name": "Returning Draw", "damage": 12, "posture": 15,
-		"light": &"", "heavy": &"", "sides": [&"left", &"right"],
+		"light": &"", "heavy": &"", "sides": [&"right", &"left"],
 	},
 	&"k_h2": {
 		"name": "Heaven Splitter", "damage": 15, "posture": 18,
@@ -86,11 +88,12 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 		"name": "Kneeling Crown", "damage": 10, "posture": 10,
 		"light": &"", "heavy": &"k_h2", "sides": [&"centre", &"centre"],
 	},
-	# the one-handed heavy (KE task 7): Heaven Splitter's clip until its
-	# re-key, about 85% of its damage (D3)
+	# the one-handed heavy (KE task 7), about 85% of Heaven Splitter's damage
+	# (D3); Elden Ring's since KE task 16: the coil gathers the blade from
+	# wherever the hit before ends, and the cut is held out on the right
 	&"k_coil": {
 		"name": "Crescent Coil", "damage": 13, "posture": 15,
-		"light": &"", "heavy": &"", "sides": [&"centre", &"centre"],
+		"light": &"", "heavy": &"", "sides": [&"centre", &"right"],
 	},
 }
 
@@ -101,10 +104,12 @@ const WIND_CUT_LUNGE: float = 0.5
 
 
 ## The Iai Slash sheathes for 9 frames (a held heavy then stays sheathed, as
-## a charge) and draws in 14, so a tapped heavy draws on frame 23 (the
-## plan's decisions).
+## a charge) and draws in 24, Elden Ring's coiled vertical draw, so a tapped
+## heavy draws on frame 33; the flat horizontal draw takes 19, so it draws on
+## frame 28 (KE task 18, the draws' own band rows).
 const IAI_SHEATHE: int = 9
-const IAI_DRAW: int = 14
+const IAI_DRAW: int = 24
+const IAI_DRAW_H: int = 19
 
 ## The blocking walk (m/s), at which a sheathed fighter walks: the Katana's
 ## guarded cycles' own measured speeds since milestone-1 task 56 (the
@@ -219,12 +224,12 @@ func test_a_heavy_ends_the_one_handed_string_on_crescent_coil() -> void:
 		"L-L-H: Backhand Rise, Crescent Coil",
 	)
 	assert_eq(
-		_play([light, light, light, heavy]).ids(&"hit"),
+		PlayedString.play(Moves.KATANA, [light, light, light, heavy], 2.2, 0.0, &"", -1, 300).ids(&"hit"),
 		[&"k_1l1", &"k_1l2", &"k_1l3", &"k_coil"] as Array[StringName],
 		"L-L-L-H: Twisting Rise, Crescent Coil",
 	)
 	assert_eq(
-		PlayedString.play(Moves.KATANA, [light, light, light, light, heavy], 2.2, 0.0, &"", -1, 300).ids(&"hit"),
+		PlayedString.play(Moves.KATANA, [light, light, light, light, heavy], 2.2, 0.0, &"", -1, 360).ids(&"hit"),
 		[&"k_1l1", &"k_1l2", &"k_1l3", &"k_1l4", &"k_coil"] as Array[StringName],
 		"L-L-L-L-H: Level Cut, Crescent Coil",
 	)
@@ -291,11 +296,11 @@ func test_kesa_cut_dodge_cancels_from_frame_20() -> void:
 
 # ------------------------------------------------------------------ the Iai Slash
 
-func test_a_tapped_heavy_draws_the_iai_on_frame_23() -> void:
+func test_a_tapped_heavy_draws_the_iai_on_frame_33() -> void:
 	var r: PlayedString = _play([Btn.HEAVY])
 	var draw: int = r.step_of(&"swing")
 	assert_eq(r.ids(&"swing"), [&"k_iai"] as Array[StringName], "the heavy is the Iai Slash")
-	assert_eq(r.frame[draw] if draw >= 0 else -1, IAI_SHEATHE + IAI_DRAW, "drawn on frame 23, the sheathe and the draw")
+	assert_eq(r.frame[draw] if draw >= 0 else -1, IAI_SHEATHE + IAI_DRAW, "drawn on frame 33, the sheathe and the draw")
 	assert_eq(r.ids(&"hit"), [&"k_iai"] as Array[StringName], "and it hits")
 
 
@@ -305,20 +310,20 @@ func _hold_heavy(hold: int) -> PlayedString:
 	return _run(func(i: int) -> RawInput: return H.btn(Btn.HEAVY) if i < hold else H.idle())
 
 
-func test_a_held_iai_stays_sheathed_and_hits_14_frames_after_release() -> void:
+func test_a_held_iai_stays_sheathed_and_hits_24_frames_after_release() -> void:
 	var r: PlayedString = _hold_heavy(60)
 	assert_eq(r.charging.find(true), IAI_SHEATHE + 1, "sheathed once its 9 frames have passed")
 	assert_eq(r.charging.rfind(true), 59, "until heavy is let go on step 60")
 	assert_eq(r.frame.slice(IAI_SHEATHE, 60).count(IAI_SHEATHE), 60 - IAI_SHEATHE, "its frames stop on 9 meanwhile")
 	assert_eq(r.ids(&"hit"), [&"k_iai"] as Array[StringName])
-	assert_eq(r.step_of(&"hit") - 60, IAI_DRAW, "the cut lands 14 frames after the release")
+	assert_eq(r.step_of(&"hit") - 60, IAI_DRAW, "the cut lands 24 frames after the release")
 
 
 func test_an_iai_held_for_2_5_s_releases_by_itself_as_a_stronger_power_attack() -> void:
 	var r: PlayedString = _hold_heavy(220)
 	var release: int = r.charging.rfind(true) + 1
 	assert_eq(release, IAI_SHEATHE + 150, "the stance ends 150 frames (2.5 s) after the sheathe, heavy still held")
-	assert_eq(r.step_of(&"hit") - release, IAI_DRAW, "and the cut lands 14 frames later")
+	assert_eq(r.step_of(&"hit") - release, IAI_DRAW, "and the cut lands 24 frames later")
 	var hit: Dictionary = r.find(&"hit")
 	assert_almost_eq(float(hit.get("damage", NAN)), 13.0 * 1.8, CLOSE, "a full charge's damage")
 
@@ -329,17 +334,16 @@ func test_the_iai_hits_at_3_8_m_where_right_cut_whiffs() -> void:
 	assert_eq(_play([Btn.HEAVY], 3.8).ids(&"hit"), [&"k_iai"] as Array[StringName], "the Iai hits")
 
 
-## The Iai's clips (authored-animation task 11) still reach as the spec's
-## Iai does, 0.5 m further with the 1.3 m blade (KE task 2): into a defender
-## 4.1 m away, not one 4.7 m away.
-func test_the_iai_enters_a_defender_at_4_1_m_and_misses_at_4_7_m() -> void:
+## Elden Ring's draws (KE task 18) reach as their distance band says: into a
+## defender 4.4 m away, not one 5.0 m away.
+func test_the_iai_enters_a_defender_at_4_4_m_and_misses_at_5_0_m() -> void:
 	for id: StringName in [&"k_iai", &"k_iai_h"]:
 		var m: AttackDef = Moves.KATANA.moves[id]
 		assert_not_null(m.swing, "%s has its baked swing" % id)
 		if m.swing == null:
 			continue
-		assert_not_null(SwingReach.first_contact(m, Moves.KATANA, 4.1, 0.0, FighterBody.of(&"")), "%s enters at 4.1 m" % id)
-		assert_null(SwingReach.first_contact(m, Moves.KATANA, 4.7, 0.0, FighterBody.of(&"")), "%s misses at 4.7 m" % id)
+		assert_not_null(SwingReach.first_contact(m, Moves.KATANA, 4.4, 0.0, FighterBody.of(&"")), "%s enters at 4.4 m" % id)
+		assert_null(SwingReach.first_contact(m, Moves.KATANA, 5.0, 0.0, FighterBody.of(&"")), "%s misses at 5.0 m" % id)
 
 
 ## The unblockables' clips (authored-animation task 13), with their thicker
@@ -572,10 +576,10 @@ func test_only_the_stick_as_the_iai_is_drawn_counts() -> void:
 func test_the_horizontal_iai_keeps_the_iais_timing_and_charge() -> void:
 	var tapped: PlayedString = _iai_with_stick(1, 1.0, 0.0)
 	var draw: int = tapped.step_of(&"swing")
-	assert_eq(tapped.frame[draw] if draw >= 0 else -1, IAI_SHEATHE + IAI_DRAW, "tapped, it draws on frame 23")
+	assert_eq(tapped.frame[draw] if draw >= 0 else -1, IAI_SHEATHE + IAI_DRAW_H, "tapped, it draws on frame 28")
 	var held: PlayedString = _iai_with_stick(HOLDS["a release"], 1.0, 0.0)
 	assert_eq(held.ids(&"hit"), [&"k_iai_h"] as Array[StringName], "held, it hits")
-	assert_eq(held.step_of(&"hit") - HOLDS["a release"], IAI_DRAW, "14 frames after the release")
+	assert_eq(held.step_of(&"hit") - HOLDS["a release"], IAI_DRAW_H, "19 frames after the release")
 	var full: PlayedString = _iai_with_stick(HOLDS["an auto-release"], 1.0, 0.0)
 	assert_eq(full.ids(&"hit"), [&"k_iai_h"] as Array[StringName], "held for 2.5 s, it releases by itself and hits")
 	assert_almost_eq(float(full.find(&"hit").get("damage", NAN)), 13.0 * 1.8, CLOSE, "as a full charge's power attack")
@@ -606,29 +610,31 @@ func test_the_horizontal_iai_goes_on_to_returning_draw_or_return_cut() -> void:
 	var light: int = Btn.LIGHT
 	var heavy: int = Btn.HEAVY
 	assert_eq(_play_sideways([heavy, heavy]).ids(&"swing"), [&"k_iai_h", &"k_rdraw"] as Array[StringName], "heavy: Returning Draw")
-	# two-handed, its light is the two-handed string's hit 2 (KE task 13)
+	# Elden Ring's draw ends out on the right, so its light is the held
+	# grip's hit 3, which starts there (the owner, Oct 8, KE task 18):
+	# two-handed, Right Rise
 	SimHelpers.grip = WeaponGrip.TWO_HANDED
-	assert_eq(_play_sideways([heavy, light]).ids(&"swing"), [&"k_iai_h", &"k_2l2"] as Array[StringName], "light: Left Rise")
+	assert_eq(_play_sideways([heavy, light]).ids(&"swing"), [&"k_iai_h", &"k_2l3"] as Array[StringName], "light: Right Rise")
 	assert_eq(
 		_play_sideways([heavy, light, light, light]).ids(&"swing"),
-		[&"k_iai_h", &"k_2l2", &"k_2l3", &"k_2l4"] as Array[StringName],
-		"Left Rise goes on through the light string",
+		[&"k_iai_h", &"k_2l3", &"k_2l4", &"k_2l5"] as Array[StringName],
+		"Right Rise goes on through the light string",
 	)
 	assert_eq(
 		_play_sideways([heavy, light, heavy]).ids(&"swing"),
-		[&"k_iai_h", &"k_2l2", &"k_h2"] as Array[StringName],
+		[&"k_iai_h", &"k_2l3", &"k_h2"] as Array[StringName],
 		"or to the grip's heavy, Heaven Splitter",
 	)
-	# one-handed, its light is the one-handed string's hit 2 (KE task 11)
+	# one-handed, Twisting Rise
 	SimHelpers.grip = WeaponGrip.ONE_HANDED
 	assert_eq(
 		_play_sideways([heavy, light, light]).ids(&"swing"),
-		[&"k_iai_h", &"k_1l2", &"k_1l3"] as Array[StringName],
-		"one-handed: Backhand Rise, then on through the string",
+		[&"k_iai_h", &"k_1l3", &"k_1l4"] as Array[StringName],
+		"one-handed: Twisting Rise, then on through the string",
 	)
 	assert_eq(
 		_play_sideways([heavy, light, heavy]).ids(&"swing"),
-		[&"k_iai_h", &"k_1l2", &"k_coil"] as Array[StringName],
+		[&"k_iai_h", &"k_1l3", &"k_coil"] as Array[StringName],
 		"or to the one-handed grip's heavy, Crescent Coil",
 	)
 
@@ -672,31 +678,29 @@ func test_all_nine_rows_match_the_spec_table() -> void:
 
 
 func test_the_horizontal_iai_hits_with_the_specs_interim_cone() -> void:
-	# until weapon paths decide hits (task 7): a right-to-left slash drawn
-	# from the sheathe (its anim, iaiHorizontal), as far as the vertical Iai
-	# and as wide as Right Cut; lunging 2.1 m with the vertical since their
-	# clips (authored-animation task 11), from 0.4
+	# until weapon paths decide hits (task 7): a slash drawn from the sheathe
+	# (its anim, iaiHorizontal), left to right since Elden Ring's draw (KE
+	# task 18), as far as the vertical Iai and as wide as Right Cut; no
+	# lunge, its step its clip's (KE task 18)
 	var m: AttackDef = Moves.KATANA.moves.get(&"k_iai_h", null)
 	assert_not_null(m, "the horizontal Iai exists")
 	if m == null:
 		return
-	assert_eq([m.type, m.anim], [&"slash", &"iaiHorizontal"], "a right-to-left slash, drawn from the sheathe")
-	assert_eq([m.range, m.arc, m.lunge, m.knockback], [3.6, 110.0, 2.1, 1.0], "range, arc, lunge and knockback")
+	assert_eq([m.type, m.anim], [&"slash", &"iaiHorizontal"], "a slash drawn from the sheathe")
+	assert_eq([m.range, m.arc, m.lunge, m.knockback], [3.6, 110.0, 0.0, 1.0], "range, arc, lunge and knockback")
 
 
 func test_returning_draw_hits_with_the_specs_interim_cone() -> void:
-	# until weapon paths decide hits (task 7): a left-to-right slash (the
-	# stand-in's slashLR) with Rising Heaven's reach, lunge and knockback and
-	# Return Cut's width, its lunge ending two frames after its cut starts;
-	# the lunge is 1.1 m since its clip (authored-animation task 11), from 0.5
+	# until weapon paths decide hits (task 7): a right-to-left slash back
+	# from the horizontal Iai's held extension (KE task 18) with Rising
+	# Heaven's reach and knockback and Return Cut's width; no lunge, its step
+	# its clip's (KE task 18)
 	var m: AttackDef = Moves.KATANA.moves.get(&"k_rdraw", null)
 	assert_not_null(m, "Returning Draw exists")
 	if m == null:
 		return
-	assert_eq([m.type, m.anim], [&"slash", &"slashLR"], "a left-to-right slash")
-	assert_eq(
-		[m.range, m.arc, m.lunge, m.lunge_end, m.knockback], [2.3, 110.0, 1.1, 18, 0.9], "range, arc, lunge, the lunge's end and knockback"
-	)
+	assert_eq([m.type, m.anim], [&"slash", &"slashRL"], "a right-to-left slash")
+	assert_eq([m.range, m.arc, m.lunge, m.knockback], [2.3, 110.0, 0.0, 0.9], "range, arc, lunge and knockback")
 
 
 func test_kesa_cut_hits_with_the_specs_interim_cone() -> void:

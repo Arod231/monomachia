@@ -43,15 +43,15 @@ func test_a_move_in_band() -> void:
 
 
 func test_a_move_out_of_its_timing_band() -> void:
-	# today's Heaven Splitter, on the stand-ins: 22/4/28 against 42-54, 4-8, 36-48
-	var row: Dictionary = FrameDataTable.shared().row(&"katana", &"k_h2")
-	var waiting: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_h2", row, {}, MoveBands.shared())
+	# Leaping Cleave, the sprint heavy, on the stand-ins: 20/5/26 against 42-54, 4-8, 36-48
+	var row: Dictionary = FrameDataTable.shared().row(&"katana", &"k_sh")
+	var waiting: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_sh", row, {}, MoveBands.shared())
 	assert_false(waiting.in_band())
 	assert_true(waiting.waiting)
 	assert_eq(waiting.verdict(), "out of band: waiting for its family")
 	assert_eq(waiting.fields.map(func(f: FramesAndBands.Field) -> bool: return f.ok), [false, true, false],
 			"the startup and the recovery are out, the active frames in")
-	var off: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_h2", row, {}, _bands_off(&"k_h2"))
+	var off: FramesAndBands = FramesAndBands.build(Moves.KATANA, &"k_sh", row, {}, _bands_off(&"k_sh"))
 	assert_eq(off.verdict(), "out of band: CI will fail")
 
 

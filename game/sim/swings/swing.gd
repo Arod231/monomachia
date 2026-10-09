@@ -143,9 +143,11 @@ var clips: Array[StringName] = []
 var speed: float = 1.0
 var marks: PackedFloat64Array = PackedFloat64Array()
 var fallback: StringName = &""
-## The attack frames the blade spends in the saya (the Iai's sheathe and
-## stance, task 11), first and last: the view shows it there and no hand
-## holds it; empty for none. Always before the active frames.
+## The attack frames the blade spends in the saya, first and last of each
+## stretch in turn ([in, out, in, out, ...]): the Iai's sheathe and stance
+## (task 11), and since KE task 18 its resheathe after the cut; the view
+## shows it there and no hand holds it; empty for none. Never over the
+## active frames.
 var sheathed: PackedInt32Array = PackedInt32Array()
 ## The authored loop a held charge plays (a ClipChain entry, milestone-1
 ## task 19), at 1.0 from when the charge began; empty to hold the attack's
@@ -193,7 +195,10 @@ static func held(k: KeyPose) -> Sample:
 
 ## Whether the blade is in the saya on attack frame `f` (sheathed).
 func is_sheathed(f: float) -> bool:
-	return sheathed.size() == 2 and f >= float(sheathed[0]) and f <= float(sheathed[1])
+	for i: int in range(0, sheathed.size() - 1, 2):
+		if f >= float(sheathed[i]) and f <= float(sheathed[i + 1]):
+			return true
+	return false
 
 
 ## Whether the track for `part` was baked from a clip.

@@ -1,0 +1,141 @@
+{
+	"about": "The Iai's horizontal draw (katana.k_iai_h, KE task 18), Elden Ring's: from the stance (iai_stance frame 5, blended in over 3 frames) a quick, flat one-handed draw from the left hip out across to the right, from Attack1H04_R's flat cut as Moonsplitter's, its tip raised through the cut, landing on frame 9 (about 19 rules frames after the stance's release) as a pushed-off lunge carries the body in, then held out at full extension, the arm raised out to the right and the blade up from it (the pack's rise back towards the guard, its upper arm lifted by hand) to frame 31. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H04_R.fbx",
+	"out": "blender/clips/iai_draw_horizontal.blend",
+	"remap": [
+		[
+			0,
+			6
+		],
+		[
+			9,
+			12
+		],
+		[
+			11,
+			13
+		],
+		[
+			14,
+			24
+		],
+		[
+			31,
+			27
+		]
+	],
+	"blend_from": {
+		"source": "blender/clips/iai_stance.blend",
+		"frame": 5,
+		"frames": 3
+	},
+	"lower": {
+		"drop": 0.2,
+		"bend": 14,
+		"from": 0,
+		"peak": 3,
+		"until": 12
+	},
+	"step": {
+		"body": [
+			[
+				0,
+				0
+			],
+			[
+				3,
+				0
+			],
+			[
+				5,
+				0.45
+			],
+			[
+				7,
+				1.0
+			],
+			[
+				8,
+				1.4
+			],
+			[
+				9,
+				1.85
+			],
+			[
+				12,
+				2.25
+			],
+			[
+				31,
+				2.25
+			]
+		],
+		"feet": {
+			"L": [
+				[
+					6,
+					11,
+					2.25,
+					0.35
+				]
+			],
+			"R": [
+				[
+					1,
+					5,
+					0.85,
+					0.16
+				],
+				[
+					7,
+					11,
+					1.4,
+					0.3
+				]
+			]
+		}
+	},
+	"one_hand": {
+		"lower": [
+			[
+				0,
+				0
+			],
+			[
+				6,
+				0
+			],
+			[
+				9,
+				-20
+			],
+			[
+				13,
+				45
+			],
+			[
+				31,
+				45
+			]
+		],
+		"clearance": 0.09
+	},
+	"pose": [
+		{
+			"frames": [
+				9,
+				13,
+				31,
+				32
+			],
+			"turn": [
+				[
+					"B-upperArm.R",
+					"forward",
+					-70
+				]
+			]
+		}
+	]
+}

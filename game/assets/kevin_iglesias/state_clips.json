@@ -41,8 +41,8 @@
 	"transitions": {
 		"bridges": {
 			"k_l2": {"k_l1": "RightCutToReturnCut"}, "k_l3": {"k_l2": "ReturnCutToKesaCut"}, "k_l4": {"k_l3": "KesaCutToCrownCut"},
-			"k_1l2": {"k_1l1": "SlantingCutToBackhandRise"}, "k_1l3": {"k_1l2": "BackhandRiseToTwistingRise"}, "k_1l5": {"k_1l4": "LevelCutToCrouchingCrown"},
-			"k_2l3": {"k_2l2": "LeftRiseToRightRise"}, "k_2l4": {"k_2l3": "RightRiseToSecondSlant"}, "k_2l5": {"k_2l4": "SecondSlantToKneelingCrown"}
+			"k_1l2": {"k_1l1": "SlantingCutToBackhandRise"}, "k_1l3": {"k_1l2": "BackhandRiseToTwistingRise", "k_iai_h": "IaiDrawHorizontalToTwistingRise"}, "k_1l5": {"k_1l4": "LevelCutToCrouchingCrown"},
+			"k_2l3": {"k_2l2": "LeftRiseToRightRise", "k_iai_h": "IaiDrawHorizontalToRightRise"}, "k_2l4": {"k_2l3": "RightRiseToSecondSlant"}, "k_2l5": {"k_2l4": "SecondSlantToKneelingCrown"}
 		},
 		"returns": {
 			"k_l1": "RightCutToGuard", "k_l2": "ReturnCutToGuard", "k_l3": "KesaCutToGuard", "k_l4": "CrownCutToGuard",
@@ -95,7 +95,7 @@
 	"own_speed": {"HitLightHighFront": "hand_on", "HitLightLowFront": "hand_on", "HitLightHighLeft": "hand_on", "HitLightLowLeft": "hand_on", "HitLightHighRight": "hand_on", "HitLightLowRight": "hand_on", "HitLightHighBack": "hand_on", "HitLightLowBack": "hand_on", "BlockLightKatana": "hand_on", "JumpKatana": "hand_on", "JumpFists": "hand_on", "LandKatana": "hand_on", "LandFists": "hand_on", "KatanaStartForward": "hand_on", "KatanaStartLeft": "hand_on", "KatanaStartBack": "hand_on", "KatanaStartRight": "hand_on", "KatanaStopForward": "hand_on", "KatanaStopLeft": "hand_on", "KatanaStopBack": "hand_on", "KatanaStopRight": "hand_on", "KatanaRunStopForward": "hand_on", "KatanaRunStopLeft": "hand_on", "KatanaRunStopBack": "hand_on", "KatanaRunStopRight": "hand_on", "KatanaPivotForward": "hand_on", "KatanaPivotLeft": "hand_on", "KatanaPivotBack": "hand_on", "KatanaPivotRight": "hand_on", "KatanaTapStepForward": "hand_on", "KatanaTapStepLeft": "hand_on", "KatanaTapStepBack": "hand_on", "KatanaTapStepRight": "hand_on", "KatanaSprintStop": "hand_on", "FistsStartForward": "hand_on", "FistsStartLeft": "hand_on", "FistsStartBack": "hand_on", "FistsStartRight": "hand_on", "FistsStopForward": "hand_on", "FistsStopLeft": "hand_on", "FistsStopBack": "hand_on", "FistsStopRight": "hand_on", "FistsRunStopForward": "hand_on", "FistsRunStopLeft": "hand_on", "FistsRunStopBack": "hand_on", "FistsRunStopRight": "hand_on", "FistsPivotForward": "hand_on", "FistsPivotLeft": "hand_on", "FistsPivotBack": "hand_on", "FistsPivotRight": "hand_on", "FistsTapStepForward": "hand_on", "FistsTapStepLeft": "hand_on", "FistsTapStepBack": "hand_on", "FistsTapStepRight": "hand_on", "FistsSprintStop": "hand_on"},
 	"grips": {
 		"katana": {
-			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise", "TwistingRise", "LevelCut", "SlantingCutToBackhandRise", "BackhandRiseToTwistingRise", "SlantingCutToGuard1H", "BackhandRiseToGuard1H", "TwistingRiseToGuard1H", "LevelCutToGuard1H", "CrouchingCrownToGuard1H"]},
+			"one_handed": {"idle": "KatanaGuard1H", "guard": ["Parry1H01_R_Loop", "Parry1H01_R_Hit"], "carry": "KatanaGuard1H", "moves": ["SlantingCut", "BackhandRise", "TwistingRise", "LevelCut", "SlantingCutToBackhandRise", "BackhandRiseToTwistingRise", "SlantingCutToGuard1H", "BackhandRiseToGuard1H", "TwistingRiseToGuard1H", "LevelCutToGuard1H", "CrouchingCrownToGuard1H", "CrescentCoil", "CrescentCoilHold", "IaiStance", "IaiStanceHold", "IaiDrawVertical", "IaiDrawHorizontal", "IaiResheatheVertical", "IaiResheatheHorizontal", "ReturningDraw", "IaiDrawHorizontalToTwistingRise"]},
 			"two_handed": {"idle": "KatanaGuard", "guard": ["KatanaBlockLoop", "KatanaBlockHit"], "carry": "KatanaGuard"},
 			"regrip": {"one_handed": "KatanaRegripTo1H", "two_handed": "KatanaRegripTo2H"}
 		}

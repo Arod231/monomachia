@@ -1,0 +1,7 @@
+{
+	"about": "Crescent Coil's held charge (KE task 16): its own clip there and back from frame 22, where the charge holds, the coil drifting a little deeper over the shoulder to frame 23.5 and back over a second, looped while heavy is held (D9).",
+	"source": "blender/clips/crescent_coil.blend",
+	"out": "blender/clips/crescent_coil_hold.blend",
+	"loop": true,
+	"remap": [[0, 22], [15, 23.5], [30, 22]]
+}

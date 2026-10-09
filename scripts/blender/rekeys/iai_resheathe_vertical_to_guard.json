@@ -1,0 +1,20 @@
+{
+	"about": "The Iai's quick draw back into the guard after its vertical draw's resheathe (KE task 18): from the resheathed stance (iai_resheathe_vertical frame 24) blended into the two-handed guard over 8 frames, the blade drawn out of the saya and round to the front, so it is out as the recovery ends.",
+	"source": "blender/clips/katana_guard.blend",
+	"out": "blender/clips/iai_resheathe_vertical_to_guard.blend",
+	"blend_from": {
+		"source": "blender/clips/iai_resheathe_vertical.blend",
+		"frame": 24,
+		"frames": 8
+	},
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			10,
+			10
+		]
+	]
+}

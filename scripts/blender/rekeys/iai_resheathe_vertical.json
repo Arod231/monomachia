@@ -1,0 +1,52 @@
+{
+	"about": "The Iai's chiburi and resheathe after its vertical draw (KE task 18), Elden Ring's: from the draw's held extension (iai_draw_vertical frame 33, blended in over 14 frames, so the arm stays out) the blade flicked down and out to the right (the chiburi, a turn of the forearm on frames 1-10), then put back into the saya at the left hip by SheatheHips01_R (from frame 12, in by frame 21), the stance's crouch taken again; iai_resheathe_vertical_to_guard then draws it into the guard. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Misc/Unsheathe/HumanM@SheatheHips01_R.fbx",
+	"out": "blender/clips/iai_resheathe_vertical.blend",
+	"remap": [
+		[
+			0,
+			0
+		],
+		[
+			12,
+			2
+		],
+		[
+			21,
+			10
+		],
+		[
+			24,
+			12
+		]
+	],
+	"blend_from": {
+		"source": "blender/clips/iai_draw_vertical.blend",
+		"frame": 33,
+		"frames": 14
+	},
+	"lower": {
+		"drop": 0.15,
+		"bend": 10,
+		"from": 12,
+		"peak": 21,
+		"hold": true
+	},
+	"pose": [
+		{
+			"frames": [
+				1,
+				4,
+				7,
+				10
+			],
+			"turn": [
+				[
+					"B-forearm.R",
+					"forward",
+					60
+				]
+			]
+		}
+	]
+}

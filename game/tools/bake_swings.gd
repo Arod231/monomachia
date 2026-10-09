@@ -276,10 +276,11 @@ static func bake_weapon(wid: StringName, table: MoveClips, manifest: ClipManifes
 		r.clips = e.clips
 		r.fallback = e.fallback
 		r.loop = e.loop
-		if e.sheathed.size() == 2:
-			r.sheathed = SwingBake.sheathed_frames(r, e.sheathed[0], e.sheathed[1])
-			if r.sheathed.size() == 2:
-				line += "\n      sheathed on frames %d-%d" % [r.sheathed[0], r.sheathed[1]]
+		if not e.sheathed.is_empty():
+			r.sheathed = SwingBake.sheathed_frames(r, e.sheathed)
+			for i: int in range(0, r.sheathed.size() - 1, 2):
+				line += "
+      sheathed on frames %d-%d" % [r.sheathed[i], r.sheathed[i + 1]]
 		baked[String(id)] = r.record()
 		if gen != null:
 			var sha: String = FrameDataRows.source_checksum(manifest, ids, errors)

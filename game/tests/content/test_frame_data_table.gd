@@ -66,15 +66,16 @@ func test_the_stand_ins_give_the_katanas_and_bare_hands_frame_data_today() -> vo
 			for follow: StringName in [m.chain_light, m.chain_heavy]:
 				if follow != &"":
 					assert_eq(int(row["branches"][String(follow)][0]), m.startup + m.active + 2, "%s.%s -> %s: today's branch point" % [wid, id, follow])
-	assert_eq(stand_ins, 17, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94, light string, task 89, and heavies, task 133), Crescent Coil among them (KE task 7)")
+	assert_eq(stand_ins, 11, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94, light string, task 89, and heavies, task 133; Crescent Coil, KE task 16; Heaven Splitter and Rising Heaven, KE task 17; the Iai's draws and Returning Draw, KE task 18)")
 
 
 func test_each_move_has_its_band_kind() -> void:
 	var katana: WeaponDef = Moves.WEAPONS[&"katana"]
 	var fists: WeaponDef = Moves.WEAPONS[&"fists"]
 	var want: Dictionary = {
-		&"k_l1": &"string_light", &"k_l2": &"string_light", &"k_l4": &"string_light", &"k_h2": &"string_heavy",
-		&"k_iai": &"iai_draw", &"k_iai_h": &"iai_draw", &"k_h1f": &"iai_follow_up", &"k_rdraw": &"iai_follow_up",
+		&"k_l1": &"string_light", &"k_l2": &"string_light", &"k_l4": &"string_light",
+		# each Iai draw its own row (KE task 18)
+		&"k_iai": &"iai_draw_vertical", &"k_iai_h": &"iai_draw_horizontal", &"k_rdraw": &"iai_follow_up",
 		&"k_sl": &"sprint_light", &"k_sh": &"sprint_heavy", &"k_dl": &"dodge_light", &"k_dh": &"dodge_heavy",
 		&"k_bl": &"backstep_light", &"k_bh": &"backstep_heavy", &"k_jl": &"jump_light", &"k_jh": &"jump_heavy",
 		&"k_flash": &"block_ability", &"k_thrust": &"unblockable", &"k_sweep": &"unblockable", &"k_lunge": &"counter_lunge",
@@ -84,6 +85,10 @@ func test_each_move_has_its_band_kind() -> void:
 		&"k_2l1": &"string_light_2h", &"k_2l2": &"string_light_2h", &"k_2l3": &"string_light_2h", &"k_2l4": &"string_light_2h", &"k_l3": &"string_light",
 		# a grip's last hit takes its own kind (KE tasks 12 and 14, D16)
 		&"k_1l5": &"string_last_1h", &"k_2l5": &"string_last_2h",
+		# a grip's own heavy, keyed for it, takes its own kind (KE task 16),
+		# and the two-handed one's follow-up its own (KE task 17); Returning
+		# Draw stays the Iai's follow-up
+		&"k_coil": &"grip_heavy_1h", &"k_h2": &"grip_heavy_2h", &"k_h1f": &"grip_heavy_follow_up",
 	}
 	for id: StringName in want:
 		assert_eq(FrameDataRows.kind_of(katana, id), want[id], String(id))
@@ -96,6 +101,23 @@ func test_each_move_has_its_band_kind() -> void:
 			var row: Dictionary = t.row(wid, id)
 			if not row.is_empty():
 				assert_eq(StringName(row["kind"]), FrameDataRows.kind_of(Moves.WEAPONS[wid], id), "%s.%s's row" % [wid, id])
+
+
+func test_a_keyed_chargeable_move_s_row_gives_the_frame_its_charge_holds_on() -> void:
+	var t: FrameDataTable = _table()
+	# Crescent Coil at its coil (KE task 16), Heaven Splitter overhead (KE task 17)
+	for id: StringName in [&"k_coil", &"k_h2"]:
+		var row: Dictionary = t.row(&"katana", id)
+		assert_true(row.has("hold"), "%s holds at its own pose" % id)
+		if not row.has("hold"):
+			continue
+		var m: AttackDef = Moves.KATANA.moves[id]
+		assert_eq(m.charge_hold, int(row["hold"]), "%s: the rules hold its charge there" % id)
+		assert_between(m.charge_hold, Fighter.CHARGE_CHECK_FRAME + 1, m.startup - 1, "%s: in its wind-up, past today's frame 9" % id)
+	# the Iai's stance takes over at its sheathe's hold marker (KE task 18),
+	# which is today's frame 9
+	assert_eq((Moves.KATANA.moves[&"k_iai"] as AttackDef).charge_hold, Fighter.CHARGE_CHECK_FRAME, "the Iai keeps frame 9")
+	assert_false(t.row(&"katana", &"k_1l1").has("hold"), "nothing that doesn't charge")
 
 
 func test_every_rules_length_clip_and_gait_has_a_row() -> void:

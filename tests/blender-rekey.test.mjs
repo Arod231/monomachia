@@ -6,7 +6,9 @@
 // and the deflect aimed at it, and task 35's light hit reactions, turned
 // for their side and lowered for low, and its light block; task 98's
 // Moonsplitter: its sheathe and stance and its two draws, one-handed, each
-// draw starting partway into its source as it blends in from the stance),
+// draw starting partway into its source as it blends in from the stance;
+// KE task 16's Crescent Coil, led in by another pack clip's coil, and the
+// loop its held charge plays, there and back over its own clip),
 // and, where Blender is
 // installed (local-only, skipped elsewhere, CI included), the script's time
 // warp and steps behave: the warp passes through its pairs without falling or
@@ -36,17 +38,24 @@ const exported = Object.values(manifest.clips ?? manifest).filter((c) => c && ty
 describe('the re-key specs', () => {
   it('has the re-keyed clips', () => {
     assert.deepEqual(specs.map((s) => s.id).sort(), [
-      'backhand_rise', 'backhand_rise_to_katana_guard_1h', 'backhand_rise_to_twisting_rise', 'blasted_fall', 'block_light', 'breaker_palm',
-      'crouching_crown', 'crouching_crown_to_katana_guard_1h', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
-      'heavy_slant', 'heavy_slant_to_guard', 'hit_high_back', 'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right',
-      'katana_block_hit', 'katana_block_loop', 'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard',
-      'katana_guard_to_katana_guard_1h', 'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard',
-      'kneeling_crown', 'kneeling_crown_to_guard', 'left_rise', 'left_rise_to_guard', 'left_rise_to_right_rise', 'level_cut',
-      'level_cut_to_crouching_crown', 'level_cut_to_katana_guard_1h', 'moonsplitter_draw_horizontal', 'moonsplitter_draw_vertical',
-      'moonsplitter_stance', 'recall', 'return_cut', 'return_cut_deflect', 'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut',
-      'right_cut', 'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise', 'right_rise_to_guard',
-      'right_rise_to_second_slant', 'second_slant', 'second_slant_to_guard', 'second_slant_to_kneeling_crown', 'slanting_cut',
-      'slanting_cut_to_backhand_rise', 'slanting_cut_to_katana_guard_1h', 'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice',
+      'backhand_rise', 'backhand_rise_to_katana_guard_1h', 'backhand_rise_to_twisting_rise', 'blasted_fall',
+      'block_light', 'breaker_palm', 'crescent_coil', 'crescent_coil_hold', 'crouching_crown',
+      'crouching_crown_to_katana_guard_1h', 'crown_cut', 'crown_cut_deflect', 'crown_cut_recoil', 'crown_cut_to_guard',
+      'heaven_splitter', 'heaven_splitter_hold', 'heavy_slant', 'heavy_slant_to_guard', 'hit_high_back',
+      'hit_high_front', 'hit_high_right', 'hit_low_back', 'hit_low_front', 'hit_low_right', 'iai_draw_horizontal',
+      'iai_draw_horizontal_to_right_rise', 'iai_draw_horizontal_to_twisting_rise', 'iai_draw_vertical',
+      'iai_resheathe_horizontal', 'iai_resheathe_horizontal_to_guard', 'iai_resheathe_vertical',
+      'iai_resheathe_vertical_to_guard', 'iai_stance', 'iai_stance_hold', 'katana_block_hit', 'katana_block_loop',
+      'katana_guard', 'katana_guard_1h', 'katana_guard_1h_to_katana_guard', 'katana_guard_to_katana_guard_1h',
+      'kesa_cut', 'kesa_cut_deflect', 'kesa_cut_recoil', 'kesa_cut_to_crown_cut', 'kesa_cut_to_guard', 'kneeling_crown',
+      'kneeling_crown_to_guard', 'left_rise', 'left_rise_to_guard', 'left_rise_to_right_rise', 'level_cut',
+      'level_cut_to_crouching_crown', 'level_cut_to_katana_guard_1h', 'moonsplitter_draw_horizontal',
+      'moonsplitter_draw_vertical', 'moonsplitter_stance', 'recall', 'return_cut', 'return_cut_deflect',
+      'return_cut_recoil', 'return_cut_to_guard', 'return_cut_to_kesa_cut', 'returning_draw', 'right_cut',
+      'right_cut_deflect', 'right_cut_recoil', 'right_cut_to_guard', 'right_cut_to_return_cut', 'right_rise',
+      'right_rise_to_guard', 'right_rise_to_second_slant', 'rising_heaven', 'second_slant', 'second_slant_to_guard',
+      'second_slant_to_kneeling_crown', 'slanting_cut', 'slanting_cut_to_backhand_rise',
+      'slanting_cut_to_katana_guard_1h', 'twisting_rise', 'twisting_rise_to_katana_guard_1h', 'ult_choice',
     ]);
   });
 
@@ -56,8 +65,10 @@ describe('the re-key specs', () => {
       const transition = id.includes('_to_');
       const recoil = id.endsWith('_recoil');
       const deflect = id.endsWith('_deflect');
-      // an iai's sheathe and draws hold the sword in one hand (task 98)
-      const oneHanded = id.startsWith('moonsplitter_') || id.endsWith('_1h') || Boolean(spec.one_hand);
+      // a held charge's loop, there and back over its move's own clip (KE task 16)
+      const loop = Boolean(spec.loop);
+      // an iai's sheathe and draws hold the sword in one hand (task 98; the Iai's own, KE task 18)
+      const oneHanded = id.startsWith('moonsplitter_') || id.startsWith('iai_') || id.endsWith('_1h') || Boolean(spec.one_hand);
       // bare hands' ultimate and the burst's blasted fall hold nothing (task 99)
       const bare = ['ult_choice', 'recall', 'breaker_palm', 'blasted_fall'].includes(id);
 
@@ -76,6 +87,9 @@ describe('the re-key specs', () => {
           assert.deepEqual(spec.remap.at(-2), [c, c], 'the light as it is up to the contact');
           assert.equal(spec.remap.at(-1)[1], c, 'then held there, knocked back');
           assert.ok(spec.knock.toward < c, 'toward its cocked wind-up');
+        } else if (loop) {
+          assert.ok(id.endsWith('_hold'), 'a held charge\'s loop is named for its move');
+          assert.equal(spec.source, `blender/clips/${id.replace(/_hold$/, '')}.blend`, 'over its move\'s own clip');
         } else {
           assert.match(spec.source, /^kevin_iglesias\/.+\.fbx$/);
           if (deflect) {
@@ -87,10 +101,19 @@ describe('the re-key specs', () => {
         assert.equal(spec.out, `blender/clips/${id}.blend`);
       });
 
-      it('warps time from frame 0, rising in new frames and never falling in source frames', () => {
+      it('warps time from frame 0 (a lead\'s, for a led clip), rising in new frames and never falling in source frames', { skip: loop && 'a loop goes there and back' }, () => {
         // a clip blended in from another may start partway into its source,
-        // and one that goes on from another's clip where that one ends in it
-        if (spec.blend_from && !transition) assert.equal(spec.remap[0][0], 0);
+        // and one that goes on from another's clip where that one ends in it;
+        // a led clip starts its own source as the lead fades out
+        if (spec.lead) {
+          const lead = spec.lead.remap;
+          assert.deepEqual(lead[0], [0, 0], 'the lead from its start');
+          for (let i = 1; i < lead.length; i++) {
+            assert.ok(lead[i][0] > lead[i - 1][0] && lead[i][1] >= lead[i - 1][1], `the lead rises at ${i}`);
+          }
+          assert.ok(spec.remap[0][0] > 0 && spec.remap[0][0] < lead.at(-1)[0], 'its own source fades in under the lead\'s end');
+          assert.match(spec.lead.source, /^kevin_iglesias\/.+\.fbx$/, 'a pack clip leads');
+        } else if (spec.blend_from && !transition) assert.equal(spec.remap[0][0], 0);
         else if (spec.goes_on_from) {
           const before = specs.find((s) => s.id === spec.goes_on_from)?.spec;
           assert.ok(before, `${spec.goes_on_from} is a spec`);
@@ -108,7 +131,14 @@ describe('the re-key specs', () => {
         }
       });
 
-      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || (oneHanded && 'one-handed: an iai or the one-handed grip') || (bare && 'bare hands') }, () => {
+      it('loops: there and back from the frame its charge holds on to the same frame', { skip: !loop && 'not a loop' }, () => {
+        assert.equal(spec.remap[0][0], 0);
+        assert.equal(spec.remap.at(-1)[1], spec.remap[0][1], 'ends where it starts, so it loops without a pop');
+        assert.ok(spec.remap.some(([, s]) => s !== spec.remap[0][1]), 'and moves in between');
+        for (let i = 1; i < spec.remap.length; i++) assert.ok(spec.remap[i][0] > spec.remap[i - 1][0], `new frames rise at ${i}`);
+      });
+
+      it('puts both hands on the grip, clear of the body (a transition or a recoil carries its clips\' hands)', { skip: transition || recoil || loop || (oneHanded && 'one-handed: an iai or the one-handed grip') || (bare && 'bare hands') }, () => {
         assert.ok(spec.two_hands.grip > 0 && spec.two_hands.grip < 0.3);
         assert.equal(spec.two_hands.hold.length, 2);
         assert.ok(spec.two_hands.clearance >= 0.05, 'at least PoseCheck.BLADE_CLEARANCE');
@@ -172,6 +202,23 @@ print(json.dumps([f(i / 10.0) for i in range(431)]))`);
     for (let i = 90; i <= 105; i++) assert.ok(Math.abs(out[i] - 4) < 1e-9, `holds at ${i / 10}`);
   });
 
+  it('fades a lead into its clip on a smootherstep, from all the lead to all the clip', { timeout: 300000 }, () => {
+    const out = inBlender(`print(json.dumps([rk.lead_weight(i / 4.0, 10, 18) for i in range(0, 101)]))`);
+    for (let i = 0; i <= 40; i++) assert.equal(out[i], 1, `all the lead to the clip's start (${i / 4})`);
+    for (let i = 72; i <= 100; i++) assert.equal(out[i], 0, `none after the lead's end (${i / 4})`);
+    assert.ok(Math.abs(out[56] - 0.5) < 1e-9, 'half way between');
+    for (let i = 41; i <= 72; i++) assert.ok(out[i] <= out[i - 1], `never rising (${i / 4})`);
+  });
+
+  it('warps a loop there and back through its pairs', { timeout: 300000 }, () => {
+    const pairs = [[0, 20], [12, 23], [24, 20]];
+    const out = inBlender(`rk.check_remap(${JSON.stringify(pairs)}, loop=True)
+f = rk.monotone(${JSON.stringify(pairs.map((p) => p[0]))}, ${JSON.stringify(pairs.map((p) => p[1]))})
+print(json.dumps([f(i / 2.0) for i in range(49)]))`);
+    for (const [x, y] of pairs) assert.ok(Math.abs(out[x * 2] - y) < 1e-9, `through (${x}, ${y})`);
+    for (const v of out) assert.ok(v >= 20 - 1e-9 && v <= 23 + 1e-9, `inside the pairs (${v})`);
+  });
+
   it('moves a stepping foot only while it is off the ground, and sets it down as far as it steps', { timeout: 300000 }, () => {
     for (const steps of [[[10, 15, 1.35, 0.2]], [[1, 5, 0.3, 0.16], [6, 14, 0.775, 0.24]]]) {
       const out = inBlender(`print(json.dumps([rk.foot_path(${JSON.stringify(steps)}, i / 20.0) for i in range(401)]))`);
@@ -218,6 +265,27 @@ print(json.dumps(list(after - before)))`);
     assert.deepEqual(out.map((v) => +v.toFixed(4)), [-0.1, -0.2, 0.35]);
   });
 
+  it('eases a hand-shaped pose in and out over its frames, held between', { timeout: 300000 }, () => {
+    const out = inBlender(`import bpy
+arm = bpy.data.objects.new("a", bpy.data.armatures.new("a"))
+bpy.context.scene.collection.objects.link(arm)
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode="EDIT")
+b = arm.data.edit_bones.new("B-hips")
+b.head, b.tail = (0, 0, 0), (0, 1, 0)
+bpy.ops.object.mode_set(mode="POSE")
+rk.pose(arm, bpy.context.scene, [{"frames": [2, 6, 10, 14], "move": {"B-hips": [0.0, 1.0, 0.0]}}])
+got = []
+for n in range(17):
+    bpy.context.scene.frame_set(1 + n)
+    bpy.context.view_layer.update()
+    got.append((arm.matrix_world @ arm.pose.bones["B-hips"].head).z)
+print(json.dumps(got))`);
+    for (const n of [0, 1, 2, 14, 15, 16]) assert.ok(Math.abs(out[n]) < 1e-6, `none outside its frames (${n}: ${out[n]})`);
+    for (const n of [6, 8, 10]) assert.ok(Math.abs(out[n] - 1) < 1e-6, `all of it between (${n}: ${out[n]})`);
+    assert.ok(Math.abs(out[4] - 0.5) < 1e-6 && Math.abs(out[12] - 0.5) < 1e-6, `half way in and out (${out[4]}, ${out[12]})`);
+  });
+
   const assets = existsSync(join(ROOT, '.assets-src-path')) ? readFileSync(join(ROOT, '.assets-src-path'), 'utf8').trim() : '';
   it('re-keys each spec from the asset repository to its length', { skip: assets && existsSync(assets) ? false : 'local-only: no asset repository (.assets-src-path)', timeout: 900000 }, () => {
     for (const { id, spec } of specs) {
@@ -233,6 +301,8 @@ print(json.dumps(list(after - before)))`);
       if (spec.knock) assert.match(r.stdout, /knocked back from frame/, id);
       if (spec.turn) assert.match(r.stdout, new RegExp(`turned the motion ${spec.turn} degrees`), id);
       if (spec.lower) assert.match(r.stdout, /lowered \d\.\d\d m/, id);
+      if (spec.lead) assert.match(r.stdout, /led in by .+ over frames \d+-\d+/, id);
+      if (spec.loop) assert.match(r.stdout, /looped there and back/, id);
       if (spec.carry) assert.match(r.stdout, /carried the body -?\d\.\d\d m forward/, id);
       if (spec.two_hands?.aim?.at) assert.match(r.stdout, /aimed at \d+% of the attacker's blade/, id);
       assert.doesNotMatch(r.stdout, /out of the leg's reach/, id);

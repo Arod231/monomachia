@@ -78,8 +78,14 @@ func after_each() -> void:
 static func _ctx(clips: Array) -> ClipDirector.Context:
 	var lengths: Dictionary[String, float] = {}
 	for id: Variant in clips:
-		lengths[ClipChain.anim_name(ClipLibraries.set_for(&"hunter"), StringName(str(id)))] = 10.0
+		lengths[_part_anim(id)] = 10.0
 	return ClipDirector.Context.make(&"hunter", true, lengths)
+
+
+## The hunter's animation of chain entry `entry` (its part's clip).
+static func _part_anim(entry: Variant) -> String:
+	var part: ClipChain.Part = ClipChain.parse(str(entry), [] as Array[String])
+	return ClipChain.anim_name(ClipLibraries.set_for(&"hunter"), part.id)
 
 
 ## Plays keyed move `id` from the guard at `gap`, the defender pressing
@@ -177,13 +183,19 @@ func test_every_keyed_move_plays_its_clip_at_1x() -> void:
 			var f: Fighter = W.fighters[0]
 			f.start_attack(id)
 			var shot: ClipDirector.Shot = ClipDirector.step(null, f, ctx)
-			var want: String = ClipChain.anim_name(ClipLibraries.set_for(&"hunter"), def.swing.clips[0])
+			# a chain's parts in order (the Iai's, KE task 18), each at 1x
+			var parts: Array[String] = []
+			for entry: StringName in def.swing.clips:
+				parts.append(_part_anim(entry))
+			var at: int = 0
 			var last: float = -1.0
 			while f.state == &"attack" and problems.is_empty():
-				if shot.drive != ClipDirector.ATTACK or shot.clip == null or shot.clip.name != want:
-					problems.append("frame %d plays %s, not %s" % [f.atk.frame, shot.clip.name if shot.clip != null else "nothing", want])
-				elif last >= 0.0 and absf(shot.clip.time - last - 1.0 / 60.0) > 1e-6:
+				var now: int = parts.find(shot.clip.name, at) if shot.clip != null else -1
+				if shot.drive != ClipDirector.ATTACK or now < 0:
+					problems.append("frame %d plays %s, not %s" % [f.atk.frame, shot.clip.name if shot.clip != null else "nothing", parts[at]])
+				elif now == at and last >= 0.0 and absf(shot.clip.time - last - 1.0 / 60.0) > 1e-6:
 					problems.append("frame %d steps %.4f s, not 1/60" % [f.atk.frame, shot.clip.time - last])
+				at = maxi(at, now)
 				if shot.clip != null:
 					last = shot.clip.time
 				W.step([H.idle(), H.idle()])
@@ -510,11 +522,14 @@ const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
 ## hitstun, mid-dodge or mid-attack (the computer picks its answer on an
 ## attack's first frame), and was never parried; Snap Kick counters out of a
 ## backstep, the defender dodging or attacking, and was parried 3 times in
-## 68 duels. The jump heavy (milestone-1 task 57, measured over the 22 bare
-## duels): 18 of its 23 swings whiff, out of reach or on a defender
-## mid-attack or mid-dodge, and 5 land; it was answered 4 times in 19 swings
-## before the footwork moved the duels' paths, and not since.
-const SELDOM_ANSWERABLE: Array[StringName] = [&"f_h2", &"f_bl", &"f_jh"]
+## 68 duels. Returning Draw (KE task 18) comes only as the horizontal Iai's
+## heavy follow-up, which the computer draws a dozen times in 56 duels and
+## follows with Returning Draw about once. The jump heavy (milestone-1 task
+## 57, measured over the 22 bare duels): 18 of its 23 swings whiff, out of
+## reach or on a defender mid-attack or mid-dodge, and 5 land; it was
+## answered 4 times in 19 swings before the footwork moved the duels' paths,
+## and not since.
+const SELDOM_ANSWERABLE: Array[StringName] = [&"f_h2", &"f_bl", &"k_rdraw", &"f_jh"]
 
 
 ## Whether keyed move `id` is hit 4 or 5 of a grip's own string.
