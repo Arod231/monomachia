@@ -151,6 +151,16 @@ func derive_reach() -> void:
 	reach = starter.swing.reach if keyed else authored_reach
 
 
+## The weapon's movement attacks, in slot order (sprint, dodge, backstep and
+## jump, each light then heavy), those it has.
+func movement_attacks() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id: StringName in [sprint_light, sprint_heavy, dodge_light, dodge_heavy, back_light, back_heavy, jump_light, jump_heavy]:
+		if id != &"":
+			out.append(id)
+	return out
+
+
 ## The grip `grip_id`, or null when the weapon has no such grip.
 func grip(grip_id: StringName) -> WeaponGrip:
 	for g: WeaponGrip in grips:

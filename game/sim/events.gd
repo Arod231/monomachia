@@ -22,7 +22,8 @@ extends RefCounted
 ##   uses World and DroppedWeapon directly.
 ##
 ## The variants, as { key: type } (Vec3 means a {"x","y","z"} Dictionary):
-##   swing:         f: int, attack: StringName, heavy: bool, weapon: StringName (WeaponId)
+##   swing:         f: int, attack: StringName, heavy: bool, weapon: StringName (WeaponId), sound: StringName
+##                  (the move's hit sound, task 95), movement: bool (a movement attack, task 77)
 ##   telegraph:     f: int, kind: StringName (CounterKind or &"ult"), attack: StringName
 ##   hit:           attacker: int, target: int, attack: StringName, damage: float, posture: float,
 ##                  pos: Vec3, heavy: bool, sound: StringName (HitSound), backstab: bool (optional in TS, always set),
@@ -66,6 +67,9 @@ extends RefCounted
 ##   standup:       f: int (the knockdown over, the fighter free again; task 16)
 ##   recallBurst:   f: int (the recaller), on: int (the opponent), hit: bool, reach: float,
 ##                  pos: Vec3 (the recall's power-up burst, authored animation task 30b)
+##   touchdown:     f: int, attack: StringName, heavy: bool, weapon: StringName, pos: Vec3 (the feet,
+##                  on the ground): a movement attack coming down (AttackDef.touchdown; milestone-1
+##                  task 77)
 ## The finisher's (milestone-1 task 103, FinisherRules):
 ##   finisherPrompt:    f: int (the disarmer), victim: int, kind: StringName (&"katana" or &"fists")
 ##   finisherPromptEnd: f: int, why: &"finisher" | &"forfeit" | &"timeout" | &"lost"
@@ -110,6 +114,7 @@ const TYPES: Array[StringName] = [
 	&"knockdown",
 	&"standup",
 	&"recallBurst",
+	&"touchdown",
 	&"finisherPrompt",
 	&"finisherPromptEnd",
 	&"finisher",

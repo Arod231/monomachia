@@ -244,6 +244,38 @@ func test_a_bare_hand_hit_throws_a_dust_and_cloth_puff() -> void:
 	assert_eq(EffectTable.resolve(_event(&"hit", {"weapon": &"fists", "defender_weapon": &"fists"})).size(), 1, "bare hands on bare hands too")
 
 
+## Leaping Cleave and Falling Crown throw a burst of ground dust where they
+## come down (milestone-1 task 77, the owner's answer of Oct 8): a puff off
+## the floor, bigger and faster than a bare hand's heaviest hit, and nothing
+## else; whichever weapon.
+func test_a_touchdown_throws_a_burst_of_ground_dust() -> void:
+	var e: Dictionary = {"t": &"touchdown", "f": 0, "attack": &"k_sh", "weapon": &"katana", "heavy": true, "pos": {"x": 1.0, "y": 0.0, "z": 2.0}}
+	assert_eq(_kinds(e), [EffectTable.PUFF] as Array[StringName], "a puff and nothing else")
+	var dust: Dictionary = _fx(e, EffectTable.PUFF)
+	assert_true(bool(dust.get("ground", false)), "off the floor")
+	var bare: Dictionary = _fx(_event(&"hit", {"weapon": &"fists", "sound": &"kick", "heavy": true}), EffectTable.PUFF)
+	assert_gt(int(dust["count"]), int(bare["count"]), "more of it than a kick's")
+	assert_gt(float(dust["size"]), float(bare["size"]), "bigger")
+	assert_gt(float(dust["speed"]), float(bare["speed"]), "and thrown out faster")
+	assert_eq(EffectTable.resolve({"t": &"touchdown", "weapon": &"fists", "pos": AT}).size(), 1, "whichever weapon")
+
+
+## A ground puff spreads out over the floor and up, never into it.
+func test_a_ground_puff_spreads_over_the_floor_and_up() -> void:
+	effects.on_event({"t": &"touchdown", "f": 0, "heavy": true, "pos": {"x": 1.0, "y": 0.0, "z": 2.0}}, 40)
+	effects.update(40.0)
+	var n: int = effects.puff_count()
+	assert_gt(n, 0, "a burst")
+	effects.update(58.0)
+	assert_eq(effects.puff_count(), n, "all still drifting")
+	var wide: float = 0.0
+	for i: int in n:
+		var at: Vector3 = effects.puff_state(i)["pos"]
+		assert_gte(at.y, 0.0, "puff %d above the floor" % i)
+		wide = maxf(wide, Vector2(at.x - 1.0, at.z - 2.0).length())
+	assert_gt(wide, 0.3, "spread out over the floor (%.2f m)" % wide)
+
+
 func test_the_counter_and_disarm_keep_their_flashes_for_now() -> void:
 	assert_eq(EffectTable.resolve({"t": &"counter"})[0]["life"], 16)
 	assert_eq(EffectTable.resolve({"t": &"disarm"})[0]["size"], 1.3)

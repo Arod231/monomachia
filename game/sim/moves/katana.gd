@@ -176,6 +176,9 @@ const MOVES: Dictionary = {
 		"id": &"k_sh", "name": "Leaping Cleave", "kind": &"heavy", "type": &"overhead", "anim": &"leapCleave",
 		"damage": 15, "posture": 18, "knockback": 1.2,
 		"range": 2.4, "arc": 70,
+		# down on the ground as its leap lands, its clip's travel stopping with
+		# the feet planted (milestone-1 task 77)
+		"touchdown": 51,
 	},
 	&"k_dl": {
 		"id": &"k_dl", "name": "Wind Cut", "kind": &"light", "type": &"slash", "anim": &"slashRL",
@@ -186,6 +189,9 @@ const MOVES: Dictionary = {
 		"id": &"k_dh", "name": "Whirl Cut", "kind": &"heavy", "type": &"spin", "anim": &"spin",
 		"damage": 12, "posture": 14, "knockback": 1.0,
 		"range": 2.3, "arc": 360,
+		# smearing its whole circle, from where the blade passes the front to
+		# come round once more (milestone-1 task 77)
+		"smear_from": 24,
 	},
 	&"k_bl": {
 		"id": &"k_bl", "name": "Rising Cut", "kind": &"light", "type": &"slash", "anim": &"diagUp",
@@ -206,6 +212,8 @@ const MOVES: Dictionary = {
 		"id": &"k_jh", "name": "Falling Crown", "kind": &"heavy", "type": &"overhead", "anim": &"plunge",
 		"damage": 13, "posture": 16, "knockback": 1.0,
 		"range": 2.3, "arc": 80, "airborne": true,
+		# down on the ground as it lands (milestone-1 task 77)
+		"touchdown": AttackDef.TOUCHDOWN_ON_LANDING,
 	},
 	# --- block abilities ---
 	&"k_flash": {

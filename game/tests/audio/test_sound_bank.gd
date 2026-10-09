@@ -3,13 +3,14 @@ extends GutTest
 ## names exists and loads, and the demo's sub-selection rules hold.
 
 ## The web demo's event list (v0.1-web-mvp:src/sim/events.ts) plus the menu sounds,
-## its weaponBounce become weaponStuck (milestone-1 task 86).
+## its weaponBounce become weaponStuck (milestone-1 task 86), and a movement
+## attack's touchdown (milestone-1 task 77).
 const EXPECTED_EVENTS: Array[StringName] = [
 	&"swing", &"telegraph", &"hit", &"block", &"parry", &"counter", &"evade", &"disarm",
 	&"stagger", &"dodge", &"jump", &"land", &"step", &"ko", &"ultReady", &"ultStart",
 	&"ultChoice", &"ultWave", &"ultDash", &"ultImpale", &"ultBurst", &"ultLightning",
 	&"recall", &"pickup", &"recallBurst", &"weaponStuck", &"counterReady", &"backstabReady",
-	&"roundStart", &"fight", &"roundOver", &"matchOver",
+	&"roundStart", &"fight", &"roundOver", &"matchOver", &"touchdown",
 	&"ui_move", &"ui_select", &"ui_back",
 ]
 
@@ -80,6 +81,10 @@ func test_every_cue_is_used_by_an_event_or_documented_as_direct() -> void:
 		for half: StringName in [&"deflect", &"recoil"]:
 			for cue: Dictionary in SoundBank.deflect_pair_cues(direction, half):
 				used.append(cue["cue"])
+	# a move's own cues on its frames (task 77)
+	for id: StringName in SoundBank.MOVE_SOUNDS:
+		for cue: Dictionary in SoundBank.move_cues(id):
+			used.append(cue["cue"])
 	for cue_name: StringName in SoundBank.CUES:
 		assert_true(used.has(cue_name) or direct.has(cue_name), "cue %s is never played" % cue_name)
 
@@ -502,3 +507,78 @@ func test_only_steel_on_steel_parries_sound_their_pair() -> void:
 	assert_false(SoundBank.sounds_deflect_pair({"t": "block", "weapon": &"katana", "defender_weapon": &"katana"}))
 	# the parry's own contact and ring stay as they were
 	assert_eq(_cue_names(parry), [&"parry_contact_katana", &"parry_ring"] as Array[StringName])
+
+
+# ------------------------------------------------------------------ the Katana's movement attacks (task 77)
+
+## The Katana's eight movement attacks (milestone-1 task 77, the owner's
+## answer of Oct 8) keep its whooshes and its cut, flesh and bone impacts,
+## and the Hunter's coat whooshes with each; the Rogue just swings.
+func test_the_eight_keep_the_katana_s_whooshes_and_impacts() -> void:
+	var w: WeaponDef = Moves.KATANA
+	assert_eq(w.movement_attacks(), [&"k_sl", &"k_sh", &"k_dl", &"k_dh", &"k_bl", &"k_bh", &"k_jl", &"k_jh"] as Array[StringName])
+	for id: StringName in w.movement_attacks():
+		var m: AttackDef = w.moves[id]
+		var heavy: bool = m.kind != &"light"
+		var swing := {"t": "swing", "f": 0, "attack": id, "weapon": &"katana", "heavy": heavy, "sound": m.sound, "movement": true}
+		assert_eq(_cue_names(swing), [&"whoosh_heavy" if heavy else &"whoosh_light"] as Array[StringName], "%s whooshes as the Katana's" % m.name)
+		var hit := {"t": "hit", "attack": id, "weapon": &"katana", "heavy": heavy, "sound": m.sound}
+		var cut: Array = [&"hit_blade_heavy", &"hit_flesh", &"crunch"] if heavy else [&"hit_blade", &"hit_flesh"]
+		assert_eq(_cue_names(hit), _names(cut), "%s cuts as the Katana's" % m.name)
+		var cast: Array = [&"hunter", &"rogue"]
+		assert_eq(_cast_names(swing, cast), _names([&"whoosh_heavy" if heavy else &"whoosh_light"] + SoundBank.FOLEY[&"hunter"][&"swing"]
+			+ SoundBank.FOLEY[&"hunter"][&"move"]), "%s: the Hunter's coat whooshes too" % m.name)
+		swing["f"] = 1
+		assert_eq(_cast_names(swing, cast), [&"whoosh_heavy" if heavy else &"whoosh_light"] as Array[StringName], "%s: the Rogue just swings" % m.name)
+
+
+func test_the_hunter_s_coat_whooshes_only_in_a_movement_attack() -> void:
+	var move: Array = SoundBank.FOLEY[&"hunter"][&"move"]
+	assert_eq(move, [&"hunter_cloth_whoosh"], "the coat's own whoosh")
+	var cue: Dictionary = SoundBank.CUES[&"hunter_cloth_whoosh"]
+	assert_eq(cue["bus"], SoundBank.BUS_FOLEY)
+	assert_true(cue["spatial"])
+	assert_gte((cue["files"] as Array).size(), 3, "three variations")
+	for file: String in cue["files"]:
+		assert_false((SoundBank.CUES[&"hunter_cloth_swing"]["files"] as Array).has(file), "not a string swing's coat")
+	assert_gt(_longest(&"hunter_cloth_whoosh"), _longest(&"hunter_cloth_swing") - 0.05, "a fuller sweep of the coat than a string swing's")
+	var cast: Array = [&"hunter", &"rogue"]
+	assert_false(_cast_names({"t": "swing", "f": 0, "weapon": &"katana", "heavy": true}, cast).has(&"hunter_cloth_whoosh"), "a string's swing")
+	assert_false(_cast_names({"t": "swing", "f": 0, "weapon": &"fists", "heavy": true, "sound": &"kick", "movement": true}, cast).has(&"hunter_cloth_whoosh"),
+		"bare hands' movement attacks keep their own limb's cloth (task 95)")
+
+
+## Leaping Cleave and Falling Crown thud on the ground where they come down,
+## a stone thud under a low boom, heavier than a landing.
+func test_a_touchdown_thuds_the_ground() -> void:
+	assert_eq(_cue_names({"t": "touchdown", "f": 0, "attack": &"k_sh", "weapon": &"katana", "heavy": true}), [&"ground_thud"] as Array[StringName])
+	var cue: Dictionary = SoundBank.CUES[&"ground_thud"]
+	assert_true(cue["spatial"], "where it lands")
+	assert_eq(cue["bus"], SoundBank.BUS_FOLEY)
+	assert_gte((cue["files"] as Array).size(), 2)
+	assert_gt(float(cue["volume_db"]), float(SoundBank.CUES[&"land"]["volume_db"]), "louder than a landing")
+	for file: String in cue["files"]:
+		assert_false((SoundBank.CUES[&"land"]["files"] as Array).has(file), "its own recording")
+
+
+## Whirl Cut's spin whooshes twice as the blade goes round (task 77): a
+## double whoosh started on the frame its circle starts, at its chest, over
+## the heavy whoosh its swing plays on the strike.
+func test_whirl_cut_s_spin_whooshes_twice() -> void:
+	var whirl: AttackDef = Moves.KATANA.moves[&"k_dh"]
+	var cues: Array[Dictionary] = SoundBank.move_cues(&"k_dh")
+	assert_eq(cues.size(), 1)
+	assert_eq(cues[0]["cue"], &"whoosh_whirl")
+	assert_eq(int(cues[0]["frame"]), whirl.smear_from, "as the circle starts")
+	assert_eq(cues[0]["place"], &"chest")
+	assert_lt(int(cues[0]["frame"]), whirl.startup, "before the strike's own whoosh")
+	assert_eq(SoundBank.move_cues(&"k_l1"), [] as Array[Dictionary], "a move with none")
+	var cue: Dictionary = SoundBank.CUES[&"whoosh_whirl"]
+	assert_eq(cue["bus"], SoundBank.BUS_COMBAT)
+	assert_true(cue["spatial"])
+	assert_gte((cue["files"] as Array).size(), 2)
+	# two passes: as long as the spin's two turns, from the circle's start to
+	# its strike
+	var spin: float = float(whirl.startup + whirl.active - whirl.smear_from) * SimConst.DT
+	for path: String in SoundBank.paths_for(&"whoosh_whirl"):
+		assert_between((load(path) as AudioStream).get_length(), spin * 0.6, spin * 1.6, "%s spans the spin (%.2f s)" % [path.get_file(), spin])

@@ -38,6 +38,11 @@ extends Node3D
 ## parry, not disarmed; the parrier in its recovery or standing on), and a
 ## half cut short drops its later cues.
 ##
+## A move's own cues on its frames (milestone-1 task 77: Whirl Cut's double
+## whoosh round its spin, [constant SoundBank.MOVE_SOUNDS]): each plays at its
+## fighter's chest when the attack reaches its frame, once per attack, so a
+## hit-stop, which holds the attack's frame, holds it too.
+##
 ## The arena's ambience: a played match fades in the loop its arena's data
 ## names ([method ambience_cue]) on a [FadedLoop]. It plays on through pauses,
 ## the results and a rematch in the same arena, and fades out on a quit or
@@ -75,6 +80,10 @@ var _parries: Array[Dictionary] = []
 ## The deflect pairs' cues waiting on their frames: {cue, frame (the world
 ## frame it starts on), side, half, place, at (the contact)}.
 var _pair_cues: Array[Dictionary] = []
+## Per side, the attack whose own cues are playing and the last of its
+## frames they were played up to (task 77).
+var _move_atk: Array[AttackState] = [null, null]
+var _move_frame: Array[int] = [0, 0]
 
 
 func _ready() -> void:
@@ -197,6 +206,7 @@ func event_position(e: Dictionary) -> Variant:
 func _on_match_started(config: MatchConfig) -> void:
 	player.stop_all()
 	stop_pair_sounds()
+	_move_atk = [null, null]
 	footsteps.reset()
 	if host.attract:
 		ambience.stop()
@@ -216,6 +226,7 @@ func _on_stepped(_step: int) -> void:
 	if host.attract:
 		return
 	update_pair_sounds()
+	update_move_sounds()
 	for foot: Dictionary in footsteps.update(host.world.fighters, host.world.frame):
 		# a drawn fighter steps where its clips' feet land instead
 		if view != null and view.steps_from_clips(foot["fighter"]):
@@ -258,6 +269,27 @@ func update_pair_sounds() -> void:
 		else:
 			waiting.append(c)
 	_pair_cues = waiting
+
+
+## Plays each fighter's attack's own cues whose frames it has reached since
+## the last step (task 77); done after every step.
+func update_move_sounds() -> void:
+	if host == null or not host.is_started():
+		return
+	for side: int in 2:
+		var f: Fighter = host.fighter(side)
+		var a: AttackState = f.atk if f.state == &"attack" else null
+		if a == null:
+			_move_atk[side] = null
+			continue
+		if a != _move_atk[side]:
+			_move_atk[side] = a
+			_move_frame[side] = 0
+		for cue: Dictionary in SoundBank.move_cues(a.def.id):
+			var at: int = int(cue["frame"])
+			if at > _move_frame[side] and at <= a.frame:
+				player.play_cue(cue["cue"], Vector3(f.pos.x, f.pos.y + chest_height, f.pos.z))
+		_move_frame[side] = maxi(_move_frame[side], a.frame)
 
 
 ## Drops every deflect pair sound not yet played.

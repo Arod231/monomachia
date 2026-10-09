@@ -105,3 +105,16 @@ func test_blows_burst_the_floor_where_they_land_once() -> void:
 	s.on_event({"t": &"hit", "attacker": 0, "target": 1, "heavy": true}, at)
 	s.reset()
 	assert_eq(_frame(s, _side(Vector3.ZERO)).bursts.size(), 0, "a reset drops what's waiting")
+
+
+## Leaping Cleave and Falling Crown coming down burst the floor where they
+## land (milestone-1 task 77), as hard as a stomp's.
+func test_a_touchdown_bursts_the_floor_where_it_lands() -> void:
+	var s := FloorStirrer.new()
+	var at := func(side: int) -> Vector3: return Vector3(side * 2.0, 0.0, 1.0)
+	s.on_event({"t": &"touchdown", "f": 0, "attack": &"k_sh", "pos": {"x": 0.5, "y": 0.0, "z": 1.5}}, at)
+	var f: FloorStir = _frame(s, _side(Vector3.ZERO), _side(Vector3(2, 0, 1)))
+	assert_eq(f.bursts.size(), 1)
+	assert_almost_eq(f.bursts[0].at, Vector3(0.5, 0, 1.5), Vector3.ONE * 1e-6, "where it came down")
+	assert_almost_eq(f.bursts[0].radius, FloorStirrer.TOUCHDOWN_BURST.x, 1e-5)
+	assert_gte(FloorStirrer.TOUCHDOWN_BURST.y, FloorStirrer.LAND_BURST.y, "harder than a landing")

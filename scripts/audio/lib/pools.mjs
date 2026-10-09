@@ -15,6 +15,8 @@ export const POOLS = {
   whoosh_small: { files: /^whoosh_small_\d+\.wav$/, loudnessDb: -16.5, ceilingDb: -3 },
   whoosh_heavy: { files: /^whoosh_heavy_\d+\.wav$/, loudnessDb: -13, ceilingDb: -2 },
   whoosh_colossal: { files: /^whoosh_colossal_\d+\.wav$/, loudnessDb: -16, ceilingDb: -2 },
+  // Whirl Cut's double whoosh round its spin (milestone-1 task 77)
+  whoosh_whirl: { files: /^whoosh_whirl_\d+\.wav$/, loudnessDb: -14, ceilingDb: -2 },
   // hits
   hit_blade: { files: /^hit_blade_\d+\.wav$/, loudnessDb: -14.5, ceilingDb: -1 },
   hit_blade_heavy: { files: /^hit_blade_heavy_\d+\.wav$/, loudnessDb: -13.5, ceilingDb: -1 },
@@ -66,12 +68,16 @@ export const POOLS = {
   footstep: { files: /^gen_footstep_stone_\d+\.wav$/, loudnessDb: -21.5, ceilingDb: -3 },
   land: { files: /^gen_land_\d+\.wav$/, loudnessDb: -15, ceilingDb: -1 },
   body_fall: { files: /^(gen_body_fall|body_drop_\d+)\.wav$/, loudnessDb: -15.5, ceilingDb: -1 },
+  // a movement attack coming down on the stone (milestone-1 task 77)
+  ground_thud: { files: /^ground_thud_\d+\.wav$/, loudnessDb: -14, ceilingDb: -1 },
   // a leg strike's trouser cloth whoosh (milestone-1 task 95)
   kick_cloth: { files: /^kick_cloth_\d+\.wav$/, loudnessDb: -21, ceilingDb: -3 },
   // the Hunter's own cloth and gear (milestone-1 task 36)
   hunter_cloth_step: { files: /^hunter_cloth_step_\d+\.wav$/, loudnessDb: -33, ceilingDb: -3 },
   hunter_cloth_swing: { files: /^hunter_cloth_swing_\d+\.wav$/, loudnessDb: -22, ceilingDb: -3 },
   hunter_cloth_dodge: { files: /^hunter_cloth_dodge_\d+\.wav$/, loudnessDb: -24, ceilingDb: -3 },
+  // its coat sweeping round with a movement attack (milestone-1 task 77)
+  hunter_cloth_whoosh: { files: /^hunter_cloth_whoosh_\d+\.wav$/, loudnessDb: -22, ceilingDb: -3 },
   hunter_gear_tick: { files: /^gen_hunter_gear_tick_\d+\.wav$/, loudnessDb: -26, ceilingDb: -6 },
   hunter_gear_rattle: { files: /^gen_hunter_gear_rattle_\d+\.wav$/, loudnessDb: -21, ceilingDb: -3 },
   hunter_creak: { files: /^gen_hunter_creak_\d+\.wav$/, loudnessDb: -33, ceilingDb: -3 },
