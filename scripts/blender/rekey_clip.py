@@ -93,12 +93,24 @@
 #   that much slower, its cadence, lift and upper body kept; both legs on
 #   IK, baked; after any step;
 # - shuffle: {"distance": metres, "heading": degrees, "steps": {"L"|"R":
-#   [from, to]}, "lift": m, "sink": m, "narrow": m, "follow": 0-1}: a guarded shuffle or
-#   strafe loop keyed as its legs and hips (shuffle(); milestone-1 task 56):
-#   the body travels the distance a cycle along the heading, each foot
-#   planted where frame 0 has it and sweeping back at the cycle's even pace
-#   but over its step, when it travels on to its next plant lifted on an
-#   arc, the hips sinking through each step; both legs on IK, baked; the
+#   [from, to]}, "lift": m, "rise": 0-0.5, "sink": m, "narrow": m, "follow": 0-1}: a
+#   guarded shuffle or strafe loop keyed as its legs and hips (shuffle();
+#   milestone-1 task 56): the body travels the distance a cycle along the
+#   heading, each foot planted where frame 0 has it and sweeping back at the
+#   cycle's even pace but over its step, when it rises "lift" m in place over
+#   the step's first "rise" (0.25), travels on to its next plant while up and
+#   sets down in place, so FootLock never drags it, the hips sinking through
+#   each step; both legs on IK, baked; the rest of the clip (a held guard) as
+#   it is;
+# - footwork: {"body": [[frame, metres], ...], "heading": degrees, "steps":
+#   {"L"|"R": [[from, to(, land frame)], ...]}, "lift": m, "rise": 0-0.5,
+#   "narrow": m, "sink": [[frame, metres], ...]}: a start, a stop, a pivot or
+#   a tap step keyed as its legs and hips (footwork(); milestone-1 task 57):
+#   the body carried along the heading by "body" (a monotone cubic, out and
+#   back for a pivot), the clip kept in place, each foot planted in the
+#   world but over its steps, which rise in place, travel while up and set
+#   down in place in the foot's stance under the body's end (or the land
+#   frame's) place, the hips sinking by "sink"; both legs on IK, baked; the
 #   rest of the clip (a held guard) as it is;
 # - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
 #   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
@@ -1027,6 +1039,83 @@ def shuffle(arm, scene, length, spec):
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
 
 
+def footwork(arm, scene, length, spec):
+    """A start, a stop, a pivot or a tap step keyed as its legs and hips
+    (milestone-1 task 57): the body travels spec["body"] ([frame, metres]
+    pairs along spec["heading"], degrees to the right of forward; a
+    monotone cubic through them, so a pivot can go out and back), the clip
+    kept in place. The feet stand where frame 0 has them, spec["narrow"] m
+    (default 0) nearer each other along the travel, each planted in the
+    world, so it sweeps back under the clip as the body goes, except over
+    its steps (spec["steps"]: {"L"|"R": [[from, to], ...]}): it rises
+    spec["lift"] m in place over each step's first spec["rise"] (default
+    0.25), travels while up and sets down in place, landing in its stance
+    under where the body is at the clip's end (or at a step's third number,
+    a frame), so FootLock never drags it. The hips sink spec["sink"]
+    ([frame, metres] pairs, default none) and stay over the clip's origin;
+    both legs on IK, baked; the rest of the clip (a held guard) as it is.
+    The clip faces -Y."""
+    mw = arm.matrix_world
+    to_arm = mw.inverted().to_3x3()
+    pbs = arm.pose.bones
+    hips = pbs["B-hips"]
+    h = math.radians(float(spec.get("heading", 0.0)))
+    along = mathutils.Vector((0.0, -1.0, 0.0)) * math.cos(h) + mathutils.Vector((-1.0, 0.0, 0.0)) * math.sin(h)
+    up = mathutils.Vector((0.0, 0.0, 1.0))
+    pairs = spec["body"]
+    body = monotone([float(p[0]) for p in pairs], [float(p[1]) for p in pairs])
+    sink_pairs = spec.get("sink")
+    sink = monotone([float(p[0]) for p in sink_pairs], [float(p[1]) for p in sink_pairs]) if sink_pairs else (lambda _t: 0.0)
+    lift = float(spec.get("lift", 0.16))
+    rise = float(spec.get("rise", 0.25))
+    narrow = float(spec.get("narrow", 0.0))
+    steps = spec.get("steps", {})
+
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    feet0 = {side: (mw @ pbs["B-foot." + side].matrix).copy() for side in ("L", "R")}
+    mid0 = (feet0["L"].to_translation() + feet0["R"].to_translation()) / 2.0
+    base = {}
+    for side in ("L", "R"):
+        c = (feet0[side].to_translation() - mid0).dot(along)
+        base[side] = feet0[side].to_translation() - along * math.copysign(min(abs(c), narrow), c)
+
+    def world_along(side, n):
+        """How far along the travel foot `side` stands in the world at frame
+        n (from its frame-0 place), and how high."""
+        at, high = 0.0, 0.0
+        for s in steps.get(side, []):
+            a, b = float(s[0]), float(s[1])
+            land = body(float(s[2]) if len(s) > 2 else float(length))
+            if n <= a:
+                break
+            t = min((n - a) / (b - a), 1.0)
+            go = _smoother(min(max((t - rise) / (1.0 - 2.0 * rise), 0.0), 1.0))
+            high = lift * _smoother(min(1.0, t / rise, (1.0 - t) / rise)) if t < 1.0 else 0.0
+            at = at + (land - at) * go
+            if t < 1.0:
+                break
+        return at, high
+
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        hips.matrix = mathutils.Matrix.Translation(to_arm @ (-up * sink(float(n)))) @ hips.matrix
+        bpy.context.view_layer.update()
+        hips.keyframe_insert("location", frame=1 + n, group=hips.name)
+    feet = {"L": [], "R": []}
+    for side in ("L", "R"):
+        for n in range(length + 1):
+            at, high = world_along(side, float(n))
+            go = at - body(float(n))
+            feet[side].append((base[side] + along * go + up * high, feet0[side].to_quaternion(), high))
+    over = legs_to(arm, scene, length, feet, feet0)
+    print(f"rekey_clip: footwork of {body(float(length)):.3f} m over {length} frames along {math.degrees(h):.1f} degrees",
+          flush=True)
+    if over:
+        print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
+
+
 def knock(arm, scene, length, spec):
     """A recoil thrown back: from frame spec["from"] on, every bone but the
     legs' turned spec["share"] of the way toward its own pose at frame
@@ -1618,6 +1707,8 @@ def main():
         stride(arm, scene, length, spec["stride"])
     if spec.get("shuffle"):
         shuffle(arm, scene, length, spec["shuffle"])
+    if spec.get("footwork"):
+        footwork(arm, scene, length, spec["footwork"])
     if spec.get("carry"):
         carry(arm, scene, length, spec["carry"])
     if spec.get("reach"):

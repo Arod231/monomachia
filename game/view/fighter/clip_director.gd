@@ -700,7 +700,7 @@ static func reaction_of(f: Fighter) -> StringName:
 		return &"blockstun"
 	if STUN_STATES.has(f.state):
 		return &"stun"
-	if f.blocking and (f.state == &"free" or f.state == &"step" or f.state == &"land"):
+	if f.blocking and (f.state == &"free" or f.state == &"step" or f.state == &"footwork" or f.state == &"land"):
 		return &"guard"
 	return &""
 
@@ -991,7 +991,7 @@ static func carry_clip(f: Fighter, ctx: Context) -> Clip:
 		return null
 	if f.shouldered:
 		return Clip.make(carry_name(ctx), 0.0)
-	if f.armed and f.weapon != null and not f.blocking and (f.state == &"free" or f.state == &"step") and not running_ahead(f):
+	if f.armed and f.weapon != null and not f.blocking and (f.state == &"free" or f.state == &"step" or f.state == &"footwork") and not running_ahead(f):
 		var id: StringName = StateClips.shared().carry_for(f.weapon.id, f.grip)
 		if id != &"":
 			# a guard idle doubling as the carry (KE task 10) loops at 1.0 on
@@ -1050,7 +1050,7 @@ static func off_hand(prev: Shot, f: Fighter, ctx: Context, drive: StringName, pl
 static func regrip_clip(prev: Shot, f: Fighter, ctx: Context, switched: bool) -> Clip:
 	if not ctx.libraries or not f.armed or f.weapon == null:
 		return null
-	if f.state != &"free" and f.state != &"step" and f.state != &"land":
+	if f.state != &"free" and f.state != &"step" and f.state != &"footwork" and f.state != &"land":
 		return null
 	var anim_name: String = ""
 	var at: float = 0.0

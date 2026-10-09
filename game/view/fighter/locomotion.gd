@@ -64,6 +64,12 @@ extends RefCounted
 ##   fighter at their speeds, so they play at 1.0x too. The legs cross over
 ##   to and from them over MOVING_FRAMES; the block itself shows on the upper
 ##   body (the clip director's legs_free).
+## - **Footwork** (milestone-1 task 57): in a start, a stop, a pivot or a
+##   tap step the legs play its clip (StateClips.footwork_clip(), by class,
+##   kind and the way it goes) at 1.0x from the state's first frame, over the
+##   legs' blend, crossing over to it and back over FOOT_FADE frames; the
+##   rules move the fighter as the clip travels. Without the packs, a tap step
+##   is half a walking cycle as before.
 ## - **Footsteps** fall where the clips' feet come down (footfalls): the
 ##   shared phase passing a foot's contact while the legs walk or run, at
 ##   that foot.
@@ -105,7 +111,10 @@ const TURN_CLIPS: Array[StringName] = [&"Turn01_Left", &"Turn01_Right"]
 const ADDITIVE_LIBRARY: StringName = &"loco_add"
 ## The fighter states in which the legs walk and run with the speed (and
 ## the Iai stance: walks()).
-const MOVING_STATES: Array[StringName] = [&"free", &"step"]
+const MOVING_STATES: Array[StringName] = [&"free", &"step", &"footwork"]
+## How many rules frames the legs take to cross over to a footwork clip or
+## back from it.
+const FOOT_FADE: int = 3
 ## Below this ground speed (m/s) the travel has no way to it: the legs keep
 ## the way they had.
 const TURN_MIN_SPEED: float = 0.1
@@ -147,6 +156,20 @@ var guard_clips: Dictionary[StringName, Array] = {}
 var guarded: float = 0.0
 var prev_guarded: float = 0.0
 var guard_row: Array = []
+## The footwork clips (StateClips.footwork_clips) as names in the tree; empty
+## without the packs.
+var foot_clips: Dictionary[StringName, Dictionary] = {}
+## The footwork clip showing (a name in the tree, or "" for none), its time
+## (s) after the last rules frame and the one before, and how much it shows
+## over the legs' blend (0 to 1) then.
+var foot_clip: String = ""
+var foot_time: float = 0.0
+var prev_foot_time: float = 0.0
+var foot_share: float = 0.0
+var prev_foot_share: float = 0.0
+## What was shown last: the footwork clip's share.
+var shown_foot: float = 0.0
+var _alpha: float = 1.0
 ## The turns on the spot as names in the tree, or empty without the packs.
 var turn_clips: Array[String] = []
 ## The shared step phase (0..1) after the last rules frame, and after the
@@ -538,6 +561,7 @@ func update(f: Fighter, idle_clip: StringName, idle_seconds: float, alpha: float
 				for k: int in 2:
 					if fposmod(feet[k] - prev_phase, 1.0) < step:
 						footfalls.append(_foot_on_ground(f, "Left" if k == 0 else "Right"))
+		_step_footwork(f, n)
 		_turn_on_the_spot(f, s, stepping, n)
 		prev_speed = speed if n == 1 else s
 		speed = s
@@ -566,11 +590,41 @@ func update(f: Fighter, idle_clip: StringName, idle_seconds: float, alpha: float
 		if clip != "" and share > 1e-5 and float(shown_blend[clip]) * shown_moving / share > 1e-5:
 			shown_clips.append([clip, float(shown_blend[clip]) * shown_moving / share])
 	shown_clips.sort_custom(func(x: Array, y: Array) -> bool: return x[1] > y[1])
+	_alpha = alpha
+	shown_foot = smoothstep(0.0, 1.0, lerpf(prev_foot_share, foot_share, alpha))
 	shown_turn = 0.0
 	if turn_frame >= 0:
 		var t: float = float(turn_frame) + alpha
 		shown_turn = smoothstep(0.0, 1.0, minf(t, float(TURN_FRAMES) - t) / float(TURN_FADE))
 	_show(idle_clip, idle_seconds)
+
+
+## The footwork clip fighter `f` plays now (a name in the tree), or "" for
+## none: its start's, stop's or pivot's, or its tap step's, by its class and
+## the way it goes.
+func footwork_clip_of(f: Fighter) -> String:
+	var row: Dictionary = foot_clips.get(f.moveset().id, {})
+	if f.state == &"footwork":
+		return (row.get(f.footwork_kind, {}) as Dictionary).get(f.footwork_way, "")
+	if f.state == &"step" and not f.airborne():
+		var way: float = wrapf(atan2(f.step_dir.x, f.step_dir.z) - f.yaw, -PI, PI)
+		return (row.get(Footwork.TAP_STEP, {}) as Dictionary).get(Footwork.way_of(way), "")
+	return ""
+
+
+## Moves the footwork clip on `frames` rules frames: its time from its
+## state's frame (1.0x), its share eased in over FOOT_FADE while it plays and
+## out after (its last time held).
+func _step_footwork(f: Fighter, frames: int) -> void:
+	var clip: String = footwork_clip_of(f)
+	prev_foot_share = foot_share
+	prev_foot_time = foot_time
+	if clip != "":
+		if clip != foot_clip:
+			prev_foot_time = 0.0
+		foot_clip = clip
+		foot_time = float(f.sf + 1) / float(SimConst.FPS)
+	foot_share = move_toward(foot_share, 1.0 if clip != "" else 0.0, float(frames) / float(FOOT_FADE))
 
 
 ## Walks on moveset `id`'s guarded cycles from now (&"" for none: the last
@@ -645,6 +699,19 @@ func _build(libraries: bool) -> void:
 			else:
 				row.append("%s/%s" % [FighterModel.LIBRARY, id])
 		clips[gait] = row
+	foot_clips.clear()
+	if libraries:
+		for w: StringName in StateClips.shared().footwork_clips:
+			var kinds: Dictionary = {}
+			var by_kind: Dictionary = StateClips.shared().footwork_clips[w]
+			for kind: StringName in by_kind:
+				var ways: Dictionary = {}
+				for way: StringName in by_kind[kind]:
+					var c: String = "%s/%s" % [set_name, by_kind[kind][way]]
+					if tree.has_animation(c):
+						ways[way] = c
+				kinds[kind] = ways
+			foot_clips[w] = kinds
 	guard_clips.clear()
 	if libraries:
 		for id: StringName in GUARD_CLIPS:
@@ -675,6 +742,12 @@ func _build(libraries: bool) -> void:
 		_root.connect_node(moving, 0, under)
 		_root.connect_node(moving, 1, _seek(slot))
 		under = moving
+	# the footwork clip over the legs' blend
+	_add_clip(&"foot", String(clips[&"walk"][0]))
+	_root.add_node(&"footwork", AnimationNodeBlend2.new())
+	_root.connect_node(&"footwork", 0, under)
+	_root.connect_node(&"footwork", 1, _seek(&"foot"))
+	under = &"footwork"
 	# the turn on the spot added over the legs alone
 	_add_clip(&"turn", turn_clips[0] if not turn_clips.is_empty() else first)
 	var legs: AnimationNodeAdd2 = AnimationNodeAdd2.new()
@@ -773,6 +846,12 @@ func _show(idle_clip: StringName, idle_seconds: float) -> void:
 			total += w
 			amount = w / total if total > 0.0 else 0.0
 		tree.set("parameters/moving_%d/blend_amount" % k, amount)
+	if foot_clip != "":
+		var foot: AnimationNodeAnimation = _root.get_node(&"foot")
+		if foot.animation != StringName(foot_clip):
+			foot.animation = StringName(foot_clip)
+		tree.set("parameters/%s/seek_request" % _seek(&"foot"), lerpf(prev_foot_time, foot_time, _alpha))
+	tree.set("parameters/footwork/blend_amount", shown_foot)
 	if not turn_clips.is_empty():
 		var turn: AnimationNodeAnimation = _root.get_node(&"turn")
 		var name: String = turn_clips[0 if turn_left else 1]

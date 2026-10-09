@@ -161,7 +161,7 @@ func _think() -> RawInput:
 	var buttons: int = _hold
 	var d: float = SimMath.dist2(me.pos, me.opp.pos)
 	var want: float = practice_distance(me.weapon)
-	var free: bool = me.state == &"free" or me.state == &"step"
+	var free: bool = me.state == &"free" or me.state == &"step" or me.state == &"footwork"
 
 	if behaviour == &"block":
 		buttons |= 1 << Btn.BLOCK

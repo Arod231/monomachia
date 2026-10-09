@@ -510,8 +510,11 @@ const OUT_OF_PLAY: Array[StringName] = [&"k_l1", &"k_l2", &"k_l3", &"k_l4"]
 ## hitstun, mid-dodge or mid-attack (the computer picks its answer on an
 ## attack's first frame), and was never parried; Snap Kick counters out of a
 ## backstep, the defender dodging or attacking, and was parried 3 times in
-## 68 duels.
-const SELDOM_ANSWERABLE: Array[StringName] = [&"f_h2", &"f_bl"]
+## 68 duels. The jump heavy (milestone-1 task 57, measured over the 22 bare
+## duels): 18 of its 23 swings whiff, out of reach or on a defender
+## mid-attack or mid-dodge, and 5 land; it was answered 4 times in 19 swings
+## before the footwork moved the duels' paths, and not since.
+const SELDOM_ANSWERABLE: Array[StringName] = [&"f_h2", &"f_bl", &"f_jh"]
 
 
 ## Whether keyed move `id` is hit 4 or 5 of a grip's own string.

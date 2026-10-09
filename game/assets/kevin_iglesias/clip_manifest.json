@@ -3351,6 +3351,678 @@
 			"groups": [
 				"bare"
 			]
+		},
+		"KatanaStartForward": {
+			"export": "exports/clips/start_forward_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStartBack": {
+			"export": "exports/clips/start_back_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStartLeft": {
+			"export": "exports/clips/start_left_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStartRight": {
+			"export": "exports/clips/start_right_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStopForward": {
+			"export": "exports/clips/stop_forward_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStopBack": {
+			"export": "exports/clips/stop_back_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStopLeft": {
+			"export": "exports/clips/stop_left_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaStopRight": {
+			"export": "exports/clips/stop_right_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaRunStopForward": {
+			"export": "exports/clips/runstop_forward_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 3], [6, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaRunStopBack": {
+			"export": "exports/clips/runstop_back_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 3], [6, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaRunStopLeft": {
+			"export": "exports/clips/runstop_left_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 3], [6, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaRunStopRight": {
+			"export": "exports/clips/runstop_right_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 3], [6, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaPivotForward": {
+			"export": "exports/clips/pivot_forward_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 4], [7, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaPivotBack": {
+			"export": "exports/clips/pivot_back_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 4], [7, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaPivotLeft": {
+			"export": "exports/clips/pivot_left_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 4], [7, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaPivotRight": {
+			"export": "exports/clips/pivot_right_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 4], [7, 7]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaTapStepForward": {
+			"export": "exports/clips/tapstep_forward_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 4]], "right": [[0, 1], [4, 4]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaTapStepBack": {
+			"export": "exports/clips/tapstep_back_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 1], [4, 4]], "right": [[0, 0], [3, 4]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaTapStepLeft": {
+			"export": "exports/clips/tapstep_left_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 4]], "right": [[0, 1], [4, 4]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaTapStepRight": {
+			"export": "exports/clips/tapstep_right_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 1], [4, 4]], "right": [[0, 0], [3, 4]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"KatanaSprintStop": {
+			"export": "exports/clips/sprintstop_forward_katana.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 10
+			},
+			"foot_contacts": {"left": [[0, 3], [6, 10]], "right": [[0, 0], [3, 6], [9, 10]]},
+			"provisional": false,
+			"groups": [
+				"katana"
+			]
+		},
+		"FistsStartForward": {
+			"export": "exports/clips/start_forward_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStartBack": {
+			"export": "exports/clips/start_back_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStartLeft": {
+			"export": "exports/clips/start_left_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStartRight": {
+			"export": "exports/clips/start_right_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStopForward": {
+			"export": "exports/clips/stop_forward_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStopBack": {
+			"export": "exports/clips/stop_back_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStopLeft": {
+			"export": "exports/clips/stop_left_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 3]], "right": [[0, 0], [3, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsStopRight": {
+			"export": "exports/clips/stop_right_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 3
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 3]], "right": [[0, 3]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsRunStopForward": {
+			"export": "exports/clips/runstop_forward_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 3], [6, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsRunStopBack": {
+			"export": "exports/clips/runstop_back_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 3], [6, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsRunStopLeft": {
+			"export": "exports/clips/runstop_left_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 3], [6, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsRunStopRight": {
+			"export": "exports/clips/runstop_right_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 3], [6, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsPivotForward": {
+			"export": "exports/clips/pivot_forward_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 4], [7, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsPivotBack": {
+			"export": "exports/clips/pivot_back_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 4], [7, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsPivotLeft": {
+			"export": "exports/clips/pivot_left_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 4], [7, 7]], "right": [[0, 0], [3, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsPivotRight": {
+			"export": "exports/clips/pivot_right_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 7
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 7]], "right": [[0, 4], [7, 7]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsTapStepForward": {
+			"export": "exports/clips/tapstep_forward_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 4]], "right": [[0, 1], [4, 4]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsTapStepBack": {
+			"export": "exports/clips/tapstep_back_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 1], [4, 4]], "right": [[0, 0], [3, 4]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsTapStepLeft": {
+			"export": "exports/clips/tapstep_left_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 0], [3, 4]], "right": [[0, 1], [4, 4]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsTapStepRight": {
+			"export": "exports/clips/tapstep_right_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 4
+			},
+			"foot_contacts": {"left": [[0, 1], [4, 4]], "right": [[0, 0], [3, 4]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
+		},
+		"FistsSprintStop": {
+			"export": "exports/clips/sprintstop_forward_fists.glb",
+			"mirror": false,
+			"loop": false,
+			"markers": {
+				"windup": 0,
+				"contact": 1,
+				"contact_end": 2,
+				"settle": 10
+			},
+			"foot_contacts": {"left": [[0, 3], [6, 10]], "right": [[0, 0], [3, 6], [9, 10]]},
+			"provisional": false,
+			"groups": [
+				"bare"
+			]
 		}
 	}
 }

@@ -689,3 +689,32 @@ func test_local_blocking_the_katanas_legs_play_its_guarded_cycles_at_1x() -> voi
 		assert_eq(_top(loco), clip, "%s shows" % clip)
 		for r: float in rates:
 			assert_almost_eq(r, 1.0, 0.02, "%s plays at 1.0x (%.4f)" % [clip, r])
+
+
+func test_local_footwork_plays_its_clip_at_1x_over_the_legs() -> void:
+	# milestone-1 task 57: a run stop, a pivot and a tap step show their clips
+	# by class, kind and way, from the state's first frame at 1.0x, crossed
+	# over to within FOOT_FADE frames
+	if not ClipLibraries.available():
+		pending("local-only: no clip libraries (node scripts/godot.mjs clips)")
+		return
+	# [run first, then the stick, the kind, the way]
+	for spec: Array in [[true, Vector2.ZERO, &"run_stop", &"forward"], [true, Vector2(0.0, -1.0), &"pivot", &"forward"],
+			[false, Vector2(0.0, 1.0), &"tap_step", &"forward"], [false, Vector2(-1.0, 0.0), &"tap_step", &"left"]]:
+		var W: World = _world(24.0)
+		var f: Fighter = W.fighters[0]
+		var v: FighterView = _view(&"hunter")
+		var loco: Locomotion = v.locomotion
+		# standing a moment first: the view's first update only sets the legs
+		for i: int in 3:
+			_step(W, v, SimHelpers.idle())
+		if spec[0]:
+			for i: int in 40:
+				_step(W, v, SimHelpers.move(0.0, 1.0))
+		var stick: Vector2 = spec[1]
+		var want: String = "HumanM/%s" % StateClips.shared().footwork_clip(&"katana", spec[2], spec[3])
+		for i: int in Locomotion.FOOT_FADE:
+			_step(W, v, SimHelpers.move(stick.x, stick.y) if stick != Vector2.ZERO else SimHelpers.idle())
+		assert_eq(loco.foot_clip, want, "%s %s shows %s" % [spec[2], spec[3], want])
+		assert_almost_eq(loco.shown_foot, 1.0, 1e-5, "crossed over within %d frames" % Locomotion.FOOT_FADE)
+		assert_almost_eq(loco.foot_time, float(f.sf + 1) / 60.0, 1e-6, "at the state's frame, 1.0x")

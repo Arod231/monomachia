@@ -660,7 +660,7 @@ func _follow_up(frame: int) -> void:
 	if evading:
 		if me.sf <= (SimConst.MOVE_BACKSTEP_I_FRAMES if back else SimConst.MOVE_DODGE_I_FRAMES):
 			return
-	elif me.state != &"free" or frame - me.dodge_end_frame > SimConst.MOVE_FOLLOW_WINDOW:
+	elif (me.state != &"free" and me.state != &"footwork") or frame - me.dodge_end_frame > SimConst.MOVE_FOLLOW_WINDOW:
 		_counter_evade = false
 		return
 	var last: bool = not evading and frame - me.dodge_end_frame >= SimConst.MOVE_FOLLOW_WINDOW - 1
@@ -724,7 +724,7 @@ func _think_neutral(frame: int, d: float) -> RawInput:
 		[&"recoil", &"stunned", &"stagger", &"disarmStagger", &"pickup"].has(opp.state)
 		or (opp.state == &"attack" and opp.attack_phase() == &"recovery" and opp.atk.frame > 0)
 	)
-	var can_act: bool = me.state == &"free" or me.state == &"step" or me.state == &"parryAnim" or me.state == &"land"
+	var can_act: bool = me.state == &"free" or me.state == &"step" or me.state == &"footwork" or me.state == &"parryAnim" or me.state == &"land"
 	# wait out a knockdown: close in, but attack only once they rise in guard
 	if opp.is_downed():
 		can_act = false
@@ -949,7 +949,7 @@ func _think_disarmed(frame: int, d: float) -> RawInput:
 		var my_d: float = SimMath.dist2(me.pos, wpn.pos)
 		var opp_d: float = SimMath.dist2(opp.pos, wpn.pos)
 		if my_d <= SimConst.PICKUP_RANGE - 0.15:
-			if me.state == &"free" or me.state == &"step":
+			if me.state == &"free" or me.state == &"step" or me.state == &"footwork":
 				_move_x = 0.0
 				_move_y = 0.0
 				_tap(Btn.INTERACT, frame, 2)

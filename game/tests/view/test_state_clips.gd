@@ -782,7 +782,7 @@ func test_the_clips_at_their_own_speed_are_optional_and_checked() -> void:
 	# milestone-1 task 19: the families list each clip they re-key to play at
 	# 1.0x, looping or handing on past its end; none yet
 	var live: Dictionary[StringName, StringName] = StateClips.read().own_speed
-	assert_eq(live.size(), 13, "the Katana's light reactions (task 35) and the jump's flights and landings (task 59): %s" % live)
+	assert_eq(live.size(), 55, "the Katana's light reactions (task 35), the jump's flights and landings (task 59) and the 42 footwork clips (task 57): %s" % live)
 	assert_true(live.values().all(func(v: StringName) -> bool: return v == &"hand_on"), "each handing on")
 	var t: StateClips = _read_text(_edited("\"fades\": {", "\"own_speed\": {\"Stun01\": \"loop\", \"CombatDamage01\": \"hand_on\"}, \"fades\": {"))
 	assert_eq(Array(t.errors), [], "read cleanly")

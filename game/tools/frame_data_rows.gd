@@ -16,13 +16,13 @@ const BAND_KINDS: Array[StringName] = [
 	&"sprint_light", &"sprint_heavy", &"dodge_light", &"dodge_heavy", &"backstep_light", &"backstep_heavy",
 	&"jump_light", &"jump_heavy", &"block_ability", &"ultimate", &"counter_lunge",
 ]
-## The rules-length clips this plan adds that have no clip yet: the starts,
-## stops and pivots (task 57), the stomp's and the leap's paired clips (80,
-## 81), the pull-out (87), the disarmed gaits (88), the finishers (104,
-## 105), the draw (110), the round-end beats and the victory poses (111).
-## Each task that keys one takes it off; task 112 finds the list empty.
+## The rules-length clips this plan adds that have no clip yet: the stomp's
+## and the leap's paired clips (80, 81), the pull-out (87), the disarmed
+## gaits (88), the finishers (104, 105), the draw (110), the round-end beats
+## and the victory poses (111). Each task that keys one takes it off (the
+## starts, stops and pivots with task 57); task 112 finds the list empty.
 const NOT_KEYED_YET: Array[String] = [
-	"start", "stop", "pivot", "paired_stomp", "paired_leap", "pull_out", "disarmed_gait",
+	"paired_stomp", "paired_leap", "pull_out", "disarmed_gait",
 	"finisher_katana", "finisher_fists", "draw", "round_end_beat", "victory_pose",
 ]
 ## The order a row's fields are written in.
@@ -32,8 +32,13 @@ const FIELD_ORDER: Array[String] = [
 ]
 ## The rules-length clips the rules move a fighter by (milestone-1 task 99):
 ## their rows carry the body's travel over each rules frame, as a move's do.
-## The recall burst's blasted fall.
-const TRAVEL_CLIPS: Array[StringName] = [&"BlastedFall"]
+## The recall burst's blasted fall, each footwork kind's profile clip
+## (Footwork.PROFILE_CLIPS, task 57) and the forward tap step, whose travel
+## the rules' tap step is checked against.
+const TRAVEL_CLIPS: Array[StringName] = [
+	&"BlastedFall", &"KatanaStartForward", &"KatanaStopForward", &"KatanaRunStopForward", &"KatanaPivotForward", &"KatanaSprintStop",
+	&"KatanaTapStepForward",
+]
 const STATE_CLIPS: String = "res://assets/kevin_iglesias/state_clips.json"
 const ABOUT: String = "The frame-data table (milestone-1 task 16): each move's frame data and travel generated from its clip at 1.0x by its markers (tools/frame_data_generator.gd), each gait's measured speed and each rules-length clip's length, with the checksums of their source clips and a digest of each row with its swing file's record (FrameDataTable). Written with the swing files by node scripts/godot.mjs bake; never edited by hand."
 

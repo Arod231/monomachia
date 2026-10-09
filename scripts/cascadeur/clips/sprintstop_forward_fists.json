@@ -1,0 +1,113 @@
+{
+	"about": "The forward sprintstop for bare hands (milestone-1 task 57, the owner's answers of Oct 8): a sprint stop: from the sprint's pace (about 7.3 m/s on the Hunter) to standing in guard in 10 frames (20 rules frames) and about 1 m, three braking steps, the hips sinking; keyed as legs and hips only (the grip's guard or block plays above them) from bare hands' fighting stance (CombatIdle01's first frame), each step lifting its foot 16 cm in place, travelling while up and setting it down in place, so the foot lock never drags a planted foot. All the clips of one kind share its length and travel, so the rules hold one profile per kind. Every frame kept as a key pose: Cascadeur's inbetweening would move planted feet. Source frames at 30 fps from 0.",
+	"out": "blender/clips/sprintstop_forward_fists.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatIdle01.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				10,
+				0
+			]
+		],
+		"footwork": {
+			"body": [
+				[
+					0,
+					0.0
+				],
+				[
+					1,
+					0.17
+				],
+				[
+					2,
+					0.32
+				],
+				[
+					3,
+					0.44
+				],
+				[
+					4,
+					0.54
+				],
+				[
+					5,
+					0.62
+				],
+				[
+					6,
+					0.68
+				],
+				[
+					7,
+					0.72
+				],
+				[
+					8,
+					0.75
+				],
+				[
+					9,
+					0.77
+				],
+				[
+					10,
+					0.78
+				]
+			],
+			"heading": 0,
+			"steps": {
+				"L": [
+					[
+						3,
+						6
+					]
+				],
+				"R": [
+					[
+						0,
+						3
+					],
+					[
+						6,
+						9
+					]
+				]
+			},
+			"lift": 0.16,
+			"rise": 0.3333,
+			"sink": [
+				[
+					0,
+					0
+				],
+				[
+					4,
+					0.07
+				],
+				[
+					10,
+					0.02
+				]
+			]
+		}
+	},
+	"keys": [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7,
+		8,
+		9,
+		10
+	]
+}
