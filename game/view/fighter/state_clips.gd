@@ -64,6 +64,11 @@ extends RefCounted
 ## {"katana": clip}}), each listed in "own_speed" to fit its state at its own
 ## speed. A weapon without them keeps "hit" and "guard". Only with the packs.
 ##
+## "footwork" (milestone-1 task 57) names the starts, stops, pivots and tap
+## steps by weapon class, kind and way ({"katana": {"run_stop": {"forward":
+## clip, "left", "back", "right"}, ..., "sprint_stop": {"forward": clip}}}),
+## each listed in "own_speed". Only with the packs.
+##
 ## "grips" (KE task 8) gives a weapon with grips each grip's own clips, by
 ## weapon then grip ({"katana": {"one_handed": {"idle": clip, "guard": [loop,
 ## hit], "carry": clip, "moves": [clip, ...]}}}; the carry may be left out,
@@ -83,7 +88,9 @@ extends RefCounted
 const PATH: String = "res://assets/kevin_iglesias/state_clips.json"
 const GROUPS: Array[String] = ["idle", "fades", "blends", "hit", "guard", "stun", "carry", "ults", "keyed", "knockdown", "ko"]
 ## The groups a file may leave out.
-const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips", "states", "jump"]
+const OPTIONAL_GROUPS: Array[String] = ["own_speed", "transitions", "deflects", "reactions", "grips", "states", "jump", "footwork"]
+## The footwork kinds a "footwork" entry names (Footwork's, and its tap step).
+const FOOTWORK_KINDS: Array[String] = ["start", "stop", "run_stop", "pivot", "tap_step", "sprint_stop"]
 ## The grips a "grips" entry names (WeaponGrip's), and each one's clips.
 const GRIP_IDS: Array[String] = ["one_handed", "two_handed"]
 const GRIP_FIELDS: Array[String] = ["idle", "guard", "carry", "moves"]
@@ -232,6 +239,10 @@ var light_blocks: Dictionary[StringName, StringName] = {}
 ## the pack's take-off, air and landing.
 var jump_flights: Dictionary[StringName, StringName] = {}
 var jump_lands: Dictionary[StringName, StringName] = {}
+## The starts, stops, pivots and tap steps (milestone-1 task 57), by weapon
+## class, then kind (FOOTWORK_KINDS), then way (Footwork.WAYS): clip ids,
+## each listed in "own_speed" to play at its own speed.
+var footwork_clips: Dictionary[StringName, Dictionary] = {}
 ## Each grip's own clips (KE task 8), by weapon then grip: {&"idle": clip,
 ## &"guard": [loop, hit], &"carry": clip, or &"" for none, &"moves": the
 ## attack clips played in the grip's hands (KE task 10)}.
@@ -442,6 +453,27 @@ static func read(path: String = PATH) -> StateClips:
 				var id: StringName = t._id(by, "jump.%s" % part, str(w))
 				if id != &"":
 					(t.jump_flights if part == "flight" else t.jump_lands)[StringName(str(w))] = id
+	if root.has("footwork"):
+		if not root["footwork"] is Dictionary:
+			t.errors.append("footwork: must be an object")
+		else:
+			for w: Variant in root["footwork"]:
+				var by_kind: Dictionary = t._object(root["footwork"][w], "footwork.%s" % w, FOOTWORK_KINDS)
+				var kinds: Dictionary = {}
+				for k: Variant in by_kind:
+					if not FOOTWORK_KINDS.has(str(k)) or not by_kind[k] is Dictionary:
+						t.errors.append("footwork.%s.%s: not a footwork kind's ways" % [w, k])
+						continue
+					var ways: Dictionary = {}
+					for way: Variant in by_kind[k]:
+						if not Footwork.WAYS.has(StringName(str(way))):
+							t.errors.append("footwork.%s.%s.%s: not a way" % [w, k, way])
+							continue
+						var id: StringName = t._id(by_kind[k], "footwork.%s.%s" % [w, k], str(way))
+						if id != &"":
+							ways[StringName(str(way))] = id
+					kinds[StringName(str(k))] = ways
+				t.footwork_clips[StringName(str(w))] = kinds
 	if root.has("grips"):
 		t._grips(root["grips"])
 	if root.has("states"):
@@ -453,6 +485,13 @@ static func read(path: String = PATH) -> StateClips:
 ## (a weapon's id, &"fists" disarmed), or &"" for none.
 func jump_clip(part: StringName, weapon: StringName) -> StringName:
 	return (jump_flights if part == &"flight" else jump_lands).get(weapon, &"")
+
+
+## The footwork clip of kind `kind` (FOOTWORK_KINDS) going way `way`
+## (Footwork.WAYS) for weapon class `weapon` (a weapon's id, &"fists"
+## disarmed), or &"" for none.
+func footwork_clip(weapon: StringName, kind: StringName, way: StringName) -> StringName:
+	return ((footwork_clips.get(weapon, {}) as Dictionary).get(kind, {}) as Dictionary).get(way, &"")
 
 
 ## Reads the "grips" group into grip_clips and regrips.

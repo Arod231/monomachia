@@ -383,7 +383,7 @@ static func compute(f: Fighter, alpha: float, time: float = 0.0) -> Pose:
 		&"attack":
 			if f.atk != null:
 				_attack(p, f, wid, guard, alpha, time)
-		&"free", &"step", &"intro", &"land":
+		&"free", &"step", &"footwork", &"intro", &"land":
 			if f.blocking:
 				_set_block(p, wid, 1.0)
 			else:

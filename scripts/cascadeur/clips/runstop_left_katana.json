@@ -1,0 +1,94 @@
+{
+	"about": "The left runstop for the Katana (milestone-1 task 57, the owner's answers of Oct 8): a run stop: from the run's pace (about 4.6 m/s on the Hunter) to standing in guard in 7 frames (14 rules frames) and about 0.48 m, the trail foot then the lead stepping to brake, the hips sinking; keyed as legs and hips only (the grip's guard or block plays above them) from the Katana's two-handed guard (katana_guard's first frame), each step lifting its foot 16 cm in place, travelling while up and setting it down in place, so the foot lock never drags a planted foot. All the clips of one kind share its length and travel, so the rules hold one profile per kind. Every frame kept as a key pose: Cascadeur's inbetweening would move planted feet. Source frames at 30 fps from 0.",
+	"out": "blender/clips/runstop_left_katana.blend",
+	"blockout": {
+		"source": "blender/clips/katana_guard.blend",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				7,
+				0
+			]
+		],
+		"footwork": {
+			"body": [
+				[
+					0,
+					0.0
+				],
+				[
+					1,
+					0.11
+				],
+				[
+					2,
+					0.2
+				],
+				[
+					3,
+					0.27
+				],
+				[
+					4,
+					0.32
+				],
+				[
+					5,
+					0.355
+				],
+				[
+					6,
+					0.375
+				],
+				[
+					7,
+					0.38
+				]
+			],
+			"heading": -90,
+			"steps": {
+				"L": [
+					[
+						3,
+						6
+					]
+				],
+				"R": [
+					[
+						0,
+						3
+					]
+				]
+			},
+			"lift": 0.16,
+			"rise": 0.3333,
+			"sink": [
+				[
+					0,
+					0
+				],
+				[
+					3,
+					0.05
+				],
+				[
+					7,
+					0.02
+				]
+			]
+		}
+	},
+	"keys": [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7
+	]
+}

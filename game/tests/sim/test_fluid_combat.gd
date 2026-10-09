@@ -20,14 +20,27 @@ const IMPALER_STOP: float = WALL - 0.7
 ## The Impaler dashes 24 m/s: 0.4 m a frame.
 const DASH_STEP: float = 0.4
 
-## The spec's blocking walk: 60% of running speed.
+## The spec's blocking walk: 60% of running speed, for movesets without
+## guarded cycles of their own (the Greatsword and the Daggers).
 const BLOCK_WALK: float = 0.6
-## Running speeds (m/s), kept from the demo (story 12), before the weapon's
-## speed: the Greatsword moves 10% slower and the Daggers 12% faster.
-const RUN_FORWARD: float = 3.9
-const RUN_STRAFE: float = 3.5
-const RUN_BACK: float = 3.0
-const SPRINT: float = 7.2
+## The Katana's guarded cycles' measured speeds (milestone-1 task 56), at
+## which it walks blocking: keyed to about 60% of the run.
+static var GUARD_FORWARD: float = _gait("KatanaShuffleForward")
+static var GUARD_RIGHT: float = _gait("KatanaStrafeRight")
+static var GUARD_BACK: float = _gait("KatanaShuffleBack")
+## Running speeds (m/s), before the weapon's speed (the Greatsword moves 10%
+## slower and the Daggers 12% faster): the gait clips' own measured speeds
+## since milestone-1 task 55, read from the frame-data table (test_gaits.gd
+## holds the rules to them), the strafe a right one and the back the
+## re-keyed backward run.
+static var RUN_FORWARD: float = _gait("Run01_Forward")
+static var RUN_STRAFE: float = _gait("StrafeRun01_Left_Mirror")
+static var RUN_BACK: float = _gait("RunBackward")
+static var SPRINT: float = _gait("Sprint01_Forward")
+
+
+static func _gait(id: String) -> float:
+	return float(FrameDataTable.shared().gaits[id]["speed"])
 
 ## The spec's momentum carry: an attack keeps half the speed it starts at.
 const MOMENTUM_KEEP: float = 0.5
@@ -175,8 +188,12 @@ static func _walk_one_second(weapon: WeaponDef, gap: float, inp: RawInput) -> fl
 
 
 func test_walking_forward_while_blocking_is_60_percent_of_running() -> void:
-	# 8 m apart, so the walker ends more than 4 m short of the opponent
-	var weapon_speed: Dictionary[StringName, float] = {&"katana": 1.0, &"greatsword": 0.9, &"daggers": 1.12}
+	# 8 m apart, so the walker ends more than 4 m short of the opponent; the
+	# Katana walks its guarded shuffle (task 56), the others 60% of their run
+	var guarded: float = _walk_one_second(Moves.KATANA, 8.0, H.move(0.0, 1.0, Btn.BLOCK))
+	assert_almost_eq(guarded, GUARD_FORWARD, 1e-6, "the Katana shuffles forward at its guarded cycle")
+	assert_between(GUARD_FORWARD / RUN_FORWARD, 0.55, 0.65, "about 60% of its run")
+	var weapon_speed: Dictionary[StringName, float] = {&"greatsword": 0.9, &"daggers": 1.12}
 	for id: StringName in weapon_speed:
 		var expected: float = RUN_FORWARD * weapon_speed[id] * BLOCK_WALK
 		var walked: float = _walk_one_second(Moves.WEAPONS[id], 8.0, H.move(0.0, 1.0, Btn.BLOCK))
@@ -187,10 +204,13 @@ func test_strafing_and_backing_away_while_blocking_are_60_percent_of_running() -
 	# The strafe orbits the opponent 6 m away (strafes keep their distance
 	# inside 9 m). Each step is pulled back onto the circle, which shortens the
 	# second's walk by about 3e-5 m, hence the looser tolerance.
+	# The Katana walks its guarded cycles (task 56).
 	var strafed: float = _walk_one_second(Moves.KATANA, 6.0, H.move(1.0, 0.0, Btn.BLOCK))
-	assert_almost_eq(strafed, RUN_STRAFE * BLOCK_WALK, 1e-4, "strafing")
+	assert_almost_eq(strafed, GUARD_RIGHT, 1e-4, "strafing")
 	var backed: float = _walk_one_second(Moves.KATANA, 6.0, H.move(0.0, -1.0, Btn.BLOCK))
-	assert_almost_eq(backed, RUN_BACK * BLOCK_WALK, 1e-6, "backing away")
+	assert_almost_eq(backed, GUARD_BACK, 1e-6, "backing away")
+	var big: float = _walk_one_second(Moves.GREATSWORD, 6.0, H.move(0.0, -1.0, Btn.BLOCK))
+	assert_almost_eq(big, RUN_BACK * 0.9 * BLOCK_WALK, 1e-6, "the Greatsword backing away")
 
 
 func test_holding_block_stops_a_sprint() -> void:
@@ -198,7 +218,7 @@ func test_holding_block_stops_a_sprint() -> void:
 	var sprint: float = _walk_one_second(Moves.KATANA, 20.0, H.move(0.0, 1.0, Btn.SPRINT))
 	var blocking: float = _walk_one_second(Moves.KATANA, 20.0, H.move(0.0, 1.0, Btn.SPRINT, Btn.BLOCK))
 	assert_almost_eq(sprint, SPRINT, 1e-6, "the sprint button sprints")
-	assert_almost_eq(blocking, RUN_FORWARD * BLOCK_WALK, 1e-6, "blocking walks at the blocking walk instead")
+	assert_almost_eq(blocking, GUARD_FORWARD, 1e-6, "blocking walks at the blocking walk instead")
 
 
 # ------------------------------------------------------------------ momentum

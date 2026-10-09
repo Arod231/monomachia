@@ -78,3 +78,42 @@ func test_moonsplitter_s_clips_fit_its_rules_frames() -> void:
 	assert_eq(sc.ult_sheathed.size(), 2, "the saya's frames")
 	if sc.ult_sheathed.size() == 2:
 		assert_true(sc.ult_sheathed[1] * per <= float(SimConst.MOONSPLITTER_DRAW) + 1.0, "drawn as the draw starts")
+
+
+## The footwork's clips (milestone-1 task 57): every tap step, in four ways
+## for each class, settles on the step's last rules frame
+## (SimConst.MOVE_STEP_FRAMES) at 1.0; every start, stop, pivot and sprint
+## stop on its kind's length in the rules (Footwork.frames(), its profile
+## clip's); each plays at its own speed, handing on.
+func test_the_tap_steps_and_the_footwork_fit_their_states() -> void:
+	var sc: StateClips = StateClips.read()
+	var manifest: ClipManifest = ClipManifest.read()
+	var cases: Array[Array] = []
+	for w: StringName in [&"katana", &"fists"]:
+		for way: StringName in Footwork.WAYS:
+			cases.append([sc.footwork_clip(w, Footwork.TAP_STEP, way), SimConst.MOVE_STEP_FRAMES, "%s's tap step %s" % [w, way]])
+			for kind: StringName in [Footwork.START, Footwork.STOP, Footwork.RUN_STOP, Footwork.PIVOT]:
+				cases.append([sc.footwork_clip(w, kind, way), Footwork.frames(kind), "%s's %s %s" % [w, kind, way]])
+		cases.append([sc.footwork_clip(w, Footwork.SPRINT_STOP, &"forward"), Footwork.frames(Footwork.SPRINT_STOP), "%s's sprint stop" % w])
+	assert_eq(cases.size(), 42, "five kinds in four ways and a sprint stop, for each class")
+	for c: Array in cases:
+		var id: StringName = c[0]
+		assert_ne(id, &"", "%s is listed" % c[2])
+		assert_eq(sc.own_speed.get(id, &""), &"hand_on", "%s plays at its own speed, handing on" % c[2])
+		assert_true(manifest.clips.has(id), "%s is in the manifest" % c[2])
+		if not manifest.clips.has(id):
+			continue
+		var settle: int = manifest.clips[id].markers["settle"]
+		assert_almost_eq(float(settle) * MoveClips.RULES_PER_SOURCE, float(c[1]), 1.0,
+			"%s (%s) settles on rules frame %d of its %d" % [c[2], id, int(settle * MoveClips.RULES_PER_SOURCE), c[1]])
+
+
+## The tap step's clips cover the rules' step (SimConst.MOVE_STEP_DIST over
+## MOVE_STEP_FRAMES) at 1.0: the forward one's measured travel (the
+## frame-data table's) within 5% of it.
+func test_the_tap_step_s_clip_covers_the_step() -> void:
+	var t: FrameDataTable = FrameDataTable.shared()
+	var travelled: float = 0.0
+	for f: int in range(1, SimConst.MOVE_STEP_FRAMES + 1):
+		travelled += t.clip_travel_at(&"KatanaTapStepForward", f)[0]
+	assert_almost_eq(travelled, SimConst.MOVE_STEP_DIST, SimConst.MOVE_STEP_DIST * 0.05, "the tap step's clip travels %.3f m" % travelled)

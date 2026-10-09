@@ -174,10 +174,11 @@ const CHARGE_MIN: int = 18 # below this a released charge is a normal heavy
 
 # --- Movement --------------------------------------------------------------
 # MOVE = { ... }
-const MOVE_RUN_FORWARD: float = 3.9
-const MOVE_RUN_STRAFE: float = 3.5
-const MOVE_RUN_BACK: float = 3.0
-const MOVE_SPRINT: float = 7.2
+# The walk, run and sprint speeds are the gait clips' own (Gaits, from the
+# frame-data table; milestone-1 task 55), no longer numbers here.
+## A running jump's flight speed (m/s): jump arcs stay rules numbers (the
+## demo's strafing speed, kept when the gaits moved to the clips).
+const MOVE_JUMP_SPEED: float = 3.5
 const MOVE_BLOCK_SPEED_MULT: float = 0.6 # share of running speed while blocking; the demo's was 0.45
 const MOVE_ACCEL: float = 38.0 # m/s^2 toward desired velocity
 const MOVE_DECEL: float = 30.0

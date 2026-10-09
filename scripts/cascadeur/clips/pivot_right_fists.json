@@ -1,0 +1,95 @@
+{
+	"about": "The right pivot for bare hands (milestone-1 task 57, the owner's answers of Oct 8): a plant-and-reverse pivot: from the run's pace the body brakes over 4 frames, plants and sets off back the other way, 7 frames (14 rules frames) and about 0.48 m in all, the trail foot planting ahead to brake, the lead stepping back out; keyed as legs and hips only (the grip's guard or block plays above them) from bare hands' fighting stance (CombatIdle01's first frame), each step lifting its foot 16 cm in place, travelling while up and setting it down in place, so the foot lock never drags a planted foot. All the clips of one kind share its length and travel, so the rules hold one profile per kind. Every frame kept as a key pose: Cascadeur's inbetweening would move planted feet. Source frames at 30 fps from 0.",
+	"out": "blender/clips/pivot_right_fists.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/HumanM@CombatIdle01.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				7,
+				0
+			]
+		],
+		"footwork": {
+			"body": [
+				[
+					0,
+					0.0
+				],
+				[
+					1,
+					0.105
+				],
+				[
+					2,
+					0.181
+				],
+				[
+					3,
+					0.226
+				],
+				[
+					4,
+					0.241
+				],
+				[
+					5,
+					0.226
+				],
+				[
+					6,
+					0.181
+				],
+				[
+					7,
+					0.105
+				]
+			],
+			"heading": 90,
+			"steps": {
+				"L": [
+					[
+						0,
+						3,
+						4
+					]
+				],
+				"R": [
+					[
+						4,
+						7
+					]
+				]
+			},
+			"lift": 0.16,
+			"rise": 0.3333,
+			"sink": [
+				[
+					0,
+					0
+				],
+				[
+					4,
+					0.06
+				],
+				[
+					7,
+					0.02
+				]
+			]
+		}
+	},
+	"keys": [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7
+	]
+}

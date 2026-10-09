@@ -1,0 +1,32 @@
+{
+	"about": "The backward run (milestone-1 task 55, the owner's answer of Oct 8): Run01_Backward with its stride shortened to 0.863 of the pack's (each foot's offset from the hips along the travel scaled about its mean), running about 3.9 m/s on the Hunter, slower than the forward run's 4.6, in place of the pack's 5.42; its cadence (18 source frames a cycle), lift, lean and upper body kept. A loop: its first and last frames are the same pose. Every frame a foot is planted (and the frame either side) kept as a key pose, so the inbetweening never moves a planted foot, and every third frame in the air; Cascadeur inbetweening the rest. Source frames at 30 fps from 0.",
+	"out": "blender/clips/run_backward.blend",
+	"blockout": {
+		"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Movement/Run/HumanM@Run01_Backward.fbx",
+		"remap": [
+			[
+				0,
+				0
+			],
+			[
+				18,
+				18
+			]
+		],
+		"stride": {
+			"scale": 0.863,
+			"heading": 180
+		}
+	},
+	"keys": [
+		0,
+		2,
+		5,
+		7,
+		9,
+		11,
+		14,
+		16,
+		18
+	]
+}

@@ -32,6 +32,7 @@ const STATES: Array[StringName] = [
 	&"intro",
 	&"free",
 	&"step",
+	&"footwork",
 	&"dodge",
 	&"backstep",
 	&"jump",
@@ -57,15 +58,15 @@ const STATES: Array[StringName] = [
 ]
 
 const CHARGE_CHECK_FRAME: int = 9
-const GUARD_STATES: Array[StringName] = [&"free", &"step", &"blockstun", &"land", &"parryAnim"]
+const GUARD_STATES: Array[StringName] = [&"free", &"step", &"footwork", &"blockstun", &"land", &"parryAnim"]
 ## The states that leave the shoulder carry as it is: the round intro and
-## victory, moving (free, step) and jumping (jump, land). Entering any other
-## takes the Greatsword off the shoulder at once.
-const CARRY_STATES: Array[StringName] = [&"intro", &"free", &"step", &"jump", &"land", &"victory"]
+## victory, moving (free, step, footwork) and jumping (jump, land). Entering
+## any other takes the Greatsword off the shoulder at once.
+const CARRY_STATES: Array[StringName] = [&"intro", &"free", &"step", &"footwork", &"jump", &"land", &"victory"]
 ## The states a grip press switches the grip in (KE task 5): those that act,
 ## standing, moving or blocking, attacking (the Iai stance too), landing and
 ## the parry's follow-through. Anywhere else it is dropped, not kept.
-const GRIP_STATES: Array[StringName] = [&"free", &"step", &"attack", &"land", &"parryAnim"]
+const GRIP_STATES: Array[StringName] = [&"free", &"step", &"footwork", &"attack", &"land", &"parryAnim"]
 
 var id: int
 var opp: Fighter
@@ -123,6 +124,12 @@ var dodge_was_back: bool = false
 var last_dodge_dir: V2 = null
 var air_attack_used: bool = false
 var step_dir: V2 = V2.make(0.0, 0.0)
+## The footwork playing (Footwork's kinds, milestone-1 task 57), the way it
+## travels (world, a unit vector: the travel as it began) and the way of its
+## clip from the facing as it began (Footwork.WAYS).
+var footwork_kind: StringName = &""
+var footwork_dir: V2 = V2.make(0.0, 0.0)
+var footwork_way: StringName = &"forward"
 
 # the Greatsword's shoulder carry
 ## Whether the Greatsword rests on the fighter's shoulder (Shouldered): on at
@@ -521,7 +528,7 @@ func set_state(s: StringName, dur: int = 0) -> void:
 		dodge = null
 	if s != &"ult":
 		ult = null
-	if s != &"free" and s != &"step" and s != &"blockstun" and s != &"recoil":
+	if s != &"free" and s != &"step" and s != &"footwork" and s != &"blockstun" and s != &"recoil":
 		blocking = false
 
 
@@ -551,6 +558,8 @@ func update() -> void:
 			_update_free()
 		&"step":
 			_update_step()
+		&"footwork":
+			_update_footwork()
 		&"dodge", &"backstep":
 			_update_dodge()
 		&"jump":
@@ -713,7 +722,106 @@ func _update_free() -> void:
 	if inp.step_request and not blocking and not inp.sprinting():
 		_start_step()
 		return
+	if _start_footwork():
+		return
 	_locomotion()
+
+
+## Starts the footwork the stick asks for now, if any (Footwork; milestone-1
+## task 57): a guarded start setting off from a stand while blocking; letting
+## go, a sprint stop out of a sprint, a run stop at the run's pace, otherwise
+## a guarded stop; swinging the stick past Footwork.PIVOT_TURN at the run's
+## pace, a pivot (a sprint stop out of a sprint). Returns whether one began.
+func _start_footwork() -> bool:
+	if not Footwork.applies(moveset().id) or airborne():
+		return false
+	var inp: InputTracker = input
+	var speed: float = JsMath.hypot(vel.x, vel.z)
+	if speed < 0.05:
+		if inp.dir != -1 and blocking:
+			_begin_footwork(Footwork.START, world_dir(inp.mx, inp.my))
+			return true
+		return false
+	var travel: V2 = V2.make(vel.x / speed, vel.z / speed)
+	var running: bool = speed >= Footwork.RUN_SHARE * Gaits.speed(&"run", _way_of(travel)) * speed_mult()
+	var sprinted: bool = sprint_frames > 0 and running
+	if inp.dir == -1:
+		if speed < Footwork.STOP_MIN:
+			return false
+		_begin_footwork(Footwork.SPRINT_STOP if sprinted else (Footwork.RUN_STOP if running else Footwork.STOP), travel)
+		return true
+	if running and _turn_from(travel, world_dir(inp.mx, inp.my)) > Footwork.PIVOT_TURN:
+		_begin_footwork(Footwork.SPRINT_STOP if sprinted else Footwork.PIVOT, travel)
+		return true
+	return false
+
+
+## Starts footwork `kind` travelling `dir` (world, a unit vector).
+func _begin_footwork(kind: StringName, dir: V2) -> void:
+	footwork_kind = kind
+	footwork_dir = V2.make(dir.x, dir.z)
+	footwork_way = &"forward" if kind == Footwork.SPRINT_STOP else Footwork.way_of(_way_of(dir))
+	sprint_frames = 0
+	set_state(&"footwork", Footwork.frames(kind))
+	_update_footwork()
+
+
+## A frame of footwork: any action cuts in at once (a block, out of a run or
+## sprint stop or a pivot, drops to the blocking walk with no momentum);
+## during a run or sprint stop the stick pushed the same way again runs on and
+## pushed back the other way (a run stop) pivots; a guarded start let go of,
+## or a guarded stop pushed again, hands back to free movement; otherwise the
+## body moves as the kind's clip travels, handing on at the pace it ends at.
+func _update_footwork() -> void:
+	if try_actions():
+		return
+	var inp: InputTracker = input
+	var kind: StringName = footwork_kind
+	var guarded: bool = kind == Footwork.START or kind == Footwork.STOP
+	blocking = armed and inp.is_held(Btn.BLOCK)
+	if blocking and not guarded:
+		set_state(&"free")
+		blocking = true
+		vel.x = 0.0
+		vel.z = 0.0
+		_locomotion()
+		return
+	var active: bool = inp.dir != -1
+	if active and (kind == Footwork.RUN_STOP or kind == Footwork.SPRINT_STOP):
+		var turn: float = _turn_from(footwork_dir, world_dir(inp.mx, inp.my))
+		if turn <= Footwork.SAME_WAY:
+			set_state(&"free")
+			_locomotion()
+			return
+		if turn > Footwork.PIVOT_TURN and kind == Footwork.RUN_STOP:
+			_begin_footwork(Footwork.PIVOT, footwork_dir)
+			return
+	if (kind == Footwork.STOP and active) or (kind == Footwork.START and not active):
+		set_state(&"free")
+		_locomotion()
+		return
+	var f: int = sf + 1
+	var d: float = Footwork.travel_at(kind, f) * float(SimConst.FPS)
+	vel.x = footwork_dir.x * d
+	vel.z = footwork_dir.z * d
+	moving = true
+	sprint_frames = 0
+	if f >= state_dur:
+		set_state(&"free")
+
+
+## The way world direction `d` goes from the way the fighter faces the
+## opponent (radians, positive to its left), as the stick's way is.
+func _way_of(d: V2) -> float:
+	var to: V2 = SimMath.norm2(opp.pos.x - pos.x, opp.pos.z - pos.z)
+	var my: float = d.x * to.x + d.z * to.z
+	var mx: float = -d.x * to.z + d.z * to.x
+	return JsMath.atan2(-mx, my)
+
+
+## The angle between world directions `a` and `b` (radians, 0 to PI).
+static func _turn_from(a: V2, b: V2) -> float:
+	return JsMath.atan2(absf(a.x * b.z - a.z * b.x), a.x * b.x + a.z * b.z)
 
 
 func _start_step() -> void:
@@ -753,41 +861,47 @@ func world_dir(mx: float, my: float) -> V2:
 	return SimMath.norm2(to.x * my + rx * mx, to.z * my + rz * mx)
 
 
-## Walk or run where the stick points. at_block_speed: at the blocking walk's
-## speed and never sprinting, as while blocking (the Iai stance).
+## Walk or run where the stick points, at the gait clips' own speeds
+## (Gaits, milestone-1 task 55): the tilt picks the walk or the run, or a
+## blend of them, and the way between two clips blends their speeds. Blocking
+## with guarded cycles (the Katana, bare hands) moves at theirs whatever the
+## tilt, and a disarmed walk is bare hands' (task 56).
+## at_block_speed: at the blocking walk's speed and never sprinting, as while
+## blocking (the Iai stance).
 func _locomotion(at_block_speed: bool = false) -> void:
 	var inp: InputTracker = input
 	var mx: float = inp.mx
 	var my: float = inp.my
-	var mag: float = JsMath.hypot(mx, my)
-	if mag > 1.0:
-		mx /= mag
-		my /= mag
 	var active: bool = inp.dir != -1
 	moving = active
 	var tx: float = 0.0
 	var tz: float = 0.0
 	if active:
-		var to: V2 = SimMath.norm2(opp.pos.x - pos.x, opp.pos.z - pos.z)
-		var rx: float = -to.z
-		var rz: float = to.x
+		var tilt: float = minf(1.0, JsMath.hypot(mx, my))
+		var n: V2 = world_dir(mx, my)
 		var block_pace: bool = blocking or at_block_speed
 		var sprinting: bool = inp.sprinting() and not block_pace
-		var s_f: float = SimConst.MOVE_RUN_FORWARD if my >= 0.0 else SimConst.MOVE_RUN_BACK
-		var s_s: float = SimConst.MOVE_RUN_STRAFE
-		if sprinting:
-			s_f = SimConst.MOVE_SPRINT
-			s_s = SimConst.MOVE_SPRINT
+		# the way from straight ahead (at the opponent), positive to the left
+		var way: float = JsMath.atan2(-mx, my)
+		var guard: StringName = moveset().id
+		var s: float = Gaits.sprint_speed() if sprinting else Gaits.at_tilt(way, tilt)
 		var mult: float = speed_mult()
-		if block_pace:
+		if block_pace and Gaits.has_guard(guard):
+			# blocking with guarded cycles of its own (task 56): their speed
+			s = Gaits.guard_speed(guard, way)
+			mult = 1.0
+		elif block_pace:
 			mult *= SimConst.MOVE_BLOCK_SPEED_MULT
-		tx = (to.x * my * s_f + rx * mx * s_s) * mult
-		tz = (to.z * my * s_f + rz * mx * s_s) * mult
-		if sprinting:
-			# sprint at full speed in the held direction
-			var n: V2 = SimMath.norm2(tx, tz)
-			tx = n.x * SimConst.MOVE_SPRINT * mult
-			tz = n.z * SimConst.MOVE_SPRINT * mult
+		elif not armed and not sprinting:
+			# disarmed, the walk is bare hands' guarded cycle, blending into
+			# the disarmed run at full tilt
+			var walk: float = Gaits.guard_speed(guard, way)
+			var run: float = Gaits.speed(&"run", way) * mult
+			var k: float = clampf((tilt - Gaits.WALK_TILT) / (1.0 - Gaits.WALK_TILT), 0.0, 1.0)
+			s = walk + (run - walk) * k
+			mult = 1.0
+		tx = n.x * s * mult
+		tz = n.z * s * mult
 		sprint_frames = sprint_frames + 1 if sprinting else 0
 	else:
 		sprint_frames = 0
@@ -1356,7 +1470,7 @@ func _start_jump() -> void:
 	var inp: InputTracker = input
 	if inp.moving():
 		var d: V2 = world_dir(inp.mx, inp.my)
-		var s: float = (SimConst.MOVE_SPRINT if inp.sprinting() else SimConst.MOVE_RUN_STRAFE) * speed_mult()
+		var s: float = (Gaits.sprint_speed() if inp.sprinting() else SimConst.MOVE_JUMP_SPEED) * speed_mult()
 		vel.x = d.x * s
 		vel.z = d.z * s
 	set_state(&"jump")
@@ -1385,7 +1499,7 @@ func _update_jump() -> void:
 		vel.x += d.x * 6.0 * SimConst.DT
 		vel.z += d.z * 6.0 * SimConst.DT
 		var s: float = JsMath.hypot(vel.x, vel.z)
-		var cap: float = SimConst.MOVE_SPRINT * speed_mult()
+		var cap: float = Gaits.sprint_speed() * speed_mult()
 		if s > cap:
 			vel.x *= cap / s
 			vel.z *= cap / s
@@ -1543,7 +1657,7 @@ func _update_posture() -> void:
 	if armed:
 		if (
 			blocking
-			and state == &"free"
+			and (state == &"free" or state == &"footwork")
 			and W.frame - last_posture_damage >= SimConst.POSTURE_RECOVER_DELAY
 			and posture > 0.0
 		):

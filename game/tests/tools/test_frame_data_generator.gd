@@ -241,3 +241,32 @@ func test_a_chains_foot_contacts_follow_its_parts() -> void:
 	assert_eq(contacts["right"], [[4.0, 5.0], [16.0, 21.0]])
 	assert_true(FrameDataGenerator.planted_over(contacts["left"], 8.5, 12.5))
 	assert_false(FrameDataGenerator.planted_over(contacts["left"], 1.5, 6.5), "lifted in between")
+
+
+## A made-up walk, 24 source frames a loop: each foot planted for 12, its
+## first and last 2 rocking back only 1 cm a source frame (the heel strike
+## and the toe-off) and the 8 between sweeping back 8 cm a source frame,
+## 4 mm of it to the right (a flat foot under a body walking 2.4 m/s,
+## heading a little left); then swinging forward in the air.
+func _walking(time: float) -> Dictionary:
+	var s: float = fposmod(time * ClipManifest.SOURCE_FPS, 24.0)
+	var out: Dictionary = {}
+	for side: String in ["left", "right"]:
+		var at: float = fposmod(s - (0.0 if side == "left" else 12.0), 24.0)
+		var back: float = 0.0
+		if at <= 12.0:
+			back = 0.01 * minf(at, 2.0) + 0.08 * clampf(at - 2.0, 0.0, 8.0) + 0.01 * clampf(at - 10.0, 0.0, 2.0)
+		else:
+			back = 0.68 * (1.0 - (at - 12.0) / 12.0)
+		var lift: float = 0.0 if at <= 12.0 else 0.1
+		out[StringName(side + "_foot")] = _sample(V3.make(0.004 * back / 0.08, 0.09 + lift, 0.3 - back))
+	return out
+
+
+func test_a_gaits_speed_is_its_flat_planted_feets_sweep() -> void:
+	# milestone-1 task 55: the pace a flat planted foot sweeps back at, not
+	# its average over the heel strike and toe-off as well (2.05 m/s here)
+	var g: Dictionary = FrameDataGenerator.gait(_walking, 24.0 / 30.0, {"left": [[0, 12]], "right": [[12, 24]]})
+	assert_almost_eq(float(g["speed"]), 2.4 * sqrt(1.0 + 0.05 * 0.05), 1e-3, "the flat foot's 8 cm a source frame")
+	assert_almost_eq(float(g["heading"]), rad_to_deg(atan2(-0.05, 1.0)), 0.01, "heading the flat sweep's way")
+	assert_almost_eq(float(g["stride"]), float(g["speed"]) * 0.8, 1e-6, "the speed over one loop")

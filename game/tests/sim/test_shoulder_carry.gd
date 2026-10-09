@@ -13,8 +13,10 @@ const MOVE_FRAMES: int = 20
 ## The spec: an attack from the shoulder adds 6 frames to its startup.
 const LIFT: int = 6
 ## The states that leave the flag as it is: the round intro (where it is
-## lifted on), moving (free and step), jumping (jump and land) and victory.
-const CARRY_STATES: Array[StringName] = [&"intro", &"free", &"step", &"jump", &"land", &"victory"]
+## lifted on), moving (free, step and milestone-1 task 57's footwork, which
+## the Greatsword never enters until milestone 2), jumping (jump and land)
+## and victory.
+const CARRY_STATES: Array[StringName] = [&"intro", &"free", &"step", &"footwork", &"jump", &"land", &"victory"]
 
 var IDLE: Callable = Callable()
 

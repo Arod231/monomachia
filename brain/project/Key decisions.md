@@ -19,7 +19,7 @@ On Oct 4, 2026 the owner set a new direction: animation leads the rules' timing,
 | First fighters | The Rogue and the Hunter, the two the free packs can dress ([[Roster]]). **Oct 4:** during milestone 1 the menus offer only the Hunter and the Katana (bare hands stay the disarmed state), and every default match is the Hunter in crimson against the Hunter in indigo; a `--full-roster` flag brings back the Rogue, the Greatsword and the Twin Daggers |
 | Arena | The [[Moonlit Shrine]], floating and walled, radius 15 m |
 | Fluid combat | **Oct 4:** a fighter moves only as their clips carry them, so the rules no longer add lunges, slides or carried speed, and dodge cancels open at markers on each clip. Hitstun stays a rules number. Was: Half the run speed kept into attacks, eased lunges, colossal slides, late dodge cancels, 14-frame light hitstun instead of a combo breaker ([[Attacking]]) |
-| Blocking walk | 60% of run speed (was 45%) |
+| Blocking walk | 60% of run speed (was 45%); for the Katana and bare hands, their guarded shuffle and strafe cycles keyed to that speed (milestone-1 task 56, Oct 8) |
 | Parry | Same rules, cinematic presentation ([[Defending]]). **Oct 4:** each attack direction gets a matched deflect pair, and the parry window stays a rules number |
 | Look | **Oct 4:** realistic: physically based materials and dark lighting under a painterly grade, after Ghost of Tsushima's darker side; ink only as calligraphy in the UI. Was: Toon, ink outlines, ink-wash finish ([[Art direction]]) |
 | Target hardware | **Oct 4:** Ultra at 4K and 60 fps on an RTX 3090 is the reference preset; Low must hold 60 fps at 1080p (upscaled) on the Ryzen 7 4700U laptop. Development moves to the RTX 3090 desktop |

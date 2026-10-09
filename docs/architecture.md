@@ -259,6 +259,8 @@ Every file in `game/sim` says in its header which of the demo's files (`v0.1-web
 | `raw_input.gd` | `RawInput` | One frame of input: stick `mx`, `my` and a button bitmask. |
 | `btn.gd` | `Btn` | Button indices: LIGHT, HEAVY, BLOCK, DODGE, JUMP, INTERACT, ULTIMATE, SPRINT. |
 | `constants.gd` | `SimConst` | Global tuning. |
+| `gaits.gd` | `Gaits` | The gaits the rules move a fighter at (milestone-1 task 55): the walk, run and sprint clips for each of eight ways, each moving at its clip's own measured speed from the frame-data table, a way between two at their speeds blended, the stick's tilt walking up to 0.7 and blending into the run at full tilt; the Katana's and bare hands' guarded shuffle and strafe cycles in four ways, the speed blocking (or in the Iai stance) and disarmed walking (task 56). `Locomotion` plays the same clips and the bake measures them. |
+| `footwork.gd` | `Footwork` | Starts, stops and pivots (milestone-1 task 57): the footwork kinds Fighter's `footwork` state plays (a guarded start and stop, a run stop, a plant-and-reverse pivot, a sprint stop), each moving the fighter exactly as its clip travels (one profile per kind, its forward Katana clip's travel in the frame-data table's clip rows), the thresholds that start them (the run's share, the 135° pivot) and the four ways their clips go. Only movesets with guarded cycles (the Katana, bare hands) have footwork. |
 | `protected_timings.gd` | `ProtectedTimings` | The protected timings (milestone-1 task 22), frozen: hitstun, blockstun and hit-stop by move kind, the charge bonus, the outcome hit-stops, the counters' stuns, the disarm's stagger and daze, and the knockdown's phases; the Katana's and bare hands' retuned set and today's, which the Greatsword and the Daggers keep. `for_weapon()` gives the set a move's weapon decides (the outcomes, at once); `for_move()` the set its own values come from (retuned once its family re-keys it). Pinned by `test_protected_timings.gd`. |
 | `sim_math.gd` | `SimMath` | Angles, easing, `js_round`. |
 | `js_math.gd` | `JsMath` | V8-exact `sin`, `cos`, `atan2`, `hypot` (see [Traps](#20-traps)). |
@@ -493,7 +495,7 @@ flowchart TD
 
 ### 6.5 Fighter states
 
-`Fighter.STATES` lists 24 states. `set_state(s, dur)` resets the frame counter and clears the attack, dodge or ultimate data that the new state doesn't use. `to_free()` returns to `jump` if airborne, else `free`. A Katana or bare-hands jump attack (milestone-1 task 59, `AttackDef.fits_airtime()`) starts only while its startup and active frames end by the touchdown (`Fighter.air_attack_fits()` against `steps_to_land()`, the rules' own arc stepped ahead); a later press is consumed and ignored. Such an attack stays in `attack` through the air and lands into its landing recovery (`AttackDef.landing_recovery()`: its row's `landing`, a stand-in's recovery), its frames never skipped (`AttackState.landed`); the Greatsword's and the Daggers' keep the old skip to the active frames and the overhead's dive until milestone 2. A fighter can block and parry from `free`, `step`, `blockstun`, `land`, `parryAnim`, and late `recoil`.
+`Fighter.STATES` lists 26 states. `set_state(s, dur)` resets the frame counter and clears the attack, dodge or ultimate data that the new state doesn't use. `to_free()` returns to `jump` if airborne, else `free`. A Katana or bare-hands jump attack (milestone-1 task 59, `AttackDef.fits_airtime()`) starts only while its startup and active frames end by the touchdown (`Fighter.air_attack_fits()` against `steps_to_land()`, the rules' own arc stepped ahead); a later press is consumed and ignored. Such an attack stays in `attack` through the air and lands into its landing recovery (`AttackDef.landing_recovery()`: its row's `landing`, a stand-in's recovery), its frames never skipped (`AttackState.landed`); the Greatsword's and the Daggers' keep the old skip to the active frames and the overhead's dive until milestone 2. A fighter can block and parry from `free`, `step`, `footwork`, `blockstun`, `land`, `parryAnim`, and late `recoil`. `footwork` (milestone-1 task 57, `Footwork`) is a start, a stop, a pivot or a sprint stop moving the fighter as its clip travels; any action cuts into it at once.
 
 ```mermaid
 stateDiagram-v2
@@ -503,6 +505,8 @@ stateDiagram-v2
     state "Neutral and movement" as neutral {
         free --> step : stick tap
         step --> free
+        free --> footwork : set off blocking, let go, or turn back at a run
+        footwork --> free
         free --> dodge : dodge with a direction
         free --> backstep : dodge, no direction
         dodge --> free
@@ -594,7 +598,7 @@ Every rules event is a `Dictionary` with a `"t"` key, emitted in order and drain
 | Group | Events | Emitted by |
 | --- | --- | --- |
 | Combat | `swing`, `telegraph`, `hit`, `block`, `parry`, `counter`, `evade`, `disarm`, `stagger`, `whiff` | Fighter and World |
-| Movement | `dodge`, `jump`, `land`, `step` | Fighter |
+| Movement | `dodge`, `jump`, `land`, `step`, `footwork` | Fighter |
 | Ultimates | `ultReady`, `ultStart`, `ultChoice`, `ultWave`, `ultDash`, `ultImpale`, `ultBurst`, `ultLightning` | Fighter and World |
 | Weapon | `pickup`, `recall`, `weaponStuck` | Fighter and World |
 | Follow-up cues | `counterReady`, `backstabReady` | Fighter and World |
@@ -752,7 +756,7 @@ flowchart TD
 | `inertial_blend.gd` | `InertialBlend` | Inertial blending (milestone-1 task 23), the stack's first modifier: on a hand-off the new clip shows whole at once and what is left of the pose shown before (each bone's turn and move, with the speed it had) decays over the blend's frames (`StateClips.blends`, which the director asks for in `Shot.blend`) without overshooting; on the world's time, so hit-stop holds it; picture only. The director no longer crossfades clips. |
 | `physical_reaction_layer.gd` | `PhysicalReactionLayer` | The physical reaction layer (milestone-1 task 70), the stack's second modifier: `MatchView.reaction_of()` turns each hit (every part) and block (the arms and upper spine, softer) into a push from its contact point, by its weight and the attacker's weapon class, and `FighterView.react()` hands it to the layer in the skeleton's frame; each bone of the spine, head and arms is a damped spring kicked by it (summed in closed form on the world's time, so hit-stop holds the kick and the same frames give the same pose), the arms pushed less while the fighter's own swing is active; picture only. |
 | `body_layer.gd` | `BodyLayer` | Procedural pelvis, spine and head over the clip; takes out a clip's own carry of the hips over the ground (`carried`, milestone-1 task 99: the blasted fall, whose travel the rules already move the fighter by). |
-| `locomotion.gd` | `Locomotion` | The packs' directional walk, run and sprint clips blended by the rules' velocity on one shared step phase stepped per rules frame; tap steps, a backwards sprint turned away, the turn on the spot, footfalls at the clips' foot contacts (authored-animation task 29). |
+| `locomotion.gd` | `Locomotion` | The rules' gait clips (`Gaits`) blended by the rules' velocity on one shared step phase stepped per rules frame, each played at 1.0× since the rules move at its measured speed (milestone-1 task 55; the Hunter's take the table's speed and stride); guarded, the walk crossing over to the guarded cycles (task 56); the starts, stops, pivots and tap steps' clips (`StateClips.footwork_clip()`) at 1.0× over the blend (task 57); tap steps, a backwards sprint turned away, the turn on the spot, footfalls at the clips' foot contacts (authored-animation task 29). |
 | `foot_phase.gd` | `FootPhase` | Measures each locomotion clip's way, stride, mid-stances and foot contacts once. |
 | `pose_check.gd` | `PoseCheck` | Pose quality checks for tools and tests (wrist bend, knee over toes, blade clearance, and with a `FootTrack` over a move's frames, planted feet sliding over 1 cm, milestone-1 task 9). `MoveBench` (`game/tools`) measures every rules frame of a move and names its worst frames. |
 | `rig_callback.gd` | `RigCallback` | Lets the rig insert a function into the modifier stack. |
