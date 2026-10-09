@@ -43,6 +43,12 @@ const CUES: Dictionary = {
 		"files": ["whoosh_colossal_01.wav", "whoosh_colossal_02.wav", "whoosh_colossal_03.wav"],
 		"volume_db": -4.0, "pitch": Vector2(0.92, 1.04), "bus": BUS_COMBAT, "spatial": true,
 	},
+	# Whirl Cut's spin, the blade passing twice (milestone-1 task 77; see
+	# MOVE_SOUNDS)
+	&"whoosh_whirl": {
+		"files": ["whoosh_whirl_01.wav", "whoosh_whirl_02.wav"],
+		"volume_db": -6.0, "pitch": Vector2(0.96, 1.04), "bus": BUS_COMBAT, "spatial": true,
+	},
 	# --- hits
 	&"hit_blade": {
 		"files": ["hit_blade_01.wav", "hit_blade_02.wav", "hit_blade_03.wav"],
@@ -291,6 +297,12 @@ const CUES: Dictionary = {
 		"files": ["gen_body_fall.wav", "body_drop_01.wav", "body_drop_02.wav"],
 		"volume_db": -4.0, "pitch": Vector2(0.94, 1.04), "bus": BUS_FOLEY, "spatial": true,
 	},
+	# a movement attack coming down on the stone (milestone-1 task 77: Leaping
+	# Cleave and Falling Crown): a heavy thud under a low boom
+	&"ground_thud": {
+		"files": ["ground_thud_01.wav", "ground_thud_02.wav", "ground_thud_03.wav"],
+		"volume_db": -4.0, "pitch": Vector2(0.93, 1.04), "bus": BUS_FOLEY, "spatial": true,
+	},
 	# --- the Hunter's own cloth and gear (milestone-1 task 36; see FOLEY)
 	&"hunter_cloth_step": {
 		"files": ["hunter_cloth_step_01.wav", "hunter_cloth_step_02.wav", "hunter_cloth_step_03.wav", "hunter_cloth_step_04.wav"],
@@ -311,6 +323,11 @@ const CUES: Dictionary = {
 	&"hunter_cloth_dodge": {
 		"files": ["hunter_cloth_dodge_01.wav", "hunter_cloth_dodge_02.wav", "hunter_cloth_dodge_03.wav"],
 		"volume_db": -8.0, "pitch": Vector2(0.94, 1.08), "bus": BUS_FOLEY, "spatial": true,
+	},
+	# the coat sweeping round with a movement attack (milestone-1 task 77)
+	&"hunter_cloth_whoosh": {
+		"files": ["hunter_cloth_whoosh_01.wav", "hunter_cloth_whoosh_02.wav", "hunter_cloth_whoosh_03.wav"],
+		"volume_db": -9.0, "pitch": Vector2(0.94, 1.06), "bus": BUS_FOLEY, "spatial": true,
 	},
 	&"hunter_gear_rattle": {
 		"files": ["gen_hunter_gear_rattle_01.wav", "gen_hunter_gear_rattle_02.wav", "gen_hunter_gear_rattle_03.wav"],
@@ -427,6 +444,8 @@ const EVENTS: Dictionary = {
 	# a disarmed weapon sticking in the ground (milestone-1 task 86): the
 	# retired bounce's fast landing, until task 91 gives it its own sound
 	&"weaponStuck": [&"weapon_bounce", &"weapon_clatter"],
+	# a movement attack coming down on the ground (milestone-1 task 77)
+	&"touchdown": [&"ground_thud"],
 	&"counterReady": [], # shown by a flash; the counter itself is loud
 	&"backstabReady": [], # shown by a prompt
 	&"roundStart": [&"round_roll", &"gong"],
@@ -508,17 +527,29 @@ const DEFLECT_SOUNDS: Dictionary = {
 }
 
 ## Each fighter's own cloth and gear (milestone-1 task 36), by fighter id and
-## moment: under a footfall (step), with a swing, in a backstep (dodge, in
-## place of the general cloth flap), in a roll and on a landing. A fighter not
-## listed moves with the general cloth only.
+## moment: under a footfall (step), with a swing, with a weapon's movement
+## attack's swing besides (move, milestone-1 task 77), in a backstep (dodge,
+## in place of the general cloth flap), in a roll and on a landing. A fighter
+## not listed moves with the general cloth only.
 const FOLEY: Dictionary = {
 	&"hunter": {
 		&"step": [&"hunter_cloth_step", &"hunter_gear_tick"],
 		&"swing": [&"hunter_cloth_swing", &"hunter_creak"],
+		&"move": [&"hunter_cloth_whoosh"],
 		&"dodge": [&"hunter_cloth_dodge", &"hunter_gear_rattle"],
 		&"roll": [&"hunter_gear_rattle"],
 		&"land": [&"hunter_cloth_dodge", &"hunter_gear_rattle"],
 	},
+}
+
+## A move's own cues on its frames (milestone-1 task 77), by move id, each
+## [cue, frame, place]: the frame is the attack's own (AttackState.frame), a
+## hit-stop holding it as it holds the clip, and the place where it sounds,
+## its fighter's chest. Whirl Cut's double whoosh starts as its circle does
+## (its smear_from), the blade going round twice before the strike's own
+## whoosh. MatchAudio plays them.
+const MOVE_SOUNDS: Dictionary = {
+	&"k_dh": [[&"whoosh_whirl", 24, &"chest"]],
 }
 
 ## The voice each fighter speaks with where it isn't [constant DEFAULT_VOICE]
@@ -556,8 +587,9 @@ const SIDE_PITCH: Array[float] = [1.0, 0.8909]
 ## weight, every blade hit adding the flesh layer and a heavy the bone;
 ## clangs and parries by the pair of weapons that meet
 ## ([constant PAIR_IMPACTS]) and by weight; whooshes by weight and weapon,
-## a leg strike adding its cloth ([constant LEG_CLOTH]); parries and
-## counters by kind.
+## a leg strike adding its cloth ([constant LEG_CLOTH]) and a weapon's
+## movement attack its fighter's coat (FOLEY's move); parries and counters by
+## kind.
 ## [param cast] names the fighter on each side, by side (fighter ids, as
 ## [member MatchSide.fighter_id]); with it, a fighter's own cloth and gear
 ## ([constant FOLEY]) and voice ([constant VOCALS]) join the event's cues.
@@ -579,6 +611,10 @@ static func cues_for(event: Dictionary, cast: Array = []) -> Array[Dictionary]:
 			if LEG_SOUNDS.has(StringName(str(_field(event, "sound", "")))):
 				names.append(LEG_CLOTH)
 			names.append_array(own.get(&"swing", []))
+			# a weapon's movement attack sweeps the coat round too (task 77);
+			# bare hands' keep their limb's cloth
+			if bool(_field(event, "movement", false)) and weapon != "fists":
+				names.append_array(own.get(&"move", []))
 		&"telegraph":
 			# The ultimate's warning is heard through its own start sound.
 			if str(_field(event, "kind", "")) != "ult":
@@ -671,6 +707,16 @@ static func sounds_deflect_pair(event: Dictionary) -> bool:
 static func deflect_pair_cues(direction: StringName, half: StringName) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for entry: Array in DEFLECT_SOUNDS.get(direction, {}).get(half, []):
+		out.append({"cue": entry[0], "frame": int(entry[1]), "place": entry[2]})
+	return out
+
+
+## Move [param move_id]'s own cues on its frames ([constant MOVE_SOUNDS]),
+## each [code]{"cue": StringName, "frame": int, "place": StringName}[/code];
+## empty for a move with none.
+static func move_cues(move_id: StringName) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry: Array in MOVE_SOUNDS.get(move_id, []):
 		out.append({"cue": entry[0], "frame": int(entry[1]), "place": entry[2]})
 	return out
 

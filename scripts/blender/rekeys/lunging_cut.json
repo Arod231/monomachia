@@ -1,0 +1,21 @@
+{
+	"about": "Lunging Cut (katana.k_bh, the backstep heavy), milestone-1 task 76: Attack2H01's two-handed diagonal from above the right shoulder down across to the left knee, off the back foot after a backstep: the blade raised overhead (source frames 0-12 over 16) as the back (right) foot pushes off into a long passing step, the front (left) foot then lunging far forward into the clip's deep lunge as the cut comes down through the active frames (21.5-23.5), held low a moment, then the back foot drawn up into the guard's stance and the body risen back into the guard by the settle at 44. Two-handed, as the owner chose for the heavies (Oct 8). Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H01.fbx",
+	"out": "blender/clips/lunging_cut.blend",
+	"remap": [[0, 0], [6, 4], [16, 12], [20.5, 14.5], [21.5, 16.3], [23.5, 18], [28, 21], [44, 46], [46, 49]],
+	"two_hands": {
+		"grip": 0.13,
+		"hold": [0.32, 0.12],
+		"square": 0,
+		"clearance": 0.05
+	},
+	"step": {
+		"body": [[0, 0], [3, 0.02], [7, 0.4], [11, 0.97], [15, 1.5], [20, 2.05], [23.5, 2.15], [28, 2.2], [36, 2.3], [46, 2.3]],
+		"feet": {
+			"L": [[8.5, 20.5, 2.3, 0.22]],
+			"R": [[3, 12.5, 2, 0.18], [23.5, 31, 0.3, 0.12]]
+		},
+		"hips_home": [36, 44],
+		"hips_top": 0.86
+	}
+}

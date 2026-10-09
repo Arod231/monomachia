@@ -127,20 +127,44 @@ static func without_swings(id: StringName) -> WeaponDef:
 
 ## The frames of the moves milestone 1 has re-keyed as they were as
 ## stand-ins, from the frame-data table before their re-key: [startup, active,
-## recovery, dodge cancel [from, to], branches]. Right Cut and Return Cut,
-## task 31; Kesa Cut and Crown Cut, task 32.
+## recovery, dodge cancel [from, to] (empty for none), branches]. Right Cut
+## and Return Cut, task 31; Kesa Cut and Crown Cut, task 32; Running Draw,
+## Leaping Cleave, Wind Cut and Whirl Cut, task 75; the backstep and jump
+## attacks, task 76.
 const STAND_IN_FRAMES: Dictionary = {
 	&"k_l1": [11, 3, 16, [20, 30], {&"k_l2": [16, 30], &"k_h2": [16, 30]}],
 	&"k_l2": [10, 3, 16, [19, 29], {&"k_l3": [15, 29], &"k_h1f": [15, 29]}],
 	&"k_l3": [11, 3, 17, [20, 31], {&"k_l4": [16, 31], &"k_h2": [16, 31]}],
 	&"k_l4": [14, 4, 22, [26, 40], {}],
+	&"k_sl": [12, 4, 18, [], {}],
+	&"k_sh": [20, 5, 26, [38, 51], {}],
+	&"k_dl": [9, 3, 16, [18, 28], {}],
+	&"k_dh": [18, 6, 24, [36, 48], {}],
+	&"k_bl": [10, 3, 18, [], {}],
+	&"k_bh": [18, 4, 24, [34, 46], {}],
+	&"k_jl": [7, 4, 12, [], {}],
+	&"k_jh": [12, 5, 18, [26, 35], {}],
+}
+
+
+## The lunges and hops of the moves whose re-key retired them (their records
+## no longer have them; the clip's travel leads them): Running Draw and
+## Leaping Cleave, Wind Cut and Whirl Cut, task 75; Rising Cut and Lunging Cut, task 76.
+const STAND_IN_LUNGES: Dictionary = {
+	&"k_sl": {"lunge": 1.7, "lunge_end": 15},
+	&"k_sh": {"lunge": 2.9, "lunge_start": 4, "lunge_end": 22, "hop": 5.0},
+	&"k_dl": {"lunge": 0.5},
+	&"k_dh": {"lunge": 0.5},
+	&"k_bl": {"lunge": 1.3},
+	&"k_bh": {"lunge": 2.3, "lunge_start": 4, "lunge_end": 20},
 }
 
 
 ## Makes `m` play as a stand-in, as moves did before their family re-keyed
 ## them: on stand-in markers with today's hit values (ProtectedTimings),
-## lunging by its record with no travel and a run's speed carried in
-## (AttackDef.by_travel off), on the frames it had then (STAND_IN_FRAMES).
+## lunging by its record (or the lunge its re-key retired, STAND_IN_LUNGES)
+## with no travel and a run's speed carried in (AttackDef.by_travel off), on
+## the frames it had then (STAND_IN_FRAMES).
 static func _as_stand_in(m: AttackDef) -> void:
 	if not m.real_markers and not m.by_travel:
 		return
@@ -156,11 +180,17 @@ static func _as_stand_in(m: AttackDef) -> void:
 		m.startup = f[0]
 		m.active = f[1]
 		m.recovery = f[2]
-		m.dodge_cancel_from = f[3][0]
-		m.dodge_cancel_to = f[3][1]
+		m.dodge_cancel_from = f[3][0] if not f[3].is_empty() else AttackDef.UNSET
+		m.dodge_cancel_to = f[3][1] if not f[3].is_empty() else AttackDef.UNSET
 		m.branches = {}
 		for follow: StringName in f[4]:
 			m.branches[follow] = PackedInt32Array(f[4][follow])
+	if STAND_IN_LUNGES.has(m.id):
+		var l: Dictionary = STAND_IN_LUNGES[m.id]
+		m.lunge = l["lunge"]
+		m.lunge_start = l.get("lunge_start", 0)
+		m.lunge_end = l.get("lunge_end", AttackDef.UNSET)
+		m.hop = l.get("hop", 0.0)
 
 
 ## `move` as a made-up swing times it: on the frames it had as a stand-in

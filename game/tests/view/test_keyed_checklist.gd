@@ -51,8 +51,9 @@ const DODGE_GAP: float = AIBrain.DODGE_ATTACK_FROM
 ## Bare hands' eight movement attacks (family 8), whose sound and effects
 ## are held (milestone-1 task 95).
 const MOVEMENT_ATTACKS: Array[StringName] = [&"f_sl", &"f_sh", &"f_dl", &"f_dh", &"f_bl", &"f_bh", &"f_jl", &"f_jh"]
-## Far enough apart that nothing lands, so no hit-stop.
-const APART: float = 6.0
+## Far enough apart that nothing lands, so no hit-stop (7 m since task 75:
+## Leaping Cleave touches from 6.15 m).
+const APART: float = 7.0
 ## The seeded duels for item 15, each this many steps at most: 22 since KE
 ## task 3's spacing (12 held every move before), where few four-hit strings
 ## get past their first light, so Crown Cut comes up only in the 13th.

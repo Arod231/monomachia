@@ -66,7 +66,7 @@ func test_the_stand_ins_give_the_katanas_and_bare_hands_frame_data_today() -> vo
 			for follow: StringName in [m.chain_light, m.chain_heavy]:
 				if follow != &"":
 					assert_eq(int(row["branches"][String(follow)][0]), m.startup + m.active + 2, "%s.%s -> %s: today's branch point" % [wid, id, follow])
-	assert_eq(stand_ins, 11, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94, light string, task 89, and heavies, task 133; Crescent Coil, KE task 16; Heaven Splitter and Rising Heaven, KE task 17; the Iai's draws and Returning Draw, KE task 18)")
+	assert_eq(stand_ins, 3, "the Katana's and bare hands' moves but the Counter Lunges and the keyed (the light string, tasks 31 and 32; the movement attacks, tasks 75 and 76; Breaker Palm, task 99; bare hands' eight movement attacks, tasks 93 and 94, light string, task 89, and heavies, task 133; Crescent Coil, KE task 16; Heaven Splitter and Rising Heaven, KE task 17; the Iai's draws and Returning Draw, KE task 18)")
 
 
 func test_each_move_has_its_band_kind() -> void:

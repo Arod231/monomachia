@@ -1070,7 +1070,11 @@ func _update_attack() -> void:
 			"weapon": moveset().id,
 			# the hit sound, by which a leg strike whooshes cloth (task 95)
 			"sound": def.sound,
+			# a movement attack, with which a coat sweeps round (task 77)
+			"movement": moveset().movement_attacks().has(def.id),
 		})
+	if f == def.touchdown:
+		_touch_down(def)
 
 	if def.special == &"shadowStep":
 		_update_shadow_step(f)
@@ -1467,6 +1471,8 @@ func _integrate() -> void:
 
 func _on_land() -> void:
 	world.emit({"t": &"land", "f": id})
+	if state == &"attack" and atk != null and atk.landed < 0 and atk.def.touchdown == AttackDef.TOUCHDOWN_ON_LANDING:
+		_touch_down(atk.def)
 	if state == &"jump":
 		set_state(&"land", SimConst.MOVE_LAND_RECOVERY)
 		vel.x *= 0.4
@@ -1485,6 +1491,19 @@ func _on_land() -> void:
 		if a.frame < d.startup + d.active:
 			a.frame = maxi(a.frame, d.startup)
 			a.lift_left = 0
+
+
+## Movement attack `def` comes down on the ground where the fighter stands
+## (milestone-1 task 77): a thud and a burst of dust there.
+func _touch_down(def: AttackDef) -> void:
+	world.emit({
+		"t": &"touchdown",
+		"f": id,
+		"attack": def.id,
+		"heavy": def.kind != &"light",
+		"weapon": moveset().id,
+		"pos": SimEvents.vec3(V3.make(pos.x, 0.0, pos.z)),
+	})
 
 
 func _update_facing() -> void:

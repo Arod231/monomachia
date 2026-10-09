@@ -659,3 +659,50 @@ func test_a_new_match_drops_the_pair_s_waiting_sounds() -> void:
 	log.clear()
 	_frames_pass(20)
 	assert_false(_cues(log).any(func(c: StringName) -> bool: return _pair_cue(c)), "nothing of the last match's parry")
+
+
+# ------------------------------------------------------------------ the Katana's movement attacks (task 77)
+
+## The Hunter with the Katana in Training against the dummy, fighter 0
+## driven by the test.
+func _training_hunter() -> void:
+	var dummy: MatchSide = MatchSide.computer(&"rogue", &"katana", 1)
+	dummy.controller = MatchSide.DUMMY
+	host.start(MatchConfig.make(MatchConfig.TRAINING, MatchSide.human(&"hunter", &"katana"), dummy, 3, ArenaScenes.STANDIN))
+	host.step(Match.INTRO_FRAMES + 5)
+
+
+## A movement attack's swing whooshes the Hunter's coat at the Hunter (task
+## 77, the owner's answer of Oct 8).
+func test_the_hunter_s_coat_whooshes_with_a_movement_attack() -> void:
+	var log := _record_places(false)
+	_training_hunter()
+	var f: Fighter = host.fighter(0)
+	assert_true(f.start_attack(&"k_bl"))
+	host.step(f.atk.def.startup + 1)
+	assert_eq(_count(log, &"hunter_cloth_whoosh"), 1, "with Rising Cut's swing")
+	assert_almost_eq(_at(log, &"hunter_cloth_whoosh"), _chest(0), Vector3.ONE * 0.2, "at the Hunter")
+
+
+## Whirl Cut's double whoosh starts on its frame (task 77), at the spinner's
+## chest, once, held by a hit-stop as the clip is.
+func test_whirl_cut_s_double_whoosh_starts_on_its_frame() -> void:
+	var log := _record_places(false)
+	_training_hunter()
+	var f: Fighter = host.fighter(0)
+	var cue: Dictionary = SoundBank.move_cues(&"k_dh")[0]
+	var started: Array[int] = []
+	audio.player.played.connect(func(name: StringName, _voice: Node) -> void:
+		if name == cue["cue"]:
+			started.append(f.atk.frame if f.atk != null else -1))
+	assert_true(f.start_attack(&"k_dh"))
+	host.step(int(cue["frame"]) - 1)
+	assert_eq(started, [] as Array[int], "not before its frame")
+	host.step(1)
+	assert_eq(started, [int(cue["frame"])], "on its frame")
+	assert_almost_eq(_at(log, cue["cue"]), _chest(0), Vector3.ONE * 1e-4, "at the spinner's chest")
+	host.world.hitstop = 6
+	host.step(6)
+	host.step(f.atk.def.startup + f.atk.def.active - int(cue["frame"]))
+	assert_eq(started.size(), 1, "once")
+	assert_eq(_count(log, &"whoosh_heavy"), 1, "and the strike's own whoosh")

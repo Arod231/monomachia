@@ -100,8 +100,10 @@
 # - carry: {"body": [[frame, metres forward], ...]}: a body carried off its
 #   feet (carry(); milestone-1 task 99's blasted fall): the hips' own shift
 #   over the ground taken out, then the whole body moved along the path
-#   (back negative), which the frame-data generator reads as travel; omit
-#   for a clip that keeps its hips;
+#   (back negative), which the frame-data generator reads as travel, after
+#   any borrowed poses (milestone-1 task 76: a jump attack carried forward
+#   through its flight, its landing borrowed); omit for a clip that keeps
+#   its hips;
 # - blend_from: {"source": path, "frame": source frame, "frames": n}: a
 #   transition (blend_from(); milestone-1 task 33's bridges and returns to
 #   guard): the clip starts in that clip's pose at that frame and carries it
@@ -114,6 +116,14 @@
 #   "share" of the way toward the clip's own pose at frame "toward" (its
 #   cocked wind-up) over n frames, fast then easing, the chest leaning back
 #   "lean" degrees with it; omit for a clip that isn't knocked;
+# - spin: [[frame, degrees], ...]: the whole body turned about the vertical
+#   through its hips as the frames go (spin(); milestone-1 task 75's Whirl
+#   Cut, a full turn), a monotone cubic through the pairs (positive toward the
+#   fighter's left seen from above), before any step, which then turns its
+#   feet's places and turns, and bends the knees as the turned clip does, by
+#   as much; keep the feet off the ground through the turn (a step with a
+#   lift), or the frame-data generator reads a planted foot's orbit as travel
+#   and turn;
 # - turn: degrees: the clip's motion turned about the vertical (turn(); milestone-1
 #   task 35's hit reactions): every bone's move from frame 0 turned that far
 #   about the hips, so a reel back becomes one sideways (-90: away from a hit
@@ -730,7 +740,7 @@ def free_weight(spans, t):
     return w
 
 
-def step(arm, scene, length, spec):
+def step(arm, scene, length, spec, spin_pairs=None):
     """A real step (okuri-ashi): the hips carried along `spec["body"]`
     ([frame, metres forward] pairs, a monotone cubic through them) over the
     ground, each foot along its own steps (foot_path()) from where it stands
@@ -740,7 +750,10 @@ def step(arm, scene, length, spec):
     carried back by the body's path, so a planted foot slides back under the
     clip exactly as far as the body goes forward, which the frame-data
     generator reads as travel. Both legs on IK to the targets, each foot kept
-    flat as it stood on frame 0, baked. The clip faces -Y."""
+    flat as it stood on frame 0, baked. The clip faces -Y. With `spin_pairs`
+    (the spec's spin, already applied to the body by spin()) every foot's
+    place and turn is turned about frame 0's hips by as much, the knees bent
+    as the turned clip bends them."""
     mw = arm.matrix_world
     to_arm = mw.inverted().to_3x3()
     pbs = arm.pose.bones
@@ -788,7 +801,10 @@ def step(arm, scene, length, spec):
     # leg, a foot pivoting through a spin)
     own, own_knees = {"L": [], "R": []}, {"L": [], "R": []}
     hips_yaw = []
-    if free or pivot:
+    spun = None
+    if spin_pairs:
+        spun = monotone([float(p[0]) for p in spin_pairs], [float(p[1]) for p in spin_pairs])
+    if free or pivot or spun:
         for n in range(length + 1):
             scene.frame_set(1 + n)
             bpy.context.view_layer.update()
@@ -805,6 +821,12 @@ def step(arm, scene, length, spec):
             m = feet0[side]
             at = m.to_translation() + fwd * (ahead - (body(float(n)) - body(0.0))) + up * high + right * aside
             turn = m.to_quaternion()
+            if spun is not None:
+                # turned with the body about frame 0's hips (spin())
+                q = mathutils.Quaternion((0.0, 0.0, 1.0), math.radians(spun(float(n))))
+                c = mathutils.Vector((h0.x, h0.y, at.z))
+                at = c + q @ (at - c)
+                turn = q @ turn
             pw = _pivot_weight(pivot, side, float(n))
             if pw > 0.0:
                 # on the ball of the foot: its place on the ground the step's,
@@ -828,7 +850,7 @@ def step(arm, scene, length, spec):
                 turn = turn.slerp(o.to_quaternion(), w)
                 high = max(high, o.to_translation().z - rest[side])
             feet[side].append((at, turn, high))
-    over = legs_to(arm, scene, length, feet, feet0, own_knees if (free or pivot) else None)
+    over = legs_to(arm, scene, length, feet, feet0, own_knees if (free or pivot or spun) else None)
     print(f"rekey_clip: the body steps {body(float(length)) - body(0.0):.2f} m forward", flush=True)
     if over:
         print(f"rekey_clip: a planted foot is out of the leg's reach on {over}", flush=True)
@@ -978,6 +1000,28 @@ def knock(arm, scene, length, spec):
                 pb.keyframe_insert("rotation_quaternion", frame=1 + n, group=pb.name)
                 pb.keyframe_insert("location", frame=1 + n, group=pb.name)
     print(f"rekey_clip: knocked back from frame {c:g} over {k:g} frames", flush=True)
+
+
+def spin(arm, scene, length, pairs):
+    """The whole body turned about the vertical through its hips as the
+    frames go (milestone-1 task 75's Whirl Cut): by a monotone cubic through
+    `pairs` ([frame, degrees], positive toward the fighter's left seen from
+    above), the hips (and everything under them) turned about their own head
+    on each frame. Keyed; the hips must already be keyed on every frame (the
+    time warp keys them so), or the turns add up."""
+    mw = arm.matrix_world
+    hips = arm.pose.bones["B-hips"]
+    by = monotone([float(p[0]) for p in pairs], [float(p[1]) for p in pairs])
+    for n in range(length + 1):
+        scene.frame_set(1 + n)
+        bpy.context.view_layer.update()
+        h = mw @ hips.head
+        r = mathutils.Matrix.Translation(h) @ mathutils.Matrix.Rotation(math.radians(by(float(n))), 4, "Z") @ mathutils.Matrix.Translation(-h)
+        hips.matrix = mw.inverted() @ r @ mw @ hips.matrix
+        bpy.context.view_layer.update()
+        hips.keyframe_insert("rotation_quaternion", frame=1 + n, group=hips.name)
+        hips.keyframe_insert("location", frame=1 + n, group=hips.name)
+    print(f"rekey_clip: spun the body {by(float(length)) - by(0.0):g} degrees", flush=True)
 
 
 def turn(arm, scene, length, degrees):
@@ -1570,9 +1614,11 @@ def main():
         # a recoil stepping back: knocked first (the hips turn with it), the
         # step then re-planting the feet (milestone-1 task 90)
         knock(arm, scene, length, spec["knock"])
+    if spec.get("spin"):
+        spin(arm, scene, length, spec["spin"])
     if spec.get("step"):
-        step(arm, scene, length, spec["step"])
-    if spec.get("carry"):
+        step(arm, scene, length, spec["step"], spec.get("spin"))
+    if spec.get("carry") and not borrowed:
         carry(arm, scene, length, spec["carry"])
     if spec.get("reach"):
         # after the step: the hand placed where the hips have gone
@@ -1593,6 +1639,10 @@ def main():
                   float(th.get("clearance", 0.0)), th.get("to_guard"), th.get("aim"))
     if borrowed:
         borrow(arm, scene, borrowed)
+        if spec.get("carry"):
+            # after the borrowed poses, whose hips would otherwise put the
+            # body back where they stood (milestone-1 task 76's jump attacks)
+            carry(arm, scene, length, spec["carry"])
     if spec.get("pose"):
         pose(arm, scene, spec["pose"])
     bpy.data.actions.remove(src_action)

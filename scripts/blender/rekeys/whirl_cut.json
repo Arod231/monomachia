@@ -1,0 +1,21 @@
+{
+	"about": "Whirl Cut (katana.k_dh, the dodge heavy), milestone-1 task 75: Attack2H03's two-handed sweep across from the right to the left, made a full turn to the left, out of a dodge: a hop off the roll with the blade carried back behind the right hip (source frames 0-6 over 8), then the whole body spun 360 degrees to the left on the balls of the feet, skimming the floor (frames 6-21, quickening), the blade trailing round low behind, and the sweep across the front as the turn comes round (the active frames 20.5-23.5), the crouch held, then back up to the guard by the settle at 44.5. Two-handed, as the owner chose for the heavies (Oct 8): the left hand set on the grip and the blade kept clear of the body. The body drifts forward through it at a steady pace from the start (0.63 m in this rig's metres; the feet leave the ground on frame 1, so the turn carries that pace, about 1.4 m in all on the game's bodies). Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/2H/HumanM@Attack2H03.fbx",
+	"out": "blender/clips/whirl_cut.blend",
+	"remap": [[0, 0], [8, 6], [18, 8.5], [20.5, 9.5], [23.5, 11], [30, 18], [44.5, 40], [46, 47]],
+	"spin": [[0, 0], [6, 0], [10, 60], [14, 170], [18, 290], [21, 360], [46, 360]],
+	"two_hands": {
+		"grip": 0.13,
+		"hold": [0.32, 0.12],
+		"square": 0,
+		"clearance": 0.05
+	},
+	"step": {
+		"body": [[0, 0], [1, 0.025], [2, 0.05], [22, 0.55], [24, 0.6], [30, 0.63], [46, 0.63]],
+		"feet": {
+			"L": [[1, 22, 0.55, 0.12], [25, 30, 0.08, 0.1]],
+			"R": [[0.5, 22, 0.55, 0.12], [24, 29, 0.08, 0.12]]
+		},
+		"hips_top": 0.85
+	}
+}

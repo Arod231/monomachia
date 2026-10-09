@@ -1,0 +1,36 @@
+{
+	"about": "Aerial Cut (katana.k_jl, the jump light), milestone-1 task 76: out of the Katana's jump flight (jump_katana, rising from its frame 3), a one-handed flat cut in the air, Running Draw's hip cut (running_draw's re-keyed clip, its hips and upper body on every frame from 3 to 10, its frames 10 to 17): the blade drawn back to the right hip by frame 3, swept across the front from the right into a point through frames 7 (14 rules frames from the press) to 9, tipped 15 degrees down (frames 6-10) and the hips lifted 10 cm over the jump's tucked legs (30 cm on frame 10, so the feet first meet the ground at the touchdown), so the cut comes level at the chest of a defender standing below the jump's height; followed through by 11 and held until the touchdown; the feet down on frame 11, the landing's give (land_katana's lowered stance) on 12-13 with the follow-through settling (its 22 and 26), and Running Draw's end in the one-handed guard by 15, so its landing recovery is 12 rules frames. Carried 0.5 m forward through the flight (the frame-data generator reads it as travel), so it reaches a defender at the preferred distance with the jump arc under it. One-handed, as the owner chose for the lights (Oct 8). Source frames at 30 fps from 0.",
+	"out": "blender/clips/aerial_cut.blend",
+	"blockout": {
+		"source": "blender/clips/jump_katana.blend",
+		"remap": [[0, 3], [9, 8], [11, 15], [15, 15]],
+		"borrow": [
+			{"frame": 3, "source": "blender/clips/running_draw.blend", "at": 10, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 4, "source": "blender/clips/running_draw.blend", "at": 11, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 5, "source": "blender/clips/running_draw.blend", "at": 12, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 6, "source": "blender/clips/running_draw.blend", "at": 12.75, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 7, "source": "blender/clips/running_draw.blend", "at": 13.5, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 8, "source": "blender/clips/running_draw.blend", "at": 14.5, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 9, "source": "blender/clips/running_draw.blend", "at": 15.5, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 10, "source": "blender/clips/running_draw.blend", "at": 17, "fingers": true, "bones": ["B-hips", "B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 11, "source": "blender/clips/running_draw.blend", "at": 19, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 12, "source": "blender/clips/running_draw.blend", "at": 22, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 13, "source": "blender/clips/running_draw.blend", "at": 26, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frames": [12, 13], "source": "blender/clips/land_katana.blend", "at": 3, "bones": ["B-hips", "B-thigh.L", "B-shin.L", "B-foot.L", "B-toe.L", "B-thigh.R", "B-shin.R", "B-foot.R", "B-toe.R"]},
+			{"frames": [14, 15], "source": "blender/clips/running_draw.blend", "at": 36}
+		],
+		"carry": {"body": [[0, 0], [3, 0], [7, 0.3], [9, 0.45], [11, 0.5], [15, 0.5]]},
+		"pose": [
+			{"frame": 3, "move": {"B-hips": [0, 0.1, 0]}},
+			{"frame": 4, "move": {"B-hips": [0, 0.1, 0]}},
+			{"frame": 5, "move": {"B-hips": [0, 0.1, 0]}},
+			{"frame": 6, "move": {"B-hips": [0, 0.1, 0]}, "turn": [["B-hand.R", "right", -15]]},
+			{"frame": 7, "move": {"B-hips": [0, 0.1, 0]}, "turn": [["B-hand.R", "right", -15]]},
+			{"frame": 8, "move": {"B-hips": [0, 0.1, 0]}, "turn": [["B-hand.R", "right", -15]]},
+			{"frame": 9, "move": {"B-hips": [0, 0.1, 0]}, "turn": [["B-hand.R", "right", -15]]},
+			{"frame": 10, "move": {"B-hips": [0, 0.3, 0]}, "turn": [["B-hand.R", "right", -15]]}
+		]
+	},
+	"keys": [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+	"ai": "a one-handed flat sword cut in the air during a jump, landing balanced"
+}

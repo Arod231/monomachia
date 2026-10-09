@@ -3,10 +3,12 @@
 # only, never committed (the body is a Kevin Iglesias pack's).
 #
 #   blender -b --factory-startup --python-exit-code 1 --python scripts/blender/pose_sheet.py -- \
-#     --clip <source.blend> --body <pack clip .fbx with the body> --frames 0,5,10 --out <dir> [--views front,side]
+#     --clip <source.blend> --body <pack clip .fbx with the body> --frames 0,5,10 --out <dir> [--views front,side,top] [--blade 1]
 #
 # Writes <dir>/<frame>_<view>.png (frames counted from 0, the clip's frame 1
-# in Blender) at 480x640, workbench, the ground drawn as a grid.
+# in Blender) at 480x640, workbench, the ground drawn as a grid. --blade 1 draws
+# the Katana's blade off the right hand's prop bone (rekey_clip.py's BLADE),
+# to judge a cut's line (milestone-1 task 75); "top" looks down on the hips.
 
 import math
 import os
@@ -18,13 +20,36 @@ import mathutils
 
 def args():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    out = {"frames": None, "out": None, "views": "front,side"}
+    out = {"frames": None, "out": None, "views": "front,side", "blade": "0"}
     i = 0
     while i < len(argv):
         key = argv[i].lstrip("-")
         out[key] = argv[i + 1]
         i += 2
     return out
+
+
+# The Katana's blade from the grip, m along the prop bone's +Y, in the pack
+# rig's metres (rekey_clip.py BLADE: 0.09 to 1.39 m on the game's bodies,
+# scaled by their hips, 1.10 m against 0.98).
+BLADE = (0.09 * 0.98 / 1.10, 1.39 * 0.98 / 1.10)
+
+
+def blade(body):
+    """A thin cylinder along the Katana's blade on B-handProp.R; the objects made."""
+    pb = body.pose.bones.get("B-handProp.R")
+    if pb is None:
+        return []
+    m = body.matrix_world @ pb.matrix
+    o = m.to_translation()
+    y = (m.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+    a, b = o + y * BLADE[0], o + y * BLADE[1]
+    d = b - a
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.014, depth=d.length, vertices=8, location=(a + b) / 2)
+    c = bpy.context.active_object
+    c.rotation_mode = "QUATERNION"
+    c.rotation_quaternion = d.to_track_quat("Z", "Y")
+    return [c]
 
 
 def figure(body):
@@ -76,7 +101,8 @@ def main():
     scene.camera = cam
     # the pack's characters face -Y in Blender; front looks at the face
     views = {"front": ((0.0, -6.0, 1.0), (math.radians(90), 0, 0)), "side": ((6.0, 0.0, 1.0), (math.radians(90), 0, math.radians(90))),
-             "back": ((0.0, 6.0, 1.0), (math.radians(90), 0, math.radians(180)))}
+             "back": ((0.0, 6.0, 1.0), (math.radians(90), 0, math.radians(180))),
+             "top": ((0.0, 0.0, 6.0), (0.0, 0.0, 0.0))}
     os.makedirs(a["out"], exist_ok=True)
     hips = body.pose.bones["B-hips"]
     frames = [int(f) for f in a["frames"].split(",")]
@@ -85,6 +111,8 @@ def main():
         scene.frame_set(1 + frame)
         bpy.context.view_layer.update()
         made = figure(body)
+        if a["blade"] == "1":
+            made += blade(body)
         at = body.matrix_world @ hips.head
         for v in shown:
             loc, rot = views[v]

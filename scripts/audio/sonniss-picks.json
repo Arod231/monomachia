@@ -1641,6 +1641,85 @@
         { "source": "ima_cloth_24", "peakIn": [1.6,1.9], "from": -0.03, "length": 0.3, "gainDb": -4, "offset": 0.005, "fadeIn": 0.01, "fadeOut": 0.15 }
       ],
       "process": { "highpass": 60 }
+    },
+    {
+      "file": "hunter_cloth_whoosh_01.wav",
+      "use": "The Hunter's coat sweeping round with a movement attack (milestone-1 task 77): a fuller cloth whoosh than a string swing's",
+      "layers": [
+        { "source": "ima_cloth_24", "peakIn": [0.6,0.9], "from": -0.08, "length": 0.5, "pitch": -1, "fadeIn": 0.04, "fadeOut": 0.25 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.4, "pitch": -4, "gainDb": -9, "offset": 0.02, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 140 }
+    },
+    {
+      "file": "hunter_cloth_whoosh_02.wav",
+      "use": "The Hunter's coat sweeping round with a movement attack",
+      "layers": [
+        { "source": "ima_cloth", "peakIn": [0.9,1.15], "from": -0.08, "length": 0.45, "pitch": -2, "fadeIn": 0.04, "fadeOut": 0.22 },
+        { "source": "esm_cloth_flip", "peakIn": [0.1,0.2], "from": -0.02, "length": 0.3, "pitch": -3, "gainDb": -6, "offset": 0.06, "fadeOut": 0.15 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.4, "pitch": -5, "gainDb": -11, "offset": 0.02, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 140 }
+    },
+    {
+      "file": "hunter_cloth_whoosh_03.wav",
+      "use": "The Hunter's coat sweeping round with a movement attack",
+      "layers": [
+        { "source": "ima_cloth_24", "peakIn": [1.6,1.9], "from": -0.08, "length": 0.48, "pitch": 1, "fadeIn": 0.04, "fadeOut": 0.24 },
+        { "source": "esm_cloth_flip", "peakIn": [0.1,0.2], "from": -0.02, "length": 0.3, "pitch": -1, "gainDb": -7, "offset": 0.04, "fadeOut": 0.15 },
+        { "source": "csd_woosh_slide", "start": 0, "end": 0.4, "pitch": -3, "gainDb": -10, "offset": 0.02, "fadeOut": 0.15 }
+      ],
+      "process": { "highpass": 140 }
+    },
+    {
+      "file": "whoosh_whirl_01.wav",
+      "use": "Whirl Cut's spin (milestone-1 task 77): two heavy blade passes about 0.17 s apart as the Katana goes round, the second the faster",
+      "layers": [
+        { "source": "dd_swing_scrape", "peakIn": [0,0.6], "from": -0.05, "length": 0.32, "pitch": -5, "gainDb": -3, "fadeOut": 0.16 },
+        { "source": "dd_swing_scrape", "peakIn": [0,0.6], "from": -0.05, "length": 0.36, "pitch": -4, "offset": 0.17, "fadeOut": 0.2 },
+        { "source": "ep_wind_whoosh", "start": 0.04, "length": 0.5, "pitch": -4, "gainDb": -11, "fadeIn": 0.05, "fadeOut": 0.25 }
+      ],
+      "process": { "highpass": 80, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "whoosh_whirl_02.wav",
+      "use": "Whirl Cut's spin: two heavy blade passes",
+      "layers": [
+        { "source": "dd_swing_scrape", "peakIn": [0,0.6], "from": -0.05, "length": 0.32, "pitch": -6, "gainDb": -3, "fadeOut": 0.16 },
+        { "source": "dd_swing_scrape", "peakIn": [0,0.6], "from": -0.05, "length": 0.36, "pitch": -3, "offset": 0.18, "fadeOut": 0.2 },
+        { "source": "ep_metal_whoosh", "start": 0.4, "length": 0.5, "pitch": -3, "gainDb": -10, "fadeIn": 0.05, "fadeOut": 0.25 }
+      ],
+      "process": { "highpass": 80, "normalize": { "peakDb": -2 } }
+    },
+    {
+      "file": "ground_thud_01.wav",
+      "use": "Leaping Cleave or Falling Crown coming down on the stone (milestone-1 task 77): a heavy thud, a weight set down hard and a low boom",
+      "layers": [
+        { "source": "dd_swing_thud", "peakIn": [3.15,3.3], "length": 0.6, "pitch": -3, "lowpass": 900, "decay": 0.3, "fadeOut": 0.35 },
+        { "source": "ima_case_down", "start": 0.02, "length": 0.4, "pitch": -6, "gainDb": -2, "lowpass": 1000, "fadeOut": 0.2 },
+        { "source": "boom_214", "start": 0.29, "length": 0.6, "lowpass": 150, "gainDb": -9, "decay": 0.3, "fadeOut": 0.4 }
+      ],
+      "process": { "highpass": 30, "maxLength": 0.9, "fadeOut": 0.3 }
+    },
+    {
+      "file": "ground_thud_02.wav",
+      "use": "A movement attack coming down on the stone",
+      "layers": [
+        { "source": "dd_swing_thud", "peakIn": [15.15,15.3], "length": 0.6, "pitch": -4, "lowpass": 900, "decay": 0.3, "fadeOut": 0.35 },
+        { "source": "ima_case_down", "start": 0.02, "length": 0.4, "pitch": -4, "gainDb": -2, "lowpass": 1000, "fadeOut": 0.2 },
+        { "source": "boom_075", "start": 0.295, "length": 0.6, "lowpass": 150, "gainDb": -9, "decay": 0.3, "fadeOut": 0.4 }
+      ],
+      "process": { "highpass": 30, "maxLength": 0.9, "fadeOut": 0.3 }
+    },
+    {
+      "file": "ground_thud_03.wav",
+      "use": "A movement attack coming down on the stone",
+      "layers": [
+        { "source": "dd_swing_thud", "peakIn": [30.15,30.3], "length": 0.6, "pitch": -2, "lowpass": 900, "decay": 0.3, "fadeOut": 0.35 },
+        { "source": "ima_case_down", "start": 0.02, "length": 0.4, "pitch": -5, "gainDb": -2, "lowpass": 1000, "fadeOut": 0.2 },
+        { "source": "boom_011", "start": 0.305, "length": 0.6, "lowpass": 150, "gainDb": -9, "decay": 0.3, "fadeOut": 0.4 }
+      ],
+      "process": { "highpass": 30, "maxLength": 0.9, "fadeOut": 0.3 }
     }
   ]
 }

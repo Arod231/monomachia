@@ -1,0 +1,25 @@
+{
+	"about": "Falling Crown (katana.k_jh, the jump heavy), milestone-1 task 76: out of the Katana's jump flight (jump_katana, rising from its frame 3), a two-handed overhead held into the fall and brought down at the touchdown, its upper body Leaping Cleave's (leaping_cleave's re-keyed clip): the blade raised by frame 4 (its frame 18) and cocked behind the head over the top of the arc and into the fall to frame 8 (its 22), brought over and down through frames 10 (20 rules frames from the press, its 23.5) to 12.5 (its 25) as the body dives forward into it (the spine pitched 15 and 28 degrees on 10 and 12) and is carried 0.6 m forward through the flight (task 59 retired the dive's own drop; the frame-data generator reads the carry as travel), the feet down on frame 13 and the body sinking into Leaping Cleave's crouch, the blade at the ground (15-18, its 30), then up through its 42 into the guard by 22 (its 48), so its landing recovery is 19 rules frames. Two-handed, as the owner chose for the heavies (Oct 8). Source frames at 30 fps from 0.",
+	"out": "blender/clips/falling_crown.blend",
+	"blockout": {
+		"source": "blender/clips/jump_katana.blend",
+		"remap": [[0, 3], [10, 9], [13, 15], [22, 15]],
+		"borrow": [
+			{"frame": 4, "source": "blender/clips/leaping_cleave.blend", "at": 18, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 8, "source": "blender/clips/leaping_cleave.blend", "at": 22, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 10, "source": "blender/clips/leaping_cleave.blend", "at": 23.5, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 12, "source": "blender/clips/leaping_cleave.blend", "at": 25, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frame": 13, "source": "blender/clips/leaping_cleave.blend", "at": 26, "fingers": true, "bones": ["B-head", "B-neck", "B-chest", "B-spine", "B-shoulder.L", "B-upperArm.L", "B-forearm.L", "B-hand.L", "B-handProp.L", "B-shoulder.R", "B-upperArm.R", "B-forearm.R", "B-hand.R", "B-handProp.R"]},
+			{"frames": [15, 18], "source": "blender/clips/leaping_cleave.blend", "at": 30},
+			{"frame": 20, "source": "blender/clips/leaping_cleave.blend", "at": 42},
+			{"frame": 22, "source": "blender/clips/leaping_cleave.blend", "at": 48}
+		],
+		"carry": {"body": [[0, 0], [6, 0], [10, 0.3], [12, 0.55], [13, 0.6], [22, 0.6]]},
+		"pose": [
+			{"frame": 10, "turn": [["B-spine", "right", -15]]},
+			{"frame": 12, "turn": [["B-spine", "right", -28]]}
+		]
+	},
+	"keys": [0, 4, 8, 10, 12, 13, 15, 18, 20, 22],
+	"ai": "a two-handed overhead sword cut brought down from a jump at the landing, into a crouch, then rising to guard"
+}

@@ -298,5 +298,5 @@ func test_local_the_keyed_clips_keep_the_off_hand_on_the_grip() -> void:
 		else:
 			ChecklistResults.record_problems(10, row, by_clip.values()[0])
 	gut.p("the keyed clips' off hand, worst over every rules frame:\n" + "\n".join(lines))
-	assert_eq(worst.size(), 24, "four lights, four pairs, the block, Crouching Crown and the two-handed string's own five (KE tasks 12-14), the redirected attacker's recoil and the blade's two deflects at a limb (milestone-1 task 90), Heaven Splitter and Rising Heaven (KE task 17), their off hand on the grip")
-	assert_eq(free, 8, "the one-handed grip's own hits 1 to 4 (KE tasks 11 and 12), Crescent Coil (KE task 16), and the Iai's draws and Returning Draw (KE task 18), the off hand free")
+	assert_eq(worst.size(), 28, "four lights, four pairs, the block, Crouching Crown and the two-handed string's own five (KE tasks 12-14), the redirected attacker's recoil and the blade's two deflects at a limb (milestone-1 task 90), Heaven Splitter and Rising Heaven (KE task 17), Leaping Cleave, Whirl Cut, Lunging Cut and Falling Crown (tasks 75 and 76), their off hand on the grip")
+	assert_eq(free, 12, "the one-handed grip's own hits 1 to 4 (KE tasks 11 and 12), Crescent Coil (KE task 16), and the Iai's draws and Returning Draw (KE task 18), Running Draw, Wind Cut, Rising Cut and Aerial Cut (tasks 75 and 76), the off hand free")

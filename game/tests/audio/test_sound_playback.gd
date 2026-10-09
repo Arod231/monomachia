@@ -88,6 +88,17 @@ static func _pair_cues() -> Array[StringName]:
 	return out
 
 
+## A move's own cues (milestone-1 task 77: Whirl Cut's double whoosh), which
+## its attack plays on its frames, not with an event.
+static func _move_cues() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id: StringName in SoundBank.MOVE_SOUNDS:
+		for c: Dictionary in SoundBank.move_cues(id):
+			if not out.has(c["cue"]):
+				out.append(c["cue"])
+	return out
+
+
 func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings())) -> void:
 	var fired := {}
 	var expected := {}
@@ -96,6 +107,9 @@ func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings
 	var footfall := _footfall_cues()
 	var pair_cues := _pair_cues()
 	var pair_played := {}
+	var move_cues := _move_cues()
+	var move_played := {}
+	var keyed_attacks: Array[AttackState] = []
 	var steel_parries := [0]
 	host.sim_event.connect(func(e: Dictionary) -> void:
 		if host.attract:
@@ -108,6 +122,8 @@ func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings
 	audio.player.played.connect(func(cue: StringName, _voice: Node) -> void:
 		if pair_cues.has(cue):
 			_count(pair_played, cue)
+		elif move_cues.has(cue):
+			_count(move_played, cue)
 		elif not footfall.has(cue):
 			_count(played, cue))
 	var cfg := MatchConfig.make(MatchConfig.WATCH,
@@ -126,6 +142,10 @@ func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings
 		host.step(3)
 		audio.player.advance(3 * SimConst.DT)
 		frames += 3
+		for side: int in 2:
+			var f: Fighter = host.fighter(side)
+			if f.state == &"attack" and f.atk != null and SoundBank.MOVE_SOUNDS.has(f.atk.def.id) and not keyed_attacks.has(f.atk):
+				keyed_attacks.append(f.atk)
 		tracks[music.current_track()] = true
 		if frames == 300:
 			assert_true(audio.ambience.is_playing(), "the arena's ambience plays")
@@ -150,6 +170,9 @@ func test_a_whole_match_plays_every_sound(pair: Array = use_parameters(_pairings
 	assert_lte(halves, 4 * steel_parries[0], "four pair cues a steel parry at most")
 	if steel_parries[0] > 0:
 		assert_gt(scrapes, 0, "%d steel parries sounded their pairs" % steel_parries[0])
+	# a move's own cues once an attack at most (task 77)
+	for cue: Variant in move_played:
+		assert_lte(int(move_played[cue]), keyed_attacks.size(), "%s once an attack at most" % cue)
 	assert_eq(audio.player.missing, PackedStringArray(), "no sound file missing")
 	assert_eq((_services().get("ui_sounds") as SoundPlayer).missing, PackedStringArray())
 	assert_gt(footsteps[0], 0, "footsteps")

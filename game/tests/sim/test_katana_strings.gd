@@ -98,9 +98,10 @@ const ROWS: Dictionary[StringName, Dictionary] = {
 }
 
 ## Wind Cut, the dodge light, lunged 0.4 m, as the demo's did (the spec
-## leaves the Katana's dodge attacks unchanged); 0.5 m since its clip
-## (authored-animation task 12), to reach the duelling distance.
-const WIND_CUT_LUNGE: float = 0.5
+## leaves the Katana's dodge attacks unchanged), then 0.5 m (authored-animation
+## task 12); since its re-key (milestone-1 task 75) its clip's travel carries
+## it, at least this far.
+const WIND_CUT_CARRY: float = 1.0
 
 
 ## The Iai Slash sheathes for 9 frames (a held heavy then stays sheathed, as
@@ -275,18 +276,19 @@ func test_stopping_after_any_hit_ends_the_string_when_that_move_ends() -> void:
 		_assert_stops_after(typed)
 
 
-func test_wind_cut_out_of_a_dodge_still_lunges_toward_the_defender() -> void:
+func test_wind_cut_out_of_a_dodge_still_carries_toward_the_defender() -> void:
 	# Passing Cut, the Daggers' dodge light, lunges on along the dodge; the
-	# Katana's, unchanged, lunges along its facing, toward the defender
+	# Katana's goes along its facing, toward the defender, carried by its clip
 	var r: PlayedString = _out_of_a_dodge(Btn.LIGHT, Callable(), Vector2(1.0, 0.0), WHIFF_GAP)
 	assert_eq(r.ids(&"swing"), [&"k_dl"] as Array[StringName], "Wind Cut")
 	var start: int = r.attack.find(&"k_dl")
 	assert_gt(start, 0, "Wind Cut starts")
 	if start <= 0:
 		return
-	assert_almost_eq(r.displacement(&"k_dl").length(), WIND_CUT_LUNGE, CLOSE, "its 0.5 m lunge")
+	var carried: float = r.displacement(&"k_dl").length()
+	assert_gt(carried, WIND_CUT_CARRY, "its clip carries it (%.2f m)" % carried)
 	var closed: float = r.apart[start - 1] - r.apart[r.attack.rfind(&"k_dl")]
-	assert_almost_eq(closed, WIND_CUT_LUNGE, CLOSE, "straight at the defender: the gap shrinks by all of it")
+	assert_almost_eq(closed, carried, CLOSE, "straight at the defender: the gap shrinks by all of it")
 
 
 func test_kesa_cut_dodge_cancels_from_frame_20() -> void:

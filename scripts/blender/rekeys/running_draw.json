@@ -1,0 +1,18 @@
+{
+	"about": "Running Draw (katana.k_sl, the sprint light), milestone-1 task 75: Attack1H01_R's one-handed cut from the right, swept across at the hips into a point straight ahead, out of a sprint: the wind-up drawn back low at the right hip over the run's strides (source frames 0-4.5 over 11), the sweep at its own speed into the active frames (13.5-15.5), the point held as the run's momentum carries the body over the front foot, then back to the guard by the settle at 33. One-handed, as the owner chose for the lights (Oct 8); the blade starts and ends 45 degrees lower, as the one-handed guard carries it. Four running strides carry the body 2.2 m forward, the left foot planting into the lunge at the cut, the back foot dragged up after. Source frames at 30 fps from 0.",
+	"source": "kevin_iglesias/Human Melee Animations/Animations/Male/Combat/1H/HumanM@Attack1H01_R.fbx",
+	"out": "blender/clips/running_draw.blend",
+	"remap": [[0, 0], [11, 4.5], [12.5, 6], [13.5, 7.5], [15.5, 9.5], [21, 15], [33, 29], [36, 34]],
+	"one_hand": {
+		"lower": [[0, 45], [9, 0], [24, 0], [36, 45]],
+		"clearance": 0.12
+	},
+	"step": {
+		"body": [[0, 0], [3, 0.4], [7.5, 1], [10.5, 1.4], [14, 2], [15, 2.07], [17, 2.14], [21, 2.2], [36, 2.2]],
+		"feet": {
+			"L": [[2.5, 7.5, 0.918, 0.2], [9.5, 14, 1.282, 0.18]],
+			"R": [[0, 3, 0.803, 0.2], [6.5, 10.5, 0.995, 0.22], [14.5, 19.5, 0.402, 0.14]]
+		},
+		"hips_home": [24, 33]
+	}
+}

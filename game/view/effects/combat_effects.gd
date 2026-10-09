@@ -409,7 +409,8 @@ func sparks(at: Vector3, dir: Vector3, spec: Dictionary, born: float, seed: int)
 ## "count" soft clouds (before the preset's scale) of about "size" across,
 ## drifting out and up at about "speed" m/s (PUFF_SPEED by default),
 ## growing and thinning out over "life" frames, in "color" (PUFF_COLOR by
-## default).
+## default); off the floor ("ground"), thrown out over it and up, never down
+## into it, from just above it.
 ## Returns how many.
 func puff(at: Vector3, spec: Dictionary, born: float, seed: int) -> int:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -419,12 +420,17 @@ func puff(at: Vector3, spec: Dictionary, born: float, seed: int) -> int:
 	var life: float = float(spec.get("life", 22))
 	var speed: float = float(spec.get("speed", PUFF_SPEED))
 	var color: Color = spec.get("color", PUFF_COLOR)
+	var ground: bool = bool(spec.get("ground", false))
 	for k: int in n:
 		var p: Particle = Particle.new()
 		p.born = born
 		p.life = maxf(1.0, life * (1.0 - 0.3 * rng.randf()))
 		p.p0 = at
 		p.v = (_scatter(rng, Vector3.ZERO, PI) + Vector3(0.0, 0.4, 0.0)) * speed * rng.randf_range(0.5, 1.0)
+		if ground:
+			# out over the floor, rising a little: a ring of dust, not a ball
+			p.v.y = absf(p.v.y) * 0.25
+			p.p0 = at + Vector3(0.0, size * 0.5, 0.0)
 		p.size = size * rng.randf_range(0.7, 1.0)
 		p.size_end = p.size * PUFF_GROWTH
 		p.color = color

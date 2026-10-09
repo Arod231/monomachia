@@ -90,14 +90,14 @@ Marks: ✓ passed · ✗ failed · · not checked yet · – doesn't apply · �
 
 | Move or clip | Status | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Running Draw `k_sl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Leaping Cleave `k_sh` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Wind Cut `k_dl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Whirl Cut `k_dh` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✓ | · | · | · | · | · | · | · | ☐ |
-| Rising Cut `k_bl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Lunging Cut `k_bh` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Aerial Cut `k_jl` | move | · | · | – | · | · | ☐ | ☐ | ✗ | ✗ | · | · | · | · | · | · | · | ☐ |
-| Falling Crown `k_jh` | move | · | · | – | · | · | ☐ | ☐ | ✓ | ✗ | · | · | · | · | · | · | · | ☐ |
+| Running Draw `k_sl` | move (task 75) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Leaping Cleave `k_sh` | move (task 75) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Wind Cut `k_dl` | move (task 75) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Whirl Cut `k_dh` | move (task 75) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Rising Cut `k_bl` | move (task 76) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Lunging Cut `k_bh` | move (task 76) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Aerial Cut `k_jl` | move (task 76) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
+| Falling Crown `k_jh` | move (task 76) | ✓ | ✓ | – | ✓ | ✓ | ☐ | ☐ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ☐ |
 
 ## 6. Block abilities and counters
 

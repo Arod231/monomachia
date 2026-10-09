@@ -13,7 +13,8 @@ extends RefCounted
 ## - a landing (LAND_BURST), a knocked-down fighter hitting the ground
 ##   (DOWN_BURST) and a stomp (STOMP_BURST) burst once; so do the rules'
 ##   blows (on_event(): a hit, a heavy block, a KO, the recall's and the
-##   ultimates' bursts), at their target's feet or where they go off.
+##   ultimates' bursts, a movement attack coming down, milestone-1 task 77),
+##   at their target's feet or where they go off.
 ## Bursts are (radius, strength). It reads the view and the rules' states and
 ## events and writes nothing back: picture only.
 
@@ -32,6 +33,7 @@ const SWEEP_SPEED: float = 2.0
 const LAND_BURST := Vector2(0.9, 1.8)
 const DOWN_BURST := Vector2(1.3, 2.4)
 const STOMP_BURST := Vector2(1.6, 3.0)
+const TOUCHDOWN_BURST := Vector2(1.6, 3.0)
 const HIT_BURST := Vector2(0.5, 0.8)
 const HEAVY_HIT_BURST := Vector2(0.8, 1.5)
 const HEAVY_BLOCK_BURST := Vector2(0.6, 1.0)
@@ -115,6 +117,9 @@ func on_event(e: Dictionary, at_of: Callable) -> void:
 		&"ultWave":
 			if e.has("pos"):
 				_burst_at(_vector(e["pos"]), ULT_WAVE_BURST)
+		&"touchdown":
+			if e.has("pos"):
+				_burst_at(_vector(e["pos"]), TOUCHDOWN_BURST)
 
 
 ## Forgets the last frame and the waiting bursts (a new match).

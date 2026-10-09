@@ -38,7 +38,8 @@ func test_computer_matches_back_fighters_against_the_wall_but_never_through_it()
 	# Whether a match reaches the wall depends on how it plays, which every
 	# rule change shifts, so seeds run until one has (at least three matches,
 	# at most fifty: since task 31's Right Cut and Return Cut, and again since
-	# KE task 17's charged grip heavies, fewer matches reach it; seed 49 first
+	# KE task 17's charged grip heavies and task 75's sprint attacks, fewer
+	# matches reach it; seed 49 first
 	# did then), and every match run is checked. The cost: losing the wall
 	# shows only once all fifty seeds miss it.
 	var furthest_body: float = 0.0
